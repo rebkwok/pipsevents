@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="small-margin">
+    <h1>Watermelon Studio Pips Events!</h1>
+
+    {% if events %}
+
+        {% for event in events %}
+
+            <h3><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
+            <p>{{ event.description }}</p>
+            <p>{{ event.location.name }}</p>
+            <p>{{ event.date }}</p>
+
+        {% endfor %}
+    {% else %}
+        <p>There are currently no planned events.</p>
+    {% endif %}
+
+</div>
+
+{% endblock content %}

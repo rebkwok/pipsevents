@@ -1,0 +1,12 @@
+{% extends 'account/base.html' %}
+
+
+{% block content %}
+
+        <div class="small_margin">
+    <h3>Your Profile</h3>
+
+    <p>Username: {{ user.username }}</p>
+    <p>Email address: {{ user.email }}</p>
+</div>
+{% endblock content %}

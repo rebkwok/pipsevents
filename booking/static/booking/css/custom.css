@@ -1,0 +1,413 @@
+
+
+.watermelon_bg {
+	background: url(../images/hoop_faded.jpg) no-repeat center center fixed;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+
+.plain_bg {
+	background-color: #F2F2F2;
+}
+
+body {
+	background-color: transparent;
+}
+
+@media (max-width: 979px) {
+	body {
+		padding-top: 0px;
+	}
+}
+
+html,
+body {
+	height: 100%;
+	/* The html and body elements cannot have any padding or margin. */
+}
+
+/* Wrapper for page content to push down footer */
+.wrap {
+	padding-top: 50px;
+	min-height: 100%;
+	height: auto !important;
+	height: 100%;
+	/* Negative indent footer by it's height */
+	margin: 0 auto -60px;
+}
+
+/* Set the fixed height of the footer here */
+.push,
+.footer {
+	height: 60px;
+}
+
+.footer {
+	background-color: transparent;
+}
+
+/* Lastly, apply responsive CSS fixes as necessary */
+@media (max-width: 767px) {
+	.footer {
+		margin-left: -20px;
+		margin-right: -20px;
+		padding-left: 20px;
+		padding-right: 20px;
+	}
+}
+
+.box {
+	border: 1px dashed red;
+}
+
+
+/* footer boxes alignment */
+
+.footer_box {
+    position: relative;
+}
+
+.footer_fb {
+    position: absolute;
+    bottom:0;
+    left: 0;
+}
+
+.footer_logo {
+    position: absolute;
+    bottom:0;
+    right: 0;
+}
+
+
+/* Half Page Height Carousel Customization */
+.carousel {
+	height: 60%;
+}
+
+.item,
+.active,
+.carousel-inner {
+	height: 100%;
+}
+
+.fill {
+	width: 100%;
+	height: 100%;
+	background-position: center;
+	background-size: cover;
+}
+
+/* Responsive Styles */
+@media (max-width: 767px) {
+
+	.carousel {
+		height: 100%;
+		/* increases the carousel height so it looks good on phones */
+	}
+	.caption-img {
+	    height: 20px;
+	}
+    .carousel-cap-text {
+    font-size: 100%;
+    }
+}
+
+/* carousel top caption */
+.caption-top {
+	top: 0;
+	right: 0;
+	bottom: auto;
+}
+
+.grid_ul {
+	padding: 0 0 0 0;
+	margin: 0 0 0 0;
+}
+
+.grid_ul_li {
+	list-style: none;
+	padding: 0 0 0 0;
+	margin: 10px 0 0 0;
+}
+
+ul li img {
+	cursor: pointer;
+}
+
+.photogrid {
+	width: 100px;
+	height: 100px;
+	padding: 0 0 0 0;
+	overflow: hidden;
+}
+
+.list-group-index {
+    background-color: transparent;
+    border:none;
+    padding-left: 0;
+    padding-bottom: 0;
+    padding-top: 0;
+    box-shadow: none;
+}
+
+.nav-logo {
+    max-height: 30px;
+    margin-top: -5px;
+}
+
+.footer-logo-image {
+    height:50px;
+}
+
+.instr-img {
+    padding-top:30px;
+}
+
+.event_line{
+border-bottom: 1px solid black;
+}
+
+.event_date {
+    padding-top:20px;
+}
+
+
+
+/* unvisited link */
+a:link {
+color: #FF6666;
+}
+
+/* visited link */
+a:visited {
+color: #FF6666;
+}
+
+/* mouse over link */
+a:hover {
+color: #red;
+}
+
+/* selected link */
+a:active {
+color: #000;
+}
+
+
+/* for sidebar */
+
+#wrapper {
+  padding-left: 200px;
+  transition: all 0.4s ease 0s;
+}
+
+#sidebar-wrapper {
+  margin-left: -200px;
+  left: 200px;
+  width: 200px;
+  background: #A0AF98;
+  position: fixed;
+  height: 80%;
+  overflow-y: auto;
+  z-index: 1000;
+  transition: all 0.4s ease 0s;
+}
+
+#page-content-wrapper {
+  width: 100%;
+}
+
+.sidebar-nav {
+  position: absolute;
+  top: 0;
+  width: 200px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-nav-sub {
+    list-style: none;
+    padding-left: 15px;
+}
+
+.sidebar-nav li {
+  line-height: 25px;
+  text-indent: 20px;
+}
+
+.sidebar-nav li a {
+  color: #000;
+  display: block;
+  border-left, border-right, border-bottom: 1px solid #fff;
+  text-decoration: none;
+}
+
+.sidebar-nav li a:hover {
+  color: #F78181;
+  background: rgba(255,255,255,0.2);
+  text-decoration: none;
+}
+
+.sidebar-nav li a:active,
+.sidebar-nav li a:focus {
+  text-decoration: none;
+}
+
+.sidebar-nav > .sidebar-brand {
+  height: 65px;
+  line-height: 60px;
+  font-size: 18px;
+}
+
+.sidebar-nav > .sidebar-brand a {
+  color: #000;
+}
+
+.sidebar-nav > .sidebar-brand a:hover {
+  color: #000;
+  background: none;
+}
+
+.content-header {
+  height: 65px;
+  line-height: 65px;
+}
+
+.content-header h1 {
+  margin: 0;
+  margin-left: 20px;
+  line-height: 65px;
+  display: inline-block;
+}
+
+#menu-toggle {
+  display: none;
+}
+
+.inset {
+  padding: 20px;
+}
+
+@media (max-width:767px) {
+
+    #wrapper {
+      padding-left: 0;
+    }
+
+    #sidebar-wrapper {
+      left: 0;
+    }
+
+    #wrapper.active {
+      position: relative;
+      left: 200px;
+    }
+
+    #wrapper.active #sidebar-wrapper {
+      left: 200px;
+      width: 200px;
+      transition: all 0.4s ease 0s;
+    }
+
+    #menu-toggle {
+      display: inline-block;
+    }
+
+    .inset {
+      padding: 15px;
+    }
+
+}
+
+
+.sidebar_active{
+    color: #298A08
+}
+.sidebar_inactive{
+    color: #173B0B
+}
+
+.modal-body {
+    padding: 15px;
+    padding-bottom: 0;
+    overflow-y: auto;
+ }
+
+  .modal-header {
+    padding-bottom: 5px;
+    padding-top: 5px;
+    overflow-y: auto;
+ }
+
+ .modal-footer {
+    text-align: center;
+    padding-bottom: 5px;
+    padding-top: 5px;
+    overflow-y: auto;
+ }
+
+
+
+.footer-credit {
+    font-size: 10px;
+    }
+
+
+td, th{
+border-right: 1px solid white;
+border-left: 1px solid white;
+}
+
+
+.small-margin {
+    padding-left: 30px;
+}
+
+
+.navbar-inverse { background-color: #fff}
+
+.navbar-inverse .navbar-nav>.active-nav>a:hover,
+.navbar-inverse .navbar-nav>li>a:hover,
+.navbar-inverse .navbar-nav>li>a:focus {
+    background-color: #FF6666;}
+
+
+.navbar-inverse .navbar-nav>.active-nav>a,
+.navbar-inverse .navbar-nav>.open>a,
+.navbar-inverse .navbar-nav>.open>a,
+.navbar-inverse .navbar-nav>.open>a:hover,
+.navbar-inverse .navbar-nav>.open>a,
+.navbar-inverse .navbar-nav>.open>a:hover,
+.navbar-inverse .navbar-nav>.open>a:focus {
+    background-color: #fff}
+
+.dropdown-menu { background-color: #fff}
+.dropdown-menu>li>a:hover, .dropdown-menu>li>a:focus { background-color: #FF6666}
+.navbar-inverse { background-image: none; }
+
+.dropdown-menu>li>a:hover, .dropdown-menu>li>a:focus { background-image: none; }
+.navbar-inverse { border-color: #FF6666}
+.navbar-inverse .navbar-brand { color: #999999}
+.navbar-inverse .navbar-brand:hover { color: #FFFFFF}
+.navbar-inverse .navbar-nav>li>a { color: #fff}
+.navbar-inverse .navbar-nav>li>a:hover, .navbar-inverse .navbar-nav>li>a:focus { color: #fff}
+.navbar-inverse .navbar-nav>.active-nav>a,.navbar-inverse .navbar-nav>.open>a, .navbar-inverse .navbar-nav>.open>a:hover, .navbar-inverse .navbar-nav>.open>a:focus { color: #FF6666}
+.navbar-inverse .navbar-nav>.active-nav>a:hover, .navbar-inverse .navbar-nav>.active-nav>a:focus { color: #fff}
+.navbar-inverse .navbar-nav>.active-nav-login>a,.navbar-inverse .navbar-nav>.open>a, .navbar-inverse .navbar-nav>.open>a:hover, .navbar-inverse .navbar-nav>.open>a:focus { color: #000}
+.navbar-inverse .navbar-nav>.active-nav-login>a:hover, .navbar-inverse .navbar-nav>.active-nav>a:focus { color: #000}
+
+.dropdown-menu>li>a { color: #333333}
+.dropdown-menu>li>a:hover, .dropdown-menu>li>a:focus { color: #FFFFFF}
+.navbar-inverse .navbar-nav>.dropdown>a .caret { border-top-color: #999999}
+.navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-top-color: #FFFFFF}
+.navbar-inverse .navbar-nav>.dropdown>a .caret { border-bottom-color: #999999}
+.navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-bottom-color: #FFFFFF}
+
+.nav-user {
+    padding-top: 15px;
+    color: green;
+}

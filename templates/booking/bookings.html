@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="small-margin">
+    {% if history %}
+        <h1>Your past bookings</h1>
+    {% else %}
+        <h1>Your bookings</h1>
+    {% endif %}
+
+    {% if bookings %}
+
+        {% for booking in bookings %}
+
+            <h3><a href="{% url 'booking:event_detail' booking.event.slug %}">{{ booking.event.name }}</a></h3>
+            <p>{{ booking.event.description }}</p>
+            <p>{{ booking.event.location.name }}</p>
+            <p>{{ booking.event.date }}</p>
+            <p>Payment received: {% if booking.paid %}Yes{% else %}No{% endif %}</p>
+
+
+        {% endfor %}
+    {% else %}
+        {% if history %}
+            <p>You do not have any past events.</p>
+        {% else %}
+            <p>You are not booked into any upcoming events.</p>
+        {% endif %}
+    {% endif %}
+
+</div>
+
+{% endblock content %}

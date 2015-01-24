@@ -1,0 +1,11 @@
+Django==1.7.3
+django-allauth==0.19.0
+django-braces==1.4.0
+django-extensions==1.4.9
+gnureadline==6.3.3
+oauthlib==0.7.2
+python-openid==2.2.5
+requests==2.5.1
+requests-oauthlib==0.4.2
+six==1.9.0
+wsgiref==0.1.2
