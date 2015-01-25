@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="small-margin">
+        <h1>Your booking for {{ booking.event.name }}</h1>
+
+    <form action="" method="post">{% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Update" />
+    </form>
+
+
+</div>
+
+{% endblock content %}

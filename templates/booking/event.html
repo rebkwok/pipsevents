@@ -7,12 +7,12 @@
     <h2>{{ event.name }}</h2>
     <p>{{ event.description }}</p>
     <h4>Location</h4>
-    <p>{{ event.location.name }}</p>
+    <p>{{ event.location }}</p>
     <h4>Date and time</h4>
     <p>{{ event.date }}</p>
     <h4>Contact</h4>
     <p>{{ event.contact_person }}</p>
-    <p>{{ event.contact_email }}</p>
+    <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
         <h4>Payment information</h4>
         <p>Cost: £ {{ event.cost }}</p>
         {% if event.payment_info %}
@@ -23,7 +23,17 @@
         {% endif %}
     {% if event.max_participants %}
         <h5>There are a maximum {{ event.max_participants }} spaces for this event.</h5>
+        <h5>Spaces left: {{ event.spaces_left }}</h5>
     {% endif %}
+
+    {% if booked %}
+        <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
+    {% elif event.spaces_left %}
+        <button><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
+    {% else %}
+        <h5>This event is fully booked.</h5>
+    {% endif %}
+
 </div>
 
 {% endblock content %}

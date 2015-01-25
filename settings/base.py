@@ -17,12 +17,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '10a!*ur!=_0)1)o#i#z(j()g0@gvd5fs@%x7oc41gxsac*nw_w'
+SECRET_KEY = 'secret'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-TEMPLATE_DEBUG = True
+TEMPLATE_DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -44,6 +44,7 @@ INSTALLED_APPS = (
     'django_extensions',
     'accounts',
     'booking',
+    'crispy_forms',
 )
 
 SITE_ID = 1
@@ -79,7 +80,7 @@ AUTHENTICATION_BACKENDS = (
 SOCIALACCOUNT_PROVIDERS = \
     {'facebook':
        {'SCOPE': ['email'],
-        'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
+        # 'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
         'METHOD': 'oauth2',
         'VERIFIED_EMAIL': False,
         'VERSION': 'v2.2'}}
@@ -88,8 +89,9 @@ SOCIALACCOUNT_PROVIDERS = \
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_EMAIL_SUBJECT_PREFIX = "[q4ts]"
+ACCOUNT_EMAIL_SUBJECT_PREFIX = "[pipsevents]"
 ACCOUNT_PASSWORD_MIN_LENGTH = 6
+ACCOUNT_SIGNUP_FORM_CLASS = 'booking.forms.SignupForm'
 
 SOCIALACCOUNT_QUERY_EMAIL = True
 
@@ -134,3 +136,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# EMAIL_USE_TLS = True
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_HOST_USER = 'rebkwok@gmail.com'
+# # EMAIL_HOST_PASSWORD
+# EMAIL_PORT = 587
+# DEFAULT_FROM_EMAIL = 'rebkwok@gmail.com'

@@ -12,9 +12,12 @@
 
             <h3><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
             <p>{{ event.description }}</p>
-            <p>{{ event.location.name }}</p>
+            <p>{{ event.location }}</p>
             <p>{{ event.date }}</p>
-
+            {% if event.max_participants %}
+                <p>Max spaces: {{ event.max_participants }}</p>
+                <p>Spaces left: {{ event.spaces_left }}</p>
+            {% endif %}
         {% endfor %}
     {% else %}
         <p>There are currently no planned events.</p>
