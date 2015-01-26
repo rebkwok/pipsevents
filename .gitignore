@@ -1,4 +1,4 @@
 *.pyc
 .idea/
 db.sqlite3
-settings/local.py
+staticfiles
