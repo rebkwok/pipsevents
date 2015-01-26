@@ -22,6 +22,8 @@ class Event(models.Model):
         if self.max_participants:
             booked_number = Booking.objects.filter(event__id=self.id).count()
             return self.max_participants - booked_number
+        else:
+            return 100
 
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})

@@ -105,7 +105,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
 
     def form_valid(self, form):
         # check there are spaces available
-        if not self.event.spaces_left():
+        if self.event.spaces_left() == 0:
             return HttpResponseRedirect(reverse('booking:fully_booked',
                                         args=[self.event.slug]))
         try:
