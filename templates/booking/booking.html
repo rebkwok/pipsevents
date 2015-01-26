@@ -40,7 +40,7 @@
                         {% endif %}
                             {% if booking.event.cost > 0 and not booking.paid %}
                                 {% if booking.event.payment_open %}
-                                    <button><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made and update booking</a></button>
+                                    <button type="button" class="btn btn-success"><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made and update booking</a></button>
                                 {% endif %}
                             {% endif %}
                             <button type="button" class="btn btn-danger"><a href="{% url 'booking:delete_booking' booking.pk %}">Delete booking</a></button>
