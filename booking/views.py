@@ -31,7 +31,12 @@ class EventDetailView(DetailView):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data(**kwargs)
         # Add in the booked flag
-        context['booked'] = True
+        event = get_object_or_404(Event, slug=self.kwargs['slug'])
+        user_bookings = self.request.user.bookings.all()
+        user_booked_events = [booking.event for booking in user_bookings]
+
+        if event in user_booked_events:
+            context['booked'] = True
         return context
 
 class BookingListView(LoginRequiredMixin, ListView):

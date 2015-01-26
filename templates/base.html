@@ -50,13 +50,14 @@
                         {% if user.is_authenticated %}
                         <li class="active-nav"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
                         <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
+                        <li class="active-nav"><a href="http://www.thewatermelonstudio.co.uk" target="_blank">Studio website</a></li>
                         {% endif %}
                     </ul>
                     <ul class="nav navbar-nav pull-right">
                         {% if user.is_authenticated %}
                             <li class="active-nav-login"><a href="{% url 'account_email' %}">Change E-mail</a></li>
                             <li class="active-nav-login"><a href="{% url 'account_logout' %}">Sign Out</a></li>
-                            <li class="nav-user">Welcome {{ user }}!</li>
+                            <li class="active-nav-login"><a href="{% url 'profile:profile' %}">Welcome {{ user }}!</a></li>
                         {% else %}
                             <li class="active-nav-login"><a href="{% url 'account_login' %}">Sign In</a></li>
                             <li class="active-nav-login"><a href="{% url 'account_signup' %}">Sign Up</a></li>

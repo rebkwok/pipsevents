@@ -24,15 +24,22 @@
     {% if event.max_participants %}
         <h5>There are a maximum {{ event.max_participants }} spaces for this event.</h5>
         <h5>Spaces left: {{ event.spaces_left }}</h5>
+        {% if booked %}
+         <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
+        {% elif event.spaces_left %}
+            <button><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
+        {% else %}
+            <h5>This event is fully booked.</h5>
+        {% endif %}
+    {% else %}
+        {% if booked %}
+         <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
+        {% else %}
+            <button><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
+        {% endif %}
     {% endif %}
 
-    {% if booked %}
-        <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
-    {% elif event.spaces_left %}
-        <button><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
-    {% else %}
-        <h5>This event is fully booked.</h5>
-    {% endif %}
+
 
 </div>
 

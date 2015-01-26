@@ -19,8 +19,9 @@ class Event(models.Model):
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     def spaces_left(self):
-        booked = Booking.objects.filter(event__id=self.id).count()
-        return self.max_participants - booked
+        if self.max_participants:
+            booked_number = Booking.objects.filter(event__id=self.id).count()
+            return self.max_participants - booked_number
 
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
