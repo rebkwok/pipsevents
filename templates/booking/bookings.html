@@ -20,7 +20,7 @@
                 <h3 class="panel-title"><a href="{% url 'booking:booking_detail' booking.pk %}">{{ booking.event.name }}</a></h3>
             </div>
             <div class="panel-body">
-                <p>{{ booking.event.date }}</p>
+                <p>{{ booking.event.date |  date:"D d F, g:i a" }}</p>
                 <p>{% if booking.event.payment_open %}
                         Payments can now be made according to the payment information provided.
                     {% else %}

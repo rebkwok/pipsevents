@@ -19,7 +19,7 @@
                     <div class="panel-body">
                         <p>{{ event.description }}</p>
                         <p>{{ event.location }}</p>
-                        <p>{{ event.date }}</p>
+                        <p>{{ event.date | date:"D d F, g:i a" }}</p>
                         {% if event.max_participants %}
                             <p>Max spaces: {{ event.max_participants }}</p>
                             <p>Spaces left: {{ event.spaces_left }}</p>

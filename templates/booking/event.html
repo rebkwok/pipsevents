@@ -16,7 +16,7 @@
                 <h4>Location</h4>
                 <p>{{ event.location }}</p>
                 <h4>Date and time</h4>
-                <p>{{ event.date }}</p>
+                <p>{{ event.date |  date:"D d F, g:i a" }}</p>
                 <h4>Contact</h4>
                 <p>{{ event.contact_person }}</p>
                 <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
@@ -26,7 +26,7 @@
                     <p>Payment information: {{ event.payment_info }}</p>
                     {% endif %}
                     {% if event.payment_due_date %}
-                    <p>Payment is due by {{ event.payment_due_date }}</p>
+                    <p>Payment is due by {{ event.payment_due_date |  date:"D d F" }}</p>
                     {% endif %}
                 {% if event.max_participants %}
                     <h5>There are a maximum {{ event.max_participants }} spaces for this event.</h5>
