@@ -3,21 +3,30 @@
 
 {% block content %}
 
-<div class="small-margin">
-        <h3>You are about to delete your booking for {{ event.name }}!</h3>
-        <h4>Are you sure?</h4>
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h2 class="panel-title">Delete Booking</h2>
+            </div>
+       <div class="panel-body">
+            <h3>You are about to delete your booking for {{ event.name }}!</h3>
+            <h4>Are you sure?</h4>
 
-        <p>Please note that any payments already made will not be automatically
-        refunded.</p>
-        <p>For information on payments, please email {{ event.contact_person }}
-        at <a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
+            <p>Please note that any payments already made will not be automatically
+            refunded.</p>
+            <p>For information on payments, please email {{ event.contact_person }}
+            at <a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
 
-    <form action="" method="post">{% csrf_token %}
-        {{ form.as_p }}
-        <input type="submit" value="Confirm Delete" />
-        <button><a href="{% url 'booking:bookings' %}">Cancel</a></button>
-    </form>
+            <form action="" method="post">{% csrf_token %}
+                {{ form.as_p }}
+                <input class="btn btn-danger" type="submit" value="Confirm Delete" />
+                <button class="btn btn-warning"><a href="{% url 'booking:bookings' %}">Cancel</a></button>
+            </form>
 
+        </div>
+        </div>
+     </div>
 
 </div>
 

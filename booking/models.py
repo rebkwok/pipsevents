@@ -33,21 +33,16 @@ class Event(models.Model):
 class Booking(models.Model):
     user = models.ForeignKey(User, related_name='bookings')
     event = models.ForeignKey(Event, related_name='bookings')
-    paid = models.BooleanField('Paid', default=False, help_text='Tick to confirm payment has been made')
-    payment_confirmed = models.BooleanField('Payment confirmed by organiser', default=False)
+    paid = models.BooleanField(verbose_name='Payment made (as confirmed by particpant', default=False, help_text='Payment has been made by user')
+    payment_confirmed = models.BooleanField(default=False, help_text='Payment confirmed by admin/organiser')
 
-    def confirm_place(self):
+    def confirm_space(self):
         self.paid = True
         self.payment_confirmed = True
         self.save()
 
     def space_confirmed(self):
-        if self.event.cost > 0:
-            if self.payment_confirmed:
-                return True
-            return False
-        else:
-            return True
+        return self.event.cost == 0 or self.payment_confirmed
     space_confirmed.boolean = True
 
     class Meta:

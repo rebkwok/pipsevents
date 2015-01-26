@@ -3,26 +3,38 @@
 
 {% block content %}
 
-<div class="small-margin">
-    <h1>Watermelon Studio Pips Events!</h1>
+    <div class="small-margin container-fluid row">
 
-    {% if events %}
+        <h1>Watermelon Studio Pips Events!</h1>
 
-        {% for event in events %}
+        {% if events %}
+        <div class="row">
+            <div class="col-sm-11">
+                <div class="panel panel-success">
+                {% for event in events %}
 
-            <h3><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
-            <p>{{ event.description }}</p>
-            <p>{{ event.location }}</p>
-            <p>{{ event.date }}</p>
-            {% if event.max_participants %}
-                <p>Max spaces: {{ event.max_participants }}</p>
-                <p>Spaces left: {{ event.spaces_left }}</p>
-            {% endif %}
-        {% endfor %}
-    {% else %}
-        <p>There are currently no planned events.</p>
-    {% endif %}
+                    <div class="panel-heading">
+                        <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
+                    </div>
+                    <div class="panel-body">
+                        <p>{{ event.description }}</p>
+                        <p>{{ event.location }}</p>
+                        <p>{{ event.date }}</p>
+                        {% if event.max_participants %}
+                            <p>Max spaces: {{ event.max_participants }}</p>
+                            <p>Spaces left: {{ event.spaces_left }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+         </div>
+        {% else %}
+            <p>There are currently no planned events.</p>
+        {% endif %}
 
-</div>
+    </div>
+
+
 
 {% endblock content %}

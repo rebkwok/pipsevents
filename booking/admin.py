@@ -82,7 +82,7 @@ class EventAdmin(admin.ModelAdmin):
 class BookingAdmin(admin.ModelAdmin):
 
     list_display = ('event', 'get_date', 'user', 'get_user_first_name',
-                    'get_user_last_name', 'get_cost', 'paid', 'payment_confirmed',
+                    'get_user_last_name', 'get_cost', 'paid',
                     'space_confirmed')
 
     list_filter = (BookingDateListFilter, 'user', 'event')
@@ -100,16 +100,16 @@ class BookingAdmin(admin.ModelAdmin):
         return obj.user.last_name
     get_user_last_name.short_description = 'Last name'
 
-    actions = ['confirm_place']
+    actions = ['confirm_space']
 
     def get_cost(self, obj):
         return obj.event.cost
     get_cost.short_description = 'Cost (GBP)'
 
-    def confirm_place(self, request, queryset):
+    def confirm_space(self, request, queryset):
         for obj in queryset:
-            obj.confirm_place()
-    confirm_place.short_description = "Mark selected bookings as paid and confirmed"
+            obj.confirm_space()
+    confirm_space.short_description = "Mark selected bookings as paid and confirmed"
 
 
 admin.site.register(Event, EventAdmin)

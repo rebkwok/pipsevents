@@ -3,52 +3,51 @@
 
 {% block content %}
 
-<div class="small-margin">
-    <h2>Your booking for {{ booking.event.name }}</h2>
+<div class="small-margin extra-top-margin container-fluid row">
 
-    {% if messages %}
-        <ul class="messages">
-         {% for message in messages %}
-            <li id="message_{{ forloop.counter}}"
-                {% if message.tags %} class="{{ message.tags }}" {% endif %}>
-                {{ message }}
-            </li>
-         {% endfor %}
-        </ul>
-    {% endif %}
+    <div class="col-sm-11">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h3 class="panel-title">Your booking for <a href="{% url 'booking:event_detail' booking.event.slug %}">{{ booking.event.name }}</a></h3>
+            </div>
+                <div class="panel-body">
+                    <p>{{ booking.event.description }}</p>
+                    <h4>Location</h4>
+                    <p>{{ booking.event.location }}</p>
+                    <h4>Date and time</h4>
+                    <p>{{ booking.event.date }}</p>
+                    <h4>Contact</h4>
+                    <p>{{ booking.event.contact_person }}</p>
+                    <p><a href="mailto:{{ booking.event.contact_email }}?Subject=Enquiry regarding booking for {{ booking.event.name }}" target="_blank">{{ booking.event.contact_email }}</a></p>
+                    <h4>Payment information</h4>
+                        {% if booking.event.cost > 0 %}
+                            <p>Cost: £{{ booking.event.cost }}</p>
+                            <p>{{ booking.event.payment_info }}
+                            <p>{% if booking.event.payment_open %}
+                                    Payments can now be made according to the payment info above.
+                                {% else %}
+                                    Payments are not currently being taken for this event; further information
+                                    will be sent closer to the event date.
+                                {% endif %}</p>
+                            <p><strong>Payment made (as confirmed by participant):</strong> {% if booking.paid %}Yes{% else %}No{% endif %}</p>
+                            <p><strong>Payment received and place confirmed:</strong> {% if booking.space_confirmed %}Yes{% else %}Pending{% endif %}</p>
+                        {% else %}
+                            <p>There is no cost associated with this event.</p>
+                            <p><strong>Place confirmed:</strong> {% if booking.space_confirmed %}Yes{% else %}Pending{% endif %}</p>
+                        {% endif %}
+                        {% if booking.event.date < now %}
+                            {% if booking.event.cost > 0 and not booking.paid %}
+                                {% if booking.event.payment_open %}
+                                    <button><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made and update booking</a></button>
+                                {% endif %}
+                            {% endif %}
+                            <button type="button" class="btn btn-danger"><a href="{% url 'booking:delete_booking' booking.pk %}">Delete booking</a></button>
+                        {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <h4>Event description</h4>
-        <h3><a href="{% url 'booking:event_detail' booking.event.slug %}">{{ booking.event.name }}</a></h3>
-        <p>{{ booking.event.description }}</p>
-        <h4>Location</h4>
-        <p>{{ booking.event.location }}</p>
-        <h4>Date and time</h4>
-        <p>{{ booking.event.date }}</p>
-        <h4>Contact</h4>
-        <p>{{ booking.event.contact_person }}</p>
-        <p><a href="mailto:{{ booking.event.contact_email }}?Subject=Enquiry regarding booking for {{ booking.event.name }}" target="_blank">{{ booking.event.contact_email }}</a></p>
-        <h4>Payment information</h4>
-            {% if booking.event.cost > 0 %}
-                <p>Cost: £{{ booking.event.cost }}</p>
-                <p>Payment info: {{ booking.event.payment_info }}
-                <p>{% if booking.event.payment_open %}
-                        Payments can now be made according to the payment info above.
-                    {% else %}
-                        Payments are not currently being taken for this event; further information
-                        will be sent closer to the event date.
-                    {% endif %}</p>
-                <p>Paid: {% if booking.paid %}Yes{% else %}No{% endif %}</p>
-                <p>Payment received and place confirmed: {% if booking.space_confirmed %}Yes{% else %}Pending{% endif %}</p>
-            {% else %}
-                <p>There is no cost associated with this event.</p>
-                <p>Place confirmed: {% if booking.space_confirmed %}Yes{% else %}Pending{% endif %}</p>
-            {% endif %}
 
-            {% if booking.event.cost > 0 and not booking.paid %}
-                {% if booking.event.payment_open %}
-                    <button><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made and update booking</a></button>
-                {% endif %}
-            {% endif %}
-
-            <button><a href="{% url 'booking:delete_booking' booking.pk %}">Delete booking</a></button>
 {% endblock content %}

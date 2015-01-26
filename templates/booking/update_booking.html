@@ -3,13 +3,28 @@
 
 {% block content %}
 
-<div class="small-margin">
-        <h1>Your booking for {{ booking.event.name }}</h1>
-
-    <form action="" method="post">{% csrf_token %}
-        {{ form.as_p }}
-        <input type="submit" value="Update" />
-    </form>
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h1 class="panel-title">Your booking for {{ booking.event.name }}</h1>
+            </div>
+           <div class="panel-body">
+                {% if booking.event.cost != 0 %}
+                <form action="" method="post">{% csrf_token %}
+                    <h4>{{ form.paid.label}}</h4>
+                    <p>{{ form.paid }} {{ form.paid.help_text}}</p>
+                    <p>Please note that your booking will be marked as pending
+                    until the organiser has reviewed and confirmed it.</p>
+                    <input class="btn btn-success" type="submit" value="Update" />
+                    <button class="btn btn-warning"><a href="{% url 'booking:bookings' %}">Cancel</a></button>
+                </form>
+                {% else %}
+                    <h5>There is no cost associated with this event, nothing to update.</h5>
+                {% endif %}
+            </div>
+       </div>
+    </div>
 
 
 </div>

@@ -4,15 +4,23 @@
 
 {% block content %}
 
-<div class="small-margin">
-        <h1>New booking</h1>
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h2 class="panel-title">New booking for {{ event_name }}</h2>
+            </div>
+            <div class="panel-body">
+                <form action="" method="post">{% csrf_token %}
+                    <div class="form-group">
+                        {{ form.as_p  }}
+                    <input class="btn btn-success" type="submit" value="Book" />
+                    </div>
+                </form>
+            </div>
+       </div>
 
-    <form action="" method="post">{% csrf_token %}
-            {{ form|crispy  }}
-        <input type="submit" value="Create" />
-    </form>
-
-
+</div>
 </div>
 
 {% endblock content %}

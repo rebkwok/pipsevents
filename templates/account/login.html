@@ -16,10 +16,10 @@ of your existing third party accounts. Or, <a href="{{ signup_url }}">sign up</a
 for a {{site_name}} account.{% endblocktrans %}</p>
 
 <div class="socialaccount_ballot">
-    Sign in with:
-  <ul class="socialaccount_providers" style="list-style-type: none;">
+    Sign in with
+  <button class="socialaccount_providers btn btn-primary" style="list-style-type: none;">
      {% include "socialaccount/snippets/provider_list.html" with process="login" %}
-  </ul>
+  </button>
 
   <div class="login-or">{% trans 'or sign in with your previously chosen username and password:' %}</div>
     </br>
@@ -40,7 +40,7 @@ for a {{site_name}} account.{% endblocktrans %}</p>
   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
   {% endif %}
   <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
-  <button class="primaryAction" type="submit">{% trans "Sign In" %}</button>
+  <button class="primaryAction btn btn-success" type="submit">{% trans "Sign In" %}</button>
 </form>
 
 {% endblock %}

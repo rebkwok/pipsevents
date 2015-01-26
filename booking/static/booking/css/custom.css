@@ -1,7 +1,7 @@
 
 
 .watermelon_bg {
-	background: url(../images/hoop_faded.jpg) no-repeat center center fixed;
+	background: url(../images/logo.png) no-repeat center center fixed;
 	-webkit-background-size: cover;
 	-moz-background-size: cover;
 	-o-background-size: cover;
@@ -367,6 +367,9 @@ border-left: 1px solid white;
     padding-left: 30px;
 }
 
+.extra-top-margin {
+    padding-top: 30px;
+}
 
 .navbar-inverse { background-color: #fff}
 
@@ -410,4 +413,9 @@ border-left: 1px solid white;
 .nav-user {
     padding-top: 15px;
     color: green;
+}
+
+button>a:link, button>a:visited {
+    color: #fff;
+    text-decoration: none;
 }

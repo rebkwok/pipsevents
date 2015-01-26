@@ -3,43 +3,51 @@
 
 {% block content %}
 
-<div class="small-margin">
-    <h2>{{ event.name }}</h2>
-    <p>{{ event.description }}</p>
-    <h4>Location</h4>
-    <p>{{ event.location }}</p>
-    <h4>Date and time</h4>
-    <p>{{ event.date }}</p>
-    <h4>Contact</h4>
-    <p>{{ event.contact_person }}</p>
-    <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
-        <h4>Payment information</h4>
-        <p>Cost: £ {{ event.cost }}</p>
-        {% if event.payment_info %}
-        <p>Payment information: {{ event.payment_info }}</p>
-        {% endif %}
-        {% if event.payment_due_date %}
-        <p>Payment is due by {{ event.payment_due_date }}</p>
-        {% endif %}
-    {% if event.max_participants %}
-        <h5>There are a maximum {{ event.max_participants }} spaces for this event.</h5>
-        <h5>Spaces left: {{ event.spaces_left }}</h5>
-        {% if booked %}
-         <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
-        {% elif event.spaces_left %}
-            <button><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
-        {% else %}
-            <h5>This event is fully booked.</h5>
-        {% endif %}
-    {% else %}
-        {% if booked %}
-         <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
-        {% else %}
-            <button><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
-        {% endif %}
-    {% endif %}
 
 
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
+            </div>
+            <div class="panel-body">
+                <p>{{ event.description }}</p>
+                <h4>Location</h4>
+                <p>{{ event.location }}</p>
+                <h4>Date and time</h4>
+                <p>{{ event.date }}</p>
+                <h4>Contact</h4>
+                <p>{{ event.contact_person }}</p>
+                <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
+                    <h4>Payment information</h4>
+                    <p>Cost: £ {{ event.cost }}</p>
+                    {% if event.payment_info %}
+                    <p>Payment information: {{ event.payment_info }}</p>
+                    {% endif %}
+                    {% if event.payment_due_date %}
+                    <p>Payment is due by {{ event.payment_due_date }}</p>
+                    {% endif %}
+                {% if event.max_participants %}
+                    <h5>There are a maximum {{ event.max_participants }} spaces for this event.</h5>
+                    <h5>Spaces left: {{ event.spaces_left }}</h5>
+                    {% if booked %}
+                     <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
+                    {% elif event.spaces_left %}
+                        <button type="button" class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
+                    {% else %}
+                        <h5>This event is fully booked.</h5>
+                    {% endif %}
+                {% else %}
+                    {% if booked %}
+                     <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
+                    {% else %}
+                        <button type="button" class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
 </div>
 
