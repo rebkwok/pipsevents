@@ -400,15 +400,16 @@ border-left: 1px solid white;
 .navbar-inverse .navbar-nav>li>a:hover, .navbar-inverse .navbar-nav>li>a:focus { color: #fff}
 .navbar-inverse .navbar-nav>.active-nav>a,.navbar-inverse .navbar-nav>.open>a, .navbar-inverse .navbar-nav>.open>a:hover, .navbar-inverse .navbar-nav>.open>a:focus { color: #FF6666}
 .navbar-inverse .navbar-nav>.active-nav>a:hover, .navbar-inverse .navbar-nav>.active-nav>a:focus { color: #fff}
-.navbar-inverse .navbar-nav>.active-nav-login>a,.navbar-inverse .navbar-nav>.open>a, .navbar-inverse .navbar-nav>.open>a:hover, .navbar-inverse .navbar-nav>.open>a:focus { color: #000}
-.navbar-inverse .navbar-nav>.active-nav-login>a:hover, .navbar-inverse .navbar-nav>.active-nav>a:focus { color: #000}
+.navbar-inverse .navbar-nav>.active-nav-login>a,.navbar-inverse .navbar-nav>.open>a, .navbar-inverse .navbar-nav>.open>a:hover, .navbar-inverse .navbar-nav>.open>a:focus { color: #585858}
+.navbar-inverse .navbar-nav>.active-nav-login>a:hover, .navbar-inverse .navbar-nav>.active-nav>a:focus { color: #585858}
 
-.dropdown-menu>li>a { color: #333333}
-.dropdown-menu>li>a:hover, .dropdown-menu>li>a:focus { color: #FFFFFF}
+.dropdown-menu>li>a { color: #585858}
+.dropdown-menu>li>a:hover, .dropdown-menu>li>a:focus { color: #fff}
+.navbar-inverse .navbar-nav>.dropdown>a { color: #585858}
 .navbar-inverse .navbar-nav>.dropdown>a .caret { border-top-color: #999999}
-.navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-top-color: #FFFFFF}
+.navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-top-color: #FF6666}
 .navbar-inverse .navbar-nav>.dropdown>a .caret { border-bottom-color: #999999}
-.navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-bottom-color: #FFFFFF}
+.navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-bottom-color: #FF6666}
 
 .nav-user {
     padding-top: 15px;
@@ -418,4 +419,16 @@ border-left: 1px solid white;
 button>a:link, button>a:visited {
     color: #fff;
     text-decoration: none;
+}
+
+.confirmed {
+    color: green;
+}
+
+.not-confirmed {
+    color: red;
+}
+
+.socialaccount_providers a {
+    color: #fff;
 }

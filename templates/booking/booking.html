@@ -24,16 +24,19 @@
                             <p>Cost: £{{ booking.event.cost }}</p>
                             <p>{{ booking.event.payment_info }}
                             <p>{% if booking.event.payment_open %}
-                                    Payments can now be made according to the payment info above.
+                                    Payments can now be made according to the payment information provided.
                                 {% else %}
                                     Payments are not currently being taken for this event; further information
                                     will be sent closer to the event date.
                                 {% endif %}</p>
-                            <p><strong>Payment made (as confirmed by participant):</strong> {% if booking.paid %}Yes{% else %}No{% endif %}</p>
-                            <p><strong>Payment received and place confirmed:</strong> {% if booking.space_confirmed %}Yes{% else %}Pending{% endif %}</p>
+                            <p><strong>Payment made (as confirmed by participant): {% if booking.paid %}<span class="confirmed">Yes</span>
+                                {% else %}<span class="not-confirmed">No</span>{% endif %}</strong></p>
+                            <p><strong>Payment received and place confirmed: {% if booking.space_confirmed %}<span class="confirmed">Yes</span>
+                                {% else %}<span class="not-confirmed">Pending</span>{% endif %}</strong></p>
                         {% else %}
                             <p>There is no cost associated with this event.</p>
-                            <p><strong>Place confirmed:</strong> {% if booking.space_confirmed %}Yes{% else %}Pending{% endif %}</p>
+                            <p><strong>Place confirmed: {% if booking.space_confirmed %}<span class="confirmed">Yes</span>{% else %}
+                                <span class="not-confirmed">Pending</span>{% endif %}</strong></p><
                         {% endif %}
                         {% if booking.event.date < now %}
                             {% if booking.event.cost > 0 and not booking.paid %}
