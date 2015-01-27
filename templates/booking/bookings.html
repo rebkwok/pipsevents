@@ -30,9 +30,12 @@
                         Payments are not currently being taken for this event; further information
                         will be sent closer to the event date.
                     {% endif %}</p>
-                {% endif %}
+                    <p><strong>Payment received and place confirmed: {% if booking.space_confirmed %}<span class="confirmed">Yes</span>
+                        {% else %}<span class="not-confirmed">Pending</span>{% endif %}</strong></p>
+                {% else %}
                 <p><strong>Place confirmed: {% if booking.space_confirmed %}<span class="confirmed">Yes</span>
-                    {% else %}<span class="not-confirmed">Pending</span>{% endif %}</strong></p>
+                        {% else %}<span class="not-confirmed">Pending</span>{% endif %}</strong></p>
+                {% endif %}
                 {% if not history %}
                     {% if booking.event.cost > 0 and not booking.paid %}
                         {% if booking.event.payment_open %}
