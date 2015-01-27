@@ -21,12 +21,16 @@
             </div>
             <div class="panel-body">
                 <p>{{ booking.event.date |  date:"D d F, g:i a" }}</p>
-                <p>{% if booking.event.payment_open %}
-                        Payments can now be made according to the payment information provided.
-                    {% else %}
+                <p>Cost: £{{ booking.event.cost }}</p>
+                {% if booking.event.cost > 0%}
+                    {% if booking.event.payment_open and not booking.paid %}
+                        <p>Payments can now be made according to the payment information provided.</p>
+                        <p>{{ booking.event.payment_info }}</p>
+                    {% elif not booking.event.payment_open %}
                         Payments are not currently being taken for this event; further information
                         will be sent closer to the event date.
                     {% endif %}</p>
+                {% endif %}
                 <p><strong>Place confirmed: {% if booking.space_confirmed %}<span class="confirmed">Yes</span>
                     {% else %}<span class="not-confirmed">Pending</span>{% endif %}</strong></p>
                 {% if not history %}
