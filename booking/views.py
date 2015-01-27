@@ -19,7 +19,7 @@ class EventListView(ListView):
         return Event.objects.filter(date__gte=timezone.now()).order_by('date')
 
 
-class EventDetailView(DetailView):
+class EventDetailView(LoginRequiredMixin, DetailView):
 
     model = Event
     context_object_name = 'event'
