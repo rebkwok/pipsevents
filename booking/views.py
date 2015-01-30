@@ -10,7 +10,6 @@ from booking.forms import BookingUpdateForm, BookingCreateForm
 import booking.context_helpers as context_helpers
 
 class EventListView(ListView):
-
     model = Event
     context_object_name = 'events'
     template_name = 'booking/events.html'
@@ -27,13 +26,16 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self):
         queryset = Event.objects.filter(date__gte=timezone.now())
+        #TODO ?? redirect to past event page if event found but in past
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data(**kwargs)
         event = self.object
-        return context_helpers.get_event_context(context, event, self.request.user)
+        return context_helpers.get_event_context(
+            context, event, self.request.user
+        )
 
 
 class BookingListView(LoginRequiredMixin, ListView):
@@ -150,6 +152,13 @@ class BookingDetailView(LoginRequiredMixin, BookingActionMixin, DetailView):
     model = Booking
     context_object_name = 'booking'
     template_name = 'booking/booking.html'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(BookingDetailView, self).get_context_data(**kwargs)
+        booking = self.object
+        return context_helpers.get_booking_context(context, booking)
+
 
 def duplicate_booking(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)

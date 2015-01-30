@@ -19,7 +19,7 @@
                 <p>{{ event.contact_person }}</p>
                 <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
                 <h4>Payment information</h4>
-                    <h5>{% if event.advance_payment_required %}Advance payment is required for this event{% endif %}</h5>
+                    <h5>Advance payment is {% if not event.advance_payment_required %}not{% endif %} required for this event.</h5>
 
                     <p>Cost: £ {{ event.cost }}</p>
 
