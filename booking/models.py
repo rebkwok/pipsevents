@@ -13,8 +13,10 @@ class Event(models.Model):
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+    advance_payment_required = models.BooleanField(default=False)
     payment_open = models.BooleanField(default=False)
     payment_info = models.TextField(blank=True)
+    payment_link = models.URLField(blank=True, default="http://www.paypal.co.uk")
     payment_due_date = models.DateTimeField(null=True, blank=True)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
@@ -44,7 +46,9 @@ class Booking(models.Model):
         self.save()
 
     def space_confirmed(self):
-        return self.event.cost == 0 or self.payment_confirmed
+        return not self.event.advance_payment_required or \
+               self.event.cost == 0 or \
+               self.payment_confirmed
     space_confirmed.boolean = True
 
     class Meta:
