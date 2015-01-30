@@ -23,6 +23,9 @@ if SECRET_KEY == None:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', False)
+if str(DEBUG).lower not in ['true', 'on']:
+    # in case env variable is changed to False (stored as string, truthy)
+    DEBUG = False
 
 TEMPLATE_DEBUG = DEBUG
 
