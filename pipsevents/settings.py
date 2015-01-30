@@ -11,8 +11,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
-
+#
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
@@ -23,8 +22,10 @@ if SECRET_KEY == None:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', False)
-if str(DEBUG).lower not in ['true', 'on']:
-    # in case env variable is changed to False (stored as string, truthy)
+# when env variable is changed it will be a string, not bool
+if str(DEBUG).lower() in ['true', 'on']:
+    DEBUG = True
+else:
     DEBUG = False
 
 TEMPLATE_DEBUG = DEBUG
@@ -162,11 +163,10 @@ ALLOWED_HOSTS = ['*']
 
 # Static asset configuration
 import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_ROOT = 'staticfiles'
+
+STATIC_ROOT = 'static'
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
-
