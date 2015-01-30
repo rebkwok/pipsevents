@@ -7,7 +7,7 @@ from django.utils import timezone
 from braces.views import LoginRequiredMixin
 from booking.models import Event, Booking
 from booking.forms import BookingUpdateForm, BookingCreateForm
-
+import booking.context_helpers as context_helpers
 
 class EventListView(ListView):
 
@@ -32,14 +32,9 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data(**kwargs)
-        # Add in the booked flag
-        event = get_object_or_404(Event, slug=self.kwargs['slug'])
-        user_bookings = self.request.user.bookings.all()
-        user_booked_events = [booking.event for booking in user_bookings]
+        event = self.object
+        return context_helpers.get_event_context(context, event, self.request.user)
 
-        if event in user_booked_events:
-            context['booked'] = True
-        return context
 
 class BookingListView(LoginRequiredMixin, ListView):
 
@@ -48,7 +43,10 @@ class BookingListView(LoginRequiredMixin, ListView):
     template_name = 'booking/bookings.html'
 
     def get_queryset(self):
-        return Booking.objects.filter(event__date__gte=timezone.now()).filter(user=self.request.user).order_by('event__date')
+        return Booking.objects.filter(
+            event__date__gte=timezone.now(),
+            user=self.request.user).order_by('event__date'
+        )
 
 
 class BookingHistoryListView(LoginRequiredMixin, ListView):
@@ -59,7 +57,10 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
 
     def get_queryset(self):
-        return Booking.objects.filter(event__date__lte=timezone.now()).filter(user=self.request.user).order_by('-event__date')
+        return Booking.objects.filter(
+            event__date__lte=timezone.now(),
+            user=self.request.user).order_by('-event__date'
+        )
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -117,6 +118,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             #trying to make a booking that already exists
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
+
 
 class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
     model = Booking
