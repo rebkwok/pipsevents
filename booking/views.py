@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
+from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.utils import timezone
@@ -19,7 +20,10 @@ class EventListView(ListView):
     template_name = 'booking/events.html'
 
     def get_queryset(self):
-        return Event.objects.filter(date__gte=timezone.now()).order_by('date')
+        return Event.objects.filter(
+            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP)) & 
+            Q(date__gte=timezone.now())
+        ).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -29,6 +33,7 @@ class EventListView(ListView):
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings]
             context['booked_events'] = booked_events
+            context['type'] = 'events'
         return context
 
 
@@ -39,13 +44,64 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(date__gte=timezone.now())
+        queryset = Event.objects.filter(
+            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP)) &
+            Q(date__gte=timezone.now())
+        ).order_by('date')
+
         #TODO ?? redirect to past event page if event found but in past
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data(**kwargs)
+        event = self.object
+        return context_helpers.get_event_context(
+            context, event, self.request.user
+        )
+
+
+class LessonListView(ListView):
+    model = Event
+    context_object_name = 'events'
+    template_name = 'booking/events.html'
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS)) &
+            Q(date__gte=timezone.now())
+        ).order_by('date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(LessonListView, self).get_context_data(**kwargs)
+        if not self.request.user.is_anonymous():
+        # Add in the booked_events
+            user_bookings = self.request.user.bookings.all()
+            booked_events = [booking.event for booking in user_bookings]
+            context['booked_events'] = booked_events
+            context['type'] = 'lessons'
+        return context
+
+
+class LessonDetailView(LoginRequiredMixin, DetailView):
+
+    model = Event
+    context_object_name = 'event'
+    template_name = 'booking/event.html'
+
+    def get_object(self):
+        queryset = Event.objects.filter(
+            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS)) &
+            Q(date__gte=timezone.now())
+        ).order_by('date')
+
+        #TODO ?? redirect to past event page if event found but in past
+        return get_object_or_404(queryset, slug=self.kwargs['slug'])
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(LessonDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
             context, event, self.request.user

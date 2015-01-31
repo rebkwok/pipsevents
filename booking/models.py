@@ -1,11 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import slugify
 from django_extensions.db.fields import AutoSlugField
 
 
 class Event(models.Model):
+    POLE_CLASS = 'PC'
+    WORKSHOP = 'WS'
+    OTHER_CLASS = 'CL'
+    OTHER_EVENT = 'EV'
+    EVENT_TYPE_CHOICES = (
+        (POLE_CLASS, 'Pole level class'),
+        (WORKSHOP, 'Workshop'),
+        (OTHER_CLASS, 'Other class'),
+        (OTHER_EVENT, 'Other event'),
+    )
+
     name = models.CharField(max_length=255)
+    type = models.CharField(max_length=2, choices=EVENT_TYPE_CHOICES, default=POLE_CLASS)
     description = models.TextField(blank=True)
     date = models.DateTimeField()
     location = models.CharField(max_length=255, default="Watermelon Studio")

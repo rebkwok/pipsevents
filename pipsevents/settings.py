@@ -49,6 +49,7 @@ INSTALLED_APPS = (
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
     'django_extensions',
+    'debug_toolbar',
     'accounts',
     'booking',
 )
@@ -61,6 +62,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -177,3 +179,5 @@ STATICFILES_DIRS = (
 SUIT_CONFIG = {
     'ADMIN_NAME': "Watermelon Pips Events",
     }
+
+INTERNAL_IPS = '127.0.0.1'

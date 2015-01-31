@@ -46,7 +46,8 @@
                 </div>
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav pull-left">
-                        <li class="active-nav"><a href="{% url 'booking:events' %}">All events</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:events' %}">Events and Workshops</a></li>
                         {% if user.is_authenticated %}
                         <li class="active-nav"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
                         <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
