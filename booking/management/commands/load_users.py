@@ -6,10 +6,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        self.stdout.write("Creating 10 test users")
-        for i in range(1, 11):
+        self.stdout.write("Creating 5 test users and 1 staff user")
+        for i in range(1, 6):
             username = "test_{}".format(i)
             email="test{}@test.com".format(i)
             User.objects.get_or_create(username=username,
                                        email=email,
-                                       password="test")
+                                       )
+
+        staff, _ = User.objects.get_or_create(username='staff',
+                                       email='staff@test.com',
+                                       password='password123')
+        staff.is_staff = True
+        staff.save()

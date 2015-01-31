@@ -1,7 +1,9 @@
 from django.contrib import admin
+from django import forms
 from django.utils import timezone
 from booking.models import Event, Booking
 from django.contrib.admin import DateFieldListFilter
+from suit.widgets import SuitSplitDateTimeWidget
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -74,9 +76,25 @@ class EventDateListFilter(admin.SimpleListFilter):
             return queryset.filter(date__gte=timezone.now())
 
 
+class EventAdminForm(forms.ModelForm):
+  class Meta:
+    model = Event
+    widgets = {
+      'date': SuitSplitDateTimeWidget(),
+    }
+
+class StopAdmin(admin.ModelAdmin):
+  form = EventAdminForm
+
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name')
+    form = EventAdminForm
+
+    class Meta:
+        widgets = {
+            'date': SuitSplitDateTimeWidget,
+        }
 
 
 class BookingAdmin(admin.ModelAdmin):
