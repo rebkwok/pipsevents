@@ -26,7 +26,7 @@
                     <p>{{ event.payment_text }}</p>
                     <p><a href="{{ event.payment_link }}">{{ event.payment_link }}</a></p>
 
-                    {% if event.payment_due_date %}
+                    {% if event.payment_open and event.payment_due_date %}
                         <p>Payment is due by {{ event.payment_due_date |  date:"D d F" }}</p>
                     {% endif %}
 
@@ -44,7 +44,7 @@
                     {% endif %}
 
                     {% if include_book_button %}
-                        <button type="button" class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></button>
+                        <div class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
                     {% endif %}
             </div>
         </div>

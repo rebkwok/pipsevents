@@ -18,6 +18,7 @@ class Command(BaseCommand):
             date=now + timedelta(30),
             max_participants=20,
             cost=10,
+            payment_open=False,
             advance_payment_required=True,
             payment_info="Please pay by paypal to contact email.",
             payment_due_date=now + timedelta(40),
@@ -47,7 +48,7 @@ class Command(BaseCommand):
         Event.objects.get_or_create(
             name="Workshop 1",
             description="Workshop with another awesome unnamed instructor!/n"
-                        "Advance payment required, payment open.",
+                        "Advance payment not required, payment open.",
             date=now + timedelta(30),
             max_participants=20,
             cost=10,

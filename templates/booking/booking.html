@@ -24,6 +24,8 @@
                     <h5>Advance payment is {% if not booking.event.advance_payment_required %}not{% endif %} required for this event.</h5>
                     <p>Cost: £{{ booking.event.cost }}</p>
                     <p>{{ payment_text}}</p>
+                    <p>Payment due by {{ booking.event.payment_due_date }}</p>
+                    <p><a href="{{ booking.event.payment_link }}">{{ booking.event.payment_link }}</a></a></p>
 
                     {% if booking.event.cost > 0 %}
                         <p><strong>Payment made (as confirmed by participant): {% if booking.paid %}<span class="confirmed">Yes</span>
@@ -44,9 +46,9 @@
 
                         {% if not past %}
                              {% if include_confirm_payment_button %}
-                                <button type="button" class="btn btn-success"><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made and update booking</a></button>
+                                <div  class="btn btn-success"><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made and update booking</a></div>
                              {% endif %}
-                                <button type="button" class="btn btn-danger"><a href="{% url 'booking:delete_booking' booking.pk %}">Delete booking</a></button>
+                                <div class="btn btn-danger"><a href="{% url 'booking:delete_booking' booking.pk %}">Delete booking</a></div>
                         {% endif %}
                 </div>
             </div>

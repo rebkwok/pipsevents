@@ -1,5 +1,9 @@
+from django.conf import settings
 from django.contrib import admin
 from django import forms
+from django.core.mail import send_mail
+from django.template.loader import get_template
+from django.template import Context
 from django.utils import timezone
 from booking.models import Event, Booking
 from django.contrib.admin import DateFieldListFilter
@@ -79,6 +83,7 @@ class EventDateListFilter(admin.SimpleListFilter):
 class EventAdminForm(forms.ModelForm):
   class Meta:
     model = Event
+    fields = '__all__'
     widgets = {
       'date': SuitSplitDateTimeWidget(),
     }
@@ -127,7 +132,21 @@ class BookingAdmin(admin.ModelAdmin):
     def confirm_space(self, request, queryset):
         for obj in queryset:
             obj.confirm_space()
-    confirm_space.short_description = "Mark selected bookings as paid and confirmed"
+
+            send_mail('{} Space for {} confirmed'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj.event.name),
+                      get_template('booking/email/space_confirmed.txt').render(
+                          Context({'event': obj.event.name,
+                                   'date': obj.event.date.strftime('%A %d %B'),
+                                   'time': obj.event.date.strftime('%I:%M %p')
+                                   })
+                      ),
+                      settings.DEFAULT_FROM_EMAIL,
+                      [obj.user.email],
+                      fail_silently=False)
+
+    confirm_space.short_description = \
+        "Mark selected bookings as paid and confirmed"
 
 
 admin.site.register(Event, EventAdmin)

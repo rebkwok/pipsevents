@@ -1,9 +1,13 @@
 from django.contrib import messages
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.template.loader import get_template
+from django.template import Context
 from braces.views import LoginRequiredMixin
 from booking.models import Event, Booking
 from booking.forms import BookingUpdateForm, BookingCreateForm
@@ -16,6 +20,16 @@ class EventListView(ListView):
 
     def get_queryset(self):
         return Event.objects.filter(date__gte=timezone.now()).order_by('date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(EventListView, self).get_context_data(**kwargs)
+        if not self.request.user.is_anonymous():
+        # Add in the booked_events
+            user_bookings = self.request.user.bookings.all()
+            booked_events = [booking.event for booking in user_bookings]
+            context['booked_events'] = booked_events
+        return context
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -115,6 +129,24 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             booking = form.save(commit=False)
             booking.user = self.request.user
             booking.save()
+
+            host = 'http://' + self.request.get_host()
+            # send email to user
+            send_mail('{} Space for {} confirmed'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                      get_template('booking/email/booking_received.txt').render(
+                          Context({
+                              'host': host,
+                              'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                          })
+              ),
+              settings.DEFAULT_FROM_EMAIL,
+              [booking.user.email],
+              fail_silently=False)
+
             return HttpResponseRedirect(booking.get_absolute_url())
         except IntegrityError:
             #trying to make a booking that already exists

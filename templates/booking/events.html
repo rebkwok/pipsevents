@@ -25,6 +25,9 @@
                             <p>Max spaces: {{ event.max_participants }}</p>
                             <p>Spaces left: {{ event.spaces_left }}</p>
                         {% endif %}
+                        {% if event in booked_events %}
+                            <h5 class="confirmed">You have booked for this event.</h5>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>

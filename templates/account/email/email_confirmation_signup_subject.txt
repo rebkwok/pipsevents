@@ -1,1 +1,3 @@
 {% include "account/email/email_confirmation_subject.txt" %}
+
+{% include "account/email/do_not_reply.txt" %}
