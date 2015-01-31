@@ -416,9 +416,8 @@ border-left: 1px solid white;
     color: green;
 }
 
-button>a:link, button>a:visited {
+.btn>a:link, .btn>a:visited {
     color: #fff;
-    text-decoration: none;
 }
 
 .confirmed {
