@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django_extensions.db.fields import AutoSlugField
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 
 class Event(models.Model):
@@ -47,11 +49,74 @@ class Event(models.Model):
         return self.name
 
 
+class Block(models.Model):
+    """
+    Block booking; blocks are 5 or 10 classes
+    5 classes = GBP 32, 10 classes = GBP 62
+    5 classes expires in 2 months, 10 classes expires in 4 months
+    """
+    SMALL_BLOCK_SIZE = 'SM'
+    LARGE_BLOCK_SIZE = 'LG'
+    SIZE_CHOICES = (
+        (SMALL_BLOCK_SIZE, 'Five classes'),
+        (LARGE_BLOCK_SIZE, 'Ten classes'),
+    )
+    COSTS = {
+        SMALL_BLOCK_SIZE: 32,
+        LARGE_BLOCK_SIZE: 62,
+    }
+    EXPIRES = {
+        SMALL_BLOCK_SIZE: 2,
+        LARGE_BLOCK_SIZE: 4,
+    }
+
+    user = models.ForeignKey(User, related_name='blocks')
+    block_size = models.CharField(
+        verbose_name='Number of classes in block',
+        max_length=2,
+        choices=SIZE_CHOICES,
+        default=SMALL_BLOCK_SIZE,
+    )
+    start_date = models.DateTimeField(auto_now_add=True)
+    paid = models.BooleanField(
+        verbose_name='Payment made (as confirmed by participant)',
+        default=False,
+        help_text='Payment has been made by user'
+    )
+    payment_confirmed = models.BooleanField(
+        default=False,
+        help_text='Payment confirmed by admin/organiser'
+    )
+
+    def __unicode__(self):
+        return "{} -- block size {} -- start {}".format(self.user.username,
+                                                      self.block_size,
+                                                      self.start_date.strftime(
+                                                          '%d %b %Y %H:%M')
+        )
+
+    @property
+    def cost(self):
+        return self.COSTS[self.block_size]
+
+    @property
+    def expiry_date(self):
+        return self.start_date + relativedelta(months=2)
+
+
 class Booking(models.Model):
     user = models.ForeignKey(User, related_name='bookings')
     event = models.ForeignKey(Event, related_name='bookings')
-    paid = models.BooleanField(verbose_name='Payment made (as confirmed by particpant', default=False, help_text='Payment has been made by user')
-    payment_confirmed = models.BooleanField(default=False, help_text='Payment confirmed by admin/organiser')
+    paid = models.BooleanField(
+        verbose_name='Payment made (as confirmed by participant)',
+        default=False,
+        help_text='Payment has been made by user'
+    )
+    payment_confirmed = models.BooleanField(
+        default=False,
+        help_text='Payment confirmed by admin/organiser'
+    )
+    block = models.ForeignKey(Block, related_name='bookings', null=True)
 
     def confirm_space(self):
         self.paid = True
@@ -72,3 +137,4 @@ class Booking(models.Model):
 
     def __unicode__(self):
         return "{} {}".format(str(self.event.name), str(self.user.username))
+
