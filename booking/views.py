@@ -14,6 +14,7 @@ from booking.models import Event, Booking
 from booking.forms import BookingUpdateForm, BookingCreateForm
 import booking.context_helpers as context_helpers
 
+
 class EventListView(ListView):
     model = Event
     context_object_name = 'events'
@@ -33,7 +34,7 @@ class EventListView(ListView):
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings]
             context['booked_events'] = booked_events
-            context['type'] = 'events'
+        context['type'] = 'events'
         return context
 
 
@@ -45,11 +46,9 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self):
         queryset = Event.objects.filter(
-            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP)) &
-            Q(date__gte=timezone.now())
-        ).order_by('date')
+            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP))
+        )
 
-        #TODO ?? redirect to past event page if event found but in past
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
@@ -80,7 +79,7 @@ class LessonListView(ListView):
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings]
             context['booked_events'] = booked_events
-            context['type'] = 'lessons'
+        context['type'] = 'lessons'
         return context
 
 
@@ -92,11 +91,9 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self):
         queryset = Event.objects.filter(
-            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS)) &
-            Q(date__gte=timezone.now())
-        ).order_by('date')
+            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS))
+        )
 
-        #TODO ?? redirect to past event page if event found but in past
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):

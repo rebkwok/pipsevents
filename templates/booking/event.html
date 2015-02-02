@@ -10,15 +10,19 @@
                 <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
             </div>
             <div class="panel-body">
+                {% if past %}
+                <h3>This event is now past.</h3>
+                {% endif %}
                 <p>{{ event.description }}</p>
                 <h4>Location</h4>
                 <p>{{ event.location }}</p>
                 <h4>Date and time</h4>
                 <p>{{ event.date |  date:"D d F, g:i a" }}</p>
-                <h4>Contact</h4>
-                <p>{{ event.contact_person }}</p>
-                <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
-                <h4>Payment information</h4>
+                {% if not past %}
+                    <h4>Contact</h4>
+                    <p>{{ event.contact_person }}</p>
+                    <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
+                    <h4>Payment information</h4>
                     <h5>Advance payment is {% if not event.advance_payment_required %}not{% endif %} required for this event.</h5>
 
                     <p>Cost: £ {{ event.cost }}</p>
@@ -46,6 +50,8 @@
                     {% if include_book_button %}
                         <div class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
                     {% endif %}
+                {% endif %}
+
             </div>
         </div>
     </div>
