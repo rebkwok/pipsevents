@@ -116,7 +116,7 @@ class BookingListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            Q(event__date__gte=timezone.now()) & Q(user=self.request.user())
+            Q(event__date__gte=timezone.now()) & Q(user=self.request.user)
         ).order_by('event__date')
 
 
@@ -129,7 +129,7 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            Q(event__date__lte=timezone.now()) & Q(user=self.request.user())
+            Q(event__date__lte=timezone.now()) & Q(user=self.request.user)
         ).order_by('event__date')
 
     def get_context_data(self, **kwargs):
@@ -171,7 +171,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
         # Call the base implementation first to get a context
         context = super(BookingCreateView, self).get_context_data(**kwargs)
         # Add in the event name
-        context['event_name'] = self.event.name
+        context['event'] = self.event
         return context
 
     def form_valid(self, form):
