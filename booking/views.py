@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
 from braces.views import LoginRequiredMixin
-from booking.models import Event, Booking
+from booking.models import Event, Booking, Block
 from booking.forms import BookingUpdateForm, BookingCreateForm
 import booking.context_helpers as context_helpers
 
@@ -203,6 +203,19 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             #trying to make a booking that already exists
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
+
+
+class BlockCreateView(LoginRequiredMixin, CreateView):
+
+    model = Block
+    template_name = 'booking/add_block.html'
+    fields = ('block_size', )
+
+    def form_valid(self, form):
+        block = form.save(commit=False)
+        block.user = self.request.user
+        block.save()
+        return HttpResponseRedirect(block.get_absolute_url())
 
 
 class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):

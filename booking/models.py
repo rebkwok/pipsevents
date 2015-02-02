@@ -103,6 +103,10 @@ class Block(models.Model):
     def expiry_date(self):
         return self.start_date + relativedelta(months=2)
 
+    def get_absolute_url(self):
+        # TODO update this if/when we have a block overview
+        return reverse("profile:profile")
+
 
 class Booking(models.Model):
     user = models.ForeignKey(User, related_name='bookings')

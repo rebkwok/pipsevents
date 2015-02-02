@@ -2,7 +2,8 @@ from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
-    BookingDetailView, BookingDeleteView, LessonListView, LessonDetailView
+    BookingDetailView, BookingDeleteView, LessonListView, LessonDetailView, \
+    BlockCreateView
 
 
 urlpatterns = patterns('',
@@ -18,5 +19,6 @@ urlpatterns = patterns('',
     url(r'^events/$', EventListView.as_view(), name='events'),
     url(r'^classes/(?P<slug>[\w-]+)/$', LessonDetailView.as_view(), name='lesson_detail'),
     url(r'^classes/$', LessonListView.as_view(), name='lessons'),
+    url(r'^new-block/$', BlockCreateView.as_view(), name='add_block'),
     url(r'^$', RedirectView.as_view(url='/events/')),
     )
