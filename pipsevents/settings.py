@@ -156,16 +156,16 @@ USE_TZ = True
 MEDIA_URL = '/media/'
 MEDIA_ROOT = root('media')
 
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
-if EMAIL_HOST_PASSWORD is None:
-    print("No email host password provided!")
-EMAIL_PORT = 587
-DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#
+# EMAIL_USE_TLS = True
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
+# if EMAIL_HOST_PASSWORD == None:
+#     print "No email host password provided!"
+# EMAIL_PORT = 587
+# DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
 
 
 #####HEROKU#######

@@ -58,6 +58,12 @@
   sudo: yes
   service: name=postgresql state=started
 
+- name: Allow password authentication for local socket users
+  sudo: yes
+  copy: src=pg_hba.conf dest=/etc/postgresql/9.1/main/pg_hba.conf force=yes
+  notify:
+      - Restart Postgres
+
 - name: Create Database
   sudo: yes
   # PostgreSQL will only allow users to login from the postgres account by default

@@ -6,6 +6,8 @@ VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+    config.vm.hostname = "pips"
+
     # define the box (Ubuntu Trusty 64 to allow python3.4)
     config.vm.box = "ubuntu/trusty64"
 
