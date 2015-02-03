@@ -3,7 +3,9 @@ dj-database-url==0.3.0
 dj-static==0.0.6
 django-allauth==0.19.0
 django-braces==1.4.0
+django-debug-toolbar==1.2.2
 django-extensions==1.4.9
+django-suit==0.2.12
 django-toolbelt==0.0.1
 gnureadline==6.3.3
 gunicorn==19.1.1
@@ -11,9 +13,11 @@ ipdb==0.8
 ipython==2.3.1
 oauthlib==0.7.2
 psycopg2==2.5.4
+python-dateutil==2.4.0
 python-openid==2.2.5
 requests==2.5.1
 requests-oauthlib==0.4.2
 six==1.9.0
+sqlparse==0.1.14
 static3==0.5.1
 wsgiref==0.1.2

@@ -5,17 +5,22 @@
 
     <div class="small-margin container-fluid row">
 
-        <h1>Watermelon Studio Pips Events!</h1>
+        <h1>Watermelon Studio {% if type == 'events' %}Events{% elif type == 'lessons' %}Class{% endif %} Booking</h1>
 
         {% if events %}
         <div class="row">
             <div class="col-sm-11">
-                <p>Click on event title for more details</p>
+                <p>Click on title for more details</p>
                 <div class="panel panel-success">
                 {% for event in events %}
 
                     <div class="panel-heading">
-                        <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
+                        {% if type == 'events' %}
+                            <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
+                        {% elif type == 'lessons' %}
+                            <h3 class="panel-title"><a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a></h3>
+                        {% endif %}
+
                     </div>
                     <div class="panel-body">
                         <p>{{ event.description }}</p>
@@ -25,13 +30,16 @@
                             <p>Max spaces: {{ event.max_participants }}</p>
                             <p>Spaces left: {{ event.spaces_left }}</p>
                         {% endif %}
+                        {% if event in booked_events %}
+                            <h5 class="confirmed">You have booked for this {% if type == 'events' %}event{% elif type == 'lessons' %}class{% endif %}.</h5>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
             </div>
          </div>
         {% else %}
-            <p>There are currently no planned events.</p>
+            <p>There are currently no {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} available to book.</p>
         {% endif %}
 
     </div>

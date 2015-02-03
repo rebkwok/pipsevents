@@ -7,13 +7,13 @@
     <div class="col-sm-11">
        <div class="panel panel-success">
             <div class="panel-heading">
-                <h2 class="panel-title">You are now booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h2>
+                <h2 class="panel-title">New block booking</a></h2>
             </div>
             <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
                     <div class="form-group">
-                        <span class="hide">{{ form.as_p  }}</span>
-                    <input class="btn btn-success" type="submit" value="Confirm and Book" />
+                        <span>{{ form.as_p  }}</span>
+                    <input class="btn btn-success" type="submit" value="Book block" />
                     </div>
                 </form>
             </div>

@@ -1,0 +1,25 @@
+{% extends 'account/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h1 class="panel-title">Edit Your Account Profile</h1>
+            </div>
+           <div class="panel-body">
+                <form action="" method="post">{% csrf_token %}
+                    {{ form.as_p}}
+                    <input class="btn btn-success" type="submit" value="Update" />
+                    <div class="btn btn-warning"><a href="{% url 'profile:profile' %}">Cancel</a></div>
+                </form>
+            </div>
+       </div>
+    </div>
+
+
+</div>
+
+{% endblock content %}

@@ -431,3 +431,7 @@ border-left: 1px solid white;
 .socialaccount_providers a {
     color: #fff;
 }
+
+.hide {
+    display: none
+}

@@ -3,8 +3,6 @@
 
 {% block content %}
 
-
-
 <div class="small-margin extra-top-margin container-fluid row">
     <div class="col-sm-11">
         <div class="panel panel-success">
@@ -12,45 +10,48 @@
                 <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
             </div>
             <div class="panel-body">
+                {% if past %}
+                <h3>This event is now past.</h3>
+                {% endif %}
                 <p>{{ event.description }}</p>
                 <h4>Location</h4>
                 <p>{{ event.location }}</p>
                 <h4>Date and time</h4>
                 <p>{{ event.date |  date:"D d F, g:i a" }}</p>
-                <h4>Contact</h4>
-                <p>{{ event.contact_person }}</p>
-                <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
-                <h4>Payment information</h4>
+                {% if not past %}
+                    <h4>Contact</h4>
+                    <p>{{ event.contact_person }}</p>
+                    <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
+                    <h4>Payment information</h4>
+                    <h5>Advance payment is {% if not event.advance_payment_required %}not{% endif %} required for this event.</h5>
+
                     <p>Cost: £ {{ event.cost }}</p>
-                    {% if event.cost > 0 and event.payment_open %}
-                        {% if event.payment_info %}
-                            <p>Payment information: {{ event.payment_info }}</p>
-                            {% endif %}
-                        {% if event.payment_due_date %}
-                            <p>Payment is due by {{ event.payment_due_date |  date:"D d F" }}</p>
-                        {% endif %}
-                    {% elif event.cost > 0 and not event.payment_open %}
-                         Payments are not currently being taken for this event; further information
-                         will be available closer to the event date.
+
+                    <p>{{ event.payment_text }}</p>
+                    <p><a href="{{ event.payment_link }}">{{ event.payment_link }}</a></p>
+
+                    {% if event.payment_open and event.payment_due_date %}
+                        <p>Payment is due by {{ event.payment_due_date |  date:"D d F" }}</p>
                     {% endif %}
+
                     {% if event.max_participants %}
                         <h5>There are a maximum {{ event.max_participants }} spaces for this event.</h5>
                         <h5>Spaces left: {{ event.spaces_left }}</h5>
-                    {% if booked %}
-                        <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>
-                    {% elif event.spaces_left %}
-                        <div class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
-                    {% else %}
-                        <h5>This event is fully booked.</h5>
                     {% endif %}
-                {% else %}
+
                     {% if booked %}
-                     <h5>You have booked for this event; see <a href="{% url 'booking:bookings' %}">your bookings</a> for details, to
-                         confirm payment and to check if your place has been confirmed.</h5>
+                        <h5>{{ booking_info_text }}</h5>
+                        <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
+                         confirm payment and to check if your place has been confirmed{% endif %}.</h5>
                     {% else %}
+                        {{ booking_info_text }}
+                    {% endif %}
+
+                    {% if include_book_button %}
                         <div class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
                     {% endif %}
                 {% endif %}
+
             </div>
         </div>
     </div>

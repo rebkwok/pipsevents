@@ -3,12 +3,19 @@
 
 {% block content %}
 
-        <div class="small_margin">
-    <h3>Your Profile</h3>
-
-    <p>Username: {{ user.username }}</p>
-    <p>First name: {{ user.first_name }}</p>
-    <p>Last name: {{ user.last_name }}</p>
-    <p>Email address: {{ user.email }}</p>
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h1 class="panel-title">Your Profile</h1>
+            </div>
+           <div class="panel-body">
+            <p>Username: {{ user.username }}</p>
+            <p>First name: {{ user.first_name }}</p>
+            <p>Last name: {{ user.last_name }}</p>
+            <p>Email address: {{ user.email }}</p>
+        </div>
+       </div>
+    </div>
 </div>
 {% endblock content %}

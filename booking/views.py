@@ -1,22 +1,41 @@
 from django.contrib import messages
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
+from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.template.loader import get_template
+from django.template import Context
 from braces.views import LoginRequiredMixin
-from booking.models import Event, Booking
+from booking.models import Event, Booking, Block
 from booking.forms import BookingUpdateForm, BookingCreateForm
+import booking.context_helpers as context_helpers
 
 
 class EventListView(ListView):
-
     model = Event
     context_object_name = 'events'
     template_name = 'booking/events.html'
 
     def get_queryset(self):
-        return Event.objects.filter(date__gte=timezone.now()).order_by('date')
+        return Event.objects.filter(
+            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP)) &
+            Q(date__gte=timezone.now())
+        ).order_by('date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(EventListView, self).get_context_data(**kwargs)
+        if not self.request.user.is_anonymous():
+        # Add in the booked_events
+            user_bookings = self.request.user.bookings.all()
+            booked_events = [booking.event for booking in user_bookings]
+            context['booked_events'] = booked_events
+        context['type'] = 'events'
+        return context
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -26,20 +45,65 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(date__gte=timezone.now())
+        queryset = Event.objects.filter(
+            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP))
+        )
+
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data(**kwargs)
-        # Add in the booked flag
-        event = get_object_or_404(Event, slug=self.kwargs['slug'])
-        user_bookings = self.request.user.bookings.all()
-        user_booked_events = [booking.event for booking in user_bookings]
+        event = self.object
+        return context_helpers.get_event_context(
+            context, event, self.request.user
+        )
 
-        if event in user_booked_events:
-            context['booked'] = True
+
+class LessonListView(ListView):
+    model = Event
+    context_object_name = 'events'
+    template_name = 'booking/events.html'
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS)) &
+            Q(date__gte=timezone.now())
+        ).order_by('date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(LessonListView, self).get_context_data(**kwargs)
+        if not self.request.user.is_anonymous():
+        # Add in the booked_events
+            user_bookings = self.request.user.bookings.all()
+            booked_events = [booking.event for booking in user_bookings]
+            context['booked_events'] = booked_events
+        context['type'] = 'lessons'
         return context
+
+
+class LessonDetailView(LoginRequiredMixin, DetailView):
+
+    model = Event
+    context_object_name = 'event'
+    template_name = 'booking/event.html'
+
+    def get_object(self):
+        queryset = Event.objects.filter(
+            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS))
+        )
+
+        return get_object_or_404(queryset, slug=self.kwargs['slug'])
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(LessonDetailView, self).get_context_data(**kwargs)
+        event = self.object
+        return context_helpers.get_event_context(
+            context, event, self.request.user
+        )
+
 
 class BookingListView(LoginRequiredMixin, ListView):
 
@@ -48,7 +112,9 @@ class BookingListView(LoginRequiredMixin, ListView):
     template_name = 'booking/bookings.html'
 
     def get_queryset(self):
-        return Booking.objects.filter(event__date__gte=timezone.now()).filter(user=self.request.user).order_by('event__date')
+        return Booking.objects.filter(
+            Q(event__date__gte=timezone.now()) & Q(user=self.request.user)
+        ).order_by('event__date')
 
 
 class BookingHistoryListView(LoginRequiredMixin, ListView):
@@ -59,7 +125,9 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
 
     def get_queryset(self):
-        return Booking.objects.filter(event__date__lte=timezone.now()).filter(user=self.request.user).order_by('-event__date')
+        return Booking.objects.filter(
+            Q(event__date__lte=timezone.now()) & Q(user=self.request.user)
+        ).order_by('event__date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -100,7 +168,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
         # Call the base implementation first to get a context
         context = super(BookingCreateView, self).get_context_data(**kwargs)
         # Add in the event name
-        context['event_name'] = self.event.name
+        context['event'] = self.event
         return context
 
     def form_valid(self, form):
@@ -112,11 +180,43 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             booking = form.save(commit=False)
             booking.user = self.request.user
             booking.save()
+
+            host = 'http://' + self.request.get_host()
+            # send email to user
+            send_mail('{} Space for {} confirmed'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                      get_template('booking/email/booking_received.txt').render(
+                          Context({
+                              'host': host,
+                              'booking': booking,
+                              'event': booking.event,
+                              'date': booking.event.date.strftime('%A %d %B'),
+                              'time': booking.event.date.strftime('%I:%M %p'),
+                          })
+                      ),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                fail_silently=False)
+
             return HttpResponseRedirect(booking.get_absolute_url())
         except IntegrityError:
             #trying to make a booking that already exists
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
+
+
+class BlockCreateView(LoginRequiredMixin, CreateView):
+
+    model = Block
+    template_name = 'booking/add_block.html'
+    fields = ('block_size', )
+
+    def form_valid(self, form):
+        block = form.save(commit=False)
+        block.user = self.request.user
+        block.save()
+        return HttpResponseRedirect(block.get_absolute_url())
+
 
 class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
     model = Booking
@@ -148,6 +248,13 @@ class BookingDetailView(LoginRequiredMixin, BookingActionMixin, DetailView):
     model = Booking
     context_object_name = 'booking'
     template_name = 'booking/booking.html'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(BookingDetailView, self).get_context_data(**kwargs)
+        booking = self.object
+        return context_helpers.get_booking_context(context, booking)
+
 
 def duplicate_booking(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
