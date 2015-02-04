@@ -180,7 +180,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             booking = form.save(commit=False)
             booking.user = self.request.user
             booking.save()
-
+            # TODO look into using 'http://{}'.format(self.request.META['HTTP_HOST']) instead
             host = 'http://' + self.request.get_host()
             # send email to user
             send_mail('{} Space for {} confirmed'.format(
