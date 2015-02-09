@@ -1,0 +1,90 @@
+---
+- name: Update Apt Cache
+  sudo: yes
+  apt: update_cache=yes
+
+- name: Install python3
+  sudo: yes
+  apt: pkg=python3 state=installed
+
+- name: Install python packages
+  sudo: yes
+  apt: pkg={{ item }} state=installed
+  with_items:
+      - python3-pip
+      - python3-dev
+      - python3-setuptools
+      - python-virtualenv
+
+- name: Install database packages
+  sudo: yes
+  apt: pkg={{ item }} state=installed
+  with_items:
+      - postgresql
+      - libpq-dev # Required for Ansible to interact with postgres
+      - python-psycopg2 # Required for Ansible to interact with postgres
+
+- name: Add vagrant user to www-data
+  sudo: yes
+  user: name=vagrant groups=www-data
+  ignore_errors: yes #this user wont exist in live
+
+- name: Install virtualenv
+  sudo: yes
+  pip: executable=pip3 name=virtualenv
+
+- name: Install git
+  sudo: yes
+  apt: pkg=git state=installed
+
+- name: Install some dev tools
+  sudo: yes
+  pip: name={{ item }} executable=pip3
+  with_items:
+    - ipdb
+    - ipython
+    - django-extensions
+
+- name: Allow password authentication for local socket users and allow connections other than localhost
+  sudo: yes
+  copy: src={{ item }} dest=/etc/postgresql/9.3/main/{{ item }} force=yes
+  with_items:
+    - pg_hba.conf
+    - postgresql.conf
+  notify:
+      - Restart Postgres
+
+- name: Ensure postgres running
+  sudo: yes
+  service: name=postgresql state=started
+
+- name: Create Database
+  sudo: yes
+  # PostgreSQL will only allow users to login from the postgres account by default
+  sudo_user: postgres
+  postgresql_db: name={{ db_name }}
+
+- name: Create User
+  sudo: yes
+  sudo_user: postgres
+  postgresql_user: >
+    name={{ db_user }}
+    password={{ db_password }}
+    state=present role_attr_flags=NOSUPERUSER,CREATEDB
+
+- name: Provide user with DB permissions
+  sudo: yes
+  sudo_user: postgres
+  postgresql_user: user={{ db_user }} db={{ db_name }} priv=ALL
+
+- name: Add bashrc_extra file
+  sudo: yes
+  copy: src=bashrc_extra dest=/home/vagrant/.bashrc_extra
+
+- name: Add to bashrc file
+  sudo: yes
+  lineinfile: >
+    dest=/home/vagrant/.bashrc
+    state=present
+    backup=yes
+    line='source .bashrc_extra'

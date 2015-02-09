@@ -1,0 +1,11 @@
+export SRV_IP="$(ip -o -f inet addr show eth1 | awk -F ' +|/' '{print $4}')"
+
+echo "Application is running with uwgsi at $SRV_IP:2048"
+
+alias go="cd /src/pipsevents"
+alias venv=". /src/pipsevents/venv/bin/activate"
+alias runserver="cd /src/pipsevents
+venv
+echo 'Application is running at $SRV_IP:8080'
+./manage.py runserver 0.0.0.0:8080"
+

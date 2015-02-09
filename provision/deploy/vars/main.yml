@@ -1,0 +1,4 @@
+---
+virtualenv_path: /src/pipsevents/venv
+project_root_path: /src/pipsevents
+python3_path: /usr/bin/python3

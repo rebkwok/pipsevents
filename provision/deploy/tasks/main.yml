@@ -1,0 +1,9 @@
+---
+- name: Setup Virtualenv
+  pip: executable=pip3 virtualenv={{ virtualenv_path }} virtualenv_command=virtualenv-3.4 requirements={{ project_root_path }}/requirements.txt
+
+- name: Django syncdb
+  django_manage: command=syncdb app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+
+- name: Django migrate
+  django_manage: command=migrate app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
