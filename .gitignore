@@ -5,4 +5,8 @@ staticfiles
 setlocalenv.sh
 /venv
 .vagrant/
-
+bin/
+build/
+include/
+lib/
+local/

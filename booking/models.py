@@ -45,6 +45,9 @@ class Event(models.Model):
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 
+    #TODO on save, check cost and set adv payment req, payment open, payment
+    #TODO link, payment due date to blank/False if cost is 0
+
     def __unicode__(self):
         return self.name
 
@@ -138,6 +141,8 @@ class Booking(models.Model):
 
     def get_absolute_url(self):
         return reverse("booking:booking_detail", args=[str(self.id)])
+
+    #TODO on save, return error if event is not 'PC'
 
     def __unicode__(self):
         return "{} {}".format(str(self.event.name), str(self.user.username))
