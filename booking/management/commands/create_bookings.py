@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from booking.models import Event, Booking
 
 EVENTS = Event.objects.all()
-USERS = User.objects.all()
+USERS = list(User.objects.all())
 
 class Command(BaseCommand):
 
@@ -13,17 +13,16 @@ class Command(BaseCommand):
         self.stdout.write('Creating bookings')
 
         for event in EVENTS:
-
             users = random.sample(USERS, 3)
-            Booking.objects.create(
+            Booking.objects.get_or_create(
                 user=users[0],
                 event=event
             )
-            Booking.objects.create(
+            Booking.objects.get_or_create(
                 user=users[1],
                 event=event
             )
-            Booking.objects.create(
+            Booking.objects.get_or_create(
                 user=users[2],
                 event=event
             )
