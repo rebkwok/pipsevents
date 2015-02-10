@@ -88,9 +88,8 @@ class EventAdminForm(forms.ModelForm):
       'date': SuitSplitDateTimeWidget(),
     }
 
-class StopAdmin(admin.ModelAdmin):
-  form = EventAdminForm
-
+# TODO validation on event fields - e.g. payment due date can't be after event
+# TODO date, event date can't be in past, cost must be >= 0
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name')

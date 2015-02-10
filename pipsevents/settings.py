@@ -53,6 +53,7 @@ INSTALLED_APPS = (
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
     'django_extensions',
+    'crispy_forms',
     'debug_toolbar',
     'accounts',
     'booking',
@@ -153,6 +154,7 @@ if EMAIL_HOST_PASSWORD is None:
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
+
 
 #####HEROKU#######
 
