@@ -1,8 +1,8 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from model_mommy.recipe import Recipe, foreign_key
+from model_mommy.recipe import Recipe, foreign_key, seq
 
 from booking.models import Event, Block, Booking
 
@@ -12,9 +12,10 @@ past = now - timedelta(30)
 future = now + timedelta(30)
 
 user = Recipe(User,
-              username="test_user",
+              username=seq("test_user"),
               password="password",
-              email="test_user@test.com")
+              email="test_user@test.com",
+              )
 
 # events; use defaults apart from dates
 # override when using recipes, eg. mommy.make_recipe('future_event', cost=10)
@@ -48,11 +49,13 @@ past_event = Recipe(Event,
 
 block_5 = Recipe(Block,
                  user=foreign_key(user),
-                 block_size='SM')
+                 block_size='SM',
+                 start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
 block_10 = Recipe(Block,
                   user=foreign_key(user),
-                  block_size='LG')
+                  block_size='LG',
+                  start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
 booking = Recipe(Booking,
                  user=foreign_key(user),

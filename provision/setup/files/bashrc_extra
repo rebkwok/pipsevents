@@ -1,6 +1,6 @@
 export SRV_IP="$(ip -o -f inet addr show eth1 | awk -F ' +|/' '{print $4}')"
 
-echo "Application is running with uwgsi at $SRV_IP:2048"
+echo "Application is running at $SRV_IP"
 
 alias go="cd /src/pipsevents"
 alias venv=". /src/pipsevents/venv/bin/activate"

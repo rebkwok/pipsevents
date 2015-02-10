@@ -1,6 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.utils import timezone
+
 from django.template.defaultfilters import slugify
 from django_extensions.db.fields import AutoSlugField
 from datetime import timedelta
@@ -45,11 +49,16 @@ class Event(models.Model):
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 
-    #TODO on save, check cost and set adv payment req, payment open, payment
-    #TODO link, payment due date to blank/False if cost is 0
-
     def __unicode__(self):
         return self.name
+
+@receiver(pre_save, sender=Event)
+def event_pre_save(sender, instance, *args, **kwargs):
+    if not instance.cost:
+        instance.advance_payment_required = False
+        instance.payment_open = False
+        instance.payment_due_date = None
+        instance.payment_link = ""
 
 
 class Block(models.Model):
@@ -64,13 +73,11 @@ class Block(models.Model):
         (SMALL_BLOCK_SIZE, 'Five classes'),
         (LARGE_BLOCK_SIZE, 'Ten classes'),
     )
-    COSTS = {
-        SMALL_BLOCK_SIZE: 32,
-        LARGE_BLOCK_SIZE: 62,
-    }
-    EXPIRES = {
-        SMALL_BLOCK_SIZE: 2,
-        LARGE_BLOCK_SIZE: 4,
+
+    # [number of classes, cost, expiry in months from start_date]
+    BLOCK_DATA = {
+        SMALL_BLOCK_SIZE: [5, 32, 2],
+        LARGE_BLOCK_SIZE: [10, 62, 4]
     }
 
     user = models.ForeignKey(User, related_name='blocks')
@@ -80,7 +87,7 @@ class Block(models.Model):
         choices=SIZE_CHOICES,
         default=SMALL_BLOCK_SIZE,
     )
-    start_date = models.DateTimeField(auto_now_add=True)
+    start_date = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(
         verbose_name='Payment made (as confirmed by participant)',
         default=False,
@@ -100,11 +107,29 @@ class Block(models.Model):
 
     @property
     def cost(self):
-        return self.COSTS[self.block_size]
+        return self.BLOCK_DATA[self.block_size][1]
 
     @property
     def expiry_date(self):
-        return self.start_date + relativedelta(months=2)
+        return self.start_date + relativedelta(
+            months=self.BLOCK_DATA[self.block_size][2])
+
+    def active_block(self):
+        """
+        A block is active if its expiry date has not passed
+        AND
+        the number of bookings on it is < size
+        AND
+        it is <= one week since start_date OR payment is confirmed
+        """
+
+        expired = self.expiry_date < timezone.now()
+        full = Booking.objects.filter(
+            block__id=self.id).count() >= self.BLOCK_DATA[self.block_size][0]
+        start_date_within_one_week = self.start_date >= timezone.now() - timedelta(days=7)
+
+        return (not expired and not full and
+                (start_date_within_one_week or self.payment_confirmed))
 
     def get_absolute_url(self):
         # TODO update this if/when we have a block overview
@@ -126,9 +151,10 @@ class Booking(models.Model):
     block = models.ForeignKey(Block, related_name='bookings', null=True)
 
     def confirm_space(self):
-        self.paid = True
-        self.payment_confirmed = True
-        self.save()
+        if self.event.cost:
+            self.paid = True
+            self.payment_confirmed = True
+            self.save()
 
     def space_confirmed(self):
         return not self.event.advance_payment_required or \
@@ -142,7 +168,8 @@ class Booking(models.Model):
     def get_absolute_url(self):
         return reverse("booking:booking_detail", args=[str(self.id)])
 
-    #TODO on save, return error if event is not 'PC'
+    #TODO on save, return error if block and event is not 'PC'
+
 
     def __unicode__(self):
         return "{} {}".format(str(self.event.name), str(self.user.username))
