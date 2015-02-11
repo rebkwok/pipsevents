@@ -1,8 +1,17 @@
 language: python
+
 python:
   - "3.4"
 
-# command to install dependencies,
-install: pip install -r requirements.txt
-# command to run tests, e.g. python setup.py test
-script: python manage.py test
+addons:
+  postgresql: "9.3"
+
+install:
+  - pip install -r requirements.txt
+
+before_script:
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - python manage.py migrate
+
+script:
+  - python manage.py test
