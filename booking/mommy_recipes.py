@@ -1,9 +1,11 @@
 from datetime import timedelta, datetime
 from django.contrib.auth.models import User
+
 from django.utils import timezone
 
 from model_mommy.recipe import Recipe, foreign_key, seq
 
+from allauth.socialaccount.models import SocialApp
 from booking.models import Event, Block, Booking
 
 
@@ -60,3 +62,6 @@ block_10 = Recipe(Block,
 booking = Recipe(Booking,
                  user=foreign_key(user),
                  )
+
+fb_app = Recipe(SocialApp,
+                provider='facebook')
