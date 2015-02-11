@@ -5,7 +5,7 @@ from django.test.client import Client
 from mock import patch
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
-from booking.views import EventListView
+from booking.views import EventListView, EventDetailView
 
 
 class EventViewTests(TestCase):
@@ -123,15 +123,94 @@ class EventViewTests(TestCase):
         self.assertTrue(event1 in booked_events)
 
 
-"""
-Block tests (for forms/views?)
+class EventDetailViewTests(TestCase):
 
-If a block has 5 or 10 bookings, no more bookings can be made
-If a user has an active block, they can't buy a new block
-Can user book against a block before block payment confirmed?  Maybe allow
-booking for 1 week after block start date, then prevent it if payment not
-received
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.event = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe('booking.future_PC', _quantity=3)
+        mommy.make_recipe('booking.future_CL', _quantity=3)
+        fbapp = mommy.make_recipe('booking.fb_app')
+        site = Site.objects.get_current()
+        fbapp.sites.add(site.id)
+        self.user = mommy.make_recipe('booking.user')
 
-Test trying to book with a block for an event that is not a pole class
 
-"""
+    def test_login_required(self):
+        """
+        test that page redirects if there is no user logged in
+        """
+        url = reverse('booking:event_detail', kwargs={'slug': self.event.slug})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_with_logged_in_user(self):
+        """
+        test that page loads if there user is available
+        """
+        url = reverse('booking:event_detail', args=[self.event.slug])
+        request = self.factory.get(url)
+        # Set the user on the request
+        request.user = self.user
+        view = EventDetailView.as_view()
+        resp = view(request, slug=self.event.slug)
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_with_booked_event(self):
+        """
+        Test that booked event is shown as booked
+        """
+        url = reverse('booking:event_detail', args=[self.event.slug])
+        request = self.factory.get(url)
+
+        #create a booking for this event and user
+        mommy.make_recipe('booking.booking', user=self.user, event=self.event)
+
+        # Set the user on the request
+        request.user = self.user
+        view = EventDetailView.as_view()
+        resp = view(request, slug=self.event.slug)
+
+        self.assertTrue(resp.context_data['booked'])
+        self.assertEquals(resp.context_data['booking_info_text'],
+                          'You have booked for this event.')
+
+    def test_with_booked_event_for_different_user(self):
+        """
+        Test that the event is not shown as booked if the current user has
+        not booked it
+        """
+        url = reverse('booking:event_detail', args=[self.event.slug])
+        request = self.factory.get(url)
+
+        user1 = mommy.make_recipe('booking.user')
+        #create a booking for this event and a different user
+        mommy.make_recipe('booking.booking', user=user1, event=self.event)
+
+        # Set the user on the request
+        request.user = self.user
+        view = EventDetailView.as_view()
+        resp = view(request, slug=self.event.slug)
+
+        self.assertFalse('booked' in resp.context_data)
+        self.assertEquals(resp.context_data['booking_info_text'], '')
+
+class EventDetailContextTests(TestCase):
+    #TODO:
+    #TODO Test that the context is returned properly for events with adv payment, full,
+    #TODO paid, spaces left, costs, payment info etc.
+    #TODO Should only need to do this for events once, not separately for events and classes
+    pass
+
+
+
+# TODO Block tests (for forms/views?)
+# TODO If a block has 5 or 10 bookings, no more bookings can be made
+# TODO If a user has an active block, they can't buy a new block
+# TODO Can user book against a block before block payment confirmed?  Maybe allow
+# TODO booking for 1 week after block start date, then prevent it if payment not
+# TODO received
+
+# TODO Test trying to book with a block for an event that is not a pole class
