@@ -16,7 +16,7 @@ before_script:
   - python manage.py migrate
 
 script:
-  - coverage run --source=pipsevents,booking manage.py test
+  - coverage run --source=pipsevents,booking,accounts manage.py test
 
 after_success:
   coveralls
