@@ -7,11 +7,11 @@ https://docs.djangoproject.com/en/1.7/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
-
+import dj_database_url
 import environ
+import os
 
 root = environ.Path(__file__) - 2 # two folders back (/a/b/ - 3 = /)
-env = environ.Env(DEBUG=(bool, False),) # set default values and casting
 environ.Env.read_env(root('pipsevents/.env')) # reading .env file
 
 BASE_DIR = root()
@@ -20,12 +20,12 @@ BASE_DIR = root()
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY') # Raises ImproperlyConfigured exception if SECRET_KEY not in os.environ
+SECRET_KEY = os.environ.get('SECRET_KEY', None)
 if SECRET_KEY is None:
     print("No secret key!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG') # False if not in os.environ
+DEBUG = os.environ.get('DEBUG', False) # False if not in os.environ
 # when env variable is changed it will be a string, not bool
 if str(DEBUG).lower() in ['true', 'on']:
     DEBUG = True
@@ -119,10 +119,10 @@ WSGI_APPLICATION = 'pipsevents.wsgi.application'
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db(), # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
+    'default': dj_database_url.config(), # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
 }
 
-if env('TRAVIS'):
+if 'TRAVIS' in os.environ:
     DATABASES = {
         'default': {
             'ENGINE':   'django.db.backends.postgresql_psycopg2',
@@ -161,7 +161,7 @@ MEDIA_ROOT = root('media')
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
 if EMAIL_HOST_PASSWORD is None:
     print("No email host password provided!")
 EMAIL_PORT = 587
