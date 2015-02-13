@@ -37,14 +37,6 @@
   sudo: yes
   apt: pkg=git state=installed
 
-- name: Install some dev tools
-  sudo: yes
-  pip: name={{ item }} executable=pip3
-  with_items:
-    - ipdb
-    - ipython
-    - django-extensions
-
 - name: Allow password authentication for local socket users and allow connections other than localhost
   sudo: yes
   copy: src={{ item }} dest=/etc/postgresql/9.3/main/{{ item }} force=yes
