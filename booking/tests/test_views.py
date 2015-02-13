@@ -197,15 +197,17 @@ class EventDetailViewTests(TestCase):
         self.assertFalse('booked' in resp.context_data)
         self.assertEquals(resp.context_data['booking_info_text'], '')
 
-class EventDetailContextTests(TestCase):
-    #TODO:
-    #TODO Test that the context is returned properly for events with adv payment, full,
-    #TODO paid, spaces left, costs, payment info etc.
-    #TODO Should only need to do this for events once, not separately for events and classes
-    pass
 
+#TODO Lesson list view
+#TODO Lesson detail view
+#TODO Booking list view
+#TODO Booking History list view
+#TODO Booking detail view
+#TODO Booking Create view
+#TODO Booking Update view
+#TODO Booking Delete view
 
-
+#TODO Block Create view
 # TODO Block tests (for forms/views?)
 # TODO If a block has 5 or 10 bookings, no more bookings can be made
 # TODO If a user has an active block, they can't buy a new block
