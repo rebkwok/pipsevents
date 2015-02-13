@@ -99,7 +99,11 @@ class EventAdmin(admin.ModelAdmin):
         widgets = {
             'date': SuitSplitDateTimeWidget,
         }
+# TODO look at ways of formatting the time widget
 
+# TODO add custom button and form/view for creating a week's classes from any
+# TODO given date
+# TODO or/and add this to the main page menu, visible by staff users only
 
 class BookingAdmin(admin.ModelAdmin):
 
@@ -134,15 +138,15 @@ class BookingAdmin(admin.ModelAdmin):
 
             send_mail('{} Space for {} confirmed'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj.event.name),
-                      get_template('booking/email/space_confirmed.txt').render(
-                          Context({'event': obj.event.name,
-                                   'date': obj.event.date.strftime('%A %d %B'),
-                                   'time': obj.event.date.strftime('%I:%M %p')
-                                   })
-                      ),
-                      settings.DEFAULT_FROM_EMAIL,
-                      [obj.user.email],
-                      fail_silently=False)
+                get_template('booking/email/space_confirmed.txt').render(
+                    Context({'event': obj.event.name,
+                             'date': obj.event.date.strftime('%A %d %B'),
+                             'time': obj.event.date.strftime('%I:%M %p')
+                    })
+                ),
+                settings.DEFAULT_FROM_EMAIL,
+                [obj.user.email],
+                fail_silently=False)
 
     confirm_space.short_description = \
         "Mark selected bookings as paid and confirmed"

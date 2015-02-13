@@ -5,10 +5,11 @@ from django.test.client import Client
 from mock import patch
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
-from booking.views import EventListView, EventDetailView
+from booking.views import EventListView, EventDetailView, \
+    LessonListView, LessonDetailView
 
 
-class EventViewTests(TestCase):
+class EventListViewTests(TestCase):
 
     def setUp(self):
         self.client = Client()
@@ -20,6 +21,13 @@ class EventViewTests(TestCase):
         site = Site.objects.get_current()
         fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
+
+    def _get_response(self, user):
+        url = reverse('booking:events')
+        request = self.factory.get(url)
+        request.user = user
+        view = EventListView.as_view()
+        return view(request)
 
     def test_event_list(self):
         """
@@ -59,26 +67,14 @@ class EventViewTests(TestCase):
         """
         Test that booked_events in context
         """
-        url = reverse('booking:events')
-        request = self.factory.get(url)
-        # Set the user on the request
-        request.user = self.user
-
-        view = EventListView.as_view()
-
-        resp = view(request)
+        resp = self._get_response(self.user)
         self.assertTrue('booked_events' in resp.context_data)
 
     def test_event_list_with_booked_events(self):
         """
         test that booked events are shown on listing
         """
-        url = reverse('booking:events')
-        request = self.factory.get(url)
-        # Set the user on the request
-        request.user = self.user
-        view = EventListView.as_view()
-        resp = view(request)
+        resp = self._get_response(self.user)
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(resp.context_data['booked_events']), 0)
@@ -86,7 +82,7 @@ class EventViewTests(TestCase):
         # create a booking for this user
         booked_event = Event.objects.all()[0]
         mommy.make_recipe('booking.booking', user=self.user, event=booked_event)
-        resp = view(request)
+        resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(booked_event in booked_events)
@@ -99,12 +95,7 @@ class EventViewTests(TestCase):
         event1 = events[0]
         event2 = events[1]
 
-        url = reverse('booking:events')
-        request = self.factory.get(url)
-        # Set the user on the request
-        request.user = self.user
-        view = EventListView.as_view()
-        resp = view(request)
+        resp = self._get_response(self.user)
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(resp.context_data['booked_events']), 0)
@@ -116,7 +107,7 @@ class EventViewTests(TestCase):
         mommy.make_recipe('booking.booking', user=user1, event=event2)
 
         # check only event1 shows in the booked events
-        resp = view(request)
+        resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
@@ -136,6 +127,12 @@ class EventDetailViewTests(TestCase):
         fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
 
+    def _get_response(self, user, event):
+        url = reverse('booking:event_detail', args=[event.slug])
+        request = self.factory.get(url)
+        request.user = user
+        view = EventDetailView.as_view()
+        return view(request, slug=event.slug)
 
     def test_login_required(self):
         """
@@ -149,30 +146,17 @@ class EventDetailViewTests(TestCase):
         """
         test that page loads if there user is available
         """
-        url = reverse('booking:event_detail', args=[self.event.slug])
-        request = self.factory.get(url)
-        # Set the user on the request
-        request.user = self.user
-        view = EventDetailView.as_view()
-        resp = view(request, slug=self.event.slug)
-
+        resp = self._get_response(self.user, self.event)
         self.assertEqual(resp.status_code, 200)
+        self.assertEquals(resp.context_data['type'], 'event')
 
     def test_with_booked_event(self):
         """
         Test that booked event is shown as booked
         """
-        url = reverse('booking:event_detail', args=[self.event.slug])
-        request = self.factory.get(url)
-
         #create a booking for this event and user
         mommy.make_recipe('booking.booking', user=self.user, event=self.event)
-
-        # Set the user on the request
-        request.user = self.user
-        view = EventDetailView.as_view()
-        resp = view(request, slug=self.event.slug)
-
+        resp = self._get_response(self.user, self.event)
         self.assertTrue(resp.context_data['booked'])
         self.assertEquals(resp.context_data['booking_info_text'],
                           'You have booked for this event.')
@@ -182,24 +166,75 @@ class EventDetailViewTests(TestCase):
         Test that the event is not shown as booked if the current user has
         not booked it
         """
-        url = reverse('booking:event_detail', args=[self.event.slug])
-        request = self.factory.get(url)
-
         user1 = mommy.make_recipe('booking.user')
         #create a booking for this event and a different user
         mommy.make_recipe('booking.booking', user=user1, event=self.event)
 
-        # Set the user on the request
-        request.user = self.user
-        view = EventDetailView.as_view()
-        resp = view(request, slug=self.event.slug)
-
+        resp = self._get_response(self.user, self.event)
         self.assertFalse('booked' in resp.context_data)
         self.assertEquals(resp.context_data['booking_info_text'], '')
 
 
-#TODO Lesson list view
-#TODO Lesson detail view
+class LessonListViewTests(TestCase):
+    """
+    LessonListView reuses the event templates and context data helpers
+    so only basic functionality is retested
+    """
+    def setUp(self):
+        self.client = Client()
+        mommy.make_recipe('booking.future_EV', _quantity=1)
+        mommy.make_recipe('booking.future_PC', _quantity=3)
+        mommy.make_recipe('booking.future_CL', _quantity=3)
+        mommy.make_recipe('booking.future_WS', _quantity=1)
+
+        fbapp = mommy.make_recipe('booking.fb_app')
+        site = Site.objects.get_current()
+        fbapp.sites.add(site.id)
+        self.user = mommy.make_recipe('booking.user')
+
+    def test_event_list(self):
+        """
+        Test that only classes are listed (pole classes and other classes)
+        """
+        url = reverse('booking:lessons')
+        resp = self.client.get(url)
+
+        self.assertEquals(Event.objects.all().count(), 8)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.context['events'].count(), 6)
+        self.assertEquals(resp.context['type'], 'lessons')
+
+
+class LessonDetailViewTests(TestCase):
+    """
+    LessonDetailView reuses the event templates and context data helpers
+    so only basic functionality is retested
+    """
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.lesson = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.future_EV', _quantity=3)
+        mommy.make_recipe('booking.future_PC', _quantity=3)
+        fbapp = mommy.make_recipe('booking.fb_app')
+        site = Site.objects.get_current()
+        fbapp.sites.add(site.id)
+        self.user = mommy.make_recipe('booking.user')
+
+    def test_with_logged_in_user(self):
+        """
+        test that page loads if there user is available
+        """
+        url = reverse('booking:lesson_detail', args=[self.lesson.slug])
+        request = self.factory.get(url)
+        # Set the user on the request
+        request.user = self.user
+        view = LessonDetailView.as_view()
+        resp = view(request, slug=self.lesson.slug)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(resp.context_data['type'], 'lesson')
+
+
 #TODO Booking list view
 #TODO Booking History list view
 #TODO Booking detail view

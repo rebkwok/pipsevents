@@ -5,7 +5,9 @@ Helper functions to return context and reduce logic in templates
 from django.utils import timezone
 
 
-def get_event_context(context, event, user):
+def get_event_context(context, event, user, event_type):
+
+    context['type'] = event_type
 
     if event.date <= timezone.now():
         context['past'] = True

@@ -56,7 +56,7 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         context = super(EventDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
-            context, event, self.request.user
+            context, event, self.request.user, "event"
         )
 
 
@@ -101,7 +101,7 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
         context = super(LessonDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
-            context, event, self.request.user
+            context, event, self.request.user, "lesson"
         )
 
 
