@@ -59,9 +59,11 @@ block_10 = Recipe(Block,
                   block_size='LG',
                   start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
-booking = Recipe(Booking,
-                 user=foreign_key(user),
-                 )
+booking = Recipe(Booking)
+
+past_booking = Recipe(Booking,
+                      event=foreign_key(past_event)
+                      )
 
 fb_app = Recipe(SocialApp,
                 provider='facebook')

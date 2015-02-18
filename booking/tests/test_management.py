@@ -28,15 +28,17 @@ class ManagementCommandsTests(TestCase):
         management.call_command('create_events')
         self.assertEquals(Event.objects.all().count(), 5)
 
-    @patch.object(timezone, 'now',
-                  return_value=datetime(2015, 2, 10, tzinfo=timezone.utc))
-    def test_create_classes_with_manage_command(self, mock_now):
+    @patch('booking.utils.date')
+    def test_create_classes_with_manage_command(self, mock_date):
+        mock_date.today.return_value = datetime(2015, 2, 10)
+
         self.assertEquals(Event.objects.all().count(), 0)
         management.call_command('create_classes')
         # check that there are now classes on the Monday of the mocked week
         # (mocked now is Wed 10 Feb 2015)
         mon_classes = Event.objects.filter(
-            Q(date__gte=mock_now) & Q(date__lte=datetime(2015, 2, 11, tzinfo=timezone.utc))
+            Q(date__gte=datetime(2015, 2, 10, tzinfo=timezone.utc)) &
+            Q(date__lte=datetime(2015, 2, 11, tzinfo=timezone.utc))
         )
         self.assertTrue(mon_classes)
         # check that there are now classes on the Monday of the following week

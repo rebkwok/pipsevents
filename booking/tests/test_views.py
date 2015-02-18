@@ -6,7 +6,7 @@ from mock import patch
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
 from booking.views import EventListView, EventDetailView, \
-    LessonListView, LessonDetailView
+    LessonDetailView, BookingListView, BookingHistoryListView, BookingDetailView
 
 
 class EventListViewTests(TestCase):
@@ -235,8 +235,118 @@ class LessonDetailViewTests(TestCase):
         self.assertEquals(resp.context_data['type'], 'lesson')
 
 
-#TODO Booking list view
-#TODO Booking History list view
+class BookingListViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        fbapp = mommy.make_recipe('booking.fb_app')
+        site = Site.objects.get_current()
+        fbapp.sites.add(site.id)
+        self.user = mommy.make_recipe('booking.user')
+        self.events = mommy.make_recipe('booking.future_EV', _quantity=3)
+        future_bookings = [mommy.make_recipe(
+            'booking.booking', user=self.user,
+            event=event) for event in self.events]
+        mommy.make_recipe('booking.past_booking', user=self.user)
+
+    def _get_response(self, user):
+        url = reverse('booking:bookings')
+        request = self.factory.get(url)
+        request.user = user
+        view = BookingListView.as_view()
+        return view(request)
+
+    def test_login_required(self):
+        """
+        test that page redirects if there is no user logged in
+        """
+        url = reverse('booking:bookings')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_booking_list(self):
+        """
+        Test that only future bookings are listed)
+        """
+        resp = self._get_response(self.user)
+
+        self.assertEquals(Booking.objects.all().count(), 4)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.context_data['bookings'].count(), 3)
+
+    def test_booking_list_by_user(self):
+        """
+        Test that only booking for this user are listed
+        """
+        another_user = mommy.make_recipe('booking.user')
+        mommy.make_recipe(
+            'booking.booking', user=another_user, event=self.events[0]
+        )
+        # check there are now 5 bookings
+        self.assertEquals(Booking.objects.all().count(), 5)
+        resp = self._get_response(self.user)
+
+        # event listing should still only show this user's future bookings
+        self.assertEquals(resp.context_data['bookings'].count(), 3)
+
+class BookingHistoryListViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        fbapp = mommy.make_recipe('booking.fb_app')
+        site = Site.objects.get_current()
+        fbapp.sites.add(site.id)
+        self.user = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        self.past_booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        self.past_booking = mommy.make_recipe(
+            'booking.past_booking', user=self.user
+        )
+
+    def _get_response(self, user):
+        url = reverse('booking:booking_history')
+        request = self.factory.get(url)
+        request.user = user
+        view = BookingHistoryListView.as_view()
+        return view(request)
+
+    def test_login_required(self):
+        """
+        test that page redirects if there is no user logged in
+        """
+        url = reverse('booking:booking_history')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_booking_history_list(self):
+        """
+        Test that only past bookings are listed)
+        """
+        resp = self._get_response(self.user)
+
+        self.assertEquals(Booking.objects.all().count(), 2)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.context_data['bookings'].count(), 1)
+
+    def test_booking_history_list_by_user(self):
+        """
+        Test that only past booking for this user are listed
+        """
+        another_user = mommy.make_recipe('booking.user')
+        mommy.make_recipe(
+            'booking.booking', user=another_user, event=self.past_booking.event
+        )
+        # check there are now 3 bookings
+        self.assertEquals(Booking.objects.all().count(), 3)
+        resp = self._get_response(self.user)
+
+        # event listing should still only show this user's future bookings
+        self.assertEquals(resp.context_data['bookings'].count(), 1)
+
 #TODO Booking detail view
 #TODO Booking Create view
 #TODO Booking Update view
