@@ -61,8 +61,6 @@ class ManagementCommandsTests(TestCase):
 
 
     def test_create_bookings(self):
-        self.assertEquals(Event.objects.all().count(), 0)
-        # management.call_command('create_events')
-        # TODO add exception to create events to raise warning if there are
-        # TODO no users yet. Test exception by running create events wihtou
-        # TODO creating users
+        pass
+        # management.call_command('create_bookings')
+
