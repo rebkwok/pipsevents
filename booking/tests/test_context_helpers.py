@@ -1,9 +1,10 @@
 from django.core.urlresolvers import reverse
-from django.contrib.sites.models import Site
 from django.test import TestCase, RequestFactory
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
-from booking.views import EventDetailView
+from booking.views import EventDetailView, BookingDetailView
+from booking.tests.helpers import set_up_fb
+
 
 class EventDetailContextTests(TestCase):
     """
@@ -11,11 +12,8 @@ class EventDetailContextTests(TestCase):
     """
 
     def setUp(self):
+        set_up_fb()
         self.factory = RequestFactory()
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
-
         self.free_event = mommy.make_recipe('booking.future_EV')
         self.past_event = mommy.make_recipe('booking.past_event')
         self.paid_event = mommy.make_recipe('booking.future_EV', cost=10)
@@ -151,3 +149,91 @@ class EventDetailContextTests(TestCase):
                           event.payment_info)
 
 
+class BookingDetailContextTests(TestCase):
+    """
+    Test that context helpers are passing correct contexts
+    """
+
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+
+        self.CONTEXT_OPTIONS = {
+            'payment_text_no_cost':         "There is no cost associated with "
+                                            "this event.",
+            'payment_text_cost_not_open':   "Payments are not yet open. Payment "
+                                            "information will be provided closer "
+                                            "to the event date.",
+            'payment_text_cost_open':       "###replace with "
+                                            "event.payment_info###",
+        }
+        self.CONTEXT_FLAGS = {
+            'include_confirm_payment_button': True,
+            'past': True
+        }
+
+
+    def _get_response(self, user, booking):
+        url = reverse('booking:booking_detail', args=[booking.id])
+        request = self.factory.get(url)
+        request.user = user
+        view = BookingDetailView.as_view()
+        return view(request, pk=booking.id)
+
+    def test_free_event(self):
+        """
+        Test correct context returned for a booking for a free event
+        """
+        free_event = mommy.make_recipe('booking.future_EV')
+        booking = mommy.make_recipe(
+            'booking.booking', event=free_event, user=self.user
+        )
+
+        resp = self._get_response(self.user, booking)
+        flags_not_expected = ['past', 'include_confirm_payment_button']
+        self.assertEquals(resp.context_data['payment_text'],
+                          self.CONTEXT_OPTIONS['payment_text_no_cost'])
+        for key in flags_not_expected:
+            self.assertFalse(key in resp.context_data.keys(),
+                             '{} should not be in context_data'.format(key))
+
+    def test_past_event(self):
+        """
+        Test correct context returned for a booking for a past event
+        """
+        past_event = mommy.make_recipe('booking.past_event')
+        booking = mommy.make_recipe(
+            'booking.booking', event=past_event, user=self.user
+        )
+        resp = self._get_response(self.user, booking)
+
+        # user is not booked; include confirm payment button, payment text etc is still in
+        # context; template handles the display
+        self.assertTrue('past' in resp.context_data.keys())
+        self.assertEquals(resp.context_data['payment_text'],
+                          self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
+
+    def test_event_with_cost(self):
+        """
+        Test correct context returned for a booking with associated cost
+        """
+        event = mommy.make_recipe('booking.future_WS', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user
+        )
+        #  payments not open yet (default)
+        resp = self._get_response(self.user, booking)
+        flags_not_expected = ['booked', 'include_confirm_payment_button']
+        self.assertEquals(resp.context_data['payment_text'],
+                          self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
+        for key in flags_not_expected:
+            self.assertFalse(key in resp.context_data.keys(),
+                             '{} should not be in context_data'.format(key))
+
+        # open payments
+        event.payment_open = True
+        event.save()
+        resp = self._get_response(self.user, booking)
+        self.assertEquals(resp.context_data['payment_text'],
+            "Payments are open. {}".format(event.payment_info))

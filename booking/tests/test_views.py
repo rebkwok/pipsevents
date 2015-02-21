@@ -1,5 +1,4 @@
 from django.core.urlresolvers import reverse
-from django.contrib.sites.models import Site
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
 from mock import patch
@@ -7,14 +6,9 @@ from model_mommy import mommy
 from booking.models import Event, Booking, Block
 from booking.views import EventListView, EventDetailView, \
     LessonDetailView, BookingListView, BookingHistoryListView, \
-    BookingDetailView, BookingCreateView, BookingDeleteView, BookingUpdateView, \
-    duplicate_booking, fully_booked
-from booking.forms import BookingCreateForm
+    BookingDetailView, BookingCreateView, BookingDeleteView, BookingUpdateView
+from booking.tests.helpers import set_up_fb
 
-def set_up_fb():
-    fbapp = mommy.make_recipe('booking.fb_app')
-    site = Site.objects.get_current()
-    fbapp.sites.add(site.id)
 
 class EventListViewTests(TestCase):
 
@@ -492,6 +486,7 @@ class BookingDeleteViewTests(TestCase):
         self._get_response(self.user, booking)
         self.assertEqual(Booking.objects.all().count(), 2)
 
+
 class BookingUpdateViewTests(TestCase):
 
     def setUp(self):
@@ -517,6 +512,9 @@ class BookingUpdateViewTests(TestCase):
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)
 
+
+class BlockCreateViewTests(TestCase):
+    pass
 
 #TODO Block Create view
 # TODO Block tests (for forms/views?)
