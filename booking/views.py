@@ -144,7 +144,7 @@ class BookingActionMixin(object):
         return NotImplemented
 
     def form_valid(self, form):
-        messages.info(self.request, self.success_msg)
+        messages.info(self.request, self.success_msg, fail_silently=True)
         return super(BookingActionMixin, self).form_valid(form)
 
 

@@ -6,20 +6,25 @@ from mock import patch
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
 from booking.views import EventListView, EventDetailView, \
-    LessonDetailView, BookingListView, BookingHistoryListView, BookingDetailView
+    LessonDetailView, BookingListView, BookingHistoryListView, \
+    BookingDetailView, BookingCreateView, BookingDeleteView, BookingUpdateView, \
+    duplicate_booking, fully_booked
+from booking.forms import BookingCreateForm
 
+def set_up_fb():
+    fbapp = mommy.make_recipe('booking.fb_app')
+    site = Site.objects.get_current()
+    fbapp.sites.add(site.id)
 
 class EventListViewTests(TestCase):
 
     def setUp(self):
+        set_up_fb()
         self.client = Client()
         self.factory = RequestFactory()
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
 
     def _get_response(self, user):
@@ -117,14 +122,12 @@ class EventListViewTests(TestCase):
 class EventDetailViewTests(TestCase):
 
     def setUp(self):
+        set_up_fb()
         self.client = Client()
         self.factory = RequestFactory()
         self.event = mommy.make_recipe('booking.future_EV')
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, event):
@@ -181,15 +184,12 @@ class LessonListViewTests(TestCase):
     so only basic functionality is retested
     """
     def setUp(self):
+        set_up_fb()
         self.client = Client()
         mommy.make_recipe('booking.future_EV', _quantity=1)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
         mommy.make_recipe('booking.future_WS', _quantity=1)
-
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
 
     def test_event_list(self):
@@ -215,9 +215,7 @@ class LessonDetailViewTests(TestCase):
         self.lesson = mommy.make_recipe('booking.future_PC')
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
+        set_up_fb()
         self.user = mommy.make_recipe('booking.user')
 
     def test_with_logged_in_user(self):
@@ -238,11 +236,9 @@ class LessonDetailViewTests(TestCase):
 class BookingListViewTests(TestCase):
 
     def setUp(self):
+        set_up_fb()
         self.client = Client()
         self.factory = RequestFactory()
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
         self.events = mommy.make_recipe('booking.future_EV', _quantity=3)
         future_bookings = [mommy.make_recipe(
@@ -290,17 +286,16 @@ class BookingListViewTests(TestCase):
         # event listing should still only show this user's future bookings
         self.assertEquals(resp.context_data['bookings'].count(), 3)
 
+
 class BookingHistoryListViewTests(TestCase):
 
     def setUp(self):
+        set_up_fb()
         self.client = Client()
         self.factory = RequestFactory()
-        fbapp = mommy.make_recipe('booking.fb_app')
-        site = Site.objects.get_current()
-        fbapp.sites.add(site.id)
         self.user = mommy.make_recipe('booking.user')
         event = mommy.make_recipe('booking.future_EV')
-        self.past_booking = mommy.make_recipe(
+        self.booking = mommy.make_recipe(
             'booking.booking', user=self.user, event=event
         )
         self.past_booking = mommy.make_recipe(
@@ -347,10 +342,181 @@ class BookingHistoryListViewTests(TestCase):
         # event listing should still only show this user's future bookings
         self.assertEquals(resp.context_data['bookings'].count(), 1)
 
-#TODO Booking detail view
-#TODO Booking Create view
-#TODO Booking Update view
-#TODO Booking Delete view
+
+class BookingDetailViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        self.booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        self.past_booking = mommy.make_recipe(
+            'booking.past_booking', user=self.user
+        )
+
+    def _get_response(self, user, booking):
+        url = reverse('booking:booking_detail', args=[booking.id])
+        request = self.factory.get(url)
+        request.user = user
+        view = BookingDetailView.as_view()
+        return view(request, pk=booking.id)
+
+    def test_login_required(self):
+        """
+        test that page redirects if there is no user logged in
+        """
+        url = reverse('booking:booking_detail', args=[self.booking.id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_with_logged_in_user(self):
+        """
+        test that page loads if there is a user available
+        """
+        resp = self._get_response(self.user, self.booking)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_past_booking(self):
+        """
+        test that past booking does not show buttons
+        """
+        resp = self._get_response(self.user, self.past_booking)
+        self.assertEqual(resp.status_code, 200)
+
+        resp.render()
+        self.assertFalse("Confirm payment made" in str(resp.content))
+        self.assertFalse("Delete booking" in str(resp.content))
+
+
+class BookingCreateViewTests(TestCase):
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+        self.event = mommy.make_recipe('booking.future_EV', max_participants=3)
+
+    def _get_response(self, user, event):
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        request = self.factory.post(url, {'event': event.id})
+        request.user = user
+        view = BookingCreateView.as_view()
+        return view(request, event_slug=event.slug)
+
+    def test_create_booking(self):
+        """
+        Test creating a booking
+        """
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self._get_response(self.user, self.event)
+        self.assertEqual(Booking.objects.all().count(), 1)
+
+    def test_cannot_create_duplicate_booking(self):
+        """
+        Test trying to create a duplicate booking redirects
+        """
+        resp = self._get_response(self.user, self.event)
+        booking_id = Booking.objects.all()[0].id
+        booking_url = reverse('booking:booking_detail', args=[booking_id])
+        self.assertEqual(resp.url, booking_url)
+
+        resp1 = self._get_response(self.user, self.event)
+        # test redirect to duplicate booking url
+        self.assertEqual(
+            resp1.url,
+            reverse(
+                'booking:duplicate_booking',
+                kwargs={'event_slug': self.event.slug}
+            )
+        )
+
+    def test_cannot_book_for_full_event(self):
+        """
+        Test trying to create a duplicate booking redirects
+        """
+
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        users = mommy.make_recipe('booking.user', _quantity=3)
+        for user in users:
+            mommy.make_recipe('booking.booking', event=event, user=user)
+        # check event is full
+        self.assertEqual(event.spaces_left(), 0)
+
+        # try to book for event
+        resp = self._get_response(self.user, event)
+        # test redirect to duplicate booking url
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:fully_booked',
+                kwargs={'event_slug': event.slug}
+            )
+        )
+
+
+class BookingDeleteViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+
+    def _get_response(self, user, booking):
+        url = reverse('booking:delete_booking', args=[booking.id])
+        request = self.factory.delete(url)
+        request.user = user
+        view = BookingDeleteView.as_view()
+        return view(request, pk=booking.id)
+
+    def test_create_booking(self):
+        """
+        Test deleting a booking
+        """
+        booking = mommy.make_recipe('booking.booking', user=self.user)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self._get_response(self.user, booking)
+        self.assertEqual(Booking.objects.all().count(), 0)
+
+    def test_deleting_only_this_booking(self):
+        """
+        Test deleting a booking when user has more than one
+        """
+        mommy.make_recipe(
+            'booking.booking', user=self.user, _quantity=3
+        )
+        self.assertEqual(Booking.objects.all().count(), 3)
+        booking = Booking.objects.all()[0]
+        self._get_response(self.user, booking)
+        self.assertEqual(Booking.objects.all().count(), 2)
+
+class BookingUpdateViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+
+    def _get_response(self, user, booking, form_data):
+        url = reverse('booking:update_booking', args=[booking.id])
+        request = self.factory.post(url, form_data)
+        request.user = user
+        view = BookingUpdateView.as_view()
+        return view(request, pk=booking.id)
+
+    def test_update_booking_to_paid(self):
+        """
+        Test updating a booking to paid (as confirmed by user)
+        """
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, paid=False)
+        form_data = {'paid': True}
+        resp = self._get_response(self.user, booking, form_data)
+        updated_booking = Booking.objects.get(id=booking.id)
+        self.assertTrue(updated_booking.paid)
+
 
 #TODO Block Create view
 # TODO Block tests (for forms/views?)
