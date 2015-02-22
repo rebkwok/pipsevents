@@ -6,6 +6,6 @@ alias go="cd /src/pipsevents"
 alias venv=". /src/pipsevents/venv/bin/activate"
 alias runserver="cd /src/pipsevents
 venv
-echo 'Application is running at $SRV_IP:8080'
-./manage.py runserver 0.0.0.0:8080"
+echo 'Application is running at $SRV_IP:8000'
+./manage.py runserver 0.0.0.0:18000"
 
