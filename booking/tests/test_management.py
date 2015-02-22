@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from allauth.socialaccount.models import SocialApp
 from mock import patch
+from model_mommy import mommy
 
 from booking.models import Event, Booking
 from booking.utils import create_classes
@@ -59,8 +60,33 @@ class ManagementCommandsTests(TestCase):
                                            date__lte=date + timedelta(days=1))
         self.assertTrue(mon_classes)
 
-
     def test_create_bookings(self):
-        pass
-        # management.call_command('create_bookings')
+        """
+        test that create_bookings creates 3 bookings per event
+        """
+        mommy.make_recipe('booking.user', _quantity=3)
+        mommy.make_recipe('booking.future_EV', _quantity=2)
+        self.assertEquals(Booking.objects.all().count(), 0)
+        management.call_command('create_bookings')
+        self.assertEquals(Booking.objects.all().count(), 6)
 
+    def test_create_bookings_without_users(self):
+        """
+        test that create_bookings creates users if none exist
+        """
+        mommy.make_recipe('booking.future_EV')
+        self.assertEquals(Booking.objects.all().count(), 0)
+        self.assertEquals(User.objects.all().count(), 0)
+        management.call_command('create_bookings')
+        self.assertEquals(Booking.objects.all().count(), 3)
+        self.assertEquals(User.objects.all().count(), 5)
+
+    def test_create_bookings_without_events(self):
+        """
+        test that create_bookings handles being called when there are no events
+        """
+        self.assertEquals(Booking.objects.all().count(), 0)
+
+        management.call_command('create_bookings')
+        # confirm no errors, and no booking are created
+        self.assertEquals(Booking.objects.all().count(), 0)
