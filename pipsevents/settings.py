@@ -104,13 +104,17 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "[watermelon studio bookings]"
 ACCOUNT_PASSWORD_MIN_LENGTH = 6
-ACCOUNT_SIGNUP_FORM_CLASS = 'booking.forms.SignupForm'
+ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.SignupForm'
 
 SOCIALACCOUNT_QUERY_EMAIL = True
 
 TEMPLATE_DIRS = (root('templates'),)
 
 ROOT_URLCONF = 'pipsevents.urls'
+
+ABSOLUTE_URL_OVERRIDES = {
+    'auth.user': lambda o: "/users/%s/" % o.username,
+}
 
 WSGI_APPLICATION = 'pipsevents.wsgi.application'
 
