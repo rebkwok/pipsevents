@@ -1,10 +1,31 @@
 from django.test import TestCase
+from django.contrib.admin.sites import AdminSite
+
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
 import booking.admin as admin
 
 
-class AdminFilterTests(TestCase):
+class EventAdminTests(TestCase):
+
+    def test_event_date_list_filter(self):
+        past_event = mommy.make_recipe('booking.past_event', name='past')
+        future_event = mommy.make_recipe('booking.future_EV', name='future')
+
+        filter = admin.EventDateListFilter(
+            None, {'date': 'past'}, Event, admin.EventAdmin
+        )
+        event = filter.queryset(None, Event.objects.all())[0]
+        self.assertEqual(event.name, 'past')
+
+        filter = admin.EventDateListFilter(
+            None, {'date': 'upcoming'}, Event, admin.EventAdmin
+        )
+        event = filter.queryset(None, Event.objects.all())[0]
+        self.assertEqual(event.name, 'future')
+
+class BookingAdminTests(TestCase):
+
     def test_booking_date_list_filter(self):
         past_event = mommy.make_recipe('booking.past_event', name='past')
         future_event = mommy.make_recipe('booking.future_EV', name='future')
@@ -23,18 +44,40 @@ class AdminFilterTests(TestCase):
         booking = filter.queryset(None, Booking.objects.all())[0]
         self.assertEqual(booking.event.name, 'future')
 
-    def test_event_date_list_filter(self):
-        past_event = mommy.make_recipe('booking.past_event', name='past')
-        future_event = mommy.make_recipe('booking.future_EV', name='future')
-
-        filter = admin.EventDateListFilter(
-            None, {'date': 'past'}, Event, admin.EventAdmin
+    def test_booking_admin_display(self):
+        event = mommy.make_recipe('booking.future_EV', cost=6)
+        user = mommy.make_recipe(
+            'booking.user', first_name="Test", last_name="User"
         )
-        event = filter.queryset(None, Event.objects.all())[0]
-        self.assertEqual(event.name, 'past')
+        mommy.make_recipe('booking.booking', user=user, event=event)
 
-        filter = admin.EventDateListFilter(
-            None, {'date': 'upcoming'}, Event, admin.EventAdmin
+        booking_admin = admin.BookingAdmin(Booking, AdminSite())
+        booking = booking_admin.get_queryset(None)[0]
+
+        self.assertEqual(booking_admin.get_user_first_name(booking), 'Test')
+        self.assertEqual(booking_admin.get_user_last_name(booking), 'User')
+        self.assertEqual(booking_admin.get_cost(booking), event.cost)
+
+    def test_confirm_space(self):
+        ev = mommy.make_recipe('booking.future_EV', cost=5)
+        ws = mommy.make_recipe('booking.future_WS', cost=5)
+        mommy.make_recipe(
+            'booking.booking', event=ev, _quantity=5
         )
-        event = filter.queryset(None, Event.objects.all())[0]
-        self.assertEqual(event.name, 'future')
+        mommy.make_recipe(
+            'booking.booking', event=ws, _quantity=5
+        )
+        self.assertEquals(len(Booking.objects.filter(paid=True)), 0)
+        self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 0)
+
+        booking_admin = admin.BookingAdmin(Booking, AdminSite())
+        queryset = Booking.objects.filter(event__type='EV')
+
+        booking_admin.confirm_space(None, queryset)
+        self.assertEquals(len(Booking.objects.filter(paid=True)), 5)
+        self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 5)
+
+
+
+
+

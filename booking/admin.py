@@ -86,8 +86,6 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name')
 
-# TODO look at ways of formatting the time widget
-
 # TODO add custom button and form/view for creating a week's classes from any
 # TODO given date
 # TODO or/and add this to the main page menu, visible by staff users only
