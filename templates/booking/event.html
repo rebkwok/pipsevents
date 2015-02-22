@@ -49,7 +49,7 @@
                         {{ booking_info_text }}
                     {% endif %}
 
-                    {% if include_book_button %}
+                    {% if bookable %}
                         <div class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
                     {% endif %}
                 {% endif %}

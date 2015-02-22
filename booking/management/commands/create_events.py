@@ -22,7 +22,7 @@ class Command(BaseCommand):
             payment_open=False,
             advance_payment_required=True,
             payment_info="Please pay by paypal to contact email.",
-            payment_due_date=now + timedelta(40),
+            payment_due_date=now + timedelta(27),
         )
 
         Event.objects.get_or_create(
@@ -35,7 +35,7 @@ class Command(BaseCommand):
             cost=5,
             payment_open=True,
             payment_info="Please pay by paypal to contact email.",
-            payment_due_date=now + timedelta(30),
+            payment_due_date=now + timedelta(15),
         )
 
         # no costs
@@ -60,7 +60,7 @@ class Command(BaseCommand):
             contact_person="Someone else",
             contact_email="someone@else.com",
             payment_info="Please pay by paypal to contact email.",
-            payment_due_date=now + timedelta(40),
+            payment_due_date=now + timedelta(30),
         )
 
         # Past event
@@ -75,5 +75,5 @@ class Command(BaseCommand):
             cost=10,
             payment_open=True,
             payment_info="Please pay by paypal to contact email.",
-            payment_due_date=now + timedelta(40),
+            payment_due_date=now - timedelta(40),
         )

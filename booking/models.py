@@ -33,6 +33,7 @@ class Event(models.Model):
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=False)
+    booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=False)
     payment_info = models.TextField(blank=True)
     payment_link = models.URLField(blank=True, default="http://www.paypal.co.uk")
@@ -45,6 +46,15 @@ class Event(models.Model):
             return self.max_participants - booked_number
         else:
             return 100
+
+    def bookable(self):
+        if self.payment_due_date:
+            return self.booking_open and \
+                   self.payment_due_date > timezone.now() \
+                   and self.spaces_left() > 0
+        else:
+            return self.booking_open \
+                   and self.spaces_left() > 0
 
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})

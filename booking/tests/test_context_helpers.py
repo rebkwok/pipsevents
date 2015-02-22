@@ -1,6 +1,9 @@
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
+from django.utils import timezone
 from model_mommy import mommy
+from datetime import datetime
+from mock import patch
 from booking.models import Event, Booking, Block
 from booking.views import EventDetailView, BookingDetailView
 from booking.tests.helpers import set_up_fb
@@ -29,11 +32,14 @@ class EventDetailContextTests(TestCase):
             'payment_text_cost_open':       "###replace with "
                                             "event.payment_info###",
             'booking_info_text_not_booked': "",
+            'booking_info_text_not_open':   "Bookings are not yet open for this "
+                                            "event.",
             'booking_info_text_booked':     "You have booked for this event.",
             'booking_info_text_full':       "This event is now full.",
+            'booking_info_payment_date_past': "Bookings for this event are now "
+                                              "closed."
         }
         self.CONTEXT_FLAGS = {
-            'include_book_button': True,
             'booked': True,
             'past': True
         }
@@ -58,8 +64,8 @@ class EventDetailContextTests(TestCase):
                           self.CONTEXT_OPTIONS['payment_text_no_cost'])
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
-        self.assertEquals(resp.context_data['include_book_button'],
-                          self.CONTEXT_FLAGS['include_book_button'])
+        self.assertTrue(resp.context_data['bookable'])
+
         for key in flags_not_expected:
             self.assertFalse(key in resp.context_data.keys(),
                              '{} should not be in context_data'.format(key))
@@ -75,7 +81,7 @@ class EventDetailContextTests(TestCase):
                               event=self.free_event)
         resp = self._get_response(self.user, self.free_event)
 
-        flags_not_expected = ['booked', 'past', 'include_book_button']
+        flags_not_expected = ['booked', 'past']
         self.assertEquals(resp.context_data['payment_text'],
                           self.CONTEXT_OPTIONS['payment_text_no_cost'])
         self.assertEquals(resp.context_data['booking_info_text'],
@@ -90,7 +96,7 @@ class EventDetailContextTests(TestCase):
         resp = self._get_response(self.user, self.free_event)
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
-        self.assertTrue('include_book_button' in resp.context_data.keys())
+        self.assertTrue(resp.context_data['bookable'])
 
         # book the user
         mommy.make_recipe('booking.booking',
@@ -100,7 +106,7 @@ class EventDetailContextTests(TestCase):
         resp = self._get_response(self.user, self.free_event)
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_booked'])
-        self.assertFalse('include_book_button' in resp.context_data.keys())
+        self.assertFalse(resp.context_data['bookable'])
 
     def test_past_event(self):
         """
@@ -147,6 +153,50 @@ class EventDetailContextTests(TestCase):
         resp = self._get_response(self.user, event)
         self.assertEquals(resp.context_data['payment_text'],
                           event.payment_info)
+
+    def test_booking_not_open(self):
+        event = mommy.make_recipe(
+            'booking.future_WS',
+            booking_open=False,
+        )
+        resp = self._get_response(self.user, event)
+        self.assertEquals(resp.context_data['booking_info_text'],
+                  self.CONTEXT_OPTIONS['booking_info_text_not_open'])
+        self.assertFalse(resp.context_data['bookable'])
+
+    @patch('booking.models.timezone')
+    def test_event_with_payment_due_date(self, mock_tz):
+        """
+        Test correct context returned for an event with payment due date
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_WS',
+            cost=10,
+            payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc)
+        )
+        resp = self._get_response(self.user, event)
+
+        self.assertEquals(resp.context_data['booking_info_text'],
+                          self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
+        self.assertTrue(resp.context_data['bookable'])
+
+    @patch('booking.models.timezone')
+    def test_event_with_past_payment_due_date(self, mock_tz):
+        """
+        Test correct context returned for an event with payment due date
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_WS',
+            cost=10,
+            payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
+        )
+        resp = self._get_response(self.user, event)
+
+        self.assertEquals(resp.context_data['booking_info_text'],
+                          self.CONTEXT_OPTIONS['booking_info_payment_date_past'])
+        self.assertFalse(resp.context_data['bookable'])
 
 
 class BookingDetailContextTests(TestCase):

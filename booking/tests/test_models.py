@@ -18,6 +18,35 @@ class EventTests(TestCase):
     def tearDown(self):
         del self.event
 
+    def test_bookable_with_no_payment_date(self):
+        """
+        Test that event bookable logic returns correctly
+        """
+        event = mommy.make_recipe('booking.future_EV')
+        self.assertTrue(event.bookable())
+
+    @patch('booking.models.timezone')
+    def test_bookable_with_payment_dates(self, mock_tz):
+        """
+        Test that event bookable logic returns correctly for events with
+        payment due dates
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            cost=10,
+            payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc))
+
+        self.assertTrue(event.bookable())
+
+        event1 = mommy.make_recipe(
+            'booking.future_EV',
+            cost=10,
+            payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
+        )
+        self.assertFalse(event1.bookable())
+
+
     def test_event_pre_save(self):
         """
         Test that an event with no cost has correct fields set

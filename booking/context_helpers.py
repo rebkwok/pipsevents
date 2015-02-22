@@ -29,19 +29,20 @@ def get_event_context(context, event, user, event_type):
     user_booked_events = [booking.event for booking in user_bookings]
     booked = event in user_booked_events
 
-    # booking info text and book button
+    # booking info text and bookable
     booking_info_text = ""
+    context['bookable'] = event.bookable()
     if booked:
         context['booked'] = True
         booking_info_text = "You have booked for this event."
-    else:
-        if event.max_participants:
-            if event.spaces_left():
-                context['include_book_button'] = True
-            else:
-                booking_info_text = "This event is now full."
-        else:
-            context['include_book_button'] = True
+        context['bookable'] = False
+    elif not event.booking_open:
+        booking_info_text = "Bookings are not yet open for this event."
+    elif event.spaces_left() <= 0:
+        booking_info_text = "This event is now full."
+    elif not event.bookable():
+        booking_info_text = "Bookings for this event are now closed."
+
     context['booking_info_text'] = booking_info_text
 
     return context
