@@ -80,30 +80,18 @@ class EventDateListFilter(admin.SimpleListFilter):
             return queryset.filter(date__gte=timezone.now())
 
 
-class EventAdminForm(forms.ModelForm):
-  class Meta:
-    model = Event
-    fields = '__all__'
-    widgets = {
-      'date': SuitSplitDateTimeWidget(),
-    }
-
 # TODO validation on event fields - e.g. payment due date can't be after event
 # TODO date, event date can't be in past, cost must be >= 0
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name')
-    form = EventAdminForm
 
-    class Meta:
-        widgets = {
-            'date': SuitSplitDateTimeWidget,
-        }
 # TODO look at ways of formatting the time widget
 
 # TODO add custom button and form/view for creating a week's classes from any
 # TODO given date
 # TODO or/and add this to the main page menu, visible by staff users only
+
 
 class BookingAdmin(admin.ModelAdmin):
 
