@@ -154,16 +154,20 @@ class Booking(models.Model):
         default=False,
         help_text='Payment has been made by user'
     )
+    date_booked = models.DateTimeField(default=timezone.now)
     payment_confirmed = models.BooleanField(
         default=False,
         help_text='Payment confirmed by admin/organiser'
     )
+    date_payment_confirmed = models.DateTimeField(null=True, blank=True)
     block = models.ForeignKey(Block, related_name='bookings', null=True)
+    date_space_confirmed = models.DateTimeField(null=True, blank=True)
 
     def confirm_space(self):
         if self.event.cost:
             self.paid = True
             self.payment_confirmed = True
+            self.date_space_confirmed = timezone.now()
             self.save()
 
     def space_confirmed(self):
@@ -178,9 +182,13 @@ class Booking(models.Model):
     def get_absolute_url(self):
         return reverse("booking:booking_detail", args=[str(self.id)])
 
-    #TODO on save, return error if block and event is not 'PC'
-
-
     def __unicode__(self):
         return "{} {}".format(str(self.event.name), str(self.user.username))
 
+
+@receiver(pre_save, sender=Booking)
+def booking_pre_save(sender, instance, *args, **kwargs):
+    if instance.payment_confirmed and not instance.date_payment_confirmed:
+        instance.date_payment_confirmed = timezone.now()
+    if not instance.event.cost and not instance.date_space_confirmed:
+        instance.date_space_confirmed = timezone.now()

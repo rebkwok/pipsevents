@@ -77,7 +77,7 @@ class EventTests(TestCase):
         self.assertEquals(workshop.payment_info, "Pay me")
         self.assertEquals(workshop.payment_link, "http://www.paypal.co.uk")
 
-class BookingTest(TestCase):
+class BookingTests(TestCase):
 
     def setUp(self):
         mommy.make_recipe('booking.user', _quantity=15)
@@ -152,6 +152,60 @@ class BookingTest(TestCase):
         booking = mommy.make_recipe('booking.booking',
                                     event=event)
         self.assertTrue(booking.space_confirmed())
+
+    def test_date_space_confirmed_free_event(self):
+        """
+        Test autopopulating date space confirmed.  For free event, this is the
+        datetime the booking is created
+        """
+        booking = mommy.make_recipe('booking.booking',
+                                    event=self.event)
+        self.assertTrue(booking.date_space_confirmed)
+
+    def test_date_payment_confirmed(self):
+        """
+        Test autopopulating date payment confirmed.
+        """
+        booking = mommy.make_recipe('booking.booking',
+                                    event=self.event_with_cost)
+        # booking is created with no payment confirmed date
+        self.assertFalse(booking.date_payment_confirmed)
+
+        booking.payment_confirmed = True
+        booking.save()
+        self.assertTrue(booking.date_payment_confirmed)
+
+    def test_date_space_confirmed_paid_event(self):
+        """
+        Test autopopulating date space confirmed for paid event
+        """
+        booking = mommy.make_recipe('booking.booking',
+                                    event=self.event_with_cost)
+        # booking is created with no space confirmed date
+        self.assertFalse(booking.space_confirmed())
+        self.assertFalse(booking.date_space_confirmed)
+
+        booking.confirm_space()
+        self.assertTrue(booking.space_confirmed())
+        self.assertTrue(booking.date_space_confirmed)
+
+    def test_updating_booking_with_existing_payment_confirmed_date(self):
+        booking = mommy.make_recipe('booking.booking',
+                                    event=self.event_with_cost)
+        booking.confirm_space()
+        self.assertTrue(booking.date_space_confirmed)
+
+        confirmed_date = booking.date_space_confirmed
+
+        booking.paid = True
+        booking.save()
+        self.assertEqual(booking.date_space_confirmed, confirmed_date)
+
+
+
+
+
+
 
 
 class BlockTests(TestCase):
