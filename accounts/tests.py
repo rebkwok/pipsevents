@@ -13,8 +13,14 @@ class SignUpFormTests(TestCase):
         form_data = {'first_name': 'Test',
                      'last_name': 'User'}
         form = SignupForm(data=form_data)
-        self.assertEqual(form.is_valid(), True)
+        self.assertTrue(form.is_valid())
 
+    def test_signup_form_with_invalid_data(self):
+        # first_name must have 30 characters or fewer
+        form_data = {'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
+                     'last_name': 'User'}
+        form = SignupForm(data=form_data)
+        self.assertFalse(form.is_valid())
 
 class ProfileUpdateViewTests(TestCase):
 
