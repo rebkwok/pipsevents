@@ -5,9 +5,15 @@ from django.utils.translation import ugettext_lazy as _
 
 class BookingCreateForm(forms.ModelForm):
 
+    use_active_block = forms.BooleanField(
+        label="Use my block", help_text="You have an active block booking; "
+                                        "would you like to use your block for "
+                                        "this booking?",
+        required=False)
+
     class Meta:
         model = Booking
-        fields = ['event', ]
+        fields = ['use_active_block', 'event', ]
 
 class BookingUpdateForm(forms.ModelForm):
 

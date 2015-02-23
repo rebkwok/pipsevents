@@ -169,6 +169,13 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
         context = super(BookingCreateView, self).get_context_data(**kwargs)
         # Add in the event name
         context['event'] = self.event
+        user_blocks = self.request.user.blocks.all()
+        active_user_block = [block for block in user_blocks if block.active_block()]
+        if active_user_block:
+            context['active_user_block'] = True
+        else:
+            context['active_user_block'] = False
+
         return context
 
     def form_valid(self, form):
@@ -178,6 +185,13 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
                                         args=[self.event.slug]))
         try:
             booking = form.save(commit=False)
+            use_active_block = form.cleaned_data.get('use_active_block', False)
+            if use_active_block:
+                blocks = self.request.user.blocks.all()
+                active_block = [block for block in blocks if block.active_block()][0]
+                booking.block = active_block
+                booking.paid = True
+                booking.payment_confirmed = True
             booking.user = self.request.user
             booking.save()
             # TODO look into using 'http://{}'.format(self.request.META['HTTP_HOST']) instead

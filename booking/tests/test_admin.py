@@ -86,6 +86,7 @@ class BookingAdminTests(TestCase):
         self.assertEquals(len(Booking.objects.filter(paid=True)), 5)
         self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 5)
 
+
 class BlockAdminTests(TestCase):
 
     def test_block_admin_display(self):

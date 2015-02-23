@@ -12,7 +12,11 @@
             <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
                     <div class="form-group">
-                        <span class="hide">{{ form.as_p  }}</span>
+                        {% if event.type == "PC" and active_user_block %}
+                        <p>{{ form.use_active_block.help_text }}</p>
+                        <p><strong>{{ form.use_active_block.label }}</strong> {{ form.use_active_block }}</p>
+                        {% endif %}
+                        <span class="hide">{{ form.event  }}</span>
                     <input class="btn btn-success" type="submit" value="Confirm and Book" />
                     </div>
                 </form>
