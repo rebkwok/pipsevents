@@ -5,9 +5,8 @@ from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
-from booking.models import Event, Booking
+from booking.models import Event, Booking, Block
 from django.contrib.admin import DateFieldListFilter
-from suit.widgets import SuitSplitDateTimeWidget
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -93,16 +92,21 @@ class EventAdmin(admin.ModelAdmin):
 
 class BookingAdmin(admin.ModelAdmin):
 
-    list_display = ('event', 'get_date', 'user', 'get_user_first_name',
+    list_display = ('event_name', 'get_date', 'user', 'get_user_first_name',
                     'get_user_last_name', 'get_cost', 'paid',
                     'space_confirmed')
 
     list_filter = (BookingDateListFilter, 'user', 'event')
 
+    readonly_fields = ('date_payment_confirmed', 'date_space_confirmed')
 
     def get_date(self, obj):
         return obj.event.date
     get_date.short_description = 'Date'
+
+    def event_name(self, obj):
+        return obj.event.name
+    event_name.short_name = 'Event'
 
     def get_user_first_name(self, obj):
         return obj.user.first_name
@@ -138,5 +142,37 @@ class BookingAdmin(admin.ModelAdmin):
         "Mark selected bookings as paid and confirmed"
 
 
+class BookingInLine(admin.TabularInline):
+    fields = ('event', )
+    readonly_fields = ('event',)
+    model = Booking
+    extra = 0
+
+
+class BlockAdmin(admin.ModelAdmin):
+    fields = ('user', 'block_size', 'formatted_cost', 'formatted_start_date',
+              'formatted_expiry_date',
+              'paid', 'payment_confirmed')
+    readonly_fields = ('formatted_start_date', 'formatted_cost',
+                       'formatted_expiry_date')
+    search_fields = ('user', 'active_block')
+    list_display = ('user', 'block_size', 'active_block')
+
+    inlines = [BookingInLine, ]
+
+    def formatted_cost(self, obj):
+        return obj.cost
+    formatted_cost.short_description = 'Cost (GBP)'
+
+    def formatted_start_date(self, obj):
+        return obj.start_date.strftime('%d %b %Y, %H:%M')
+    formatted_start_date.short_description = 'Start date'
+
+    def formatted_expiry_date(self, obj):
+        return obj.expiry_date.strftime('%d %b %Y, %H:%M')
+    formatted_expiry_date.short_description = 'Expiry date'
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
+admin.site.register(Block, BlockAdmin)
+

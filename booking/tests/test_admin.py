@@ -24,6 +24,7 @@ class EventAdminTests(TestCase):
         event = filter.queryset(None, Event.objects.all())[0]
         self.assertEqual(event.name, 'future')
 
+
 class BookingAdminTests(TestCase):
 
     def test_booking_date_list_filter(self):
@@ -49,14 +50,22 @@ class BookingAdminTests(TestCase):
         user = mommy.make_recipe(
             'booking.user', first_name="Test", last_name="User"
         )
-        mommy.make_recipe('booking.booking', user=user, event=event)
+        booking = mommy.make_recipe('booking.booking', user=user, event=event)
 
         booking_admin = admin.BookingAdmin(Booking, AdminSite())
-        booking = booking_admin.get_queryset(None)[0]
+        booking_query = booking_admin.get_queryset(None)[0]
 
-        self.assertEqual(booking_admin.get_user_first_name(booking), 'Test')
-        self.assertEqual(booking_admin.get_user_last_name(booking), 'User')
-        self.assertEqual(booking_admin.get_cost(booking), event.cost)
+        self.assertEqual(
+            booking_admin.get_date(booking_query), booking.event.date
+        )
+        self.assertEqual(
+            booking_admin.get_user_first_name(booking_query), 'Test'
+        )
+        self.assertEqual(
+            booking_admin.get_user_last_name(booking_query), 'User'
+        )
+        self.assertEqual(booking_admin.get_cost(booking_query), event.cost)
+        self.assertEqual(booking_admin.event_name(booking_query), event.name)
 
     def test_confirm_space(self):
         ev = mommy.make_recipe('booking.future_EV', cost=5)
@@ -77,7 +86,24 @@ class BookingAdminTests(TestCase):
         self.assertEquals(len(Booking.objects.filter(paid=True)), 5)
         self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 5)
 
+class BlockAdminTests(TestCase):
 
+    def test_block_admin_display(self):
+        block = mommy.make_recipe('booking.block_5')
+        block_admin = admin.BlockAdmin(Block, AdminSite())
+        block_query = block_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            block_admin.formatted_cost(block_query), block.cost
+        )
+        self.assertEqual(
+            block_admin.formatted_start_date(block_query),
+            block.start_date.strftime('%d %b %Y, %H:%M')
+        )
+        self.assertEqual(
+            block_admin.formatted_expiry_date(block_query),
+            block.expiry_date.strftime('%d %b %Y, %H:%M')
+        )
 
 
 

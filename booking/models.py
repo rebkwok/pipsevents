@@ -59,8 +59,10 @@ class Event(models.Model):
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 
-    def __unicode__(self):
-        return self.name
+    def __str__(self):
+        return '{} - {}'.format(
+            str(self.name), self.date.strftime('%d %b %Y, %H:%M')
+        )
 
 @receiver(pre_save, sender=Event)
 def event_pre_save(sender, instance, *args, **kwargs):
@@ -108,11 +110,11 @@ class Block(models.Model):
         help_text='Payment confirmed by admin/organiser'
     )
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} -- block size {} -- start {}".format(self.user.username,
                                                       self.block_size,
                                                       self.start_date.strftime(
-                                                          '%d %b %Y %H:%M')
+                                                          '%d %b %Y, %H:%M')
         )
 
     @property
@@ -132,14 +134,15 @@ class Block(models.Model):
         AND
         it is <= one week since start_date OR payment is confirmed
         """
-
         expired = self.expiry_date < timezone.now()
         full = Booking.objects.filter(
             block__id=self.id).count() >= self.BLOCK_DATA[self.block_size][0]
-        start_date_within_one_week = self.start_date >= timezone.now() - timedelta(days=7)
+        start_date_within_one_week = self.start_date >= timezone.now() \
+                                                        - timedelta(days=7)
 
         return (not expired and not full and
                 (start_date_within_one_week or self.payment_confirmed))
+    active_block.boolean = True
 
     def get_absolute_url(self):
         # TODO update this if/when we have a block overview
@@ -182,7 +185,7 @@ class Booking(models.Model):
     def get_absolute_url(self):
         return reverse("booking:booking_detail", args=[str(self.id)])
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} {}".format(str(self.event.name), str(self.user.username))
 
 
