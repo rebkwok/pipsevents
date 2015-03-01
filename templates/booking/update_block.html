@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h1 class="panel-title">Your block booking</h1>
+            </div>
+           <div class="panel-body">
+                <form action="" method="post">{% csrf_token %}
+                    <h4>{{ form.paid.label}}</h4>
+                    <p>{{ form.paid }} {{ form.paid.help_text}}</p>
+                    <p>Please note that your block payment will be marked as pending
+                    until the organiser has reviewed and confirmed it.</p>
+                    <input class="btn btn-success" type="submit" value="Update" />
+                    <div class="btn btn-warning"><a href="{% url 'booking:block_list' %}">Cancel</a></div>
+                </form>
+            </div>
+       </div>
+    </div>
+
+
+</div>
+
+{% endblock content %}

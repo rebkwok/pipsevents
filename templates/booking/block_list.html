@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block content %}
+
+
+<div class="small-margin container-fluid row">
+    <h1>Your blocks</h1>
+
+
+    {% if blocks %}
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel">
+                    <div class="panel-heading">
+                        {% if not active_user_block %}
+                        <p>You don't have any active blocks.
+                            <span class="btn btn-success"><a href="{% url 'booking:add_block' %}">Get a new block!</a></span>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            <th>Block Status</th>
+                            <th>Start date</th>
+                            <th>Expiry Date</th>
+                            <th>Block size</th>
+                            <th>Bookings made</th>
+                            <th>Paid</th>
+                            <th>Payment confirmed by studio</th>
+                            <th></th>
+                        </tr>
+                        {% for block in blocks %}
+                            <tr {% if block.active_block %}class="active_block"{% else %}class="inactive_block"{% endif %}>
+                                <td>{% if block.active_block %}Active{% else %}Expired{% endif %}</td>
+                                <td>{{ block.start_date }}</td>
+                                <td>{{ block.expiry_date }}</td>
+                                <td>{{ block.block_size | blocksize_format }}</td>
+                                <td>{{ block.bookings_made }}</td>
+                                <td>{% if block.paid %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
+                                    {% else %}<span class="glyphicon glyphicon-remove" aria-label="No"></span>{% endif %}
+                                </td>
+                                <td>{% if block.payment_confirmed %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
+                                    {% else %}<span class="glyphicon glyphicon-remove" aria-label="No"></span>{% endif %}</td>
+                                <td>{% if not block.paid %}<span class="btn btn-success"><a href="{% url 'booking:update_block' block.id %}">Confirm paid</a></span>
+                                    {% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <div class="col-sm-11">
+        <p>You do not have any active or past block bookings.</p>
+        </div>
+    {% endif %}
+
+
+</div>
+
+{% endblock content %}

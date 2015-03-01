@@ -7,14 +7,20 @@
     <div class="col-sm-11">
        <div class="panel panel-success">
             <div class="panel-heading">
-                <h2 class="panel-title">You are now booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h2>
+                <h2 class="panel-title">You are now booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h2>
             </div>
             <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
                     <div class="form-group">
-                        {% if event.type == "PC" and active_user_block %}
-                        <p>{{ form.use_active_block.help_text }}</p>
-                        <p><strong>{{ form.use_active_block.label }}</strong> {{ form.use_active_block }}</p>
+                        {% if event.type == "PC" %}
+                            {% if active_user_block %}
+                                <p>{{ form.use_active_block.help_text }}</p>
+                                <p><strong>{{ form.use_active_block.label }}</strong> {{ form.use_active_block }}</p>
+                            {% else %}
+                                <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
+                            {% endif %}
+                        {% else %}
+                            <p>(Note: block booking is only available for pole level classes.)</p>
                         {% endif %}
                         <span class="hide">{{ form.event  }}</span>
                     <input class="btn btn-success" type="submit" value="Confirm and Book" />

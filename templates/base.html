@@ -31,7 +31,7 @@
 
       <div class="wrap">
         <!-- Fixed navbar -->
-        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="navbar navbar-fixed-top" role="navigation">
             <div class="container-fluid">
                 <div class="navbar-header">
                     <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -50,6 +50,7 @@
                         <li class="active-nav"><a href="{% url 'booking:events' %}">Events and Workshops</a></li>
                         {% if user.is_authenticated %}
                         <li class="active-nav"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>
                         <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
                         <li class="active-nav"><a href="http://www.thewatermelonstudio.co.uk" target="_blank">Studio website</a></li>
                         {% endif %}

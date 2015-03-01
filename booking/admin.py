@@ -2,11 +2,11 @@ from django.conf import settings
 from django.contrib import admin
 from django import forms
 from django.core.mail import send_mail
+from django.db.models import Q
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
 from booking.models import Event, Booking, Block
-from django.contrib.admin import DateFieldListFilter
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -61,8 +61,8 @@ class EventDateListFilter(admin.SimpleListFilter):
         in the right sidebar.
         """
         return (
-            ('past', ('past events only')),
-            ('upcoming', ('upcoming events only')),
+            ('past', 'past events only'),
+            ('upcoming', 'upcoming events only'),
         )
 
     def queryset(self, request, queryset):
@@ -79,11 +79,46 @@ class EventDateListFilter(admin.SimpleListFilter):
             return queryset.filter(date__gte=timezone.now())
 
 
+class EventTypeListFilter(admin.SimpleListFilter):
+    """
+    Filter by class or event
+    """
+    title = 'Type'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'type'
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        return (
+            ('class', 'Classes'),
+            ('event', 'Workshops and Other Events'),
+        )
+
+    def queryset(self, request, queryset):
+        """
+        Returns the filtered queryset based on the value
+        provided in the query string and retrievable via
+        `self.value()`.
+        """
+        # Compare the requested value
+        # to decide how to filter the queryset.
+        if self.value() == 'class':
+            return queryset.filter(Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS))
+        if self.value() == 'event':
+            return queryset.filter(Q(type=Event.WORKSHOP) | Q(type=Event.OTHER_EVENT))
+
 # TODO validation on event fields - e.g. payment due date can't be after event
 # TODO date, event date can't be in past, cost must be >= 0
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
-    list_filter = (EventDateListFilter, 'name')
+    list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
 
 # TODO add custom button and form/view for creating a week's classes from any
 # TODO given date
@@ -149,14 +184,37 @@ class BookingInLine(admin.TabularInline):
     extra = 0
 
 
+class BlockFilter(admin.SimpleListFilter):
+    """
+    Filter by active block
+    """
+    title = 'Block status'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'active'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('active', 'Active blocks'),
+            ('inactive', 'Expired/inactive blocks')
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'active':
+            return [obj for obj in queryset if obj.active_block()]
+        if self.value() == 'inactive':
+            return [obj for obj in queryset if not obj.active_block()]
+
+
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_size', 'formatted_cost', 'formatted_start_date',
-              'formatted_expiry_date',
-              'paid', 'payment_confirmed')
+    fields = ('user', 'block_size', 'formatted_cost', 'paid',
+              'payment_confirmed')
     readonly_fields = ('formatted_start_date', 'formatted_cost',
                        'formatted_expiry_date')
     search_fields = ('user', 'active_block')
-    list_display = ('user', 'block_size', 'active_block')
+    list_display = ('user', 'block_size', 'active_block',
+                    'formatted_start_date', 'formatted_expiry_date')
+    list_filter = (BlockFilter,)
 
     inlines = [BookingInLine, ]
 
@@ -171,6 +229,7 @@ class BlockAdmin(admin.ModelAdmin):
     def formatted_expiry_date(self, obj):
         return obj.expiry_date.strftime('%d %b %Y, %H:%M')
     formatted_expiry_date.short_description = 'Expiry date'
+
 
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)

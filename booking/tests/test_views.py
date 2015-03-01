@@ -394,9 +394,16 @@ class BookingCreateViewTests(TestCase):
         self.user = mommy.make_recipe('booking.user')
         self.event = mommy.make_recipe('booking.future_EV', max_participants=3)
 
-    def _get_response(self, user, event):
+    def _post_response(self, user, event):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
         request = self.factory.post(url, {'event': event.id})
+        request.user = user
+        view = BookingCreateView.as_view()
+        return view(request, event_slug=event.slug)
+
+    def _get_response(self, user, event):
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        request = self.factory.get(url, {'event': event.id})
         request.user = user
         view = BookingCreateView.as_view()
         return view(request, event_slug=event.slug)
@@ -405,13 +412,7 @@ class BookingCreateViewTests(TestCase):
         """
         Get the booking page with the event context
         """
-        url = reverse(
-            'booking:book_event', kwargs={'event_slug': self.event.slug}
-        )
-        request = self.factory.get(url)
-        request.user = self.user
-        view = BookingCreateView.as_view()
-        resp = view(request, event_slug=self.event.slug)
+        resp = self._get_response(self.user, self.event)
         self.assertEqual(resp.context_data['event'], self.event)
 
     def test_create_booking(self):
@@ -419,27 +420,24 @@ class BookingCreateViewTests(TestCase):
         Test creating a booking
         """
         self.assertEqual(Booking.objects.all().count(), 0)
-        self._get_response(self.user, self.event)
+        self._post_response(self.user, self.event)
         self.assertEqual(Booking.objects.all().count(), 1)
 
     def test_cannot_create_duplicate_booking(self):
         """
         Test trying to create a duplicate booking redirects
         """
-        resp = self._get_response(self.user, self.event)
+        resp = self._post_response(self.user, self.event)
         booking_id = Booking.objects.all()[0].id
         booking_url = reverse('booking:booking_detail', args=[booking_id])
         self.assertEqual(resp.url, booking_url)
 
         resp1 = self._get_response(self.user, self.event)
-        # test redirect to duplicate booking url
-        self.assertEqual(
-            resp1.url,
-            reverse(
-                'booking:duplicate_booking',
-                kwargs={'event_slug': self.event.slug}
-            )
+        duplicate_url = reverse('booking:duplicate_booking',
+                                kwargs={'event_slug': self.event.slug}
         )
+        # test redirect to duplicate booking url
+        self.assertEqual(resp1.url, duplicate_url)
 
     def test_cannot_book_for_full_event(self):
         """

@@ -164,59 +164,63 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             'event': self.event.pk,
         }
 
+    def get(self, request, *args, **kwargs):
+        # redirect if fully booked or already booked
+        if self.event.spaces_left() == 0:
+            return HttpResponseRedirect(reverse('booking:fully_booked',
+                                        args=[self.event.slug]))
+        try:
+            Booking.objects.get(user=self.request.user, event=self.event)
+            return HttpResponseRedirect(reverse('booking:duplicate_booking',
+                                        args=[self.event.slug]))
+        except Booking.DoesNotExist:
+            return super(BookingCreateView, self).get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingCreateView, self).get_context_data(**kwargs)
         # Add in the event name
         context['event'] = self.event
         user_blocks = self.request.user.blocks.all()
-        active_user_block = [block for block in user_blocks if block.active_block()]
+        active_user_block = [block for block in user_blocks
+                             if block.active_block()]
         if active_user_block:
             context['active_user_block'] = True
-        else:
-            context['active_user_block'] = False
 
         return context
 
     def form_valid(self, form):
-        # check there are spaces available
-        if self.event.spaces_left() == 0:
-            return HttpResponseRedirect(reverse('booking:fully_booked',
-                                        args=[self.event.slug]))
-        try:
-            booking = form.save(commit=False)
-            use_active_block = form.cleaned_data.get('use_active_block', False)
-            if use_active_block:
-                blocks = self.request.user.blocks.all()
-                active_block = [block for block in blocks if block.active_block()][0]
-                booking.block = active_block
-                booking.paid = True
-                booking.payment_confirmed = True
-            booking.user = self.request.user
-            booking.save()
-            # TODO look into using 'http://{}'.format(self.request.META['HTTP_HOST']) instead
-            host = 'http://' + self.request.get_host()
-            # send email to user
-            send_mail('{} Space for {} confirmed'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                      get_template('booking/email/booking_received.txt').render(
-                          Context({
-                              'host': host,
-                              'booking': booking,
-                              'event': booking.event,
-                              'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%I:%M %p'),
-                          })
-                      ),
-                settings.DEFAULT_FROM_EMAIL,
-                [booking.user.email],
-                fail_silently=False)
+        booking = form.save(commit=False)
+        use_active_block = form.cleaned_data.get('use_active_block', False)
+        if use_active_block:
+            blocks = self.request.user.blocks.all()
+            active_block = [block for block in blocks
+                            if block.active_block()][0]
+            booking.block = active_block
+            booking.paid = True
+            booking.payment_confirmed = True
+        booking.user = self.request.user
+        booking.save()
 
-            return HttpResponseRedirect(booking.get_absolute_url())
-        except IntegrityError:
-            #trying to make a booking that already exists
-            return HttpResponseRedirect(reverse('booking:duplicate_booking',
-                                        args=[self.event.slug]))
+        # TODO look into using 'http://{}'.format(self.request.META['HTTP_HOST']) instead
+        host = 'http://' + self.request.get_host()
+        # send email to user
+        send_mail('{} Space for {} confirmed'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                  get_template('booking/email/booking_received.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            fail_silently=False)
+
+        return HttpResponseRedirect(booking.get_absolute_url())
 
 
 class BlockCreateView(LoginRequiredMixin, CreateView):
@@ -225,11 +229,61 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     template_name = 'booking/add_block.html'
     fields = ('block_size', )
 
+    def get(self, request, *args, **kwargs):
+        # redirect if user already has an active block
+        user_blocks = self.request.user.blocks.all()
+        active_user_block = [block for block in user_blocks
+                             if block.active_block()]
+        if active_user_block:
+            return HttpResponseRedirect(reverse('booking:has_active_block'))
+
+        return super(BlockCreateView, self).get(request, *args, **kwargs)
+
     def form_valid(self, form):
         block = form.save(commit=False)
         block.user = self.request.user
         block.save()
         return HttpResponseRedirect(block.get_absolute_url())
+
+
+class BlockListView(LoginRequiredMixin, ListView):
+
+    model = Block
+    context_object_name = 'blocks'
+    template_name = 'booking/block_list.html'
+
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(BlockListView, self).get_context_data(**kwargs)
+        user_blocks = self.request.user.blocks.all()
+        active_user_block = [block for block in user_blocks
+                             if block.active_block()]
+        if active_user_block:
+            context['active_user_block'] = True
+
+        return context
+
+    def get_queryset(self):
+        return Block.objects.filter(
+           Q(user=self.request.user)
+        ).order_by('-start_date')
+
+
+class BlockUpdateView(LoginRequiredMixin, UpdateView):
+    model = Block
+    template_name = 'booking/update_block.html'
+
+    form_class = BookingUpdateForm
+
+    def form_valid(self, form):
+        # add to active block if ticked, don't require paid to be ticked
+        block = form.save(commit=False)
+        block.user = self.request.user
+        block.paid = True
+        block.save()
+
+        return HttpResponseRedirect(reverse('booking:block_list'))
 
 
 class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
@@ -238,6 +292,32 @@ class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
     success_msg = 'Booking updated!'
 
     form_class = BookingUpdateForm
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(BookingUpdateView, self).get_context_data(**kwargs)
+        user_blocks = self.request.user.blocks.all()
+        active_user_block = [block for block in user_blocks
+                             if block.active_block()]
+        if active_user_block:
+            context['active_user_block'] = True
+        return context
+
+    def form_valid(self, form):
+        # add to active block if ticked, don't require paid to be ticked
+        booking = form.save(commit=False)
+        use_active_block = form.cleaned_data.get('use_active_block', False)
+        if use_active_block:
+            blocks = self.request.user.blocks.all()
+            active_block = [block for block in blocks
+                            if block.active_block()][0]
+            booking.block = active_block
+            booking.paid = True
+            booking.payment_confirmed = True
+        booking.user = self.request.user
+        booking.save()
+
+        return HttpResponseRedirect(booking.get_absolute_url())
 
 
 class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
@@ -280,3 +360,6 @@ def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
     context = {'event': event}
     return render(request, 'booking/fully_booked.html', context)
+
+def has_active_block(request):
+     return render(request, 'booking/has_active_block.html')

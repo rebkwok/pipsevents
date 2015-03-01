@@ -36,7 +36,7 @@ class Event(models.Model):
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
-    cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+    cost = models.DecimalField(verbose_name='Cost (GBP)', default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=False)
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=False)
@@ -87,8 +87,8 @@ class Block(models.Model):
     SMALL_BLOCK_SIZE = 'SM'
     LARGE_BLOCK_SIZE = 'LG'
     SIZE_CHOICES = (
-        (SMALL_BLOCK_SIZE, 'Five classes'),
-        (LARGE_BLOCK_SIZE, 'Ten classes'),
+        (SMALL_BLOCK_SIZE, '5'),
+        (LARGE_BLOCK_SIZE, '10'),
     )
 
     # [number of classes, cost, expiry in months from start_date]
@@ -143,15 +143,21 @@ class Block(models.Model):
         full = Booking.objects.filter(
             block__id=self.id).count() >= self.BLOCK_DATA[self.block_size][0]
         start_date_within_one_week = self.start_date >= timezone.now() \
-                                                        - timedelta(days=7)
+            - timedelta(days=7)
 
         return (not expired and not full and
                 (start_date_within_one_week or self.payment_confirmed))
     active_block.boolean = True
 
+    def bookings_made(self):
+        """
+        Number of bookings made against block
+        """
+        return Booking.objects.filter(block__id=self.id).count()
+
+
     def get_absolute_url(self):
-        # TODO update this if/when we have a block overview
-        return reverse("profile:profile")
+        return reverse("booking:block_list")
 
 
 class Booking(models.Model):

@@ -5,36 +5,48 @@
 
     <div class="small-margin container-fluid row">
 
-        <h1>Watermelon Studio {% if type == 'events' %}Events{% elif type == 'lessons' %}Class{% endif %} Booking</h1>
+        <h1>Watermelon Studio {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h1>
 
         {% if events %}
         <div class="row">
-            <div class="col-sm-11">
+            <div class="col-sm-12">
                 <p>Click on title for more details</p>
                 <div class="panel panel-success">
-                {% for event in events %}
 
-                    <div class="panel-heading">
-                        {% if type == 'events' %}
-                            <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
-                        {% elif type == 'lessons' %}
-                            <h3 class="panel-title"><a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a></h3>
-                        {% endif %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
+                                <th>Date</th>
+                                <th>Location</th>
+                                <th>Cost</th>
+                                <th>Max spaces</th>
+                                <th>Spaces left</th>
+                                <th>Booked</th>
+                            </tr>
+                            {% for event in events %}
+                                <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
+                                    <td>{% if type == 'events' %}
+                                        <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
+                                        {% elif type == 'lessons' %}
+                                        <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
+                                        {% endif %}</td>
+                                    <td>{{ event.date | date:"D d F, g:i a" }}</td>
+                                    <td>{{ event.location }}</td>
+                                    <td>£{{ event.cost }}</td>
+                                    <td>{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
+                                    <td>{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
+                                    <td>{% if event in booked_events %}<span class="glyphicon glyphicon-ok"></span>
+                                        {% elif event.bookable and event not in booked_events %}
+                                        <div class="btn btn-success table-btn"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
+                                        {% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
 
-                    </div>
-                    <div class="panel-body">
-                        <p>{{ event.description }}</p>
-                        <p>{{ event.location }}</p>
-                        <p>{{ event.date | date:"D d F, g:i a" }}</p>
-                        {% if event.max_participants %}
-                            <p>Max spaces: {{ event.max_participants }}</p>
-                            <p>Spaces left: {{ event.spaces_left }}</p>
-                        {% endif %}
-                        {% if event in booked_events %}
-                            <h5 class="confirmed">You have booked for this {% if type == 'events' %}event{% elif type == 'lessons' %}class{% endif %}.</h5>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
+
+
                 </div>
             </div>
          </div>

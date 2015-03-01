@@ -16,6 +16,12 @@
                     <p>{{ form.paid }} {{ form.paid.help_text}}</p>
                     <p>Please note that your booking will be marked as pending
                     until the organiser has reviewed and confirmed it.</p>
+
+                    {% if booking.event.type == "PC" and active_user_block %}
+                    <h4>{{ form.use_active_block.label }}</h4>
+                        <p>{{ form.use_active_block }} {{ form.use_active_block.help_text }}</p>
+                        <p>If you choose to use your active block booking, your booking will be confirmed immediately.</p>
+                    {% endif %}
                     <input class="btn btn-success" type="submit" value="Update" />
                     <div class="btn btn-warning"><a href="{% url 'booking:bookings' %}">Cancel</a></div>
                 </form>
