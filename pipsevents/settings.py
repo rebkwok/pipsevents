@@ -57,6 +57,7 @@ INSTALLED_APPS = (
     'debug_toolbar',
     'accounts',
     'booking',
+    'timetable',
 )
 
 SITE_ID = 1

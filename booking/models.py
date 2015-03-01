@@ -24,11 +24,16 @@ class Event(models.Model):
     )
 
     name = models.CharField(max_length=255)
-    type = models.CharField(max_length=2, choices=EVENT_TYPE_CHOICES, default=POLE_CLASS)
+    type = models.CharField(
+        max_length=2, choices=EVENT_TYPE_CHOICES, default=POLE_CLASS
+    )
     description = models.TextField(blank=True)
     date = models.DateTimeField()
     location = models.CharField(max_length=255, default="Watermelon Studio")
-    max_participants = models.PositiveIntegerField(null=True, blank=True, help_text="Leave blank if no max number of participants")
+    max_participants = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Leave blank if no max number of participants"
+    )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)

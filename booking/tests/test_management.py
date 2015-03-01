@@ -10,6 +10,7 @@ from model_mommy import mommy
 
 from booking.models import Event, Booking
 from booking.utils import create_classes
+from timetable.models import Session
 
 
 class ManagementCommandsTests(TestCase):
@@ -31,6 +32,9 @@ class ManagementCommandsTests(TestCase):
 
     @patch('booking.utils.date')
     def test_create_classes_with_manage_command(self, mock_date):
+        """
+        Create timetable sessions and add classes
+        """
         mock_date.today.return_value = datetime(2015, 2, 10)
 
         self.assertEquals(Event.objects.all().count(), 0)
@@ -54,11 +58,15 @@ class ManagementCommandsTests(TestCase):
         # create classes for a given date (22/3/16 is a Tues)
         date = datetime(2016, 3, 22, tzinfo=timezone.utc)
         self.assertEquals(Event.objects.all().count(), 0)
+
+        # create some timetabled sessions for mondays
+        mommy.make_recipe('booking.mon_session', _quantity=3)
+
         create_classes(input_date=date)
-        # check that there are now classes on the Monday that week
-        mon_classes = Event.objects.filter(date__gte=date,
-                                           date__lte=date + timedelta(days=1))
-        self.assertTrue(mon_classes)
+        # check that there are now classes on the Monday that week (21st Mar)
+        mon_classes = Event.objects.filter(date__gte=date - timedelta(days=1),
+                                           date__lte=date)
+        self.assertTrue(mon_classes.count(), 3)
 
     def test_create_bookings(self):
         """

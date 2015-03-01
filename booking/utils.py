@@ -1,7 +1,7 @@
 from django.utils import timezone
 from datetime import time, timedelta, datetime, date
 from booking.models import Event
-
+from timetable.models import Session
 
 def create_classes(week='this', input_date=None):
     """
@@ -9,7 +9,7 @@ def create_classes(week='this', input_date=None):
     in the past if the date given is after Monday and week is "this".
     If no date is given, creates classes for the current week, or the next week.
     """
-    if input_date == None:
+    if not input_date:
         input_date = date.today()
     if week == 'next':
         input_date = input_date + timedelta(7)
@@ -22,127 +22,28 @@ def create_classes(week='this', input_date=None):
     sat = mon + timedelta(days=5)
     sun = mon + timedelta(days=6)
 
-    # Monday classes
-    Event.objects.get_or_create(
-        name="Pole Level 3",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(mon, time(hour=17, minute=45, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
+    date_dict = {
+        '01MON': mon,
+        '02TUE': tues,
+        '03WED': wed,
+        '04THU': thurs,
+        '05FRI': fri,
+        '06SAT': sat,
+        '07SUN': sun}
 
-    Event.objects.get_or_create(
-        name="Pole Level 1",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(mon, time(hour=19, minute=0, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    Event.objects.get_or_create(
-        name="Pole practice",
-        type=Event.OTHER_CLASS,
-        date=datetime.combine(mon, time(hour=20, minute=10, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=3.50,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    # Tuesday classes
-    Event.objects.get_or_create(
-        name="Pole Level 2",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(tues, time(hour=17, minute=45, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    Event.objects.get_or_create(
-        name="Pole Level 4",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(tues, time(hour=19, minute=0, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    Event.objects.get_or_create(
-        name="Pole Level 1",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(tues, time(hour=20, minute=10, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    # Wednesday classes
-    Event.objects.get_or_create(
-        name="Pole conditioning",
-        type=Event.OTHER_CLASS,
-        date=datetime.combine(wed, time(hour=19, minute=0, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=3.50,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    # Thursday classes
-    Event.objects.get_or_create(
-        name="Pole Mixed Levels",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(thurs, time(hour=11, minute=0, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    Event.objects.get_or_create(
-        name="Pole Level 2",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(thurs, time(hour=20, minute=10, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    # Friday classes
-    Event.objects.get_or_create(
-        name="Pole Level 1",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(fri, time(hour=17, minute=45, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    Event.objects.get_or_create(
-        name="Pole Level 3",
-        type=Event.POLE_CLASS,
-        date=datetime.combine(fri, time(hour=19, minute=0, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=7,
-        payment_open=True,
-        advance_payment_required=False,
-    )
-
-    Event.objects.get_or_create(
-        name="Pole practice",
-        type=Event.OTHER_CLASS,
-        date=datetime.combine(fri, time(hour=20, minute=10, tzinfo=timezone.utc)),
-        max_participants=15,
-        cost=3.50,
-        payment_open=True,
-        advance_payment_required=False,
-    )
+    timetable = Session.objects.all()
+    for session in timetable:
+        Event.objects.get_or_create(
+            name=session.name,
+            type=session.type,
+            date=(datetime.combine(
+                date_dict[session.day],
+                session.time).replace(tzinfo=timezone.utc)),
+            description=session.description,
+            max_participants=session.max_participants,
+            location=session.location,
+            contact_person=session.contact_person,
+            contact_email=session.contact_email,
+            cost=session.cost,
+            payment_open=session.payment_open
+        )

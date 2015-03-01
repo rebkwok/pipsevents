@@ -7,7 +7,7 @@ from model_mommy.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
 from booking.models import Event, Block, Booking
-
+from timetable.models import Session
 
 now = timezone.now()
 past = now - timedelta(30)
@@ -67,3 +67,5 @@ past_booking = Recipe(Booking,
 
 fb_app = Recipe(SocialApp,
                 provider='facebook')
+
+mon_session = Recipe(Session, day=Session.MON)
