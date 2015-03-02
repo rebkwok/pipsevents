@@ -412,3 +412,7 @@ td {
     padding-bottom: 0;
     font-size: 90%;
     }
+
+a.disabled {
+    color: #D8F6CE;
+    }

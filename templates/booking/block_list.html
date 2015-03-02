@@ -45,7 +45,7 @@
                                 </td>
                                 <td>{% if block.payment_confirmed %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
                                     {% else %}<span class="glyphicon glyphicon-remove" aria-label="No"></span>{% endif %}</td>
-                                <td>{% if not block.paid %}<span class="btn btn-success"><a href="{% url 'booking:update_block' block.id %}">Confirm paid</a></span>
+                                <td>{% if not block.paid %}<span class="btn btn-success table-btn"><a href="{% url 'booking:update_block' block.id %}">Confirm paid</a></span>
                                     {% endif %}</td>
                             </tr>
                         {% endfor %}
