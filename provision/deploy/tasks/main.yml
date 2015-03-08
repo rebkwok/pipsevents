@@ -10,8 +10,19 @@
     - ipython
     - django-extensions
 
-- name: Django syncdb
-  django_manage: command=syncdb app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+- name: Django db
+  django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+  with_items:
+    - syncdb
+    - migrate
 
-- name: Django migrate
-  django_manage: command=migrate app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+- name: Populate database
+  django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+  with_items:
+    - setup_fb
+    - load_users
+    - create_timetable
+    - create_events
+    - create_classes
+    - create_bookings
+
