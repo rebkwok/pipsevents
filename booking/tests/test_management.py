@@ -23,7 +23,7 @@ class ManagementCommandsTests(TestCase):
     def test_load_users(self):
         self.assertEquals(User.objects.all().count(), 0)
         management.call_command('load_users')
-        self.assertEquals(User.objects.all().count(), 5)
+        self.assertEquals(User.objects.all().count(), 6)
 
     def test_create_events(self):
         self.assertEquals(Event.objects.all().count(), 0)
@@ -87,7 +87,7 @@ class ManagementCommandsTests(TestCase):
         self.assertEquals(User.objects.all().count(), 0)
         management.call_command('create_bookings')
         self.assertEquals(Booking.objects.all().count(), 3)
-        self.assertEquals(User.objects.all().count(), 5)
+        self.assertEquals(User.objects.all().count(), 6)
 
     def test_create_bookings_without_events(self):
         """
