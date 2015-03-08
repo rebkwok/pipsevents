@@ -32,8 +32,12 @@ def create_classes(week='this', input_date=None):
         '07SUN': sun}
 
     timetable = Session.objects.all()
+
+    created_classes = []
+    existing_classes = []
+
     for session in timetable:
-        Event.objects.get_or_create(
+        cl, created = Event.objects.get_or_create(
             name=session.name,
             type=session.type,
             date=(datetime.combine(
@@ -47,3 +51,9 @@ def create_classes(week='this', input_date=None):
             cost=session.cost,
             payment_open=session.payment_open
         )
+        if created:
+            created_classes.append(cl)
+        else:
+            existing_classes.append(cl)
+
+    return created_classes, existing_classes

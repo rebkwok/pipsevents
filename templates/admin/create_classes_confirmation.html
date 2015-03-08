@@ -1,0 +1,33 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+        <div>
+            <h4>Classes scheduled from the current timetable, based on the
+                date {{ input_date | date:"D d F Y"}}:</h4>
+            {% if created_classes %}
+                <p>The following classes were created :</p>
+                <ul>
+                {% for class in created_classes %}
+                    <li><strong>{{ class.name }}</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            {% if existing_classes %}
+                <p>The following classes already existed in the system and have
+                    not been added again:</p>
+                <ul>
+                {% for class in existing_classes %}
+                    <li><strong>{{ class.name }}</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+
+            <a href="/admin/booking/event">View/edit all events and classes</a></br>
+            <a href="/admin/timetable/session">View/edit timetable sessions</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

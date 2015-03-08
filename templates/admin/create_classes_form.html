@@ -1,0 +1,27 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-9">
+        <h4>Schedule Classes from Timetable</h4>
+        <p>
+            Enter a date to use for scheduling classes.  This will schedule
+            an entire week's classes around the provided date, using the
+            sessions scheduled in the <a href="/admin/timetable/session">timetable</a>.
+        </p>
+        <p>
+            E.g. entering
+            10 March 2015 (Tuesday) will create classes for the entire week
+            Mon 9 March - Sun 15 March.
+        </p>
+        <form action="" method="post">{% csrf_token %}
+            <div class="form-group">
+                {{ form.date  }}
+                {{ form.date.errors }}
+            <input class="btn btn-success" type="submit" value="Create classes" />
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

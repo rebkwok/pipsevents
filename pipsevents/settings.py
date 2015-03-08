@@ -192,6 +192,33 @@ STATICFILES_DIRS = (root('static'),)
 # DJANGO-SUIT
 SUIT_CONFIG = {
     'ADMIN_NAME': "Watermelon Pips Events",
-    }
+    'MENU': (
+        {
+            'label': 'Events and Classes',
+            'icon': 'icon-bookmark',
+            'models': ('booking.event',)
+        },
+        {
+            'label': 'View/edit block bookings',
+            'icon': 'icon-bookmark',
+            'models': ('booking.block',)
+        },
+        {
+            'label': 'View/edit individual bookings',
+            'icon': 'icon-bookmark',
+            'models': ('booking.booking',)
+        },
+        {
+            'app': 'timetable',
+            'label': 'Weekly timetable',
+            'icon': 'icon-calendar',
+        },
+        {
+            'label': 'Schedule classes from timetable',
+            'url': '/admin/booking/event/create-timetabled-classes/',
+            'icon': 'icon-calendar',
+        },
+    )
+}
 
 INTERNAL_IPS = '127.0.0.1'

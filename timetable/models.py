@@ -39,7 +39,7 @@ class Session(models.Model):
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
-    cost = models.DecimalField(verbose_name='Cost (GBP)', default=7, max_digits=8, decimal_places=2)
+    cost = models.DecimalField(default=7, max_digits=8, decimal_places=2)
     payment_open = models.BooleanField(default=True)
 
     def __str__(self):

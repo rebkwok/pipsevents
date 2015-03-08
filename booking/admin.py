@@ -1,13 +1,18 @@
 from django.conf import settings
+from django.conf.urls import patterns
 from django.contrib import admin
-from django import forms
 from django.core.mail import send_mail
 from django.db.models import Q
+from django.http import HttpResponse
+from django.shortcuts import render, redirect
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
+from django import forms
+from suit.widgets import EnclosedInput
 from booking.models import Event, Booking, Block
-
+from booking.forms import CreateClassesForm
+from booking import utils
 
 class BookingDateListFilter(admin.SimpleListFilter):
     # Human-readable title which will be displayed in the
@@ -114,15 +119,50 @@ class EventTypeListFilter(admin.SimpleListFilter):
         if self.value() == 'event':
             return queryset.filter(Q(type=Event.WORKSHOP) | Q(type=Event.OTHER_EVENT))
 
+
+class EventForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            # You can also use prepended and appended together
+            'cost': EnclosedInput(prepend='£'),
+        }
+
+
 # TODO validation on event fields - e.g. payment due date can't be after event
 # TODO date, event date can't be in past, cost must be >= 0
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
+    form = EventForm
 
-# TODO add custom button and form/view for creating a week's classes from any
-# TODO given date
-# TODO or/and add this to the main page menu, visible by staff users only
+    def get_urls(self):
+        urls = super(EventAdmin, self).get_urls()
+        extra_urls = patterns(
+            '',
+            (r'^create-timetabled-classes/$',
+             self.admin_site.admin_view(self.create_classes_view))
+        )
+        return extra_urls + urls
+
+    def create_classes_view(self, request,
+                            template_name="admin/create_classes_form.html"):
+        # custom view which should return an HttpResponse
+
+        if request.method == 'POST':
+            form = CreateClassesForm(request.POST)
+            if form.is_valid():
+                date = form.cleaned_data['date']
+                created_classes, existing_classes = \
+                    utils.create_classes(week='this', input_date=date)
+                context = {'input_date': date,
+                           'created_classes': created_classes,
+                           'existing_classes': existing_classes}
+                return render(
+                    request, 'admin/create_classes_confirmation.html', context
+                )
+        else:
+            form = CreateClassesForm()
+        return render(request, template_name, {'form': form})
 
 
 class BookingAdmin(admin.ModelAdmin):
@@ -141,7 +181,8 @@ class BookingAdmin(admin.ModelAdmin):
 
     def event_name(self, obj):
         return obj.event.name
-    event_name.short_name = 'Event'
+    event_name.short_description = 'Event or Class'
+    event_name.admin_order_field = 'event'
 
     def get_user_first_name(self, obj):
         return obj.user.first_name
@@ -154,8 +195,8 @@ class BookingAdmin(admin.ModelAdmin):
     actions = ['confirm_space']
 
     def get_cost(self, obj):
-        return obj.event.cost
-    get_cost.short_description = 'Cost (GBP)'
+        return "£{:.2f}".format(obj.event.cost)
+    get_cost.short_description = 'Cost'
 
     def confirm_space(self, request, queryset):
         for obj in queryset:
@@ -219,8 +260,7 @@ class BlockAdmin(admin.ModelAdmin):
     inlines = [BookingInLine, ]
 
     def formatted_cost(self, obj):
-        return obj.cost
-    formatted_cost.short_description = 'Cost (GBP)'
+        return "£{:.2f}".format(obj.cost)
 
     def formatted_start_date(self, obj):
         return obj.start_date.strftime('%d %b %Y, %H:%M')

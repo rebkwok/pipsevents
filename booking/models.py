@@ -36,7 +36,7 @@ class Event(models.Model):
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
-    cost = models.DecimalField(verbose_name='Cost (GBP)', default=0, max_digits=8, decimal_places=2)
+    cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=False)
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=False)
