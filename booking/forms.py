@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from datetime import date
 from booking.models import Booking, Event
 from django.utils.translation import ugettext_lazy as _
@@ -96,3 +97,11 @@ class CreateClassesForm(forms.Form):
             year = self.data.get('date_2')
             raise forms.ValidationError(_('Invalid date {} {} {}'.format(day, month, year)))
         return self.cleaned_data['date']
+
+
+class EmailUsersForm(forms.Form):
+    subject = forms.CharField(max_length=255, required=True)
+    from_address = forms.EmailField(max_length=255,
+                                    initial=settings.DEFAULT_FROM_EMAIL,
+                                    required=True)
+    message = forms.CharField(widget=forms.Textarea, required=True)

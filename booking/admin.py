@@ -11,8 +11,9 @@ from django.utils import timezone
 from django import forms
 from suit.widgets import EnclosedInput
 from booking.models import Event, Booking, Block
-from booking.forms import CreateClassesForm
+from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
+
 
 class BookingDateListFilter(admin.SimpleListFilter):
     # Human-readable title which will be displayed in the
@@ -192,11 +193,20 @@ class BookingAdmin(admin.ModelAdmin):
         return obj.user.last_name
     get_user_last_name.short_description = 'Last name'
 
-    actions = ['confirm_space']
+    actions = ['confirm_space', 'email_users_view']
 
     def get_cost(self, obj):
         return "£{:.2f}".format(obj.event.cost)
     get_cost.short_description = 'Cost'
+
+    def get_urls(self):
+        urls = super(BookingAdmin, self).get_urls()
+        extra_urls = patterns(
+            '',
+            (r'^email_users/$',
+             self.admin_site.admin_view(self.email_users_view))
+        )
+        return extra_urls + urls
 
     def confirm_space(self, request, queryset):
         for obj in queryset:
@@ -216,6 +226,32 @@ class BookingAdmin(admin.ModelAdmin):
 
     confirm_space.short_description = \
         "Mark selected bookings as paid and confirmed"
+
+    def email_users_view(self, request, queryset,
+                         template_name="admin/email_users_form.html"):
+
+        bookings = [obj for obj in queryset]
+
+        if request.method == 'POST':
+            form = EmailUsersForm(request.POST)
+            if form.is_valid():
+                #TODO add email here
+                subject = form.cleaned_data['subject']
+                from_address = form.cleaned_data['from_address']
+                message = form.cleaned_data['message']
+
+                send_mail(subject, message, from_address, [obj.user.email],
+                          fail_silently=False)
+
+                return render(
+                    request, 'admin/email_users_confirmation.html', {'bookings': bookings}
+                )
+        else:
+            form = EmailUsersForm()
+        return render(request, template_name, {'form': form, 'bookings': bookings})
+
+    email_users_view.short_description = \
+        "Email users for selected bookings"
 
 
 class BookingInLine(admin.TabularInline):
