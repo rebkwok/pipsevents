@@ -1,14 +1,15 @@
 from django.conf import settings
-from django.conf.urls import patterns
+from django.conf.urls import patterns, url
 from django.contrib import admin
 from django.core.mail import send_mail
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
 from django import forms
+from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
 from booking.models import Event, Booking, Block
 from booking.forms import CreateClassesForm, EmailUsersForm
@@ -141,7 +142,7 @@ class EventAdmin(admin.ModelAdmin):
         extra_urls = patterns(
             '',
             (r'^create-timetabled-classes/$',
-             self.admin_site.admin_view(self.create_classes_view))
+             self.admin_site.admin_view(self.create_classes_view),)
         )
         return extra_urls + urls
 
@@ -193,7 +194,7 @@ class BookingAdmin(admin.ModelAdmin):
         return obj.user.last_name
     get_user_last_name.short_description = 'Last name'
 
-    actions = ['confirm_space', 'email_users_view']
+    actions = ['confirm_space', 'email_users']
 
     def get_cost(self, obj):
         return "£{:.2f}".format(obj.event.cost)
@@ -203,8 +204,9 @@ class BookingAdmin(admin.ModelAdmin):
         urls = super(BookingAdmin, self).get_urls()
         extra_urls = patterns(
             '',
-            (r'^email_users/$',
-             self.admin_site.admin_view(self.email_users_view))
+            url(r'^email_users/$',
+                self.admin_site.admin_view(self.email_users_view),
+                name='email_users')
         )
         return extra_urls + urls
 
@@ -227,15 +229,18 @@ class BookingAdmin(admin.ModelAdmin):
     confirm_space.short_description = \
         "Mark selected bookings as paid and confirmed"
 
-    def email_users_view(self, request, queryset,
-                         template_name="admin/email_users_form.html"):
-
+    def email_users(self, request, queryset):
         bookings = [obj for obj in queryset]
+        return HttpResponseRedirect('email_users')
 
-        if request.method == 'POST':
+    def email_users_view(self, request, bookings,
+                         template_name="admin/email_users_form.html"):
+        form = None
+
+        if 'send_email' in request.POST:
+
             form = EmailUsersForm(request.POST)
             if form.is_valid():
-                #TODO add email here
                 subject = form.cleaned_data['subject']
                 from_address = form.cleaned_data['from_address']
                 message = form.cleaned_data['message']
@@ -246,11 +251,12 @@ class BookingAdmin(admin.ModelAdmin):
                 return render(
                     request, 'admin/email_users_confirmation.html', {'bookings': bookings}
                 )
-        else:
-            form = EmailUsersForm()
+        if not form:
+            form = EmailUsersForm(initial={'_selected_action': request.POST.getlist(admin.ACTION_CHECKBOX_NAME)})
+
         return render(request, template_name, {'form': form, 'bookings': bookings})
 
-    email_users_view.short_description = \
+    email_users.short_description = \
         "Email users for selected bookings"
 
 

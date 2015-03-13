@@ -8,14 +8,15 @@
         <p>You are emailing the users for the following bookings:</p>
             <ul>
             {% for booking in bookings %}
-                <li>{% booking.user.first_name %} {% booking.user.last_name %}:
-                % booking.event </li>
+                <li>{{ booking.user.firstname }} {{ booking.user.lastname }}:
+                {{ booking.event }}</li>
             {% endfor %}
             </ul>
         <form action="" method="post">{% csrf_token %}
             <div class="form-group">
                 {{ form  }}
-            <input class="btn btn-success" type="submit" value="Create classes" />
+            <input type="hidden" name="action" value="send_email" />
+            <input class="btn btn-success" name="send_email" type="submit" value="Send" />
             </div>
         </form>
     </div>
