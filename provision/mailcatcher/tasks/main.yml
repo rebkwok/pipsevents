@@ -1,0 +1,31 @@
+---
+- name: Install ruby requirements
+  sudo: yes
+  apt: pkg={{ item }} state=installed
+  with_items:
+    - rubygems-integration #for ubuntu 14.04 (older versions may user just rubygems)
+    - libsqlite3-dev
+    - ruby1.9.3
+
+#- name: Ruby Update Alternatives
+#  sudo: yes
+#  shell: update-alternatives --set ruby /usr/bin/ruby1.9.1
+
+#- name: Gem Update Alternatives
+#  sudo: yes
+#  shell: update-alternatives --set gem /usr/bin/gem1.9.1
+
+- name: Install Mailcatcher
+  sudo: yes
+  gem: name=mailcatcher state=latest user_install=no
+
+- name: Add mailcatcher conf file
+  sudo: yes
+  copy: src=mailcatcher.conf dest=/etc/init/mailcatcher.conf
+
+- name: Make sure Mailcatcher is not running
+  command: pkill mailcatcher
+  ignore_errors: yes
+
+- name: Start Mailcatcher
+  shell: mailcatcher --ip 0.0.0.0

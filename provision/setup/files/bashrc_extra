@@ -1,11 +1,11 @@
 export SRV_IP="$(ip -o -f inet addr show eth1 | awk -F ' +|/' '{print $4}')"
 
-echo "Application is running at $SRV_IP"
+echo "Application is running at 127.0.0.1:7000"
 
 alias go="cd /src/pipsevents"
 alias venv=". /src/pipsevents/venv/bin/activate"
 alias runserver="cd /src/pipsevents
 venv
-echo 'Application is running at $SRV_IP:8000'
+echo 'Application is running at 127.0.0.1:7000'
 ./manage.py runserver 0.0.0.0:18000"
 

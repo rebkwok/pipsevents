@@ -170,7 +170,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # if EMAIL_HOST_PASSWORD == None:
 #     print "No email host password provided!"
 # EMAIL_PORT = 587
-# DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
+DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
 
 
 #####HEROKU#######
@@ -222,3 +222,11 @@ SUIT_CONFIG = {
 }
 
 INTERNAL_IPS = '127.0.0.1'
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = '127.0.0.1'
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    EMAIL_PORT = 1025
+    EMAIL_USE_TLS = False
