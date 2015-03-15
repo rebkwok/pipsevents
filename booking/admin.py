@@ -1,3 +1,4 @@
+import json
 from django.conf import settings
 from django.conf.urls import patterns, url
 from django.contrib import admin
@@ -169,6 +170,16 @@ class EventAdmin(admin.ModelAdmin):
 
 class BookingAdmin(admin.ModelAdmin):
 
+    def get_urls(self):
+        urls = super(BookingAdmin, self).get_urls()
+        extra_urls = patterns(
+            '',
+            url(r'^email_users/$',
+                self.admin_site.admin_view(self.email_users_view),
+                name='email_users')
+        )
+        return extra_urls + urls
+
     list_display = ('event_name', 'get_date', 'user', 'get_user_first_name',
                     'get_user_last_name', 'get_cost', 'paid',
                     'space_confirmed')
@@ -194,21 +205,11 @@ class BookingAdmin(admin.ModelAdmin):
         return obj.user.last_name
     get_user_last_name.short_description = 'Last name'
 
-    actions = ['confirm_space', 'email_users']
+    actions = ['confirm_space', 'email_users_action']
 
     def get_cost(self, obj):
         return "£{:.2f}".format(obj.event.cost)
     get_cost.short_description = 'Cost'
-
-    def get_urls(self):
-        urls = super(BookingAdmin, self).get_urls()
-        extra_urls = patterns(
-            '',
-            url(r'^email_users/$',
-                self.admin_site.admin_view(self.email_users_view),
-                name='email_users')
-        )
-        return extra_urls + urls
 
     def confirm_space(self, request, queryset):
         for obj in queryset:
@@ -229,35 +230,44 @@ class BookingAdmin(admin.ModelAdmin):
     confirm_space.short_description = \
         "Mark selected bookings as paid and confirmed"
 
-    def email_users(self, request, queryset):
-        bookings = [obj for obj in queryset]
-        return HttpResponseRedirect('email_users')
+    def email_users_action(self, request, queryset):
 
-    def email_users_view(self, request, bookings,
-                         template_name="admin/email_users_form.html"):
-        form = None
+        bookings = [obj.id for obj in queryset]
+        if request.method == 'POST':
+            request.session['selected_bookings'] = bookings
+            return HttpResponseRedirect(reverse('admin:email_users'))
 
-        if 'send_email' in request.POST:
+    email_users_action.short_description = \
+        "Email users for selected bookings"
 
+    def email_users_view(self, request,
+                         template_name='admin/email_users_form.html'):
+        bookings = Booking.objects.filter(
+            id__in=request.session.get('selected_bookings')
+        )
+
+        if request.method == 'POST':
             form = EmailUsersForm(request.POST)
             if form.is_valid():
                 subject = form.cleaned_data['subject']
                 from_address = form.cleaned_data['from_address']
                 message = form.cleaned_data['message']
 
-                send_mail(subject, message, from_address, [obj.user.email],
-                          fail_silently=False)
+                for booking in bookings:
+                    send_mail(subject, message, from_address,
+                              [booking.user.email],
+                              fail_silently=False)
 
                 return render(
-                    request, 'admin/email_users_confirmation.html', {'bookings': bookings}
+                    request,
+                    'admin/email_users_confirmation.html',
+                    {'bookings': bookings}
                 )
-        if not form:
-            form = EmailUsersForm(initial={'_selected_action': request.POST.getlist(admin.ACTION_CHECKBOX_NAME)})
-
-        return render(request, template_name, {'form': form, 'bookings': bookings})
-
-    email_users.short_description = \
-        "Email users for selected bookings"
+        else:
+            form = EmailUsersForm()
+        return render(
+            request, template_name, {'form': form, 'bookings': bookings}
+        )
 
 
 class BookingInLine(admin.TabularInline):

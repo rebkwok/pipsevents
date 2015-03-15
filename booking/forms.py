@@ -100,7 +100,6 @@ class CreateClassesForm(forms.Form):
 
 
 class EmailUsersForm(forms.Form):
-    _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
     subject = forms.CharField(max_length=255, required=True)
     from_address = forms.EmailField(max_length=255,
                                     initial=settings.DEFAULT_FROM_EMAIL,

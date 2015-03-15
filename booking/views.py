@@ -361,5 +361,6 @@ def fully_booked(request, event_slug):
     context = {'event': event}
     return render(request, 'booking/fully_booked.html', context)
 
+
 def has_active_block(request):
      return render(request, 'booking/has_active_block.html')
