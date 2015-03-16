@@ -8,7 +8,7 @@ class SessionForm(ModelForm):
     class Meta:
         widgets = {
             # You can also use prepended and appended together
-            'cost': EnclosedInput(prepend='£'),
+            'cost': EnclosedInput(prepend=u'\u00A3'),
         }
 
 

@@ -15,6 +15,7 @@ from suit.widgets import EnclosedInput
 from booking.models import Event, Booking, Block
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
+from booking.widgets import DurationSelectorWidget
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -127,7 +128,8 @@ class EventForm(forms.ModelForm):
     class Meta:
         widgets = {
             # You can also use prepended and appended together
-            'cost': EnclosedInput(prepend='£'),
+            'cost': EnclosedInput(prepend=u'\u00A3'),
+            'cancellation_period': DurationSelectorWidget()
         }
 
 
@@ -137,6 +139,30 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
     form = EventForm
+
+    CANCELLATION_TEXT = ' '.join(['<p>Enter cancellation period in',
+                                  'weeks, days and/or hours. ',
+                                  'Note that 1 day will be displayed to users',
+                                  'as "24 hours" for clarity.',
+                                  ])
+
+    fieldsets = [
+        ('Event details', {
+            'fields':('name', 'date', 'location', 'type', 'description')
+        }),
+        ('Contacts', {
+            'fields':('contact_person', 'contact_email')
+        }),
+        ('Payment Information', {
+           'fields':('cost', 'advance_payment_required', 'booking_open',
+                     'payment_open', 'payment_info', 'payment_link',
+                     'payment_due_date')
+        }),
+        ('Cancellation Period', {
+            'fields':('cancellation_period',),
+            'description': '<div class="help">%s</div>' % CANCELLATION_TEXT,
+        }),
+    ]
 
     def get_urls(self):
         urls = super(EventAdmin, self).get_urls()
@@ -211,7 +237,7 @@ class BookingAdmin(admin.ModelAdmin):
     actions = ['confirm_space', 'email_users_action']
 
     def get_cost(self, obj):
-        return "£{:.2f}".format(obj.event.cost)
+        return u"\u00A3{:.2f}".format(obj.event.cost)
     get_cost.short_description = 'Cost'
 
     def confirm_space(self, request, queryset):
@@ -325,7 +351,7 @@ class BlockAdmin(admin.ModelAdmin):
     inlines = [BookingInLine, ]
 
     def formatted_cost(self, obj):
-        return "£{:.2f}".format(obj.cost)
+        return u"\u00A3{:.2f}".format(obj.cost)
 
     def formatted_start_date(self, obj):
         return obj.start_date.strftime('%d %b %Y, %H:%M')

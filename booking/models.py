@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from django.template.defaultfilters import slugify
 from django_extensions.db.fields import AutoSlugField
+from durationfield.db.models.fields.duration import DurationField
+
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -43,6 +45,9 @@ class Event(models.Model):
     payment_info = models.TextField(blank=True)
     payment_link = models.URLField(blank=True, default="http://www.paypal.co.uk")
     payment_due_date = models.DateTimeField(null=True, blank=True)
+    cancellation_period = models.PositiveIntegerField(
+        default=24
+    )
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     def spaces_left(self):

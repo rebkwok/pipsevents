@@ -1,9 +1,8 @@
 from django import forms
 from django.conf import settings
-from datetime import date
 from booking.models import Booking, Event
+from booking.widgets import DateSelectorWidget
 from django.utils.translation import ugettext_lazy as _
-from django.forms import widgets
 
 
 MONTH_CHOICES = {
@@ -42,42 +41,6 @@ class BookingUpdateForm(forms.ModelForm):
             'paid': _('Tick to confirm that you have made your payment.')
         }
 
-
-class DateSelectorWidget(widgets.MultiWidget):
-
-    def __init__(self, attrs=None):
-
-
-        # create choices for days, months, years
-        days = [(day, day) for day in range(1, 32)]
-        months = [(key, value) for key, value in MONTH_CHOICES.items()]
-        years = [(year, year) for year in range(2015, 2021)]
-        _widgets = (
-            widgets.Select(attrs=attrs, choices=days),
-            widgets.Select(attrs=attrs, choices=months),
-            widgets.Select(attrs=attrs, choices=years),
-        )
-        super(DateSelectorWidget, self).__init__(_widgets, attrs)
-
-    def decompress(self, value):
-        if value:
-            return [value.day, value.month, value.year]
-        return [None, None, None]
-
-    def format_output(self, rendered_widgets):
-        return u''.join(rendered_widgets)
-
-    def value_from_datadict(self, data, files, name):
-        datelist = [
-            widget.value_from_datadict(data, files, name + '_%s' % i)
-            for i, widget in enumerate(self.widgets)]
-        try:
-            input_date = date(day=int(datelist[0]), month=int(datelist[1]),
-                    year=int(datelist[2]))
-        except ValueError:
-            return ''
-        else:
-            return input_date
 
 class CreateClassesForm(forms.Form):
     date = forms.DateField(
