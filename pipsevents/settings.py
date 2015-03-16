@@ -199,12 +199,12 @@ SUIT_CONFIG = {
             'models': ('booking.event',)
         },
         {
-            'label': 'View/edit block bookings',
+            'label': 'Block bookings',
             'icon': 'icon-bookmark',
             'models': ('booking.block',)
         },
         {
-            'label': 'View/edit individual bookings',
+            'label': 'Bookings',
             'icon': 'icon-bookmark',
             'models': ('booking.booking',)
         },

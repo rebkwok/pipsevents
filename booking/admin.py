@@ -188,6 +188,9 @@ class BookingAdmin(admin.ModelAdmin):
 
     readonly_fields = ('date_payment_confirmed', 'date_space_confirmed')
 
+    actions_on_top=True
+    actions_on_bottom=False
+
     def get_date(self, obj):
         return obj.event.date
     get_date.short_description = 'Date'
@@ -249,13 +252,23 @@ class BookingAdmin(admin.ModelAdmin):
         if request.method == 'POST':
             form = EmailUsersForm(request.POST)
             if form.is_valid():
-                subject = form.cleaned_data['subject']
+                subject = '{} {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    form.cleaned_data['subject'])
                 from_address = form.cleaned_data['from_address']
                 message = form.cleaned_data['message']
 
+                # do this per email address so recipients are not visible to
+                # each other
                 for booking in bookings:
                     send_mail(subject, message, from_address,
                               [booking.user.email],
+                              html_message=get_template(
+                                  'booking/email/email_users.html').render(
+                                  Context({
+                                      'subject': subject,
+                                      'message': message})
+                              ),
                               fail_silently=False)
 
                 return render(
