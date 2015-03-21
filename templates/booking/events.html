@@ -38,7 +38,7 @@
                                     <td>{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
                                     <td>{% if event in booked_events %}<span class="glyphicon glyphicon-ok"></span>
                                         {% elif event.bookable and event not in booked_events %}
-                                        <div class="btn btn-success table-btn"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
+                                        <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
                                         {% endif %}</td>
                                 </tr>
                             {% endfor %}

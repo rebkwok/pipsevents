@@ -47,12 +47,14 @@
                                     <td>
                                         {% if booking.event.cost > 0 and not booking.paid %}
                                             {% if booking.event.payment_open %}
-                                                 <div type="button" class="btn btn-success table-btn"><a href="{% url 'booking:update_booking' booking.pk %}">Confirm payment made</a></div>
+                                                 <div class="inc-btm-space">
+                                                     <a href="{% url 'booking:update_booking' booking.pk %}">
+                                                         <div type="button" class="btn btn-success table-btn booking-btn">Confirm payment</div>
+                                                     </a>
+                                                 </div>
                                             {% endif %}
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn btn-danger table-btn"><a href="{% url 'booking:delete_booking' booking.pk %}">Delete booking</a></div>
+                                        <a href="{% url 'booking:delete_booking' booking.pk %}"><div class="btn btn-danger table-btn booking-btn">Delete booking</div></a>
                                     </td>
                                 {% endif %}
                             </tr>

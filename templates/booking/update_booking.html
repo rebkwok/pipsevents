@@ -23,7 +23,7 @@
                         <p>If you choose to use your active block booking, your booking will be confirmed immediately.</p>
                     {% endif %}
                     <input class="btn btn-success" type="submit" value="Update" />
-                    <div class="btn btn-warning"><a href="{% url 'booking:bookings' %}">Cancel</a></div>
+                    <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
                 {% else %}
                     <h5>There is no cost associated with this event, nothing to update.</h5>

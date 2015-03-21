@@ -50,7 +50,7 @@
                     {% endif %}
 
                     {% if bookable %}
-                        <div class="btn btn-success"><a href="{% url 'booking:book_event' event.slug %}">Book</a></div>
+                        <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success">Book</div></a>
                     {% endif %}
                 {% endif %}
 

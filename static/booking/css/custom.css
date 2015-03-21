@@ -375,8 +375,9 @@ color: #000;
     color: green;
 }
 
-.btn>a:link, .btn>a:visited {
+a>.btn {
     color: #fff;
+    text-decoration: none;
 }
 
 .confirmed {
@@ -415,4 +416,12 @@ td {
 
 a.disabled {
     color: #D8F6CE;
+    }
+
+.inc-btm-space {
+    padding-bottom: 2;
+}
+
+.booking-btn {
+    width: 120;
     }
