@@ -191,8 +191,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
 
     def form_valid(self, form):
         booking = form.save(commit=False)
-        use_active_block = form.cleaned_data.get('use_active_block', False)
-        if use_active_block:
+        if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
             active_block = [block for block in blocks
                             if block.active_block()][0]
@@ -306,14 +305,13 @@ class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
     def form_valid(self, form):
         # add to active block if ticked, don't require paid to be ticked
         booking = form.save(commit=False)
-        use_active_block = form.cleaned_data.get('use_active_block', False)
-        if use_active_block:
+        if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
             active_block = [block for block in blocks
                             if block.active_block()][0]
             booking.block = active_block
-            booking.paid = True
             booking.payment_confirmed = True
+        booking.paid = True
         booking.user = self.request.user
         booking.save()
 

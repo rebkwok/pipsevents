@@ -14,16 +14,24 @@
                     <div class="form-group">
                         {% if event.type == "PC" %}
                             {% if active_user_block %}
-                                <p>{{ form.use_active_block.help_text }}</p>
-                                <p><strong>{{ form.use_active_block.label }}</strong> {{ form.use_active_block }}</p>
+                                <p>You have an active block; would you like to use your block for this booking?</p>
                             {% else %}
                                 <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                             {% endif %}
                         {% else %}
                             <p>(Note: block booking is only available for pole level classes.)</p>
                         {% endif %}
+
                         <span class="hide">{{ form.event  }}</span>
-                    <input class="btn btn-success" type="submit" value="Confirm and Book" />
+                        {% if event.type == "PC" %}
+                            {% if active_user_block %}
+                                <input class="btn btn-success" type="submit" name="block_book" value="Book with my block" />
+                            {% endif %}
+                                <input class="btn btn-success" type="submit" value="Book as drop-in" />
+                        {% else %}
+                            <input class="btn btn-success" type="submit" value="Confirm and book" />
+                        {% endif %}
+
                     </div>
                 </form>
             </div>

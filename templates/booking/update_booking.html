@@ -13,16 +13,24 @@
                 {% if booking.event.cost != 0 %}
                 <form action="" method="post">{% csrf_token %}
                     <h4>{{ form.paid.label}}</h4>
-                    <p>{{ form.paid }} {{ form.paid.help_text}}</p>
+                    <p>We currently cannot take payments directly online.  If you have paid via paypal or in person, please confirm by
+                        clicking the button below.  The organiser will receive a notification to review your booking.
+                    </p>
+                    <span class="hide">{{ form.paid  }}</span>
                     <p>Please note that your booking will be marked as pending
                     until the organiser has reviewed and confirmed it.</p>
 
-                    {% if booking.event.type == "PC" and active_user_block %}
-                    <h4>{{ form.use_active_block.label }}</h4>
-                        <p>{{ form.use_active_block }} {{ form.use_active_block.help_text }}</p>
-                        <p>If you choose to use your active block booking, your booking will be confirmed immediately.</p>
+                    {% if booking.event.type == "PC" %}
+                        {% if active_user_block %}
+                            <h4>You have an active block</h4>
+                            <p>Would you like to use your block for this booking?</p>
+                            <p>If you choose to use your active block booking, your booking will be confirmed immediately.</p>
+                            <input class="btn btn-success" type="submit" name="block_book" value="Use my block" />
+                        {% else %}
+                            <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
+                        {% endif %}
                     {% endif %}
-                    <input class="btn btn-success" type="submit" value="Update" />
+                    <input class="btn btn-success" type="submit" value="Confirm payment made" />
                     <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
                 {% else %}

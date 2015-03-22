@@ -23,15 +23,9 @@ MONTH_CHOICES = {
 
 class BookingCreateForm(forms.ModelForm):
 
-    use_active_block = forms.BooleanField(
-        label="Use my block", help_text="You have an active block booking; "
-                                        "would you like to use your block for "
-                                        "this booking?",
-        required=False)
-
     class Meta:
         model = Booking
-        fields = ['use_active_block', 'event', ]
+        fields = ['event', ]
 
 class BookingUpdateForm(forms.ModelForm):
 
