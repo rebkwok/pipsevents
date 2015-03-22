@@ -68,6 +68,11 @@ class Event(models.Model):
             return self.booking_open \
                    and self.spaces_left() > 0
 
+    def can_cancel(self):
+        time_until_event = self.date - timezone.now()
+        time_until_event = time_until_event.total_seconds() / 3600
+        return time_until_event > self.cancellation_period
+
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 

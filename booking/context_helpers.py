@@ -70,6 +70,8 @@ def get_booking_context(context, booking):
             and booking.event.payment_open:
         context['include_confirm_payment_button'] = True
 
+    # delete button
+    context['can_cancel'] = booking.event.can_cancel()
 
     return context
 
