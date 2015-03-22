@@ -15,6 +15,7 @@ from suit.widgets import EnclosedInput
 from datetimewidget.widgets import DateTimeWidget
 
 from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
