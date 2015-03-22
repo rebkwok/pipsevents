@@ -4,8 +4,8 @@ dj-database-url==0.3.0
 django-allauth==0.19.0
 django-braces==1.4.0
 django-crispy-forms==1.4.0
+django-datetime-widget==0.9.3
 django-debug-toolbar==1.2.2
-django-durationfield-0.5.1
 django-environ==0.3.0
 django-extensions==1.4.9
 django-suit==0.2.12

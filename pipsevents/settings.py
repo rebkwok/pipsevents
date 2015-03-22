@@ -58,6 +58,7 @@ INSTALLED_APPS = (
     'accounts',
     'booking',
     'timetable',
+    'datetimewidget',
 )
 
 SITE_ID = 1

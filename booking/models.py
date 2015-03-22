@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from django.template.defaultfilters import slugify
 from django_extensions.db.fields import AutoSlugField
-from durationfield.db.models.fields.duration import DurationField
 
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta

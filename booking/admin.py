@@ -12,6 +12,8 @@ from django.utils import timezone
 from django import forms
 from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
+from datetimewidget.widgets import DateTimeWidget
+
 from booking.models import Event, Booking, Block
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
@@ -125,12 +127,25 @@ class EventTypeListFilter(admin.SimpleListFilter):
 
 
 class EventForm(forms.ModelForm):
+
+    dateoptions = {
+        'format': 'dd/mm/yyyy hh:ii',
+        'autoclose': True,
+    }
+
+    date = forms.DateTimeField(
+        widget=DateTimeWidget(
+            options=dateoptions,
+            bootstrap_version=3
+        )
+    )
+
     class Meta:
         widgets = {
             # You can also use prepended and appended together
             'cost': EnclosedInput(prepend=u'\u00A3'),
-            'cancellation_period': DurationSelectorWidget()
-        }
+            'cancellation_period': DurationSelectorWidget(),
+            }
 
 
 # TODO validation on event fields - e.g. payment due date can't be after event

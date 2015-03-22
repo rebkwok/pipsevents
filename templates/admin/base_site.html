@@ -8,27 +8,19 @@
 
 {# Additional CSS includes #}
 {#{% block extrastyle %}#}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <!-- Bootstrap theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    {{ form.media }}
 {#  <link rel="stylesheet" type="text/css" href="{% static 'css/my_project.css' %}" media="all">#}
 {#{% endblock %}#}
 
 
 {# Additional JS files in footer, right before </body> #}
 {% block extrajs %}
- <script type="text/javascript">
-    django.jQuery(window).load(function() {
-        django.jQuery('.timelist').each(function(num, el) {
-            time_format = get_format('TIME_INPUT_FORMATS')[0];
-            django.jQuery(el).html('');
-            for (i=7; i<24; i++) {
-              var time = new Date(1970,1,1,i,0,0);
-              lnk = "javascript:DateTimeShortcuts.handleClockQuicklink(" + num + ", '" + time.strftime(time_format) + "');"
-              /*django.jQuery(el).append('<li><a href="'lnk'">' + time.strftime('%H:%M') + '</a></li>');*/
-              django.jQuery(el).append('<li><a href="' + lnk + '">' + time.strftime(time_format) + '</a></li>');
-            }
-
-        });
-    });
-</script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 {#  <script type="text/javascript" src="{% static 'js/my_project.js' %}"></script>#}
 {% endblock %}
 
