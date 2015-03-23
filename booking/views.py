@@ -230,7 +230,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
                       })
                   ),
             settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
+            [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
 
         return HttpResponseRedirect(booking.get_absolute_url())
@@ -282,7 +282,7 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
                     })
                   ),
             settings.DEFAULT_FROM_EMAIL,
-            [block.user.email],
+            [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
 
         return HttpResponseRedirect(block.get_absolute_url())
@@ -323,6 +323,7 @@ class BlockUpdateView(LoginRequiredMixin, UpdateView):
         block.user = self.request.user
         block.paid = True
         block.save()
+        #TODO Email to studio
 
         return HttpResponseRedirect(reverse('booking:block_list'))
 
@@ -356,6 +357,7 @@ class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
         booking.paid = True
         booking.user = self.request.user
         booking.save()
+        #TODO Email to studio
 
         return HttpResponseRedirect(booking.get_absolute_url())
 
@@ -406,7 +408,7 @@ class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
                       })
                   ),
             settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
+            [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
 
         booking.delete()
