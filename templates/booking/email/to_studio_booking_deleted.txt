@@ -1,0 +1,3 @@
+{{ booking.user.username }} has cancelled a booking for {{ event.name }} on {{ date }} at {{ time }}.
+
+

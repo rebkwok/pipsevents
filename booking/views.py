@@ -374,6 +374,44 @@ class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
         context['event'] = event
         return context
 
+    def delete(self, request, *args, **kwargs):
+        booking = self.get_object()
+
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+        # send email to user
+        send_mail('{} Booking for {} cancelled'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                  get_template('booking/email/booking_deleted.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            fail_silently=False)
+        # send email to studio
+        send_mail('{} {} has just cancelled a booking for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username, booking.event.name),
+                  get_template('booking/email/to_studio_booking_deleted.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            fail_silently=False)
+
+        booking.delete()
+        return HttpResponseRedirect(self.get_success_url())
+
     def get_success_url(self):
         return reverse('booking:bookings')
 
