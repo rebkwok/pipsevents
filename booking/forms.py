@@ -1,8 +1,9 @@
+from datetime import date
 from django import forms
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 from booking.models import Booking, Event
 from booking.widgets import DateSelectorWidget
-from django.utils.translation import ugettext_lazy as _
 
 
 MONTH_CHOICES = {
@@ -44,7 +45,7 @@ class BookingUpdateForm(forms.ModelForm):
 
 class CreateClassesForm(forms.Form):
     date = forms.DateField(
-        label="Date", widget=DateSelectorWidget, required=False
+        label="Date", widget=DateSelectorWidget, required=False, initial=date.today()
     )
 
     def clean_date(self):
