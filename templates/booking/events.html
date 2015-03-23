@@ -3,14 +3,14 @@
 
 {% block content %}
 
-    <div class="small-margin container-fluid row">
+    <div class="container-fluid row">
 
         <h1>Watermelon Studio {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h1>
 
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
-                <p>Click on title for more details</p>
+                <p>Click on {% if type == 'events' %}event{% elif type == 'lessons' %}class{% endif %} name for more details</p>
                 <div class="panel panel-success">
 
                     <div class="table-responsive">

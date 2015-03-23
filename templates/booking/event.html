@@ -3,8 +3,8 @@
 
 {% block content %}
 
-<div class="small-margin extra-top-margin container-fluid row">
-    <div class="col-sm-11">
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
         <div class="panel panel-success">
             <div class="panel-heading">
                 <h3 class="panel-title"><a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a></h3>
@@ -14,27 +14,25 @@
                 <h3>This event is now past.</h3>
                 {% endif %}
                 <p>{{ event.description }}</p>
-                <h4>Location</h4>
-                <p>{{ event.location }}</p>
-                <h4>Date and time</h4>
-                <p>{{ event.date |  date:"D d F, g:i a" }}</p>
-                {% if not past %}
-                    <h4>Contact</h4>
-                    <p>{{ event.contact_person }}</p>
-                    <p><a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
-                    <h4>Payment information</h4>
-                    <h5>Advance payment is {% if not event.advance_payment_required %}not{% endif %} required for this
-                        {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</h5>
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>Location:</strong>  {{ event.location }}</li>
+                    <li class="list-group-item"><strong>Date and time:</strong> {{ event.date |  date:"D d F, g:i a" }}</li>
+                    {% if not past %}
+                     <li class="list-group-item"><strong>Contact:</strong> {{ event.contact_person }}
+                          (<a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a>)</li>
+                    <li class="list-group-item"><p></p><strong>Payment information</strong></p>
+                        <p>Advance payment is {% if not event.advance_payment_required %}not{% endif %} required for this
+                        {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</p>
 
-                    <p>Cost: £ {{ event.cost }}</p>
+                        <p>Cost: £ {{ event.cost }}</p>
 
-                    <p>{{ event.payment_text }}</p>
-                    <p><a href="{{ event.payment_link }}">{{ event.payment_link }}</a></p>
+                        <p>{{ event.payment_text }}</p>
+                        <p><a href="{{ event.payment_link }}">{{ event.payment_link }}</a></p>
 
-                    {% if event.payment_open and event.payment_due_date %}
-                        <p>Payment is due by {{ event.payment_due_date |  date:"D d F" }}</p>
-                    {% endif %}
-
+                        {% if event.payment_open and event.payment_due_date %}
+                            <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>
+                        {% endif %}</li>
+                    </ul>
                     {% if event.max_participants %}
                         <h5>There are a maximum {{ event.max_participants }} spaces for this
                             {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</h5>

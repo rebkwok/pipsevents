@@ -3,34 +3,32 @@
 
 {% block content %}
 
-<div class="small-margin extra-top-margin container-fluid row">
+<div class="extra-top-margin container-fluid row">
 
-    <div class="col-sm-11">
+    <div class="col-sm-12">
         <div class="panel panel-success">
             <div class="panel-heading">
                 <h3 class="panel-title">Your booking for <a href="{% url 'booking:event_detail' booking.event.slug %}">{{ booking.event.name }}</a></h3>
             </div>
                 <div class="panel-body">
                     <p>{{ booking.event.description }}</p>
-                    <h4>Location</h4>
-                    <p>{{ booking.event.location }}</p>
-                    <h4>Date and time</h4>
-                    <p>{{ booking.event.date |  date:"D d F, g:i a" }}</p>
-                    <h4>Contact</h4>
-                    <p>{{ booking.event.contact_person }}</p>
-                    <p><a href="mailto:{{ booking.event.contact_email }}?Subject=Enquiry regarding booking for {{ booking.event.name }}" target="_blank">{{ booking.event.contact_email }}</a></p>
-
-                    <h4>Payment information</h4>
-                    <h5>Advance payment is {% if not booking.event.advance_payment_required %}not{% endif %} required for this event.</h5>
-                    <p>Cost: £{{ booking.event.cost }}</p>
-                    <p>{{ payment_text}}</p>
-                    {% if booking.event.payment_due_date %}
-                        <p>Payment due by {{ booking.event.payment_due_date }}</p>
-                    {% endif %}
-                    {% if booking.event.payment_link %}
-                        <p><a href="{{ booking.event.payment_link }}">{{ booking.event.payment_link }}</a></a></p>
-                    {% endif %}
-
+                    <ul class=list-group>
+                        <li class="list-group-item"><strong>Location:</strong> {{ booking.event.location }}</li>
+                        <li class="list-group-item"><strong>Date and time:</strong> {{ booking.event.date |  date:"D d F, g:i a" }}</li>
+                        <li class="list-group-item"><strong>Contact: </strong>{{ booking.event.contact_person }}
+                            (<a href="mailto:{{ booking.event.contact_email }}?Subject=Enquiry regarding booking for {{ booking.event.name }}" target="_blank">{{ booking.event.contact_email }}</a>)</li>
+                        <li class="list-group-item"><p><strong>Payment information:</strong></p>
+                            <p>Advance payment is {% if not booking.event.advance_payment_required %}not{% endif %} required for this event.</p>
+                            <p>Cost: £{{ booking.event.cost }}</p>
+                            <p>{{ payment_text}}</p>
+                            {% if booking.event.payment_due_date %}
+                                <p>Payment due by {{ booking.event.payment_due_date }}</p>
+                            {% endif %}
+                            {% if booking.event.payment_link %}
+                                <p><a href="{{ booking.event.payment_link }}">{{ booking.event.payment_link }}</a></a></p>
+                            {% endif %}
+                        </li>
+                    </ul>
                     {% if booking.event.cost > 0 %}
                         <p><strong>Payment made (as confirmed by participant): {% if booking.paid %}<span class="confirmed">Yes</span>
                         {% else %}<span class="not-confirmed">No</span>{% endif %}</strong></p>

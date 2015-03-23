@@ -276,7 +276,6 @@ class BlockUpdateView(LoginRequiredMixin, UpdateView):
     form_class = BookingUpdateForm
 
     def form_valid(self, form):
-        # add to active block if ticked, don't require paid to be ticked
         block = form.save(commit=False)
         block.user = self.request.user
         block.paid = True

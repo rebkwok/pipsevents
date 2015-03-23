@@ -14,6 +14,7 @@
 
 body {
 	background-color: transparent;
+	padding-left: 15;
 }
 
 @media (max-width: 979px) {

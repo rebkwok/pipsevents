@@ -3,8 +3,8 @@
 
 {% block content %}
 
-<div class="small-margin extra-top-margin container-fluid row">
-    <div class="col-sm-11">
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
        <div class="panel panel-success">
             <div class="panel-heading">
                 <h2 class="panel-title">You are now booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h2>
@@ -22,7 +22,7 @@
                             <p>(Note: block booking is only available for pole level classes.)</p>
                         {% endif %}
 
-                        <span class="hide">{{ form.event  }}</span>
+                        <span class="hide">{{ form.event }}</span>
                         {% if event.type == "PC" %}
                             {% if active_user_block %}
                                 <input class="btn btn-success" type="submit" name="block_book" value="Book with my block" />

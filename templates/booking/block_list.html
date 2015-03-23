@@ -5,7 +5,7 @@
 {% block content %}
 
 
-<div class="small-margin container-fluid row">
+<div class="container-fluid row">
     <h1>Your blocks</h1>
 
 
@@ -16,7 +16,7 @@
                     <div class="panel-heading">
                         {% if not active_user_block %}
                         <p>You don't have any active blocks.
-                            <span class="btn btn-success"><a href="{% url 'booking:add_block' %}">Get a new block!</a></span>
+                            <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
                         </p>
                         {% endif %}
                     </div>

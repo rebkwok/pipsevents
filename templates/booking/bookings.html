@@ -4,7 +4,7 @@
 {% block content %}
 
 
-<div class="small-margin container-fluid row">
+<div class="container-fluid row">
     {% if history %}
         <h1>Your past bookings</h1>
     {% else %}
@@ -14,7 +14,7 @@
     {% if bookings %}
     <p>Click on event title for more booking details.</p>
     <div class="row">
-        <div class="col-sm-11">
+        <div class="col-sm-12">
             <div class="panel panel-success">
 
                 <div class="table-responsive">
@@ -36,10 +36,12 @@
                                 <td><a href="{% url 'booking:booking_detail' booking.pk %}">{{ booking.event.name }}</a></td>
                                 <td>{{ booking.event.date |  date:"D d F, g:i a" }}</td>
                                 <td>£{{ booking.event.cost }}</td>
-                                <td align="center">{% if booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
-                                    {% else %}<span class="not-confirmed glyphicon glyphicon-remove"></span>{% endif %}</td>
-                                <td align="center">{% if booking.payment_confirmed %}<span class="confirmed glyphicon glyphicon-ok"></span>
-                                    {% else %}<span class="not-confirmed glyphicon glyphicon-remove"></span>{% endif %}</td>
+                                <td align="center">{% if booking.event.cost and booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
+                                    {% elif booking.event.cost and not booking.paid %}<span class="not-confirmed glyphicon glyphicon-remove"></span>
+                                    {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td align="center">{% if booking.event.cost and booking.payment_confirmed %}<span class="confirmed glyphicon glyphicon-ok"></span>
+                                    {% elif booking.event.cost and not booking.payment_confirmed %}<span class="not-confirmed glyphicon glyphicon-remove"></span>
+                                    {% else %}<strong>N/A</strong>{% endif %}</td>
                                 <td align="center">{% if booking.space_confirmed %}<span class="confirmed glyphicon glyphicon-ok"></span>
                                     {% else %}<span class="not-confirmed glyphicon glyphicon-remove"></span>{% endif %}
                                 </td>
