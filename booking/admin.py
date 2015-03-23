@@ -298,12 +298,16 @@ class BookingAdmin(admin.ModelAdmin):
                     form.cleaned_data['subject'])
                 from_address = form.cleaned_data['from_address']
                 message = form.cleaned_data['message']
+                cc = form.cleaned_data['cc']
 
                 # do this per email address so recipients are not visible to
-                # each other
-                for booking in bookings:
+                # each
+                email_addresses = [booking.user.email for booking in bookings]
+                if cc:
+                    email_addresses.append(from_address)
+                for email_address in email_addresses:
                     send_mail(subject, message, from_address,
-                              [booking.user.email],
+                              [email_address],
                               html_message=get_template(
                                   'booking/email/email_users.html').render(
                                   Context({

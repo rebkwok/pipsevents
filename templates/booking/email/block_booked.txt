@@ -1,0 +1,10 @@
+Your block booking has been received!
+
+Number of classes in block: {{ block_size }}
+Block start date: {{ block.start_date }}
+Block expiry date: {{ block.expiry_date }}
+
+Please make payment for your block as soon as possible; if payment is not made within one week, your block will be cancelled.
+
+View your blocks: {{ host }}{% url 'booking:block_list' %}
+{% include "account/email/do_not_reply.txt" %}

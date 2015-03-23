@@ -1,0 +1,9 @@
+{{ block.user }} has made a block booking:
+
+Number of classes in block: {{ block_size }}
+Block start date: {{ block.start_date }}
+Block expiry date: {{ block.expiry_date }}
+
+View all block bookings: {{ host }}/admin/booking/block
+
+{% include "account/email/do_not_reply.txt" %}

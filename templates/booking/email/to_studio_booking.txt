@@ -1,0 +1,5 @@
+{{ booking.user.username }} booked for {{ event.name }} on {{ date }} at {{ time }}.
+
+Visit {{ host }}/admin/booking/booking/{{ booking.id }} to review.
+
+{% if booking.block %}{{ booking.user.username }} used an active block to book.{% endif %}

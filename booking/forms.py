@@ -62,4 +62,5 @@ class EmailUsersForm(forms.Form):
     from_address = forms.EmailField(max_length=255,
                                     initial=settings.DEFAULT_FROM_EMAIL,
                                     required=True)
+    cc = forms.BooleanField(label="Send a copy to this address", initial=True)
     message = forms.CharField(widget=forms.Textarea, required=True)

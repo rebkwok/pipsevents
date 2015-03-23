@@ -201,12 +201,26 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
         booking.user = self.request.user
         booking.save()
 
-        # TODO look into using 'http://{}'.format(self.request.META['HTTP_HOST']) instead
-        host = 'http://' + self.request.get_host()
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
-        send_mail('{} Space for {} confirmed'.format(
+        send_mail('{} Booking for {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
                   get_template('booking/email/booking_received.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            fail_silently=False)
+        # send email to studio
+        send_mail('{} {} has just booked for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username, booking.event.name),
+                  get_template('booking/email/to_studio_booking.txt').render(
                       Context({
                           'host': host,
                           'booking': booking,
@@ -242,6 +256,35 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
         block = form.save(commit=False)
         block.user = self.request.user
         block.save()
+
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+        # send email to user
+        send_mail('{} Block booking confirmed'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
+                  get_template('booking/email/block_booked.txt').render(
+                      Context({
+                          'host': host,
+                          'block': block,
+                          'block_size': block.BLOCK_DATA[block.SMALL_BLOCK_SIZE][0]
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [block.user.email],
+            fail_silently=False)
+        # send email to studio
+        send_mail('{} {} has just booked a block'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
+                  get_template('booking/email/to_studio_block_booked.txt').render(
+                      Context({
+                          'host': host,
+                          'block': block,
+                          'block_size': block.BLOCK_DATA[block.SMALL_BLOCK_SIZE][0]
+                    })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [block.user.email],
+            fail_silently=False)
+
         return HttpResponseRedirect(block.get_absolute_url())
 
 
