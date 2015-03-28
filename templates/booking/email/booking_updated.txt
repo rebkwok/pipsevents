@@ -1,0 +1,9 @@
+Thank you for confirming that you have made payment for {{ event.name }} on {{ date }} at {{ time }}.
+{% if booking.block %}
+    You have used a block to pay for this class.  Your booking is now confirmed.
+
+    You have used {{ blocks_used }} of {{ total_blocks }} blocks left.
+{% else %}
+    The organiser has been informed of your payment; once payment has been received, your booking will be marked as confirmed.
+
+{% endif %}

@@ -330,7 +330,34 @@ class BlockUpdateView(LoginRequiredMixin, UpdateView):
         block.user = self.request.user
         block.paid = True
         block.save()
-        #TODO Email to studio
+
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+        # send email to user
+        send_mail('{} Block booking updated'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
+                  get_template('booking/email/block_booked.txt').render(
+                      Context({
+                          'host': host,
+                          'block': block,
+                          'updated': True,
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [block.user.email],
+            fail_silently=False)
+        # send email to studio
+        send_mail('{} {} has just confirmed payment for a block booking'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
+                  get_template('booking/email/to_studio_block_booked.txt').render(
+                      Context({
+                          'host': host,
+                          'block': block,
+                          'updated': True
+                    })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.DEFAULT_STUDIO_EMAIL],
+            fail_silently=False)
 
         return HttpResponseRedirect(reverse('booking:block_list'))
 
@@ -364,7 +391,47 @@ class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
         booking.paid = True
         booking.user = self.request.user
         booking.save()
-        #TODO Email to studio
+
+        if booking.block:
+            blocks_used = booking.block.bookings_made()
+            total_blocks = booking.block.block_type.size
+        else:
+            blocks_used = None
+            total_blocks = None
+
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+        # send email to user
+        send_mail('{} Booking for {} has been updated'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                  get_template('booking/email/booking_updated.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                          'blocks_used':  blocks_used,
+                          'total_blocks': total_blocks,
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            fail_silently=False)
+        # send email to studio
+        send_mail('{} {} has just confirmed payment for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username, booking.event.name),
+                  get_template('booking/email/to_studio_booking_updated.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.DEFAULT_STUDIO_EMAIL],
+            fail_silently=False)
 
         return HttpResponseRedirect(booking.get_absolute_url())
 

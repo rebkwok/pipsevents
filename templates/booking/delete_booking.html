@@ -20,8 +20,8 @@
 
             <form action="" method="post">{% csrf_token %}
                 {{ form.as_p }}
-                <input class="btn btn-danger" type="submit" value="Confirm Delete" />
-                <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Cancel</div></a>
+                <input class="btn btn-danger" type="submit" value="Confirm cancel" />
+                <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Back</div></a>
             </form>
 
         </div>

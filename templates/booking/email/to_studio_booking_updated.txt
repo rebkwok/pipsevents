@@ -1,0 +1,7 @@
+{{ booking.user.username }} has confirmed that payment has been made for {{ event.name }} on {{ date }} at {{ time }}.
+
+{% if booking.block %}{{ booking.user.username }} used an active block to book.  The booking has automatically been marked as confirmed.
+{% else %}
+Please check for payment and confirm when received.
+{% endif %}
+Visit {{ host }}/admin/booking/booking/{{ booking.id }} to review this booking.
