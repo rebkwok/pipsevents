@@ -64,7 +64,7 @@ class BookingAdminTests(TestCase):
         self.assertEqual(
             booking_admin.get_user_last_name(booking_query), 'User'
         )
-        self.assertEqual(booking_admin.get_cost(booking_query), "£{}.00".format(event.cost))
+        self.assertEqual(booking_admin.get_cost(booking_query), u"\u00A3{}.00".format(event.cost))
         self.assertEqual(booking_admin.event_name(booking_query), event.name)
 
     def test_confirm_space(self):
@@ -95,7 +95,7 @@ class BlockAdminTests(TestCase):
         block_query = block_admin.get_queryset(None)[0]
 
         self.assertEqual(
-            block_admin.formatted_cost(block_query), "£{}.00".format(block.cost)
+            block_admin.formatted_cost(block_query), u"\u00A3{}".format(block.block_type.cost)
         )
         self.assertEqual(
             block_admin.formatted_start_date(block_query),

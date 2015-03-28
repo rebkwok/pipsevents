@@ -17,12 +17,15 @@ class Event(models.Model):
     WORKSHOP = 'WS'
     OTHER_CLASS = 'CL'
     OTHER_EVENT = 'EV'
-    EVENT_TYPE_CHOICES = (
-        (POLE_CLASS, 'Pole level class'),
-        (WORKSHOP, 'Workshop'),
-        (OTHER_CLASS, 'Other class'),
-        (OTHER_EVENT, 'Other event'),
-    )
+
+    EVENT_TYPES = {
+        POLE_CLASS: 'Pole level class',
+        WORKSHOP: 'Workshop',
+        OTHER_CLASS: 'Other class',
+        OTHER_EVENT: 'Other event'
+    }
+
+    EVENT_TYPE_CHOICES = tuple((key, value) for key, value in EVENT_TYPES.items())
 
     name = models.CharField(max_length=255)
     type = models.CharField(
@@ -82,32 +85,29 @@ def event_pre_save(sender, instance, *args, **kwargs):
         instance.payment_link = ""
 
 
-class Block(models.Model):
+class BlockType(models.Model):
     """
-    Block booking; blocks are 5 or 10 classes
+    Block type; currently blocks are 5 or 10 classes
     5 classes = GBP 32, 10 classes = GBP 62
     5 classes expires in 2 months, 10 classes expires in 4 months
     """
-    SMALL_BLOCK_SIZE = 'SM'
-    LARGE_BLOCK_SIZE = 'LG'
-    SIZE_CHOICES = (
-        (SMALL_BLOCK_SIZE, '5'),
-        (LARGE_BLOCK_SIZE, '10'),
+    size = models.PositiveIntegerField(help_text="Number of classes in block")
+    event_type = models.CharField(
+        max_length=2, choices=Event.EVENT_TYPE_CHOICES, default=Event.POLE_CLASS
     )
+    cost = models.DecimalField(max_digits=8, decimal_places=2)
+    duration = models.PositiveIntegerField(help_text="Number of months until block expires")
 
-    # [number of classes, cost, expiry in months from start_date]
-    BLOCK_DATA = {
-        SMALL_BLOCK_SIZE: [5, 32, 2],
-        LARGE_BLOCK_SIZE: [10, 62, 4]
-    }
+    def __str__(self):
+        return '{} - {}'.format(Event.EVENT_TYPES[self.event_type], self.size)
+
+class Block(models.Model):
+    """
+    Block booking
+    """
 
     user = models.ForeignKey(User, related_name='blocks')
-    block_size = models.CharField(
-        verbose_name='Number of classes in block',
-        max_length=2,
-        choices=SIZE_CHOICES,
-        default=SMALL_BLOCK_SIZE,
-    )
+    block_type = models.ForeignKey(BlockType, null=True)
     start_date = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(
         verbose_name='Payment made (as confirmed by participant)',
@@ -121,19 +121,15 @@ class Block(models.Model):
 
     def __str__(self):
         return "{} -- block size {} -- start {}".format(self.user.username,
-                                                      self.block_size,
+                                                      self.block_type.size,
                                                       self.start_date.strftime(
                                                           '%d %b %Y, %H:%M')
         )
 
     @property
-    def cost(self):
-        return self.BLOCK_DATA[self.block_size][1]
-
-    @property
     def expiry_date(self):
         return self.start_date + relativedelta(
-            months=self.BLOCK_DATA[self.block_size][2])
+            months=self.block_type.duration)
 
     def active_block(self):
         """
@@ -145,7 +141,7 @@ class Block(models.Model):
         """
         expired = self.expiry_date < timezone.now()
         full = Booking.objects.filter(
-            block__id=self.id).count() >= self.BLOCK_DATA[self.block_size][0]
+            block__id=self.id).count() >= self.block_type.size
         start_date_within_one_week = self.start_date >= timezone.now() \
             - timedelta(days=7)
 

@@ -6,7 +6,7 @@ from django.utils import timezone
 from model_mommy.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
-from booking.models import Event, Block, Booking
+from booking.models import Event, Block, Booking, BlockType
 from timetable.models import Session
 
 now = timezone.now()
@@ -49,14 +49,17 @@ past_event = Recipe(Event,
                     payment_due_date=past-timedelta(10)
                     )
 
+blocktype5 = Recipe(BlockType, size=5, duration=2)
+blocktype10 = Recipe(BlockType, size=10, duration=4)
+
 block_5 = Recipe(Block,
                  user=foreign_key(user),
-                 block_size='SM',
+                 block_type=foreign_key(blocktype5),
                  start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
 block_10 = Recipe(Block,
                   user=foreign_key(user),
-                  block_size='LG',
+                  block_type=foreign_key(blocktype10),
                   start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
 booking = Recipe(Booking)

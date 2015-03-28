@@ -2,7 +2,7 @@ from datetime import date
 from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from booking.models import Booking, Event
+from booking.models import Booking, Event, Block
 from booking.widgets import DateSelectorWidget
 
 
@@ -42,6 +42,11 @@ class BookingUpdateForm(forms.ModelForm):
             'paid': _('Tick to confirm that you have made your payment.')
         }
 
+class BlockCreateForm(forms.ModelForm):
+
+    class Meta:
+        model = Block
+        fields = ('block_type', )
 
 class CreateClassesForm(forms.Form):
     date = forms.DateField(

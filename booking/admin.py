@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
 from datetimewidget.widgets import DateTimeWidget
 
-from booking.models import Event, Booking, Block
+from booking.models import Event, Booking, Block, BlockType
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
@@ -358,9 +358,8 @@ class BlockFilter(admin.SimpleListFilter):
 
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_size', 'formatted_cost', 'paid',
-              'payment_confirmed')
-    readonly_fields = ('formatted_start_date', 'formatted_cost',
+    fields = ('user', 'block_type', 'paid', 'payment_confirmed')
+    readonly_fields = ('block_size', 'formatted_start_date', 'formatted_cost',
                        'formatted_expiry_date')
     search_fields = ('user', 'active_block')
     list_display = ('user', 'block_size', 'active_block',
@@ -369,8 +368,11 @@ class BlockAdmin(admin.ModelAdmin):
 
     inlines = [BookingInLine, ]
 
+    def block_size(self, obj):
+        return obj.block_type.size
+
     def formatted_cost(self, obj):
-        return u"\u00A3{:.2f}".format(obj.cost)
+        return u"\u00A3{:.2f}".format(obj.block_type.cost)
 
     def formatted_start_date(self, obj):
         return obj.start_date.strftime('%d %b %Y, %H:%M')
@@ -384,4 +386,4 @@ class BlockAdmin(admin.ModelAdmin):
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
-
+admin.site.register(BlockType)

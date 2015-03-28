@@ -15,4 +15,4 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     fields = ('username', 'first_name', 'last_name',)
 
     def get_object(self):
-        return get_object_or_404(User, email=self.request.user.email)
+        return get_object_or_404(User, username=self.request.user.username, email=self.request.user.email)

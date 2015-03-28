@@ -13,13 +13,12 @@
                 <form action="" method="post">{% csrf_token %}
                     {{ form.as_p}}
                     <input class="btn btn-success" type="submit" value="Update" />
-                    <div class="btn btn-warning"><a href="{% url 'profile:profile' %}">Cancel</a></div>
+                    <a href="{% url 'profile:profile' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
             </div>
        </div>
     </div>
-
-
 </div>
 
 {% endblock content %}
+
