@@ -1,6 +1,6 @@
 {{ block.user }} has made a block booking:
 
-Number of classes in block: {{ block_size }}
+Block size: {{ block_size }}
 Block start date: {{ block.start_date }}
 Block expiry date: {{ block.expiry_date }}
 

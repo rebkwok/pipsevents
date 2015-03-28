@@ -201,6 +201,13 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
         booking.user = self.request.user
         booking.save()
 
+        if booking.block:
+            blocks_used = booking.block.bookings_made()
+            total_blocks = booking.block.BLOCK_DATA[block.SMALL_BLOCK_SIZE][0]
+        else:
+            blocks_used = None
+            total_blocks = None
+
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
         send_mail('{} Booking for {}'.format(
@@ -212,6 +219,8 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
                           'event': booking.event,
                           'date': booking.event.date.strftime('%A %d %B'),
                           'time': booking.event.date.strftime('%I:%M %p'),
+                          'blocks_used':  blocks_used,
+                          'total_blocks': total_blocks,
                       })
                   ),
             settings.DEFAULT_FROM_EMAIL,
