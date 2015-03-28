@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bookingtags %}
 
 {% block content %}
 
@@ -28,6 +29,11 @@
                                 <p><a href="{{ booking.event.payment_link }}" target="_blank">{{ booking.event.payment_link }}</a></a></p>
                             {% endif %}
                         </li>
+                        {% if booking.event.cancellation_period %}
+                        <li class="list-group-item"><strong>Cancellation information</strong>
+                            <p>Cancellation is allowed up to {{ booking.event.cancellation_period | format_cancellation }} prior to the
+                            {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}</p></li>
+                    {% endif %}
                     </ul>
                     {% if booking.event.cost > 0 %}
                         <p><strong>Payment made (as confirmed by participant): {% if booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
