@@ -61,7 +61,10 @@ class EventTests(TestCase):
 
         # event with cost, check payment link is default
         poleclass = mommy.make_recipe('booking.future_PC', cost=7)
-        self.assertEquals(poleclass.payment_link, "http://www.paypal.co.uk")
+        self.assertEquals(
+            poleclass.payment_link,
+            "https://www.paypal.com/uk/webapps/mpp/send-money-online"
+        )
 
         #change cost to 0, check payment_link is reset to ""
         poleclass.cost = 0
@@ -75,7 +78,10 @@ class EventTests(TestCase):
                                      payment_info="Pay me")
         self.assertEquals(workshop.payment_open, True)
         self.assertEquals(workshop.payment_info, "Pay me")
-        self.assertEquals(workshop.payment_link, "http://www.paypal.co.uk")
+        self.assertEquals(
+            workshop.payment_link,
+            "https://www.paypal.com/uk/webapps/mpp/send-money-online"
+        )
 
 class BookingTests(TestCase):
 

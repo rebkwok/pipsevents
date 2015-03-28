@@ -28,6 +28,19 @@ class BookingtagTests(TestCase):
         event = mommy.make_recipe('booking.future_EV', cancellation_period=24)
         resp = self._get_response(self.user, event)
         resp.render()
-        import ipdb; ipdb.set_trace()
-        self.assertEquals(resp.context_data['booking_info_text'],
-                          'You have booked for this event.')
+        self.assertIn('24 hours', str(resp.content))
+
+        event = mommy.make_recipe('booking.future_EV', cancellation_period=619)
+        resp = self._get_response(self.user, event)
+        resp.render()
+        self.assertIn('3 weeks, 4 days and 19 hours', str(resp.content))
+
+        event = mommy.make_recipe('booking.future_EV', cancellation_period=168)
+        resp = self._get_response(self.user, event)
+        resp.render()
+        self.assertIn('1 week', str(resp.content))
+
+        event = mommy.make_recipe('booking.future_EV', cancellation_period=192)
+        resp = self._get_response(self.user, event)
+        resp.render()
+        self.assertIn('1 week, 1 day and 0 hours', str(resp.content))

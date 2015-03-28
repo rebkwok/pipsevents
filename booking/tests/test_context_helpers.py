@@ -5,7 +5,7 @@ from model_mommy import mommy
 from datetime import datetime
 from mock import patch
 from booking.models import Event, Booking, Block
-from booking.views import EventDetailView, BookingDetailView
+from booking.views import EventDetailView, BookingDetailView, LessonDetailView
 from booking.tests.helpers import set_up_fb
 
 
@@ -198,6 +198,22 @@ class EventDetailContextTests(TestCase):
                           self.CONTEXT_OPTIONS['booking_info_payment_date_past'])
         self.assertFalse(resp.context_data['bookable'])
 
+    def test_lesson_and_event_format(self):
+        """
+        Test correct context returned for lessons and events
+        """
+        event = mommy.make_recipe('booking.future_WS', cost=10)
+        lesson = mommy.make_recipe('booking.future_PC', cost=10)
+
+        resp = self._get_response(self.user, event)
+        self.assertEquals(resp.context_data['type'], 'event')
+
+        url = reverse('booking:lesson_detail', args=[lesson.slug])
+        request = self.factory.get(url)
+        request.user = self.user
+        view = LessonDetailView.as_view()
+        resp = view(request, slug=lesson.slug)
+        self.assertEquals(resp.context_data['type'], 'lesson')
 
 class BookingDetailContextTests(TestCase):
     """
@@ -287,3 +303,21 @@ class BookingDetailContextTests(TestCase):
         resp = self._get_response(self.user, booking)
         self.assertEquals(resp.context_data['payment_text'],
             "Payments are open. {}".format(event.payment_info))
+
+    def test_lesson_and_event_format(self):
+        """
+        Test correct context returned for lessons and events
+        """
+        event = mommy.make_recipe('booking.future_WS', cost=10)
+        lesson = mommy.make_recipe('booking.future_PC', cost=10)
+
+        event_booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user
+        )
+        lesson_booking = mommy.make_recipe(
+            'booking.booking', event=lesson, user=self.user
+        )
+        resp = self._get_response(self.user, event_booking)
+        self.assertEquals(resp.context_data['type'], 'event')
+        resp = self._get_response(self.user, lesson_booking)
+        self.assertEquals(resp.context_data['type'], 'lesson')
