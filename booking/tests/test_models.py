@@ -221,13 +221,6 @@ class BlockTests(TestCase):
         del self.small_block
         del self.large_block
 
-    def test_block_cost(self):
-        """
-        Test that block costs are populated correctly
-        """
-        self.assertEqual(self.small_block.cost, 32)
-        self.assertEqual(self.large_block.cost, 62)
-
     def test_block_not_expiry_date(self):
         """
         Test that block expiry dates are populated correctly

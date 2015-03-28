@@ -25,4 +25,5 @@
     - create_events
     - create_classes
     - create_bookings
+    - create_blocktypes
 

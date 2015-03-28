@@ -8,7 +8,17 @@
 {% block content %}
 <h1>{% trans "Sign Up" %}</h1>
 
-<p>{% blocktrans %}Already have an account? Then please <a href="{{ login_url }}">sign in</a>.{% endblocktrans %}</p>
+<p>Already have an account? Then please <a href="{{ login_url }}">sign in</a>.</p></br>
+
+{% if socialaccount.providers  %}
+<div class="socialaccount_ballot">
+    Sign up with an existing third party account:</br>
+  <div class="socialaccount_providers btn btn-primary" style="list-style-type: none;">
+     {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+  </div></br></br></br>
+{% endif %}
+
+<p>Or sign up using the form below</p>
 
 <form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
   {% csrf_token %}

@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load static %}
-{% load bookingtags %}
 
 {% block content %}
 
@@ -36,7 +35,7 @@
                                 <td>{% if block.active_block %}Active{% else %}Expired{% endif %}</td>
                                 <td>{{ block.start_date }}</td>
                                 <td>{{ block.expiry_date }}</td>
-                                <td>{{ block.block_size | blocksize_format }}</td>
+                                <td>{{ block.block_type.size }}</td>
                                 <td>{{ block.bookings_made }}</td>
                                 <td>{% if block.paid %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
                                     {% else %}<span class="glyphicon glyphicon-remove" aria-label="No"></span>{% endif %}

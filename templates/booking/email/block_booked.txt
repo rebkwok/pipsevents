@@ -1,6 +1,6 @@
 Your block booking has been received!
 
-Block size: {{ block_size }}
+Block type: {{ block.block_type }}
 Block start date: {{ block.start_date }}
 Block expiry date: {{ block.expiry_date }}
 

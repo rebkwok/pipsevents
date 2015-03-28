@@ -11,7 +11,7 @@ from django.template.loader import get_template
 from django.template import Context
 from braces.views import LoginRequiredMixin
 from booking.models import Event, Booking, Block
-from booking.forms import BookingUpdateForm, BookingCreateForm
+from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 
 
@@ -203,7 +203,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
 
         if booking.block:
             blocks_used = booking.block.bookings_made()
-            total_blocks = booking.block.BLOCK_DATA[block.SMALL_BLOCK_SIZE][0]
+            total_blocks = booking.block.block_type.size
         else:
             blocks_used = None
             total_blocks = None
@@ -249,7 +249,7 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
 
     model = Block
     template_name = 'booking/add_block.html'
-    fields = ('block_size', )
+    form_class = BlockCreateForm
 
     def get(self, request, *args, **kwargs):
         # redirect if user already has an active block
@@ -274,7 +274,6 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
                       Context({
                           'host': host,
                           'block': block,
-                          'block_size': block.BLOCK_DATA[block.SMALL_BLOCK_SIZE][0]
                       })
                   ),
             settings.DEFAULT_FROM_EMAIL,
@@ -287,7 +286,6 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
                       Context({
                           'host': host,
                           'block': block,
-                          'block_size': block.BLOCK_DATA[block.SMALL_BLOCK_SIZE][0]
                     })
                   ),
             settings.DEFAULT_FROM_EMAIL,
