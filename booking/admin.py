@@ -15,6 +15,7 @@ from suit.widgets import EnclosedInput
 from datetimewidget.widgets import DateTimeWidget
 
 from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
@@ -156,9 +157,9 @@ class EventAdmin(admin.ModelAdmin):
     form = EventForm
 
     CANCELLATION_TEXT = ' '.join(['<p>Enter cancellation period in',
-                                  'weeks, days and/or hours. ',
-                                  'Note that 1 day will be displayed to users',
-                                  'as "24 hours" for clarity.',
+                                  'weeks, days and/or hours.</br>',
+                                  'Note that 1 day will be displayed to users ',
+                                  'as "24 hours" for clarity.</p>',
                                   ])
 
     fieldsets = [

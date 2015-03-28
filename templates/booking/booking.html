@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bookingtags %}
 
 {% block content %}
 
@@ -28,6 +29,11 @@
                                 <p><a href="{{ booking.event.payment_link }}" target="_blank">{{ booking.event.payment_link }}</a></a></p>
                             {% endif %}
                         </li>
+                        {% if booking.event.cancellation_period %}
+                        <li class="list-group-item"><strong>Cancellation information</strong>
+                            <p>Cancellation is allowed up to {{ booking.event.cancellation_period | format_cancellation }} prior to the
+                            {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}</p></li>
+                    {% endif %}
                     </ul>
                     {% if booking.event.cost > 0 %}
                         <p><strong>Payment made (as confirmed by participant): {% if booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
@@ -47,11 +53,18 @@
                         <span class="not-confirmed">Pending</span>{% endif %}</strong></p>
 
                     {% if not past %}
-                    {% if include_confirm_payment_button %}<p>We currently cannot take payments directly online.  If you have paid via paypal or in person, please click the button
-                        button below to confirm.  The organiser will receive a notification to review your booking.</p>{% endif %}
-                        <a {% if not include_confirm_payment_button %}class="disabled"{% endif %}href="{% url 'booking:update_booking' booking.pk %}">
-                            <div  {% if not include_confirm_payment_button %}disabled{% endif %} class="btn btn-success">Confirm payment made</div></a>
+                        {% if include_confirm_payment_button %}<p>We currently cannot take payments directly online.  If you have paid via paypal or in person, please click the button
+                            button below to confirm.  The organiser will receive a notification to review your booking.</p>
+                            <a href="{% url 'booking:update_booking' booking.pk %}"><div class="btn btn-success">Confirm payment made</div></a>
+                        {% else %}
+                            <a class="disabled" href="{% url 'booking:update_booking' booking.pk %}"><div class="disabled btn btn-success">Confirm payment made</div></a>
+                        {% endif %}
+
+                        {% if booking.event.can_cancel %}
                             <a href="{% url 'booking:delete_booking' booking.pk %}"><div class="btn btn-danger">Cancel booking</div></a>
+                        {% else %}
+                            <a class="disabled" href="{% url 'booking:delete_booking' booking.pk %}"><div class="disabled btn btn-danger">Cancel booking</div></a>
+                        {% endif %}
                     {% endif %}
             </div>
         </div>
