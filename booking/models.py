@@ -45,7 +45,7 @@ class Event(models.Model):
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=False)
     payment_info = models.TextField(blank=True)
-    payment_link = models.URLField(blank=True, default="http://www.paypal.co.uk")
+    payment_link = models.URLField(blank=True, default="https://www.paypal.com/uk/webapps/mpp/send-money-online")
     payment_due_date = models.DateTimeField(null=True, blank=True)
     cancellation_period = models.PositiveIntegerField(
         default=24

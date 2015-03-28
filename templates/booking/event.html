@@ -27,7 +27,7 @@
                         <p>Cost: £ {{ event.cost }}</p>
 
                         <p>{{ event.payment_text }}</p>
-                        <p><a href="{{ event.payment_link }}">{{ event.payment_link }}</a></p>
+                        <p><a href="{{ event.payment_link }}" target="_blank">{{ event.payment_link }}</a></p>
 
                         {% if event.payment_open and event.payment_due_date %}
                             <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>
