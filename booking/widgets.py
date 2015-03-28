@@ -85,16 +85,12 @@ class DurationSelectorWidget(widgets.MultiWidget):
         return [None, None, None]
 
     def format_output(self, rendered_widgets):
-
         return ("<div>Weeks:</div> {}"
                 "</br>"
                 "<div>Days:</div>{}"
                 "</br>"
                 "<div>Hours:</div>{}"
                 .format(rendered_widgets[0], rendered_widgets[1], rendered_widgets[2]))
-
-
-
 
     def value_from_datadict(self, data, files, name):
         weeks_days_hours = [
