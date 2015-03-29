@@ -34,5 +34,5 @@ urlpatterns = patterns('',
         name='update_block'),
     url(r'^blocks/existing/$', 'booking.views.has_active_block',
         name='has_active_block'),
-    url(r'^$', RedirectView.as_view(url='/events/')),
+    url(r'^$', RedirectView.as_view(url='/classes/')),
     )
