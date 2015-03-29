@@ -24,6 +24,14 @@
       - libpq-dev # Required for Ansible to interact with postgres
       - python-psycopg2 # Required for Ansible to interact with postgres
 
+- name: Install packages for pillow
+  sudo: yes
+  apt: pkg={{ item }} state=installed
+  with_items:
+      - libjpeg-dev
+      - zlib1g-dev
+      - libpng12-dev
+
 - name: Add vagrant user to www-data
   sudo: yes
   user: name=vagrant groups=www-data

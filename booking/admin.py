@@ -13,6 +13,7 @@ from django import forms
 from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
 from datetimewidget.widgets import DateTimeWidget
+from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType
 from booking.models import Event, Booking, Block
@@ -133,6 +134,7 @@ class EventForm(forms.ModelForm):
         'format': 'dd/mm/yyyy hh:ii',
         'autoclose': True,
     }
+    description = forms.CharField(widget=CKEditorWidget())
 
     date = forms.DateTimeField(
         widget=DateTimeWidget(

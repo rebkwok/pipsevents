@@ -1,10 +1,13 @@
 from django.contrib import admin
-from django.forms import ModelForm
+from django import forms
 from suit.widgets import EnclosedInput
 from timetable.models import Session
+from ckeditor.widgets import CKEditorWidget
 
 
-class SessionForm(ModelForm):
+class SessionForm(forms.ModelForm):
+    description = forms.CharField(widget=CKEditorWidget())
+
     class Meta:
         widgets = {
             # You can also use prepended and appended together

@@ -59,6 +59,7 @@ INSTALLED_APPS = (
     'booking',
     'timetable',
     'datetimewidget',
+    'ckeditor',
 )
 
 SITE_ID = 1
@@ -160,7 +161,8 @@ USE_TZ = True
 # STATIC_URL = '/static/'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = '/media/'
-MEDIA_ROOT = root('media')
+# MEDIA_ROOT = root('media')
+MEDIA_ROOT = 'staticfiles/media'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
@@ -223,6 +225,25 @@ SUIT_CONFIG = {
 
 INTERNAL_IPS = '127.0.0.1'
 
+
+#CKEDITOR
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_IMAGE_BACKEND = 'pillow'
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': [
+		 ['Source', '-', 'Bold', 'Italic', 'Underline'],
+         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', 'Blockquote', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+         ['Image', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
+         ['Format', 'Font', 'FontSize'],
+         ['TextColor', 'BGColor']
+        ],
+        'height': 300,
+        'width': 500,
+    },
+}
+
+# MAILCATCHER
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = '127.0.0.1'

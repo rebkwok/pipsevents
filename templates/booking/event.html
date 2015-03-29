@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load static %}
-{% load bookingtags %}
 
 {% block content %}
 
@@ -14,8 +13,10 @@
                 {% if past %}
                 <h3>This event is now past.</h3>
                 {% endif %}
-                <p>{{ event.description }}</p>
                 <ul class="list-group">
+                    <li class="list-group-item"><strong>Description</strong>
+                    <p>{{ event.description | safe }}</p>
+                    </li>
                     <li class="list-group-item"><strong>Location:</strong>  {{ event.location }}</li>
                     <li class="list-group-item"><strong>Date and time:</strong> {{ event.date |  date:"D d F, g:i a" }}</li>
                     {% if not past %}
@@ -28,17 +29,11 @@
                         <p>Cost: £ {{ event.cost }}</p>
 
                         <p>{{ event.payment_text }}</p>
-                        <p><a href="{{ event.payment_link }}" target="_blank">{{ event.payment_link }}</a></p>
+                        <p><a href="{{ event.payment_link }}">{{ event.payment_link }}</a></p>
 
                         {% if event.payment_open and event.payment_due_date %}
                             <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>
                         {% endif %}</li>
-                    {% if event.cancellation_period %}
-                        <li class="list-group-item"><strong>Cancellation information</strong>
-                        <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the
-                        {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}</p></li>
-                    {% endif %}
-
                     </ul>
                     {% if event.max_participants %}
                         <h5>There are a maximum {{ event.max_participants }} spaces for this
