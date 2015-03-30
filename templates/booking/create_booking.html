@@ -12,18 +12,18 @@
             <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
                     <div class="form-group">
-                        {% if event.type == "PC" %}
+                        {% if blocktype_available %}
                             {% if active_user_block %}
                                 <p>You have an active block; would you like to use your block for this booking?</p>
                             {% else %}
                                 <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                             {% endif %}
                         {% else %}
-                            <p>(Note: block booking is only available for pole level classes.)</p>
+                            <p>(Note: block booking is not available for this class/event type.)</p>
                         {% endif %}
 
                         <span class="hide">{{ form.event }}</span>
-                        {% if event.type == "PC" %}
+                        {% if blocktype_available %}
                             {% if active_user_block %}
                                 <input class="btn btn-success" type="submit" name="block_book" value="Book with my block" />
                             {% endif %}

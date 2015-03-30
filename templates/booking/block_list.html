@@ -15,6 +15,10 @@
                         <p>You don't have any active blocks.
                             <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
                         </p>
+                        {% elif can_book_block %}
+                        <p>
+                            <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
+                        </p>
                         {% endif %}
                     </div>
 
@@ -22,6 +26,7 @@
                     <table class="table">
                         <tr class="success">
                             <th>Block Status</th>
+                            <th>Block Type</th>
                             <th>Start date</th>
                             <th>Expiry Date</th>
                             <th>Block size</th>
@@ -33,6 +38,7 @@
                         {% for block in blocks %}
                             <tr {% if block.active_block %}class="active_block"{% else %}class="inactive_block"{% endif %}>
                                 <td>{% if block.active_block %}Active{% else %}Expired{% endif %}</td>
+                                <td>{{ block.block_type.event_type.subtype }}</td>
                                 <td>{{ block.start_date }}</td>
                                 <td>{{ block.expiry_date }}</td>
                                 <td>{{ block.block_type.size }}</td>

@@ -1,5 +1,5 @@
 from django.db import models
-
+from booking.models import EventType
 
 class Session(models.Model):
     MON = '01MON'
@@ -19,18 +19,10 @@ class Session(models.Model):
         (SUN, 'Sunday')
     )
 
-    POLE_CLASS = 'PC'
-    OTHER_CLASS = 'CL'
-    TYPE_CHOICES = (
-        (POLE_CLASS, 'Pole level class'),
-        (OTHER_CLASS, 'Other class'),
-    )
     name=models.CharField(max_length=255)
     day = models.CharField(max_length=5, choices=DAY_CHOICES)
     time = models.TimeField()
-    type = models.CharField(
-        max_length=2, choices=TYPE_CHOICES, default=POLE_CLASS
-    )
+    type = models.ForeignKey(EventType, null=True)
     description = models.TextField(blank=True)
     location = models.CharField(max_length=255, default="Watermelon Studio")
     max_participants = models.PositiveIntegerField(

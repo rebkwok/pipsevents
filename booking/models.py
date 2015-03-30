@@ -12,25 +12,38 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
 
-class Event(models.Model):
-    POLE_CLASS = 'PC'
-    WORKSHOP = 'WS'
-    OTHER_CLASS = 'CL'
-    OTHER_EVENT = 'EV'
-
-    EVENT_TYPES = {
-        POLE_CLASS: 'Pole level class',
-        WORKSHOP: 'Workshop',
-        OTHER_CLASS: 'Other class',
-        OTHER_EVENT: 'Other event'
-    }
-
-    EVENT_TYPE_CHOICES = tuple((key, value) for key, value in EVENT_TYPES.items())
-
-    name = models.CharField(max_length=255)
-    type = models.CharField(
-        max_length=2, choices=EVENT_TYPE_CHOICES, default=POLE_CLASS
+class EventType(models.Model):
+    TYPE_CHOICE = (
+        ('CL', 'Class'),
+        ('EV', 'Event')
     )
+    type = models.CharField(max_length=2, choices=TYPE_CHOICE,
+                            help_text="This determines whether events of this"
+                                      "type are listed on the 'Classes' or "
+                                      "'Events' page")
+    subtype = models.CharField(max_length=255,
+                               help_text="Type of class/event. Use this to "
+                                         "categorise events/classes.  If an event "
+                                         "can be block booked, this "
+                                         "should match the event type used in the "
+                                         "Block Type.")
+
+    def __str__(self):
+        if self.type == 'CL':
+            type = "Class"
+        else:
+            type="Event"
+        return '{} - {}'.format(type, self.subtype)
+
+    class Meta:
+        unique_together = ('type', 'subtype')
+
+
+
+
+class Event(models.Model):
+    name = models.CharField(max_length=255)
+    event_type = models.ForeignKey(EventType, null=True)
     description = models.TextField(blank=True)
     date = models.DateTimeField()
     location = models.CharField(max_length=255, default="Watermelon Studio")
@@ -45,7 +58,10 @@ class Event(models.Model):
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=False)
     payment_info = models.TextField(blank=True)
-    payment_link = models.URLField(blank=True, default="https://www.paypal.com/uk/webapps/mpp/send-money-online")
+    payment_link = models.URLField(
+        blank=True,
+        default="https://www.paypal.com/uk/webapps/mpp/send-money-online"
+    )
     payment_due_date = models.DateTimeField(null=True, blank=True)
     cancellation_period = models.PositiveIntegerField(
         default=24
@@ -97,14 +113,13 @@ class BlockType(models.Model):
     5 classes expires in 2 months, 10 classes expires in 4 months
     """
     size = models.PositiveIntegerField(help_text="Number of classes in block")
-    event_type = models.CharField(
-        max_length=2, choices=Event.EVENT_TYPE_CHOICES, default=Event.POLE_CLASS
-    )
+    event_type = models.ForeignKey(EventType, null=True)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
-    duration = models.PositiveIntegerField(help_text="Number of months until block expires")
+    duration = models.PositiveIntegerField(
+        help_text="Number of months until block expires")
 
     def __str__(self):
-        return '{} - {}'.format(Event.EVENT_TYPES[self.event_type], self.size)
+        return '{} - {}'.format(self.event_type.subtype, self.size)
 
 class Block(models.Model):
     """

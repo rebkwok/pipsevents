@@ -5,9 +5,12 @@ Helper functions to return context and reduce logic in templates
 from django.utils import timezone
 from booking.models import Event
 
-def get_event_context(context, event, user, event_type):
+def get_event_context(context, event, user):
 
-    context['type'] = event_type
+    if event.event_type.type == 'CL':
+        context['type'] = "lesson"
+    else:
+        context['type'] = "event"
 
     if event.date <= timezone.now():
         context['past'] = True
@@ -50,7 +53,7 @@ def get_event_context(context, event, user, event_type):
 
 def get_booking_context(context, booking):
 
-    if booking.event.type in [Event.POLE_CLASS, Event.OTHER_CLASS]:
+    if booking.event.event_type.type == 'CL':
         context['type'] = "lesson"
     else:
         context['type'] = "event"

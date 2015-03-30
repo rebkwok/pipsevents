@@ -21,9 +21,9 @@
   with_items:
     - setup_fb
     - load_users
+    - create_event_and_blocktypes
     - create_timetable
     - create_events
     - create_classes
     - create_bookings
-    - create_blocktypes
 

@@ -6,7 +6,7 @@ from django.utils import timezone
 from model_mommy.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
-from booking.models import Event, Block, Booking, BlockType
+from booking.models import Event, EventType, Block, Booking, BlockType
 from timetable.models import Session
 
 now = timezone.now()
@@ -22,35 +22,40 @@ user = Recipe(User,
 # events; use defaults apart from dates
 # override when using recipes, eg. mommy.make_recipe('future_event', cost=10)
 
+event_type_PC = Recipe(EventType, type="CL", subtype="Pole level class")
+event_type_WS = Recipe(EventType, type="EV", subtype="Workshop")
+event_type_OE = Recipe(EventType, type="EV", subtype="Other event")
+event_type_OC = Recipe(EventType, type="CL", subtype="Other class")
+
 future_EV = Recipe(Event,
                       date=future,
-                      type='EV')
+                      event_type=foreign_key(event_type_OE))
 
 future_WS = Recipe(Event,
                    date=future,
-                   type='WS')
+                   event_type=foreign_key(event_type_WS))
 
 future_PC = Recipe(Event,
                    date=future,
-                   type='PC',
-                   )
+                   event_type=foreign_key(event_type_PC))
 
 future_CL = Recipe(Event,
                    date=future,
-                   type='CL',
-                   )
+                   event_type=foreign_key(event_type_OC))
 
 # past event
 past_event = Recipe(Event,
                     date=past,
-                    type='WS',
+                    event_type=foreign_key(event_type_WS),
                     advance_payment_required=True,
                     cost=10,
                     payment_due_date=past-timedelta(10)
                     )
 
-blocktype5 = Recipe(BlockType, size=5, duration=2)
-blocktype10 = Recipe(BlockType, size=10, duration=4)
+blocktype5 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
+                    size=5, duration=2)
+blocktype10 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
+                     size=10, duration=4)
 
 block_5 = Recipe(Block,
                  user=foreign_key(user),
