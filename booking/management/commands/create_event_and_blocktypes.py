@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from booking.models import BlockType
+from booking.models import BlockType, EventType
 
 class Command(BaseCommand):
     """
@@ -10,14 +10,35 @@ class Command(BaseCommand):
     """
     def handle(self, *args, **options):
 
+        self.stdout.write("Creating event types")
+        pc, _ = EventType.objects.get_or_create(
+            type='CL',
+            subtype = 'Pole level class'
+        )
+        cl, _ = EventType.objects.get_or_create(
+            type='CL',
+            subtype = 'Other class'
+        )
+
+        ws = EventType.objects.get_or_create(
+            type='EV',
+            subtype = 'Workshop'
+        )
+        ev = EventType.objects.get_or_create(
+            type='EV',
+            subtype = 'Other event'
+        )
+
         self.stdout.write("Creating block types")
         BlockType.objects.get_or_create(
+            event_type=pc,
             size=5,
             cost = 32.00,
             duration = 2
         )
 
         BlockType.objects.get_or_create(
+            event_type=pc,
             size=10,
             cost = 62.00,
             duration = 4

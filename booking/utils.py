@@ -39,7 +39,7 @@ def create_classes(week='this', input_date=None):
     for session in timetable:
         cl, created = Event.objects.get_or_create(
             name=session.name,
-            type=session.type,
+            event_type=session.type,
             date=(datetime.combine(
                 date_dict[session.day],
                 session.time).replace(tzinfo=timezone.utc)),

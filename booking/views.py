@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
 from braces.views import LoginRequiredMixin
-from booking.models import Event, Booking, Block
+from booking.models import Event, Booking, Block, BlockType
 from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 
@@ -22,9 +22,8 @@ class EventListView(ListView):
 
     def get_queryset(self):
         return Event.objects.filter(
-            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP)) &
-            Q(date__gte=timezone.now())
-        ).order_by('date')
+            (Q(event_type__type='EV') & Q(date__gte=timezone.now())
+        )).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -45,9 +44,7 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(
-            (Q(type=Event.OTHER_EVENT) | Q(type=Event.WORKSHOP))
-        )
+        queryset = Event.objects.filter(event_type__type='EV')
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
@@ -56,7 +53,7 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         context = super(EventDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
-            context, event, self.request.user, "event"
+            context, event, self.request.user
         )
 
 
@@ -67,9 +64,8 @@ class LessonListView(ListView):
 
     def get_queryset(self):
         return Event.objects.filter(
-            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS)) &
-            Q(date__gte=timezone.now())
-        ).order_by('date')
+            (Q(event_type__type='CL') & Q(date__gte=timezone.now())
+        )).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -90,9 +86,7 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(
-            (Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS))
-        )
+        queryset = Event.objects.filter(event_type__type='CL')
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
@@ -101,7 +95,7 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
         context = super(LessonDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
-            context, event, self.request.user, "lesson"
+            context, event, self.request.user
         )
 
 
@@ -161,7 +155,7 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
 
     def get_initial(self):
         return {
-            'event': self.event.pk,
+            'event': self.event.pk
         }
 
     def get(self, request, *args, **kwargs):
@@ -179,11 +173,18 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingCreateView, self).get_context_data(**kwargs)
+
+        # find if block booking is available for this type of event
+        blocktypes = [blocktype.event_type for blocktype in BlockType.objects.all()]
+        blocktype_available = self.event.event_type in blocktypes
+        context['blocktype_available'] = blocktype_available
+
         # Add in the event name
         context['event'] = self.event
         user_blocks = self.request.user.blocks.all()
         active_user_block = [block for block in user_blocks
-                             if block.active_block()]
+                             if block.block_type.event_type == self.event.event_type
+                             and block.active_block()]
         if active_user_block:
             context['active_user_block'] = True
 
@@ -252,16 +253,28 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     form_class = BlockCreateForm
 
     def get(self, request, *args, **kwargs):
-        # redirect if user already has an active block
+        # redirect if user already has active blocks for all blocktypes
         user_blocks = self.request.user.blocks.all()
-        active_user_block = [block for block in user_blocks
-                             if block.active_block()]
-        if active_user_block:
+        user_block_event_types = [block.block_type.event_type for block in user_blocks]
+        self.blocktypes_available_to_book = BlockType.objects.exclude(event_type__in=user_block_event_types)
+        if not self.blocktypes_available_to_book:
             return HttpResponseRedirect(reverse('booking:has_active_block'))
 
         return super(BlockCreateView, self).get(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super(BlockCreateView, self).get_context_data(**kwargs)
+        context['form'].fields['block_type'].queryset = self.blocktypes_available_to_book
+        context['block_types'] = self.blocktypes_available_to_book
+        return context
+
     def form_valid(self, form):
+        block_type = form.cleaned_data['block_type']
+        user_blocks = self.request.user.blocks.all()
+        user_block_event_types = [block.block_type.event_type for block in user_blocks]
+        if block_type.event_type in user_block_event_types:
+            return HttpResponseRedirect(reverse('booking:has_active_block'))
+
         block = form.save(commit=False)
         block.user = self.request.user
         block.save()
@@ -310,6 +323,11 @@ class BlockListView(LoginRequiredMixin, ListView):
                              if block.active_block()]
         if active_user_block:
             context['active_user_block'] = True
+
+        user_block_event_types = [block.block_type.event_type for block in user_blocks]
+        blocktypes_available_to_book = BlockType.objects.exclude(event_type__in=user_block_event_types)
+        if blocktypes_available_to_book:
+            context['can_book_block'] = True
 
         return context
 

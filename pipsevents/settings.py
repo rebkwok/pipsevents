@@ -198,10 +198,10 @@ SUIT_CONFIG = {
         {
             'label': 'Events and Classes',
             'icon': 'icon-bookmark',
-            'models': ('booking.event',)
+            'models': ('booking.event', 'booking.eventtype')
         },
         {
-            'label': 'Blocks',
+            'label': 'Booked Blocks and BlockTypes',
             'icon': 'icon-bookmark',
             'models': ('booking.block', 'booking.blocktype')
         },

@@ -15,8 +15,7 @@ from suit.widgets import EnclosedInput
 from datetimewidget.widgets import DateTimeWidget
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, Booking, Block, BlockType
-from booking.models import Event, Booking, Block
+from booking.models import Event, Booking, Block, BlockType, EventType
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
@@ -123,9 +122,9 @@ class EventTypeListFilter(admin.SimpleListFilter):
         # Compare the requested value
         # to decide how to filter the queryset.
         if self.value() == 'class':
-            return queryset.filter(Q(type=Event.POLE_CLASS) | Q(type=Event.OTHER_CLASS))
+            return queryset.filter(event_type__type='CL')
         if self.value() == 'event':
-            return queryset.filter(Q(type=Event.WORKSHOP) | Q(type=Event.OTHER_EVENT))
+            return queryset.filter(event_type__type='EV')
 
 
 class EventForm(forms.ModelForm):
@@ -166,7 +165,7 @@ class EventAdmin(admin.ModelAdmin):
 
     fieldsets = [
         ('Event details', {
-            'fields':('name', 'date', 'location', 'type', 'description')
+            'fields':('name', 'date', 'location', 'event_type', 'description')
         }),
         ('Contacts', {
             'fields':('contact_person', 'contact_email')
@@ -390,3 +389,4 @@ admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(BlockType)
+admin.site.register(EventType)

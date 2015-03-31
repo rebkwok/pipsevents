@@ -10,13 +10,27 @@
                 <h2 class="panel-title">New block booking</a></h2>
             </div>
             <div class="panel-body">
-                <p>Blocks of 5 or 10 classes can be purchased.  Block booking is
-                only applicable for pole level classes.</p>
+                <p>Block booking is only available for certain types of classes or events.  Please select a block
+                    type from the dropdown list below.  You can only have one active block of each available type.</p>
                 <p>Payment is required within one week of booking a block. After this time, your block will be deactivated.</p>
+
+                <h4>Block types available:</h4>
+                {% for type in block_types %}
+                    <p>{{ type.event_type.subtype }}</p>
+                    <ul>
+                        <li>Cost: £{{ type.cost }}</li>
+                        <li>Number of classes in block: {{ type.size }}</li>
+                        <li>Time until block expires: {{ type.duration }} months</li>
+                    </ul>
+                {% endfor %}
+
                 <form action="" method="post">{% csrf_token %}
                     <div class="form-group">
-                        <span>{{ form.as_p  }}</span>
-                    <input class="btn btn-success" type="submit" value="Book block" />
+                        <div class="dropdown">
+                            <strong>Choose a block type:</strong> {{ form.block_type  }}
+                        </div></br>
+
+                       <input class="btn btn-success" type="submit" value="Book block" />
                     </div>
                 </form>
             </div>
