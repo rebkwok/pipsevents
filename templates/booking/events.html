@@ -16,8 +16,8 @@
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
-                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
                                 <th>Date</th>
+                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
                                 <th>Location</th>
                                 <th>Cost</th>
                                 <th>Max spaces</th>
@@ -26,12 +26,12 @@
                             </tr>
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
+                                    <td>{{ event.date | date:"D d F, g:i a" }}</td>
                                     <td>{% if type == 'events' %}
                                         <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
                                         {% elif type == 'lessons' %}
                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                                         {% endif %}</td>
-                                    <td>{{ event.date | date:"D d F, g:i a" }}</td>
                                     <td>{{ event.location }}</td>
                                     <td>£{{ event.cost }}</td>
                                     <td>{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
