@@ -265,6 +265,7 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super(BlockCreateView, self).get_context_data(**kwargs)
         context['form'].fields['block_type'].queryset = self.blocktypes_available_to_book
+        context['block_types'] = self.blocktypes_available_to_book
         return context
 
     def form_valid(self, form):
