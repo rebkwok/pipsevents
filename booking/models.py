@@ -39,12 +39,10 @@ class EventType(models.Model):
         unique_together = ('type', 'subtype')
 
 
-
-
 class Event(models.Model):
     name = models.CharField(max_length=255)
-    event_type = models.ForeignKey(EventType, null=True)
-    description = models.TextField(blank=True)
+    event_type = models.ForeignKey(EventType)
+    description = models.TextField(blank=True, null=True)
     date = models.DateTimeField()
     location = models.CharField(max_length=255, default="Watermelon Studio")
     max_participants = models.PositiveIntegerField(
@@ -113,7 +111,7 @@ class BlockType(models.Model):
     5 classes expires in 2 months, 10 classes expires in 4 months
     """
     size = models.PositiveIntegerField(help_text="Number of classes in block")
-    event_type = models.ForeignKey(EventType, null=True)
+    event_type = models.ForeignKey(EventType)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     duration = models.PositiveIntegerField(
         help_text="Number of months until block expires")
@@ -127,7 +125,7 @@ class Block(models.Model):
     """
 
     user = models.ForeignKey(User, related_name='blocks')
-    block_type = models.ForeignKey(BlockType, null=True)
+    block_type = models.ForeignKey(BlockType)
     start_date = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(
         verbose_name='Payment made (as confirmed by participant)',

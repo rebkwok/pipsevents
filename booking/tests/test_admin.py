@@ -80,8 +80,7 @@ class BookingAdminTests(TestCase):
         self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 0)
 
         booking_admin = admin.BookingAdmin(Booking, AdminSite())
-        queryset = Booking.objects.filter(event__event_type__subtype='Other event')
-
+        queryset = Booking.objects.filter(event__event_type__subtype__contains='Other event')
         booking_admin.confirm_space(None, queryset)
         self.assertEquals(len(Booking.objects.filter(paid=True)), 5)
         self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 5)

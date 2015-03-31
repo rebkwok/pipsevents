@@ -392,7 +392,6 @@ class BookingCreateViewTests(TestCase):
         set_up_fb()
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
-        self.event = mommy.make_recipe('booking.future_EV', max_participants=3)
 
     def _post_response(self, user, event):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
@@ -412,29 +411,32 @@ class BookingCreateViewTests(TestCase):
         """
         Get the booking page with the event context
         """
-        resp = self._get_response(self.user, self.event)
-        self.assertEqual(resp.context_data['event'], self.event)
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        resp = self._get_response(self.user, event)
+        self.assertEqual(resp.context_data['event'], event)
 
     def test_create_booking(self):
         """
         Test creating a booking
         """
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
         self.assertEqual(Booking.objects.all().count(), 0)
-        self._post_response(self.user, self.event)
+        self._post_response(self.user, event)
         self.assertEqual(Booking.objects.all().count(), 1)
 
     def test_cannot_create_duplicate_booking(self):
         """
         Test trying to create a duplicate booking redirects
         """
-        resp = self._post_response(self.user, self.event)
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        resp = self._post_response(self.user, event)
         booking_id = Booking.objects.all()[0].id
         booking_url = reverse('booking:booking_detail', args=[booking_id])
         self.assertEqual(resp.url, booking_url)
 
-        resp1 = self._get_response(self.user, self.event)
+        resp1 = self._get_response(self.user, event)
         duplicate_url = reverse('booking:duplicate_booking',
-                                kwargs={'event_slug': self.event.slug}
+                                kwargs={'event_slug': event.slug}
         )
         # test redirect to duplicate booking url
         self.assertEqual(resp1.url, duplicate_url)
@@ -443,7 +445,6 @@ class BookingCreateViewTests(TestCase):
         """
         Test trying to create a duplicate booking redirects
         """
-
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
         users = mommy.make_recipe('booking.user', _quantity=3)
         for user in users:
@@ -469,31 +470,32 @@ class BookingErrorRedirectPagesTests(TestCase):
         set_up_fb()
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
-        self.event = mommy.make_recipe('booking.future_EV')
 
     def test_duplicate_booking(self):
         """
         Get the duplicate booking page with the event context
         """
+        event = mommy.make_recipe('booking.future_EV')
         url = reverse(
-            'booking:duplicate_booking', kwargs={'event_slug': self.event.slug}
+            'booking:duplicate_booking', kwargs={'event_slug': event.slug}
         )
         request = self.factory.get(url)
         request.user = self.user
-        resp = duplicate_booking(request, self.event.slug)
-        self.assertIn(self.event.name, str(resp.content))
+        resp = duplicate_booking(request, event.slug)
+        self.assertIn(event.name, str(resp.content))
 
     def test_fully_booked(self):
         """
         Get the fully booked page with the event context
         """
+        event = mommy.make_recipe('booking.future_EV')
         url = reverse(
-            'booking:fully_booked', kwargs={'event_slug': self.event.slug}
+            'booking:fully_booked', kwargs={'event_slug': event.slug}
         )
         request = self.factory.get(url)
         request.user = self.user
-        resp = fully_booked(request, self.event.slug)
-        self.assertIn(self.event.name, str(resp.content))
+        resp = fully_booked(request, event.slug)
+        self.assertIn(event.name, str(resp.content))
 
 
 class BookingDeleteViewTests(TestCase):
@@ -502,7 +504,6 @@ class BookingDeleteViewTests(TestCase):
         set_up_fb()
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
-        self.event = mommy.make_recipe('booking.future_EV')
 
     def _get_response(self, user, booking):
         url = reverse('booking:delete_booking', args=[booking.id])
@@ -515,7 +516,8 @@ class BookingDeleteViewTests(TestCase):
         """
         Get the delete booking page with the event context
         """
-        booking = mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        event = mommy.make_recipe('booking.future_EV')
+        booking = mommy.make_recipe('booking.booking', event=event, user=self.user)
         url = reverse(
             'booking:delete_booking', args=[booking.id]
         )
@@ -523,7 +525,7 @@ class BookingDeleteViewTests(TestCase):
         request.user = self.user
         view = BookingDeleteView.as_view()
         resp = view(request, pk=booking.id)
-        self.assertEqual(resp.context_data['event'], self.event)
+        self.assertEqual(resp.context_data['event'], event)
 
     def test_create_booking(self):
         """
