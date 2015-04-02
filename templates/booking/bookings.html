@@ -22,6 +22,7 @@
                         <tr class="success">
                             <th>Booking</th>
                             <th>Date</th>
+                            <th>Status</th>
                             <th>Cost</th>
                             <th>Paid (confirmed </br>by attendee)</th>
                             <th>Payment confirmed </br>by organiser</th>
@@ -32,9 +33,10 @@
                             {% endif %}
                         </tr>
                         {% for booking in bookings %}
-                            <tr>
+                            <tr {% if booking.status == 'CANCELLED' %}class='cancelled'{% endif %}>
                                 <td><a href="{% url 'booking:booking_detail' booking.pk %}">{{ booking.event.name }}</a></td>
                                 <td>{{ booking.event.date |  date:"D d F, g:i a" }}</td>
+                                <td>{{ booking.status }}</td>
                                 <td>£{{ booking.event.cost }}</td>
                                 <td align="center">{% if booking.event.cost and booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
                                     {% elif booking.event.cost and not booking.paid %}<span class="not-confirmed glyphicon glyphicon-remove"></span>

@@ -179,6 +179,11 @@ class Block(models.Model):
 
 
 class Booking(models.Model):
+    STATUS_CHOICES = (
+        ('OPEN', 'Cancelled'),
+        ('CANCELLED', 'Cancelled')
+    )
+
     user = models.ForeignKey(User, related_name='bookings')
     event = models.ForeignKey(Event, related_name='bookings')
     paid = models.BooleanField(
@@ -194,6 +199,9 @@ class Booking(models.Model):
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
     block = models.ForeignKey(Block, related_name='bookings', null=True)
     date_space_confirmed = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=255, choices=STATUS_CHOICES, default='OPEN'
+    )
 
     def confirm_space(self):
         if self.event.cost:
@@ -203,8 +211,9 @@ class Booking(models.Model):
             self.save()
 
     def space_confirmed(self):
-        return not self.event.advance_payment_required or \
-               self.event.cost == 0 or \
+        return not self.status == 'CANCELLED' or \
+            self.event.advance_payment_required or \
+               (self.event.cost == 0 and self.status == 'OPEN') or \
                self.payment_confirmed
     space_confirmed.boolean = True
 

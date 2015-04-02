@@ -30,15 +30,21 @@ def get_event_context(context, event, user):
     # booked flag
     user_bookings = user.bookings.all()
     user_booked_events = [booking.event for booking in user_bookings]
+    user_cancelled_events = [booking.event for booking in user_bookings
+                             if booking.status == 'CANCELLED']
     booked = event in user_booked_events
+    cancelled = event in user_cancelled_events
 
     # booking info text and bookable
     booking_info_text = ""
     context['bookable'] = event.bookable()
     if booked:
-        context['booked'] = True
-        booking_info_text = "You have booked for this event."
         context['bookable'] = False
+        booking_info_text = "You have booked for this event."
+        if cancelled:
+            booking_info_text = "You have previously booked for this event and" \
+                                " cancelled."
+        context['booked'] = True
     elif not event.booking_open:
         booking_info_text = "Bookings are not yet open for this event."
     elif event.spaces_left() <= 0:

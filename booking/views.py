@@ -31,7 +31,8 @@ class EventListView(ListView):
         if not self.request.user.is_anonymous():
         # Add in the booked_events
             user_bookings = self.request.user.bookings.all()
-            booked_events = [booking.event for booking in user_bookings]
+            booked_events = [booking.event for booking in user_bookings
+                             if not booking.status == 'CANCELLED']
             context['booked_events'] = booked_events
         context['type'] = 'events'
         return context
@@ -73,7 +74,8 @@ class LessonListView(ListView):
         if not self.request.user.is_anonymous():
         # Add in the booked_events
             user_bookings = self.request.user.bookings.all()
-            booked_events = [booking.event for booking in user_bookings]
+            booked_events = [booking.event for booking in user_bookings
+                             if not booking.status == 'CANCELLED']
             context['booked_events'] = booked_events
         context['type'] = 'lessons'
         return context
@@ -108,6 +110,7 @@ class BookingListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return Booking.objects.filter(
             Q(event__date__gte=timezone.now()) & Q(user=self.request.user)
+            & Q(status='OPEN')
         ).order_by('event__date')
 
 
@@ -120,7 +123,7 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            Q(event__date__lte=timezone.now()) & Q(user=self.request.user)
+            (Q(event__date__lte=timezone.now()) | Q(status='CANCELLED')) & Q(user=self.request.user)
         ).order_by('event__date')
 
     def get_context_data(self, **kwargs):
@@ -164,7 +167,11 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             return HttpResponseRedirect(reverse('booking:fully_booked',
                                         args=[self.event.slug]))
         try:
-            Booking.objects.get(user=self.request.user, event=self.event)
+            booking = Booking.objects.get(
+                user=self.request.user, event=self.event
+            )
+            if booking.status == 'CANCELLED':
+                return super(BookingCreateView, self).get(request, *args, **kwargs)
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
         except Booking.DoesNotExist:
@@ -192,6 +199,14 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
 
     def form_valid(self, form):
         booking = form.save(commit=False)
+        try:
+            cancelled_booking = Booking.objects.get(
+                user=self.request.user, event=booking.event, status='CANCELLED')
+            booking = cancelled_booking
+            booking.status = 'OPEN'
+        except Booking.DoesNotExist:
+            pass
+
         if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
             active_block = [block for block in blocks
@@ -466,6 +481,8 @@ class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
         event = Event.objects.get(id=booking.event.id)
         # Add in the event
         context['event'] = event
+        # Add in block info
+        context['booked_with_block'] = booking.block is not None
         return context
 
     def delete(self, request, *args, **kwargs):
@@ -503,7 +520,10 @@ class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
 
-        booking.delete()
+        booking.block = None
+        booking.status = 'CANCELLED'
+        booking.payment_confirmed = False
+        booking.save()
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
