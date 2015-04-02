@@ -1,6 +1,9 @@
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.utils.importlib import import_module
 from mock import patch
 from model_mommy import mommy
 from booking.models import Event, Booking, Block
@@ -9,6 +12,15 @@ from booking.views import EventListView, EventDetailView, \
     BookingDetailView, BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked
 from booking.tests.helpers import set_up_fb
+
+
+def _create_session():
+    # create session
+    settings.SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    engine = import_module(settings.SESSION_ENGINE)
+    store = engine.SessionStore()
+    store.save()
+    return store
 
 
 class EventListViewTests(TestCase):
@@ -395,15 +407,23 @@ class BookingCreateViewTests(TestCase):
 
     def _post_response(self, user, event):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        store = _create_session()
         request = self.factory.post(url, {'event': event.id})
+        request.session = store
         request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
         view = BookingCreateView.as_view()
         return view(request, event_slug=event.slug)
 
     def _get_response(self, user, event):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        store = _create_session()
         request = self.factory.get(url, {'event': event.id})
+        request.session = store
         request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
         view = BookingCreateView.as_view()
         return view(request, event_slug=event.slug)
 
@@ -429,6 +449,7 @@ class BookingCreateViewTests(TestCase):
         Test trying to create a duplicate booking redirects
         """
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
+
         resp = self._post_response(self.user, event)
         booking_id = Booking.objects.all()[0].id
         booking_url = reverse('booking:booking_detail', args=[booking_id])
@@ -479,8 +500,12 @@ class BookingErrorRedirectPagesTests(TestCase):
         url = reverse(
             'booking:duplicate_booking', kwargs={'event_slug': event.slug}
         )
+        session = _create_session()
         request = self.factory.get(url)
+        request.session = session
         request.user = self.user
+        messages = FallbackStorage(request)
+        request._messages = messages
         resp = duplicate_booking(request, event.slug)
         self.assertIn(event.name, str(resp.content))
 
@@ -492,8 +517,12 @@ class BookingErrorRedirectPagesTests(TestCase):
         url = reverse(
             'booking:fully_booked', kwargs={'event_slug': event.slug}
         )
+        session = _create_session()
         request = self.factory.get(url)
+        request.session = session
         request.user = self.user
+        messages = FallbackStorage(request)
+        request._messages = messages
         resp = fully_booked(request, event.slug)
         self.assertIn(event.name, str(resp.content))
 
@@ -507,8 +536,12 @@ class BookingDeleteViewTests(TestCase):
 
     def _get_response(self, user, booking):
         url = reverse('booking:delete_booking', args=[booking.id])
+        session = _create_session()
         request = self.factory.delete(url)
+        request.session = session
         request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
         view = BookingDeleteView.as_view()
         return view(request, pk=booking.id)
 
@@ -521,24 +554,31 @@ class BookingDeleteViewTests(TestCase):
         url = reverse(
             'booking:delete_booking', args=[booking.id]
         )
+        session = _create_session()
         request = self.factory.get(url)
+        request.session = session
         request.user = self.user
+        messages = FallbackStorage(request)
+        request._messages = messages
         view = BookingDeleteView.as_view()
         resp = view(request, pk=booking.id)
         self.assertEqual(resp.context_data['event'], event)
 
-    def test_create_booking(self):
+    def test_cancel_booking(self):
         """
         Test deleting a booking
         """
         booking = mommy.make_recipe('booking.booking', user=self.user)
         self.assertEqual(Booking.objects.all().count(), 1)
         self._get_response(self.user, booking)
-        self.assertEqual(Booking.objects.all().count(), 0)
+        # after cancelling, the booking is still there, but status has changed
+        self.assertEqual(Booking.objects.all().count(), 1)
+        booking = Booking.objects.get(id=booking.id)
+        self.assertEqual('CANCELLED', booking.status)
 
-    def test_deleting_only_this_booking(self):
+    def test_cancelling_only_this_booking(self):
         """
-        Test deleting a booking when user has more than one
+        Test cancelling a booking when user has more than one
         """
         mommy.make_recipe(
             'booking.booking', user=self.user, _quantity=3
@@ -546,7 +586,17 @@ class BookingDeleteViewTests(TestCase):
         self.assertEqual(Booking.objects.all().count(), 3)
         booking = Booking.objects.all()[0]
         self._get_response(self.user, booking)
-        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(Booking.objects.all().count(), 3)
+        cancelled_bookings = Booking.objects.filter(status='CANCELLED')
+        self.assertEqual([cancelled.id for cancelled in cancelled_bookings],
+                         [booking.id])
+
+    #TODO test_cancelled_booking_is_no_longer_confirmed
+    #TODO test_cancelled_booking_shown_in_booking_history
+    #TODO test_cancelled_booking_not_showing_in_booking_list
+    #TODO test_cancelled_booking_sets_payment_confirmed_to_False
+    #TODO test_cancelled_booking_can_be_rebooked
+    #TODO test_cannot_cancel_after_cancellation_period
 
 
 class BookingUpdateViewTests(TestCase):
@@ -558,8 +608,13 @@ class BookingUpdateViewTests(TestCase):
 
     def _get_response(self, user, booking, form_data):
         url = reverse('booking:update_booking', args=[booking.id])
+        session = _create_session()
         request = self.factory.post(url, form_data)
+        request.session = session
         request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
         view = BookingUpdateView.as_view()
         return view(request, pk=booking.id)
 

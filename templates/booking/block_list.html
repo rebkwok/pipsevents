@@ -6,20 +6,17 @@
 
 <div class="container-fluid row">
     <h1>Your blocks</h1>
-
-    <div class="row">
+    <div class="row>"
         <div class="col-sm-12">
             <div class="panel">
-                    <div class="panel-heading">
-                        {% if not active_user_block %}
-                        <p>You don't have any active blocks.
+                    <div {% if not active_user_block or can_book_block %}class="panel-heading"{% else %}class="hide"{% endif %}>
+                        <p>{% if not active_user_block %}
+                            You don't have any active blocks.
+                            {% endif %}
+                            {% if not active_user_block or can_book_block %}
                             <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
+                            {% endif %}
                         </p>
-                        {% elif can_book_block %}
-                        <p>
-                            <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
-                        </p>
-                        {% endif %}
                     </div>
 
                 <div class="table-responsive">
@@ -57,8 +54,6 @@
             </div>
         </div>
     </div>
-
-
 </div>
 
 {% endblock content %}

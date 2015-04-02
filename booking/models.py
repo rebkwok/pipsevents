@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -117,7 +117,8 @@ class BlockType(models.Model):
         help_text="Number of months until block expires")
 
     def __str__(self):
-        return '{} - {}'.format(self.event_type.subtype, self.size)
+        return '{} - quantity {}'.format(self.event_type.subtype, self.size)
+
 
 class Block(models.Model):
     """
@@ -178,6 +179,16 @@ class Block(models.Model):
         return reverse("booking:block_list")
 
 
+@receiver(pre_delete, sender=Block)
+def block_delete_pre_delete(sender, instance, **kwargs):
+    bookings = Booking.objects.filter(block=instance)
+    for booking in bookings:
+        if booking.event.cost > 0:
+            booking.paid = False
+            booking.payment_confirmed = False
+            booking.block=None
+
+
 class Booking(models.Model):
     STATUS_CHOICES = (
         ('OPEN', 'Cancelled'),
@@ -211,10 +222,15 @@ class Booking(models.Model):
             self.save()
 
     def space_confirmed(self):
-        return not self.status == 'CANCELLED' or \
-            self.event.advance_payment_required or \
-               (self.event.cost == 0 and self.status == 'OPEN') or \
-               self.payment_confirmed
+        # False if cancelled
+        # True if open and advance payment not required or cost = 0 or
+        # payment confirmed
+
+        if self.status == 'CANCELLED':
+            return False
+        return not self.event.advance_payment_required \
+               or self.event.cost == 0 \
+               or self.payment_confirmed
     space_confirmed.boolean = True
 
     class Meta:

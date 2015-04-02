@@ -427,3 +427,10 @@ a.disabled {
 .booking-btn {
     width: 120;
     }
+
+.message {
+    margin-top: 20;
+    margin-bottom: -10;
+    margin-left: 1;
+    margin-right: 1;
+}

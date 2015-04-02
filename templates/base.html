@@ -82,6 +82,14 @@
             </div>
         </div>
 
+    {% if messages %}
+        <div class="message alert alert-info">
+            {% for message in messages %}
+            <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% block body %}
         {% block content %}
             <div class="container-fluid">

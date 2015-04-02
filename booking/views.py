@@ -1,5 +1,6 @@
-from django.contrib import messages
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.db.models import Q
@@ -134,22 +135,11 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
         return context
 
 
-class BookingActionMixin(object):
-
-    @property
-    def success_msg(self):
-        return NotImplemented
-
-    def form_valid(self, form):
-        messages.info(self.request, self.success_msg, fail_silently=True)
-        return super(BookingActionMixin, self).form_valid(form)
-
-
-class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
+class BookingCreateView(LoginRequiredMixin, CreateView):
 
     model = Booking
     template_name = 'booking/create_booking.html'
-    success_msg = 'New booking confirmed!'
+    success_message = 'New booking created for {}, {}, {}'
     form_class = BookingCreateForm
 
     def dispatch(self, *args, **kwargs):
@@ -209,8 +199,10 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
 
         if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
-            active_block = [block for block in blocks
-                            if block.active_block()][0]
+            active_block = [
+                block for block in blocks if block.active_block()
+                and block.block_type.event_type == booking.event.event_type][0]
+
             booking.block = active_block
             booking.paid = True
             booking.payment_confirmed = True
@@ -220,6 +212,10 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
         if booking.block:
             blocks_used = booking.block.bookings_made()
             total_blocks = booking.block.block_type.size
+            if not booking.block.active_block():
+                messages.info(self.request,
+                             "You have just used the last block in your block "
+                             "booking. Go to 'Your Blocks' to add a new one.")
         else:
             blocks_used = None
             total_blocks = None
@@ -257,6 +253,13 @@ class BookingCreateView(LoginRequiredMixin, BookingActionMixin, CreateView):
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
+        messages.success(
+            self.request,
+            self.success_message.format(
+                booking.event.name,
+                booking.event.date.strftime('%A %d %B'),
+                booking.event.date.strftime('%I:%M %p'))
+        )
 
         return HttpResponseRedirect(booking.get_absolute_url())
 
@@ -266,12 +269,17 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     model = Block
     template_name = 'booking/add_block.html'
     form_class = BlockCreateForm
+    success_message = 'New block booking created: {}'
 
     def get(self, request, *args, **kwargs):
         # redirect if user already has active blocks for all blocktypes
         user_blocks = self.request.user.blocks.all()
-        user_block_event_types = [block.block_type.event_type for block in user_blocks]
-        self.blocktypes_available_to_book = BlockType.objects.exclude(event_type__in=user_block_event_types)
+        active_user_block_event_types = [block.block_type.event_type
+                                         for block in user_blocks
+                                         if block.active_block()]
+        self.blocktypes_available_to_book = BlockType.objects.exclude(
+            event_type__in=active_user_block_event_types
+        )
         if not self.blocktypes_available_to_book:
             return HttpResponseRedirect(reverse('booking:has_active_block'))
 
@@ -286,8 +294,11 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         block_type = form.cleaned_data['block_type']
         user_blocks = self.request.user.blocks.all()
-        user_block_event_types = [block.block_type.event_type for block in user_blocks]
-        if block_type.event_type in user_block_event_types:
+        active_user_block_event_types = [block.block_type.event_type
+                                         for block in user_blocks
+                                         if block.active_block()]
+
+        if block_type.event_type in active_user_block_event_types:
             return HttpResponseRedirect(reverse('booking:has_active_block'))
 
         block = form.save(commit=False)
@@ -319,7 +330,7 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
-
+        messages.success(self.request, self.success_message.format(block.block_type))
         return HttpResponseRedirect(block.get_absolute_url())
 
 
@@ -334,16 +345,15 @@ class BlockListView(LoginRequiredMixin, ListView):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
         user_blocks = self.request.user.blocks.all()
-        active_user_block = [block for block in user_blocks
+        active_user_blocks = [block for block in user_blocks
                              if block.active_block()]
-        if active_user_block:
+        if active_user_blocks:
             context['active_user_block'] = True
 
-        user_block_event_types = [block.block_type.event_type for block in user_blocks]
+        user_block_event_types = [block.block_type.event_type for block in active_user_blocks]
         blocktypes_available_to_book = BlockType.objects.exclude(event_type__in=user_block_event_types)
         if blocktypes_available_to_book:
             context['can_book_block'] = True
-
         return context
 
     def get_queryset(self):
@@ -355,7 +365,7 @@ class BlockListView(LoginRequiredMixin, ListView):
 class BlockUpdateView(LoginRequiredMixin, UpdateView):
     model = Block
     template_name = 'booking/update_block.html'
-
+    success_message = 'Block updated!'
     form_class = BookingUpdateForm
 
     def form_valid(self, form):
@@ -391,15 +401,14 @@ class BlockUpdateView(LoginRequiredMixin, UpdateView):
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
-
+        messages.success(self.request, self.success_message)
         return HttpResponseRedirect(reverse('booking:block_list'))
 
 
-class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
+class BookingUpdateView(LoginRequiredMixin, UpdateView):
     model = Booking
     template_name = 'booking/update_booking.html'
-    success_msg = 'Booking updated!'
-
+    success_message = 'Booking updated!'
     form_class = BookingUpdateForm
 
     def get_context_data(self, **kwargs):
@@ -465,14 +474,14 @@ class BookingUpdateView(LoginRequiredMixin, BookingActionMixin, UpdateView):
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
-
+        messages.success(self.request, self.success_message)
         return HttpResponseRedirect(booking.get_absolute_url())
 
 
-class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
+class BookingDeleteView(LoginRequiredMixin, DeleteView):
     model = Booking
     template_name = 'booking/delete_booking.html'
-    success_msg = 'Booking deleted!'
+    success_message = 'Booking cancelled for {}, {}, {}'
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -524,13 +533,21 @@ class BookingDeleteView(LoginRequiredMixin, BookingActionMixin, DeleteView):
         booking.status = 'CANCELLED'
         booking.payment_confirmed = False
         booking.save()
+
+        messages.success(
+            self.request,
+            self.success_message.format(
+                booking.event.name,
+                booking.event.date.strftime('%A %d %B'),
+                booking.event.date.strftime('%I:%M %p'))
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('booking:bookings')
 
 
-class BookingDetailView(LoginRequiredMixin, BookingActionMixin, DetailView):
+class BookingDetailView(LoginRequiredMixin, DetailView):
     model = Booking
     context_object_name = 'booking'
     template_name = 'booking/booking.html'

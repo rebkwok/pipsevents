@@ -82,8 +82,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     # allauth specific context processors
     "allauth.account.context_processors.account",
     "allauth.socialaccount.context_processors.socialaccount",
+    "django.contrib.messages.context_processors.messages"
 )
-
 
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
