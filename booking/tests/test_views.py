@@ -1,5 +1,5 @@
 from datetime import datetime
-from mock import patch
+from mock import Mock, patch
 from model_mommy import mommy
 
 from django.conf import settings
@@ -10,11 +10,12 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils.importlib import import_module
 from django.utils import timezone
 
+from booking.forms import BlockCreateForm
 from booking.models import Event, Booking, Block
 from booking.views import EventListView, EventDetailView, \
     LessonDetailView, BookingListView, BookingHistoryListView, \
     BookingDetailView, BookingCreateView, BookingDeleteView, \
-    BookingUpdateView, BlockCreateView, \
+    BookingUpdateView, BlockCreateView, BlockListView, \
     duplicate_booking, fully_booked, cancellation_period_past
 from booking.tests.helpers import set_up_fb
 
@@ -739,26 +740,75 @@ class BookingUpdateViewTests(TestCase):
         self.assertTrue(updated_booking.paid)
 
 
+def setup_view(view, request, *args, **kwargs):
+    """Mimic as_view() returned callable, but returns view instance.
+
+    args and kwargs are the same you would pass to ``reverse()``
+
+    """
+    view.request = request
+    view.args = args
+    view.kwargs = kwargs
+    return view
+
+
 class BlockCreateViewTests(TestCase):
     def setUp(self):
         set_up_fb()
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
 
-    def _get_response(self, user):
-        url = reverse('booking:add_block')
-        store = _create_session()
-        request = self.factory.get(url)
-        request.session = store
+    def _set_session(self, user, request):
+        request.session = _create_session()
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
+
+    def _post_response(self, user, form_data):
+        url = reverse('booking:add_block')
+        request = self.factory.post(url, form_data)
+        self._set_session(user, request)
         view = BlockCreateView.as_view()
         return view(request)
 
     def test_create_block(self):
-        pass
+        """
+        Test creating a block
+        """
+        block_type = mommy.make_recipe('booking.blocktype5')
+        form_data={'block_type': block_type}
+        resp = self._post_response(self.user, form_data)
+        self.assertEqual(resp.status_code, 200)
 
+
+class BlockListViewTests(TestCase):
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+
+    def _set_session(self, user, request):
+        request.session = _create_session()
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+    def _get_response(self, user):
+        url = reverse('booking:block_list')
+        request = self.factory.get(url)
+        self._set_session(user, request)
+        view = BlockListView.as_view()
+        return view(request)
+
+    def test_only_list_users_blocks(self):
+        users = mommy.make_recipe('booking.user', _quantity=4)
+        for user in users:
+            mommy.make_recipe('booking.block_5', user=user)
+        user = users[0]
+
+        resp = self._get_response(user)
+        resp.status_code = 200
+        self.assertEqual(Block.objects.all().count(), 4)
+        self.assertEqual(resp.context_data['blocks'].count(), 1)
 
 
 #TODO Block Create view
@@ -768,5 +818,3 @@ class BlockCreateViewTests(TestCase):
 # TODO Can user book against a block before block payment confirmed?  Maybe allow
 # TODO booking for 1 week after block start date, then prevent it if payment not
 # TODO received
-
-# TODO Test trying to book with a block for an event that is not a pole class

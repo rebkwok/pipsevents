@@ -270,25 +270,26 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     template_name = 'booking/add_block.html'
     form_class = BlockCreateForm
     success_message = 'New block booking created: {}'
-
-    def get(self, request, *args, **kwargs):
-        # redirect if user already has active blocks for all blocktypes
+    def _get_blocktypes_available_to_book(self):
         user_blocks = self.request.user.blocks.all()
         active_user_block_event_types = [block.block_type.event_type
                                          for block in user_blocks
                                          if block.active_block()]
-        self.blocktypes_available_to_book = BlockType.objects.exclude(
+        return BlockType.objects.exclude(
             event_type__in=active_user_block_event_types
         )
-        if not self.blocktypes_available_to_book:
+
+    def get(self, request, *args, **kwargs):
+        # redirect if user already has active blocks for all blocktypes
+        if not self._get_blocktypes_available_to_book():
             return HttpResponseRedirect(reverse('booking:has_active_block'))
 
         return super(BlockCreateView, self).get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(BlockCreateView, self).get_context_data(**kwargs)
-        context['form'].fields['block_type'].queryset = self.blocktypes_available_to_book
-        context['block_types'] = self.blocktypes_available_to_book
+        context['form'].fields['block_type'].queryset = self._get_blocktypes_available_to_book()
+        context['block_types'] = self._get_blocktypes_available_to_book()
         return context
 
     def form_valid(self, form):
