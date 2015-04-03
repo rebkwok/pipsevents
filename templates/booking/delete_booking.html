@@ -10,8 +10,7 @@
                 <h2 class="panel-title">Cancel Booking</h2>
             </div>
        <div class="panel-body">
-           {% if event.can_cancel %}
-                <h3>You are about to cancel your booking for {{ event.name }}!</h3>
+                <h3>You are about to cancel your booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}!</h3>
                 <h4>Are you sure?</h4>
                 {% if booked_with_block %}
                 <p>You used a block for this booking; your block will be updated automatically.</p>
@@ -27,10 +26,6 @@
                 <input class="btn btn-danger" type="submit" value="Confirm cancel" />
                 <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Back</div></a>
             </form>
-           {% else %}
-                <h3>Bookings cannot be cancelled for {{ event.name }} because the cancellation period has now passed.
-                    For further information please contact {{ event.contact_person }} at {{ event.contact_email }}. </h3>
-           {% endif %}
         </div>
         </div>
      </div>

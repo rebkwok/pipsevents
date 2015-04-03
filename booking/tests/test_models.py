@@ -195,23 +195,15 @@ class BookingTests(TestCase):
         self.assertTrue(booking.space_confirmed())
         self.assertTrue(booking.date_space_confirmed)
 
-    def test_updating_booking_with_existing_payment_confirmed_date(self):
+    def test_cancelled_booking_is_no_longer_confirmed(self):
         booking = mommy.make_recipe('booking.booking',
                                     event=self.event_with_cost)
         booking.confirm_space()
-        self.assertTrue(booking.date_space_confirmed)
+        self.assertTrue(booking.space_confirmed())
 
-        confirmed_date = booking.date_space_confirmed
-
-        booking.paid = True
+        booking.status = 'CANCELLED'
         booking.save()
-        self.assertEqual(booking.date_space_confirmed, confirmed_date)
-
-
-
-
-
-
+        self.assertFalse(booking.space_confirmed())
 
 
 class BlockTests(TestCase):

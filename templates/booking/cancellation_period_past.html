@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h2>Attempting to cancel booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h2>
+
+        <h4>Bookings cannot be cancelled for this event because the cancellation period has now passed.</h4>
+        <h4>For further information, please contact {{ event.contact_person }} at
+        <a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a>
+        </h4>
+
+</div>
+
+{% endblock content %}

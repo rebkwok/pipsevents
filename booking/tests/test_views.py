@@ -1,16 +1,21 @@
+from datetime import datetime
+from mock import patch
+from model_mommy import mommy
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils.importlib import import_module
-from mock import patch
-from model_mommy import mommy
+from django.utils import timezone
+
 from booking.models import Event, Booking, Block
 from booking.views import EventListView, EventDetailView, \
     LessonDetailView, BookingListView, BookingHistoryListView, \
-    BookingDetailView, BookingCreateView, BookingDeleteView, BookingUpdateView, \
-    duplicate_booking, fully_booked
+    BookingDetailView, BookingCreateView, BookingDeleteView, \
+    BookingUpdateView, BlockCreateView, \
+    duplicate_booking, fully_booked, cancellation_period_past
 from booking.tests.helpers import set_up_fb
 
 
@@ -293,6 +298,20 @@ class BookingListViewTests(TestCase):
         # event listing should still only show this user's future bookings
         self.assertEquals(resp.context_data['bookings'].count(), 3)
 
+    def test_cancelled_booking_not_showing_in_booking_list(self):
+        ev = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=ev,
+            status='CANCELLED'
+        )
+        # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
+        self.assertEquals(Booking.objects.all().count(), 5)
+        resp = self._get_response(self.user)
+
+        # event listing should still only show this user's future bookings,
+        # excluding the cancelled one
+        self.assertEquals(resp.context_data['bookings'].count(), 3)
+
 
 class BookingHistoryListViewTests(TestCase):
 
@@ -346,9 +365,26 @@ class BookingHistoryListViewTests(TestCase):
         self.assertEquals(Booking.objects.all().count(), 3)
         resp = self._get_response(self.user)
 
-        # event listing should still only show this user's future bookings
+        #  listing should still only show this user's past bookings
         self.assertEquals(resp.context_data['bookings'].count(), 1)
 
+    def test_cancelled_booking_shown_in_booking_history(self):
+        """
+        Test that cancelled bookings are listed in booking history
+        """
+        ev = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user,
+            event=ev,
+            status='CANCELLED'
+        )
+        # check there are now 3 bookings
+        self.assertEquals(Booking.objects.all().count(), 3)
+        resp = self._get_response(self.user)
+
+        # listing should show show all 3 bookings (1 past, 1 cancelled)
+        self.assertEquals(resp.context_data['bookings'].count(), 2)
 
 class BookingDetailViewTests(TestCase):
 
@@ -484,6 +520,24 @@ class BookingCreateViewTests(TestCase):
             )
         )
 
+    def test_cancelled_booking_can_be_rebooked(self):
+        """
+        Test can rebook a cancelled booking
+        """
+
+        event = mommy.make_recipe('booking.future_EV')
+        # book for event
+        resp = self._post_response(self.user, event)
+
+        booking = Booking.objects.get(user=self.user, event=event)
+        # cancel booking
+        booking.status = 'CANCELLED'
+
+        # try to book again
+        resp = self._get_response(self.user, event)
+        booking = Booking.objects.get(user=self.user, event=event)
+        self.assertEqual('OPEN', booking.status)
+
 
 class BookingErrorRedirectPagesTests(TestCase):
 
@@ -526,6 +580,23 @@ class BookingErrorRedirectPagesTests(TestCase):
         resp = fully_booked(request, event.slug)
         self.assertIn(event.name, str(resp.content))
 
+    def test_cannot_cancel_after_cancellation_period(self):
+        """
+        Get the cannot cancel page with the event context
+        """
+        event = mommy.make_recipe('booking.future_EV')
+        url = reverse(
+            'booking:cancellation_period_past',
+            kwargs={'event_slug': event.slug}
+        )
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = self.user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        resp = cancellation_period_past(request, event.slug)
+        self.assertIn(event.name, str(resp.content))
 
 class BookingDeleteViewTests(TestCase):
 
@@ -591,12 +662,50 @@ class BookingDeleteViewTests(TestCase):
         self.assertEqual([cancelled.id for cancelled in cancelled_bookings],
                          [booking.id])
 
-    #TODO test_cancelled_booking_is_no_longer_confirmed
-    #TODO test_cancelled_booking_shown_in_booking_history
-    #TODO test_cancelled_booking_not_showing_in_booking_list
-    #TODO test_cancelled_booking_sets_payment_confirmed_to_False
-    #TODO test_cancelled_booking_can_be_rebooked
-    #TODO test_cannot_cancel_after_cancellation_period
+    def test_cancelling_booking_sets_payment_confirmed_to_False(self):
+        event_with_cost = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe('booking.booking', user=self.user,
+                                    event=event_with_cost)
+        booking.confirm_space()
+        self.assertTrue(booking.payment_confirmed)
+        self._get_response(self.user, booking)
+
+        booking = Booking.objects.get(user=self.user,
+                                      event=event_with_cost)
+        self.assertEqual('CANCELLED', booking.status)
+        self.assertFalse(booking.payment_confirmed)
+
+    @patch("booking.views.timezone")
+    def test_cannot_cancel_after_cancellation_period(self, mock_tz):
+        """
+        Test trying to cancel after cancellation period
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            cancellation_period=48
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user
+        )
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = self.user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = BookingDeleteView.as_view()
+        resp = view(request, pk=booking.id)
+
+        cannot_cancel_url = reverse('booking:cancellation_period_past',
+                                kwargs={'event_slug': event.slug}
+        )
+        # test redirect to cannot cancel url
+        self.assertEqual(302, resp.status_code)
+        self.assertEqual(resp.url, cannot_cancel_url)
 
 
 class BookingUpdateViewTests(TestCase):
@@ -631,7 +740,26 @@ class BookingUpdateViewTests(TestCase):
 
 
 class BlockCreateViewTests(TestCase):
-    pass
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+
+    def _get_response(self, user):
+        url = reverse('booking:add_block')
+        store = _create_session()
+        request = self.factory.get(url)
+        request.session = store
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = BlockCreateView.as_view()
+        return view(request)
+
+    def test_create_block(self):
+        pass
+
+
 
 #TODO Block Create view
 # TODO Block tests (for forms/views?)
