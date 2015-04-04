@@ -114,7 +114,7 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 
 TEMPLATE_DIRS = (root('templates'),)
 
-ROOT_URLCONF = 'pipsevents.urls'
+# ROOT_URLCONF = 'urls'
 
 ABSOLUTE_URL_OVERRIDES = {
     'auth.user': lambda o: "/users/%s/" % o.username,
