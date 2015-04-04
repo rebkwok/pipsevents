@@ -53,7 +53,6 @@ INSTALLED_APPS = (
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
     'django_extensions',
-    'django_filters',
     'crispy_forms',
     'debug_toolbar',
     'accounts',
@@ -114,7 +113,7 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 
 TEMPLATE_DIRS = (root('templates'),)
 
-# ROOT_URLCONF = 'urls'
+ROOT_URLCONF = 'pipsevents.urls'
 
 ABSOLUTE_URL_OVERRIDES = {
     'auth.user': lambda o: "/users/%s/" % o.username,
