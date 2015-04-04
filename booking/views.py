@@ -1,5 +1,4 @@
-import django_filters
-from django_filters.views import FilterView
+from django import forms
 
 
 from django.conf import settings
@@ -23,14 +22,14 @@ from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 
 
-class EventFilter(django_filters.FilterSet):
+class EventFilter(forms.ModelForm):
     event_names = set([event.name for event in Event.objects.filter(
         Q(event_type__type='EV') & Q(date__gte=timezone.now())
     ).order_by('name')])
     NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
     NAME_CHOICES.insert(0, ('', 'All'))
 
-    name = django_filters.ChoiceFilter(choices=tuple(NAME_CHOICES))
+    name = forms.ChoiceField(choices=tuple(NAME_CHOICES))
 
     class Meta:
         model = Event
@@ -62,8 +61,8 @@ class EventListView(ListView):
             context['booked_events'] = booked_events
         context['type'] = 'events'
 
-        filter = EventFilter(self.request.GET, queryset=self.get_queryset(**kwargs))
-        context['filter'] = filter
+        form = EventFilter()
+        context['form'] = form
         return context
 
 
@@ -87,7 +86,7 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-class LessonFilter(django_filters.FilterSet):
+class LessonFilter(forms.ModelForm):
 
     event_names = set([event.name for event in Event.objects.filter(
         Q(event_type__type='CL') & Q(date__gte=timezone.now())
@@ -95,7 +94,7 @@ class LessonFilter(django_filters.FilterSet):
     NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
     NAME_CHOICES.insert(0, ('', 'All'))
 
-    name = django_filters.ChoiceFilter(choices=tuple(NAME_CHOICES))
+    name = forms.ChoiceField(choices=tuple(NAME_CHOICES))
 
     class Meta:
         model = Event
@@ -127,8 +126,8 @@ class LessonListView(FilterView):
             context['booked_events'] = booked_events
         context['type'] = 'lessons'
 
-        filter = LessonFilter(self.request.GET, queryset=self.get_queryset())
-        context['filter'] = filter
+        form = LessonFilter()
+        context['form'] = form
         return context
 
 
