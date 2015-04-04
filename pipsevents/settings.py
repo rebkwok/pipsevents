@@ -53,6 +53,7 @@ INSTALLED_APPS = (
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
     'django_extensions',
+    'django_filters',
     'crispy_forms',
     'debug_toolbar',
     'accounts',

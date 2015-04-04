@@ -6,7 +6,6 @@
     <div class="container-fluid row">
 
         <h1>Watermelon Studio {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h1>
-
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
@@ -23,6 +22,14 @@
                                 <th>Max spaces</th>
                                 <th>Spaces left</th>
                                 <th>Booked</th>
+                            </tr>
+                            <tr class="filter-row">
+                                <td class="filter-row" colspan=7>
+                                <form class="filter-row" action="" method="get">
+                                    <strong>Filter by {% if type == 'events' %}event name{% elif type == 'lessons' %}class type{% endif %}: {{ filter.form.name }}</strong>
+                                    <input class="btn btn-info table-btn" type="submit" value="Submit" />
+                                </form>
+                                </td>
                             </tr>
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
