@@ -35,6 +35,7 @@ class EventFilter(forms.ModelForm):
         model = Event
         fields = ['name']
 
+
 class EventListView(ListView):
     model = Event
     context_object_name = 'events'
@@ -100,6 +101,7 @@ class LessonFilter(forms.ModelForm):
     class Meta:
         model = Event
         fields = ['name']
+
 
 class LessonListView(ListView):
     model = Event
