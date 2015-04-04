@@ -1,7 +1,13 @@
+import django_filters
+from django_filters.views import FilterView
+
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ImproperlyConfigured
+
 from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -10,11 +16,25 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
+
 from braces.views import LoginRequiredMixin
 from booking.models import Event, Booking, Block, BlockType
 from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 
+
+class EventFilter(django_filters.FilterSet):
+    event_names = set([event.name for event in Event.objects.filter(
+        Q(event_type__type='EV') & Q(date__gte=timezone.now())
+    ).order_by('name')])
+    NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
+    NAME_CHOICES.insert(0, ('', 'All'))
+
+    name = django_filters.ChoiceFilter(choices=tuple(NAME_CHOICES))
+
+    class Meta:
+        model = Event
+        fields = ['name']
 
 class EventListView(ListView):
     model = Event
@@ -22,6 +42,11 @@ class EventListView(ListView):
     template_name = 'booking/events.html'
 
     def get_queryset(self):
+        name = self.request.GET.get('name')
+        if name:
+            return Event.objects.filter(
+                Q(event_type__type='EV') & Q(date__gte=timezone.now())
+                & Q(name=name)).order_by('date')
         return Event.objects.filter(
             (Q(event_type__type='EV') & Q(date__gte=timezone.now())
         )).order_by('date')
@@ -36,6 +61,9 @@ class EventListView(ListView):
                              if not booking.status == 'CANCELLED']
             context['booked_events'] = booked_events
         context['type'] = 'events'
+
+        filter = EventFilter(self.request.GET, queryset=self.get_queryset(**kwargs))
+        context['filter'] = filter
         return context
 
 
@@ -52,19 +80,38 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
-        context = super(EventDetailView, self).get_context_data(**kwargs)
+        context = super(EventDetailView, self).get_context_data()
         event = self.object
         return context_helpers.get_event_context(
             context, event, self.request.user
         )
 
 
-class LessonListView(ListView):
+class LessonFilter(django_filters.FilterSet):
+
+    event_names = set([event.name for event in Event.objects.filter(
+        Q(event_type__type='CL') & Q(date__gte=timezone.now())
+    ).order_by('name')])
+    NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
+    NAME_CHOICES.insert(0, ('', 'All'))
+
+    name = django_filters.ChoiceFilter(choices=tuple(NAME_CHOICES))
+
+    class Meta:
+        model = Event
+        fields = ['name']
+
+class LessonListView(FilterView):
     model = Event
     context_object_name = 'events'
     template_name = 'booking/events.html'
 
     def get_queryset(self):
+        name = self.request.GET.get('name')
+        if name:
+            return Event.objects.filter(
+                Q(event_type__type='CL') & Q(date__gte=timezone.now())
+                & Q(name=name)).order_by('date')
         return Event.objects.filter(
             (Q(event_type__type='CL') & Q(date__gte=timezone.now())
         )).order_by('date')
@@ -79,6 +126,9 @@ class LessonListView(ListView):
                              if not booking.status == 'CANCELLED']
             context['booked_events'] = booked_events
         context['type'] = 'lessons'
+
+        filter = LessonFilter(self.request.GET, queryset=self.get_queryset())
+        context['filter'] = filter
         return context
 
 
