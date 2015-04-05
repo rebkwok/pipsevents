@@ -22,18 +22,18 @@ from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 
 
-class EventFilter(forms.ModelForm):
+def get_event_names(type):
     event_names = set([event.name for event in Event.objects.filter(
-        Q(event_type__type='EV') & Q(date__gte=timezone.now())
+        Q(event_type__type=type) & Q(date__gte=timezone.now())
     ).order_by('name')])
     NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
     NAME_CHOICES.insert(0, ('', 'All'))
+    for choice in tuple(sorted(NAME_CHOICES)):
+        yield choice
 
-    name = forms.ChoiceField(choices=tuple(NAME_CHOICES))
 
-    class Meta:
-        model = Event
-        fields = ['name']
+class EventFilter(forms.Form):
+    name = forms.ChoiceField(choices=get_event_names('EV'))
 
 
 class EventListView(ListView):
@@ -88,19 +88,8 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-class LessonFilter(forms.ModelForm):
-
-    event_names = set([event.name for event in Event.objects.filter(
-        Q(event_type__type='CL') & Q(date__gte=timezone.now())
-    ).order_by('name')])
-    NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
-    NAME_CHOICES.insert(0, ('', 'All'))
-
-    name = forms.ChoiceField(choices=tuple(NAME_CHOICES))
-
-    class Meta:
-        model = Event
-        fields = ['name']
+class LessonFilter(forms.Form):
+    name = forms.ChoiceField(choices=get_event_names('CL'))
 
 
 class LessonListView(ListView):
