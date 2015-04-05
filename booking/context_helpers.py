@@ -80,7 +80,7 @@ def get_booking_context(context, booking):
     context['payment_text'] = payment_text
 
     # confirm payment button
-    if booking.event.cost > 0 and not booking.paid \
+    if booking.event.cost > 0 and not booking.payment_confirmed \
             and booking.event.payment_open:
         context['include_confirm_payment_button'] = True
 

@@ -21,7 +21,7 @@ from paypal.standard.forms import PayPalPaymentsForm
 from booking.models import Event, Booking, Block, BlockType
 from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
-
+from payments.models import create_invoice_id
 
 def get_event_names(event_type):
 
@@ -470,13 +470,14 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         # paypal
         paypal_dict = {
             "business": settings.PAYPAL_RECEIVER_EMAIL,
-            "amount": "10.00",
-            "item_name": "Watermeloon Class",
-            "invoice": "23",
+            "amount": self.object.event.cost,
+            "item_name": self.object.event,
+            "custom": self.object.id,
+            "invoice": str(create_invoice_id(self.request.user, self.object)),
             "currency_code": "GBP",
-            "notify_url": reverse('paypal-ipn'),
-            "return_url": reverse('payments:paypal_confirm'),
-            "cancel_return": reverse('payments:paypal_cancel'),
+            "notify_url": settings.PAYPAL_ROOT_URL + reverse('paypal-ipn'),
+            "return_url": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_confirm'),
+            "cancel_return": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_cancel'),
 
         }
         # Create the instance.

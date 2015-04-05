@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 
 
@@ -24,11 +25,11 @@ def view_that_asks_for_money(request):
     return render_to_response("payment.html", context)
 """
 
+@csrf_exempt
 def paypal_confirm_return(request):
+    return render(request, 'payments/confirmed_payment.html')
 
-    return render("Confirmed payment")
 
-
+@csrf_exempt
 def paypal_cancel_return(request):
-
-    return render("Cancelled payment")
+    return render(request, 'payments/cancelled_payment.html')
