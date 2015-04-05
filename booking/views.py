@@ -1,6 +1,4 @@
 from django import forms
-
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
@@ -17,6 +15,9 @@ from django.template.loader import get_template
 from django.template import Context
 
 from braces.views import LoginRequiredMixin
+
+from paypal.standard.forms import PayPalPaymentsForm
+
 from booking.models import Event, Booking, Block, BlockType
 from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
@@ -465,6 +466,23 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                              if block.active_block()]
         if active_user_block:
             context['active_user_block'] = True
+
+        # paypal
+        paypal_dict = {
+            "business": settings.PAYPAL_RECEIVER_EMAIL,
+            "amount": "10.00",
+            "item_name": "Watermeloon Class",
+            "invoice": "23",
+            "currency_code": "GBP",
+            "notify_url": reverse('paypal-ipn'),
+            "return_url": reverse('payments:paypal_confirm'),
+            "cancel_return": reverse('payments:paypal_cancel'),
+
+        }
+        # Create the instance.
+        paypal_form = PayPalPaymentsForm(initial=paypal_dict)
+        context = {"paypalform": paypal_form}
+
         return context
 
     def form_valid(self, form):

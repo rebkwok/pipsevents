@@ -60,6 +60,8 @@ INSTALLED_APPS = (
     'timetable',
     'datetimewidget',
     'ckeditor',
+    'paypal.standard.ipn',
+    'payments',
 )
 
 SITE_ID = 1
@@ -251,3 +253,7 @@ if DEBUG:
     EMAIL_HOST_PASSWORD = ''
     EMAIL_PORT = 1025
     EMAIL_USE_TLS = False
+
+# DJANGO-PAYPAL
+PAYPAL_RECEIVER_EMAIL = 'test-paypal@watermelon.com'
+PAYPAL_TEST = True
