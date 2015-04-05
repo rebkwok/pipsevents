@@ -640,7 +640,9 @@ class BookingDeleteViewTests(TestCase):
         """
         Test deleting a booking
         """
-        booking = mommy.make_recipe('booking.booking', user=self.user)
+        event = mommy.make_recipe('booking.future_EV')
+        booking = mommy.make_recipe('booking.booking', event=event,
+                                    user=self.user)
         self.assertEqual(Booking.objects.all().count(), 1)
         self._get_response(self.user, booking)
         # after cancelling, the booking is still there, but status has changed
@@ -652,9 +654,11 @@ class BookingDeleteViewTests(TestCase):
         """
         Test cancelling a booking when user has more than one
         """
-        mommy.make_recipe(
-            'booking.booking', user=self.user, _quantity=3
-        )
+        events = mommy.make_recipe('booking.future_EV', _quantity=3)
+
+        for event in events:
+            mommy.make_recipe('booking.booking', user=self.user, event=event)
+
         self.assertEqual(Booking.objects.all().count(), 3)
         booking = Booking.objects.all()[0]
         self._get_response(self.user, booking)
@@ -732,8 +736,9 @@ class BookingUpdateViewTests(TestCase):
         """
         Test updating a booking to paid (as confirmed by user)
         """
+        event = mommy.make_recipe('booking.future_EV', cost=10)
         booking = mommy.make_recipe(
-            'booking.booking', user=self.user, paid=False)
+            'booking.booking', user=self.user, event=event, paid=False)
         form_data = {'paid': True}
         resp = self._get_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)

@@ -27,11 +27,16 @@ class EventAdminTests(TestCase):
 
 class BookingAdminTests(TestCase):
 
+    def setUp(self):
+        self.user = mommy.make_recipe(
+            'booking.user', first_name="Test", last_name="User"
+        )
+
     def test_booking_date_list_filter(self):
         past_event = mommy.make_recipe('booking.past_event', name='past')
         future_event = mommy.make_recipe('booking.future_EV', name='future')
-        mommy.make_recipe('booking.booking', event=past_event)
-        mommy.make_recipe('booking.booking', event=future_event)
+        mommy.make_recipe('booking.booking', user=self.user, event=past_event)
+        mommy.make_recipe('booking.booking', user=self.user, event=future_event)
 
         filter = admin.BookingDateListFilter(
             None, {'event__date': 'past'}, Booking, admin.BookingAdmin
@@ -47,10 +52,10 @@ class BookingAdminTests(TestCase):
 
     def test_booking_admin_display(self):
         event = mommy.make_recipe('booking.future_EV', cost=6)
-        user = mommy.make_recipe(
-            'booking.user', first_name="Test", last_name="User"
+
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
         )
-        booking = mommy.make_recipe('booking.booking', user=user, event=event)
 
         booking_admin = admin.BookingAdmin(Booking, AdminSite())
         booking_query = booking_admin.get_queryset(None)[0]
@@ -68,14 +73,14 @@ class BookingAdminTests(TestCase):
         self.assertEqual(booking_admin.event_name(booking_query), event.name)
 
     def test_confirm_space(self):
+        users = mommy.make_recipe('booking.user', _quantity=10)
         ev = mommy.make_recipe('booking.future_EV', cost=5)
         ws = mommy.make_recipe('booking.future_WS', cost=5)
-        mommy.make_recipe(
-            'booking.booking', event=ev, _quantity=5
-        )
-        mommy.make_recipe(
-            'booking.booking', event=ws, _quantity=5
-        )
+        for user in users[:5]:
+            mommy.make_recipe('booking.booking', user=user, event=ev)
+        for user in users[5:]:
+            mommy.make_recipe('booking.booking', user=user, event=ws)
+
         self.assertEquals(len(Booking.objects.filter(paid=True)), 0)
         self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 0)
 
