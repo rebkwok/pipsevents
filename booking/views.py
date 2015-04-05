@@ -22,14 +22,17 @@ from booking.forms import BookingUpdateForm, BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 
 
-def get_event_names(type):
-    event_names = set([event.name for event in Event.objects.filter(
-        Q(event_type__type=type) & Q(date__gte=timezone.now())
-    ).order_by('name')])
-    NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
-    NAME_CHOICES.insert(0, ('', 'All'))
-    for choice in tuple(sorted(NAME_CHOICES)):
-        yield choice
+def get_event_names(event_type):
+
+    def callable():
+        event_names = set([event.name for event in Event.objects.filter(
+            Q(event_type__type=event_type) & Q(date__gte=timezone.now())
+        ).order_by('name')])
+        NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
+        NAME_CHOICES.insert(0, ('', 'All'))
+        return tuple(sorted(NAME_CHOICES))
+
+    return callable
 
 
 class EventFilter(forms.Form):
