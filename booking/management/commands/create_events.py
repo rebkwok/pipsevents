@@ -8,8 +8,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        ws, _ = EventType.objects.get_or_create(type='EV', subtype='Workshop')
-        ev, _ = EventType.objects.get_or_create(type='EV', subtype='Other event')
+        ws, _ = EventType.objects.get_or_create(event_type='EV', subtype='Workshop')
+        ev, _ = EventType.objects.get_or_create(event_type='EV', subtype='Other event')
 
         self.stdout.write("Creating events")
         now = timezone.now()

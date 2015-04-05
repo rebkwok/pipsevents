@@ -12,20 +12,20 @@ class Command(BaseCommand):
 
         self.stdout.write("Creating event types")
         pc, _ = EventType.objects.get_or_create(
-            type='CL',
+            event_type='CL',
             subtype = 'Pole level class'
         )
         cl, _ = EventType.objects.get_or_create(
-            type='CL',
+            event_type='CL',
             subtype = 'Other class'
         )
 
         ws = EventType.objects.get_or_create(
-            type='EV',
+            event_type='EV',
             subtype = 'Workshop'
         )
         ev = EventType.objects.get_or_create(
-            type='EV',
+            event_type='EV',
             subtype = 'Other event'
         )
 

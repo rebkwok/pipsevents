@@ -122,9 +122,9 @@ class EventTypeListFilter(admin.SimpleListFilter):
         # Compare the requested value
         # to decide how to filter the queryset.
         if self.value() == 'class':
-            return queryset.filter(event_type__type='CL')
+            return queryset.filter(event_type__event_type='CL')
         if self.value() == 'event':
-            return queryset.filter(event_type__type='EV')
+            return queryset.filter(event_type__event_type='EV')
 
 
 class EventForm(forms.ModelForm):

@@ -29,3 +29,4 @@
 
 - name: Start Mailcatcher
   shell: mailcatcher --ip 0.0.0.0
+  ignore_errors: yes

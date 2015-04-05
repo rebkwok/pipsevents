@@ -17,7 +17,7 @@ class EventType(models.Model):
         ('CL', 'Class'),
         ('EV', 'Event')
     )
-    type = models.CharField(max_length=2, choices=TYPE_CHOICE,
+    event_type = models.CharField(max_length=2, choices=TYPE_CHOICE,
                             help_text="This determines whether events of this"
                                       "type are listed on the 'Classes' or "
                                       "'Events' page")
@@ -29,14 +29,14 @@ class EventType(models.Model):
                                          "Block Type.")
 
     def __str__(self):
-        if self.type == 'CL':
-            type = "Class"
+        if self.event_type == 'CL':
+            event_type = "Class"
         else:
-            type="Event"
-        return '{} - {}'.format(type, self.subtype)
+            event_type="Event"
+        return '{} - {}'.format(event_type, self.subtype)
 
     class Meta:
-        unique_together = ('type', 'subtype')
+        unique_together = ('event_type', 'subtype')
 
 
 class Event(models.Model):

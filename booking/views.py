@@ -26,7 +26,7 @@ def get_event_names(event_type):
 
     def callable():
         event_names = set([event.name for event in Event.objects.filter(
-            Q(event_type__type=event_type) & Q(date__gte=timezone.now())
+            Q(event_type__event_type=event_type) & Q(date__gte=timezone.now())
         ).order_by('name')])
         NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
         NAME_CHOICES.insert(0, ('', 'All'))
@@ -48,10 +48,10 @@ class EventListView(ListView):
         name = self.request.GET.get('name')
         if name:
             return Event.objects.filter(
-                Q(event_type__type='EV') & Q(date__gte=timezone.now())
+                Q(event_type__event_type='EV') & Q(date__gte=timezone.now())
                 & Q(name=name)).order_by('date')
         return Event.objects.filter(
-            (Q(event_type__type='EV') & Q(date__gte=timezone.now())
+            (Q(event_type__event_type='EV') & Q(date__gte=timezone.now())
         )).order_by('date')
 
     def get_context_data(self, **kwargs):
@@ -78,7 +78,7 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(event_type__type='EV')
+        queryset = Event.objects.filter(event_type__event_type='EV')
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
@@ -104,10 +104,10 @@ class LessonListView(ListView):
         name = self.request.GET.get('name')
         if name:
             return Event.objects.filter(
-                Q(event_type__type='CL') & Q(date__gte=timezone.now())
+                Q(event_type__event_type='CL') & Q(date__gte=timezone.now())
                 & Q(name=name)).order_by('date')
         return Event.objects.filter(
-            (Q(event_type__type='CL') & Q(date__gte=timezone.now())
+            (Q(event_type__event_type='CL') & Q(date__gte=timezone.now())
         )).order_by('date')
 
     def get_context_data(self, **kwargs):
@@ -134,7 +134,7 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(event_type__type='CL')
+        queryset = Event.objects.filter(event_type__event_type='CL')
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 

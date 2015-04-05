@@ -13,28 +13,28 @@ class Command(BaseCommand):
         """
         self.stdout.write('Creating timetable sessions.')
 
-        pc, _ = EventType.objects.get_or_create(type='CL', subtype='Pole level class')
-        cl, _ = EventType.objects.get_or_create(type='CL', subtype='Other class')
+        pc, _ = EventType.objects.get_or_create(event_type='CL', subtype='Pole level class')
+        cl, _ = EventType.objects.get_or_create(event_type='CL', subtype='Other class')
 
         # Monday classes
         Session.objects.get_or_create(
             name="Pole Level 3",
             day=Session.MON,
-            type=pc,
+            event_type=pc,
             time=time(hour=17, minute=45),
         )
 
         Session.objects.get_or_create(
             name="Pole Level 1",
             day=Session.MON,
-            type=pc,
+            event_type=pc,
             time=time(hour=19, minute=0),
         )
 
         Session.objects.get_or_create(
             name="Pole practice",
             day=Session.MON,
-            type=cl,
+            event_type=cl,
             time=time(hour=20, minute=10),
         )
 
@@ -42,21 +42,21 @@ class Command(BaseCommand):
         Session.objects.get_or_create(
             name="Pole Level 2",
             day=Session.TUE,
-            type=pc,
+            event_type=pc,
             time=time(hour=17, minute=45),
         )
 
         Session.objects.get_or_create(
             name="Pole Level 4",
             day=Session.TUE,
-            type=pc,
+            event_type=pc,
             time=time(hour=19, minute=0),
         )
 
         Session.objects.get_or_create(
             name="Pole Level 1",
             day=Session.TUE,
-            type=pc,
+            event_type=pc,
             time=time(hour=20, minute=10),
         )
 
@@ -64,7 +64,7 @@ class Command(BaseCommand):
         Session.objects.get_or_create(
             name="Pole conditioning",
             day=Session.WED,
-            type=cl,
+            event_type=cl,
             time=time(hour=19, minute=0),
             max_participants=15,
             cost=3.50,
@@ -74,14 +74,14 @@ class Command(BaseCommand):
         Session.objects.get_or_create(
             name="Pole Mixed Levels",
             day=Session.THU,
-            type=pc,
+            event_type=pc,
             time=time(hour=11, minute=0),
         )
 
         Session.objects.get_or_create(
             name="Pole Level 2",
             day=Session.THU,
-            type=pc,
+            event_type=pc,
             time=time(hour=20, minute=10),
         )
 
@@ -89,21 +89,21 @@ class Command(BaseCommand):
         Session.objects.get_or_create(
             name="Pole Level 1",
             day=Session.FRI,
-            type=pc,
+            event_type=pc,
             time=time(hour=17, minute=45),
         )
 
         Session.objects.get_or_create(
             name="Pole Level 3",
             day=Session.FRI,
-            type=pc,
+            event_type=pc,
             time=time(hour=19, minute=0),
         )
 
         Session.objects.get_or_create(
             name="Pole practice",
             day=Session.FRI,
-            type=cl,
+            event_type=cl,
             time=time(hour=20, minute=10),
             max_participants=15,
             cost=3.50,

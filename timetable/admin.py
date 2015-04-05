@@ -18,7 +18,7 @@ class SessionForm(forms.ModelForm):
 class SessionAdmin(admin.ModelAdmin):
     list_display = ('day', 'time', 'name')
     ordering = ('day', 'time')
-    fields = ('name', 'day', 'time', 'type', 'description', 'location',
+    fields = ('name', 'day', 'time', 'event_type', 'description', 'location',
               'max_participants', 'contact_person', 'contact_email',
               'cost', 'payment_open')
     model = Session

@@ -1,7 +1,7 @@
 Django==1.8
 coverage==3.7.1
 dj-database-url==0.3.0
-django-allauth==0.19.0
+git+git://github.com/pennersr/django-allauth.git@af2f32a463e8adca82131c1b09ab6c634956b653
 django-braces==1.4.0
 django-crispy-forms==1.4.0
 django-datetime-widget==0.9.3

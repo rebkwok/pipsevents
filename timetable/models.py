@@ -22,7 +22,7 @@ class Session(models.Model):
     name=models.CharField(max_length=255)
     day = models.CharField(max_length=5, choices=DAY_CHOICES)
     time = models.TimeField()
-    type = models.ForeignKey(EventType, null=True)
+    event_type = models.ForeignKey(EventType, null=True)
     description = models.TextField(blank=True)
     location = models.CharField(max_length=255, default="Watermelon Studio")
     max_participants = models.PositiveIntegerField(

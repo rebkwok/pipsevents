@@ -22,10 +22,10 @@ user = Recipe(User,
 # events; use defaults apart from dates
 # override when using recipes, eg. mommy.make_recipe('future_event', cost=10)
 
-event_type_PC = Recipe(EventType, type="CL", subtype=seq("Pole level class"))
-event_type_WS = Recipe(EventType, type="EV", subtype=seq("Workshop"))
-event_type_OE = Recipe(EventType, type="EV", subtype=seq("Other event"))
-event_type_OC = Recipe(EventType, type="CL", subtype=seq("Other class"))
+event_type_PC = Recipe(EventType, event_type="CL", subtype=seq("Pole level class"))
+event_type_WS = Recipe(EventType, event_type="EV", subtype=seq("Workshop"))
+event_type_OE = Recipe(EventType, event_type="EV", subtype=seq("Other event"))
+event_type_OC = Recipe(EventType, event_type="CL", subtype=seq("Other class"))
 
 future_EV = Recipe(Event,
                       date=future,
@@ -76,4 +76,4 @@ past_booking = Recipe(Booking,
 fb_app = Recipe(SocialApp,
                 provider='facebook')
 
-mon_session = Recipe(Session, type=foreign_key(event_type_PC), day=Session.MON)
+mon_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.MON)

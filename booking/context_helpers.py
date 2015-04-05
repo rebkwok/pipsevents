@@ -7,7 +7,7 @@ from booking.models import Event
 
 def get_event_context(context, event, user):
 
-    if event.event_type.type == 'CL':
+    if event.event_type.event_type == 'CL':
         context['type'] = "lesson"
     else:
         context['type'] = "event"
@@ -59,7 +59,7 @@ def get_event_context(context, event, user):
 
 def get_booking_context(context, booking):
 
-    if booking.event.event_type.type == 'CL':
+    if booking.event.event_type.event_type == 'CL':
         context['type'] = "lesson"
     else:
         context['type'] = "event"
