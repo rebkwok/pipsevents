@@ -27,9 +27,16 @@ def view_that_asks_for_money(request):
 
 @csrf_exempt
 def paypal_confirm_return(request):
+    #TODO add link to your bookings
+    #TODO reference the event the booking was made for, state that payment is being
+    #TODO processed and will show as paid and confirmed once processed (should
+    #TODO happen within a few minutes
     return render(request, 'payments/confirmed_payment.html')
 
 
 @csrf_exempt
 def paypal_cancel_return(request):
+    # TODO delete PaypalTransaction? Or add cancelled flag?
+    #TODO reference the event the booking was made for
+
     return render(request, 'payments/cancelled_payment.html')

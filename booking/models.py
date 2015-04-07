@@ -208,7 +208,7 @@ class Booking(models.Model):
         help_text='Payment confirmed by admin/organiser'
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
-    block = models.ForeignKey(Block, related_name='bookings', null=True)
+    block = models.ForeignKey(Block, related_name='bookings', null=True, blank=True)
     date_space_confirmed = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'

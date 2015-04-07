@@ -1,27 +1,43 @@
 from django.db import models
-
+from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone
 from paypal.standard.models import ST_PP_COMPLETED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
-from booking.models import Booking
+from booking.models import Booking, Block
 
 
-class InvoiceId(models.Model):
+class PayPalTransactionError(Exception):
+    pass
+
+
+class PaypalBookingTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
     booking = models.ForeignKey(Booking, null=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     def __str__(self):
         return self.invoice_id
 
 
-def create_invoice_id(user, booking):
+class PaypalBlockTransaction(models.Model):
+    invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    block = models.ForeignKey(Block, null=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+
+    def __str__(self):
+        return self.invoice_id
+
+
+def create_booking_paypal_transaction(user, booking):
 
     id_string = "-".join([user.username] +
-                         booking.event.name.split() +
-                         booking.event.date.strftime("%d %b %y %H:%M"
-                                                     ).split() + ['inv#'])
+                         ["".join([word[0] for word in
+                                   booking.event.name.split()])] +
+                         [booking.event.date.strftime("%d%m%y%H%M")] + ['inv#'])
 
-    existing = InvoiceId.objects.filter(
+    existing = PaypalBookingTransaction.objects.filter(
         invoice_id__contains=id_string, booking=booking).order_by('-invoice_id')
 
     if existing:
@@ -29,32 +45,142 @@ def create_invoice_id(user, booking):
         counter = str(int(existing_counter) + 1).zfill(len(existing_counter))
     else:
         counter = '01'
-    return InvoiceId.objects.create(
+    return PaypalBookingTransaction.objects.create(
         invoice_id=id_string+counter, booking=booking
     )
 
 
+def create_block_paypal_transaction(user, block):
+
+    id_string = "-".join([user.username] +
+                         block.block_type.event_type.subtype.split() +
+                         [str(block.block_type.size)] +
+                         [block.start_date.strftime("%d%m%y%H%M")] + ['inv#'])
+
+    existing = PaypalBlockTransaction.objects.filter(
+        invoice_id__contains=id_string, block=block).order_by('-invoice_id')
+
+    if existing:
+        existing_counter = existing[0].invoice_id[-2:]
+        counter = str(int(existing_counter) + 1).zfill(len(existing_counter))
+    else:
+        counter = '01'
+    return PaypalBlockTransaction.objects.create(
+        invoice_id=id_string+counter, block=block
+    )
+
 def payment_received(sender, **kwargs):
     ipn_obj = sender
-    import ipdb; ipdb.set_trace()
+
     if ipn_obj.payment_status == ST_PP_COMPLETED:
-        # Undertake some action depending upon `ipn_obj`.
-        booking = Booking.objects.get(id=int(ipn_obj.custom))
-        booking.paid = True
-        booking.payment_confirmed = True
-        booking.date_payment_confirmed = True
-        booking.save()
+        # check if transaction_id already exists on a processed PT so we don't process twice
+        # check receiver email matches settings
+        # confirm item price is correct
+        checks = {}
+        custom = ipn_obj.custom.split()
+        obj_type = custom[0]
+        obj_id = int(custom[-1])
+        if obj_type == 'booking':
+            booking = Booking.objects.get(id=obj_id)
+            existing_trans = PaypalBookingTransaction.objects.filter(transaction_id=ipn_obj.txn_id)
+        elif obj_type == 'block':
+            block = Block.objects.get(id=obj_id)
+            existing_trans = PaypalBlockTransaction.objects.filter(transaction_id=ipn_obj.txn_id)
+        else:
+            raise PayPalTransactionError('unknown object type for payment')
+        try:
+            if existing_trans:
+                checks['trans_id'] = 'Transaction id already exists on a processed ' \
+                                     'PaypalTransaction.  This invoice has probably' \
+                                     'already been paid; please check.'
+            if ipn_obj.receiver_email != settings.PAYPAL_RECEIVER_EMAIL:
+                checks['receiver_email'] = 'Receiver email on transaction does not match ' \
+                                     'expected email {}.  This payment is ' \
+                                     'suspicious; please check and confirm it ' \
+                                     'manually.'
+            if ipn_obj.mc_gross != booking.event.cost:
+                checks['cost'] = 'Amount on transaction does not match event cost' \
+                                 'for the booking; please check'
+
+            if checks:
+                # TODO email studio
+                send_mail(
+                    'Problem with payment transaction for {} id {}'.format(obj_type, obj_id),
+                    '{}\n{}\n{}'.format(checks['trans_id'], checks['receiver_email'], checks['cost']),
+                    settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+                    fail_silently=False)
+            else:
+                if obj_type == 'booking':
+                    paypal_trans = PaypalBookingTransaction.objects.get(
+                        booking=booking, invoice_id=ipn_obj.invoice
+                    )
+                else:
+                    paypal_trans = PaypalBlockTransaction.objects.get(
+                        block=block, invoice_id=ipn_obj.invoice
+                    )
+                paypal_trans.transaction_id = ipn_obj.txn_id
+                paypal_trans.save()
+
+                if obj_type == 'booking':
+                    booking.paid = True
+                    booking.payment_confirmed = True
+                    booking.date_payment_confirmed = timezone.now()
+                    booking.save()
+                    send_mail(
+                    '[{}] Payment processed for booking id {}'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id),
+                    'User: {} {}\n'
+                    'Event/class: {}\n'
+                    'Invoice number: {}\n'
+                    'Paypal Transaction id: {}\n'.format(
+                        booking.user.first_name, booking.user.last_name,
+                        booking.event,
+                        paypal_trans.invoice_id,
+                        paypal_trans.transaction_id
+                    ),
+                    settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+                    fail_silently=False)
+
+                else:
+                    block.paid = True
+                    block.payment_confirmed = True
+                    block.save()
+                    send_mail(
+                    '[{}] Payment processed for block id {}'.format(
+                        block.id, settings.ACCOUNT_EMAIL_SUBJECT_PREFIX   ),
+                    'User: {} {}\n'
+                    'Block purchased: {}\n'
+                    'Invoice number: {}\n'
+                    'Paypal Transaction id: {}\n'.format(
+                        block.user.first_name, block.user.last_name,
+                        block.block_type,
+                        paypal_trans.invoice_id,
+                        paypal_trans.transaction_id
+                    ),
+                    settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+                    fail_silently=False)
+                # TODO send email to user
+                # send email to studio
+
+        except:
+            # if anything goes wrong, send a warning email
+            send_mail(
+                    'WARNING! There was some problem processing payment for '
+                    '{} id {}'.format(obj_type, obj_id),
+                    'Please check your booking and paypal records for invoice # {}, '
+                    'paypal transaction id {}'.format(ipn_obj.invoice, ipn_obj.txn_id),
+                    settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+                    fail_silently=False)
 
 def payment_not_received(sender, **kwargs):
     ipn_obj = sender
-    import ipdb; ipdb.set_trace()
-    if ipn_obj.payment_status == ST_PP_COMPLETED:
-        # Undertake some action depending upon `ipn_obj`.
-        booking = Booking.objects.get(id=int(ipn_obj.custom))
-        booking.paid = True
-        booking.payment_confirmed = True
-        booking.date_payment_confirmed = True
-        booking.save()
 
+    booking = Booking.objects.filter(id=int(ipn_obj.custom))
+    send_mail(
+            'WARNING! Invalid Payment Notification received from PayPal',
+            'PayPal sent an invalid transaction notification while '
+            'attempting to process payment for booking id {}'.format(booking.id),
+            settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+            fail_silently=False)
 valid_ipn_received.connect(payment_received)
 invalid_ipn_received.connect(payment_not_received)

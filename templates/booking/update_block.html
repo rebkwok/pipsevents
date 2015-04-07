@@ -19,8 +19,9 @@
                     <p>Please note that your block payment will be marked as pending
                     until the organiser has reviewed and confirmed it.</p>
                     <input class="btn btn-success" type="submit" value="Confirm payment made" />
-                    <a href="{% url 'booking:block_list' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
+                {% include 'payments/payment.html' %}
+               <a href="{% url 'booking:block_list' %}"><div class="btn btn-warning">Cancel</div></a>
             </div>
        </div>
     </div>
