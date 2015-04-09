@@ -3,7 +3,7 @@ from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDetailView, BookingDeleteView, LessonListView, LessonDetailView, \
-    BlockCreateView, BlockListView, BlockUpdateView
+    BlockCreateView, BlockListView
 
 
 urlpatterns = patterns('',
@@ -32,8 +32,6 @@ urlpatterns = patterns('',
     url(r'^classes/$', LessonListView.as_view(), name='lessons'),
     url(r'^blocks/$', BlockListView.as_view(), name='block_list'),
     url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
-    url(r'^blocks/update/(?P<pk>\d+)/$', BlockUpdateView.as_view(),
-        name='update_block'),
     url(r'^blocks/existing/$', 'booking.views.has_active_block',
         name='has_active_block'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),

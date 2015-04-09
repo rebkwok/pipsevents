@@ -129,7 +129,7 @@ class Block(models.Model):
     block_type = models.ForeignKey(BlockType)
     start_date = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(
-        verbose_name='Payment made (as confirmed by participant)',
+        verbose_name='Paid',
         default=False,
         help_text='Payment has been made by user'
     )
@@ -156,16 +156,13 @@ class Block(models.Model):
         AND
         the number of bookings on it is < size
         AND
-        it is <= one week since start_date OR payment is confirmed
+        payment is confirmed
         """
         expired = self.expiry_date < timezone.now()
         full = Booking.objects.filter(
             block__id=self.id).count() >= self.block_type.size
-        start_date_within_one_week = self.start_date >= timezone.now() \
-            - timedelta(days=7)
 
-        return (not expired and not full and
-                (start_date_within_one_week or self.payment_confirmed))
+        return not expired and not full and self.payment_confirmed
     active_block.boolean = True
 
     def bookings_made(self):

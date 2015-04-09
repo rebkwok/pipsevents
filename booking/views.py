@@ -427,67 +427,6 @@ class BlockListView(LoginRequiredMixin, ListView):
         ).order_by('-start_date')
 
 
-class BlockUpdateView(LoginRequiredMixin, UpdateView):
-    model = Block
-    template_name = 'booking/update_block.html'
-    success_message = 'Block updated!'
-    form_class = BookingUpdateForm
-
-    def get_context_data(self, **kwargs):
-        context = super(BlockUpdateView, self).get_context_data(**kwargs)
-
-        # paypal
-        invoice_id = create_block_paypal_transaction(
-            self.request.user, self.object
-        ).invoice_id
-        paypal_form = PayPalPaymentsForm(
-            initial=context_helpers.get_paypal_dict(
-                self.object.block_type.cost,
-                self.object.block_type,
-                invoice_id,
-                '{} {}'.format('block', self.object.id)
-            )
-        )
-        context["paypalform"] = paypal_form
-        return context
-
-    def form_valid(self, form):
-        block = form.save(commit=False)
-        block.user = self.request.user
-        block.paid = True
-        block.save()
-
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-        # send email to user
-        send_mail('{} Block booking updated'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
-                  get_template('booking/email/block_booked.txt').render(
-                      Context({
-                          'host': host,
-                          'block': block,
-                          'updated': True,
-                      })
-                  ),
-            settings.DEFAULT_FROM_EMAIL,
-            [block.user.email],
-            fail_silently=False)
-        # send email to studio
-        send_mail('{} {} has just confirmed payment for a block booking'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
-                  get_template('booking/email/to_studio_block_booked.txt').render(
-                      Context({
-                          'host': host,
-                          'block': block,
-                          'updated': True
-                    })
-                  ),
-            settings.DEFAULT_FROM_EMAIL,
-            [settings.DEFAULT_STUDIO_EMAIL],
-            fail_silently=False)
-        messages.success(self.request, self.success_message)
-        return HttpResponseRedirect(reverse('booking:block_list'))
-
-
 class BookingUpdateView(LoginRequiredMixin, UpdateView):
     model = Booking
     template_name = 'booking/update_booking.html'
