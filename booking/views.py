@@ -402,6 +402,23 @@ class BlockListView(LoginRequiredMixin, ListView):
         blocktypes_available_to_book = BlockType.objects.exclude(event_type__in=user_block_event_types)
         if blocktypes_available_to_book:
             context['can_book_block'] = True
+
+        blockformlist = []
+        for block in self.object_list:
+            invoice_id = create_block_paypal_transaction(
+                self.request.user, block).invoice_id
+            paypal_form = PayPalPaymentsForm(
+                initial=context_helpers.get_paypal_dict(
+                    block.block_type.cost,
+                    block.block_type,
+                    invoice_id,
+                    '{} {}'.format('block', block.id)
+                )
+            )
+            blockform = {'block': block, 'paypalform': paypal_form}
+            blockformlist.append(blockform)
+        context['blockformlist'] = blockformlist
+
         return context
 
     def get_queryset(self):
@@ -423,20 +440,14 @@ class BlockUpdateView(LoginRequiredMixin, UpdateView):
         invoice_id = create_block_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
-        paypal_dict = {
-            "business": settings.PAYPAL_RECEIVER_EMAIL,
-            "amount": self.object.block_type.cost,
-            "item_name": self.object.block_type,
-            "custom": '{} {}'.format('block', self.object.id),
-            "invoice": invoice_id,
-            "currency_code": "GBP",
-            "notify_url": settings.PAYPAL_ROOT_URL + reverse('paypal-ipn'),
-            "return_url": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_confirm'),
-            "cancel_return": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_cancel'),
-
-        }
-        # Create the instance.
-        paypal_form = PayPalPaymentsForm(initial=paypal_dict)
+        paypal_form = PayPalPaymentsForm(
+            initial=context_helpers.get_paypal_dict(
+                self.object.block_type.cost,
+                self.object.block_type,
+                invoice_id,
+                '{} {}'.format('block', self.object.id)
+            )
+        )
         context["paypalform"] = paypal_form
         return context
 
@@ -492,25 +503,23 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         if active_user_block:
             context['active_user_block'] = True
 
+        #TODO redirect in get() if already paid
+        #TODO cancelled may have paid=True but payment_confirmed=False;
         # paypal
         invoice_id = create_booking_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
-        paypal_dict = {
-            "business": settings.PAYPAL_RECEIVER_EMAIL,
-            "amount": self.object.event.cost,
-            "item_name": self.object.event,
-            "custom": '{} {}'.format('booking', self.object.id),
-            "invoice": invoice_id,
-            "currency_code": "GBP",
-            "notify_url": settings.PAYPAL_ROOT_URL + reverse('paypal-ipn'),
-            "return_url": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_confirm'),
-            "cancel_return": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_cancel'),
 
-        }
-        # Create the instance.
-        paypal_form = PayPalPaymentsForm(initial=paypal_dict)
+        paypal_form = PayPalPaymentsForm(
+            initial=context_helpers.get_paypal_dict(
+                self.object.event.cost,
+                self.object.event,
+                invoice_id,
+                '{} {}'.format('booking', self.object.id)
+            )
+        )
         context["paypalform"] = paypal_form
+
         return context
 
     def form_valid(self, form):
@@ -658,6 +667,22 @@ class BookingDetailView(LoginRequiredMixin, DetailView):
         # Call the base implementation first to get a context
         context = super(BookingDetailView, self).get_context_data(**kwargs)
         booking = self.object
+
+        # paypal
+        invoice_id = create_booking_paypal_transaction(
+            self.request.user, self.object
+        ).invoice_id
+
+        paypal_form = PayPalPaymentsForm(
+            initial=context_helpers.get_paypal_dict(
+                self.object.event.cost,
+                self.object.event,
+                invoice_id,
+                '{} {}'.format('booking', self.object.id)
+            )
+        )
+        context["paypalform"] = paypal_form
+
         return context_helpers.get_booking_context(context, booking)
 
 

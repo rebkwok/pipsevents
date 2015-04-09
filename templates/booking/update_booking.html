@@ -12,13 +12,9 @@
            <div class="panel-body">
                 {% if booking.event.cost != 0 %}
                 <form action="" method="post">{% csrf_token %}
-                    <h4>{{ form.paid.label}}</h4>
-                    <p>We currently cannot take payments directly online.  If you have paid via paypal or in person, please confirm by
-                        clicking the button below.  The organiser will receive a notification to review your booking.
+                    <p>Click below to be transferred to paypal to make your payment.
                     </p>
                     <span class="hide">{{ form.paid  }}</span>
-                    <p>Please note that your booking will be marked as pending
-                    until the organiser has reviewed and confirmed it.</p>
 
                     {% if booking.event.type == "PC" %}
                         {% if active_user_block %}
@@ -30,12 +26,12 @@
                             <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                         {% endif %}
                     {% endif %}
-                    <input class="btn btn-success" type="submit" value="Confirm payment made" />
+                    <input class="hide btn btn-success" type="submit" value="Confirm payment made" />
                 </form>
                {% include 'payments/payment.html' %}
                 <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Cancel</div></a>
                 {% else %}
-                    <h5>There is no cost associated with this event, nothing to update.</h5>
+                    <h5>There is no cost associated with this event.</h5>
                 {% endif %}
 
 

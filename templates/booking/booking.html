@@ -62,11 +62,10 @@
                     {% if not past %}
                         {% if booking.status == 'CANCELLED' %}
                         <a href="{% url 'booking:book_event' booking.event.slug %}"><div class="btn btn-success">Re-book</div></a>
-                        {% elif include_confirm_payment_button %}<p>We currently cannot take payments directly online.  If you have paid via paypal or in person, please click the button
-                            button below to confirm.  The organiser will receive a notification to review your booking.</p>
-                            <a href="{% url 'booking:update_booking' booking.pk %}"><div class="btn btn-success">Confirm payment made</div></a>
-                        {% else %}
-                            <a class="disabled" href="{% url 'booking:update_booking' booking.pk %}"><div class="disabled btn btn-success">Confirm payment made</div></a>
+                    {% elif include_confirm_payment_button %}
+                        {% include 'payments/payment.html' %}
+                    {% else %}
+                            <a class="disabled" href="{% url 'booking:update_booking' booking.pk %}"><div class="disabled btn btn-success">Buy now</div></a>
                         {% endif %}
 
                         {% if booking.event.can_cancel and booking.status == 'OPEN' %}

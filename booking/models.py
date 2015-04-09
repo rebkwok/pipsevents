@@ -52,7 +52,7 @@ class Event(models.Model):
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
-    advance_payment_required = models.BooleanField(default=False)
+    advance_payment_required = models.BooleanField(default=True)
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=False)
     payment_info = models.TextField(blank=True)
@@ -191,7 +191,7 @@ def block_delete_pre_delete(sender, instance, **kwargs):
 
 class Booking(models.Model):
     STATUS_CHOICES = (
-        ('OPEN', 'Cancelled'),
+        ('OPEN', 'Open'),
         ('CANCELLED', 'Cancelled')
     )
 
