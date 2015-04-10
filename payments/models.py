@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
-from paypal.standard.models import ST_PP_COMPLETED
+from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block
@@ -122,6 +122,8 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, purchase
 
 def payment_received(sender, **kwargs):
     ipn_obj = sender
+    if ipn_obj.payment_status == ST_PP_REFUNDED:
+        pass
 
     if ipn_obj.payment_status == ST_PP_COMPLETED:
         # check if transaction_id already exists on a processed PT so we don't process twice
@@ -173,7 +175,6 @@ def payment_received(sender, **kwargs):
                                                   booking.user, booking.event)
                 else:
                     block.paid = True
-                    block.payment_confirmed = True
                     block.save()
 
                     send_processed_payment_emails(obj_type, obj_id, paypal_trans,

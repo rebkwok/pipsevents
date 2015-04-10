@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h2>Confirm payment</h2>
+    <p>{{ booking.user.first_name }} {{ booking.user.last_name }}
+    ({{ booking.user.username }}) has booked for {{ booking.event }}</p>
+
+    <p>Tick/untick to change current payment status.  When both boxes are ticked,
+    the space on the class/event is confirmed.  When you click 'confirm', the
+    user will receive an email notifying them of the changes.</p>
+
+    <form action="" method="post">{% csrf_token %}
+        <p>{{ form.paid }} <strong>Paid</strong></p>
+        <p>{{ form.payment_confirmed }} <strong>Confirm payment has been received</strong></p>
+        <input class="btn btn-success" type="submit" value="Confirm" />
+    </form>
+
+</div>
+
+{% endblock content %}

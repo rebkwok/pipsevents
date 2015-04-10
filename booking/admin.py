@@ -360,7 +360,7 @@ class BlockFilter(admin.SimpleListFilter):
 
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'paid', 'payment_confirmed')
+    fields = ('user', 'block_type', 'paid')
     readonly_fields = ('block_size', 'formatted_start_date', 'formatted_cost',
                        'formatted_expiry_date')
     search_fields = ('user', 'active_block')

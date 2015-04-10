@@ -43,9 +43,9 @@
                     {% endif %}
                     </ul>
                     {% if booking.event.cost > 0 %}
-                        <p><strong>Payment made (as confirmed by participant): {% if booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
+                        <p><strong>Paid: {% if booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
                         {% else %}<span class="not-confirmed glyphicon glyphicon-remove"></span>{% endif %}</strong></p>
-                            <p><strong>Payment received (confirmed by organiser):
+                            <p><strong>Payment confirmed by organiser:
                                 {% if booking.payment_confirmed %}
                                     <span class="confirmed glyphicon glyphicon-ok"></span>
                                 {% elif booking.paid %}
@@ -62,7 +62,10 @@
                     {% if not past %}
                         {% if booking.status == 'CANCELLED' %}
                         <a href="{% url 'booking:book_event' booking.event.slug %}"><div class="btn btn-success">Re-book</div></a>
-                    {% elif include_confirm_payment_button %}
+                    {% elif include_payment_button %}
+                        {% if has_available_block %}
+                        <a href="{% url 'booking:update_booking' booking.pk %}"><div class="btn btn-success">Choose payment method and buy</div></a>
+                        {% endif %}
                         {% include 'payments/payment.html' %}
                     {% else %}
                             <a class="disabled" href="{% url 'booking:update_booking' booking.pk %}"><div class="disabled btn btn-success">Buy now</div></a>

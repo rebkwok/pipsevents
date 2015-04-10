@@ -82,12 +82,12 @@ def get_booking_context(context, booking):
     context['payment_text'] = payment_text
 
     # confirm payment button
-    if booking.event.cost > 0 and not booking.payment_confirmed \
+    if booking.event.cost > 0 and not booking.paid \
             and booking.event.payment_open:
-        context['include_confirm_payment_button'] = True
+        context['include_payment_button'] = True
 
     # delete button
-    context['can_cancel'] = booking.event.can_cancel()
+    context['can_cancel'] = (booking.event.can_cancel() and booking.status == 'OPEN')
 
     return context
 

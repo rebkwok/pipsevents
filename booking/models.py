@@ -133,10 +133,6 @@ class Block(models.Model):
         default=False,
         help_text='Payment has been made by user'
     )
-    payment_confirmed = models.BooleanField(
-        default=False,
-        help_text='Payment confirmed by admin/organiser'
-    )
 
     def __str__(self):
         return "{} -- block size {} -- start {}".format(self.user.username,
@@ -162,7 +158,7 @@ class Block(models.Model):
         full = Booking.objects.filter(
             block__id=self.id).count() >= self.block_type.size
 
-        return not expired and not full and self.payment_confirmed
+        return not expired and not full and self.paid
     active_block.boolean = True
 
     def bookings_made(self):
