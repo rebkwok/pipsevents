@@ -232,8 +232,8 @@ class BlockTests(TestCase):
         """
         #self.small_block has not expired, block isn't full, payment not confirmed
         self.assertFalse(self.small_block.active_block())
-        # set payment confirmed
-        self.small_block.payment_confirmed=True
+        # set paid
+        self.small_block.paid=True
         self.assertTrue(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
@@ -246,12 +246,12 @@ class BlockTests(TestCase):
         # self.large_block has not expired, block isn't full,
         # payment not confirmed
         self.assertFalse(self.large_block.active_block())
-        # set payment confirmed
-        self.large_block.payment_confirmed = True
+        # set paid
+        self.large_block.paid = True
         self.assertTrue(self.large_block.active_block())
 
-        # but self.small_block has expired, not active even if payment confirmed
-        self.small_block.payment_confirmed = True
+        # but self.small_block has expired, not active even if paid
+        self.small_block.paid = True
         self.assertFalse(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
@@ -262,9 +262,9 @@ class BlockTests(TestCase):
         """
 
         # Neither self.small_block or self.large_block have expired
-        # confirm payment on both
-        self.small_block.payment_confirmed = True
-        self.large_block.payment_confirmed = True
+        # both paid
+        self.small_block.paid = True
+        self.large_block.paid = True
         # no bookings against either, active_block = True
         self.assertEquals(Booking.objects.filter(
             block__id=self.small_block.id).count(), 0)

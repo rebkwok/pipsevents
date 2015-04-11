@@ -1,3 +1,4 @@
+import random
 from django.db import models
 from django.conf import settings
 from django.core.mail import send_mail
@@ -35,7 +36,6 @@ def create_booking_paypal_transaction(user, booking):
                          ["".join([word[0] for word in
                                    booking.event.name.split()])] +
                          [booking.event.date.strftime("%d%m%y%H%M")] + ['inv#'])
-
     existing = PaypalBookingTransaction.objects.filter(
         invoice_id__contains=id_string, booking=booking).order_by('-invoice_id')
 
@@ -46,10 +46,10 @@ def create_booking_paypal_transaction(user, booking):
         for transaction in existing:
             if not transaction.transaction_id:
                 return transaction
-        existing_counter = existing[0].invoice_id[-2:]
+        existing_counter = existing[0].invoice_id[-5:]
         counter = str(int(existing_counter) + 1).zfill(len(existing_counter))
     else:
-        counter = '01'
+        counter = '001'
     return PaypalBookingTransaction.objects.create(
         invoice_id=id_string+counter, booking=booking
     )

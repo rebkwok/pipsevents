@@ -403,8 +403,10 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super(BlockCreateView, self).get_context_data(**kwargs)
-        context['form'].fields['block_type'].queryset = self._get_blocktypes_available_to_book()
-        context['block_types'] = self._get_blocktypes_available_to_book()
+        context['form'].fields['block_type'].queryset = context_helpers.\
+            get_blocktypes_available_to_book(self.request.user)
+        context['block_types'] = context_helpers.\
+            get_blocktypes_available_to_book(self.request.user)
         return context
 
     def form_valid(self, form):

@@ -113,13 +113,16 @@ class EventDetailContextTests(TestCase):
         Test correct context returned for a past event
         """
         resp = self._get_response(self.user, self.past_event)
-
+        self.past_event.save()
         # user is not booked; include book button, payment text etc is still in
         # context; template handles the display
         self.assertFalse('booked' in resp.context_data.keys())
         self.assertTrue('past' in resp.context_data.keys())
-        self.assertEquals(resp.context_data['payment_text'],
-                          self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
+        self.assertEquals(
+            resp.context_data['payment_text'],
+            "Payments are open. {}".format(self.past_event.payment_info)
+        )
+
         resp.render()
         # check the content for the past text
         self.assertIn("This event is now past.", str(resp.content))
@@ -135,7 +138,9 @@ class EventDetailContextTests(TestCase):
             cost=10,
         )
 
-        #  payments not open yet (default)
+        #  payments closed
+        event.payment_open = False
+        event.save()
         resp = self._get_response(self.user, event)
         flags_not_expected = ['booked', 'past']
 
@@ -151,8 +156,10 @@ class EventDetailContextTests(TestCase):
         event.payment_open = True
         event.save()
         resp = self._get_response(self.user, event)
-        self.assertEquals(resp.context_data['payment_text'],
-                          event.payment_info)
+        self.assertEquals(
+            resp.context_data['payment_text'],
+            "Payments are open. {}".format(self.past_event.payment_info)
+        )
 
     def test_booking_not_open(self):
         event = mommy.make_recipe(
@@ -235,7 +242,7 @@ class BookingDetailContextTests(TestCase):
                                             "event.payment_info###",
         }
         self.CONTEXT_FLAGS = {
-            'include_confirm_payment_button': True,
+            'include_payment_button': True,
             'past': True
         }
 
@@ -257,7 +264,7 @@ class BookingDetailContextTests(TestCase):
         )
 
         resp = self._get_response(self.user, booking)
-        flags_not_expected = ['past', 'include_confirm_payment_button']
+        flags_not_expected = ['past', 'include_payment_button']
         self.assertEquals(resp.context_data['payment_text'],
                           self.CONTEXT_OPTIONS['payment_text_no_cost'])
         for key in flags_not_expected:
@@ -269,12 +276,15 @@ class BookingDetailContextTests(TestCase):
         Test correct context returned for a booking for a past event
         """
         past_event = mommy.make_recipe('booking.past_event')
+        past_event.payment_open = False
+        past_event.save()
         booking = mommy.make_recipe(
             'booking.booking', event=past_event, user=self.user
         )
         resp = self._get_response(self.user, booking)
 
-        # user is not booked; include confirm payment button, payment text etc is still in
+        # user is not booked; include confirm payment button,
+        # payment text etc is still in
         # context; template handles the display
         self.assertTrue('past' in resp.context_data.keys())
         self.assertEquals(resp.context_data['payment_text'],
@@ -288,21 +298,27 @@ class BookingDetailContextTests(TestCase):
         booking = mommy.make_recipe(
             'booking.booking', event=event, user=self.user
         )
-        #  payments not open yet (default)
+        #  payments open (default)
         resp = self._get_response(self.user, booking)
-        flags_not_expected = ['booked', 'include_confirm_payment_button']
+        flags_not_expected = ['booked']
         self.assertEquals(resp.context_data['payment_text'],
-                          self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
+                          "Payments are open. {}".format(event.payment_info)
+                          )
         for key in flags_not_expected:
             self.assertFalse(key in resp.context_data.keys(),
                              '{} should not be in context_data'.format(key))
 
-        # open payments
-        event.payment_open = True
+        # close payments
+        event.payment_open = False
         event.save()
         resp = self._get_response(self.user, booking)
         self.assertEquals(resp.context_data['payment_text'],
-            "Payments are open. {}".format(event.payment_info))
+            self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
+
+        flags_not_expected = ['booked', 'include_payment_button']
+        for key in flags_not_expected:
+            self.assertFalse(key in resp.context_data.keys(),
+                             '{} should not be in context_data'.format(key))
 
     def test_lesson_and_event_format(self):
         """

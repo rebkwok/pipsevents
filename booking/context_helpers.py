@@ -26,7 +26,7 @@ def get_event_context(context, event, user):
                            "information will be provided closer to the " \
                            "event date."
         else:
-            payment_text = event.payment_info
+            payment_text = "Payments are open. " + event.payment_info
     context['payment_text'] = payment_text
 
     # booked flag
@@ -75,8 +75,8 @@ def get_booking_context(context, booking):
         payment_text = "There is no cost associated with this event."
     else:
         if not booking.event.payment_open:
-            payment_text = "Payments are not yet open. Payment information will " \
-                           "be provided closer to the event date."
+            payment_text = "Payments are not yet open. Payment information " \
+                           "will be provided closer to the event date."
         else:
             payment_text = "Payments are open. " + booking.event.payment_info
     context['payment_text'] = payment_text
