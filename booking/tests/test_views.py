@@ -253,7 +253,14 @@ class BookingListViewTests(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
-        self.events = mommy.make_recipe('booking.future_EV', _quantity=3)
+        # name events explicitly to avoid invoice id conflicts in tests
+        # (should never happen in reality since the invoice id is built from
+        # (event name initials and datetime)
+        self.events = [
+            mommy.make_recipe('booking.future_EV',  name="First Event"),
+            mommy.make_recipe('booking.future_EV',  name="Scnd Event"),
+            mommy.make_recipe('booking.future_EV',  name="Third Event")
+        ]
         future_bookings = [mommy.make_recipe(
             'booking.booking', user=self.user,
             event=event) for event in self.events]
@@ -286,7 +293,7 @@ class BookingListViewTests(TestCase):
 
     def test_booking_list_by_user(self):
         """
-        Test that only booking for this user are listed
+        Test that only bookings for this user are listed
         """
         another_user = mommy.make_recipe('booking.user')
         mommy.make_recipe(
@@ -300,7 +307,10 @@ class BookingListViewTests(TestCase):
         self.assertEquals(resp.context_data['bookings'].count(), 3)
 
     def test_cancelled_booking_not_showing_in_booking_list(self):
-        ev = mommy.make_recipe('booking.future_EV')
+        """
+        Test that all future bookings for this user are listed
+        """
+        ev = mommy.make_recipe('booking.future_EV', name="future event")
         mommy.make_recipe(
             'booking.booking', user=self.user, event=ev,
             status='CANCELLED'
@@ -309,9 +319,9 @@ class BookingListViewTests(TestCase):
         self.assertEquals(Booking.objects.all().count(), 5)
         resp = self._get_response(self.user)
 
-        # event listing should still only show this user's future bookings,
-        # excluding the cancelled one
-        self.assertEquals(resp.context_data['bookings'].count(), 3)
+        # booking listing should show this user's future bookings,
+        # including the cancelled one
+        self.assertEquals(resp.context_data['bookings'].count(), 4)
 
 
 class BookingHistoryListViewTests(TestCase):

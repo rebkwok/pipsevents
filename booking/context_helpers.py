@@ -1,9 +1,11 @@
 """
 Helper functions to return context and reduce logic in templates
 """
-
+from django.conf import settings
 from django.utils import timezone
-from booking.models import Event
+from django.core.urlresolvers import reverse
+
+from booking.models import BlockType
 
 def get_event_context(context, event, user):
 
@@ -24,7 +26,7 @@ def get_event_context(context, event, user):
                            "information will be provided closer to the " \
                            "event date."
         else:
-            payment_text = event.payment_info
+            payment_text = "Payments are open. " + event.payment_info
     context['payment_text'] = payment_text
 
     # booked flag
@@ -73,8 +75,8 @@ def get_booking_context(context, booking):
         payment_text = "There is no cost associated with this event."
     else:
         if not booking.event.payment_open:
-            payment_text = "Payments are not yet open. Payment information will " \
-                           "be provided closer to the event date."
+            payment_text = "Payments are not yet open. Payment information " \
+                           "will be provided closer to the event date."
         else:
             payment_text = "Payments are open. " + booking.event.payment_info
     context['payment_text'] = payment_text
@@ -82,12 +84,40 @@ def get_booking_context(context, booking):
     # confirm payment button
     if booking.event.cost > 0 and not booking.paid \
             and booking.event.payment_open:
-        context['include_confirm_payment_button'] = True
+        context['include_payment_button'] = True
 
     # delete button
-    context['can_cancel'] = booking.event.can_cancel()
+    context['can_cancel'] = (booking.event.can_cancel() and booking.status == 'OPEN')
 
     return context
 
 
+def get_paypal_dict(cost, item_name, invoice_id, custom):
 
+    #TODO redirect in get() if already paid
+    #TODO cancelled may have paid=True but payment_confirmed=False;
+    paypal_dict = {
+        "business": settings.PAYPAL_RECEIVER_EMAIL,
+        "amount": cost,
+        "item_name": item_name,
+        "custom": custom,
+        "invoice": invoice_id,
+        "currency_code": "GBP",
+        "notify_url": settings.PAYPAL_ROOT_URL + reverse('paypal-ipn'),
+        "return_url": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_confirm'),
+        "cancel_return": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_cancel'),
+
+    }
+    return paypal_dict
+
+
+def get_blocktypes_available_to_book(user):
+    user_blocks = user.blocks.all()
+
+    available_block_event_types = [block.block_type.event_type
+                                   for block in user_blocks
+                                   if not block.expired
+                                   and not block.full]
+    return BlockType.objects.exclude(
+        event_type__in=available_block_event_types
+    )

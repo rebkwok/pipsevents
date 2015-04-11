@@ -12,7 +12,7 @@ from django.utils import timezone
 from django import forms
 from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
-from datetimewidget.widgets import DateTimeWidget
+from datetimewidget.widgets import DateTimeWidget, DateWidget
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, EventType
@@ -133,11 +133,21 @@ class EventForm(forms.ModelForm):
         'format': 'dd/mm/yyyy hh:ii',
         'autoclose': True,
     }
-    description = forms.CharField(widget=CKEditorWidget())
+    paymentdateoptions = {
+        'format': 'dd/mm/yyyy',
+        'autoclose': True,
+    }
+    description = forms.CharField(widget=CKEditorWidget(attrs={'class':'container-fluid'}))
 
     date = forms.DateTimeField(
         widget=DateTimeWidget(
             options=dateoptions,
+            bootstrap_version=3
+        )
+    )
+    payment_due_date = forms.DateTimeField(
+        widget=DateWidget(
+            options=paymentdateoptions,
             bootstrap_version=3
         )
     )
@@ -155,6 +165,7 @@ class EventForm(forms.ModelForm):
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location')
     list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
+    actions_on_top = True
     form = EventForm
 
     CANCELLATION_TEXT = ' '.join(['<p>Enter cancellation period in',
@@ -172,8 +183,7 @@ class EventAdmin(admin.ModelAdmin):
         }),
         ('Payment Information', {
            'fields':('cost', 'advance_payment_required', 'booking_open',
-                     'payment_open', 'payment_info', 'payment_link',
-                     'payment_due_date')
+                     'payment_open', 'payment_info',  'payment_due_date')
         }),
         ('Cancellation Period', {
             'fields':('cancellation_period',),
@@ -344,31 +354,41 @@ class BlockFilter(admin.SimpleListFilter):
     title = 'Block status'
 
     # Parameter for the filter that will be used in the URL query.
-    parameter_name = 'active'
+    parameter_name = 'status'
 
     def lookups(self, request, model_admin):
         return (
             ('active', 'Active blocks'),
-            ('inactive', 'Expired/inactive blocks')
+            ('inactive', 'Expired/Full blocks'),
+            ('unpaid', 'Unpaid blocks (not expired)')
         )
 
     def queryset(self, request, queryset):
+        active_ids = [obj.id for obj in queryset if obj.active_block()]
         if self.value() == 'active':
-            return [obj for obj in queryset if obj.active_block()]
+            return queryset.filter(id__in=active_ids)
         if self.value() == 'inactive':
-            return [obj for obj in queryset if not obj.active_block()]
-
+            return queryset.exclude(id__in=active_ids)
+        if self.value() == 'unpaid':
+            unpaid_ids = [obj.id for obj in queryset if not obj.full
+            and not obj.expired and not obj.paid]
+            return queryset.filter(id__in=unpaid_ids)
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'paid', 'payment_confirmed')
+    fields = ('user', 'block_type', 'paid')
     readonly_fields = ('block_size', 'formatted_start_date', 'formatted_cost',
                        'formatted_expiry_date')
-    search_fields = ('user', 'active_block')
-    list_display = ('user', 'block_size', 'active_block',
-                    'formatted_start_date', 'formatted_expiry_date')
-    list_filter = (BlockFilter,)
+    list_display = ('user', 'block_type', 'block_size', 'active_block',
+                    'get_full', 'paid', 'formatted_expiry_date')
+    list_filter = ('user', 'block_type__event_type', BlockFilter,)
 
     inlines = [BookingInLine, ]
+    actions_on_top = True
+
+    def get_full(self, obj):
+        return obj.full
+    get_full.short_description = 'Full'
+    get_full.boolean = True
 
     def block_size(self, obj):
         return obj.block_type.size
@@ -385,8 +405,22 @@ class BlockAdmin(admin.ModelAdmin):
     formatted_expiry_date.short_description = 'Expiry date'
 
 
+class BlockTypeAdmin(admin.ModelAdmin):
+    list_display = ('event_type', 'size', 'formatted_cost',
+                    'formatted_duration')
+    actions_on_top = True
+
+    def formatted_duration(self, obj):
+        return "{} months".format(obj.duration)
+    formatted_duration.short_description = "Duration"
+
+    def formatted_cost(self, obj):
+        return u"\u00A3{:.2f}".format(obj.cost)
+    formatted_cost.short_description = "Cost"
+
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
-admin.site.register(BlockType)
+admin.site.register(BlockType, BlockTypeAdmin)
 admin.site.register(EventType)

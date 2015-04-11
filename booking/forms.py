@@ -2,6 +2,8 @@ from datetime import date
 from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+
+
 from booking.models import Booking, Event, Block, BlockType
 from booking.widgets import DateSelectorWidget
 
@@ -69,3 +71,10 @@ class EmailUsersForm(forms.Form):
                                     required=True)
     cc = forms.BooleanField(label="Send a copy to this address", initial=True)
     message = forms.CharField(widget=forms.Textarea, required=True)
+
+
+class ConfirmPaymentForm(forms.ModelForm):
+
+    class Meta:
+        model = Booking
+        fields = ('paid', 'payment_confirmed')

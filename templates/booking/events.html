@@ -18,10 +18,12 @@
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
                                 <th>Location</th>
-                                <th>Cost</th>
-                                <th>Max spaces</th>
-                                <th>Spaces left</th>
-                                <th>Booked</th>
+                                <th class="table-center">Cost</th>
+                                <th class="table-center">Spaces</th>
+                                <th class="table-center">Spaces left</th>
+                                <th class="table-center">Booking open</th>
+                                <th class="table-center">Payment open</th>
+                                <th class="table-center">Booked</th>
                             </tr>
                             <tr class="filter-row">
                                 <td class="filter-row" colspan=7>
@@ -40,12 +42,20 @@
                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                                         {% endif %}</td>
                                     <td>{{ event.location }}</td>
-                                    <td>£{{ event.cost }}</td>
-                                    <td>{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
-                                    <td>{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
-                                    <td>{% if event in booked_events %}<span class="glyphicon glyphicon-ok"></span>
-                                        {% elif event.bookable and event not in booked_events %}
-                                        <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
+                                    <td class="table-center">£{{ event.cost }}</td>
+                                    <td class="table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
+                                    <td class="table-center">{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
+                                    <td class="table-center">{% if event.booking_open %}<span class="glyphicon glyphicon-ok"></span>{% else %}<span class="glyphicon glyphicon-remove"></span>{% endif %}</td>
+                                    <td class="table-center">{% if event.cost %}
+                                        {% if event.payment_open %}<span class="glyphicon glyphicon-ok"></span>{% else %}<span class="glyphicon glyphicon-remove"></span>{% endif %}
+                                        {% else %}N/A{% endif %}</td>
+                                    <td class="table-center">{% if event in booked_events %}<span class="glyphicon glyphicon-ok"></span>{% endif %}
+                                        {% if event not in booked_events %}
+                                            {% if event.bookable %}
+                                                <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
+                                            {% else %}
+                                                <div class="disabled btn btn-success table-btn">Book</div>
+                                            {% endif %}
                                         {% endif %}</td>
                                 </tr>
                             {% endfor %}

@@ -42,7 +42,7 @@ class EventType(models.Model):
 class Event(models.Model):
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, default="")
     date = models.DateTimeField()
     location = models.CharField(max_length=255, default="Watermelon Studio")
     max_participants = models.PositiveIntegerField(
@@ -52,15 +52,16 @@ class Event(models.Model):
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
-    advance_payment_required = models.BooleanField(default=False)
+    advance_payment_required = models.BooleanField(default=True)
     booking_open = models.BooleanField(default=True)
-    payment_open = models.BooleanField(default=False)
+    payment_open = models.BooleanField(default=True)
     payment_info = models.TextField(blank=True)
-    payment_link = models.URLField(
-        blank=True,
-        default="https://www.paypal.com/uk/webapps/mpp/send-money-online"
-    )
-    payment_due_date = models.DateTimeField(null=True, blank=True)
+    payment_due_date = models.DateTimeField(
+        null=True, blank=True,
+        help_text='If this date is set, make sure that it is earlier '
+                  'than the cancellation period.  Booking that are not paid '
+                  'will be automatically cancelled (a warning email will be '
+                  'sent to users first).')
     cancellation_period = models.PositiveIntegerField(
         default=24
     )
@@ -101,7 +102,15 @@ def event_pre_save(sender, instance, *args, **kwargs):
         instance.advance_payment_required = False
         instance.payment_open = False
         instance.payment_due_date = None
-        instance.payment_link = ""
+    if instance.payment_due_date:
+        # replace time with very end of day
+        # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
+        # back 1 sec
+        next_day = (instance.payment_due_date + timedelta(
+            days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        instance.payment_due_date = next_day - timedelta(seconds=1)
 
 
 class BlockType(models.Model):
@@ -129,20 +138,16 @@ class Block(models.Model):
     block_type = models.ForeignKey(BlockType)
     start_date = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(
-        verbose_name='Payment made (as confirmed by participant)',
+        verbose_name='Paid',
         default=False,
         help_text='Payment has been made by user'
     )
-    payment_confirmed = models.BooleanField(
-        default=False,
-        help_text='Payment confirmed by admin/organiser'
-    )
 
     def __str__(self):
-        return "{} -- block size {} -- start {}".format(self.user.username,
-                                                      self.block_type.size,
-                                                      self.start_date.strftime(
-                                                          '%d %b %Y, %H:%M')
+        return "{} -- block size {} -- start {}".format(
+            self.user.username,
+            self.block_type.size,
+            self.start_date.strftime('%d %b %Y, %H:%M')
         )
 
     @property
@@ -150,22 +155,24 @@ class Block(models.Model):
         return self.start_date + relativedelta(
             months=self.block_type.duration)
 
+    @property
+    def expired(self):
+        return self.expiry_date < timezone.now()
+
+    @property
+    def full(self):
+        return Booking.objects.filter(
+            block__id=self.id).count() >= self.block_type.size
+
     def active_block(self):
         """
         A block is active if its expiry date has not passed
         AND
         the number of bookings on it is < size
         AND
-        it is <= one week since start_date OR payment is confirmed
+        payment is confirmed
         """
-        expired = self.expiry_date < timezone.now()
-        full = Booking.objects.filter(
-            block__id=self.id).count() >= self.block_type.size
-        start_date_within_one_week = self.start_date >= timezone.now() \
-            - timedelta(days=7)
-
-        return (not expired and not full and
-                (start_date_within_one_week or self.payment_confirmed))
+        return not self.expired and not self.full and self.paid
     active_block.boolean = True
 
     def bookings_made(self):
@@ -191,7 +198,7 @@ def block_delete_pre_delete(sender, instance, **kwargs):
 
 class Booking(models.Model):
     STATUS_CHOICES = (
-        ('OPEN', 'Cancelled'),
+        ('OPEN', 'Open'),
         ('CANCELLED', 'Cancelled')
     )
 
@@ -208,7 +215,7 @@ class Booking(models.Model):
         help_text='Payment confirmed by admin/organiser'
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
-    block = models.ForeignKey(Block, related_name='bookings', null=True)
+    block = models.ForeignKey(Block, related_name='bookings', null=True, blank=True)
     date_space_confirmed = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'

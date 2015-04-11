@@ -402,8 +402,16 @@ a>.btn {
     color: green;
 }
 
-.inactive_block td {
+.expired_block td {
     color: #BDBDBD;
+}
+
+.expired td, .expired td a, .expired td .confirmed, .expired td .not-confirmed  {
+    color: #BDBDBD;
+}
+
+.not_paid_block td {
+    color: red;
 }
 
 td {
@@ -416,6 +424,18 @@ td {
     font-size: 90%;
     }
 
+.paypal-table-btn {
+    padding-top: 0;
+    padding-bottom: -10;
+    margin-top: 0;
+    margin-bottom: 0;
+    height: 85%;
+    }
+
+.paypal-btn-form {
+    padding-bottom: 0;
+    margin-bottom: 0
+}
 a.disabled {
     color: #D8F6CE;
     }
@@ -438,4 +458,38 @@ a.disabled {
 .filter-row {
     padding: 0;
     margin: 0;
+}
+
+input[type="checkbox"] {
+  font-size: 50px !important;
+}
+
+.account-menu {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    margin-top: 2 !important;
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.welcome-menu {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 2 !important;
+    margin-bottom: 0 !important;
+    color: green;
+}
+
+.table-center {
+    text-align: center;
+}
+
+.divider {
+  height: 1px;
+  width:100%;
+  display:block; /* for use on default inline elements like span */
+  margin: 9px 0;
+  overflow: hidden;
+  background-color: #e5e5e5;
 }

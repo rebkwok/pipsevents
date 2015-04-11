@@ -53,23 +53,13 @@ class EventTests(TestCase):
         """
         # if an event is created with 0 cost, the following fields are set to
         # False/None/""
-        # advance_payment_required, payment_open, payment_due_date, payment_link
-        # (these are the defaults for all except payment_link)
+        # advance_payment_required, payment_open, payment_due_date
 
-        # event with 0 cost; check payment_link is "" and not the default paypal
-        self.assertEquals(self.event.payment_link, "")
-
-        # event with cost, check payment link is default
         poleclass = mommy.make_recipe('booking.future_PC', cost=7)
-        self.assertEquals(
-            poleclass.payment_link,
-            "https://www.paypal.com/uk/webapps/mpp/send-money-online"
-        )
 
-        #change cost to 0, check payment_link is reset to ""
+        #change cost to 0
         poleclass.cost = 0
         poleclass.save()
-        self.assertEquals(poleclass.payment_link, "")
 
         # event with cost, check other fields are left as is
         workshop = mommy.make_recipe('booking.future_WS',
@@ -78,10 +68,7 @@ class EventTests(TestCase):
                                      payment_info="Pay me")
         self.assertEquals(workshop.payment_open, True)
         self.assertEquals(workshop.payment_info, "Pay me")
-        self.assertEquals(
-            workshop.payment_link,
-            "https://www.paypal.com/uk/webapps/mpp/send-money-online"
-        )
+
 
 class BookingTests(TestCase):
 
@@ -245,8 +232,8 @@ class BlockTests(TestCase):
         """
         #self.small_block has not expired, block isn't full, payment not confirmed
         self.assertFalse(self.small_block.active_block())
-        # set payment confirmed
-        self.small_block.payment_confirmed=True
+        # set paid
+        self.small_block.paid=True
         self.assertTrue(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
@@ -259,12 +246,12 @@ class BlockTests(TestCase):
         # self.large_block has not expired, block isn't full,
         # payment not confirmed
         self.assertFalse(self.large_block.active_block())
-        # set payment confirmed
-        self.large_block.payment_confirmed = True
+        # set paid
+        self.large_block.paid = True
         self.assertTrue(self.large_block.active_block())
 
-        # but self.small_block has expired, not active even if payment confirmed
-        self.small_block.payment_confirmed = True
+        # but self.small_block has expired, not active even if paid
+        self.small_block.paid = True
         self.assertFalse(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
@@ -275,9 +262,9 @@ class BlockTests(TestCase):
         """
 
         # Neither self.small_block or self.large_block have expired
-        # confirm payment on both
-        self.small_block.payment_confirmed = True
-        self.large_block.payment_confirmed = True
+        # both paid
+        self.small_block.paid = True
+        self.large_block.paid = True
         # no bookings against either, active_block = True
         self.assertEquals(Booking.objects.filter(
             block__id=self.small_block.id).count(), 0)

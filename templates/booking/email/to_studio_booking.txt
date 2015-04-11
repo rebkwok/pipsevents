@@ -1,5 +1,19 @@
 {{ booking.user.username }} booked for {{ event.name }} on {{ date }} at {{ time }}.
 
-Visit {{ host }}/admin/booking/booking/{{ booking.id }} to review.
-
 {% if booking.block %}{{ booking.user.username }} used an active block to book.{% endif %}
+{% if prev_cancelled_and_direct_paid %}{{ booking.user.username }} is
+rebooking a previously cancelled booking which is still marked as paid.
+Please review your PayPal account and confirm that this payment has not been
+ refunded yet.  {{ booking.user.username }}'s will remain as pending until
+ this is completed
+
+Transaction id: {{ transaction_id }}
+Invoice id: {{ invoice_id }}
+
+Click the link below to review and confirm that payment has been made for
+this booking.  This will mark {{ booking.user.username }}'s
+space as confirmed.
+{{ host }}/confirm-payment/{{ booking.id }}
+
+To review all details for this booking on the admin site,visit {{ host }}/admin/booking/booking/{{ booking.id }}.
+{% endif %}

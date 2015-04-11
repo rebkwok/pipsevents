@@ -60,6 +60,8 @@ INSTALLED_APPS = (
     'timetable',
     'datetimewidget',
     'ckeditor',
+    'paypal.standard.ipn',
+    'payments',
 )
 
 SITE_ID = 1
@@ -232,14 +234,14 @@ CKEDITOR_IMAGE_BACKEND = 'pillow'
 CKEDITOR_CONFIGS = {
     'default': {
         'toolbar': [
-		 ['Source', '-', 'Bold', 'Italic', 'Underline'],
-         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', 'Blockquote', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-         ['Image', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
-         ['Format', 'Font', 'FontSize'],
-         ['TextColor', 'BGColor']
+		 ['Source', '-', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
+         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
+          'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-',
+          'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
+         ['Format', 'Font', 'FontSize']
         ],
-        'height': 300,
-        'width': 500,
+        # 'height': 300,
+        'width': 350,
     },
 }
 
@@ -251,3 +253,9 @@ if DEBUG:
     EMAIL_HOST_PASSWORD = ''
     EMAIL_PORT = 1025
     EMAIL_USE_TLS = False
+
+# DJANGO-PAYPAL
+PAYPAL_RECEIVER_EMAIL = 'test-paypal@watermelon.com'
+PAYPAL_TEST = True
+
+PAYPAL_ROOT_URL = "http://pipsevents.ngrok.com"

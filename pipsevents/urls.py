@@ -9,6 +9,8 @@ urlpatterns = patterns('',
     url(r'^accounts/profile/', include('accounts.urls', namespace='profile')),
     (r'^accounts/', include('allauth.urls')),
     (r'^ckeditor/', include('ckeditor.urls')),
+    (r'^payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),
+    url(r'payments/', include('payments.urls', namespace='payments')),
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

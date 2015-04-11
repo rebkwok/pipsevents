@@ -68,7 +68,8 @@
                     <ul class="nav navbar-nav pull-right visible-sm visible-md">
                         {% if user.is_authenticated %}
                         <li class="dropdown">
-                          <a href="#" class="dropdown-toggle active-nav-login" data-toggle="dropdown" role="button" aria-expanded="false">Welcome {{ user }}!<span class="caret"></span></a>
+                            <div class="welcome-menu">Signed in as {{user}}</div>
+                          <a href="#" class="account-menu dropdown-toggle active-nav-login" data-toggle="dropdown" role="button" aria-expanded="false">Your account<span class="caret"></span></a>
                           <ul class="dropdown-menu" role="menu">
                             {% if user.is_staff%}
                             <li class="active-nav"><a href="{% url 'admin:index' %}" target="_blank">Admin</a></li>
@@ -81,7 +82,8 @@
                           </ul>
                         </li>
                         {% else %}
-                        <li class="active-nav-login"><a href="{% url 'account_login' %}">Sign In</a></li>
+                        <div class="welcome-menu">Not signed in</div>
+                        <li class="active-nav-login account-menu"><a class="account-menu" href="{% url 'account_login' %}">Sign In</a></li>
                         {% endif %}
                     </ul>
 
