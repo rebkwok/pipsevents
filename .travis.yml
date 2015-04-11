@@ -16,7 +16,7 @@ before_script:
   - python manage.py migrate
 
 script:
-  - coverage run --source=pipsevents,booking,timetable,accounts --omit=../*migrations*,../*tests*,../*wsgi*,../*__init__* manage.py test
+  - coverage run --source=pipsevents,booking,timetable,accounts,payments --omit=../*migrations*,../*tests*,../*wsgi*,../*__init__* manage.py test
 
 after_success:
   coveralls

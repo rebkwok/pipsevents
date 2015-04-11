@@ -5,7 +5,6 @@ from django.db.models.signals import pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-from django.template.defaultfilters import slugify
 from django_extensions.db.fields import AutoSlugField
 
 from datetime import timedelta
