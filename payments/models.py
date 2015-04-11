@@ -3,6 +3,8 @@ from django.db import models
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
+from django.db import IntegrityError
+
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
@@ -50,9 +52,20 @@ def create_booking_paypal_transaction(user, booking):
         counter = str(int(existing_counter) + 1).zfill(len(existing_counter))
     else:
         counter = '001'
-    return PaypalBookingTransaction.objects.create(
-        invoice_id=id_string+counter, booking=booking
-    )
+
+    try:
+        pbt = PaypalBookingTransaction.objects.create(
+            invoice_id=id_string+counter, booking=booking
+        )
+    except IntegrityError:
+        # in case we end up creating a duplicate invoice id for a different
+        # booking (the check for existing above checked for this exact
+        # combination of invoice id and booking
+        random_prefix = random.randrange(100,999)
+        pbt = PaypalBookingTransaction.objects.create(
+            invoice_id=id_string+random_prefix+counter, booking=booking
+        )
+    return pbt
 
 
 def create_block_paypal_transaction(user, block):
@@ -77,9 +90,20 @@ def create_block_paypal_transaction(user, block):
         counter = str(int(existing_counter) + 1).zfill(len(existing_counter))
     else:
         counter = '01'
-    return PaypalBlockTransaction.objects.create(
-        invoice_id=id_string+counter, block=block
-    )
+
+    try:
+        pbt = PaypalBlockTransaction.objects.create(
+            invoice_id=id_string+counter, block=block
+        )
+    except IntegrityError:
+        # in case we end up creating a duplicate invoice id for a different
+        # booking (the check for existing above checked for this exact
+        # combination of invoice id and booking
+        random_prefix = random.randrange(100,999)
+        pbt = PaypalBlockTransaction.objects.create(
+            invoice_id=id_string+random_prefix+counter, block=block
+        )
+    return pbt
 
 
 def build_checks_dict(ipn_obj, obj_type, existing_trans, cost):
