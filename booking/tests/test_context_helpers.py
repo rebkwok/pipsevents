@@ -209,8 +209,8 @@ class EventDetailContextTests(TestCase):
         """
         Test correct context returned for lessons and events
         """
-        event = mommy.make_recipe('booking.future_WS', cost=10)
-        lesson = mommy.make_recipe('booking.future_PC', cost=10)
+        event = mommy.make_recipe('booking.future_WS', name='Wshop', cost=10)
+        lesson = mommy.make_recipe('booking.future_PC', name='Lesson', cost=10)
 
         resp = self._get_response(self.user, event)
         self.assertEquals(resp.context_data['type'], 'event')

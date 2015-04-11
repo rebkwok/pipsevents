@@ -404,7 +404,7 @@ class BookingDetailViewTests(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
+        event = mommy.make_recipe('booking.future_EV', name="test fut event")
         self.booking = mommy.make_recipe(
             'booking.booking', user=self.user, event=event
         )

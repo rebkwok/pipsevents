@@ -41,7 +41,7 @@
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
                                 {% if bookingform.booking.space_confirmed %}
                                     <td class="table-center confirmed glyphicon glyphicon-ok"></td>
-                                    {% elif bookingform.booking.status == 'CANCELLED' % }
+                                    {% elif bookingform.booking.status == 'CANCELLED' %}
                                     <td class="table-center not-confirmed glyphicon glyphicon-remove"></td>
                                     {% else %}
                                     <td class="table-center not-confirmed"> Pending</td>

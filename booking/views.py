@@ -24,7 +24,7 @@ from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType
 from booking.forms import (
-    BookingUpdateForm, BookingCreateForm, BlockCreateForm, ConfirmPaymentForm)
+    BookingCreateForm, BlockCreateForm, ConfirmPaymentForm)
 import booking.context_helpers as context_helpers
 from payments.models import create_booking_paypal_transaction, \
     create_block_paypal_transaction
@@ -502,7 +502,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
     model = Booking
     template_name = 'booking/update_booking.html'
     success_message = 'Booking updated!'
-    form_class = BookingUpdateForm
+    fields = ['paid']
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from model_mommy import mommy
 
-from booking.forms import BookingCreateForm, BookingUpdateForm
+from booking.forms import BookingCreateForm
 
 
 class BookingCreateFormTests(TestCase):
@@ -15,10 +15,3 @@ class BookingCreateFormTests(TestCase):
         form = BookingCreateForm(data=form_data)
         self.assertEqual(form.is_valid(), True)
 
-
-class BookingUpdateFormTests(TestCase):
-
-    def test_update_form(self):
-        form_data = {'paid': True}
-        form = BookingUpdateForm(data=form_data)
-        self.assertEqual(form.is_valid(), True)

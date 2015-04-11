@@ -23,26 +23,13 @@ MONTH_CHOICES = {
             12: 'December',
         }
 
+
 class BookingCreateForm(forms.ModelForm):
 
     class Meta:
         model = Booking
         fields = ['event', ]
 
-class BookingUpdateForm(forms.ModelForm):
-
-    use_active_block = forms.BooleanField(
-        label="Use my block", help_text="Tick to use your active block booking",
-        required=False)
-
-    class Meta:
-        model = Booking
-        fields = ('paid', 'use_active_block')
-
-        labels = {'paid': _('Confirm your payment'),}
-        help_texts = {
-            'paid': _('Tick to confirm that you have made your payment.')
-        }
 
 class BlockCreateForm(forms.ModelForm):
 
