@@ -15,6 +15,9 @@
                         {% if blocktype_available %}
                             {% if active_user_block %}
                                 <p>You have an active block; would you like to use your block for this booking?</p>
+                            {% elif active_user_block_unpaid %}
+                                <p>You have an unpaid block.  If you would like to use your block,
+                                    click <a href="{% url 'booking:block_list' %}">here</a> to review and make your payment.</p>
                             {% else %}
                                 <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                             {% endif %}

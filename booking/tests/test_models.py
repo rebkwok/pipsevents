@@ -53,23 +53,13 @@ class EventTests(TestCase):
         """
         # if an event is created with 0 cost, the following fields are set to
         # False/None/""
-        # advance_payment_required, payment_open, payment_due_date, payment_link
-        # (these are the defaults for all except payment_link)
+        # advance_payment_required, payment_open, payment_due_date
 
-        # event with 0 cost; check payment_link is "" and not the default paypal
-        self.assertEquals(self.event.payment_link, "")
-
-        # event with cost, check payment link is default
         poleclass = mommy.make_recipe('booking.future_PC', cost=7)
-        self.assertEquals(
-            poleclass.payment_link,
-            "https://www.paypal.com/uk/webapps/mpp/send-money-online"
-        )
 
-        #change cost to 0, check payment_link is reset to ""
+        #change cost to 0
         poleclass.cost = 0
         poleclass.save()
-        self.assertEquals(poleclass.payment_link, "")
 
         # event with cost, check other fields are left as is
         workshop = mommy.make_recipe('booking.future_WS',
@@ -78,10 +68,7 @@ class EventTests(TestCase):
                                      payment_info="Pay me")
         self.assertEquals(workshop.payment_open, True)
         self.assertEquals(workshop.payment_info, "Pay me")
-        self.assertEquals(
-            workshop.payment_link,
-            "https://www.paypal.com/uk/webapps/mpp/send-money-online"
-        )
+
 
 class BookingTests(TestCase):
 

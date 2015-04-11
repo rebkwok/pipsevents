@@ -234,14 +234,14 @@ CKEDITOR_IMAGE_BACKEND = 'pillow'
 CKEDITOR_CONFIGS = {
     'default': {
         'toolbar': [
-		 ['Source', '-', 'Bold', 'Italic', 'Underline'],
-         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', 'Blockquote', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-         ['Image', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
-         ['Format', 'Font', 'FontSize'],
-         ['TextColor', 'BGColor']
+		 ['Source', '-', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
+         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
+          'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-',
+          'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
+         ['Format', 'Font', 'FontSize']
         ],
-        'height': 300,
-        'width': 500,
+        # 'height': 300,
+        'width': 350,
     },
 }
 

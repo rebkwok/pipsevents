@@ -266,6 +266,13 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         if active_user_block:
             context['active_user_block'] = True
 
+        active_user_block_unpaid = [block for block in user_blocks
+                             if block.block_type.event_type == self.event.event_type
+                             and not block.expired
+                             and not block.full
+                             and not block.paid]
+        if active_user_block_unpaid:
+            context['active_user_block_unpaid'] = True
         return context
 
     def form_valid(self, form):
@@ -361,7 +368,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         prev_cancelled_message = ''
         if previously_cancelled_and_direct_paid:
             prev_cancelled_message = '  You previously paid for this booking; ' \
-                                     'Your booking will remain as pending until' \
+                                     'your booking will remain as pending until' \
                                      ' the organiser has reviewed your payment ' \
                                      'status.'
 
@@ -384,20 +391,14 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     form_class = BlockCreateForm
     success_message = 'New block booking created: {}'
 
-    def _get_blocktypes_available_to_book(self):
-        user_blocks = self.request.user.blocks.all()
-        active_user_block_event_types = [block.block_type.event_type
-                                         for block in user_blocks
-                                         if block.active_block()]
-        return BlockType.objects.exclude(
-            event_type__in=active_user_block_event_types
-        )
+
 
     def get(self, request, *args, **kwargs):
-        # redirect if user already has active blocks for all blocktypes
-        if not self._get_blocktypes_available_to_book():
+        # redirect if user already has active (paid or unpaid) blocks for all
+        # blocktypes
+        if not context_helpers.get_blocktypes_available_to_book(
+                self.request.user):
             return HttpResponseRedirect(reverse('booking:has_active_block'))
-
         return super(BlockCreateView, self).get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -408,12 +409,9 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         block_type = form.cleaned_data['block_type']
-        user_blocks = self.request.user.blocks.all()
-        active_user_block_event_types = [block.block_type.event_type
-                                         for block in user_blocks
-                                         if block.active_block()]
-
-        if block_type.event_type in active_user_block_event_types:
+        types_available = context_helpers.get_blocktypes_available_to_book(
+            self.request.user)
+        if block_type.event_type in types_available:
             return HttpResponseRedirect(reverse('booking:has_active_block'))
 
         block = form.save(commit=False)
@@ -459,15 +457,10 @@ class BlockListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
-        user_blocks = self.request.user.blocks.all()
-        active_user_blocks = [block for block in user_blocks
-                             if block.active_block()]
-        if active_user_blocks:
-            context['active_user_block'] = True
 
-        user_block_event_types = [block.block_type.event_type for block in active_user_blocks]
-        blocktypes_available_to_book = BlockType.objects.exclude(event_type__in=user_block_event_types)
-        if blocktypes_available_to_book:
+        types_available_to_book = context_helpers.\
+            get_blocktypes_available_to_book(self.request.user)
+        if types_available_to_book:
             context['can_book_block'] = True
 
         blockformlist = []
@@ -743,8 +736,8 @@ class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
     model = Booking
     form_class = ConfirmPaymentForm
     template_name = 'booking/confirm_payment.html'
-    success_message = 'Change to payment status confirmed.  An email has been sent to user ' \
-                      '{} to confirm.'
+    success_message = 'Change to payment status confirmed.  An update email ' \
+                      'has been sent to user {}.'
 
     def get(self, request, *args, **kwargs):
         if not self.request.user.is_staff:

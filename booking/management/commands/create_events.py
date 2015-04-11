@@ -18,13 +18,13 @@ class Command(BaseCommand):
             name="Workshop",
             event_type=ws,
             description="Workshop with awesome unnamed instructor!\n"
-                        "Advance payment required, payment not open yet",
+                        "Booking and payment not open yet",
             date=now + timedelta(30),
             max_participants=20,
             cost=10,
+            booking_open=False,
             payment_open=False,
             advance_payment_required=True,
-            payment_info="Please pay by paypal to contact email.",
             payment_due_date=now + timedelta(27),
         )
 
@@ -37,7 +37,6 @@ class Command(BaseCommand):
             date=now + timedelta(20),
             cost=5,
             payment_open=True,
-            payment_info="Please pay by paypal to contact email.",
             payment_due_date=now + timedelta(15),
         )
 
@@ -47,22 +46,19 @@ class Command(BaseCommand):
             event_type=ev,
             description="Watermelon party",
             date=now + timedelta(10),
-            payment_link="",
         )
 
         # non-default contact
         Event.objects.get_or_create(
             name="Workshop 1",
             event_type=ws,
-            description="Workshop with another awesome unnamed instructor!\n"
-                        "Advance payment not required, payment open.",
+            description="Workshop with another awesome unnamed instructor!\n",
             date=now + timedelta(30),
             max_participants=20,
             cost=10,
             payment_open=True,
             contact_person="Someone else",
             contact_email="someone@else.com",
-            payment_info="Please pay by paypal to contact email.",
             payment_due_date=now + timedelta(30),
         )
 
@@ -70,13 +66,11 @@ class Command(BaseCommand):
         Event.objects.get_or_create(
             name="An old event",
             event_type=ev,
-            description="Event that happened in the past!\n"
-                        "Advance payment required, payment open left set to true.",
+            description="Event that happened in the past!\n",
             date=now - timedelta(30),
             advance_payment_required=True,
             max_participants=20,
             cost=10,
             payment_open=True,
-            payment_info="Please pay by paypal to contact email.",
             payment_due_date=now - timedelta(40),
         )

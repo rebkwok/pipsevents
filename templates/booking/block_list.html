@@ -9,11 +9,11 @@
     <div class="row>"
         <div class="col-sm-12">
             <div class="panel">
-                    <div {% if not active_user_block or can_book_block %}class="panel-heading"{% else %}class="hide"{% endif %}>
-                        <p>{% if not active_user_block %}
+                    <div {% if can_book_block %}class="panel-heading"{% else %}class="hide"{% endif %}>
+                        <p>{% if not can_book_block %}
                             You don't have any active blocks.
                             {% endif %}
-                            {% if not active_user_block or can_book_block %}
+                            {% if can_book_block %}
                             <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
                             {% endif %}
                         </p>
@@ -26,9 +26,9 @@
                             <th>Block Type</th>
                             <th>Start date</th>
                             <th>Expiry Date</th>
-                            <th>Block size</th>
-                            <th>Bookings made</th>
-                            <th>Paid</th>
+                            <th class="table-center" >Block size</th>
+                            <th class="table-center">Bookings made</th>
+                            <th class="table-center">Paid</th>
                             <th></th>
                         </tr>
                         {% for blockform in blockformlist %}
@@ -37,9 +37,9 @@
                                 <td>{{ blockform.block.block_type.event_type.subtype }}</td>
                                 <td>{{ blockform.block.start_date }}</td>
                                 <td>{{ blockform.block.expiry_date }}</td>
-                                <td>{{ blockform.block.block_type.size }}</td>
-                                <td>{{ blockform.block.bookings_made }}</td>
-                                <td>{% if blockform.block.paid %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
+                                <td class="table-center">{{ blockform.block.block_type.size }}</td>
+                                <td class="table-center">{{ blockform.block.bookings_made }}</td>
+                                <td class="table-center">{% if blockform.block.paid %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
                                     {% else %}
                                         {% if not blockform.block.paid %}
                                         {% include 'payments/blocklistpayment.html' %}

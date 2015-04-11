@@ -49,7 +49,9 @@ def create_classes(week='this', input_date=None):
             contact_person=session.contact_person,
             contact_email=session.contact_email,
             cost=session.cost,
-            payment_open=session.payment_open
+            payment_open=session.payment_open,
+            advance_payment_required=True,
+            booking_open=True
         )
         if created:
             created_classes.append(cl)

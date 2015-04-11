@@ -23,11 +23,10 @@
                             <th>Booking</th>
                             <th>Date</th>
                             <th>Status</th>
-                            <th>Cost</th>
-                            <th>Paid</th>
-                            <th>Place confirmed</th>
+                            <th class="table-center">Cost</th>
+                            <th class="table-center">Paid</th>
+                            <th class="table-center">Place confirmed</th>
                             {% if not history %}
-                            <th></th>
                             <th></th>
                             {% endif %}
                         </tr>
@@ -36,13 +35,18 @@
                                 <td><a href="{% url 'booking:booking_detail' bookingform.booking.pk %}">{{ bookingform.booking.event.name }}</a></td>
                                 <td>{{ bookingform.booking.event.date |  date:"D d F, g:i a" }}</td>
                                 <td>{{ bookingform.booking.status }}</td>
-                                <td>£{{ bookingform.booking.event.cost }}</td>
-                                <td align="center">{% if bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
+                                <td class="table-center">£{{ bookingform.booking.event.cost }}</td>
+                                <td class="table-center">{% if bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
                                     {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed glyphicon glyphicon-remove"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
-                                <td align="center">{% if bookingform.booking.space_confirmed %}<span class="confirmed glyphicon glyphicon-ok"></span>
-                                    {% else %}<span class="not-confirmed glyphicon glyphicon-remove"></span>{% endif %}
-                                </td>
+                                {% if bookingform.booking.space_confirmed %}
+                                    <td class="table-center confirmed glyphicon glyphicon-ok"></td>
+                                    {% elif bookingform.booking.status == 'CANCELLED' % }
+                                    <td class="table-center not-confirmed glyphicon glyphicon-remove"></td>
+                                    {% else %}
+                                    <td class="table-center not-confirmed"> Pending</td>
+                                {% endif %}
+
                                 {% if not history %}
                                     <td>
                                         {% if bookingform.booking.event.cost > 0 and not bookingform.booking.paid %}

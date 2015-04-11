@@ -32,9 +32,6 @@
                             {% if booking.event.payment_due_date %}
                                 <p>Payment due by {{ booking.event.payment_due_date }}</p>
                             {% endif %}
-                            {% if booking.event.payment_link %}
-                                <p><a href="{{ booking.event.payment_link }}" target="_blank">{{ booking.event.payment_link }}</a></a></p>
-                            {% endif %}
                         </li>
                         {% if booking.event.cancellation_period %}
                         <li class="list-group-item"><strong>Cancellation information</strong>

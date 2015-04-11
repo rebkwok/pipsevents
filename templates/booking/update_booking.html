@@ -3,16 +3,15 @@
 
 {% block content %}
 
-<div class="small-margin extra-top-margin container-fluid row">
-    <div class="col-sm-11">
+<div class="extra-top-margin container-fluid row">
        <div class="panel panel-success">
             <div class="panel-heading">
                 <h1 class="panel-title">Your booking for {{ booking.event.name }}</h1>
             </div>
            <div class="panel-body">
-                {% if booking.event.cost != 0 %}
-                <form action="" method="post">{% csrf_token %}
-                    <span class="hide">{{ form.paid  }}</span>
+            {% if booking.event.cost != 0 %}
+                   <form action="" method="post">{% csrf_token %}
+                        <span class="hide">{{ form.paid  }}</span>
                         {% if active_user_block %}
                             <h4>You have an active block</h4>
                             <p>Would you like to use your block for this booking?</p>
@@ -21,23 +20,23 @@
                         {% elif blocktype_available %}
                             <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                         {% endif %}
-                    <input class="hide btn btn-success" type="submit" value="Confirm payment made" />
-                </form>
+                        <input class="hide btn btn-success" type="submit" value="Confirm payment made" />
+                    </form>
+           </div>
+           <span class="divider"></span>
+           <div class="panel-body">
                <h4>Book as drop in</h4>
                <p>Click below to be transferred to paypal to make your payment.</p>
                {% include 'payments/payment.html' %}
-                <a href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Cancel</div></a>
+           </div>
                 {% else %}
-                    <h5>There is no cost associated with this event.</h5>
+           <div class="panel-body">
+               <h5>There is no cost associated with this event.</h5>
+           </div>
                 {% endif %}
-
-
-
-            </div>
+           <div class="panel-body">
+                <a class="pull-right" href="{% url 'booking:bookings' %}"><div class="btn btn-warning">Cancel</div></a>
+           </div>
        </div>
     </div>
-
-
-</div>
-
 {% endblock content %}

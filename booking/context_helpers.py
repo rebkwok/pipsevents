@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from booking.models import Event
+from booking.models import BlockType
 
 def get_event_context(context, event, user):
 
@@ -109,3 +109,15 @@ def get_paypal_dict(cost, item_name, invoice_id, custom):
 
     }
     return paypal_dict
+
+
+def get_blocktypes_available_to_book(user):
+    user_blocks = user.blocks.all()
+
+    available_block_event_types = [block.block_type.event_type
+                                   for block in user_blocks
+                                   if not block.expired
+                                   and not block.full]
+    return BlockType.objects.exclude(
+        event_type__in=available_block_event_types
+    )
