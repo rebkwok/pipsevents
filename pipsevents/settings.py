@@ -12,6 +12,7 @@ import environ
 import os
 
 root = environ.Path(__file__) - 2 # two folders back (/a/b/ - 3 = /)
+#remove reading .env for heroku
 environ.Env.read_env(root('pipsevents/.env')) # reading .env file
 
 BASE_DIR = root()
