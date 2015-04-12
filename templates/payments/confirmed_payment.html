@@ -14,7 +14,7 @@
     {% endif %}
 
     <p>You should receive an email shortly from {{ sender_email }}
-    confirming when your payment has been successfully processed. If you
+    confirming that your payment has been successfully processed. If you
     have not received it within a few hours, please check
     your spam folder and contact
     <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
@@ -22,9 +22,9 @@
 
     <p>
     {% if obj_type == 'block' %}
-        View your <a href="{% url 'booking:block_list' %}">block</a>s.
+        View your <a href="{% url 'booking:block_list' %}">blocks</a>.
     {% elif obj_type == 'bookin' %}
-        View your <a href="{% url 'booking:bookings' %}">bookings</a>s.
+        View your <a href="{% url 'booking:bookings' %}">bookings</a>.
     {% endif %}
     </p>
 
