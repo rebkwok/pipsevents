@@ -257,6 +257,3 @@ if DEBUG:
 # DJANGO-PAYPAL
 PAYPAL_RECEIVER_EMAIL = 'test-paypal@watermelon.com'
 PAYPAL_TEST = True
-
-PAYPAL_ROOT_URL = "http://pipsevents.ngrok.com"
-PAYPAL_ROOT_URL = "http://test-watermelon-booking.herokuapp.com"

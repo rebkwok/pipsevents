@@ -19,7 +19,7 @@
             </div>
                 <div class="panel-body">
                     {% if booking.status == 'CANCELLED' %}<p class="not-confirmed"><strong>This booking is cancelled.</strong></p>{% endif %}
-                    <p>{{ booking.event.description }}</p>
+                    <p>{{ booking.event.description | safe }}</p>
                     <ul class=list-group>
                         <li class="list-group-item"><strong>Location:</strong> {{ booking.event.location }}</li>
                         <li class="list-group-item"><strong>Date and time:</strong> {{ booking.event.date |  date:"D d F, g:i a" }}</li>
