@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from paypal.standard.forms import PayPalPaymentsForm
 
+from booking.models import Block, Booking
 
 """
 def view_that_asks_for_money(request):
@@ -27,16 +28,34 @@ def view_that_asks_for_money(request):
 
 @csrf_exempt
 def paypal_confirm_return(request):
-    #TODO add link to your bookings
-    #TODO reference the event the booking was made for, state that payment is being
-    #TODO processed and will show as paid and confirmed once processed (should
-    #TODO happen within a few minutes
-    return render(request, 'payments/confirmed_payment.html')
+    custom = request.POST['custom'].split()
+    obj_type = custom[0]
+    obj_id = int(custom[-1])
+
+    if obj_type == "booking":
+        obj = Booking.objects.get(id=obj_id)
+    elif obj_type == "block":
+        obj = Block.objects.get(id=obj_id)
+    else:
+        obj = 'unknown'
+
+    # Possible payment statuses:
+    # Canceled_, Reversal, Completed, Denied, Expired, Failed, Pending,
+    # Processed, Refunded, Reversed, Voided
+    # NOTE: We can check for completed payment status for displaying
+    # information in the template, but we can only confirm payment if the
+    # booking or block has already been set to paid (i.e. the post from
+    # paypal has been successfully processed
+    context = {'obj': obj,
+               'obj_type': obj_type,
+               'payment_status': request.POST['payment_status'],
+               'purchase': request.POST['item_name'],
+               'sender_email': settings.DEFAULT_FROM_EMAIL,
+               'organiser_email': settings.DEFAULT_STUDIO_EMAIL
+               }
+    return render(request, 'payments/confirmed_payment.html', context)
 
 
 @csrf_exempt
 def paypal_cancel_return(request):
-    # TODO delete PaypalTransaction? Or add cancelled flag?
-    #TODO reference the event the booking was made for
-
     return render(request, 'payments/cancelled_payment.html')

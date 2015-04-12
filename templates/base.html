@@ -93,7 +93,12 @@
     {% if messages %}
         <div class="message alert alert-info">
             {% for message in messages %}
-            <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>
+            <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>
+                {% if 'safe' in message.tags %}
+                    {{ message|safe }}
+                {% else %}
+                    {{ message }}
+                {% endif %}</div>
             {% endfor %}
         </div>
     {% endif %}

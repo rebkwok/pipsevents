@@ -1,9 +1,7 @@
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.messages.views import SuccessMessageMixin
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ImproperlyConfigured
 
 from django.db import IntegrityError
 from django.db.models import Q
@@ -26,7 +24,7 @@ from booking.models import Event, Booking, Block, BlockType
 from booking.forms import (
     BookingCreateForm, BlockCreateForm, ConfirmPaymentForm)
 import booking.context_helpers as context_helpers
-from payments.models import create_booking_paypal_transaction, \
+from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
 
 
@@ -176,16 +174,23 @@ class BookingListView(LoginRequiredMixin, ListView):
 
         bookingformlist = []
         for booking in self.object_list:
-            invoice_id = create_booking_paypal_transaction(
-                self.request.user, booking).invoice_id
-            paypal_form = PayPalPaymentsListForm(
-                initial=context_helpers.get_paypal_dict(
-                    booking.event.cost,
-                    booking.event,
-                    invoice_id,
-                    '{} {}'.format('booking', booking.id)
+            if booking.event.event_type not in active_block_event_types \
+                    and booking.status == 'OPEN' and not booking.paid:
+                # ONLY DO THIS IF PAYPAL BUTTON NEEDED
+                invoice_id = create_booking_paypal_transaction(
+                    self.request.user, booking).invoice_id
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                paypal_form = PayPalPaymentsListForm(
+                    initial=context_helpers.get_paypal_dict(
+                        host,
+                        booking.event.cost,
+                        booking.event,
+                        invoice_id,
+                        '{} {}'.format('booking', booking.id)
+                    )
                 )
-            )
+            else:
+                paypal_form = None
             can_cancel = booking.event.can_cancel() and booking.status == 'OPEN'
             bookingform = {
                 'booking': booking,
@@ -195,6 +200,7 @@ class BookingListView(LoginRequiredMixin, ListView):
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
         return context
+
 
 class BookingHistoryListView(LoginRequiredMixin, ListView):
 
@@ -220,7 +226,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     model = Booking
     template_name = 'booking/create_booking.html'
-    success_message = 'New booking created for {}, {}, {}.  {}'
+    success_message = 'You have booked for {}, {}, {}.'
     form_class = BookingCreateForm
 
     def dispatch(self, *args, **kwargs):
@@ -315,10 +321,6 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         if booking.block:
             blocks_used = booking.block.bookings_made()
             total_blocks = booking.block.block_type.size
-            if not booking.block.active_block():
-                messages.info(self.request,
-                             "You have just used the last block in your block "
-                             "booking. Go to 'Your Blocks' to add a new one.")
         else:
             blocks_used = None
             total_blocks = None
@@ -365,21 +367,32 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
 
-        prev_cancelled_message = ''
-        if previously_cancelled_and_direct_paid:
-            prev_cancelled_message = '  You previously paid for this booking; ' \
-                                     'your booking will remain as pending until' \
-                                     ' the organiser has reviewed your payment ' \
-                                     'status.'
-
         messages.success(
             self.request,
             self.success_message.format(
                 booking.event.name,
                 booking.event.date.strftime('%A %d %B'),
-                booking.event.date.strftime('%I:%M %p'),
-                prev_cancelled_message)
+                booking.event.date.strftime('%I:%M %p')
+            )
         )
+
+        if previously_cancelled_and_direct_paid:
+            messages.info(
+                self.request, 'You previously paid for this booking; your '
+                              'booking will remain as pending until the '
+                              'organiser has reviewed your payment status.'
+            )
+        elif not booking.block:
+            messages.info(
+                self.request, 'Your place will be confirmed once your payment '
+                              'has been received.'
+            )
+        elif not booking.block.active_block():
+            messages.info(self.request,
+                          'You have just used the last space in your block.  '
+                          'Go to <a href="/blocks">'
+                          'Your Blocks</a> to buy a new one.',
+                          extra_tags='safe')
 
         return HttpResponseRedirect(booking.get_absolute_url())
 
@@ -467,16 +480,21 @@ class BlockListView(LoginRequiredMixin, ListView):
 
         blockformlist = []
         for block in self.object_list:
-            invoice_id = create_block_paypal_transaction(
-                self.request.user, block).invoice_id
-            paypal_form = PayPalPaymentsListForm(
-                initial=context_helpers.get_paypal_dict(
-                    block.block_type.cost,
-                    block.block_type,
-                    invoice_id,
-                    '{} {}'.format('block', block.id)
+            if not block.paid:
+                invoice_id = create_block_paypal_transaction(
+                    self.request.user, block).invoice_id
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                paypal_form = PayPalPaymentsListForm(
+                    initial=context_helpers.get_paypal_dict(
+                        host,
+                        block.block_type.cost,
+                        block.block_type,
+                        invoice_id,
+                        '{} {}'.format('block', block.id)
+                    )
                 )
-            )
+            else:
+                paypal_form = None
 
             expired = block.expiry_date < timezone.now()
             full = Booking.objects.filter(
@@ -528,9 +546,10 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         invoice_id = create_booking_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
-
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         paypal_form = PayPalPaymentsForm(
             initial=context_helpers.get_paypal_dict(
+                host,
                 self.object.event.cost,
                 self.object.event,
                 invoice_id,
@@ -697,9 +716,10 @@ class BookingDetailView(LoginRequiredMixin, DetailView):
         invoice_id = create_booking_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
-
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         paypal_form = PayPalPaymentsForm(
             initial=context_helpers.get_paypal_dict(
+                host,
                 self.object.event.cost,
                 self.object.event,
                 invoice_id,

@@ -8,17 +8,16 @@
     <h1>Your blocks</h1>
     <div class="row>"
         <div class="col-sm-12">
-            <div class="panel">
-                    <div {% if can_book_block %}class="panel-heading"{% else %}class="hide"{% endif %}>
-                        <p>{% if not can_book_block %}
-                            You don't have any active blocks.
-                            {% endif %}
-                            {% if can_book_block %}
-                            <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
-                            {% endif %}
-                        </p>
-                    </div>
-
+            <div {% if not can_book_block %}class="hide {% endif %}">
+                <p>{% if not can_book_block %}
+                    You don't have any active blocks.
+                    {% endif %}
+                    {% if can_book_block %}
+                    <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="panel panel-success">
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="success">
@@ -29,7 +28,6 @@
                             <th class="table-center" >Block size</th>
                             <th class="table-center">Bookings made</th>
                             <th class="table-center">Paid</th>
-                            <th></th>
                         </tr>
                         {% for blockform in blockformlist %}
                             <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>

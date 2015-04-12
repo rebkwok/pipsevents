@@ -4,7 +4,30 @@
 {% block content %}
 
 <div>
-    <h2>Your payment is being processed.</h2>
+    <h3>Payment for {{ purchase }}</h3>
+
+
+    {% if payment_status == 'Completed' and obj.paid %}
+        <p>Your payment has been successfully completed.</p>
+    {% elif payment_status == 'Completed' or payment_status == 'Pending' %}
+        <p>Your payment is being processed.
+    {% endif %}
+
+    <p>You should receive an email shortly from {{ sender_email }}
+    confirming when your payment has been successfully processed. If you
+    have not received it within a few hours, please check
+    your spam folder and contact
+    <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
+        {{ organiser_email }}</a> if necessary.</p>
+
+    <p>
+    {% if obj_type == 'block' %}
+        View your <a href="{% url 'booking:block_list' %}">block</a>s.
+    {% elif obj_type == 'bookin' %}
+        View your <a href="{% url 'booking:bookings' %}">bookings</a>s.
+    {% endif %}
+    </p>
+
 </div>
 
 {% endblock content %}

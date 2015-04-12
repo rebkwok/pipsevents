@@ -92,10 +92,8 @@ def get_booking_context(context, booking):
     return context
 
 
-def get_paypal_dict(cost, item_name, invoice_id, custom):
+def get_paypal_dict(host, cost, item_name, invoice_id, custom):
 
-    #TODO redirect in get() if already paid
-    #TODO cancelled may have paid=True but payment_confirmed=False;
     paypal_dict = {
         "business": settings.PAYPAL_RECEIVER_EMAIL,
         "amount": cost,
@@ -103,9 +101,9 @@ def get_paypal_dict(cost, item_name, invoice_id, custom):
         "custom": custom,
         "invoice": invoice_id,
         "currency_code": "GBP",
-        "notify_url": settings.PAYPAL_ROOT_URL + reverse('paypal-ipn'),
-        "return_url": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_confirm'),
-        "cancel_return": settings.PAYPAL_ROOT_URL + reverse('payments:paypal_cancel'),
+        "notify_url": host + reverse('paypal-ipn'),
+        "return_url": host + reverse('payments:paypal_confirm'),
+        "cancel_return": host + reverse('payments:paypal_cancel'),
 
     }
     return paypal_dict

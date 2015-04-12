@@ -1,3 +1,12 @@
-{{ booking.user.username }} has cancelled a booking for {{ event.name }} on {{ date }} at {{ time }}.
+There may have been a problem with this payment.
 
+The system flagged the transaction with the following reason:
+{{ ipn_obj.reason }}
 
+The {{ obj_type }} has not been marked as paid yet.
+
+Details on paypal transaction:
+Item purchased: {{ ipn_obj.item_name}}
+Transaction id: {{ ipn_obj.txn_id}}
+Invoice number: {{ ipn_obj.invoice }}
+Buyer: {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
