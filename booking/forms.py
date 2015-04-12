@@ -58,10 +58,3 @@ class EmailUsersForm(forms.Form):
                                     required=True)
     cc = forms.BooleanField(label="Send a copy to this address", initial=True)
     message = forms.CharField(widget=forms.Textarea, required=True)
-
-
-class ConfirmPaymentForm(forms.ModelForm):
-
-    class Meta:
-        model = Booking
-        fields = ('paid', 'payment_confirmed')

@@ -1,8 +1,0 @@
-Your booking has been cancelled for {{ event.name }} on {{ date }} at {{ time }}!
-
-Please note that payments are not automatically refunded; please contact the organiser:
-
-{{ booking.event.contact_person }} at {{ booking.event.contact_email }}
-
-
-{% include "account/email/do_not_reply.txt" %}

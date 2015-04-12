@@ -7,22 +7,21 @@ from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
+    ListView, DetailView, CreateView, UpdateView, DeleteView
 )
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
 
-from braces.views import LoginRequiredMixin, StaffuserRequiredMixin
+from braces.views import LoginRequiredMixin
 
 from paypal.standard.forms import PayPalPaymentsForm
 from payments.forms import PayPalPaymentsListForm
 from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType
-from booking.forms import (
-    BookingCreateForm, BlockCreateForm, ConfirmPaymentForm)
+from booking.forms import BookingCreateForm, BlockCreateForm
 import booking.context_helpers as context_helpers
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
@@ -650,7 +649,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
         # send email to user
         send_mail('{} Booking for {} cancelled'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                  get_template('booking/email/booking_deleted.txt').render(
+                  get_template('booking/email/booking_cancelled.txt').render(
                       Context({
                           'host': host,
                           'booking': booking,
@@ -665,7 +664,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
         # send email to studio
         send_mail('{} {} has just cancelled a booking for {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username, booking.event.name),
-                  get_template('booking/email/to_studio_booking_deleted.txt').render(
+                  get_template('booking/email/to_studio_booking_cancelled.txt').render(
                       Context({
                           'host': host,
                           'booking': booking,
@@ -756,7 +755,7 @@ def cancellation_period_past(request, event_slug):
 class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
     model = Booking
-    form_class = ConfirmPaymentForm
+    fields = ['paid', 'payment_confirmed']
     template_name = 'booking/confirm_payment.html'
     success_message = 'Change to payment status confirmed.  An update email ' \
                       'has been sent to user {}.'
@@ -768,7 +767,6 @@ class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
     def get_initial(self):
         return {
-            'paid': self.object.paid,
             'payment_confirmed': self.object.payment_confirmed
         }
 
@@ -776,8 +774,10 @@ class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
         if form.has_changed():
             booking = form.save(commit=False)
-            booking.paid = form.data.get('paid', False)
-            booking.payment_confirmed = form.data.get('payment_confirmed', False)
+            booking.paid = form.data.get( 'paid', False)
+            booking.payment_confirmed = form.data.get(
+                'payment_confirmed', False
+            )
             booking.date_payment_confirmed = timezone.now()
             booking.save()
 
@@ -786,8 +786,23 @@ class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
                 self.success_message.format(booking.user.username)
             )
 
-            #TODO send user email; list changes (form may be used to remove
-            #TODO paid as well as confirm
+            if booking.paid and booking.payment_confirmed:
+                payment_status = 'paid and confirmed'
+            elif booking.paid:
+                payment_status = "paid - payment not confirmed yet"
+            else:
+                payment_status = 'not paid'
+            send_mail(
+                '{} Payment status updated for {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
+                "Your payment status has been updated to {}.".format(
+                    payment_status
+                ),
+                settings.DEFAULT_FROM_EMAIL,
+                [self.request.user.email],
+                fail_silently=False)
+            # TODO implenent templates
+
         else:
             messages.info(
                 self.request, "Saved without making changes to the payment "
@@ -795,6 +810,53 @@ class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
                     self.object.user.username, self.object.event)
             )
 
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class ConfirmRefundView(LoginRequiredMixin, UpdateView):
+
+    model = Booking
+    template_name = 'booking/confirm_refunded.html'
+    success_message = "Refund of payment for {}'s booking for {} has been " \
+                      "confirmed.  An update email has been sent to {}."
+    fields = '__all__'
+
+    def get(self, request, *args, **kwargs):
+        if not self.request.user.is_staff:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+        return super(ConfirmRefundView, self).get(request, *args, **kwargs)
+
+    def form_valid(self, form):
+
+        if 'confirmed' in self.request.POST:
+            booking = form.save(commit=False)
+            booking.paid = False
+            booking.payment_confirmed = False
+            booking.date_payment_confirmed = None
+            booking.save()
+
+            messages.success(
+                self.request,
+                self.success_message.format(booking.user.username, booking.event,
+                                            booking.user.username)
+            )
+
+            send_mail(
+                '{} Payment refund confirmed for {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
+                "Your payment has been confirmed as refunded for {}".format(
+                    booking.event),
+                settings.DEFAULT_FROM_EMAIL,
+                [self.request.user.email],
+                fail_silently=False)
+            # TODO implenent templates
+
+        if 'cancelled' in self.request.POST:
+            messages.info(
+                self.request,
+                "Cancelled; no changes to payment status for {}'s booking "
+                "for {}".format(booking.user.username, booking.event)
+            )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):

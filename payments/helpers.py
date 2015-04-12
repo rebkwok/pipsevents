@@ -1,5 +1,4 @@
-from django.core.mail import send_mail
-from django.conf import settings
+import random
 from django.db import IntegrityError
 
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction

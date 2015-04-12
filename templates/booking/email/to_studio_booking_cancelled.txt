@@ -1,0 +1,10 @@
+{{ booking.user.username }} has cancelled a booking for {{ event.name }} on {{ date }} at {{ time }}.
+
+{% if booking.block %}
+The booking was made using a block and has been automatically updated.
+{% else %}
+The booking was paid for directly (i.e. not with a block).  Please review and refund this payment.
+
+When the payment has been refunded, use the link below to confirm and update the payment status on the booking site:
+{{ host }}/confirm-refunded/{{ booking.id }}
+{% endif %}

@@ -3,7 +3,7 @@ from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDetailView, BookingDeleteView, LessonListView, LessonDetailView, \
-    BlockCreateView, BlockListView, ConfirmPaymentView
+    BlockCreateView, BlockListView, ConfirmPaymentView, ConfirmRefundView
 
 
 urlpatterns = patterns('',
@@ -36,6 +36,8 @@ urlpatterns = patterns('',
         name='has_active_block'),
     url(r'^confirm-payment/(?P<pk>\d+)/$', ConfirmPaymentView.as_view(),
         name='confirm-payment'),
+    url(r'^confirm-refunded/(?P<pk>\d+)/$', ConfirmRefundView.as_view(),
+        name='confirm-refund'),
     url(r'^permission-denied/$', 'booking.views.permission_denied',
         name='permission_denied'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),

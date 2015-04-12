@@ -49,9 +49,10 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, purchase
             paypal_trans.invoice_id,
             paypal_trans.transaction_id
         ),
-        settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+        settings.DEFAULT_FROM_EMAIL,
+        [settings.DEFAULT_STUDIO_EMAIL, user.email],
         fail_silently=False)
-    # TODO send email to user
+    # TODO send separate email to user, implenent templates
 
 
 def payment_received(sender, **kwargs):
