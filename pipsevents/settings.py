@@ -199,17 +199,17 @@ SUIT_CONFIG = {
     'MENU': (
         {
             'label': 'Events and Classes',
-            'icon': 'icon-bookmark',
+            'icon': 'icon-star',
             'models': ('booking.event', 'booking.eventtype')
         },
         {
-            'label': 'Booked Blocks and BlockTypes',
-            'icon': 'icon-bookmark',
+            'label': 'Blocks',
+            'icon': 'icon-star-empty',
             'models': ('booking.block', 'booking.blocktype')
         },
         {
             'label': 'Bookings',
-            'icon': 'icon-bookmark',
+            'icon': 'icon-heart',
             'models': ('booking.booking',)
         },
         {
@@ -221,6 +221,24 @@ SUIT_CONFIG = {
             'label': 'Schedule classes from timetable',
             'url': '/admin/booking/event/create-timetabled-classes/',
             'icon': 'icon-calendar',
+        },
+        {
+            'app': 'auth',
+            'label': 'Users',
+            'models': ('user',),
+            'icon': 'icon-user',
+        },
+        {
+            'label': 'Payments',
+            'models': ('payments.paypalbookingtransaction',
+                       'payments.paypalblocktransaction',
+                       'ipn.paypalipn'),
+            'icon': 'icon-asterisk',
+        },
+        {
+            'label': 'Go to main booking site',
+            'url': '/',
+            'icon': 'icon-map-marker',
         },
     )
 }
