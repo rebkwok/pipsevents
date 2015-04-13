@@ -204,7 +204,6 @@ class Booking(models.Model):
     user = models.ForeignKey(User, related_name='bookings')
     event = models.ForeignKey(Event, related_name='bookings')
     paid = models.BooleanField(
-        verbose_name='Payment made (as confirmed by participant)',
         default=False,
         help_text='Payment has been made by user'
     )

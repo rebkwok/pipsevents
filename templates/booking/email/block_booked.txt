@@ -1,16 +1,9 @@
-{% if updated %}
-Thank you for confirming that you have made payment for your block booking.
-{% else %}
 Your block booking has been received!
 {% endif %}
 Block type: {{ block.block_type }}
 Block start date: {{ block.start_date }}
 Block expiry date: {{ block.expiry_date }}
-{% if updated %}
-The organiser has been informed of your payment; once payment has been received, your block booking will be marked as paid.
-{% else %}
-Please make payment for your block as soon as possible; if payment is not made within one week, your block will be cancelled.
-{% endif %}
+
 View your blocks: {{ host }}{% url 'booking:block_list' %}
 
 {% include "account/email/do_not_reply.txt" %}
