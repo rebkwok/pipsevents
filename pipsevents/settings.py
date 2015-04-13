@@ -12,8 +12,8 @@ import environ
 import os
 
 root = environ.Path(__file__) - 2 # two folders back (/a/b/ - 3 = /)
-#remove reading .env for heroku
-environ.Env.read_env(root('pipsevents/.env')) # reading .env file
+# remove reading .env for heroku
+environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
 
 BASE_DIR = root()
 #
@@ -143,6 +143,8 @@ if 'TRAVIS' in os.environ:
             'PORT':     '',
         }
     }
+    SECRET_KEY = 'dummy_secret'
+    EMAIL_HOST_PASSWORD = 'dummy_password'
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
