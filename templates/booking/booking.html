@@ -40,20 +40,20 @@
                     {% endif %}
                     </ul>
                     {% if booking.event.cost > 0 %}
-                        <p><strong>Paid: {% if booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
-                        {% else %}<span class="not-confirmed glyphicon glyphicon-remove"></span>{% endif %}</strong></p>
+                        <p><strong>Paid: {% if booking.paid %}<span class="fa fa-check"></span>
+                        {% else %}<span class="not-confirmed fa fa-close"></span>{% endif %}</strong></p>
                             <p><strong>Payment confirmed by organiser:
                                 {% if booking.payment_confirmed %}
-                                    <span class="confirmed glyphicon glyphicon-ok"></span>
+                                    <span class="confirmed fa fa-check"></span>
                                 {% elif booking.paid %}
                                     <span class="not-confirmed">Pending</span>
                                 {% else %}
-                                    <span class="not-confirmed glyphicon glyphicon-remove"></span>
+                                    <span class="not-confirmed fa fa-close"></span>
                                 {% endif %}
                             </strong></p>
                     {% endif %}
 
-                    <p><strong>Place confirmed: {% if booking.space_confirmed %}<span class="confirmed glyphicon glyphicon-ok"></span>{% else %}
+                    <p><strong>Place confirmed: {% if booking.space_confirmed %}<span class="confirmed fa fa-close"></span>{% else %}
                         <span class="not-confirmed">Pending</span>{% endif %}</strong></p>
 
                     {% if not past %}

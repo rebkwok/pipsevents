@@ -2,10 +2,11 @@ from datetime import date
 from django import forms
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
-from booking.models import Booking, Event, Block, BlockType
+from booking.models import Booking, Event, Block
 from booking.widgets import DateSelectorWidget
 
 
@@ -38,6 +39,7 @@ class BlockCreateForm(forms.ModelForm):
         model = Block
         fields = ('block_type', )
 
+
 class CreateClassesForm(forms.Form):
     date = forms.DateField(
         label="Date", widget=DateSelectorWidget, required=False, initial=date.today()
@@ -65,7 +67,7 @@ def get_event_names(event_type):
 
     def callable():
         event_names = set([event.name for event in Event.objects.filter(
-            Q(event_type__event_type=event_type) & Q(date__gte=timezone.now())
+            event_type__event_type=event_type, date__gte=timezone.now()
         ).order_by('name')])
         NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
         NAME_CHOICES.insert(0, ('', 'All'))

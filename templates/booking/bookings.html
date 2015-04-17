@@ -35,13 +35,13 @@
                                 <td><a href="{% url 'booking:booking_detail' bookingform.booking.pk %}">{{ bookingform.booking.event.name }}</a></td>
                                 <td>{{ bookingform.booking.status }}</td>
                                 <td class="table-center">£{{ bookingform.booking.event.cost }}</td>
-                                <td class="table-center">{% if bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed glyphicon glyphicon-ok"></span>
-                                    {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed glyphicon glyphicon-remove"></span>
+                                <td class="table-center">{% if bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>
+                                    {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed fa fa-close"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
                                 {% if bookingform.booking.space_confirmed %}
-                                    <td class="table-center confirmed glyphicon glyphicon-ok"></td>
+                                    <td class="table-center confirmed fa fa-check"></td>
                                     {% elif bookingform.booking.status == 'CANCELLED' %}
-                                    <td class="table-center not-confirmed glyphicon glyphicon-remove"></td>
+                                    <td class="table-center not-confirmed fa fa-close"></td>
                                     {% else %}
                                     <td class="table-center not-confirmed"> Pending</td>
                                 {% endif %}
