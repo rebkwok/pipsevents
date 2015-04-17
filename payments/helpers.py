@@ -34,7 +34,7 @@ def create_booking_paypal_transaction(user, booking):
         # combination of invoice id and booking
         random_prefix = random.randrange(100,999)
         pbt = PaypalBookingTransaction.objects.create(
-            invoice_id=id_string+random_prefix+counter, booking=booking
+            invoice_id=id_string+str(random_prefix)+counter, booking=booking
         )
     return pbt
 
@@ -72,6 +72,6 @@ def create_block_paypal_transaction(user, block):
         # combination of invoice id and booking
         random_prefix = random.randrange(100,999)
         pbt = PaypalBlockTransaction.objects.create(
-            invoice_id=id_string+random_prefix+counter, block=block
+            invoice_id=id_string+str(random_prefix)+counter, block=block
         )
     return pbt
