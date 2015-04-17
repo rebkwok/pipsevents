@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="container-fluid row">
+    <h2>Register for {{ event }}</h2>
+    <div class="row>"
+        <div class="col-sm-12">
+            <div class="panel panel-success">
+                <form action="" method="post">
+                {% csrf_token %}
+                {{ formset.management_form }}
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            <th>User</th>
+                            <th class="table-center">Paid</th>
+                            <th class="table-center">Payment confirmed</th>
+                            <th class="table-center">Available Block</th>
+                            <th class="table-center" >Status</th>
+                            <th class="table-center">Attended</th>
+                        </tr>
+
+                        {% for bookingform in formset %}
+                            <tr>
+                                <span class="hide">{{ bookingform.id }}</span>
+                                <td>{% if bookingform.instance.id %}{{ bookingform.instance.user.username }}
+                                    <span class="hide">{{ bookingform.user }}</span>
+                                    {% else %}{{ bookingform.user }}{% endif %}</td>
+                                <td class="table-center">{{ bookingform.paid }}</td>
+                                <td class="table-center">{{ bookingform.payment_confirmed }}</td>
+                                <td class="table-center">{{ bookingform.block }}</td>
+                                <td class="table-center">{{ bookingform.status }}</td>
+                                <td class="table-center">{{ bookingform.attended }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    </div>
+                    <div><input class="btn btn-success" type="submit" value="Save" /></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

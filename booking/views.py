@@ -13,7 +13,6 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
-
 from braces.views import LoginRequiredMixin
 
 from paypal.standard.forms import PayPalPaymentsForm
@@ -21,27 +20,11 @@ from payments.forms import PayPalPaymentsListForm
 from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType
-from booking.forms import BookingCreateForm, BlockCreateForm
+from booking.forms import BookingCreateForm, BlockCreateForm, \
+    BookingRegisterFormSet, EventFilter, get_event_names
 import booking.context_helpers as context_helpers
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
-
-
-def get_event_names(event_type):
-
-    def callable():
-        event_names = set([event.name for event in Event.objects.filter(
-            Q(event_type__event_type=event_type) & Q(date__gte=timezone.now())
-        ).order_by('name')])
-        NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
-        NAME_CHOICES.insert(0, ('', 'All'))
-        return tuple(sorted(NAME_CHOICES))
-
-    return callable
-
-
-class EventFilter(forms.Form):
-    name = forms.ChoiceField(choices=get_event_names('EV'))
 
 
 class EventListView(ListView):
@@ -168,8 +151,10 @@ class BookingListView(LoginRequiredMixin, ListView):
         context = super(BookingListView, self).get_context_data(**kwargs)
 
         user_blocks = self.request.user.blocks.all()
-        active_block_event_types = [block.block_type.event_type for block in user_blocks
-                             if block.active_block()]
+        active_block_event_types = [
+            block.block_type.event_type for block in user_blocks
+            if block.active_block()
+        ]
 
         bookingformlist = []
         for booking in self.object_list:
@@ -864,4 +849,51 @@ class ConfirmRefundView(LoginRequiredMixin, UpdateView):
 
 
 def permission_denied(request):
-     return render(request, 'booking/permission_denied.html')
+    return render(request, 'booking/permission_denied.html')
+
+
+def register_view(request, event_slug):
+
+    event = get_object_or_404(Event, slug=event_slug)
+
+    if not request.user.is_authenticated():
+        return HttpResponseRedirect(reverse('account_login'))
+    if not request.user.is_staff:
+        return HttpResponseRedirect(reverse('booking:permission_denied'))
+
+    if request.method == 'POST':
+        formset = BookingRegisterFormSet(request.POST, instance=event)
+
+        if formset.is_valid():
+            if not formset.has_changed():
+                messages.info(request, "No changes were made")
+            else:
+                for form in formset:
+                    if form.has_changed():
+                        messages.info(
+                            request,
+                            "Register updated for user {}".format(
+                                form.instance.user.username
+                            )
+                        )
+                    for error in form.errors:
+                        messages.error(request, "{}".format(error),
+                                       extra_tags='safe')
+                formset.save()
+            return HttpResponseRedirect(
+                reverse('booking:register', kwargs={'event_slug': event.slug})
+            )
+        else:
+            messages.error(
+                request, "There were errors in the following fields:"
+            )
+            for error in formset.errors:
+                messages.error(request, "{}".format(error), extra_tags='safe')
+    else:
+        formset = BookingRegisterFormSet(instance=event)
+
+    return render(
+        request, 'booking/register.html', {'formset': formset, 'event': event}
+    )
+
+

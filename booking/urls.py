@@ -5,7 +5,6 @@ from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingDetailView, BookingDeleteView, LessonListView, LessonDetailView, \
     BlockCreateView, BlockListView, ConfirmPaymentView, ConfirmRefundView
 
-
 urlpatterns = patterns('',
     url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
     url(r'^booking-history/$', BookingHistoryListView.as_view(),
@@ -40,5 +39,9 @@ urlpatterns = patterns('',
         name='confirm-refund'),
     url(r'^permission-denied/$', 'booking.views.permission_denied',
         name='permission_denied'),
+    # url(r'^register/(?P<event_slug>[\w-]+)/$', RegisterView.as_view(),
+    #     name='register'),
+    url(r'^register/(?P<event_slug>[\w-]+)/$', 'booking.views.register_view',
+        name='register'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     )

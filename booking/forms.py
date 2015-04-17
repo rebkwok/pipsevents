@@ -1,8 +1,9 @@
 from datetime import date
 from django import forms
+from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-
+from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import Booking, Event, Block, BlockType
 from booking.widgets import DateSelectorWidget
@@ -58,3 +59,74 @@ class EmailUsersForm(forms.Form):
                                     required=True)
     cc = forms.BooleanField(label="Send a copy to this address", initial=True)
     message = forms.CharField(widget=forms.Textarea, required=True)
+
+
+def get_event_names(event_type):
+
+    def callable():
+        event_names = set([event.name for event in Event.objects.filter(
+            Q(event_type__event_type=event_type) & Q(date__gte=timezone.now())
+        ).order_by('name')])
+        NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
+        NAME_CHOICES.insert(0, ('', 'All'))
+        return tuple(sorted(NAME_CHOICES))
+
+    return callable
+
+
+class EventFilter(forms.Form):
+    name = forms.ChoiceField(choices=get_event_names('EV'))
+
+
+def get_user_blocks(user, event_type):
+    blocks = [block.id for block in Block.objects.filter(
+        block_type__event_type=event_type, user=user
+    ) if block.active_block()]
+    return Block.objects.filter(id__in=blocks).order_by('start_date')
+
+
+class BlockModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "Start date: {}".format(obj.start_date.strftime('%d %b %y'))
+
+
+class UserModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
+
+
+class BookingInlineFormSet(BaseInlineFormSet):
+
+    def add_fields(self, form, index):
+        super(BookingInlineFormSet, self).add_fields(form, index)
+        if form.initial.get('user'):
+            user = form.instance.user
+            event_type = form.instance.event.event_type
+            block = form.instance.block
+            form.fields['block'] = BlockModelChoiceField(
+                queryset=get_user_blocks(user, event_type),
+                initial=block, required=False)
+            form.fields['user'] = UserModelChoiceField(
+                queryset=user, initial=user)
+        else:
+            form.fields['block'] = BlockModelChoiceField(
+                queryset=Block.objects.none(),
+                required=False)
+            form.fields['user'] = UserModelChoiceField(
+                queryset=User.objects.all())
+
+    def clean(self):
+        super(BookingInlineFormSet, self).clean()
+        for form in self.forms:
+            if not form.cleaned_data.get('block'):
+                form.cleaned_data['block'] = None
+
+
+BookingRegisterFormSet = inlineformset_factory(
+    Event,
+    Booking,
+    fields=('user', 'paid', 'payment_confirmed', 'block', 'status',
+            'attended'),
+    can_delete=False,
+    extra=2,
+    formset=BookingInlineFormSet)
