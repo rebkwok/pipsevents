@@ -493,3 +493,8 @@ input[type="checkbox"] {
   overflow: hidden;
   background-color: #e5e5e5;
 }
+
+.selectpicker {
+   font-size: 12;
+}
+

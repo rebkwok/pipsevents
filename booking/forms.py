@@ -107,15 +107,31 @@ class BookingInlineFormSet(BaseInlineFormSet):
             block = form.instance.block
             form.fields['block'] = BlockModelChoiceField(
                 queryset=get_user_blocks(user, event_type),
-                initial=block, required=False)
-            form.fields['user'] = UserModelChoiceField(
-                queryset=user, initial=user)
+                initial=block, required=False,
+                widget=forms.Select(attrs={'class': 'custom-select'})
+            )
+            form.fields['user']=forms.ModelChoiceField(
+                queryset=User.objects.all(),
+                initial=user,
+                widget=forms.Select(attrs={'class': 'hide'})
+            )
+            form.fields['userdisplay'] = UserModelChoiceField(
+                queryset=User.objects.all(),
+                initial=user,
+                required=False,
+                widget=forms.Select(attrs={
+                    'class': 'custom-select',
+                    'data-style': 'btn-info',
+                    'disabled': 'disabled'})
+            )
         else:
             form.fields['block'] = BlockModelChoiceField(
                 queryset=Block.objects.none(),
-                required=False)
+                required=False,
+                widget=forms.Select(attrs={'class': 'custom-select'}))
             form.fields['user'] = UserModelChoiceField(
-                queryset=User.objects.all())
+                queryset=User.objects.all(),
+                widget=forms.Select(attrs={'class': 'custom-select'}))
 
     def clean(self):
         super(BookingInlineFormSet, self).clean()
@@ -124,6 +140,17 @@ class BookingInlineFormSet(BaseInlineFormSet):
                 form.cleaned_data['block'] = None
 
 
+def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
+    return {
+        'class': 'toggle-checkbox',
+        'data-size': 'small',
+        'data-on-color': 'success',
+        'data-off-color': 'danger',
+        'data-on-text': on_text,
+        'data-off-text': off_text,
+        'data-label-text': label_text,
+    }
+
 BookingRegisterFormSet = inlineformset_factory(
     Event,
     Booking,
@@ -131,4 +158,10 @@ BookingRegisterFormSet = inlineformset_factory(
             'attended'),
     can_delete=False,
     extra=2,
-    formset=BookingInlineFormSet)
+    formset=BookingInlineFormSet,
+    widgets={
+        'paid': forms.CheckboxInput(attrs=set_toggle_attrs()),
+        'attended': forms.CheckboxInput(attrs=set_toggle_attrs()),
+        'status': forms.Select(attrs={'class': 'custom-select'})
+        }
+    )

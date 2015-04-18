@@ -25,9 +25,7 @@
                         {% for bookingform in formset %}
                             <tr>
                                 <span class="hide">{{ bookingform.id }}</span>
-                                <td>{% if bookingform.instance.id %}{{ bookingform.instance.user.username }}
-                                    <span class="hide">{{ bookingform.user }}</span>
-                                    {% else %}{{ bookingform.user }}{% endif %}</td>
+                                <td>{{ bookingform.user }}{{ bookingform.userdisplay }}</td>
                                 <td class="table-center">{{ bookingform.paid }}</td>
                                 <td class="table-center">{{ bookingform.payment_confirmed }}</td>
                                 <td class="table-center">{{ bookingform.block }}</td>
@@ -35,9 +33,12 @@
                                 <td class="table-center">{{ bookingform.attended }}</td>
                             </tr>
                         {% endfor %}
+                        <tr>
+                            <td><input class="btn btn-success" type="submit" value="Save" /></td>
+                        </tr>
                     </table>
-                    </div>
-                    <div><input class="btn btn-success" type="submit" value="Save" /></div>
+                </div>
+
                 </form>
             </div>
         </div>

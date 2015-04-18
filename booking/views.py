@@ -868,17 +868,22 @@ def register_view(request, event_slug):
             if not formset.has_changed():
                 messages.info(request, "No changes were made")
             else:
+                changed = False
                 for form in formset:
                     if form.has_changed():
-                        messages.info(
-                            request,
-                            "Register updated for user {}".format(
-                                form.instance.user.username
+                        if form.changed_data != ['userdisplay']:
+                            changed = True
+                            messages.info(
+                                request,
+                                "Register updated for user {}".format(
+                                    form.instance.user.username
+                                )
                             )
-                        )
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')
+                if not changed:
+                    messages.info(request, "No changes were made")
                 formset.save()
             return HttpResponseRedirect(
                 reverse('booking:register', kwargs={'event_slug': event.slug})
