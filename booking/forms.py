@@ -26,6 +26,18 @@ MONTH_CHOICES = {
         }
 
 
+def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
+    return {
+        'class': 'toggle-checkbox',
+        'data-size': 'mini',
+        'data-on-color': 'success',
+        'data-off-color': 'danger',
+        'data-on-text': on_text,
+        'data-off-text': off_text,
+        'data-label-text': label_text,
+    }
+
+
 class BookingCreateForm(forms.ModelForm):
 
     class Meta:
@@ -61,6 +73,16 @@ class EmailUsersForm(forms.Form):
                                     required=True)
     cc = forms.BooleanField(label="Send a copy to this address", initial=True)
     message = forms.CharField(widget=forms.Textarea, required=True)
+
+
+class ConfirmPaymentForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = '__all__'
+        widgets = {
+            'paid': forms.CheckboxInput(),
+            'payment_confirmed': forms.CheckboxInput()
+        }
 
 
 def get_event_names(event_type):
@@ -99,6 +121,10 @@ class UserModelChoiceField(forms.ModelChoiceField):
 
 class BookingInlineFormSet(BaseInlineFormSet):
 
+    def __init__(self, *args, **kwargs):
+        self.event = kwargs.pop('event', None)
+        super(BookingInlineFormSet, self).__init__(*args, **kwargs)  #this calls _construct_forms()
+
     def add_fields(self, form, index):
         super(BookingInlineFormSet, self).add_fields(form, index)
         if form.initial.get('user'):
@@ -108,7 +134,8 @@ class BookingInlineFormSet(BaseInlineFormSet):
             form.fields['block'] = BlockModelChoiceField(
                 queryset=get_user_blocks(user, event_type),
                 initial=block, required=False,
-                widget=forms.Select(attrs={'class': 'custom-select'})
+                widget=forms.Select(attrs={'class': 'custom-select',
+                                           'id': 'id_block{}'.format(index)})
             )
             form.fields['user']=forms.ModelChoiceField(
                 queryset=User.objects.all(),
@@ -128,10 +155,15 @@ class BookingInlineFormSet(BaseInlineFormSet):
             form.fields['block'] = BlockModelChoiceField(
                 queryset=Block.objects.none(),
                 required=False,
-                widget=forms.Select(attrs={'class': 'custom-select'}))
+                widget=forms.Select(attrs={'class': 'custom-select',
+                                           'id': 'id_block{}'.format(index)}))
+            booked_users = [booking.user.id for booking in
+                            Booking.objects.all() if booking.event == self.event]
             form.fields['user'] = UserModelChoiceField(
-                queryset=User.objects.all(),
-                widget=forms.Select(attrs={'class': 'custom-select'}))
+                queryset=User.objects.all().exclude(id__in=booked_users),
+                widget=forms.Select(attrs={'class': 'custom-select',
+                                           'id': 'id_user{}'.format(index),
+                                           'onchange': 'FilterBlocks({})'.format(index)}))
 
     def clean(self):
         super(BookingInlineFormSet, self).clean()
@@ -143,7 +175,7 @@ class BookingInlineFormSet(BaseInlineFormSet):
 def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
     return {
         'class': 'toggle-checkbox',
-        'data-size': 'small',
+        'data-size': 'mini',
         'data-on-color': 'success',
         'data-off-color': 'danger',
         'data-on-text': on_text,

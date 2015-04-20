@@ -41,5 +41,7 @@ urlpatterns = patterns('',
         name='permission_denied'),
     url(r'^register/(?P<event_slug>[\w-]+)/$', 'booking.views.register_view',
         name='register'),
+    # url(r'^ajax_block_feed/$', 'booking.views.ajax_block_feed',
+    #     name='ajax_block_feed'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     )

@@ -2,10 +2,12 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 
 from django.db import IntegrityError
 from django.db.models import Q
-from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
+from django.shortcuts import HttpResponseRedirect, render, render_to_response, \
+    get_object_or_404
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
@@ -21,7 +23,7 @@ from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType
 from booking.forms import BookingCreateForm, BlockCreateForm, \
-    BookingRegisterFormSet, EventFilter, get_event_names
+    BookingRegisterFormSet, ConfirmPaymentForm, EventFilter, get_event_names
 import booking.context_helpers as context_helpers
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
@@ -740,10 +742,10 @@ def cancellation_period_past(request, event_slug):
 class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
     model = Booking
-    fields = ['paid', 'payment_confirmed']
     template_name = 'booking/confirm_payment.html'
     success_message = 'Change to payment status confirmed.  An update email ' \
                       'has been sent to user {}.'
+    form_class = ConfirmPaymentForm
 
     def get(self, request, *args, **kwargs):
         if not self.request.user.is_staff:
@@ -855,6 +857,8 @@ def permission_denied(request):
 def register_view(request, event_slug):
 
     event = get_object_or_404(Event, slug=event_slug)
+    block_types = [bt.event_type for bt in BlockType.objects.all()]
+    block_bookable = event.event_type in block_types
 
     if not request.user.is_authenticated():
         return HttpResponseRedirect(reverse('account_login'))
@@ -879,6 +883,18 @@ def register_view(request, event_slug):
                                     form.instance.user.username
                                 )
                             )
+                            booking = form.save(commit=False)
+                            if 'paid' in form.changed_data:
+                                booking.payment_confirmed = booking.paid
+                                booking.save()
+                            if 'block' in form.changed_data:
+                                if booking.block:
+                                    booking.paid = True
+                                    booking.payment_confirmed = True
+                                else:
+                                    booking.paid = False
+                                    booking.payment_confirmed = False
+
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')
@@ -895,10 +911,16 @@ def register_view(request, event_slug):
             for error in formset.errors:
                 messages.error(request, "{}".format(error), extra_tags='safe')
     else:
-        formset = BookingRegisterFormSet(instance=event)
+        formset = BookingRegisterFormSet(instance=event, event=event)
 
     return render(
-        request, 'booking/register.html', {'formset': formset, 'event': event}
+        request, 'booking/register.html', {'formset': formset, 'event': event,
+                                           'block_bookable': block_bookable}
     )
 
-
+# @csrf_exempt
+# def ajax_block_feed(request):
+#
+#     if request.is_ajax() and request.method == 'POST':
+#         blocks = Block.objects.filter(user__id=request.POST.get('user_id', ''))
+#     return render_to_response('booking/ajax_block_feed.html', locals())
