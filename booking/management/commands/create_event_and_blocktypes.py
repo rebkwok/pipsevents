@@ -13,33 +13,37 @@ class Command(BaseCommand):
         self.stdout.write("Creating event types")
         pc, _ = EventType.objects.get_or_create(
             event_type='CL',
-            subtype = 'Pole level class'
+            subtype='Pole level class'
         )
         cl, _ = EventType.objects.get_or_create(
             event_type='CL',
-            subtype = 'Other class'
+            subtype='Other class'
+        )
+        ex, _ = EventType.objects.get_or_create(
+            event_type='EX',
+            subtype='External instructor'
         )
 
         ws = EventType.objects.get_or_create(
             event_type='EV',
-            subtype = 'Workshop'
+            subtype='Workshop'
         )
         ev = EventType.objects.get_or_create(
             event_type='EV',
-            subtype = 'Other event'
+            subtype='Other event'
         )
 
         self.stdout.write("Creating block types")
         BlockType.objects.get_or_create(
             event_type=pc,
             size=5,
-            cost = 32.00,
-            duration = 2
+            cost=32.00,
+            duration=2
         )
 
         BlockType.objects.get_or_create(
             event_type=pc,
             size=10,
-            cost = 62.00,
-            duration = 4
+            cost=62.00,
+            duration=4
         )

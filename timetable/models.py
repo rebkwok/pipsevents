@@ -26,13 +26,15 @@ class Session(models.Model):
     description = models.TextField(blank=True)
     location = models.CharField(max_length=255, default="Watermelon Studio")
     max_participants = models.PositiveIntegerField(
-        null=True, blank=True, default=15,
+        null=True, blank=True, default=10,
         help_text="Leave blank if no max number of participants"
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
     cost = models.DecimalField(default=7, max_digits=8, decimal_places=2)
+    booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=True)
+    payment_info = models.TextField(blank=True)
 
     def __str__(self):
         return "{} - {}".format(dict(self.DAY_CHOICES)[self.day], self.name)
