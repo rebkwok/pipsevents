@@ -304,3 +304,7 @@ class BlockTests(TestCase):
                 event=pc
             )
         self.assertFalse(self.large_block.active_block())
+
+    def test_unpaid_block_is_not_active(self):
+        self.small_block.paid = False
+        self.assertFalse(self.small_block.active_block())

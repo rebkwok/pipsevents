@@ -22,9 +22,9 @@ def get_event_context(context, event, user):
         payment_text = "There is no cost associated with this event."
     else:
         if not event.payment_open:
-            payment_text = "Payments are not open. " + event.payment_info
+            payment_text = "Online payments are not open. " + event.payment_info
         else:
-            payment_text = "Payments are open. " + event.payment_info
+            payment_text = "Online payments are open. " + event.payment_info
     context['payment_text'] = payment_text
 
     # booked flag
@@ -73,10 +73,9 @@ def get_booking_context(context, booking):
         payment_text = "There is no cost associated with this event."
     else:
         if not booking.event.payment_open:
-            payment_text = "Payments are not yet open. Payment information " \
-                           "will be provided closer to the event date."
+            payment_text = "Online payments are not open. " + booking.event.payment_info
         else:
-            payment_text = "Payments are open. " + booking.event.payment_info
+            payment_text = "Online payments are open. " + booking.event.payment_info
     context['payment_text'] = payment_text
 
     # confirm payment button

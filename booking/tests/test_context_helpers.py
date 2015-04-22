@@ -1,12 +1,13 @@
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.utils import timezone
+from django.contrib.messages.storage.fallback import FallbackStorage
 from model_mommy import mommy
 from datetime import datetime
 from mock import patch
 from booking.models import Event, Booking, Block
-from booking.views import EventDetailView, BookingDetailView, LessonDetailView
-from booking.tests.helpers import set_up_fb
+from booking.views import EventDetailView, BookingDetailView, LessonDetailView, BlockListView
+from booking.tests.helpers import set_up_fb, _create_session
 
 
 class EventDetailContextTests(TestCase):
@@ -26,9 +27,8 @@ class EventDetailContextTests(TestCase):
         self.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
                                             "this event.",
-            'payment_text_cost_not_open':   "Payments are not open. ",
-            'payment_text_cost_open':       "###replace with "
-                                            "event.payment_info###",
+            'payment_text_cost_not_open':   "Online payments are not open. ",
+            'payment_text_cost_open':       "Online payments are open. ",
             'booking_info_text_not_booked': "",
             'booking_info_text_not_open':   "Bookings are not open for this "
                                             "event.",
@@ -118,7 +118,7 @@ class EventDetailContextTests(TestCase):
         self.assertTrue('past' in resp.context_data.keys())
         self.assertEquals(
             resp.context_data['payment_text'],
-            "Payments are open. {}".format(self.past_event.payment_info)
+            "Online payments are open. {}".format(self.past_event.payment_info)
         )
 
         resp.render()
@@ -156,7 +156,7 @@ class EventDetailContextTests(TestCase):
         resp = self._get_response(self.user, event)
         self.assertEquals(
             resp.context_data['payment_text'],
-            "Payments are open. {}".format(self.past_event.payment_info)
+            "Online payments are open. {}".format(self.past_event.payment_info)
         )
 
     def test_booking_not_open(self):
@@ -233,11 +233,8 @@ class BookingDetailContextTests(TestCase):
         self.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
                                             "this event.",
-            'payment_text_cost_not_open':   "Payments are not yet open. Payment "
-                                            "information will be provided closer "
-                                            "to the event date.",
-            'payment_text_cost_open':       "###replace with "
-                                            "event.payment_info###",
+            'payment_text_cost_not_open':   "Online payments are not open. ",
+            'payment_text_cost_open':       "Online payments are open. ",
         }
         self.CONTEXT_FLAGS = {
             'include_payment_button': True,
@@ -300,7 +297,7 @@ class BookingDetailContextTests(TestCase):
         resp = self._get_response(self.user, booking)
         flags_not_expected = ['booked']
         self.assertEquals(resp.context_data['payment_text'],
-                          "Payments are open. {}".format(event.payment_info)
+                          "Online payments are open. {}".format(event.payment_info)
                           )
         for key in flags_not_expected:
             self.assertFalse(key in resp.context_data.keys(),
@@ -335,3 +332,91 @@ class BookingDetailContextTests(TestCase):
         self.assertEquals(resp.context_data['type'], 'event')
         resp = self._get_response(self.user, lesson_booking)
         self.assertEquals(resp.context_data['type'], 'lesson')
+
+
+class BlockListContextTests(TestCase):
+    """
+    Test correct block types returned in BlockListView
+    """
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+
+    def _set_session(self, user, request):
+        request.session = _create_session()
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+    def _get_response(self, user):
+        url = reverse('booking:block_list')
+        request = self.factory.get(url)
+        self._set_session(user, request)
+        view = BlockListView.as_view()
+        return view(request)
+
+    def test_with_no_blocktypes(self):
+        """
+        Test blocklist with no blocktypes does not allow block bookings and
+        does not show any blocks in the listing
+        """
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertNotIn('can_book_block', resp.context_data)
+        self.assertEqual(resp.context_data['blockformlist'], [])
+
+    def test_with_blocktypes(self):
+        """
+        Test with blocktypes but no booked blocks
+        """
+        mommy.make_recipe('booking.blocktype5')
+        mommy.make_recipe('booking.blocktype10')
+        mommy.make_recipe('booking.blocktype_other')
+        resp = self._get_response(self.user)
+        self.assertIn('can_book_block', resp.context_data)
+        self.assertEqual(resp.context_data['blockformlist'], [])
+
+    def test_with_booked_block(self):
+        """
+        Test that user cannot book if they have a block of each available
+        type
+        """
+        # make 3 blocktypes, 2 with the same eventtype
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+        blocktype_pc = mommy.make_recipe(
+            'booking.blocktype5', event_type=ev_type
+        )
+        mommy.make_recipe('booking.blocktype10', event_type=ev_type)
+        blocktype_other = mommy.make_recipe('booking.blocktype_other')
+
+        mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=blocktype_pc, start_date=timezone.now()
+        )
+        mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=blocktype_other, start_date=timezone.now()
+        )
+        resp = self._get_response(self.user)
+        self.assertNotIn('can_book_block', resp.context_data)
+        self.assertEqual(len(resp.context_data['blockformlist']), 2)
+
+    def test_with_available_block(self):
+        """
+        Test that user can book if there is a blocktype available
+        """
+        blocktype_pc = mommy.make_recipe('booking.blocktype5')
+        mommy.make_recipe('booking.blocktype_other')
+
+        mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=blocktype_pc, start_date=timezone.now()
+        )
+        resp = self._get_response(self.user)
+        self.assertIn('can_book_block', resp.context_data)
+        self.assertEqual(len(resp.context_data['blockformlist']), 1)
+
+
+

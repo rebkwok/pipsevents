@@ -2,12 +2,10 @@ from datetime import datetime
 from mock import Mock, patch
 from model_mommy import mommy
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils.importlib import import_module
 from django.utils import timezone
 
 from booking.forms import BlockCreateForm
@@ -17,16 +15,7 @@ from booking.views import EventListView, EventDetailView, \
     BookingDetailView, BookingCreateView, BookingDeleteView, \
     BookingUpdateView, BlockCreateView, BlockListView, \
     duplicate_booking, fully_booked, cancellation_period_past
-from booking.tests.helpers import set_up_fb
-
-
-def _create_session():
-    # create session
-    settings.SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-    engine = import_module(settings.SESSION_ENGINE)
-    store = engine.SessionStore()
-    store.save()
-    return store
+from booking.tests.helpers import set_up_fb, _create_session
 
 
 class EventListViewTests(TestCase):
@@ -755,18 +744,6 @@ class BookingUpdateViewTests(TestCase):
         self.assertTrue(updated_booking.paid)
 
 
-def setup_view(view, request, *args, **kwargs):
-    """Mimic as_view() returned callable, but returns view instance.
-
-    args and kwargs are the same you would pass to ``reverse()``
-
-    """
-    view.request = request
-    view.args = args
-    view.kwargs = kwargs
-    return view
-
-
 class BlockCreateViewTests(TestCase):
     def setUp(self):
         set_up_fb()
@@ -778,6 +755,13 @@ class BlockCreateViewTests(TestCase):
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
+
+    def _get_response(self, user):
+        url = reverse('booking:add_block')
+        request = self.factory.get(url)
+        self._set_session(user, request)
+        view = BlockCreateView.as_view()
+        return view(request)
 
     def _post_response(self, user, form_data):
         url = reverse('booking:add_block')
@@ -794,6 +778,68 @@ class BlockCreateViewTests(TestCase):
         form_data={'block_type': block_type}
         resp = self._post_response(self.user, form_data)
         self.assertEqual(resp.status_code, 200)
+
+    def test_create_block_if_no_blocktypes_available(self):
+        """
+        Test that the create block page redirects if there are no blocktypes
+        available to book
+        """
+        block_type = mommy.make_recipe('booking.blocktype5')
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type
+        )
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_create_block_with_available_blocktypes(self):
+        """
+        Test that only user does not have the option to book a blocktype
+        for which they already have an active block
+        """
+        block_type = mommy.make_recipe('booking.blocktype5')
+        other_block_type = mommy.make_recipe('booking.blocktype_other')
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type
+        )
+        resp = self._get_response(self.user)
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], other_block_type)
+
+    def test_cannot_create_block_with_same_event_type_as_active_block(self):
+        """
+        Test that only user does not have the option to book a blocktype
+        if they already have a block for the same event type
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        block_type_pc5 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block_type_pc10 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        other_block_type = mommy.make_recipe('booking.blocktype_other')
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type_pc5
+        )
+        resp = self._get_response(self.user)
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], other_block_type)
+
+    def test_can_create_block_if_has_expired_block(self):
+        """
+        Test user has the option to create a block with the same event type as
+        an expired block
+        """
+        # TODO
+        pass
+
+    def test_cannot_create_block_if_has_unpaid_block_with_same_event_type(self):
+        """
+        Test user does not have the option to create a block with the same
+        event type as an unpaid block
+        """
+        # TODO
+        pass
 
 
 class BlockListViewTests(TestCase):
@@ -821,9 +867,10 @@ class BlockListViewTests(TestCase):
         user = users[0]
 
         resp = self._get_response(user)
-        resp.status_code = 200
+        self.assertEqual(resp.status_code, 200)
         self.assertEqual(Block.objects.all().count(), 4)
         self.assertEqual(resp.context_data['blocks'].count(), 1)
+
 
 
 #TODO Block Create view

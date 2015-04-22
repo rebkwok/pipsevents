@@ -56,6 +56,9 @@ blocktype5 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
                     size=5, duration=2)
 blocktype10 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
                      size=10, duration=4)
+blocktype_other = Recipe(BlockType, event_type=foreign_key(event_type_OC))
+
+block = Recipe(Block)
 
 block_5 = Recipe(Block,
                  user=foreign_key(user),
