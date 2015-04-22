@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from mock import Mock, patch
 from model_mommy import mommy
 
@@ -15,7 +15,8 @@ from booking.views import EventListView, EventDetailView, \
     BookingDetailView, BookingCreateView, BookingDeleteView, \
     BookingUpdateView, BlockCreateView, BlockListView, \
     duplicate_booking, fully_booked, cancellation_period_past
-from booking.tests.helpers import set_up_fb, _create_session
+from booking.context_helpers import get_blocktypes_available_to_book
+from booking.tests.helpers import set_up_fb, _create_session, setup_view
 
 
 class EventListViewTests(TestCase):
@@ -120,6 +121,16 @@ class EventListViewTests(TestCase):
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(event1 in booked_events)
 
+    def test_filter_events(self):
+        """
+        Test that we can filter the classes by name
+        """
+        mommy.make_recipe('booking.future_EV', name='test_name', _quantity=3)
+        mommy.make_recipe('booking.future_EV', name='test_name1', _quantity=4)
+
+        url = reverse('booking:events')
+        resp = self.client.get(url, {'name': 'test_name'})
+        self.assertEquals(resp.context['events'].count(), 3)
 
 class EventDetailViewTests(TestCase):
 
@@ -188,13 +199,31 @@ class LessonListViewTests(TestCase):
     def setUp(self):
         set_up_fb()
         self.client = Client()
+        self.factory = RequestFactory()
         mommy.make_recipe('booking.future_EV', _quantity=1)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
         mommy.make_recipe('booking.future_WS', _quantity=1)
         self.user = mommy.make_recipe('booking.user')
 
-    def test_event_list(self):
+    def _get_response(self, user):
+        url = reverse('booking:lessons')
+        request = self.factory.get(url)
+        request.user = user
+        view = EventListView.as_view()
+        return view(request)
+
+    def test_lesson_list_with_anonymous_user(self):
+        """
+        Test that no booked_events in context
+        """
+        url = reverse('booking:lessons')
+        resp = self.client.get(url)
+
+        # event listing should still only show future events
+        self.assertFalse('booked_events' in resp.context)
+
+    def test_lesson_list(self):
         """
         Test that only classes are listed (pole classes and other classes)
         """
@@ -205,6 +234,68 @@ class LessonListViewTests(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context['events'].count(), 6)
         self.assertEquals(resp.context['type'], 'lessons')
+
+    def test_filter_lessons(self):
+        """
+        Test that we can filter the classes by name
+        """
+        mommy.make_recipe('booking.future_PC', name='test_name', _quantity=3)
+        mommy.make_recipe('booking.future_PC', name='test_name1', _quantity=4)
+
+        url = reverse('booking:lessons')
+        resp = self.client.get(url, {'name': 'test_name'})
+        self.assertEquals(resp.context['events'].count(), 3)
+        resp = self.client.get(url, {'name': 'test_name1'})
+        self.assertEquals(resp.context['events'].count(), 4)
+
+    def test_lesson_list_shows_only_current_user_bookings(self):
+        """
+        Test that only user's booked events are shown as booked
+        """
+        events = Event.objects.filter(event_type__event_type="CL")
+        event1 = events[0]
+        event2 = events[1]
+
+        resp = self._get_response(self.user)
+        # check there are no booked events yet
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(len(resp.context_data['booked_events']), 0)
+
+        # create booking for this user
+        mommy.make_recipe('booking.booking', user=self.user, event=event1)
+        # create booking for another user
+        user1 = mommy.make_recipe('booking.user')
+        mommy.make_recipe('booking.booking', user=user1, event=event2)
+
+        # check only event1 shows in the booked events
+        resp = self._get_response(self.user)
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(Booking.objects.all().count(), 2)
+        self.assertEquals(len(booked_events), 1)
+        self.assertTrue(event1 in booked_events)
+
+    def test_lesson_list_only_shows_open_bookings(self):
+        events = Event.objects.filter(event_type__event_type="CL")
+        event1 = events[0]
+        event2 = events[1]
+
+        resp = self._get_response(self.user)
+        # check there are no booked events yet
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(len(resp.context_data['booked_events']), 0)
+
+        # create open and cancelled booking for this user
+        mommy.make_recipe('booking.booking', user=self.user, event=event1)
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=event2, status='CANCELLED'
+        )
+
+        # check only event1 shows in the booked events
+        resp = self._get_response(self.user)
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(Booking.objects.all().count(), 2)
+        self.assertEquals(len(booked_events), 1)
+        self.assertTrue(event1 in booked_events)
 
 
 class LessonDetailViewTests(TestCase):
@@ -441,10 +532,11 @@ class BookingCreateViewTests(TestCase):
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
 
-    def _post_response(self, user, event):
+    def _post_response(self, user, event, form_data={}):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
         store = _create_session()
-        request = self.factory.post(url, {'event': event.id})
+        form_data['event'] = event.id
+        request = self.factory.post(url, form_data)
         request.session = store
         request.user = user
         messages = FallbackStorage(request)
@@ -522,6 +614,24 @@ class BookingCreateViewTests(TestCase):
 
     def test_cancelled_booking_can_be_rebooked(self):
         """
+        Test can load create booking page with a cancelled booking
+        """
+
+        event = mommy.make_recipe('booking.future_EV')
+        # book for event
+        resp = self._post_response(self.user, event)
+
+        booking = Booking.objects.get(user=self.user, event=event)
+        # cancel booking
+        booking.status = 'CANCELLED'
+        booking.save()
+
+        # try to book again
+        resp = self._get_response(self.user, event)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_rebook_cancelled_booking(self):
+        """
         Test can rebook a cancelled booking
         """
 
@@ -532,11 +642,83 @@ class BookingCreateViewTests(TestCase):
         booking = Booking.objects.get(user=self.user, event=event)
         # cancel booking
         booking.status = 'CANCELLED'
+        booking.save()
 
         # try to book again
-        resp = self._get_response(self.user, event)
+        resp = self._post_response(self.user, event)
         booking = Booking.objects.get(user=self.user, event=event)
         self.assertEqual('OPEN', booking.status)
+
+    def test_rebook_cancelled_booking_still_paid(self):
+
+        """
+        Test rebooking a cancelled booking still marked as paid makes
+        booking status open but does not confirm space
+        """
+        event = mommy.make_recipe('booking.future_PC')
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, status='CANCELLED'
+        )
+
+        # try to book again
+        resp = self._post_response(self.user, event)
+        booking = Booking.objects.get(user=self.user, event=event)
+        self.assertEqual('OPEN', booking.status)
+        self.assertFalse(booking.payment_confirmed)
+
+    def test_booking_page_has_active_user_block_context(self):
+        """
+        Test that a user with an active block can book using their block
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True
+        )
+        self.assertTrue(block.active_block())
+        resp = self._get_response(self.user, event)
+        self.assertIn('active_user_block', resp.context_data)
+
+
+    def test_booking_page_has_unpaid_user_block_context(self):
+        """
+        Test that a user with an active block can book using their block
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=False
+        )
+        resp = self._get_response(self.user, event)
+        self.assertFalse('active_user_block' in resp.context_data)
+        self.assertIn('active_user_block_unpaid', resp.context_data)
+
+    def test_creating_booking_with_active_user_block(self):
+        """
+        Test that a user with an active block can book using their block
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True
+        )
+        self.assertTrue(block.active_block())
+        form_data = {'block_book': True}
+        resp = self._post_response(self.user, event, form_data)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(bookings[0].block, block)
 
 
 class BookingErrorRedirectPagesTests(TestCase):
@@ -597,6 +779,7 @@ class BookingErrorRedirectPagesTests(TestCase):
         request._messages = messages
         resp = cancellation_period_past(request, event.slug)
         self.assertIn(event.name, str(resp.content))
+
 
 class BookingDeleteViewTests(TestCase):
 
@@ -678,6 +861,39 @@ class BookingDeleteViewTests(TestCase):
                                       event=event_with_cost)
         self.assertEqual('CANCELLED', booking.status)
         self.assertFalse(booking.payment_confirmed)
+
+    def test_cancelling_booking_with_block(self):
+        """
+        Test that cancelling a booking bought with a block removes the
+        booking and updates the block
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, block=block
+        )
+        booking.confirm_space()
+        block = Block.objects.get(user=self.user)
+        self.assertEqual(block.bookings_made(), 1)
+
+        # cancel booking
+        self._get_response(self.user, booking)
+
+        booking = Booking.objects.get(user=self.user, event=event)
+        self.assertEqual('CANCELLED', booking.status)
+        self.assertFalse(booking.block)
+        self.assertFalse(booking.paid)
+
+        block = Block.objects.get(user=self.user)
+        self.assertEqual(block.bookings_made(), 0)
+
 
     @patch("booking.views.timezone")
     def test_cannot_cancel_after_cancellation_period(self, mock_tz):
@@ -791,6 +1007,38 @@ class BlockCreateViewTests(TestCase):
         resp = self._get_response(self.user)
         self.assertEqual(resp.status_code, 302)
 
+    def test_create_block_redirects_if_no_blocktypes_available(self):
+        """
+        Test that create block form redirects if trying to create a
+        block with an event type that the user already has
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        block_type_pc5 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block_type_pc10 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type_pc5,
+            paid=True
+        )
+        # create form with a different blocktype, but one with the same event
+        # type as the user's booked block
+        form_data = {'block_type': block_type_pc10}
+
+        url = reverse('booking:add_block')
+        request = self.factory.post(url, form_data)
+        self._set_session(self.user, request)
+
+        form_data = {'block_type': block_type_pc10.id}
+        form = BlockCreateForm(data=form_data)
+        form.full_clean()
+        view = setup_view(BlockCreateView, request)
+        resp = view.form_valid(view, form)
+
+        self.assertEqual(resp.status_code, 302)
+
     def test_create_block_with_available_blocktypes(self):
         """
         Test that only user does not have the option to book a blocktype
@@ -830,16 +1078,61 @@ class BlockCreateViewTests(TestCase):
         Test user has the option to create a block with the same event type as
         an expired block
         """
-        # TODO
-        pass
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        block_type_pc5 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        # this user has a block of this blocktype that has expired
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type_pc5,
+            start_date=timezone.now() - timedelta(weeks=52)
+        )
+        resp = self._get_response(self.user)
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], block_type_pc5)
+
+    def test_can_create_block_if_has_full_block(self):
+        """
+        Test user has the option to create a block with the same event type as
+        a full block
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        block_type_pc5 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        # this user has a block of this blocktype
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type_pc5
+        )
+        # fill block
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block, _quantity=5
+        )
+
+        resp = self._get_response(self.user)
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], block_type_pc5)
 
     def test_cannot_create_block_if_has_unpaid_block_with_same_event_type(self):
         """
         Test user does not have the option to create a block with the same
         event type as an unpaid block
         """
-        # TODO
-        pass
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        block_type_pc5 = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        other_block_type = mommy.make_recipe('booking.blocktype_other')
+        # this user has a block of this blocktype
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type_pc5,
+            paid=False
+        )
+
+        resp = self._get_response(self.user)
+        # only the "other" blocktype is available
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], other_block_type)
 
 
 class BlockListViewTests(TestCase):
@@ -872,11 +1165,6 @@ class BlockListViewTests(TestCase):
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
 
-
-#TODO Block Create view
-# TODO Block tests (for forms/views?)
-# TODO If a user has an active block, they can't buy a new block
-# TODO block not active until paid
 
 #TODO register view
 #TODO confirm payment, confirm refund plus permissions

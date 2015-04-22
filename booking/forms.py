@@ -49,7 +49,7 @@ class BlockCreateForm(forms.ModelForm):
 
     class Meta:
         model = Block
-        fields = ('block_type', )
+        fields = ['block_type', ]
 
 
 class CreateClassesForm(forms.Form):

@@ -52,6 +52,8 @@ past_event = Recipe(Event,
                     payment_due_date=past-timedelta(10)
                     )
 
+blocktype = Recipe(BlockType)
+
 blocktype5 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
                     size=5, duration=2)
 blocktype10 = Recipe(BlockType, event_type=foreign_key(event_type_PC),

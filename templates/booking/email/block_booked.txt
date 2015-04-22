@@ -1,5 +1,5 @@
 Your block booking has been received!
-{% endif %}
+
 Block type: {{ block.block_type }}
 Block start date: {{ block.start_date }}
 Block expiry date: {{ block.expiry_date }}

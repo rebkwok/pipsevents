@@ -390,8 +390,6 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
     form_class = BlockCreateForm
     success_message = 'New block booking created: {}'
 
-
-
     def get(self, request, *args, **kwargs):
         # redirect if user already has active (paid or unpaid) blocks for all
         # blocktypes
@@ -453,7 +451,6 @@ class BlockListView(LoginRequiredMixin, ListView):
     model = Block
     context_object_name = 'blocks'
     template_name = 'booking/block_list.html'
-
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
