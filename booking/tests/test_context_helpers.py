@@ -26,13 +26,11 @@ class EventDetailContextTests(TestCase):
         self.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
                                             "this event.",
-            'payment_text_cost_not_open':   "Payments are not yet open. Payment "
-                                            "information will be provided closer "
-                                            "to the event date.",
+            'payment_text_cost_not_open':   "Payments are not open. ",
             'payment_text_cost_open':       "###replace with "
                                             "event.payment_info###",
             'booking_info_text_not_booked': "",
-            'booking_info_text_not_open':   "Bookings are not yet open for this "
+            'booking_info_text_not_open':   "Bookings are not open for this "
                                             "event.",
             'booking_info_text_booked':     "You have booked for this event.",
             'booking_info_text_full':       "This event is now full.",

@@ -51,7 +51,8 @@ def create_classes(week='this', input_date=None):
             cost=session.cost,
             payment_open=session.payment_open,
             advance_payment_required=True,
-            booking_open=True
+            booking_open=session.booking_open,
+            payment_info=session.payment_info
         )
         if created:
             created_classes.append(cl)

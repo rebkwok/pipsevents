@@ -22,9 +22,7 @@ def get_event_context(context, event, user):
         payment_text = "There is no cost associated with this event."
     else:
         if not event.payment_open:
-            payment_text = "Payments are not yet open. Payment " \
-                           "information will be provided closer to the " \
-                           "event date."
+            payment_text = "Payments are not open. " + event.payment_info
         else:
             payment_text = "Payments are open. " + event.payment_info
     context['payment_text'] = payment_text
@@ -48,7 +46,7 @@ def get_event_context(context, event, user):
                                 " cancelled."
         context['booked'] = True
     elif not event.booking_open:
-        booking_info_text = "Bookings are not yet open for this event."
+        booking_info_text = "Bookings are not open for this event."
     elif event.spaces_left() <= 0:
         booking_info_text = "This event is now full."
     elif not event.bookable():

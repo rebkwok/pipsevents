@@ -37,7 +37,7 @@
                                 <td>{{ blockform.block.expiry_date }}</td>
                                 <td class="table-center">{{ blockform.block.block_type.size }}</td>
                                 <td class="table-center">{{ blockform.block.bookings_made }}</td>
-                                <td class="table-center">{% if blockform.block.paid %}<span class="glyphicon glyphicon-ok" aria-label="Yes"></span>
+                                <td class="table-center">{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
                                     {% else %}
                                         {% if not blockform.block.paid %}
                                         {% include 'payments/blocklistpayment.html' %}

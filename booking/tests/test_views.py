@@ -828,8 +828,10 @@ class BlockListViewTests(TestCase):
 
 #TODO Block Create view
 # TODO Block tests (for forms/views?)
-# TODO If a block has 5 or 10 bookings, no more bookings can be made
 # TODO If a user has an active block, they can't buy a new block
-# TODO Can user book against a block before block payment confirmed?  Maybe allow
-# TODO booking for 1 week after block start date, then prevent it if payment not
-# TODO received
+# TODO block not active until paid
+
+#TODO register view
+#TODO confirm payment, confirm refund plus permissions
+
+

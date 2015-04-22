@@ -1,18 +1,23 @@
+// Custom JavaScript for the toggle checkboxes and select dropdowns
+$('.toggle-checkbox').bootstrapSwitch();
+$('.custom-select').selectpicker();
 
-<!-- Custom JavaScript for the facebook buttons
+//For the register dropdown
+function FilterBlocks(index) {
+    var mainform = document.getElementById('booking_main_form');
+    mainform.submit();
 
-(function(d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      js = d.createElement(s); js.id = id;
-      js.src = "http://connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v2.0";
-      fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk')); -->
+//    var selected_user = document.getElementById("id_user"+index);
+//    var user_id = selected_user.value;
 
-
-
-<!-- Custom JavaScript for the sidebar Menu Toggle on the timetable page -->
-$("#menu-toggle").click(function(e) {
-    e.preventDefault();
-    $("#wrapper").toggleClass("active");
-});
+//    new Ajax.Request('/ajax_block_feed/', {
+//        method: 'post',
+//        parameters: $H({'user_id':user_id}),
+//        onSuccess: function(blocklist) {
+//            debugger;
+//            var e = document.getElementById("id_block"+index)
+//            if(blocklist.responseText)
+//                e.update(blocklist.responseText)
+//        }
+//    }); // end new Ajax.Request
+}
