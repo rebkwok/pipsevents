@@ -185,7 +185,6 @@ class Block(models.Model):
         """
         return Booking.objects.filter(block__id=self.id).count()
 
-
     def get_absolute_url(self):
         return reverse("booking:block_list")
 
@@ -197,7 +196,7 @@ def block_delete_pre_delete(sender, instance, **kwargs):
         if booking.event.cost > 0:
             booking.paid = False
             booking.payment_confirmed = False
-            booking.block=None
+            booking.block = None
 
 
 class Booking(models.Model):
@@ -252,7 +251,7 @@ class Booking(models.Model):
         return reverse("booking:booking_detail", args=[str(self.id)])
 
     def __str__(self):
-        return "{} {}".format(str(self.event.name), str(self.user.username))
+        return "{} - {}".format(str(self.event.name), str(self.user.username))
 
 
 @receiver(pre_save, sender=Booking)

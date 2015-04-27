@@ -1,11 +1,13 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
+from django.core.urlresolvers import reverse
+
 from datetime import timedelta, datetime
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Block, Booking
+from booking.models import Event, Block, Booking, EventType
 
 now = timezone.now()
 
@@ -68,6 +70,20 @@ class EventTests(TestCase):
                                      payment_info="Pay me")
         self.assertEquals(workshop.payment_open, True)
         self.assertEquals(workshop.payment_info, "Pay me")
+
+    def test_absolute_url(self):
+        self.assertEqual(
+            self.event.get_absolute_url(),
+            reverse('booking:event_detail', kwargs={'slug': self.event.slug})
+        )
+
+    def test_str(self):
+        event = mommy.make_recipe(
+            'booking.past_event',
+            name='Test event',
+            date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+        self.assertEqual(str(event), 'Test event - 01 Jan 2015, 00:00')
 
 
 class BookingTests(TestCase):
@@ -199,6 +215,14 @@ class BookingTests(TestCase):
         booking.save()
         self.assertFalse(booking.space_confirmed())
 
+    def test_str(self):
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event=mommy.make_recipe('booking.future_EV', name='Test event'),
+            user=mommy.make_recipe('booking.user', username='Test user'),
+            )
+        self.assertEqual(str(booking), 'Test event - Test user')
+
 
 class BlockTests(TestCase):
 
@@ -308,3 +332,51 @@ class BlockTests(TestCase):
     def test_unpaid_block_is_not_active(self):
         self.small_block.paid = False
         self.assertFalse(self.small_block.active_block())
+
+    def test_block_pre_delete(self):
+        """
+        Test that bookings are reset to unpaid when a block is deleted
+        """
+
+        events = mommy.make_recipe('booking.future_EV', cost=10, _quantity=5)
+        block_bookings = [mommy.make_recipe(
+            'booking.booking',
+            block=self.large_block,
+            user=self.large_block.user,
+            paid=True,
+            payment_confirmed=True,
+            event=event
+            ) for event in events]
+        self.assertEqual(Booking.objects.filter(paid=True).count(), 5)
+        self.large_block.delete()
+        self.assertEqual(Booking.objects.filter(paid=True).count(), 0)
+
+        for booking in Booking.objects.all():
+            self.assertIsNone(booking.block)
+            self.assertFalse(booking.paid)
+            self.assertFalse(booking.payment_confirmed)
+
+    def test_str(self):
+
+        blocktype = mommy.make_recipe('booking.blocktype', size=4)
+        block = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype
+        )
+
+        self.assertEqual(
+            str(block), 'TestUser -- block size 4 -- start 01 Jan 2015, 00:00'
+        )
+
+
+class EventTypeTests(TestCase):
+
+    def test_str_class(self):
+        evtype = mommy.make_recipe('booking.event_type_PC', subtype="class subtype")
+        self.assertEqual(str(evtype), 'Class - class subtype')
+
+    def test_str_event(self):
+        evtype = mommy.make_recipe('booking.event_type_OE', subtype="event subtype")
+        self.assertEqual(str(evtype), 'Event - event subtype')

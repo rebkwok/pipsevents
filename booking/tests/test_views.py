@@ -13,7 +13,7 @@ from booking.models import Event, Booking, Block
 from booking.views import EventListView, EventDetailView, \
     LessonDetailView, BookingListView, BookingHistoryListView, \
     BookingDetailView, BookingCreateView, BookingDeleteView, \
-    BookingUpdateView, BlockCreateView, BlockListView, \
+    BookingUpdateView, BlockCreateView, BlockListView, LessonListView, \
     duplicate_booking, fully_booked, cancellation_period_past
 from booking.context_helpers import get_blocktypes_available_to_book
 from booking.tests.helpers import set_up_fb, _create_session, setup_view
@@ -132,6 +132,7 @@ class EventListViewTests(TestCase):
         resp = self.client.get(url, {'name': 'test_name'})
         self.assertEquals(resp.context['events'].count(), 3)
 
+
 class EventDetailViewTests(TestCase):
 
     def setUp(self):
@@ -210,8 +211,17 @@ class LessonListViewTests(TestCase):
         url = reverse('booking:lessons')
         request = self.factory.get(url)
         request.user = user
-        view = EventListView.as_view()
+        view = LessonListView.as_view()
         return view(request)
+
+    def test_with_logged_in_user(self):
+        """
+        test that page loads if there is a user is available
+        """
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(resp.context_data['type'], 'lessons')
+        self.assertTrue('booked_events' in resp.context_data)
 
     def test_lesson_list_with_anonymous_user(self):
         """
