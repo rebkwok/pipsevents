@@ -10,12 +10,10 @@ from django.utils import timezone
 
 from booking.forms import BlockCreateForm
 from booking.models import Event, Booking, Block
-from booking.views import EventListView, EventDetailView, \
-    LessonDetailView, BookingListView, BookingHistoryListView, \
-    BookingDetailView, BookingCreateView, BookingDeleteView, \
-    BookingUpdateView, BlockCreateView, BlockListView, LessonListView, \
-    duplicate_booking, fully_booked, cancellation_period_past
-from booking.context_helpers import get_blocktypes_available_to_book
+from booking.views import EventListView, EventDetailView, LessonDetailView, \
+    BookingListView, BookingHistoryListView, BookingCreateView, \
+    BookingDeleteView, BookingUpdateView, BlockCreateView, BlockListView, \
+    LessonListView, duplicate_booking, fully_booked, cancellation_period_past
 from booking.tests.helpers import set_up_fb, _create_session, setup_view
 
 
@@ -487,54 +485,6 @@ class BookingHistoryListViewTests(TestCase):
         # listing should show show all 3 bookings (1 past, 1 cancelled)
         self.assertEquals(resp.context_data['bookings'].count(), 2)
 
-class BookingDetailViewTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV', name="test fut event")
-        self.booking = mommy.make_recipe(
-            'booking.booking', user=self.user, event=event
-        )
-        self.past_booking = mommy.make_recipe(
-            'booking.past_booking', user=self.user
-        )
-
-    def _get_response(self, user, booking):
-        url = reverse('booking:booking_detail', args=[booking.id])
-        request = self.factory.get(url)
-        request.user = user
-        view = BookingDetailView.as_view()
-        return view(request, pk=booking.id)
-
-    def test_login_required(self):
-        """
-        test that page redirects if there is no user logged in
-        """
-        url = reverse('booking:booking_detail', args=[self.booking.id])
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 302)
-
-    def test_with_logged_in_user(self):
-        """
-        test that page loads if there is a user available
-        """
-        resp = self._get_response(self.user, self.booking)
-        self.assertEqual(resp.status_code, 200)
-
-    def test_past_booking(self):
-        """
-        test that past booking does not show buttons
-        """
-        resp = self._get_response(self.user, self.past_booking)
-        self.assertEqual(resp.status_code, 200)
-
-        resp.render()
-        self.assertFalse("Confirm payment made" in str(resp.content))
-        self.assertFalse("Delete booking" in str(resp.content))
-
 
 class BookingCreateViewTests(TestCase):
     def setUp(self):
@@ -590,13 +540,13 @@ class BookingCreateViewTests(TestCase):
 
         resp = self._post_response(self.user, event)
         booking_id = Booking.objects.all()[0].id
-        booking_url = reverse('booking:booking_detail', args=[booking_id])
+        booking_url = reverse('booking:bookings')
         self.assertEqual(resp.url, booking_url)
 
         resp1 = self._get_response(self.user, event)
         duplicate_url = reverse('booking:duplicate_booking',
                                 kwargs={'event_slug': event.slug}
-        )
+                                )
         # test redirect to duplicate booking url
         self.assertEqual(resp1.url, duplicate_url)
 

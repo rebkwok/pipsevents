@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
-    BookingDetailView, BookingDeleteView, LessonListView, LessonDetailView, \
+    BookingDeleteView, LessonListView, LessonDetailView, \
     BlockCreateView, BlockListView, ConfirmPaymentView, ConfirmRefundView
 
 urlpatterns = patterns('',
@@ -15,8 +15,6 @@ urlpatterns = patterns('',
         name='delete_booking'),
     url(r'^events/(?P<event_slug>[\w-]+)/cancellation-period-past/$',
         'booking.views.cancellation_period_past', name='cancellation_period_past'),
-    url(r'^booking/(?P<pk>\d+)/$', BookingDetailView.as_view(),
-        name='booking_detail'),
     url(r'^events/(?P<event_slug>[\w-]+)/duplicate/$',
         'booking.views.duplicate_booking', name='duplicate_booking'),
     url(r'^events/(?P<event_slug>[\w-]+)/full/$', 'booking.views.fully_booked',

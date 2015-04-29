@@ -133,10 +133,12 @@ class BookingInlineFormSet(BaseInlineFormSet):
             block = form.instance.block
             form.fields['block'] = BlockModelChoiceField(
                 queryset=get_user_blocks(user, event_type),
-                initial=block, required=False,
+                initial=block,
+                required=False,
                 widget=forms.Select(attrs={'class': 'custom-select',
-                                           'id': 'id_block{}'.format(index)})
-            )
+                                           'id': 'id_block{}'.format(index)}))
+            form.fields['block'].empty_label = "--No block selected--"
+
             form.fields['user']=forms.ModelChoiceField(
                 queryset=User.objects.all(),
                 initial=user,
@@ -148,7 +150,7 @@ class BookingInlineFormSet(BaseInlineFormSet):
                 required=False,
                 widget=forms.Select(attrs={
                     'class': 'custom-select',
-                    'data-style': 'btn-info',
+                    'data-style': 'btn-info user-dropdown',
                     'disabled': 'disabled'})
             )
         else:

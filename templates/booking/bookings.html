@@ -12,7 +12,7 @@
     {% endif %}
 
     {% if bookingformlist %}
-    <p>Click on event title for more booking details.</p>
+    <p>Click on booking title for more class/event details.</p>
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-success">
@@ -32,7 +32,11 @@
                         {% for bookingform in bookingformlist %}
                             <tr {% if bookingform.booking.status == 'CANCELLED' %}class='expired'{% endif %}>
                                 <td>{{ bookingform.booking.event.date |  date:"D d F, g:i a" }}</td>
-                                <td><a href="{% url 'booking:booking_detail' bookingform.booking.pk %}">{{ bookingform.booking.event.name }}</a></td>
+                                <td><a {% if booking.event.event_type == 'CL' %}
+                                    href="{% url 'booking:event_detail' bookingform.booking.event.slug %}"
+                                      {% else %}
+                                    href="{% url 'booking:lesson_detail' bookingform.booking.event.slug %}"
+                                    {% endif %}>{{ bookingform.booking.event.name }}</a></td>
                                 <td>{{ bookingform.booking.status }}</td>
                                 <td class="table-center">£{{ bookingform.booking.event.cost }}</td>
                                 <td class="table-center">{% if bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>

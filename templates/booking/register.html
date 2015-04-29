@@ -18,7 +18,7 @@
                             <th class="table-center" >Status</th>
                             <th class="table-center">User</th>
                             <th class="table-center">Paid</th>
-                            <th class="table-center">Available Block</th>
+                            <th class="table-center">Use Available Block</th>
                         </tr>
 
                         {% for bookingform in formset %}
@@ -32,7 +32,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                            <td><input class="btn btn-success" type="submit" value="Save" /></td>
+                            <td><input class="btn btn-success" name="submitted" type="submit" value="Save" /></td>
                         </tr>
                     </table>
                 </div>

@@ -247,9 +247,6 @@ class Booking(models.Model):
     class Meta:
         unique_together = ('user', 'event')
 
-    def get_absolute_url(self):
-        return reverse("booking:booking_detail", args=[str(self.id)])
-
     def __str__(self):
         return "{} - {}".format(str(self.event.name), str(self.user.username))
 

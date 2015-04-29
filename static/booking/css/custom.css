@@ -530,3 +530,8 @@ a.disabled {
 td.table-center.register-table {
     padding: 5;
     }
+
+.user-dropdown>span {
+    color: black;
+    font-weight: 500;
+    }

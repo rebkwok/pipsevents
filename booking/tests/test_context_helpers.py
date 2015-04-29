@@ -6,7 +6,7 @@ from model_mommy import mommy
 from datetime import datetime
 from mock import patch
 from booking.models import Event, Booking, Block
-from booking.views import EventDetailView, BookingDetailView, LessonDetailView, BlockListView
+from booking.views import EventDetailView, LessonDetailView, BlockListView
 from booking.tests.helpers import set_up_fb, _create_session
 
 
@@ -218,119 +218,6 @@ class EventDetailContextTests(TestCase):
         request.user = self.user
         view = LessonDetailView.as_view()
         resp = view(request, slug=lesson.slug)
-        self.assertEquals(resp.context_data['type'], 'lesson')
-
-class BookingDetailContextTests(TestCase):
-    """
-    Test that context helpers are passing correct contexts
-    """
-
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-
-        self.CONTEXT_OPTIONS = {
-            'payment_text_no_cost':         "There is no cost associated with "
-                                            "this event.",
-            'payment_text_cost_not_open':   "Online payments are not open. ",
-            'payment_text_cost_open':       "Online payments are open. ",
-        }
-        self.CONTEXT_FLAGS = {
-            'include_payment_button': True,
-            'past': True
-        }
-
-
-    def _get_response(self, user, booking):
-        url = reverse('booking:booking_detail', args=[booking.id])
-        request = self.factory.get(url)
-        request.user = user
-        view = BookingDetailView.as_view()
-        return view(request, pk=booking.id)
-
-    def test_free_event(self):
-        """
-        Test correct context returned for a booking for a free event
-        """
-        free_event = mommy.make_recipe('booking.future_EV')
-        booking = mommy.make_recipe(
-            'booking.booking', event=free_event, user=self.user
-        )
-
-        resp = self._get_response(self.user, booking)
-        flags_not_expected = ['past', 'include_payment_button']
-        self.assertEquals(resp.context_data['payment_text'],
-                          self.CONTEXT_OPTIONS['payment_text_no_cost'])
-        for key in flags_not_expected:
-            self.assertFalse(key in resp.context_data.keys(),
-                             '{} should not be in context_data'.format(key))
-
-    def test_past_event(self):
-        """
-        Test correct context returned for a booking for a past event
-        """
-        past_event = mommy.make_recipe('booking.past_event')
-        past_event.payment_open = False
-        past_event.save()
-        booking = mommy.make_recipe(
-            'booking.booking', event=past_event, user=self.user
-        )
-        resp = self._get_response(self.user, booking)
-
-        # user is not booked; include confirm payment button,
-        # payment text etc is still in
-        # context; template handles the display
-        self.assertTrue('past' in resp.context_data.keys())
-        self.assertEquals(resp.context_data['payment_text'],
-                          self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
-
-    def test_event_with_cost(self):
-        """
-        Test correct context returned for a booking with associated cost
-        """
-        event = mommy.make_recipe('booking.future_WS', cost=10)
-        booking = mommy.make_recipe(
-            'booking.booking', event=event, user=self.user
-        )
-        #  payments open (default)
-        resp = self._get_response(self.user, booking)
-        flags_not_expected = ['booked']
-        self.assertEquals(resp.context_data['payment_text'],
-                          "Online payments are open. {}".format(event.payment_info)
-                          )
-        for key in flags_not_expected:
-            self.assertFalse(key in resp.context_data.keys(),
-                             '{} should not be in context_data'.format(key))
-
-        # close payments
-        event.payment_open = False
-        event.save()
-        resp = self._get_response(self.user, booking)
-        self.assertEquals(resp.context_data['payment_text'],
-            self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
-
-        flags_not_expected = ['booked', 'include_payment_button']
-        for key in flags_not_expected:
-            self.assertFalse(key in resp.context_data.keys(),
-                             '{} should not be in context_data'.format(key))
-
-    def test_lesson_and_event_format(self):
-        """
-        Test correct context returned for lessons and events
-        """
-        event = mommy.make_recipe('booking.future_WS', cost=10)
-        lesson = mommy.make_recipe('booking.future_PC', cost=10)
-
-        event_booking = mommy.make_recipe(
-            'booking.booking', event=event, user=self.user
-        )
-        lesson_booking = mommy.make_recipe(
-            'booking.booking', event=lesson, user=self.user
-        )
-        resp = self._get_response(self.user, event_booking)
-        self.assertEquals(resp.context_data['type'], 'event')
-        resp = self._get_response(self.user, lesson_booking)
         self.assertEquals(resp.context_data['type'], 'lesson')
 
 

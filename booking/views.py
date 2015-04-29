@@ -380,7 +380,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                           'Your Blocks</a> to buy a new one.',
                           extra_tags='safe')
 
-        return HttpResponseRedirect(booking.get_absolute_url())
+        return HttpResponseRedirect(reverse('booking:bookings'))
 
 
 class BlockCreateView(LoginRequiredMixin, CreateView):
@@ -502,7 +502,7 @@ class BlockListView(LoginRequiredMixin, ListView):
 class BookingUpdateView(LoginRequiredMixin, UpdateView):
     model = Booking
     template_name = 'booking/update_booking.html'
-    success_message = 'Booking updated!'
+    success_message = 'Booking updated for {} on {}!'
     fields = ['paid']
 
     def get_context_data(self, **kwargs):
@@ -549,7 +549,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
             active_block = [block for block in blocks
-                            if block.active_block()][0]
+                            if block.active_block() and
+                            block.block_type.event_type ==
+                            booking.event.event_type][0]
             booking.block = active_block
             booking.payment_confirmed = True
         booking.paid = True
@@ -567,37 +569,44 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         # send email to user
         send_mail('{} Booking for {} has been updated'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                  get_template('booking/email/booking_updated.txt').render(
-                      Context({
-                          'host': host,
-                          'booking': booking,
-                          'event': booking.event,
-                          'date': booking.event.date.strftime('%A %d %B'),
-                          'time': booking.event.date.strftime('%I:%M %p'),
-                          'blocks_used':  blocks_used,
-                          'total_blocks': total_blocks,
-                      })
-                  ),
+            get_template('booking/email/booking_updated.txt').render(
+                Context({
+                    'host': host,
+                    'booking': booking,
+                    'event': booking.event,
+                    'date': booking.event.date.strftime('%A %d %B'),
+                    'time': booking.event.date.strftime('%I:%M %p'),
+                    'blocks_used':  blocks_used,
+                    'total_blocks': total_blocks,
+                })
+            ),
             settings.DEFAULT_FROM_EMAIL,
             [booking.user.email],
             fail_silently=False)
         # send email to studio
         send_mail('{} {} has just confirmed payment for {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username, booking.event.name),
-                  get_template('booking/email/to_studio_booking_updated.txt').render(
-                      Context({
-                          'host': host,
-                          'booking': booking,
-                          'event': booking.event,
-                          'date': booking.event.date.strftime('%A %d %B'),
-                          'time': booking.event.date.strftime('%I:%M %p'),
-                      })
-                  ),
+            get_template('booking/email/to_studio_booking_updated.txt').render(
+                Context({
+                    'host': host,
+                    'booking': booking,
+                    'event': booking.event,
+                    'date': booking.event.date.strftime('%A %d %B'),
+                    'time': booking.event.date.strftime('%I:%M %p'),
+                    })
+                ),
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
-        messages.success(self.request, self.success_message)
-        return HttpResponseRedirect(booking.get_absolute_url())
+
+        messages.success(self.request, self.success_message.format(
+            booking.event.name, booking.event.date.strftime('%A %d %B, %I:%M %p')
+        ))
+
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('booking:bookings')
 
 
 class BookingDeleteView(LoginRequiredMixin, DeleteView):
@@ -683,35 +692,6 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_success_url(self):
         return reverse('booking:bookings')
-
-
-class BookingDetailView(LoginRequiredMixin, DetailView):
-    model = Booking
-    context_object_name = 'booking'
-    template_name = 'booking/booking.html'
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(BookingDetailView, self).get_context_data(**kwargs)
-        booking = self.object
-
-        # paypal
-        invoice_id = create_booking_paypal_transaction(
-            self.request.user, self.object
-        ).invoice_id
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-        paypal_form = PayPalPaymentsForm(
-            initial=context_helpers.get_paypal_dict(
-                host,
-                self.object.event.cost,
-                self.object.event,
-                invoice_id,
-                '{} {}'.format('booking', self.object.id)
-            )
-        )
-        context["paypalform"] = paypal_form
-
-        return context_helpers.get_booking_context(context, booking)
 
 
 def duplicate_booking(request, event_slug):
