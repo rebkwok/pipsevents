@@ -191,17 +191,22 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
     context_object_name = 'bookings'
     template_name = 'booking/bookings.html'
 
-
     def get_queryset(self):
         return Booking.objects.filter(
             (Q(event__date__lte=timezone.now()) | Q(status='CANCELLED')) & Q(user=self.request.user)
-        ).order_by('event__date')
+        ).order_by('-event__date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingHistoryListView, self).get_context_data(**kwargs)
         # Add in the history flag
         context['history'] = True
+
+        bookingformlist = []
+        for booking in self.object_list:
+            bookingform = {'booking': booking}
+            bookingformlist.append(bookingform)
+        context['bookingformlist'] = bookingformlist
         return context
 
 
