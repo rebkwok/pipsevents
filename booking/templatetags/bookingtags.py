@@ -1,5 +1,4 @@
 from django import template
-from booking.models import Event
 
 
 register = template.Library()
@@ -14,7 +13,6 @@ def format_cancellation(value):
     """
     Convert cancellation period in hours into formatted text
     """
-    # import ipdb; ipdb.set_trace()
     weeks = value // HOURS_CONVERSION['weeks']
     weeks_remainder = value % HOURS_CONVERSION['weeks']
     days = weeks_remainder // HOURS_CONVERSION['days']
@@ -39,3 +37,8 @@ def plural_format(value):
         return "s"
     else:
         return ""
+
+
+@register.filter
+def get_range(value):
+    return range(value)

@@ -53,11 +53,11 @@
                         <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
                         <li class="active-nav"><a href="{% url 'booking:events' %}">Events and Workshops</a></li>
                         {% if user.is_authenticated %}
-                           <li class="active-nav hidden-sm"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
-                            <li class="active-nav hidden-sm"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>
-                            <li class="active-nav hidden-sm"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
-                            <li class="active-nav hidden-sm"><a href="http://www.thewatermelonstudio.co.uk" target="_blank">Studio website</a></li>
-                            <li class="visible-sm dropdown">
+                           <li class="active-nav hidden-md"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
+                            <li class="active-nav hidden-md"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>
+                            <li class="active-nav hidden-md"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
+                            <li class="active-nav hidden-md"><a href="http://www.thewatermelonstudio.co.uk" target="_blank">Studio website</a></li>
+                            <li class="visible-md dropdown">
                               <a href="#" class="dropdown-toggle" data-toggle="dropdown">More<b class="caret"></b></a>
                               <ul class="dropdown-menu">
                                 <li class="active-nav"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
@@ -66,6 +66,15 @@
                                 <li class="active-nav"><a href="http://www.thewatermelonstudio.co.uk" target="_blank">Studio website</a></li>
                               </ul>
                             </li>
+                            {% if user.is_staff %}
+                                <li class="active-nav dropdown">
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Studio Admin<b class="caret"></b></a>
+                                    <ul class="dropdown-menu" role="menu">
+                                       <li class="active-nav"><a href="{% url 'admin:index' %}" target="_blank">Overall admin site</a></li>
+                                    </ul>
+                                </li>
+                            {% endif %}
+
                     {% endif %}
                     </ul>
 
@@ -75,9 +84,6 @@
                             <div class="welcome-menu">Signed in as {{user}}</div>
                           <a href="#" class="account-menu dropdown-toggle active-nav-login" data-toggle="dropdown" role="button" aria-expanded="false">Your account<span class="caret"></span></a>
                           <ul class="dropdown-menu" role="menu">
-                            {% if user.is_staff%}
-                            <li class="active-nav"><a href="{% url 'admin:index' %}" target="_blank">Admin</a></li>
-                            {% endif %}
                             <li class="active-nav-login"><a href="{% url 'account_change_password' %}">Change password</a></li>
                             <li class="active-nav-login"><a href="{% url 'account_email' %}">Change E-mail</a></li>
                             <li class="active-nav-login"><a href="{% url 'profile:update_profile' %}">Change profile</a></li>

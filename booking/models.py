@@ -156,8 +156,16 @@ class Block(models.Model):
 
     @property
     def expiry_date(self):
-        return self.start_date + relativedelta(
+        # replace block expiry date with very end of day
+        # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
+        # back 1 sec
+        expiry_datetime = self.start_date + relativedelta(
             months=self.block_type.duration)
+        next_day = (expiry_datetime + timedelta(
+            days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        return next_day - timedelta(seconds=1)
 
     @property
     def expired(self):

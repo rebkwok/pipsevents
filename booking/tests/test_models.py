@@ -244,9 +244,9 @@ class BlockTests(TestCase):
         dt = datetime(2015, 1, 1, tzinfo=timezone.utc)
         self.assertEqual(self.small_block.start_date, dt)
         self.assertEqual(self.small_block.expiry_date,
-                         datetime(2015, 3, 1, tzinfo=timezone.utc))
+                         datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc))
         self.assertEqual(self.large_block.expiry_date,
-                 datetime(2015, 5, 1, tzinfo=timezone.utc))
+                 datetime(2015, 5, 1, 23, 59, 59, tzinfo=timezone.utc))
 
     @patch.object(timezone, 'now',
                   return_value=datetime(2015, 2, 1, tzinfo=timezone.utc))
@@ -254,7 +254,8 @@ class BlockTests(TestCase):
         """
         Test that a 5 class unexpired block returns active correctly
         """
-        #self.small_block has not expired, block isn't full, payment not confirmed
+        # self.small_block has not expired, block isn't full, payment not
+        # confirmed
         self.assertFalse(self.small_block.active_block())
         # set paid
         self.small_block.paid=True
