@@ -3,6 +3,7 @@ from django.core import exceptions, validators
 from django.forms import widgets, Field
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from django.utils.html import mark_safe
 
 MONTH_CHOICES = {
             1: 'January',

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 
+
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import CreateView, ListView, UpdateView
 from django.utils import timezone
@@ -15,6 +16,7 @@ from booking.models import Event, Booking, Block, BlockType
 from booking.forms import SimpleBookingRegisterFormSet, ConfirmPaymentForm, \
     StatusFilter
 
+from studioadmin.forms import EventFormSet
 
 class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
@@ -203,29 +205,62 @@ def register_view(request, event_slug, status_choice='OPEN'):
     )
 
 
-class EventAdminListView(StaffuserRequiredMixin, ListView):
+def event_admin_list(request, ev_type):
+    if not request.user.is_authenticated():
+        return HttpResponseRedirect(reverse('account_login'))
+    if not request.user.is_staff:
+        return HttpResponseRedirect(reverse('booking:permission_denied'))
 
-    model = Event
-    context_object_name = 'events'
-    template_name = 'studioadmin/admin_events.html'
+    ev_type_abbreviation = 'EV' if ev_type == 'events' else 'CL'
 
-    def get(self, request, *args, **kwargs):
-        self.ev_type = kwargs['type']
-        self.ev_type_abbreviation = 'EV' if self.ev_type == 'events' else 'CL'
-        return super(EventAdminListView, self).get(request)
+    queryset = Event.objects.filter(
+        event_type__event_type=ev_type_abbreviation,
+        date__gte=timezone.now()
+    ).order_by('date')
+    events = True if queryset.count() > 0 else False
 
-    def get_queryset(self):
-        return Event.objects.filter(
-            event_type__event_type=self.ev_type_abbreviation,
-            date__gte=timezone.now()
-        ).order_by('date')
+    if request.method == 'POST':
+        eventformset = EventFormSet(request.POST)
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(EventAdminListView, self).get_context_data(**kwargs)
-        context['type'] = self.ev_type
+        if eventformset.is_valid():
+            if not eventformset.has_changed():
+                messages.info(request, "No changes were made")
+            else:
+                for form in eventformset:
+                    if form.has_changed():
+                        for field in form.changed_data:
+                            messages.info(
+                            request,
+                            "{} updated for {}".format(
+                                field, form.instance
+                            )
+                        )
+                        form.save(commit=False)
 
-        return context
+                    for error in form.errors:
+                        messages.error(request, "{}".format(error),
+                                       extra_tags='safe')
+                eventformset.save()
+            return HttpResponseRedirect(
+                reverse('studioadmin:{}'.format(ev_type),)
+            )
+        else:
+            messages.error(
+                request, "There were errors in the following fields:"
+            )
+            for error in eventformset.errors:
+                messages.error(request, "{}".format(error), extra_tags='safe')
+
+    else:
+        eventformset = EventFormSet(queryset=queryset)
+
+    return render(
+        request, 'studioadmin/admin_events.html', {
+            'eventformset': eventformset,
+            'type': ev_type,
+            'events': events
+            }
+    )
 
 
 class EventAdminUpdateView(StaffuserRequiredMixin, UpdateView):

@@ -11,6 +11,9 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-success">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ eventformset.management_form }}
 
                     <div class="table-responsive">
                         <table class="table">
@@ -25,29 +28,38 @@
                                 <th class="table-center">Edit</th>
                             </tr>
 
-                            {% for event in events %}
+                            {% for event in eventformset %}
                             <tr>
-                                <td>{{ event.date | date:"D d F, g:i a" }}</td>
+                                <span class="hide">{{ event.id }}</span>
+                                <td>{{ event.instance.date | date:"D d F, g:i a" }}</td>
                                 <td>{% if type == 'events' %}
-                                    {{ event.name }}
+                                    {{ event.instance.name }}
                                     {% elif type == 'lessons' %}
-                                    {{ event.name }}
+                                    {{ event.instance.name }}
                                     {% endif %}</td>
-                                <td class="table-center">£{{ event.cost }}</td>
-                                <td class="table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
-                                <td class="table-center">{{ event|bookings_count }}</td>
-                                <td class="table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                <td class="table-center">{% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                <td class="table-center"><div class="input-group input-group-sm custom-input"><span class="input-group-addon" id="sizing-addon2">£</span>
+                                    {{ event.cost }}</div></td>
+                                <td class="table-center"><div class="input-group input-group-sm custom-input">
+                                    {% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</div></td>
+                                <td class="table-center">{{ event.instance|bookings_count }}</td>
+                                <td class="table-center">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
+                                <td class="table-center">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 <td class="table-center">
                                     {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.slug %}">Edit event
+                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}">Edit event
                                     {% elif type == 'lessons' %}
-                                    <a href="{% url 'studioadmin:edit_lesson' event.slug %}">Edit class
+                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}">Edit class
                                     {% endif %}</a></td>
                             </tr>
                         {% endfor %}
+                        <tr>
+                            <td colspan="8"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save" /></td>
+                        </tr>
                     </table>
                 </div>
+
+            </form>
+
 
 
 

@@ -176,17 +176,17 @@ class EventAdmin(admin.ModelAdmin):
 
     fieldsets = [
         ('Event details', {
-            'fields':('name', 'date', 'location', 'event_type', 'description')
+            'fields': ('name', 'date', 'location', 'event_type', 'description')
         }),
         ('Contacts', {
-            'fields':('contact_person', 'contact_email')
+            'fields': ('contact_person', 'contact_email')
         }),
         ('Payment Information', {
-           'fields':('cost', 'advance_payment_required', 'booking_open',
-                     'payment_open', 'payment_info',  'payment_due_date')
+            'fields': ('cost', 'advance_payment_required', 'booking_open',
+                       'payment_open', 'payment_info',  'payment_due_date')
         }),
         ('Cancellation Period', {
-            'fields':('cancellation_period',),
+            'fields': ('cancellation_period',),
             'description': '<div class="help">%s</div>' % CANCELLATION_TEXT,
         }),
     ]
