@@ -59,6 +59,7 @@ INSTALLED_APPS = (
     'accounts',
     'booking',
     'timetable',
+    'studioadmin',
     'datetimewidget',
     'ckeditor',
     'paypal.standard.ipn',

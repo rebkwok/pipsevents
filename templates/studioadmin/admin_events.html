@@ -1,0 +1,63 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block content %}
+
+    <div class="container-fluid row">
+
+        <h1>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h1>
+        {% if events %}
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>Date</th>
+                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
+                                <th class="table-center">Cost</th>
+                                <th class="table-center">Max spaces</th>
+                                <th class="table-center">Bookings</th>
+                                <th class="table-center">Booking open</th>
+                                <th class="table-center">Payment open</th>
+                                <th class="table-center">Edit</th>
+                            </tr>
+
+                            {% for event in events %}
+                            <tr>
+                                <td>{{ event.date | date:"D d F, g:i a" }}</td>
+                                <td>{% if type == 'events' %}
+                                    {{ event.name }}
+                                    {% elif type == 'lessons' %}
+                                    {{ event.name }}
+                                    {% endif %}</td>
+                                <td class="table-center">£{{ event.cost }}</td>
+                                <td class="table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
+                                <td class="table-center">{{ event|bookings_count }}</td>
+                                <td class="table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                <td class="table-center">{% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                <td class="table-center">
+                                    {% if type == 'events' %}
+                                    <a href="{% url 'studioadmin:edit_event' event.slug %}">Edit event
+                                    {% elif type == 'lessons' %}
+                                    <a href="{% url 'studioadmin:edit_lesson' event.slug %}">Edit class
+                                    {% endif %}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+
+
+
+                </div>
+            </div>
+         </div>
+        {% else %}
+            <p>There are currently no {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} scheduled.</p>
+        {% endif %}
+
+    </div>
+
+{% endblock content %}

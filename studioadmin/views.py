@@ -2,13 +2,14 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
-from django.views.generic import UpdateView
+from django.views.generic import CreateView, ListView, UpdateView
 from django.utils import timezone
 from django.core.mail import send_mail
 
-from braces.views import LoginRequiredMixin
+from braces.views import LoginRequiredMixin, StaffuserRequiredMixin
 
 from booking.models import Event, Booking, Block, BlockType
 from booking.forms import SimpleBookingRegisterFormSet, ConfirmPaymentForm, \
@@ -18,7 +19,7 @@ from booking.forms import SimpleBookingRegisterFormSet, ConfirmPaymentForm, \
 class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
     model = Booking
-    template_name = 'booking/confirm_payment.html'
+    template_name = 'studioadmin/confirm_payment.html'
     success_message = 'Change to payment status confirmed.  An update email ' \
                       'has been sent to user {}.'
     form_class = ConfirmPaymentForm
@@ -79,7 +80,7 @@ class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 class ConfirmRefundView(LoginRequiredMixin, UpdateView):
 
     model = Booking
-    template_name = 'booking/confirm_refunded.html'
+    template_name = 'studioadmin/confirm_refunded.html'
     success_message = "Refund of payment for {}'s booking for {} has been " \
                       "confirmed.  An update email has been sent to {}."
     fields = '__all__'
@@ -100,7 +101,8 @@ class ConfirmRefundView(LoginRequiredMixin, UpdateView):
 
             messages.success(
                 self.request,
-                self.success_message.format(booking.user.username, booking.event,
+                self.success_message.format(booking.user.username,
+                                            booking.event,
                                             booking.user.username)
             )
 
@@ -123,7 +125,7 @@ class ConfirmRefundView(LoginRequiredMixin, UpdateView):
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse('booking:lessons')
+        return reverse('studioadmin:lessons')
 
 
 def register_view(request, event_slug, status_choice='OPEN'):
@@ -144,7 +146,8 @@ def register_view(request, event_slug, status_choice='OPEN'):
         )
 
         if formset.is_valid():
-            if not formset.has_changed() and request.POST.get('formset_submitted'):
+            if not formset.has_changed() and \
+                    request.POST.get('formset_submitted'):
                 messages.info(request, "No changes were made")
             else:
                 for form in formset:
@@ -162,8 +165,9 @@ def register_view(request, event_slug, status_choice='OPEN'):
                                        extra_tags='safe')
                 formset.save()
             return HttpResponseRedirect(
-                reverse('booking:register', kwargs={'event_slug': event.slug,
-                                                    'status_choice': status_choice})
+                reverse('studioadmin:register',
+                        kwargs={'event_slug': event.slug,
+                                'status_choice': status_choice})
             )
         else:
             messages.error(
@@ -192,8 +196,68 @@ def register_view(request, event_slug, status_choice='OPEN'):
         extra_lines = 2
 
     return render(
-        request, 'booking/register.html', {
+        request, 'studioadmin/register.html', {
             'formset': formset, 'event': event, 'status_filter': status_filter,
             'extra_lines': extra_lines
         }
     )
+
+
+class EventAdminListView(StaffuserRequiredMixin, ListView):
+
+    model = Event
+    context_object_name = 'events'
+    template_name = 'studioadmin/admin_events.html'
+
+    def get(self, request, *args, **kwargs):
+        self.ev_type = kwargs['type']
+        self.ev_type_abbreviation = 'EV' if self.ev_type == 'events' else 'CL'
+        return super(EventAdminListView, self).get(request)
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            event_type__event_type=self.ev_type_abbreviation,
+            date__gte=timezone.now()
+        ).order_by('date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(EventAdminListView, self).get_context_data(**kwargs)
+        context['type'] = self.ev_type
+
+        return context
+
+
+class EventAdminUpdateView(StaffuserRequiredMixin, UpdateView):
+
+    pass
+
+
+class EventAdminCreateView(StaffuserRequiredMixin, CreateView):
+
+    pass
+
+
+class TimetableListView(StaffuserRequiredMixin, ListView):
+
+    pass
+
+
+class TimetableSessionDetailView(StaffuserRequiredMixin, UpdateView):
+
+    pass
+
+
+class TimetableSessionDetailView(StaffuserRequiredMixin, CreateView):
+
+    pass
+
+
+def upload_timetable_view(request):
+
+    pass
+
+
+def email_event_users_view(request):
+
+    pass
