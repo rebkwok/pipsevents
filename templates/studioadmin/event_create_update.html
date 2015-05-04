@@ -1,0 +1,30 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+{% load crispy_forms_tags %}
+
+{% block studioadmincontent %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                {% if event %}
+                <h2 class="panel-title">{{ event.name }} on {{ event.date | date:"D d F, g:i a" }}</h2>
+                {% else %}
+                <h2 class="panel-title">Adding new {{ type }}</h2>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                <input class="btn btn-success" name="submitted" type="submit" value="Save" />
+                </form>
+            </div>
+
+        </div>
+    </div>
+ </div>
+
+{% endblock studioadmincontent %}

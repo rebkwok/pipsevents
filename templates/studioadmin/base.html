@@ -24,9 +24,9 @@
                 <li class="sidebar-title">Classes</li>
                     <li><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
                     <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
-                    <li><a href="#">{% if sidenav_selection == 'add_lesson' %}
+                    <li><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
                         <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lesson_register' %}
+                    <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
                     <span class="sidebar_active">Class registers</span>{% else %}Class registers{% endif %}</a></li>
                 <li class="sidebar-title">Timetable</li>
                      <li><a href="#">{% if sidenav_selection == 'timetable' %}
@@ -38,9 +38,9 @@
                 <li class="sidebar-title">Events</li>
                      <li><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
                     <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
-                     <li><a href="#">{% if sidenav_selection == 'add_event' %}
+                     <li><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
                     <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'event_register' %}
+                    <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
                     <span class="sidebar_active">Event registers</span>{% else %}Event registers{% endif %}</a></li>
                 <li class="sidebar-title">Students</li>
                     <li><a href="#">{% if sidenav_selection == 'users' %}

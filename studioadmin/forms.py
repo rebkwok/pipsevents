@@ -64,11 +64,14 @@ EventFormSet = modelformset_factory(
 
 class EventAdminForm(forms.ModelForm):
 
-    fields = (
-        'name', 'event_type', 'date',
-        'description', 'booking_open',
-        'payment_open', 'cancellation_period'
-    )
+    class Meta:
+        model = Event
+        fields = (
+            'name', 'event_type', 'date', 'description', 'location',
+            'max_participants', 'contact_person', 'contact_email',
+            'booking_open', 'payment_open', 'payment_info',
+            'payment_due_date', 'cancellation_period'
+        )
 
 
 class SimpleBookingInlineFormSet(BaseInlineFormSet):
