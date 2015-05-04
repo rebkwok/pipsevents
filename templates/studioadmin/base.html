@@ -12,3 +12,49 @@
 {% endblock %}
 
 {% block admin-nav %}{% endblock admin-nav %}
+
+{% block content %}
+<div id="wrapper">
+
+        <!-- Sidebar -->
+        <div id="sidebar-wrapper">
+
+            <ul class="sidebar-nav">
+                <li class="sidebar-brand">Studio Admin</li>
+                <li class="sidebar-title">Classes</li>
+                    <li><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
+                    <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
+                    <li><a href="#">{% if sidenav_selection == 'add_lesson' %}
+                    <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
+                <li class="sidebar-title">Timetable</li>
+                     <li><a href="#">{% if sidenav_selection == 'timetable' %}
+                    <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
+                    <li><a href="#">{% if sidenav_selection == 'add_session' %}
+                    <span class="sidebar_active">Add a new session</span>{% else %}Add a new session{% endif %}</a></li>
+                    <li><a href="#">{% if sidenav_selection == 'upload_timetable' %}
+                    <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
+                <li class="sidebar-title">Events</li>
+                     <li><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
+                    <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
+                     <li><a href="#">{% if sidenav_selection == 'add_event' %}
+                    <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
+                <li class="sidebar-title">Email students</li>
+                    <li><a href="#">{% if sidenav_selection == 'email' %}
+                    <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
+            </ul>
+
+        </div>
+
+        <!-- Page content -->
+        <div id="page-content-wrapper">
+
+            <!-- Keep all page content within the page-content inset div! -->
+            <div class="page-content inset">
+
+
+            {% block studioadmincontent %}{% endblock %}
+
+            </div>
+        </div>
+</div>
+{% endblock %}

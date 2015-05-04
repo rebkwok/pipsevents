@@ -2,11 +2,11 @@
 {% load static %}
 {% load bookingtags %}
 
-{% block content %}
+{% block studioadmincontent %}
 
     <div class="container-fluid row">
 
-        <h1>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h1>
+        <h2>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
@@ -72,4 +72,4 @@
 
     </div>
 
-{% endblock content %}
+{% endblock studioadmincontent %}

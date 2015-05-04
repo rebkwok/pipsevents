@@ -258,7 +258,8 @@ def event_admin_list(request, ev_type):
         request, 'studioadmin/admin_events.html', {
             'eventformset': eventformset,
             'type': ev_type,
-            'events': events
+            'events': events,
+            'sidenav_selection': ev_type
             }
     )
 

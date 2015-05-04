@@ -36,7 +36,8 @@ class EventBaseFormSet(BaseModelFormSet):
                     'class': 'form-control',
                     'aria-describedby': 'sizing-addon2',
                 }),
-                initial=form.instance.cost
+                initial=form.instance.cost,
+                required=False
             )
             form.fields['max_participants'] = forms.IntegerField(
                 widget=forms.TextInput(attrs={
@@ -45,7 +46,8 @@ class EventBaseFormSet(BaseModelFormSet):
                     'aria-describedby': 'sizing-addon2',
                     'style': 'text-align: center;'
                 }),
-                initial=form.instance.max_participants
+                initial=form.instance.max_participants,
+                required=False
             )
 
 
