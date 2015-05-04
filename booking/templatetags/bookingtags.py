@@ -49,5 +49,11 @@ def get_range(value):
 
 
 @register.filter
+def get_index(event, extraline_index):
+    spaces_left = event.spaces_left()
+    return event.bookings.count() + 1 + extraline_index
+
+
+@register.filter
 def bookings_count(event):
     return event.bookings.count()

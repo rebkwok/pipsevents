@@ -1,0 +1,48 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
+        {% if events %}
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>Date</th>
+                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
+                                <th class="table-center">Register</th>
+                            </tr>
+
+                            {% for event in events %}
+                            <tr>
+                                <td>{{ event.date | date:"D d F, g:i a" }}</td>
+                                <td>{{ event.name }}</td>
+                                <td class="table-center">
+                                    {% if type == 'events' %}
+                                        <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">View event register
+                                    {% elif type == 'lessons' %}
+                                        <a href="{% url 'studioadmin:class_register' event.slug 'OPEN' %}">
+                                        View class register
+                                    {% endif %}</a></td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+         </div>
+        {% else %}
+            <p>There are currently no {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} scheduled.</p>
+        {% endif %}
+
+    </div>
+
+{% endblock studioadmincontent %}

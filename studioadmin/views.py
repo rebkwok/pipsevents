@@ -6,17 +6,17 @@ from django.db.models import Q
 
 
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, ListView, UpdateView, DeleteView
 from django.utils import timezone
 from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin, StaffuserRequiredMixin
 
 from booking.models import Event, Booking, Block, BlockType
-from booking.forms import SimpleBookingRegisterFormSet, ConfirmPaymentForm, \
-    StatusFilter
 
-from studioadmin.forms import EventFormSet
+from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
+    EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter
+
 
 class ConfirmPaymentView(LoginRequiredMixin, UpdateView):
 
@@ -130,7 +130,7 @@ class ConfirmRefundView(LoginRequiredMixin, UpdateView):
         return reverse('studioadmin:lessons')
 
 
-def register_view(request, event_slug, status_choice='OPEN'):
+def register_view(request, event_slug, status_choice='OPEN', print=False):
 
     event = get_object_or_404(Event, slug=event_slug)
 
@@ -140,6 +140,10 @@ def register_view(request, event_slug, status_choice='OPEN'):
         return HttpResponseRedirect(reverse('booking:permission_denied'))
 
     if request.method == 'POST':
+
+        if request.POST.get("print"):
+            print = True
+
         status_choice = request.POST.getlist('status_choice')[0]
 
         formset = SimpleBookingRegisterFormSet(
@@ -166,10 +170,18 @@ def register_view(request, event_slug, status_choice='OPEN'):
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')
                 formset.save()
+
+            register_url = 'studioadmin:event_register'
+            if event.event_type.event_type == 'CL':
+                register_url = 'studioadmin:class_register'
+            if print:
+                register_url = register_url + '_print'
+
             return HttpResponseRedirect(
-                reverse('studioadmin:register',
+                reverse(register_url,
                         kwargs={'event_slug': event.slug,
-                                'status_choice': status_choice})
+                                'status_choice': status_choice}
+                        )
             )
         else:
             messages.error(
@@ -197,10 +209,15 @@ def register_view(request, event_slug, status_choice='OPEN'):
     else:
         extra_lines = 2
 
+    template = 'studioadmin/register.html'
+    if print:
+        template = 'studioadmin/register_print.html'
+
     return render(
-        request, 'studioadmin/register.html', {
+        request, template, {
             'formset': formset, 'event': event, 'status_filter': status_filter,
-            'extra_lines': extra_lines
+            'extra_lines': extra_lines, 'print': print,
+            'status_choice': status_choice
         }
     )
 
@@ -264,13 +281,44 @@ def event_admin_list(request, ev_type):
     )
 
 
+class EventRegisterListView(StaffuserRequiredMixin, ListView):
+
+    model = Event
+    template_name = 'studioadmin/events_register_list.html'
+    context_object_name = 'events'
+
+    def get(self, request, *args, **kwargs):
+        self.ev_type = kwargs['ev_type']
+        self.ev_type_abbreviation = 'EV' if self.ev_type == 'events' else 'CL'
+        return super(EventRegisterListView, self).get(request, *args, **kwargs)
+
+    def get_queryset(self):
+
+        return Event.objects.filter(
+            event_type__event_type=self.ev_type_abbreviation,
+            date__gte=timezone.now()
+        ).order_by('date')
+
+    def get_context_data(self, **kwargs):
+        context = super(EventRegisterListView, self).get_context_data(**kwargs)
+        context['type'] = self.ev_type
+        return context
+
+
 class EventAdminUpdateView(StaffuserRequiredMixin, UpdateView):
 
-    pass
+    form_class = EventAdminForm
 
 
 class EventAdminCreateView(StaffuserRequiredMixin, CreateView):
 
+    pass
+
+
+class EventAdminDeleteView(StaffuserRequiredMixin, DeleteView):
+    # Allow deleting; if bookings made, show warning, cancel bookings, email
+    # users and studio with refund info and cancel event rather than deleting.
+    # Need to add event status open/cancelled to model
     pass
 
 
@@ -279,13 +327,18 @@ class TimetableListView(StaffuserRequiredMixin, ListView):
     pass
 
 
-class TimetableSessionDetailView(StaffuserRequiredMixin, UpdateView):
+class TimetableSessionUpdateView(StaffuserRequiredMixin, UpdateView):
 
     pass
 
 
-class TimetableSessionDetailView(StaffuserRequiredMixin, CreateView):
+class TimetableSessionCreateView(StaffuserRequiredMixin, CreateView):
 
+    pass
+
+
+class TimetableSessionDeleteView(StaffuserRequiredMixin, DeleteView):
+    # sessions can be deleted safely as there are no bookings made against them
     pass
 
 
