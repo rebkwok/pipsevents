@@ -52,11 +52,20 @@ def create_classes(week='this', input_date=None):
             payment_open=session.payment_open,
             advance_payment_required=True,
             booking_open=session.booking_open,
-            payment_info=session.payment_info
+            payment_info=session.payment_info,
+            cancellation_period=session.cancellation_period
         )
         if created:
             created_classes.append(cl)
         else:
             existing_classes.append(cl)
+
+    return created_classes, existing_classes
+
+
+def upload_timetable(start_date, end_date):
+
+    created_classes = None
+    existing_classes = None
 
     return created_classes, existing_classes

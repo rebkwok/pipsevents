@@ -5,7 +5,8 @@ from studioadmin.views import (ConfirmRefundView,
                                EventAdminUpdateView,
                                EventAdminCreateView,
                                EventRegisterListView,
-                               TimetableListView,
+                               TimetableSessionUpdateView,
+                               TimetableSessionCreateView
                                )
 
 
@@ -15,7 +16,7 @@ urlpatterns = patterns('',
     url(r'^confirm-refunded/(?P<pk>\d+)/$', ConfirmRefundView.as_view(),
         name='confirm-refund'),
     url(r'^events/(?P<slug>[\w-]+)/edit$', EventAdminUpdateView.as_view(),
-        {'ev_type': 'events'}, name='edit_event'),
+        {'ev_type': 'event'}, name='edit_event'),
     url(r'^events/$', 'studioadmin.views.event_admin_list',
         {'ev_type': 'events'}, name='events'),
     url(r'^event-registers/$', EventRegisterListView.as_view(),
@@ -27,7 +28,7 @@ urlpatterns = patterns('',
     url(r'^events/new/$', EventAdminCreateView.as_view(),
         {'ev_type': 'event'}, name='add_event'),
     url(r'^classes/(?P<slug>[\w-]+)/edit$', EventAdminUpdateView.as_view(),
-        {'ev_type': 'lessons'}, name='edit_lesson'),
+        {'ev_type': 'lesson'}, name='edit_lesson'),
     url(r'^classes/$', 'studioadmin.views.event_admin_list',
         {'ev_type': 'lessons'}, name='lessons'),
     url(r'^class-registers/$', EventRegisterListView.as_view(),
@@ -38,5 +39,16 @@ urlpatterns = patterns('',
         'studioadmin.views.register_view', {'print': True}, name='class_register_print'),
     url(r'^classes/new/$', EventAdminCreateView.as_view(),
         {'ev_type': 'lesson'}, name='add_lesson'),
+    url(r'^timetable/$', 'studioadmin.views.timetable_admin_list', name='timetable'),
+    url(
+        r'^timetable/session/(?P<pk>\d+)/edit$',
+        TimetableSessionUpdateView.as_view(), name='edit_session'
+    ),
+    url(
+        r'^timetable/session/new$',
+        TimetableSessionCreateView.as_view(), name='add_session'
+    ),
+    url(r'^timetable/upload/$', 'studioadmin.views.upload_timetable_view',
+        name='upload_timetable'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

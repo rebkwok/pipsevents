@@ -1,0 +1,66 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Timetable</h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ sessionformset.management_form }}
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>Day</th>
+                                <th>Time</th>
+                                <th>Session</th>
+                                <th class="table-center">Cost</th>
+                                <th class="table-center">Max spaces</th>
+                                <th class="table-center">Booking open</th>
+                                <th class="table-center">Payment open</th>
+                                <th class="table-center">Edit</th>
+                                <th class="table-center">Delete</th>
+                            </tr>
+
+                            {% for session in sessionformset %}
+                            <tr>
+                                <span class="hide">{{ session.id }}</span>
+                                <td class="studioadmin-tbl">{{ session.formatted_day }}</td>
+                                <td class="studioadmin-tbl">{{ session.instance.time|time:"H:i" }}</td>
+                                <td class="studioadmin-tbl">{{ session.instance.name }}</td>
+                                <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input"><span class="input-group-addon" id="sizing-addon2">£</span>
+                                    {{ session.cost }}</div></td>
+                                <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input">
+                                    {% if session.max_participants %}{{ session.max_participants }}{% else %}N/A{% endif %}</div></td>
+                                <td class="table-center studioadmin-tbl">{{ session.booking_open }}<label for={{ session.booking_open_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ session.payment_open }}<label for={{ session.payment_open_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">
+                                    <a href="{% url 'studioadmin:edit_session' session.instance.id %}">Edit details</a></td>
+                                <td class="table-center studioadmin-tbl">{{ session.DELETE }}<label for={{ session.DELETE_id }}></label></td>
+
+                            </tr>
+                        {% endfor %}
+                        <tr>
+                        <td class="studioadmin-tbl" colspan="9"><in put class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Save" /></td>
+                        </tr>
+                    </table>
+                </div>
+
+            </form>
+
+
+
+
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

@@ -585,6 +585,48 @@ label {
     color: #173B0B;
 }
 
+.delete-checkbox {
+    display: none;
+}
+.delete-checkbox + label {
+    background-color: #fafafa;
+    border: 1px solid #cacece;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05);
+    padding: 9px;
+    border-radius: 3px;
+    display: inline-block;
+    position: relative;
+}
+.delete-checkbox + label:active, .delete-checkbox:checked + label:active {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px 1px 3px rgba(0,0,0,0.1);
+}
+.delete-checkbox:checked + label {
+    background-color: #F5A9A9;
+    border: 1px solid #adb8c0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05), inset 15px 10px -12px rgba(255,255,255,0.1);
+    color: #99a1a7;
+}
+.delete-checkbox:checked + label:after {
+    content: '\2714';
+    font-size: 14px;
+    position: absolute;
+    top: 0px;
+    left: 3px;
+    color: #000;
+}
+.delete-checkbox-disabled {
+    display: none;
+}
+.delete-checkbox-disabled + label {
+    background-color: #BDBDBD;
+    border: 1px solid #cacece;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05);
+    padding: 9px;
+    border-radius: 3px;
+    display: inline-block;
+    position: relative;
+}
+
 .custom-input {
     width: 80;
 }
@@ -600,4 +642,32 @@ a > span.fa.fa-print {
 
 .notes-row{
     padding-bottom: 100 !important;
+}
+
+.create-form {
+    width: 200px;
+}
+
+.form-error {
+    color: red;
+}
+
+.input-group > .studioadmin-list {
+    height: 25 !important;
+    border-radius: 45 !important;
+}
+
+.input-group-addon {
+    height: 25 !important;
+    padding: 2 5 0 5 !important;
+}
+
+.studioadmin-tbl {
+    padding-top: 5 !important;
+    padding-bottom: 5 !important;
+}
+
+.studioadmin-help {
+    font-size: smaller;
+    font-style: italic;
 }

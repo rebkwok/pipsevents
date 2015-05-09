@@ -10,10 +10,10 @@
     <div class="col-sm-12">
        <div class="panel panel-success">
             <div class="panel-heading">
-                {% if event %}
-                <h2 class="panel-title">{{ event.name }} on {{ event.date | date:"D d F, g:i a" }}</h2>
+                {% if session %}
+                <h2 class="panel-title">{{ session.name }} - {{ session_day }} {{ session.time }}</h2>
                 {% else %}
-                <h2 class="panel-title">Adding new {{ type }}</h2>
+                <h2 class="panel-title">Adding new timetable session</h2>
                 {% endif %}
             </div>
             <div class="panel-body">
@@ -30,12 +30,12 @@
                 <form class="form-horizontal" method="post" action="">
                     {% csrf_token %}
 
-                    <div class="form-group-sm col-sm-10">
+                    <div class="form-group-sm">
 
                         {% for field in form %}
                             {% if field.label == "Cost" %}
                                 <div class="form-group">
-                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                     <div class="col-sm-9">
                                         <div class="input-group">
                                             <span class="input-group-addon" id="sizing-addon2">£</span>
@@ -45,28 +45,30 @@
                                 </div>
                             {% elif field.label == "Booking open"%}
                             <div class="form-group">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        {{ field }}<label for='booking_open_id'><span class="studioadmin-help">{{ field.help_text }}</span>
+                                        {{ field }}<label for='booking_open_id'></label><p class="studioadmin-help">{{ field.help_text }}</p>
                                 </div>
                             </div>
                             {% elif field.label == "Payment open"%}
                             <div class="form-group">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        {{ field }}<label for='payment_open_id'></label> <p class="studioadmin-help">{{ field.help_text }}</p>
+                                        {{ field }}<label for='payment_open_id'></label><p class="studioadmin-help">{{ field.help_text }}</p>
                                 </div>
                             </div>
                              {% else %}
                                 <div class="form-group">
-                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
-                                    <div class="col-sm-9">{{ field }}<p class="studioadmin-help">{{ field.help_text }}</p></div>
+                                    <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-9">
+                                        {{ field }}<p class="studioadmin-help">{{ field.help_text }}</p>
+                                    </div>
                                 </div>
                             {% endif %}
                         {% endfor %}
 
                     <div class="form-group">
-                        <div class="col-sm-offset-3 col-sm-9">
+                        <div class="col-sm-offset-2 col-sm-10">
                             <button type="submit" class="btn btn-success">Save</button>
                         </div>
                     </div>

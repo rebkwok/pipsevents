@@ -60,7 +60,6 @@ INSTALLED_APPS = (
     'booking',
     'timetable',
     'studioadmin',
-    'datetimewidget',
     'ckeditor',
     'paypal.standard.ipn',
     'payments',
@@ -265,7 +264,26 @@ CKEDITOR_CONFIGS = {
         # 'height': 300,
         'width': 350,
     },
+    'studioadmin': {
+        'toolbar': [
+		 ['Source', '-', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
+         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
+          'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-',
+          'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
+         ['Format', 'Font', 'FontSize', 'Link']
+        ],
+        'height': 200,
+        'width': 600,
+    },
+    'studioadmin_min': {
+        'toolbar': [
+		 ['Bold', 'Italic', 'Underline', 'FontSize', 'Link']
+        ],
+        'height': 100,
+        'width': 600,
+    },
 }
+CKEDITOR_JQUERY_URL = '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
 
 # MAILCATCHER
 if DEBUG:

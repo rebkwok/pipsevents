@@ -57,3 +57,12 @@ def get_index(event, extraline_index):
 @register.filter
 def bookings_count(event):
     return event.bookings.count()
+
+@register.filter
+def format_datetime(date):
+    date = date.value()
+    return date.strftime("%d %b %Y %H:%M")
+
+@register.filter
+def format_field_name(field):
+    return field.replace('_', ' ').title()

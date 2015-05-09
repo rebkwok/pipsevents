@@ -7,6 +7,8 @@
     <div class="container-fluid row">
 
         <h2>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
+        <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
+            classes{% endif %} that have not yet been booked can be deleted. </p>
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
@@ -26,34 +28,37 @@
                                 <th class="table-center">Booking open</th>
                                 <th class="table-center">Payment open</th>
                                 <th class="table-center">Edit</th>
+                                <th class="table-center">Delete</th>
                             </tr>
 
                             {% for event in eventformset %}
                             <tr>
                                 <span class="hide">{{ event.id }}</span>
-                                <td>{{ event.instance.date | date:"D d F, g:i a" }}</td>
-                                <td>{% if type == 'events' %}
+                                <td class="studioadmin-tbl">{{ event.instance.date | date:"D d F, H:i" }}</td>
+                                <td class="studioadmin-tbl">{% if type == 'events' %}
                                     {{ event.instance.name }}
                                     {% elif type == 'lessons' %}
                                     {{ event.instance.name }}
                                     {% endif %}</td>
-                                <td class="table-center"><div class="input-group input-group-sm custom-input"><span class="input-group-addon" id="sizing-addon2">£</span>
+                                <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input studioadmin-cbx-addon"><span class="input-group-addon" id="sizing-addon3">£</span>
                                     {{ event.cost }}</div></td>
-                                <td class="table-center"><div class="input-group input-group-sm custom-input">
+                                <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input">
                                     {% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</div></td>
-                                <td class="table-center">{{ event.instance|bookings_count }}</td>
-                                <td class="table-center">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
-                                <td class="table-center">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
-                                <td class="table-center">
+                                <td class="table-center studioadmin-tbl">{{ event.instance|bookings_count }}</td>
+                                <td class="table-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}">Edit event details
-                                    {% elif type == 'lessons' %}
-                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}">Edit class details
-                                    {% endif %}</a></td>
+                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}">Edit details
+                                    {% elif type == 'lessons' %}</a>
+                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}">Edit details
+                                    {% endif %}</a>
+                                </td>
+                                <td class="table-center studioadmin-tbl">{{ event.DELETE }}<label for={{ event.DELETE_id }}></label></td>
                             </tr>
                         {% endfor %}
                         <tr>
-                            <td colspan="8"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save" /></td>
+                            <td class="studioadmin-tbl" colspan="9"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save" /></td>
                         </tr>
                     </table>
                 </div>

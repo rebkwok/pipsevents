@@ -13,9 +13,20 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 
 from booking.models import Event, Booking, Block, BlockType
+from booking import utils
 
+from timetable.models import Session
 from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
-    EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter
+    EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
+    TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
+    UploadTimetableForm
+
+
+def check_permissions(request):
+    if not request.user.is_authenticated():
+        return HttpResponseRedirect(reverse('account_login'))
+    if not request.user.is_staff:
+        return HttpResponseRedirect(reverse('booking:permission_denied'))
 
 
 class StaffUserMixin(object):
@@ -131,13 +142,9 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
 
 def register_view(request, event_slug, status_choice='OPEN', print=False):
+    check_permissions(request)
 
     event = get_object_or_404(Event, slug=event_slug)
-
-    if not request.user.is_authenticated():
-        return HttpResponseRedirect(reverse('account_login'))
-    if not request.user.is_staff:
-        return HttpResponseRedirect(reverse('booking:permission_denied'))
 
     if request.method == 'POST':
 
@@ -228,10 +235,7 @@ def register_view(request, event_slug, status_choice='OPEN', print=False):
 
 
 def event_admin_list(request, ev_type):
-    if not request.user.is_authenticated():
-        return HttpResponseRedirect(reverse('account_login'))
-    if not request.user.is_staff:
-        return HttpResponseRedirect(reverse('booking:permission_denied'))
+    check_permissions(request)
 
     ev_type_abbreviation = 'EV' if ev_type == 'events' else 'CL'
 
@@ -250,14 +254,26 @@ def event_admin_list(request, ev_type):
             else:
                 for form in eventformset:
                     if form.has_changed():
-                        for field in form.changed_data:
+                        if 'DELETE' in form.changed_data:
                             messages.info(
-                            request,
-                            "{} updated for {}".format(
-                                field, form.instance
+                                request,
+                                'Session <strong>{}</strong> has been deleted!'.format(
+                                    form.instance,
+                                ),
+                                extra_tags='safe'
                             )
-                        )
-                        form.save(commit=False)
+                        else:
+                            for field in form.changed_data:
+                                messages.info(
+                                    request,
+                                    "<strong>{}</strong> updated for "
+                                    "<strong>{}</strong>".format(
+                                        field.title().replace("_", " "),
+                                        form.instance
+                                        ),
+                                    extra_tags='safe'
+                                )
+                        form.save()
 
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
@@ -316,24 +332,39 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
     template_name = 'studioadmin/event_create_update.html'
     context_object_name = 'event'
 
+    def get_form_kwargs(self, **kwargs):
+        form_kwargs = super(EventAdminUpdateView, self).get_form_kwargs(**kwargs)
+        form_kwargs['ev_type'] = 'EV' if self.kwargs["ev_type"] == 'event' \
+            else 'CL'
+        return form_kwargs
+
     def get_object(self):
         queryset = Event.objects.all()
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
         context = super(EventAdminUpdateView, self).get_context_data(**kwargs)
-        context['type'] = self.kwargs["ev_type"][0:-1]
-        if self.kwargs["ev_type"] == "lessons":
+        context['type'] = self.kwargs["ev_type"]
+        if self.kwargs["ev_type"] == "lesson":
             context['type'] = "class"
-        context['sidenav_selection'] = self.kwargs['ev_type']
+        context['sidenav_selection'] = self.kwargs['ev_type'] + 's'
 
         return context
 
     def form_valid(self, form):
+        if form.has_changed():
+            event = form.save()
+            msg_ev_type = 'Event' if self.kwargs["ev_type"] == 'event' else 'Class'
+            msg = '<strong>{} {}</strong> has been updated!'.format(
+                msg_ev_type, event.name
+            )
+        else:
+            msg = 'No changes made'
+        messages.info(self.request, msg, extra_tags='safe')
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse('studioadmin:{}'.format(self.kwargs["ev_type"]))
+        return reverse('studioadmin:{}'.format(self.kwargs["ev_type"] + 's'))
 
 
 class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
@@ -342,6 +373,12 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
     model = Event
     template_name = 'studioadmin/event_create_update.html'
     context_object_name = 'event'
+
+    def get_form_kwargs(self, **kwargs):
+        form_kwargs = super(EventAdminCreateView, self).get_form_kwargs(**kwargs)
+        form_kwargs['ev_type'] = 'EV' if self.kwargs["ev_type"] == 'event' \
+            else 'CL'
+        return form_kwargs
 
     def get_context_data(self, **kwargs):
         context = super(EventAdminCreateView, self).get_context_data(**kwargs)
@@ -352,10 +389,15 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
         return context
 
     def form_valid(self, form):
+        event = form.save()
+        msg_ev_type = 'Event' if self.kwargs["ev_type"] == 'event' else 'Class'
+        messages.info(self.request, '<strong>{} {}</strong> has been '
+                                    'created!'.format(msg_ev_type, event.name),
+                      extra_tags='safe')
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse('studioadmin:{}'.format(self.kwargs["ev_type"]))
+        return reverse('studioadmin:{}'.format(self.kwargs["ev_type"] + 's'))
 
 
 class EventAdminDeleteView(LoginRequiredMixin, StaffUserMixin, DeleteView):
@@ -366,36 +408,159 @@ class EventAdminDeleteView(LoginRequiredMixin, StaffUserMixin, DeleteView):
     pass
 
 
-class TimetableListView(LoginRequiredMixin, StaffUserMixin, ListView):
+def timetable_admin_list(request):
+    check_permissions(request)
 
-    pass
+    if request.method == 'POST':
+        sessionformset = TimetableSessionFormSet(request.POST)
+
+        if sessionformset.is_valid():
+            if not sessionformset.has_changed():
+                messages.info(request, "No changes were made")
+            else:
+                for form in sessionformset:
+                    if form.has_changed():
+                        if 'DELETE' in form.changed_data:
+                            messages.info(
+                                request,
+                                'Session <strong>{} {} {}</strong> has been deleted!'.format(
+                                form.instance.name,
+                                DAY_CHOICES[form.instance.day],
+                                form.instance.time.strftime('%H:%M'),
+                                ),
+                                extra_tags='safe'
+                            )
+                        else:
+                            for field in form.changed_data:
+                                messages.info(
+                                    request,
+                                    "<strong>{}</strong> updated for "
+                                    "<strong>{}</strong>".format(
+                                        field.title().replace("_", " "),
+                                        form.instance
+                                        ),
+                                    extra_tags='safe'
+                                )
+                        form.save()
+
+                    for error in form.errors:
+                        messages.error(request, "{}".format(error),
+                                       extra_tags='safe')
+                sessionformset.save()
+            return HttpResponseRedirect(
+                reverse('studioadmin:timetable')
+            )
+        else:
+            messages.error(
+                request, "There were errors in the following fields:"
+            )
+            for error in sessionformset.errors:
+                messages.error(request, "{}".format(error), extra_tags='safe')
+
+    else:
+        sessionformset = TimetableSessionFormSet(
+            queryset=Session.objects.all().order_by('day')
+        )
+
+    return render(
+        request, 'studioadmin/timetable_list.html', {
+            'sessionformset': sessionformset,
+            'sidenav_selection': 'timetable'
+            }
+    )
 
 
 class TimetableSessionUpdateView(
     LoginRequiredMixin, StaffUserMixin, UpdateView
 ):
 
-    pass
+    form_class = SessionAdminForm
+    model = Session
+    template_name = 'studioadmin/session_create_update.html'
+    context_object_name = 'session'
+
+    def get_object(self):
+        queryset = Session.objects.all()
+        return get_object_or_404(queryset, pk=self.kwargs['pk'])
+
+    def get_context_data(self, **kwargs):
+        context = super(
+            TimetableSessionUpdateView, self
+        ).get_context_data(**kwargs)
+        context['sidenav_selection'] = 'timetable'
+        context['session_day'] = DAY_CHOICES[self.object.day]
+
+        return context
+
+    def form_valid(self, form):
+        if form.has_changed():
+            session = form.save()
+            msg = 'Session <strong>{} {} {}</strong> has been updated!'.format(
+                session.name, DAY_CHOICES[session.day],
+                session.time.strftime('%H:%M')
+            )
+        else:
+            msg = 'No changes made'
+        messages.info(self.request, msg, extra_tags='safe')
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:timetable')
 
 
 class TimetableSessionCreateView(
     LoginRequiredMixin, StaffUserMixin, CreateView
 ):
 
-    pass
+    form_class = SessionAdminForm
+    model = Session
+    template_name = 'studioadmin/session_create_update.html'
+    context_object_name = 'session'
+
+    def get_context_data(self, **kwargs):
+        context = super(
+            TimetableSessionCreateView, self
+        ).get_context_data(**kwargs)
+        context['sidenav_selection'] = 'add_session'
+        return context
+
+    def form_valid(self, form):
+        session = form.save()
+        msg = 'Session <strong>{} {} {}</strong> has been created!'.format(
+            session.name, DAY_CHOICES[session.day],
+            session.time.strftime('%H:%M')
+        )
+        messages.info(self.request, msg, extra_tags='safe')
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:timetable')
 
 
-class TimetableSessionDeleteView(
-    LoginRequiredMixin, StaffUserMixin, DeleteView
-):
-    # sessions can be deleted safely as there are no bookings made against them
+def upload_timetable_view(request,
+                          template_name="studioadmin/upload_timetable_form.html"):
+    check_permissions(request)
 
-    pass
-
-
-def upload_timetable_view(request):
-
-    pass
+    if request.method == 'POST':
+        form = UploadTimetableForm(request.POST)
+        if form.is_valid():
+            start_date = form.cleaned_data['start_date']
+            end_date = form.cleaned_data['start_date']
+            created_classes, existing_classes = \
+                utils.upload_timetable(start_date, end_date)
+            context = {'start_date': start_date,
+                       'end_date': end_date,
+                       'created_classes': created_classes,
+                       'existing_classes': existing_classes,
+                       'sidenav_selection': 'upload_timetable'}
+            return render(
+                request, 'studioadmin/upload_timetable_confirmation.html',
+                context
+            )
+    else:
+        form = UploadTimetableForm()
+    return render(request, template_name,
+                  {'form': form, 'sidenav_selection': 'upload_timetable'})
 
 
 def email_event_users_view(request):
