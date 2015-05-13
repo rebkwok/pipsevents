@@ -44,17 +44,17 @@
                                     </div>
                                 </div>
                             {% elif field.label == "Booking open"%}
-                            <div class="form-group">
+                            <div class="form-group cbox">
                                 <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        {{ field }}<label for='booking_open_id'></label><p class="studioadmin-help">{{ field.help_text }}</p>
+                                        {{ field }}<label for='booking_open_id'></label><span class="studioadmincbox-help">  {{ field.help_text }}</span>
                                 </div>
                             </div>
                             {% elif field.label == "Payment open"%}
-                            <div class="form-group">
+                            <div class="form-group cbox">
                                 <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        {{ field }}<label for='payment_open_id'></label><p class="studioadmin-help">{{ field.help_text }}</p>
+                                        {{ field }}<label for='payment_open_id'></label><span class="studioadmincbox-help">  {{ field.help_text }}</span>
                                 </div>
                             </div>
                              {% else %}

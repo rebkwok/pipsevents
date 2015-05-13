@@ -652,6 +652,15 @@ a > span.fa.fa-print {
     color: red;
 }
 
+.form-group {
+    margin-bottom: 5;
+}
+
+.form-group.cbox {
+    margin-top: 10;
+    margin-bottom: 10;
+}
+
 .input-group > .studioadmin-list {
     height: 25 !important;
     border-radius: 45 !important;
@@ -665,9 +674,23 @@ a > span.fa.fa-print {
 .studioadmin-tbl {
     padding-top: 5 !important;
     padding-bottom: 5 !important;
+    float: left;
+    white-space: nowrap;
+    font-size: small;
+
 }
 
 .studioadmin-help {
     font-size: smaller;
     font-style: italic;
+}
+
+.studioadmincbox-help {
+    font-size: smaller;
+    font-style: italic;
+    vertical-align: top;
+}
+
+.email-message {
+    height: 300 !important;
 }

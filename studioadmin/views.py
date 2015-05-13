@@ -1,9 +1,14 @@
+import urllib.parse
+import ast
+
 from django import forms
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-
+from django.template.loader import get_template
+from django.template import Context
 
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView
@@ -19,7 +24,7 @@ from timetable.models import Session
 from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
-    UploadTimetableForm
+    UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm
 
 
 def check_permissions(request):
@@ -545,7 +550,7 @@ def upload_timetable_view(request,
         form = UploadTimetableForm(request.POST)
         if form.is_valid():
             start_date = form.cleaned_data['start_date']
-            end_date = form.cleaned_data['start_date']
+            end_date = form.cleaned_data['end_date']
             created_classes, existing_classes = \
                 utils.upload_timetable(start_date, end_date)
             context = {'start_date': start_date,
@@ -563,6 +568,182 @@ def upload_timetable_view(request,
                   {'form': form, 'sidenav_selection': 'upload_timetable'})
 
 
-def email_event_users_view(request):
+class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
-    pass
+    model = User
+    template_name = 'studioadmin/user_list.html'
+    context_object_name = 'users'
+
+    def get_context_data(self):
+        context = super(UserListView, self).get_context_data()
+        context['sidenav_selection'] = 'users'
+        return context
+
+
+class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
+
+    model = Block
+    template_name = 'studioadmin/block_list.html'
+    context_object_name = 'blocks'
+
+    def get_context_data(self):
+        context = super(BlockListView, self).get_context_data()
+        context['sidenav_selection'] = 'blocks'
+        return context
+
+
+def choose_users_to_email(request,
+                          template_name='studioadmin/choose_users_form.html'):
+
+    check_permissions(request)
+
+    initial_userfilterdata={'events': [''], 'lessons': ['']}
+
+    if 'filter' in request.POST:
+        event_ids = request.POST.getlist('filter-events')
+        lesson_ids = request.POST.getlist('filter-lessons')
+
+        if event_ids == ['']:
+            if request.session.get('events'):
+                del request.session['events']
+            event_ids = []
+        else:
+            request.session['events'] = event_ids
+            initial_userfilterdata['events'] = event_ids
+
+        if lesson_ids == ['']:
+            if request.session.get('lessons'):
+                del request.session['lessons']
+            lesson_ids = []
+        else:
+            request.session['lessons'] = lesson_ids
+            initial_userfilterdata['lessons'] = lesson_ids
+
+        if not event_ids and not lesson_ids:
+            usersformset = ChooseUsersFormSet(
+                queryset=User.objects.all().order_by('username'))
+        else:
+            event_and_lesson_ids = event_ids + lesson_ids
+            bookings = Booking.objects.filter(event__id__in=event_and_lesson_ids)
+            user_ids = set([booking.user.id for booking in bookings])
+            usersformset = ChooseUsersFormSet(
+                queryset=User.objects.filter(id__in=user_ids).order_by('username')
+            )
+
+    elif request.method == 'POST':
+        usersformset = ChooseUsersFormSet(request.POST)
+
+        if usersformset.is_valid():
+
+            event_ids = request.session.get('events', [])
+            lesson_ids = request.session.get('lessons', [])
+            users_to_email = []
+
+            for form in usersformset:
+                # check checkbox value to determine if that user is to be
+                # emailed; add user_id to list
+                if form.is_valid():
+                    if form.cleaned_data.get('email_user'):
+                        users_to_email.append(form.instance.id)
+                else:
+                    for error in form.errors:
+                        messages.error(request, "{}".format(error),
+                                           extra_tags='safe')
+
+            request.session['users_to_email'] = users_to_email
+
+            return HttpResponseRedirect(url_with_querystring(
+                reverse('studioadmin:email_users_view'), events=event_ids, lessons=lesson_ids)
+            )
+
+        else:
+            messages.error(
+                request, "There were errors in the following fields:"
+            )
+            for error in usersformset.errors:
+                messages.error(request, "{}".format(error), extra_tags='safe')
+
+    else:
+        usersformset = ChooseUsersFormSet(
+            queryset=User.objects.all().order_by('username'),
+        )
+
+    userfilterform = UserFilterForm(prefix='filter', initial=initial_userfilterdata)
+
+    return render(
+        request, template_name, {
+            'usersformset': usersformset,
+            'userfilterform': userfilterform,
+            'sidenav_selection': 'email_users',
+            }
+    )
+
+
+def url_with_querystring(path, **kwargs):
+    return path + '?' + urllib.parse.urlencode(kwargs)
+
+
+def email_users_view(request,
+                     template_name='studioadmin/email_users_form.html'):
+
+        check_permissions(request)
+        users_to_email = User.objects.filter(id__in=request.session['users_to_email'])
+
+        if request.method == 'POST':
+
+            form = EmailUsersForm(request.POST)
+            if form.is_valid():
+                subject = '{} {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    form.cleaned_data['subject'])
+                from_address = form.cleaned_data['from_address']
+                message = form.cleaned_data['message']
+                cc = form.cleaned_data['cc']
+
+                # do this per email address so recipients are not visible to
+                # each
+                email_addresses = [user.email for user in users_to_email]
+                if cc:
+                    email_addresses.append(from_address)
+                for email_address in email_addresses:
+                    send_mail(subject, message, from_address,
+                              [email_address],
+                              html_message=get_template(
+                                  'studioadmin/email/email_users.html').render(
+                                  Context({
+                                      'subject': subject,
+                                      'message': message})
+                              ),
+                              fail_silently=False)
+
+                return render(request,
+                    'studioadmin/email_users_confirmation.html')
+
+            else:
+                event_ids = request.session.get('events')
+                lesson_ids = request.session.get('lessons')
+                events = Event.objects.filter(id__in=event_ids)
+                lessons = Event.objects.filter(id__in=lesson_ids)
+                totaleventids = event_ids + lesson_ids
+                totalevents = Event.objects.filter(id__in=totaleventids)
+                messages.error(request, "Please correct errors in form: {}".format(form.errors), extra_tags='safe')
+                form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
+
+        else:
+            event_ids = ast.literal_eval(request.GET['events'])
+            events = Event.objects.filter(id__in=event_ids)
+            lesson_ids = ast.literal_eval(request.GET['lessons'])
+            lessons = Event.objects.filter(id__in=lesson_ids)
+            totaleventids = event_ids + lesson_ids
+            totalevents = Event.objects.filter(id__in=totaleventids)
+            form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
+
+        return render(
+            request, template_name, {
+                'form': form,
+                'users_to_email': users_to_email,
+                'sidenav_selection': 'email_users',
+                'events': events,
+                'lessons': lessons
+            }
+        )

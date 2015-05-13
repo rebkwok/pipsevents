@@ -65,7 +65,45 @@ def create_classes(week='this', input_date=None):
 
 def upload_timetable(start_date, end_date):
 
-    created_classes = None
-    existing_classes = None
+    daylist = [
+        '01MON',
+        '02TUE',
+        '03WED',
+        '04THU',
+        '05FRI',
+        '06SAT',
+        '07SUN'
+        ]
+
+    created_classes = []
+    existing_classes = []
+
+    d = start_date
+    delta = timedelta(days=1)
+    while d <= end_date:
+        sessions_to_create = Session.objects.filter(day=daylist[d.weekday()])
+        for session in sessions_to_create:
+            cl, created = Event.objects.get_or_create(
+                name=session.name,
+                event_type=session.event_type,
+                date=(datetime.combine(d,
+                    session.time).replace(tzinfo=timezone.utc)),
+                description=session.description,
+                max_participants=session.max_participants,
+                location=session.location,
+                contact_person=session.contact_person,
+                contact_email=session.contact_email,
+                cost=session.cost,
+                payment_open=session.payment_open,
+                advance_payment_required=True,
+                booking_open=session.booking_open,
+                payment_info=session.payment_info,
+                cancellation_period=session.cancellation_period
+            )
+            if created:
+                created_classes.append(cl)
+            else:
+                existing_classes.append(cl)
+        d += delta
 
     return created_classes, existing_classes

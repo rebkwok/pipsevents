@@ -34,8 +34,8 @@ jQuery('#datepicker').datetimepicker({
     scrollInput: false,
 });
 
-jQuery('#datepicker1').datetimepicker({
-    format:'DD MMM YYYY',
+jQuery('#datepicker_startdate').datetimepicker({
+    format:'dd DD MMM YYYY',
     formatTime:'HH:mm',
     timepicker: false,
     minDate: 0,
@@ -45,6 +45,16 @@ jQuery('#datepicker1').datetimepicker({
     scrollInput: false,
 });
 
+jQuery('#datepicker_enddate').datetimepicker({
+    format:'ddd DD MMM YYYY',
+    formatTime:'HH:mm',
+    timepicker: false,
+    minDate: 0,
+    closeOnDateSelect: true,
+    scrollMonth: false,
+    scrollTime: false,
+    scrollInput: false,
+});
 
 jQuery('#timepicker').datetimepicker({
     format:'HH:mm',

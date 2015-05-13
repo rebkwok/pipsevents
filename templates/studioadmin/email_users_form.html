@@ -1,0 +1,80 @@
+{% extends 'studioadmin/base.html' %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+{{ form.media }}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h2 class="panel-title">Email Students</h2>
+            </div>
+           {% if users_to_email %}
+                <div class="panel-body">
+                        <div>
+                            {% if events or lessons %}
+                                You are sending an email regarding:
+                                {% if events %}
+                                <ul>
+                                    {% for event in events %}
+                                    <li>{{ event }}</li>
+                                    {% endfor %}
+                                    {% for lesson in lessons %}
+                                    <li>{{ lesson }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                            {% endif %}
+
+                            The following students will be emailed:
+                            <ul>
+                            {% for user in users_to_email %}
+                                <li>{{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+                            {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                          <span class="divider"></span>
+                    <div class="panel-body">
+                    <form class="form-horizontal" method="post" action="">
+                        {% csrf_token %}
+
+                        <div class="form-group-sm col-sm-10">
+
+                            {% for field in form %}
+                                {% if field.label == 'cc. from address'%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        {{ field }}<label for='cc_id'></label><span class="studioadmincbox-help">  {{ field.help_text }}</span>
+                                </div>
+                            </div>
+                                {% else %}
+                                <div class="form-group">
+                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-9">{{ field }}<p class="studioadmin-help">{{ field.help_text }}</p></div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <div class="col-sm-offset-3 col-sm-9">
+                                <button type="submit" class="btn btn-success">Send Email</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+           {% else %}
+           <div class="panel-body">
+                No students selected for this email!  Go <a href="{% url 'studioadmin:choose_email_users' %}">here</a> to select students.
+           </div>
+               {% endif %}
+
+        </div>
+    </div>
+ </div>
+
+{% endblock %}

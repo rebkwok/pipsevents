@@ -6,7 +6,9 @@ from studioadmin.views import (ConfirmRefundView,
                                EventAdminCreateView,
                                EventRegisterListView,
                                TimetableSessionUpdateView,
-                               TimetableSessionCreateView
+                               TimetableSessionCreateView,
+                               UserListView,
+                               BlockListView,
                                )
 
 
@@ -50,5 +52,11 @@ urlpatterns = patterns('',
     ),
     url(r'^timetable/upload/$', 'studioadmin.views.upload_timetable_view',
         name='upload_timetable'),
+    url(r'^users/$', UserListView.as_view(), name="users"),
+    url(r'^blocks/$', BlockListView.as_view(), name="blocks"),
+    url(r'^email-users/$', 'studioadmin.views.choose_users_to_email',
+        name="choose_email_users"),
+    url(r'^email-users/emailform/$', 'studioadmin.views.email_users_view',
+        name="email_users_view"),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

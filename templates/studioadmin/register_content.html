@@ -29,8 +29,7 @@
                         {% if not print %}
                             <tr class="filter-row no-print">
                                 <td class="filter-row" {% if status_choice == 'OPEN' %}colspan="9"{% else %}colspan="8"{% endif %}>
-                                <input class="btn btn-success" name="formset_submitted" type="submit" value="Save" />
-                                <input class="btn btn-info" name="print" type="submit" value="Printable Version" />
+                                <input class="btn btn-info table-btn" name="print" type="submit" value="Printable Version" />
                                 <div class="pull-right">
                                 {{ status_filter.status_choice }}
                                 <input class="btn btn-info table-btn" name="status_choice" type="submit" value="filter" />
@@ -42,19 +41,19 @@
                             <tr>
                                 <span class="hide">{{ bookingform.id }}{{ bookingform.user }}</span>
                                 {% if status_choice == 'OPEN' %}
-                                <td class="table-center register-index">{{ bookingform.index }}.</td>
+                                <td class="table-center register-index studioadmin-tbl">{{ bookingform.index }}.</td>
                                 {% endif %}
-                                <td class="table-center">{{ bookingform.attended }}<label for={{ bookingform.checkbox_attended_id }}></label></td>
-                                <td class="table-center">{{ bookingform.instance.status }}</td>
-                                <td class="table-center">{{ bookingform.instance.user.first_name }}
+                                <td class="table-center studioadmin-tbl">{{ bookingform.attended }}<label for={{ bookingform.checkbox_attended_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.status }}</td>
+                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.user.first_name }}
                                     {{ bookingform.instance.user.last_name }} ({{ bookingform.instance.user.username }})</td>
-                                <td class="table-center">{% if bookingform.instance.paid %}<span class="fa fa-check"></span>
+                                <td class="table-center studioadmin-tbl">{% if bookingform.instance.paid %}<span class="fa fa-check"></span>
                                     {% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                <td class="table-center">{% if bookingform.instance.block %}<span class="fa fa-check"></span>
+                                <td class="table-center studioadmin-tbl">{% if bookingform.instance.block %}<span class="fa fa-check"></span>
                                     {% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                <td class="table-center">{{ bookingform.available_block.expiry_date|date:"D d M Y" }}</td>
-                                <td class="table-center">{{ bookingform.available_block.block_type.size }}</td>
-                                <td class="table-center">{{ bookingform.available_block.bookings_made }}</td>
+                                <td class="table-center studioadmin-tbl">{{ bookingform.available_block.expiry_date|date:"D d M Y" }}</td>
+                                <td class="table-center studioadmin-tbl">{{ bookingform.available_block.block_type.size }}</td>
+                                <td class="table-center studioadmin-tbl">{{ bookingform.available_block.bookings_made }}</td>
                             </tr>
                         {% endfor %}
                         {% for i in extra_lines|get_range %}
@@ -64,16 +63,15 @@
                                 {{ event|get_index:i }}.
                             </td>
                             {% endif %}
-                            <td class="table-center"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
+                            <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
                             <td colspan="7"></td></tr>
                         {% endfor %}
                         {% if print %}
-                        <tr><td class="notes-row" {% if status_choice == 'OPEN' %}colspan="9"{% else %}colspan="8"{% endif %}>Notes: </td></tr>
+                        <tr><td class="notes-row " {% if status_choice == 'OPEN' %}colspan="9"{% else %}colspan="8"{% endif %}>Notes: </td></tr>
                         {% endif %}
                         {% if not print %}
                             <tr no-print>
                                 <td {% if status_choice == 'OPEN' %}colspan="8"{% else %}colspan="7"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save" /></td>
-                                <td><input class="btn btn-info" name="print" type="submit" value="Printable Version" /></td>
                             </tr>
                         {% endif %}
                     </table>

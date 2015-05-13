@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date
 import time
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.forms.models import modelformset_factory, BaseModelFormSet, \
     inlineformset_factory, BaseInlineFormSet
@@ -13,6 +14,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Block, Booking, Event, EventType
 from timetable.models import Session
+
 
 class EventBaseFormSet(BaseModelFormSet):
 
@@ -515,8 +517,8 @@ class UploadTimetableForm(forms.Form):
         widget=forms.DateInput(
             attrs={
                 'class': "form-control",
-                'id': 'datepicker'},
-            format='%d %b %Y'
+                'id': 'datepicker_startdate'},
+            format='%a %d %b %Y'
         ),
         required=True,
         initial=date.today()
@@ -527,8 +529,8 @@ class UploadTimetableForm(forms.Form):
         widget=forms.DateInput(
             attrs={
                 'class': "form-control",
-                'id': 'datepicker1'},
-            format='%d %b %Y'
+                'id': 'datepicker_enddate'},
+            format='%a %d %b %Y'
         ),
         required=True,
     )
@@ -542,7 +544,7 @@ class UploadTimetableForm(forms.Form):
             if self.errors.get('start_date'):
                 del self.errors['start_date']
             try:
-                start_date = datetime.strptime(start_date, '%d %b %Y').date()
+                start_date = datetime.strptime(start_date, '%a %d %b %Y').date()
                 if start_date >= timezone.now().date():
                     cleaned_data['start_date'] = start_date
                 else:
@@ -552,14 +554,14 @@ class UploadTimetableForm(forms.Form):
                 self.add_error(
                     'start_date', 'Invalid date format.  Select from '
                                         'the date picker or enter date in the '
-                                        'format dd Mmm YYYY')
+                                        'format e.g. Fri 01 May 2015')
 
         end_date = self.data.get('end_date')
         if end_date:
             if self.errors.get('end_date'):
                 del self.errors['end_date']
             try:
-                end_date = datetime.strptime(end_date, '%d %b %Y').date()
+                end_date = datetime.strptime(end_date, '%a %d %b %Y').date()
                 if end_date >= start_date:
                     cleaned_data['end_date'] = end_date
                 else:
@@ -572,3 +574,79 @@ class UploadTimetableForm(forms.Form):
                                         'format dd Mmm YYYY')
 
         return cleaned_data
+
+
+class ChooseUsersBaseFormSet(BaseModelFormSet):
+
+    def add_fields(self, form, index):
+        super(ChooseUsersBaseFormSet, self).add_fields(form, index)
+
+        form.fields['email_user'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox studioadmin-list",
+                'id': 'email_user_cbox_{}'.format(index)
+            }),
+            initial=True,
+            required=False
+        )
+        form.email_user_cbox_id = 'email_user_cbox_{}'.format(index)
+
+ChooseUsersFormSet = modelformset_factory(
+    User,
+    fields=('id',),
+    formset=ChooseUsersBaseFormSet,
+    extra=0,
+    can_delete=False)
+
+
+class EmailUsersForm(forms.Form):
+    subject = forms.CharField(max_length=255, required=True,
+                              widget=forms.TextInput(
+                                  attrs={'class': 'form-control'}))
+    from_address = forms.EmailField(max_length=255,
+                                    initial=settings.DEFAULT_FROM_EMAIL,
+                                    required=True,
+                                    widget=forms.TextInput(
+                                        attrs={'class': 'form-control'}))
+    cc = forms.BooleanField(
+        widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox studioadmin-list",
+                'id': 'cc_id'
+            }),
+        label="cc. from address",
+        initial=True,
+        required=False
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control email-message',
+                                     'rows': 10}),
+        required=True)
+
+
+def get_event_names(event_type):
+
+    def callable():
+        EVENT_CHOICES = [(event.id, str(event)) for event in Event.objects.filter(
+            event_type__event_type=event_type, date__gte=timezone.now()
+        ).order_by('date')]
+        EVENT_CHOICES.insert(0, ('', '--None selected--'))
+        return tuple(EVENT_CHOICES)
+
+    return callable
+
+
+class UserFilterForm(forms.Form):
+
+    events = forms.MultipleChoiceField(
+        choices=get_event_names('EV'),
+        widget=forms.SelectMultiple(
+            attrs={'class': 'form-control'}
+        ),
+    )
+
+    lessons = forms.MultipleChoiceField(
+        choices=get_event_names('CL'),
+        widget=forms.SelectMultiple(
+            attrs={'class': 'form-control'}
+        ),
+    )
