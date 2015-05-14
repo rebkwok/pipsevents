@@ -66,3 +66,4 @@ def format_datetime(date):
 @register.filter
 def format_field_name(field):
     return field.replace('_', ' ').title()
+

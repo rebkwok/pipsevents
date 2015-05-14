@@ -12,16 +12,18 @@
                 <div class="panel panel-success">
 
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
                             <tr class="success">
-                                <th class="table-center">Username</th>
-                                <th class="table-center">First Name</th>
-                                <th class="table-center">Last Name</th>
+                                <th class="table-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="table-center">First Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Email</th>
                                 <th class="table-center">Bookings</th>
                                 <th class="table-center">Blocks</th>
-
                             </tr>
+                            </thead>
+                            <tbody>
                             {% for user in users %}
                             <tr>
                                 <td class="table-center studioadmin-tbl">{{ user.username }}</td>
@@ -32,7 +34,7 @@
                                 <td class="table-center studioadmin-tbl"></td>
                             </tr>
                             {% endfor %}
-
+                            </tbody>
                         </table>
                     </div>
                 </div>

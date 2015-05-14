@@ -24,7 +24,12 @@ from timetable.models import Session
 from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
-    UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm
+    UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
+    BlockStatusFilter
+
+
+class ImproperlyConfigured(Exception):
+    pass
 
 
 def check_permissions(request):
@@ -585,10 +590,36 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = Block
     template_name = 'studioadmin/block_list.html'
     context_object_name = 'blocks'
+    default_sort_params = ('block_type', 'asc')
+
+    def get_queryset(self):
+        block_status = self.request.GET.get('block_status', 'active')
+        all_blocks = Block.objects.all()
+        if block_status == 'all':
+            return all_blocks
+        elif block_status == 'active':
+            active = (block.id for block in all_blocks if block.active_block())
+            return Block.objects.filter(id__in=active)
+        elif block_status == 'unpaid':
+            unpaid = (block.id for block in all_blocks
+                      if not block.expired and not block.paid
+                      and not block.full)
+            return Block.objects.filter(id__in=unpaid)
+        elif block_status == 'expired':
+            expired = (block.id for block in all_blocks if block.expired)
+            return Block.objects.filter(id__in=expired)
+        elif block_status == 'full':
+            full = (block.id for block in all_blocks if block.full)
+            return Block.objects.filter(id__in=full)
 
     def get_context_data(self):
         context = super(BlockListView, self).get_context_data()
         context['sidenav_selection'] = 'blocks'
+
+        block_status = self.request.GET.get('block_status', 'active')
+        form = BlockStatusFilter(initial={'block_status': block_status})
+        context['form'] = form
+
         return context
 
 
@@ -625,7 +656,8 @@ def choose_users_to_email(request,
         else:
             event_and_lesson_ids = event_ids + lesson_ids
             bookings = Booking.objects.filter(event__id__in=event_and_lesson_ids)
-            user_ids = set([booking.user.id for booking in bookings])
+            user_ids = set([booking.user.id for booking in bookings
+                            if booking.status == 'OPEN'])
             usersformset = ChooseUsersFormSet(
                 queryset=User.objects.filter(id__in=user_ids).order_by('username')
             )

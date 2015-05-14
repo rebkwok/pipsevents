@@ -650,3 +650,16 @@ class UserFilterForm(forms.Form):
             attrs={'class': 'form-control'}
         ),
     )
+
+
+class BlockStatusFilter(forms.Form):
+
+    block_status = forms.ChoiceField(
+        choices=(('active', 'Active (and paid)'),
+                 ('unpaid', 'Not yet paid (and not expired)'),
+                 ('expired', 'Expired'),
+                 ('full', 'Full'),
+                 ('all', 'All'),
+                 ),
+        widget=forms.Select(),
+    )

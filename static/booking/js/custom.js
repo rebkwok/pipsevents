@@ -72,6 +72,13 @@ jQuery(function($) {
     $('#timemask').mask("99:99", {placeholder:"HH:MM"});
     })
 
+//http://tablesorter.com/docs/
+$(document).ready(function()
+    {
+        $("#sortTable").tablesorter();
+    }
+);
+
 
 //For the register dropdown
 //function FilterBlocks(index) {
