@@ -1,0 +1,70 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ userbookingformset.management_form }}
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr class="success">
+                                <th>Date</th>
+                                <th>Class/Event</th>
+                                <th class="table-center">Paid</th>
+                                <th class="table-center">Block used</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for booking in userbookingformset %}
+                            <tr>
+                                <span class="hide">{{ booking.id }}</span>
+                                {% if booking.instance.id %}
+                                    <span class="hide">{{ booking.event }}</span>
+                                    <span class="hide">{{ booking.block }}</span>
+                                    <td class="studioadmin-tbl">{{ booking.instance.event.date }}</td>
+                                    <td class="studioadmin-tbl">{{ booking.instance.event.name }}</td>
+                                    {% if booking.instance.paid %}
+                                    <span class="hide">{{ booking.paid }}</span>
+                                    <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
+                                    {% else %}
+                                    <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
+                                    {% endif %}
+                                    <td class="table-center studioadmin-tbl">{% if booking.instance.block and booking.instance.paid %}
+                                        <span class="fa fa-check"></span>
+                                        {% elif booking.instance.paid %}
+                                        Paid directly
+                                        {% else %}
+                                        <div class="form-group form-group-sm">{{ booking.block }}</div>
+                                        {% endif %}</td>
+                                {% else %}
+                                    <td class="studioadmin-tbl"><strong>New booking</strong></td>
+                                    <td class="studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.event }}</div></td>
+                                    <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
+                                    <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.block }}</div></td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                            <tr>
+                            <td class="studioadmin-tbl" colspan="4"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

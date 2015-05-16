@@ -24,6 +24,7 @@
                             <th>Status</th>
                             <th class="table-center">Cost</th>
                             <th class="table-center">Paid</th>
+                            <th class="table-center">Block used</th>
                             <th class="table-center">Place confirmed</th>
                             {% if not history %}
                             <th> </th>
@@ -41,6 +42,8 @@
                                 <td class="table-center">£{{ bookingform.booking.event.cost }}</td>
                                 <td class="table-center">{% if bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>
                                     {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed fa fa-close"></span>
+                                    {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
                                 {% if bookingform.booking.space_confirmed %}
                                     <td class="table-center confirmed fa fa-check"></td>

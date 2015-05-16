@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Block, Booking, Event, EventType
+from booking.models import Block, Booking, Event, EventType, BlockType
 from timetable.models import Session
 
 
@@ -663,3 +663,152 @@ class BlockStatusFilter(forms.Form):
                  ),
         widget=forms.Select(),
     )
+
+
+class UserBlockModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "Block type: {}; {} left".format(
+            obj.block_type.event_type, obj.block_type.size - obj.bookings_made()
+        )
+    def to_python(self, value):
+        if value:
+            return Block.objects.get(id=value)
+
+class UserBookingInlineFormSet(BaseInlineFormSet):
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super(UserBookingInlineFormSet, self).__init__(*args, **kwargs)
+        for form in self.forms:
+            form.empty_permitted = True
+
+    def add_fields(self, form, index):
+        super(UserBookingInlineFormSet, self).add_fields(form, index)
+
+        if not form.instance.block:
+
+            active_user_blocks = [block.id for block in
+                                  Block.objects.filter(user=self.user)
+                                  if block.active_block()]
+            form.fields['block'] = (UserBlockModelChoiceField(
+                queryset=Block.objects.filter(id__in=active_user_blocks),
+                widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+                required=False,
+                empty_label="---Choose from user's active blocks---"
+            ))
+        else:
+            form.fields['block'] = (UserBlockModelChoiceField(
+                queryset=Block.objects.all(),
+                widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+                required=False,
+                empty_label="---Choose from user's active blocks---"
+            ))
+
+        if not form.instance.id:
+            already_booked = [
+                booking.event.id for booking
+                in Booking.objects.filter(user=self.user)
+                if booking.status == 'OPEN'
+            ]
+
+            form.fields['event'] = (forms.ModelChoiceField(
+                queryset=Event.objects.filter(
+                    date__gte=timezone.now()
+                ).filter(booking_open=True).exclude(
+                    id__in=already_booked).order_by('date'),
+                widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            ))
+        else:
+            form.fields['event'] = (forms.ModelChoiceField(
+                queryset=Event.objects.all(),
+            ))
+
+        form.fields['paid'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'paid_{}'.format(index)
+            }),
+            required=False
+        )
+        form.paid_id = 'paid_{}'.format(index)
+
+    def clean(self):
+        """
+        make sure that block selected is for the correct event type
+        and that a block has not been filled
+        :return:
+        """
+        super(UserBookingInlineFormSet, self).clean()
+        if {
+            '__all__': ['Booking with this User and Event already exists.']
+        } in self.errors:
+            pass
+        elif any(self.errors):
+            return
+
+        block_tracker = {}
+        for form in self.forms:
+            # this occurs when we try to create a cancelled booking;
+            # deal with this later in the view
+            if form.errors.get('__all__') == [
+                'Booking with this User and Event already exists.'
+            ]:
+                del form.errors['__all__']
+            block = form.cleaned_data.get('block')
+            event = form.cleaned_data.get('event')
+
+            if block and event:
+                if not block_tracker.get(block.id):
+                    block_tracker[block.id] = 0
+                block_tracker[block.id] += 1
+
+                if event.event_type.event_type == 'CL':
+                    ev_type = "class"
+                elif event.event_type.event_type == 'EV':
+                    ev_type = "event"
+                if event.event_type != block.block_type.event_type:
+                    available_block_type = BlockType.objects.filter(
+                        event_type=event.event_type
+                    )
+                    if not available_block_type:
+                        error_msg = '{} ({} type "{}") cannot be ' \
+                                    'block-booked'.format(
+                            event, ev_type, event.event_type
+                        )
+                    else:
+                        error_msg = '{} (type "{}") can only be block-booked with a "{}" ' \
+                                    'block type.'.format(
+                            event, event.event_type, available_block_type[0].event_type
+                        )
+                    form.add_error('block', error_msg)
+                    raise forms.ValidationError(error_msg)
+                else:
+                    if block.bookings_made() + block_tracker[block.id] > block.block_type.size:
+                        error_msg = 'Block selected for {} is now full. ' \
+                                    'Add another block for this user or confirm ' \
+                                    'payment was made directly.'.format(event)
+                        form.add_error('block', error_msg)
+                        raise forms.ValidationError(error_msg)
+
+
+UserBookingFormSet = inlineformset_factory(
+    User,
+    Booking,
+    fields=('paid', 'event', 'block'),
+    can_delete=False,
+    formset=UserBookingInlineFormSet,
+    extra=2,
+)
+
+
+class UserBlockInlineFormSet(BaseInlineFormSet):
+    pass
+
+UserBlockFormSet = inlineformset_factory(
+    User,
+    Block,
+    fields=('paid', 'start_date'),
+    can_delete=False,
+    formset=UserBlockInlineFormSet,
+    extra=2,
+)

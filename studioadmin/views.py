@@ -1,6 +1,7 @@
 import urllib.parse
 import ast
 
+from django.db.utils import IntegrityError
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -25,7 +26,7 @@ from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
-    BlockStatusFilter
+    BlockStatusFilter, UserBookingFormSet
 
 
 class ImproperlyConfigured(Exception):
@@ -779,3 +780,99 @@ def email_users_view(request,
                 'lessons': lessons
             }
         )
+
+
+def user_bookings_view(request, user_id):
+
+    check_permissions(request)
+
+    user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        userbookingformset = UserBookingFormSet(
+            request.POST,
+            instance=user,
+            user=user
+        )
+
+        if userbookingformset.is_valid():
+            if not userbookingformset.has_changed():
+                messages.info(request, "No changes were made")
+            else:
+                for form in userbookingformset:
+                    if form.has_changed():
+                        new = False if form.instance.id else True
+                        reopened = False
+                        try:
+                            booking = Booking.objects.get(
+                                user__id=form.instance.user.id,
+                                event__id=form.instance.event.id,
+                                status='CANCELLED'
+                            )
+                            reopened = True
+                            booking.status = 'OPEN'
+                            booking.paid = form.instance.paid
+                            booking.block = form.instance.block
+                        except Booking.DoesNotExist:
+                            booking = form.save(commit=False)
+
+                        if booking.block:
+                            booking.paid = True
+                            booking.payment_confirmed = True
+
+                        elif booking.paid:
+                            # assume that if booking is being done via
+                            # studioadmin, marking paid also means payment
+                            # is confirmed
+                            booking. payment_confirmed = True
+
+                        msg = 'created' if new else 'updated'
+                        messages.info(
+                            request,
+                            'Booking for {} has been {}'.format(booking.event, msg)
+                        )
+                        if reopened:
+                            messages.info(
+                                request, 'Note: this booking was previously '
+                                'cancelled and has now been reopened')
+                        booking.save()
+
+                    for error in form.errors:
+                        messages.error(request, "{}".format(error),
+                                       extra_tags='safe')
+
+                try:
+                    userbookingformset.save(commit=False)
+                except IntegrityError:
+                    # we filter the options for event in the select, so we
+                    # only have integrity error for saving a previously
+                    # cancelled booking, which is dealt with above
+                    pass
+
+            return HttpResponseRedirect(
+                reverse('studioadmin:user_bookings_list',
+                        kwargs={'user_id': user.id}
+                        )
+            )
+        else:
+            messages.error(
+                request, "There were errors in the following fields:"
+            )
+            for error in userbookingformset.errors:
+                messages.error(request, "{}".format(error), extra_tags='safe')
+    else:
+        queryset = Booking.objects.filter(
+            user=user, event__date__gte=timezone.now(), status='OPEN'
+        ).order_by('event__date')
+        userbookingformset = UserBookingFormSet(
+            instance=user,
+            queryset=queryset,
+            user=user
+        )
+
+    template = 'studioadmin/user_booking_list.html'
+    return render(
+        request, template, {
+            'userbookingformset': userbookingformset, 'user': user,
+            'sidenav_selection': 'users'
+        }
+    )

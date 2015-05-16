@@ -1,0 +1,71 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ userblockformset.management_form }}
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr class="success">
+                                <th class="table-center">Block type</th>
+                                <th class="table-center">Block Size
+                                <th class="table-center">Used</th>
+                                <th class="table-center">Start Date</th>
+                                <th class="table-center">Expiry Date</th>
+                                <th class="table-center">Paid</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for block in userblockformset %}
+                            <tr>
+                                <span class="hide">{{ block.id }}</span>
+                                {% if block.instance.id %}
+                                    <span class="hide">{{ block.block_event_type }}</span>
+                                    <span class="hide">{{ block.size }}</span>
+                                    <td class="studioadmin-tbl">{{ block.instance.block_type.event_type }}</td>
+                                    <td class="studioadmin-tbl">{{ block.instance.block_type.size }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
+                                    <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.instance.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
+                                    <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.instance.expiry_date | date:"Ymd"}}</span>{{ block.expiry_date | date:"d M Y"}}</td>
+                                    {% if block.instance.paid %}
+                                    <span class="hide">{{ block.paid }}</span>
+                                    <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
+                                    {% else %}
+                                    <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ booking.paid_id }}></label></td>
+                                    {% endif %}
+
+                                {% else %}
+                                    <td class="studioadmin-tbl"><div class="form-group form-group-sm">{{ block.block_event_type }}</div></td>
+                                    <td class="studioadmin-tbl"><div class="form-group form-group-sm">{{ block.size }}</div></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                            <tr>
+                            <td class="studioadmin-tbl" colspan="6"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

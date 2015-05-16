@@ -58,5 +58,9 @@ urlpatterns = patterns('',
         name="choose_email_users"),
     url(r'^email-users/emailform/$', 'studioadmin.views.email_users_view',
         name="email_users_view"),
+    url(
+        r'^users/(?P<user_id>\d+)/bookings/$',
+        'studioadmin.views.user_bookings_view', name='user_bookings_list'
+    ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )
