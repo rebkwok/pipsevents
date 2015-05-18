@@ -31,7 +31,7 @@ jQuery('#datepicker').datetimepicker({
 });
 
 jQuery('#datepicker_startdate').datetimepicker({
-    format:'dd DD MMM YYYY',
+    format:'ddd DD MMM YYYY',
     formatTime:'HH:mm',
     timepicker: false,
     minDate: 0,
@@ -42,7 +42,7 @@ jQuery('#datepicker_startdate').datetimepicker({
 });
 
 jQuery('#datepicker_enddate').datetimepicker({
-    format:'dd DD MMM YYYY',
+    format:'ddd DD MMM YYYY',
     formatTime:'HH:mm',
     timepicker: false,
     minDate: 0,

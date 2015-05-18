@@ -571,7 +571,7 @@ class UploadTimetableForm(forms.Form):
                 self.add_error(
                     'end_date', 'Invalid date format.  Select from '
                                         'the date picker or enter date in the '
-                                        'format dd Mmm YYYY')
+                                        'format ddd DD Mmm YYYY (e.g. Mon 18 May 2015)')
 
         return cleaned_data
 
