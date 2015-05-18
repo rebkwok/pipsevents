@@ -152,15 +152,14 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return reverse('studioadmin:lessons')
 
 
-def register_view(request, event_slug, status_choice='OPEN', print=False):
+def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     check_permissions(request)
-
     event = get_object_or_404(Event, slug=event_slug)
 
     if request.method == 'POST':
 
         if request.POST.get("print"):
-            print = True
+            print_view = True
 
         status_choice = request.POST.getlist('status_choice')[0]
 
@@ -192,7 +191,7 @@ def register_view(request, event_slug, status_choice='OPEN', print=False):
             register_url = 'studioadmin:event_register'
             if event.event_type.event_type == 'CL':
                 register_url = 'studioadmin:class_register'
-            if print:
+            if print_view:
                 register_url = register_url + '_print'
 
             return HttpResponseRedirect(
@@ -228,7 +227,7 @@ def register_view(request, event_slug, status_choice='OPEN', print=False):
         extra_lines = 2
 
     template = 'studioadmin/register.html'
-    if print:
+    if print_view:
         template = 'studioadmin/register_print.html'
 
     sidenav_selection = 'events_register'
@@ -238,7 +237,7 @@ def register_view(request, event_slug, status_choice='OPEN', print=False):
     return render(
         request, template, {
             'formset': formset, 'event': event, 'status_filter': status_filter,
-            'extra_lines': extra_lines, 'print': print,
+            'extra_lines': extra_lines, 'print': print_view,
             'status_choice': status_choice,
             'sidenav_selection': sidenav_selection
         }
