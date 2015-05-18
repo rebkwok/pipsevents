@@ -798,7 +798,7 @@ UserBookingFormSet = inlineformset_factory(
     fields=('paid', 'event', 'block'),
     can_delete=False,
     formset=UserBookingInlineFormSet,
-    extra=2,
+    extra=1,
 )
 
 
