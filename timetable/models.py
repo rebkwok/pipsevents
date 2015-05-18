@@ -31,10 +31,12 @@ class Session(models.Model):
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
     contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
-    cost = models.DecimalField(default=7, max_digits=8, decimal_places=2)
+    cost = models.DecimalField(default=7.00, max_digits=8, decimal_places=2)
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=True)
     payment_info = models.TextField(blank=True)
-
+    cancellation_period = models.PositiveIntegerField(
+        default=24
+    )
     def __str__(self):
         return "{} - {}".format(dict(self.DAY_CHOICES)[self.day], self.name)

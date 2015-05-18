@@ -1,0 +1,82 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+{{ form.media }}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                {% if session %}
+                <h2 class="panel-title">{{ session.name }} - {{ session_day }} {{ session.time }}</h2>
+                {% else %}
+                <h2 class="panel-title">Adding new timetable session</h2>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                {% if form.errors %}
+                    <div class="form-error">
+                        <p>The operation could not be performed because one or more error(s) occurred.<br />Please resubmit the form after making the following changes:</p>
+                        <ul>
+                        {% for field in form %}
+                        {% if field.errors %}<li>{{ field.name|format_field_name }}: {{ field.errors|striptags }}</li>{% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                <form class="form-horizontal" method="post" action="">
+                    {% csrf_token %}
+
+                    <div class="form-group-sm">
+
+                        {% for field in form %}
+                            {% if field.label == "Cost" %}
+                                <div class="form-group">
+                                    <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-9">
+                                        <div class="input-group">
+                                            <span class="input-group-addon" id="sizing-addon2">£</span>
+                                            {{ field }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% elif field.label == "Booking open"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        {{ field }}<label for='booking_open_id'></label><span class="studioadmincbox-help">  {{ field.help_text }}</span>
+                                </div>
+                            </div>
+                            {% elif field.label == "Payment open"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        {{ field }}<label for='payment_open_id'></label><span class="studioadmincbox-help">  {{ field.help_text }}</span>
+                                </div>
+                            </div>
+                             {% else %}
+                                <div class="form-group">
+                                    <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-9">
+                                        {{ field }}<p class="studioadmin-help">{{ field.help_text }}</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button type="submit" class="btn btn-success">Save</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+ </div>
+
+{% endblock studioadmincontent %}

@@ -1,0 +1,69 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Choose Students to Email </h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        {{ usersformset.management_form }}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tr class="success">
+                                    <th class="table-center">Username</th>
+                                    <th class="table-center">First Name</th>
+                                    <th class="table-center">Last Name</th>
+                                    <th class="table-center">Email address</th>
+                                    <th class="table-center">Select students to email</th>
+                                </tr>
+
+                                <tr class="filter-row">
+                                    <td class="filter-row" colspan=5>
+                                    <form class="filter-row" action="" method="post">
+                                        <div class="form-group">
+                                            <div class="col-sm-4"><strong>Show students booked for class(es):</strong> {{ userfilterform.lessons }}</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="col-sm-4"><strong>Show students booked for event(s):</strong> {{ userfilterform.events }}</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="col-sm-2">
+                                                <input class="btn btn-info table-btn" name="filter" type="submit" value="Submit" />
+                                            </div>
+                                        </div>
+
+                                    </form>
+                                    </td>
+                                </tr>
+
+                                {% for userform in usersformset %}
+                                <tr>
+                                    <span class="hide">{{ userform.id }}</span>
+                                    <td class="table-center studioadmin-tbl">{{ userform.instance.username }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ userform.instance.first_name }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ userform.instance.last_name }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ userform.instance.email }}</a></td>
+                                    <td class="table-center studioadmin-tbl">{{ userform.email_user }}<label for={{ userform.email_user_cbox_id }}></label></td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                <td class="studioadmin-tbl" colspan="5"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email Users" /></td>
+                                </tr>
+                            </table>
+                        </div>
+
+
+                    </form>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

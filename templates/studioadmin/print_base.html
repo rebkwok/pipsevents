@@ -1,0 +1,60 @@
+{% load staticfiles %}
+{% load url from future %}
+{% load socialaccount %}
+{% providers_media_js %}
+
+<!DOCTYPE html>
+<html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
+  <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, minumum-scale=1">
+        <title>Watermelon Studio Class and Event Booking
+        {% block head_title %}{% endblock %}
+        </title>
+        {% block extra_head %}
+        {% endblock %}
+
+        <link rel="shortcut icon" href="{{ STATIC_URL }}/favicon.ico">
+        <!-- Bootstrap core CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <!-- Bootstrap theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+        <!-- Font awesome -->
+       <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+        <!-- Custom styles --->
+        <link href="{% static 'booking/css/custom.css' %}" rel="stylesheet">
+       <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
+        <link href="{% static 'booking/css/bootstrap-switch.css' %}" rel="stylesheet">
+        <link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" rel="stylesheet">
+
+      {% block head %}{% endblock %}
+
+    </head>
+
+  <body>
+
+    {% block body %}
+        {% block studioadmincontent %}
+            <div class="container-fluid">
+                <p>You need to define a content block!</p>
+            </div>
+        {% endblock %}
+    {% endblock %}
+
+
+  </body>
+
+
+
+</html>
+
+
+   <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="{% static 'booking/js/bootstrap-switch.js' %}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+<div id="fb-root"></div>
+    <script src="{% static 'booking/js/custom.js' %}"></script>

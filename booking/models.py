@@ -64,11 +64,7 @@ class Event(models.Model):
     cancellation_period = models.PositiveIntegerField(
         default=24
     )
-    register_comments = models.TextField(
-        null=True, blank=True,
-        help_text="Enter any comments on the register for this event e.g. "
-                  "notes on drop in students who do not have an online "
-                  "account yet.")
+
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     def spaces_left(self):

@@ -1,0 +1,62 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Currently Active Blocks</h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                        <form class="filter-row" action="" method="get">
+                            <strong>Filter by block status: {{ form.block_status }}</strong>
+                            <input class="btn btn-info table-btn" type="submit" value="Filter" />
+                        </form>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="table-center">Block type <span class="fa fa-sort"></span></th>
+                                <th class="table-center">User <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Block Size
+                                <th class="table-center">Used</th>
+                                <th class="table-center">Start Date <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Expiry Date <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Paid</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+                            {% if blocks %}
+                                {% for block in blocks %}
+                                <tr>
+                                    <td class="table-center studioadmin-tbl">{{ block.block_type.event_type }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.user.first_name }} {{ block.user.last_name }} ({{ block.user.username }})</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.block_type.size }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.bookings_made }}</td>
+                                    <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
+                                    <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.expiry_date | date:"Ymd"}}</span>{{ block.expiry_date | date:"d M Y"}}</td>
+                                    <td class="table-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
+                                                                             {% else %}<span class="fa fa-times" aria-label="No"></span>{% endif %}</td>
+
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                              <tr><td colspan="7" class="studioadmin-tbl">No blocks found</td></tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

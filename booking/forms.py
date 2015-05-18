@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import Booking, Event, Block
 from booking.widgets import DateSelectorWidget
@@ -79,16 +78,6 @@ class EmailUsersForm(forms.Form):
     message = forms.CharField(widget=forms.Textarea, required=True)
 
 
-class ConfirmPaymentForm(forms.ModelForm):
-    class Meta:
-        model = Booking
-        fields = '__all__'
-        widgets = {
-            'paid': forms.CheckboxInput(),
-            'payment_confirmed': forms.CheckboxInput()
-        }
-
-
 def get_event_names(event_type):
 
     def callable():
@@ -123,145 +112,87 @@ class UserModelChoiceField(forms.ModelChoiceField):
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
 
 
-class BookingInlineFormSet(BaseInlineFormSet):
-
-    def __init__(self, *args, **kwargs):
-        self.event = kwargs.pop('event', None)
-        super(BookingInlineFormSet, self).__init__(*args, **kwargs)
-        # this calls _construct_forms()
-
-    def add_fields(self, form, index):
-        super(BookingInlineFormSet, self).add_fields(form, index)
-        if form.initial.get('user'):
-            user = form.instance.user
-            event_type = form.instance.event.event_type
-            block = form.instance.block
-            form.fields['block'] = BlockModelChoiceField(
-                queryset=get_user_blocks(user, event_type),
-                initial=block,
-                required=False,
-                widget=forms.Select(attrs={'class': 'custom-select',
-                                           'id': 'id_block{}'.format(index)}))
-            form.fields['block'].empty_label = "--No block selected--"
-
-            form.fields['user']=forms.ModelChoiceField(
-                queryset=User.objects.all(),
-                initial=user,
-                widget=forms.Select(attrs={'class': 'hide'})
-            )
-            form.fields['userdisplay'] = UserModelChoiceField(
-                queryset=User.objects.all(),
-                initial=user,
-                required=False,
-                widget=forms.Select(attrs={
-                    'class': 'custom-select',
-                    'data-style': 'btn-info user-dropdown',
-                    'disabled': 'disabled'})
-            )
-        else:
-            form.fields['block'] = BlockModelChoiceField(
-                queryset=Block.objects.none(),
-                required=False,
-                widget=forms.Select(attrs={'class': 'custom-select',
-                                           'id': 'id_block{}'.format(index)}))
-            booked_users = [booking.user.id for booking in
-                            Booking.objects.all()
-                            if booking.event == self.event]
-            form.fields['user'] = UserModelChoiceField(
-                queryset=User.objects.all().exclude(id__in=booked_users),
-                widget=forms.Select(attrs={
-                    'class': 'custom-select',
-                    'id': 'id_user{}'.format(index),
-                    'onchange': 'FilterBlocks({})'.format(index)
-                }))
-
-    def clean(self):
-        super(BookingInlineFormSet, self).clean()
-        for form in self.forms:
-            if not form.cleaned_data.get('block'):
-                form.cleaned_data['block'] = None
-
-
-def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
-    return {
-        'class': 'toggle-checkbox',
-        'data-size': 'mini',
-        'data-on-color': 'success',
-        'data-off-color': 'danger',
-        'data-on-text': on_text,
-        'data-off-text': off_text,
-        'data-label-text': label_text,
-    }
-
-BookingRegisterFormSet = inlineformset_factory(
-    Event,
-    Booking,
-    fields=('user', 'paid', 'payment_confirmed', 'block', 'status',
-            'attended'),
-    can_delete=False,
-    extra=2,
-    formset=BookingInlineFormSet,
-    widgets={
-        'paid': forms.CheckboxInput(attrs=set_toggle_attrs()),
-        'attended': forms.CheckboxInput(attrs=set_toggle_attrs()),
-        'status': forms.Select(attrs={'class': 'custom-select'})
-        }
-    )
-
-
-class SimpleBookingInlineFormSet(BaseInlineFormSet):
-
-    def __init__(self, *args, **kwargs):
-        self.event = kwargs.pop('event', None)
-        super(SimpleBookingInlineFormSet, self).__init__(*args, **kwargs)
-        # this calls _construct_forms()
-
-    def add_fields(self, form, index):
-        super(SimpleBookingInlineFormSet, self).add_fields(form, index)
-        if form.initial.get('user'):
-            user = form.instance.user
-            event_type = form.instance.event.event_type
-            available_block = [
-                block for block in Block.objects.filter(user=user) if
-                block.active_block()
-                and block.block_type.event_type == event_type
-            ]
-            form.available_block = form.instance.block or (
-                available_block[0] if available_block else None
-            )
-
-            form.fields['user'] = forms.ModelChoiceField(
-                queryset=User.objects.all(),
-                initial=user,
-                widget=forms.Select(attrs={'class': 'hide'})
-            )
-
-        form.fields['attended'] = forms.BooleanField(
-            widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
-                'id': 'checkbox_attended_{}'.format(index)
-            }),
-            initial=form.instance.attended if form.instance else False,
-            required=False
-        )
-        form.checkbox_attended_id = 'checkbox_attended_{}'.format(index)
-
-
-SimpleBookingRegisterFormSet = inlineformset_factory(
-    Event,
-    Booking,
-    fields=('attended', 'user'),
-    can_delete=False,
-    formset=SimpleBookingInlineFormSet,
-    extra=0,
-)
-
-
-class StatusFilter(forms.Form):
-
-    status_choice = forms.ChoiceField(
-        widget=(forms.Select),
-        choices=(('OPEN', 'Open bookings only'),
-                 ('CANCELLED', 'Cancelled Bookings only'),
-                 ('ALL', 'All'),),
-    )
+# class BookingInlineFormSet(BaseInlineFormSet):
+#
+#     def __init__(self, *args, **kwargs):
+#         self.event = kwargs.pop('event', None)
+#         super(BookingInlineFormSet, self).__init__(*args, **kwargs)
+#         # this calls _construct_forms()
+#
+#     def add_fields(self, form, index):
+#         super(BookingInlineFormSet, self).add_fields(form, index)
+#         if form.initial.get('user'):
+#             user = form.instance.user
+#             event_type = form.instance.event.event_type
+#             block = form.instance.block
+#             form.fields['block'] = BlockModelChoiceField(
+#                 queryset=get_user_blocks(user, event_type),
+#                 initial=block,
+#                 required=False,
+#                 widget=forms.Select(attrs={'class': 'custom-select',
+#                                            'id': 'id_block{}'.format(index)}))
+#             form.fields['block'].empty_label = "--No block selected--"
+#
+#             form.fields['user']=forms.ModelChoiceField(
+#                 queryset=User.objects.all(),
+#                 initial=user,
+#                 widget=forms.Select(attrs={'class': 'hide'})
+#             )
+#             form.fields['userdisplay'] = UserModelChoiceField(
+#                 queryset=User.objects.all(),
+#                 initial=user,
+#                 required=False,
+#                 widget=forms.Select(attrs={
+#                     'class': 'custom-select',
+#                     'data-style': 'btn-info user-dropdown',
+#                     'disabled': 'disabled'})
+#             )
+#         else:
+#             form.fields['block'] = BlockModelChoiceField(
+#                 queryset=Block.objects.none(),
+#                 required=False,
+#                 widget=forms.Select(attrs={'class': 'custom-select',
+#                                            'id': 'id_block{}'.format(index)}))
+#             booked_users = [booking.user.id for booking in
+#                             Booking.objects.all()
+#                             if booking.event == self.event]
+#             form.fields['user'] = UserModelChoiceField(
+#                 queryset=User.objects.all().exclude(id__in=booked_users),
+#                 widget=forms.Select(attrs={
+#                     'class': 'custom-select',
+#                     'id': 'id_user{}'.format(index),
+#                     'onchange': 'FilterBlocks({})'.format(index)
+#                 }))
+#
+#     def clean(self):
+#         super(BookingInlineFormSet, self).clean()
+#         for form in self.forms:
+#             if not form.cleaned_data.get('block'):
+#                 form.cleaned_data['block'] = None
+#
+#
+# def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
+#     return {
+#         'class': 'toggle-checkbox',
+#         'data-size': 'mini',
+#         'data-on-color': 'success',
+#         'data-off-color': 'danger',
+#         'data-on-text': on_text,
+#         'data-off-text': off_text,
+#         'data-label-text': label_text,
+#     }
+#
+# BookingRegisterFormSet = inlineformset_factory(
+#     Event,
+#     Booking,
+#     fields=('user', 'paid', 'payment_confirmed', 'block', 'status',
+#             'attended'),
+#     can_delete=False,
+#     extra=2,
+#     formset=BookingInlineFormSet,
+#     widgets={
+#         'paid': forms.CheckboxInput(attrs=set_toggle_attrs()),
+#         'attended': forms.CheckboxInput(attrs=set_toggle_attrs()),
+#         'status': forms.Select(attrs={'class': 'custom-select'})
+#         }
+#     )

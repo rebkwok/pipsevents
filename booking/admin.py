@@ -12,7 +12,6 @@ from django.utils import timezone
 from django import forms
 from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
-from datetimewidget.widgets import DateTimeWidget, DateWidget
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, EventType
@@ -129,26 +128,18 @@ class EventTypeListFilter(admin.SimpleListFilter):
 
 class EventForm(forms.ModelForm):
 
-    dateoptions = {
-        'format': 'dd/mm/yyyy hh:ii',
-        'autoclose': True,
-    }
-    paymentdateoptions = {
-        'format': 'dd/mm/yyyy',
-        'autoclose': True,
-    }
     description = forms.CharField(widget=CKEditorWidget(attrs={'class':'container-fluid'}))
 
     date = forms.DateTimeField(
-        widget=DateTimeWidget(
-            options=dateoptions,
-            bootstrap_version=3
+        widget=forms.DateTimeInput(
+            attrs={'id': "datetimepicker"},
+            format='%d %b %Y %H:%M'
         )
     )
     payment_due_date = forms.DateTimeField(
-        widget=DateWidget(
-            options=paymentdateoptions,
-            bootstrap_version=3
+        widget=forms.DateInput(
+            attrs={'id': "datepicker"},
+            format='%d %b %Y'
         )
     )
 
@@ -176,17 +167,17 @@ class EventAdmin(admin.ModelAdmin):
 
     fieldsets = [
         ('Event details', {
-            'fields':('name', 'date', 'location', 'event_type', 'description')
+            'fields': ('name', 'date', 'location', 'event_type', 'description')
         }),
         ('Contacts', {
-            'fields':('contact_person', 'contact_email')
+            'fields': ('contact_person', 'contact_email')
         }),
         ('Payment Information', {
-           'fields':('cost', 'advance_payment_required', 'booking_open',
-                     'payment_open', 'payment_info',  'payment_due_date')
+            'fields': ('cost', 'advance_payment_required', 'booking_open',
+                       'payment_open', 'payment_info',  'payment_due_date')
         }),
         ('Cancellation Period', {
-            'fields':('cancellation_period',),
+            'fields': ('cancellation_period',),
             'description': '<div class="help">%s</div>' % CANCELLATION_TEXT,
         }),
     ]

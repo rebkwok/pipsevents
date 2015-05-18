@@ -1,0 +1,56 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+{{ form.media }}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                <h2 class="panel-title">Upload timetable</h2>
+            </div>
+            <div class="panel-body">
+                {% if form.errors %}
+                    <div class="form-error">
+                        <p>The operation could not be performed because one or more error(s) occurred.<br />Please resubmit the form after making the following changes:</p>
+                        <ul>
+                        {% for field in form %}
+                        {% if field.errors %}<li>{{ field.name|format_field_name }}: {{ field.errors|striptags }}</li>{% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div>Upload classes from the current timetable for the following date range:</div>
+                    </br>
+                <form class="form-horizontal" method="post" action="">
+                    {% csrf_token %}
+
+                    <div class="form-group-sm">
+
+                        {% for field in form %}
+                                <div class="form-group">
+                                    <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-3">
+                                        {{ field }}<p class="studioadmin-help">{{ field.help_text }}</p>
+                                    </div>
+                                </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button type="submit" class="btn btn-success">Save</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+ </div>
+
+{% endblock studioadmincontent %}

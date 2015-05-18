@@ -20,8 +20,10 @@
 
 {# Additional JS files in footer, right before </body> #}
 {% block extrajs %}
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-{#  <script type="text/javascript" src="{% static 'js/my_project.js' %}"></script>#}
+    <script src="http://momentjs.com/downloads/moment.min.js"></script>
+    <script src="{% static 'booking/js/jquery.maskedinput.min.js' %}"></script>
+    <script src="{% static 'booking/js/jquery.datetimepicker.js' %}"></script>
+    <script src="{% static 'booking/js/custom.js' %}"></script>
 {% endblock %}
 
 

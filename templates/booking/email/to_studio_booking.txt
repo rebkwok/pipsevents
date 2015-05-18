@@ -13,7 +13,6 @@ Invoice id: {{ invoice_id }}
 Click the link below to review and confirm that payment has been made for
 this booking.  This will mark {{ booking.user.username }}'s
 space as confirmed.
-{{ host }}/confirm-payment/{{ booking.id }}
+{{ host }}/studioadmin/confirm-payment/{{ booking.id }}
 
-To review all details for this booking on the admin site,visit {{ host }}/admin/booking/booking/{{ booking.id }}.
 {% endif %}

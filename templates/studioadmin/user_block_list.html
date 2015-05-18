@@ -1,0 +1,88 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+{{ form.media }}
+
+    <div class="container-fluid row">
+
+        <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ userblockformset.management_form }}
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr class="success">
+                                <th>Block status</th>
+                                <th>Block type</th>
+                                <th class="table-center">Paid</th>
+                                <th class="table-center">Block Size</th>
+                                <th class="table-center">Used</th>
+                                <th class="table-center">Start Date</th>
+                                <th class="table-center">Expiry Date</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for block in userblockformset %}
+                            <tr>
+                                <span class="hide">{{ block.id }}{{ block.block_type }}{{ block.start_date }}</span>
+                                {% if block.instance.id %}
+                                    <span class="hide">{{ block.block_event_type }}</span>
+                                    <span class="hide">{{ block.size }}</span>
+                                    <td class="studioadmin-tbl">
+                                    {% if block.instance.active_block %}
+                                        ACTIVE
+                                    {% elif block.instance.expired or block.instance.full %}
+                                        EXPIRED
+                                    {% else %}
+                                        UNPAID
+                                    {% endif %}</td>
+                                    <td class="studioadmin-tbl">{{ block.instance.block_type.event_type }}</td>
+                                    {% if block.instance.paid %}
+                                        <span class="hide">{{ block.paid }}</span>
+                                        <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
+                                    {% else %}
+                                        <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                    {% endif %}
+                                    <td class="table-center studioadmin-tbl">{{ block.instance.block_type.size }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.instance.start_date | date:"d M Y"}}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.instance.expiry_date | date:"d M Y"}}</td>
+                                {% else %}
+                                    {% if block.can_buy_block %}
+                                    <td><strong>Add new block</strong></td>
+                                    <td class="studioadmin-tbl">
+                                        <div class="form-group form-group-sm">{{ block.block_type }}</div></td>
+                                    <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ block.start_date }}</div>
+                                        <span class="studioadmin-help">Leave blank for today</span></td>
+                                    <td></td>
+                                    {% else %}
+                                    <td colspan="7"><strong>User already has an active (or unpaid) block of each available type; no additional blocks can be purchased at this time</strong></td>
+                                    {% endif %}
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                            <tr>
+                            <td class="studioadmin-tbl" colspan="7"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

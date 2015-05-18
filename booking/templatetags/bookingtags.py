@@ -4,9 +4,10 @@ from django import template
 register = template.Library()
 
 HOURS_CONVERSION = {
-        'weeks': 7 * 24,
-        'days': 24,
-    }
+    'weeks': 7 * 24,
+    'days': 24,
+}
+
 
 @register.filter
 def format_cancellation(value):
@@ -25,12 +26,15 @@ def format_cancellation(value):
     elif days == 0 and hours == 0:
         return "{} week{}".format(weeks, plural_format(weeks))
     else:
-        return "{} week{}, {} day{} and {} hour{}".format(weeks,
-                                                       plural_format(weeks),
-                                                       days,
-                                                       plural_format(days),
-                                                       hours,
-                                                       plural_format(hours))
+        return "{} week{}, {} day{} and {} hour{}".format(
+            weeks,
+            plural_format(weeks),
+            days,
+            plural_format(days),
+            hours,
+            plural_format(hours)
+        )
+
 
 def plural_format(value):
     if value > 1 or value == 0:
@@ -42,3 +46,24 @@ def plural_format(value):
 @register.filter
 def get_range(value):
     return range(value)
+
+
+@register.filter
+def get_index(event, extraline_index):
+    spaces_left = event.spaces_left()
+    return event.bookings.count() + 1 + extraline_index
+
+
+@register.filter
+def bookings_count(event):
+    return event.bookings.count()
+
+@register.filter
+def format_datetime(date):
+    date = date.value()
+    return date.strftime("%d %b %Y %H:%M")
+
+@register.filter
+def format_field_name(field):
+    return field.replace('_', ' ').title()
+

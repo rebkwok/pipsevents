@@ -1,0 +1,33 @@
+{% extends 'studioadmin/base.html' %}
+
+{% block studioadmincontent %}
+<div class="small-margin extra-top-margin container-fluid row">
+    <div class="col-sm-11">
+        <div>
+            <h4>Classes uploaded from the current timetable</h4>
+            <p>Start date: {{ start_date | date:"D d F Y"}}</p>
+            <p>End date: {{ end_date | date:"D d F Y"}}</p>
+
+            {% if created_classes %}
+                <p>The following classes were created :</p>
+                <ul>
+                {% for class in created_classes %}
+                    <li><strong>{{ class.name }}</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            {% if existing_classes %}
+                <p>The following classes already existed in the system and have
+                    not been added again:</p>
+                <ul>
+                {% for class in existing_classes %}
+                    <li><strong>{{ class.name }}</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
