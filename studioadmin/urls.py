@@ -54,13 +54,17 @@ urlpatterns = patterns('',
         name='upload_timetable'),
     url(r'^users/$', UserListView.as_view(), name="users"),
     url(r'^blocks/$', BlockListView.as_view(), name="blocks"),
-    url(r'^email-users/$', 'studioadmin.views.choose_users_to_email',
+    url(r'^users/email/$', 'studioadmin.views.choose_users_to_email',
         name="choose_email_users"),
-    url(r'^email-users/emailform/$', 'studioadmin.views.email_users_view',
+    url(r'^users/email/emailform/$', 'studioadmin.views.email_users_view',
         name="email_users_view"),
     url(
         r'^users/(?P<user_id>\d+)/bookings/$',
         'studioadmin.views.user_bookings_view', name='user_bookings_list'
+    ),
+    url(
+        r'^users/(?P<user_id>\d+)/blocks/$',
+        'studioadmin.views.user_blocks_view', name='user_blocks_list'
     ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

@@ -1,7 +1,3 @@
-// Custom JavaScript for the toggle checkboxes and select dropdowns
-//jQuery('.toggle-checkbox').bootstrapSwitch();
-//$('.custom-select').selectpicker();
-
 //http://xdsoft.net/jqplugins/datetimepicker/
 Date.parseDate = function( input, format ){
   return moment(input,format).toDate();
@@ -46,7 +42,7 @@ jQuery('#datepicker_startdate').datetimepicker({
 });
 
 jQuery('#datepicker_enddate').datetimepicker({
-    format:'ddd DD MMM YYYY',
+    format:'dd DD MMM YYYY',
     formatTime:'HH:mm',
     timepicker: false,
     minDate: 0,
@@ -78,24 +74,3 @@ $(document).ready(function()
         $("#sortTable").tablesorter();
     }
 );
-
-
-//For the register dropdown
-//function FilterBlocks(index) {
-//    var mainform = document.getElementById('booking_main_form');
-//    mainform.submit();
-
-//    var selected_user = document.getElementById("id_user"+index);
-//    var user_id = selected_user.value;
-
-//    new Ajax.Request('/ajax_block_feed/', {
-//        method: 'post',
-//        parameters: $H({'user_id':user_id}),
-//        onSuccess: function(blocklist) {
-//            debugger;
-//            var e = document.getElementById("id_block"+index)
-//            if(blocklist.responseText)
-//                e.update(blocklist.responseText)
-//        }
-//    }); // end new Ajax.Request
-//}

@@ -26,7 +26,7 @@ from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
-    BlockStatusFilter, UserBookingFormSet
+    BlockStatusFilter, UserBookingFormSet, UserBlockFormSet
 
 
 class ImproperlyConfigured(Exception):
@@ -873,6 +873,69 @@ def user_bookings_view(request, user_id):
     return render(
         request, template, {
             'userbookingformset': userbookingformset, 'user': user,
+            'sidenav_selection': 'users'
+        }
+    )
+
+
+def user_blocks_view(request, user_id):
+
+    check_permissions(request)
+
+    user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        userblockformset = UserBlockFormSet(
+            request.POST,
+            instance=user,
+            user=user
+        )
+
+        if userblockformset.is_valid():
+            if not userblockformset.has_changed():
+                messages.info(request, "No changes were made")
+            else:
+                for form in userblockformset:
+                    if form.has_changed():
+                        new = False if form.instance.id else True
+                        block = form.save(commit=False)
+                        if block.paid:
+                            block.payment_confirmed = True
+                        msg = 'created' if new else 'updated'
+                        messages.info(
+                            request,
+                            'Block for {} has been {}'.format(block.block_type.event_type, msg)
+                        )
+                        block.save()
+
+                    for error in form.errors:
+                        messages.error(request, "{}".format(error),
+                                       extra_tags='safe')
+                userblockformset.save(commit=False)
+
+            return HttpResponseRedirect(
+                reverse('studioadmin:user_blocks_list',
+                        kwargs={'user_id': user.id}
+                        )
+            )
+        else:
+            messages.error(
+                request, "There were errors in the following fields:"
+            )
+            for error in userblockformset.errors:
+                messages.error(request, "{}".format(error), extra_tags='safe')
+    else:
+        queryset = Block.objects.filter(
+            user=user).order_by('start_date')
+        userblockformset = UserBlockFormSet(
+            instance=user,
+            queryset=queryset,
+            user=user
+        )
+
+    template = 'studioadmin/user_block_list.html'
+    return render(
+        request, template, {
+            'userblockformset': userblockformset, 'user': user,
             'sidenav_selection': 'users'
         }
     )

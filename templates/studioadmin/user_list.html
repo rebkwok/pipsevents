@@ -30,8 +30,8 @@
                                 <td class="table-center studioadmin-tbl">{{ user.first_name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.last_name }}</td>
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
-                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:user_bookings_list' user.id %}">View and edit</a></td>
-                                <td class="table-center studioadmin-tbl"></td>
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:user_bookings_list' user.id %}">View bookings</a></td>
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:user_blocks_list' user.id %}">View blocks</a></td>
                             </tr>
                             {% endfor %}
                             </tbody>

@@ -674,6 +674,7 @@ class UserBlockModelChoiceField(forms.ModelChoiceField):
         if value:
             return Block.objects.get(id=value)
 
+
 class UserBookingInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
@@ -802,13 +803,66 @@ UserBookingFormSet = inlineformset_factory(
 
 
 class UserBlockInlineFormSet(BaseInlineFormSet):
-    pass
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super(UserBlockInlineFormSet, self).__init__(*args, **kwargs)
+
+        for form in self.forms:
+            form.empty_permitted = True
+
+    def add_fields(self, form, index):
+        super(UserBlockInlineFormSet, self).add_fields(form, index)
+
+        user_blocks = Block.objects.filter(user=self.user)
+        # get the event types for the user's blocks that are currently active
+        # or awaiting payment
+        user_block_event_types = [
+            block.block_type.event_type for block in user_blocks
+            if block.active_block() or
+            (not block.expired and not block.paid and not block.full)
+        ]
+        available_block_types = BlockType.objects.exclude(
+            event_type__in=user_block_event_types
+        )
+        form.can_buy_block = True if available_block_types else False
+
+        if not form.instance.id:
+            form.fields['block_type'] = (forms.ModelChoiceField(
+                queryset=available_block_types,
+                widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+                required=False,
+                empty_label="---Choose block type---"
+            ))
+
+            form.fields['start_date'] = forms.DateTimeField(
+                widget=forms.DateTimeInput(
+                    attrs={
+                        'class': "form-control",
+                        'id': "datepicker",
+                        'placeholder': "dd/mm/yy",
+                        'style': 'text-align: center'
+                    },
+                    format='%d %m %y',
+                ),
+                required=False,
+            )
+
+        form.fields['paid'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'paid_{}'.format(index)
+            }),
+            required=False
+            )
+        form.paid_id = 'paid_{}'.format(index)
+
 
 UserBlockFormSet = inlineformset_factory(
     User,
     Block,
-    fields=('paid', 'start_date'),
+    fields=('paid', 'start_date', 'block_type'),
     can_delete=False,
     formset=UserBlockInlineFormSet,
-    extra=2,
+    extra=1,
 )
