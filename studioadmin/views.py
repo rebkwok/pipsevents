@@ -1,9 +1,11 @@
 import urllib.parse
 import ast
+from functools import wraps
 
 from django.db.utils import IntegrityError
 from django import forms
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -11,7 +13,8 @@ from django.db.models import Q
 from django.template.loader import get_template
 from django.template import Context
 
-from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
+from django.shortcuts import HttpResponseRedirect, redirect, \
+    render, get_object_or_404
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView
 from django.utils import timezone
 from django.core.mail import send_mail
@@ -33,11 +36,13 @@ class ImproperlyConfigured(Exception):
     pass
 
 
-def check_permissions(request):
-    if not request.user.is_authenticated():
-        return HttpResponseRedirect(reverse('account_login'))
-    if not request.user.is_staff:
-        return HttpResponseRedirect(reverse('booking:permission_denied'))
+def staff_required(func):
+    def decorator(request, *args, **kwargs):
+        if request.user.is_staff:
+            return func(request, *args, **kwargs)
+        else:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+    return wraps(func)(decorator)
 
 
 class StaffUserMixin(object):
@@ -152,8 +157,9 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return reverse('studioadmin:lessons')
 
 
+@login_required
+@staff_required
 def register_view(request, event_slug, status_choice='OPEN', print_view=False):
-    check_permissions(request)
     event = get_object_or_404(Event, slug=event_slug)
 
     if request.method == 'POST':
@@ -244,8 +250,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     )
 
 
+@login_required
+@staff_required
 def event_admin_list(request, ev_type):
-    check_permissions(request)
 
     ev_type_abbreviation = 'EV' if ev_type == 'events' else 'CL'
 
@@ -418,8 +425,9 @@ class EventAdminDeleteView(LoginRequiredMixin, StaffUserMixin, DeleteView):
     pass
 
 
+@login_required
+@staff_required
 def timetable_admin_list(request):
-    check_permissions(request)
 
     if request.method == 'POST':
         sessionformset = TimetableSessionFormSet(request.POST)
@@ -547,9 +555,10 @@ class TimetableSessionCreateView(
         return reverse('studioadmin:timetable')
 
 
+@login_required
+@staff_required
 def upload_timetable_view(request,
                           template_name="studioadmin/upload_timetable_form.html"):
-    check_permissions(request)
 
     if request.method == 'POST':
         form = UploadTimetableForm(request.POST)
@@ -623,10 +632,10 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
         return context
 
 
+@login_required
+@staff_required
 def choose_users_to_email(request,
                           template_name='studioadmin/choose_users_form.html'):
-
-    check_permissions(request)
 
     initial_userfilterdata={'events': [''], 'lessons': ['']}
 
@@ -715,10 +724,11 @@ def url_with_querystring(path, **kwargs):
     return path + '?' + urllib.parse.urlencode(kwargs)
 
 
+@login_required
+@staff_required
 def email_users_view(request,
                      template_name='studioadmin/email_users_form.html'):
 
-        check_permissions(request)
         users_to_email = User.objects.filter(id__in=request.session['users_to_email'])
 
         if request.method == 'POST':
@@ -781,9 +791,9 @@ def email_users_view(request,
         )
 
 
+@login_required
+@staff_required
 def user_bookings_view(request, user_id):
-
-    check_permissions(request)
 
     user = get_object_or_404(User, id=user_id)
     if request.method == 'POST':
@@ -877,9 +887,9 @@ def user_bookings_view(request, user_id):
     )
 
 
+@login_required
+@staff_required
 def user_blocks_view(request, user_id):
-
-    check_permissions(request)
 
     user = get_object_or_404(User, id=user_id)
     if request.method == 'POST':
