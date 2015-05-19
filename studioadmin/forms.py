@@ -158,7 +158,6 @@ class EventAdminForm(forms.ModelForm):
             )
         )
 
-
     def clean(self):
         super(EventAdminForm, self).clean()
         cleaned_data = self.cleaned_data
@@ -190,7 +189,7 @@ class EventAdminForm(forms.ModelForm):
                 else:
                     self.add_error('payment_due_date', 'Payment due date must '
                                                        'be before cancellation'
-                                                       'period starts')
+                                                       ' period starts')
                 cleaned_data['payment_due_date'] = payment_due_date
             except ValueError:
                 self.add_error(
@@ -422,8 +421,6 @@ TimetableSessionFormSet = modelformset_factory(
 
 
 class SessionAdminForm(forms.ModelForm):
-
-    error_css_class = 'has-error'
 
     cost = forms.DecimalField(
         widget=forms.TextInput(

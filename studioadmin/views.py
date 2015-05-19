@@ -32,10 +32,6 @@ from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
     BlockStatusFilter, UserBookingFormSet, UserBlockFormSet
 
 
-class ImproperlyConfigured(Exception):
-    pass
-
-
 def staff_required(func):
     def decorator(request, *args, **kwargs):
         if request.user.is_staff:
