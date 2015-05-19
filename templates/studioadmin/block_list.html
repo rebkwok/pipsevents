@@ -6,7 +6,19 @@
 
     <div class="container-fluid row">
 
-        <h2>Currently Active Blocks</h2>
+        <h2>Blocks:
+        {% if block_status == 'active' %}
+        Showing all active (paid) blocks
+        {% elif block_status == 'unpaid' %}
+        Showing all unpaid blocks
+        {% elif block_status == 'expired' %}
+        Showing expired and full blocks
+        {% elif block_status == 'all' %}
+        Showing all blocks
+        {% endif %}</h2>
+
+
+
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-success">

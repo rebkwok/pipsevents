@@ -180,14 +180,17 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                 messages.info(request, "No changes were made")
             else:
                 for form in formset:
+                    booking = form.save(commit=False)
                     if form.has_changed():
+                        if booking.block:
+                            booking.paid = True
+                        booking.save()
                         messages.info(
                             request,
                             "Register updated for user {}".format(
-                                form.instance.user.username
+                                booking.user.username
                             )
                         )
-                        form.save(commit=False)
 
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
@@ -226,9 +229,13 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
     if event.max_participants:
-        extra_lines = event.spaces_left()
-    elif event.max_participants < 25:
-        extra_lines = 25 - event.spaces_left()
+        if status_choice == 'OPEN':
+            extra_lines = event.spaces_left()
+        else:
+            extra_lines = event.spaces_left() \
+                          + Booking.objects.filter(event=event, status='CANCELLED').count()
+    elif event.bookings.count() < 15:
+        extra_lines = 15 - event.bookings.count()
     else:
         extra_lines = 2
 
@@ -240,11 +247,17 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     if event.event_type.event_type == 'CL':
         sidenav_selection = 'lessons_register'
 
+    available_block_type = [
+        block_type for block_type in
+        BlockType.objects.filter(event_type=event.event_type)
+    ]
+
     return render(
         request, template, {
             'formset': formset, 'event': event, 'status_filter': status_filter,
             'extra_lines': extra_lines, 'print': print_view,
             'status_choice': status_choice,
+            'available_block_type': True if available_block_type else False,
             'sidenav_selection': sidenav_selection
         }
     )
@@ -615,11 +628,8 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
                       and not block.full)
             return Block.objects.filter(id__in=unpaid)
         elif block_status == 'expired':
-            expired = (block.id for block in all_blocks if block.expired)
+            expired = (block.id for block in all_blocks if block.expired or block.full)
             return Block.objects.filter(id__in=expired)
-        elif block_status == 'full':
-            full = (block.id for block in all_blocks if block.full)
-            return Block.objects.filter(id__in=full)
 
     def get_context_data(self):
         context = super(BlockListView, self).get_context_data()
@@ -628,6 +638,7 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
         block_status = self.request.GET.get('block_status', 'active')
         form = BlockStatusFilter(initial={'block_status': block_status})
         context['form'] = form
+        context['block_status'] = block_status
 
         return context
 

@@ -700,3 +700,8 @@ a > span.fa.fa-print {
     font-weight: bold;
     color: red;
 }
+
+.no-block-comment {
+    font-style: italic;
+    color: grey;
+}

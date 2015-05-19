@@ -269,15 +269,15 @@ class EventAdminForm(forms.ModelForm):
         }
 
 
-class SimpleBookingInlineFormSet(BaseInlineFormSet):
+class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
         self.event = kwargs.pop('event', None)
-        super(SimpleBookingInlineFormSet, self).__init__(*args, **kwargs)
+        super(BookingRegisterInlineFormSet, self).__init__(*args, **kwargs)
         # this calls _construct_forms()
 
     def add_fields(self, form, index):
-        super(SimpleBookingInlineFormSet, self).add_fields(form, index)
+        super(BookingRegisterInlineFormSet, self).add_fields(form, index)
         if form.initial.get('user'):
             form.index = index + 1
             user = form.instance.user
@@ -290,12 +290,28 @@ class SimpleBookingInlineFormSet(BaseInlineFormSet):
             form.available_block = form.instance.block or (
                 available_block[0] if available_block else None
             )
+            available_block_ids = [block.id for block in available_block
+                                   ]
+            form.fields['block'] = UserBlockModelChoiceField(
+                queryset=Block.objects.filter(id__in=available_block_ids),
+                widget=forms.Select(attrs={'class': 'form-control input-sm studioadmin-list'}),
+                required=False
+            )
 
             form.fields['user'] = forms.ModelChoiceField(
                 queryset=User.objects.all(),
                 initial=user,
                 widget=forms.Select(attrs={'class': 'hide'})
             )
+
+            form.fields['paid'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox",
+                    'id': 'checkbox_paid_{}'.format(index)
+                }),
+                required=False
+            )
+            form.checkbox_paid_id = 'checkbox_paid_{}'.format(index)
 
         form.fields['attended'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
@@ -311,9 +327,9 @@ class SimpleBookingInlineFormSet(BaseInlineFormSet):
 SimpleBookingRegisterFormSet = inlineformset_factory(
     Event,
     Booking,
-    fields=('attended', 'user'),
+    fields=('attended', 'user', 'paid', 'block'),
     can_delete=False,
-    formset=SimpleBookingInlineFormSet,
+    formset=BookingRegisterInlineFormSet,
     extra=0,
 )
 
@@ -656,9 +672,8 @@ class BlockStatusFilter(forms.Form):
 
     block_status = forms.ChoiceField(
         choices=(('active', 'Active (and paid)'),
-                 ('unpaid', 'Not yet paid (and not expired)'),
+                 ('unpaid', 'Not paid'),
                  ('expired', 'Expired'),
-                 ('full', 'Full'),
                  ('all', 'All'),
                  ),
         widget=forms.Select(),

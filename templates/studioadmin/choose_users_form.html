@@ -13,15 +13,10 @@
                     <form method="post" action="">
                         {% csrf_token %}
                         {{ usersformset.management_form }}
+
+
                         <div class="table-responsive">
                             <table class="table">
-                                <tr class="success">
-                                    <th class="table-center">Username</th>
-                                    <th class="table-center">First Name</th>
-                                    <th class="table-center">Last Name</th>
-                                    <th class="table-center">Email address</th>
-                                    <th class="table-center">Select students to email</th>
-                                </tr>
 
                                 <tr class="filter-row">
                                     <td class="filter-row" colspan=5>
@@ -34,12 +29,20 @@
                                         </div>
                                         <div class="form-group">
                                             <div class="col-sm-2">
-                                                <input class="btn btn-info table-btn" name="filter" type="submit" value="Submit" />
+                                                <input class="btn btn-info" name="filter" type="submit" value="Show Students" />
                                             </div>
                                         </div>
 
                                     </form>
                                     </td>
+                                </tr>
+
+                                <tr class="success">
+                                    <th class="table-center">Username</th>
+                                    <th class="table-center">First Name</th>
+                                    <th class="table-center">Last Name</th>
+                                    <th class="table-center">Email address</th>
+                                    <th class="table-center">Select students to email</th>
                                 </tr>
 
                                 {% for userform in usersformset %}
@@ -53,7 +56,7 @@
                                 </tr>
                                 {% endfor %}
                                 <tr>
-                                <td class="studioadmin-tbl" colspan="5"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email Users" /></td>
+                                <td class="studioadmin-tbl" colspan="5"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email Students" /></td>
                                 </tr>
                             </table>
                         </div>
