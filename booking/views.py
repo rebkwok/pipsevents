@@ -176,6 +176,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 paypal_form = None
             can_cancel = booking.event.can_cancel() and booking.status == 'OPEN'
             bookingform = {
+                'ev_type': booking.event.event_type.event_type,
                 'booking': booking,
                 'paypalform': paypal_form,
                 'has_available_block': booking.event.event_type in active_block_event_types,
@@ -267,6 +268,11 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                              and not block.paid]
         if active_user_block_unpaid:
             context['active_user_block_unpaid'] = True
+
+        ev_type = 'event' if self.event.event_type.event_type == 'EV' else 'class'
+
+        context['ev_type'] = ev_type
+
         return context
 
     def form_valid(self, form):

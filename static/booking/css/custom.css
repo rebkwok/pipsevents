@@ -694,3 +694,9 @@ a > span.fa.fa-print {
 .email-message {
     height: 300 !important;
 }
+
+.cancel-warning {
+    font-family: sans-serif;
+    font-weight: bold;
+    color: red;
+}

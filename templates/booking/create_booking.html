@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bookingtags %}
 
 {% block content %}
 
@@ -7,7 +8,13 @@
     <div class="col-sm-12">
        <div class="panel panel-success">
             <div class="panel-heading">
-                <h2 class="panel-title">You are now booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h2>
+                <h2 class="panel-title">You are now booking for
+                    {% if ev_type == 'event' %}
+                    <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
+                    {% else %}
+                    <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
+                    {% endif %}
+                    on {{ event.date | date:"D d F, g:i a" }}</h2>
             </div>
             <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
@@ -19,11 +26,19 @@
                                 <p>You have an unpaid block.  If you would like to use your block,
                                     click <a href="{% url 'booking:block_list' %}">here</a> to review and make your payment.</p>
                             {% else %}
-                                <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
+                                <p>Block booking is available for this {{ ev_type }}.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                             {% endif %}
                         {% else %}
-                            <p>(Note: block booking is not available for this class/event type.)</p>
+                            <p>(Note: block booking is not available for this {{ ev_type }} type.)</p>
                         {% endif %}
+
+                        {% if not event.can_cancel %}
+                            <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.  If you choose to continue, you will not be able to cancel your booking.</p>
+                        {% else %}
+                            <p>Cancellation is only allowed up to {{ event.cancellation_period | format_cancellation }}
+                            before the {{ ev_type }} date.</p>
+                        {% endif %}
+
 
                         <span class="hide">{{ form.event }}</span>
                         {% if blocktype_available %}
