@@ -332,7 +332,13 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                           'time': booking.event.date.strftime('%I:%M %p'),
                           'blocks_used':  blocks_used,
                           'total_blocks': total_blocks,
-                          'prev_cancelled_and_direct_paid': previously_cancelled_and_direct_paid
+                          'prev_cancelled_and_direct_paid':
+                              previously_cancelled_and_direct_paid,
+                          'ev_type':
+                              'event' if
+                              self.event.event_type.event_type == 'EV'
+                              else 'class'
+
                       })
                   ),
             settings.DEFAULT_FROM_EMAIL,
@@ -583,6 +589,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                         'time': booking.event.date.strftime('%I:%M %p'),
                         'blocks_used':  blocks_used,
                         'total_blocks': total_blocks,
+                        'ev_type': 'event' if
+                              booking.event.event_type.event_type == 'EV'
+                              else 'class'
                     })
                 ),
                 settings.DEFAULT_FROM_EMAIL,

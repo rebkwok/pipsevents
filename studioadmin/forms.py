@@ -270,14 +270,10 @@ class EventAdminForm(forms.ModelForm):
 
 class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
-    def __init__(self, *args, **kwargs):
-        self.event = kwargs.pop('event', None)
-        super(BookingRegisterInlineFormSet, self).__init__(*args, **kwargs)
-        # this calls _construct_forms()
-
     def add_fields(self, form, index):
         super(BookingRegisterInlineFormSet, self).add_fields(form, index)
-        if form.initial.get('user'):
+
+        if form.instance:
             form.index = index + 1
             user = form.instance.user
             event_type = form.instance.event.event_type
@@ -317,7 +313,7 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                 'class': "regular-checkbox",
                 'id': 'checkbox_attended_{}'.format(index)
             }),
-            initial=form.instance.attended if form.instance else False,
+            initial=False,
             required=False
         )
         form.checkbox_attended_id = 'checkbox_attended_{}'.format(index)
