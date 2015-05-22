@@ -39,6 +39,7 @@ class Command(BaseCommand):
             name="Pole practice",
             day=Session.MON,
             event_type=cl,
+            cost=3.50,
             time=time(hour=20, minute=10),
             external_instructor = False,
         )
