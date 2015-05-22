@@ -205,6 +205,7 @@ class EventAdminForm(forms.ModelForm):
         fields = (
             'name', 'event_type', 'date', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
+            'external_instructor',
             'booking_open', 'payment_open', 'payment_info',
             'payment_due_date', 'cancellation_period'
         )
@@ -261,10 +262,21 @@ class EventAdminForm(forms.ModelForm):
                     'id': 'payment_open_id',
                     },
             ),
+            'external_instructor': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'ext_instructor_id',
+                    },
+            ),
             }
         help_texts = {
             'payment_open': _('Only use this checkbox if the cost is greater than £0'),
             'payment_due_date': _('Only use this field if the cost is greater than £0'),
+            'external_instructor':_('Tick for classes taught by external '
+                                    'instructors. These will not be bookable '
+                                    'via the booking site.  Include '
+                                    'booking/payment details in the payment '
+                                    'information field.')
         }
 
 
@@ -459,6 +471,7 @@ class SessionAdminForm(forms.ModelForm):
         fields = (
             'name', 'event_type', 'day', 'time', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
+            'external_instructor',
             'booking_open', 'payment_open', 'payment_info',
             'cancellation_period'
         )
@@ -514,9 +527,21 @@ class SessionAdminForm(forms.ModelForm):
                     'id': 'payment_open_id',
                     }
             ),
+            'external_instructor': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'ext_instructor_id',
+                    },
+            ),
             }
+
         help_texts = {
             'payment_open': _('Only use this checkbox if the cost is greater than £0'),
+            'external_instructor':_('Tick for classes taught by external '
+                            'instructors. These will not be bookable '
+                            'via the booking site.  Include '
+                            'booking/payment details in the payment '
+                            'information field.')
         }
 
 

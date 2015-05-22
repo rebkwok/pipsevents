@@ -53,7 +53,8 @@ def create_classes(week='this', input_date=None):
             advance_payment_required=True,
             booking_open=session.booking_open,
             payment_info=session.payment_info,
-            cancellation_period=session.cancellation_period
+            cancellation_period=session.cancellation_period,
+            external_instructor = session.external_instructor,
         )
         if created:
             created_classes.append(cl)
@@ -98,7 +99,8 @@ def upload_timetable(start_date, end_date):
                 advance_payment_required=True,
                 booking_open=session.booking_open,
                 payment_info=session.payment_info,
-                cancellation_period=session.cancellation_period
+                cancellation_period=session.cancellation_period,
+                external_instructor = session.external_instructor,
             )
             if created:
                 created_classes.append(cl)

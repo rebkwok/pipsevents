@@ -64,7 +64,10 @@ class Event(models.Model):
     cancellation_period = models.PositiveIntegerField(
         default=24
     )
-
+    external_instructor = models.BooleanField(
+        default=False,
+        help_text='Run by external instructor; booking and payment to be made '
+                  'with instructor directly')
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     def spaces_left(self):
@@ -111,6 +114,11 @@ def event_pre_save(sender, instance, *args, **kwargs):
             hour=0, minute=0, second=0, microsecond=0
         )
         instance.payment_due_date = next_day - timedelta(seconds=1)
+    if instance.external_instructor:
+        # if external_instructor, make sure payment_open and booking_open
+        # are False
+        instance.payment_open = False
+        instance.booking_open = False
 
 
 class BlockType(models.Model):

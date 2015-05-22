@@ -23,6 +23,7 @@ class Command(BaseCommand):
             day=Session.MON,
             event_type=pc,
             time=time(hour=17, minute=45),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -31,6 +32,7 @@ class Command(BaseCommand):
             event_type=pc,
             max_participants=15,
             time=time(hour=19, minute=0),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -38,6 +40,7 @@ class Command(BaseCommand):
             day=Session.MON,
             event_type=cl,
             time=time(hour=20, minute=10),
+            external_instructor = False,
         )
 
         # Tuesday classes
@@ -46,6 +49,7 @@ class Command(BaseCommand):
             day=Session.TUE,
             event_type=pc,
             time=time(hour=17, minute=45),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -53,6 +57,7 @@ class Command(BaseCommand):
             day=Session.TUE,
             event_type=pc,
             time=time(hour=19, minute=0),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -61,6 +66,8 @@ class Command(BaseCommand):
             event_type=pc,
             max_participants=15,
             time=time(hour=20, minute=10),
+            external_instructor = False,
+
         )
 
         # Wednesday classes
@@ -71,6 +78,9 @@ class Command(BaseCommand):
             time=time(hour=19, minute=00),
             booking_open=False,
             payment_open=False,
+            external_instructor = True,
+            contact_person="Alicia Alexandra",
+            contact_email="aliciaalexandra@live.co.uk",
             payment_info="For further information and to book, please contact " \
                          "Alicia"
         )
@@ -81,6 +91,9 @@ class Command(BaseCommand):
             time=time(hour=20, minute=10),
             booking_open=False,
             payment_open=False,
+            external_instructor = True,
+            contact_person="Alicia Alexandra",
+            contact_email="aliciaalexandra@live.co.uk",
             payment_info="For further information and to book, please contact " \
                          "Alicia"
         )
@@ -90,6 +103,7 @@ class Command(BaseCommand):
             day=Session.THU,
             event_type=pc,
             time=time(hour=11, minute=0),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -99,6 +113,9 @@ class Command(BaseCommand):
             time=time(hour=19, minute=10),
             booking_open=False,
             payment_open=False,
+            external_instructor = True,
+            contact_person="Emma Junor/Kira Grant",
+            contact_email="starletpolefitness@gmail.com",
             payment_info="For further information and to book, please contact " \
                          "Polefit Starlet"
         )
@@ -108,6 +125,7 @@ class Command(BaseCommand):
             day=Session.THU,
             event_type=pc,
             time=time(hour=20, minute=10),
+            external_instructor = False,
         )
 
         # Friday classes
@@ -117,6 +135,7 @@ class Command(BaseCommand):
             event_type=pc,
             max_participants=15,
             time=time(hour=17, minute=45),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -124,6 +143,7 @@ class Command(BaseCommand):
             day=Session.FRI,
             event_type=pc,
             time=time(hour=19, minute=0),
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(
@@ -133,4 +153,5 @@ class Command(BaseCommand):
             time=time(hour=20, minute=10),
             max_participants=15,
             cost=3.50,
+            external_instructor = False,
         )

@@ -685,7 +685,7 @@ a > span.fa.fa-print {
     font-style: italic;
 }
 
-.studioadmincbox-help {
+.studioadmincbox-help, .ext-instructor {
     font-size: smaller;
     font-style: italic;
     vertical-align: top;

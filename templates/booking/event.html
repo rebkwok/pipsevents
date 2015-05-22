@@ -33,7 +33,7 @@
 
                         <p>Cost: £ {{ event.cost }}</p>
 
-                        <p>{{ payment_text }}</p>
+                        <p>{{ payment_text | safe }}</p>
 
                         {% if event.payment_open and event.payment_due_date %}
                             <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>

@@ -26,7 +26,7 @@
                                 <th class="table-center">Booked</th>
                             </tr>
                             <tr class="filter-row">
-                                <td class="filter-row" colspan=7>
+                                <td class="filter-row" colspan=9>
                                 <form class="filter-row" action="" method="get">
                                     <strong>Filter by {% if type == 'events' %}event name{% elif type == 'lessons' %}class type{% endif %}: {{ form.name }}</strong>
                                     <input class="btn btn-info table-btn" type="submit" value="Submit" />
@@ -53,6 +53,8 @@
                                         {% if event not in booked_events %}
                                             {% if event.bookable %}
                                                 <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
+                                            {% elif event.external_instructor %}
+                                                <div class="ext-instructor">Click on name for booking/payment details</div>
                                             {% else %}
                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                             {% endif %}
