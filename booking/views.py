@@ -321,28 +321,27 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
+        ctx = Context({
+              'host': host,
+              'booking': booking,
+              'event': booking.event,
+              'date': booking.event.date.strftime('%A %d %B'),
+              'time': booking.event.date.strftime('%I:%M %p'),
+              'blocks_used':  blocks_used,
+              'total_blocks': total_blocks,
+              'prev_cancelled_and_direct_paid':
+                  previously_cancelled_and_direct_paid,
+              'ev_type':
+                  'event' if
+                  self.event.event_type.event_type == 'EV'
+                  else 'class'
+        })
         send_mail('{} Booking for {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                  get_template('booking/email/booking_received.txt').render(
-                      Context({
-                          'host': host,
-                          'booking': booking,
-                          'event': booking.event,
-                          'date': booking.event.date.strftime('%A %d %B'),
-                          'time': booking.event.date.strftime('%I:%M %p'),
-                          'blocks_used':  blocks_used,
-                          'total_blocks': total_blocks,
-                          'prev_cancelled_and_direct_paid':
-                              previously_cancelled_and_direct_paid,
-                          'ev_type':
-                              'event' if
-                              self.event.event_type.event_type == 'EV'
-                              else 'class'
-
-                      })
-                  ),
+            get_template('booking/email/booking_received.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
             [booking.user.email],
+            html_message=get_template('booking/email/booking_received.html').render(ctx),
             fail_silently=False)
         # send email to studio
         additional_subject = ""
@@ -433,26 +432,25 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
+        ctx = Context({
+                          'host': host,
+                          'user': block.user,
+                          'block_type': block.block_type,
+                          'start_date': block.start_date,
+                          'expiry_date': block.expiry_date,
+                      })
         send_mail('{} Block booking confirmed'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
-                  get_template('booking/email/block_booked.txt').render(
-                      Context({
-                          'host': host,
-                          'block': block,
-                      })
-                  ),
+            get_template('booking/email/block_booked.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
             [block.user.email],
+            html_message=get_template(
+                'booking/email/block_booked.html').render(ctx),
             fail_silently=False)
         # send email to studio
         send_mail('{} {} has just booked a block'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
-                  get_template('booking/email/to_studio_block_booked.txt').render(
-                      Context({
-                          'host': host,
-                          'block': block,
-                    })
-                  ),
+            get_template('booking/email/to_studio_block_booked.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
@@ -578,10 +576,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             # send email to user if they used block to book (paypal payment
             # sends separate emails
             host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-            send_mail('{} Block used for booking for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                get_template('booking/email/booking_updated.txt').render(
-                    Context({
+            ctx = Context({
                         'host': host,
                         'booking': booking,
                         'event': booking.event,
@@ -593,9 +588,13 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                               booking.event.event_type.event_type == 'EV'
                               else 'class'
                     })
-                ),
+            send_mail('{} Block used for booking for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template('booking/email/booking_updated.txt').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_updated.html').render(ctx),
                 fail_silently=False)
 
         messages.success(self.request, self.success_message.format(
@@ -641,19 +640,21 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
+
+        ctx = Context({
+                      'host': host,
+                      'booking': booking,
+                      'event': booking.event,
+                      'date': booking.event.date.strftime('%A %d %B'),
+                      'time': booking.event.date.strftime('%I:%M %p'),
+                  })
         send_mail('{} Booking for {} cancelled'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                  get_template('booking/email/booking_cancelled.txt').render(
-                      Context({
-                          'host': host,
-                          'booking': booking,
-                          'event': booking.event,
-                          'date': booking.event.date.strftime('%A %d %B'),
-                          'time': booking.event.date.strftime('%I:%M %p'),
-                      })
-                  ),
+            get_template('booking/email/booking_cancelled.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
             [booking.user.email],
+            html_message=get_template(
+                'booking/email/booking_cancelled.html').render(ctx),
             fail_silently=False)
         # send email to studio
         send_mail('{} {} has just cancelled a booking for {}'.format(

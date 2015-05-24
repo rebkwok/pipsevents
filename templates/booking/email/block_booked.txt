@@ -1,8 +1,8 @@
 Your block booking has been received!
 
-Block type: {{ block.block_type }}
-Block start date: {{ block.start_date }}
-Block expiry date: {{ block.expiry_date }}
+Block type: {{ block_type }}
+Block start date: {{ start_date }}
+Block expiry date: {{ expiry_date }}
 
 View your blocks: {{ host }}{% url 'booking:block_list' %}
 

@@ -1,19 +1,31 @@
 <html>
 <body>
 
-<div align="center">
-<a href=http://www.thewatermelonstudio.co.uk"><img src="http://www.thewatermelonstudio.co.uk/images/homepage/icon.png"
-	width="200"
-	height="auto"
-	border="0" 
-	alt="Watermelon logo">
-</a>
-<br>
-<h2>THE WATERMELON STUDIO</h2>
+<div class="row">
+    <div class="col-sm-12">
+    {% block messagecontent %}{% endblock %}
+    </div>
+    <div class="row" style="padding-top: 3em;">
+        <div class="col-xs-4">
+            <a href=http://www.thewatermelonstudio.co.uk"><img src="http://www.thewatermelonstudio.co.uk/images/homepage/icon.png"
+            width="100"
+            height="auto"
+            border="0"
+            alt="Watermelon logo">
+            </a>
+        </div>
+        <div class="col-xs-6" style="font-family: sans-serif; padding-top: 1em;">
+            THE WATERMELON STUDIO</br>
+            19 Beaverbank Place</br>
+            Edinburgh, EH7 4FB</br>
+            thewatermelonstudio@hotmail.com</p>
+        </div>
+    </div>
+    <div style="font-family: sans-serif; font-size: small;">{% include "account/email/do_not_reply.html" %}</div>
 </div>
-<p>
-{% block messagecontent %}{% endblock %}
-</p>
+
+
+
 
 </body>
 </html>

@@ -1,0 +1,20 @@
+{% extends 'booking/email/email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Your booking for {{ event.name }} on {{ date }} at {{ time }} has been cancelled.</p>
+
+<p>
+{% if not booking.block %}
+    Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and
+    will be in contact soon.
+{% endif %}
+</p>
+
+<p>
+    For further information please contact {{ booking.event.contact_person }} at
+    <a href="mailto:{{ booking.event.contact_email }}">{{ booking.event.contact_email }}</a>
+</p>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'booking/email/email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+<p>
+Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
+</p>
+{% if not event.cost %}
+<p>There is no cost for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend,
+    please delete your booking by visiting visiting your bookings page at
+    <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
+{% else %}
+    {% if booking.block %}
+        <p>You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total
+        {{ total_blocks }} bookings for this block.</p>
+    {% else %}
+        {% if not event.advance_payment_required %}
+            <p>Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you
+                no longer wish to attend, please delete your booking by visiting your bookings page at
+                <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
+        {% else %}
+            <p>Advance payment is required for this {{ ev_type }}.  Your space will be confirmed once the
+                organiser has received your payment.</p>
+        {% endif %}
+        {% if event.payment_open %}
+            <p><strong>Payment information</strong></p>
+                {{ event.payment_info }}
+            <p>Payments are open; visit your bookings page at <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a> to
+                make your payment.</p>
+        {% else %}
+            <p>Payments are not being taken for this {{ ev_type }} yet.  Further information will be
+                sent nearer the {{ ev_type }} date.</p>
+        {% endif %}
+
+        {% if prev_cancelled_and_direct_paid %}
+        <p>You are rebooking a previously cancelled booking which is
+        still marked as paid.  The organiser has been sent a request to review your payment status and
+        confirm that this payment has not been refunded yet.  Your booking will remain as pending until
+        your payment status has been confirmed.</p>
+        {% endif %}
+
+    {% endif %}
+{% endif %}
+</div>
+{% endblock %}

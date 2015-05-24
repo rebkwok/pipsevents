@@ -1,44 +1,24 @@
-Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}!
-
+Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
 {% if not event.cost %}
 There is no cost for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend, please delete your booking by visiting visiting your bookings page at {{ host }}{% url 'booking:bookings' %}.
 {% else %}
-    {% if booking.block %}
-You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total {{ total_blocks }} bookings for this block.
-    {% else %}
-        {% if not event.advance_payment_required %}
+{% if booking.block %}
+You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total {{ total_blocks }} bookings for this block.</p>
+{% else %}
+{% if not event.advance_payment_required %}
 Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend, please delete your booking by visiting your bookings page at {{ host }}{% url 'booking:bookings' %}.
-
-            {% if event.payment_open %}
-Payment information
-===================
-{{ event.payment_info }}
-
-Payments are open; visit your bookings page at {{ host }}{% url 'booking:bookings' %} to make your payment.
-            {% else %}
-Payments are not being taken for this {{ ev_type }} yet.  Further information will be sent nearer the {{ ev_type }} date.
-            {% endif %}
-
-        {% else %}
+{% else %}
 Advance payment is required for this {{ ev_type }}.  Your space will be confirmed once the organiser has received your payment.
-
-            {% if event.payment_open %}
+{% endif %}
+{% if event.payment_open %}
 Payment information
 ===================
 {{ event.payment_info }}
-
 Payments are open; visit your bookings page at {{ host }}{% url 'booking:bookings' %} to make your payment.
-            {% else %}
+{% else %}
 Payments are not being taken for this {{ ev_type }} yet.  Further information will be sent nearer the {{ ev_type }} date.
-            {% endif %}
-
-        {% endif %}
-
-        {% if prev_cancelled_and_direct_paid %}You are rebooking a previously cancelled booking which is still marked as paid.  The organiser has been sent a request to review your payment status and confirm that this payment has not been refunded yet.  Your booking will remain as pending until your payment status has been confirmed.
-        {% endif %}
-
-    {% endif %}
-
 {% endif %}
-
+{% if prev_cancelled_and_direct_paid %}You are rebooking a previously cancelled booking which is still marked as paid.  The organiser has been sent a request to review your payment status and confirm that this payment has not been refunded yet.  Your booking will remain as pending until your payment status has been confirmed.{% endif %}
+{% endif %}
+{% endif %}
 {% include "account/email/do_not_reply.txt" %}

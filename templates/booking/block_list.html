@@ -17,37 +17,39 @@
                     {% endif %}
                 </p>
             </div>
-            <div class="panel panel-success">
-                <div class="table-responsive">
-                    <table class="table">
-                        <tr class="success">
-                            <th>Block Status</th>
-                            <th>Block Type</th>
-                            <th>Start date</th>
-                            <th>Expiry Date</th>
-                            <th class="table-center" >Block size</th>
-                            <th class="table-center">Bookings made</th>
-                            <th class="table-center">Paid</th>
-                        </tr>
-                        {% for blockform in blockformlist %}
-                            <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
-                                <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
-                                <td>{{ blockform.block.block_type.event_type.subtype }}</td>
-                                <td>{{ blockform.block.start_date }}</td>
-                                <td>{{ blockform.block.expiry_date }}</td>
-                                <td class="table-center">{{ blockform.block.block_type.size }}</td>
-                                <td class="table-center">{{ blockform.block.bookings_made }}</td>
-                                <td class="table-center">{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
-                                    {% else %}
-                                        {% if not blockform.block.paid %}
-                                        {% include 'payments/blocklistpayment.html' %}
-                                        {% endif %}</td>
-                                    {% endif %}
+            {% if blockformlist %}
+                <div class="panel panel-success">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>Block Status</th>
+                                <th>Block Type</th>
+                                <th>Start date</th>
+                                <th>Expiry Date</th>
+                                <th class="table-center" >Block size</th>
+                                <th class="table-center">Bookings made</th>
+                                <th class="table-center">Paid</th>
                             </tr>
-                        {% endfor %}
-                    </table>
+                            {% for blockform in blockformlist %}
+                                <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
+                                    <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
+                                    <td>{{ blockform.block.block_type.event_type.subtype }}</td>
+                                    <td>{{ blockform.block.start_date }}</td>
+                                    <td>{{ blockform.block.expiry_date }}</td>
+                                    <td class="table-center">{{ blockform.block.block_type.size }}</td>
+                                    <td class="table-center">{{ blockform.block.bookings_made }}</td>
+                                    <td class="table-center">{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
+                                        {% else %}
+                                            {% if not blockform.block.paid %}
+                                            {% include 'payments/blocklistpayment.html' %}
+                                            {% endif %}</td>
+                                        {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>

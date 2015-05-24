@@ -3,3 +3,4 @@ Thank you for your payment for {{ event.name }} on {{ date }} at {{ time }}.
 You have used your block to pay for this {{ ev_type }}.  Your booking is now confirmed.
 
 You have now used {{ blocks_used }} of {{ total_blocks }} bookings in this block.
+{% endif %}
