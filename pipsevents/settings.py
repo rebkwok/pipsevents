@@ -172,6 +172,51 @@ EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
 DEFAULT_STUDIO_EMAIL = env('DEFAULT_STUDIO_EMAIL')
 
+
+#####LOGGING######
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s',
+            'datefmt' : '%Y-%m-%d %H:%M:%S',
+        }
+    },
+    'handlers': {
+        'file_django': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/pipsevents/django.log',
+        },
+        'file_app': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/pipsevents/pipsevents.log',
+            'formatter': 'verbose'
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['file_django'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'booking': {
+            'handlers': ['console', 'file_app'],
+            'level': 'INFO',
+            'propogate': True,
+        }
+    },
+}
+
+
 #####HEROKU#######
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
@@ -281,3 +326,41 @@ if env('USE_MAILCATCHER'):
 # DJANGO-PAYPAL
 PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
+
+# TRAVIS
+if 'TRAVIS' in os.environ:
+    DATABASES = {
+        'default': {
+            'ENGINE':   'django.db.backends.postgresql_psycopg2',
+            'NAME':     'travis_ci_test',
+            'USER':     'postgres',
+            'PASSWORD': '',
+            'HOST':     'localhost',
+            'PORT':     '',
+        }
+    }
+    SECRET_KEY = 'dummy_secret'
+    EMAIL_HOST_PASSWORD = 'dummy_password'
+
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+            }
+        },
+        'loggers': {
+            'django.request': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'booking': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            }
+        },
+    }

@@ -2,3 +2,4 @@
 db_name: pipsevents
 db_user: watermelon
 db_password: sdjgh34iutwefhfgbqkj3
+log_path: /var/log/

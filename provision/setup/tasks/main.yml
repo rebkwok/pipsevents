@@ -94,3 +94,11 @@
     state=present
     backup=yes
     line='source .bashrc_extra'
+
+- name: Create log folders
+  sudo: yes
+  file: path={{ log_path }}{{ item }} state=directory mode=0777 owner=vagrant recurse=yes group=vagrant
+  with_items:
+      - django
+      - pipsevents
+
