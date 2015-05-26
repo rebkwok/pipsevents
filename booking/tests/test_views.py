@@ -909,12 +909,15 @@ class BookingUpdateViewTests(TestCase):
 
     def test_update_booking_to_paid(self):
         """
-        Test updating a booking to paid (as confirmed by user)
+        Test updating a booking to paid with block
         """
         event = mommy.make_recipe('booking.future_EV', cost=10)
         booking = mommy.make_recipe(
             'booking.booking', user=self.user, event=event, paid=False)
-        form_data = {'paid': True}
+        block = mommy.make_recipe('booking.block',
+                                  block_type__event_type=event.event_type,
+                                  user=self.user, paid=True)
+        form_data = {'block_book': 'yes'}
         resp = self._get_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)

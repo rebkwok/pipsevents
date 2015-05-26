@@ -566,9 +566,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                             booking.event.event_type][0]
             booking.block = active_block
             booking.payment_confirmed = True
-        booking.paid = True
-        booking.user = self.request.user
-        booking.save()
+            booking.paid = True
+            booking.user = self.request.user
+            booking.save()
 
         if booking.block:
             blocks_used = booking.block.bookings_made()
