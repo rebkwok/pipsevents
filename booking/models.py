@@ -1,3 +1,5 @@
+import logging
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -9,6 +11,9 @@ from django_extensions.db.fields import AutoSlugField
 
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
+
+
+logger = logging.getLogger(__name__)
 
 
 class EventType(models.Model):
@@ -209,6 +214,11 @@ def block_delete_pre_delete(sender, instance, **kwargs):
             booking.paid = False
             booking.payment_confirmed = False
             booking.block = None
+        logger.info('Booking id {} booked with deleted block {} '
+                    'has beenhave been reset to unpaid'.format(
+            booking.id, instance.id
+        ))
+    logger.info('Block id {} deleted'.format(instance.id))
 
 
 class Booking(models.Model):
@@ -241,6 +251,7 @@ class Booking(models.Model):
             self.paid = True
             self.payment_confirmed = True
             self.save()
+            logger.info('Space confirmed manually for Booking {}'.format(self.id))
 
     def space_confirmed(self):
         # False if cancelled

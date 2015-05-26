@@ -1,3 +1,5 @@
+import logging
+
 from django import forms
 from django.conf import settings
 from django.contrib import messages
@@ -24,6 +26,9 @@ from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, get_e
 import booking.context_helpers as context_helpers
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
+
+
+logger = logging.getLogger(__name__)
 
 
 class EventListView(ListView):
@@ -308,13 +313,24 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         booking.user = self.request.user
         try:
             booking.save()
+            logger.info('Booking {} {} for "{}" by user {}'.format(
+                booking.id,
+                'created' if not previously_cancelled else 'rebooked',
+                booking.event, booking.user.username)
+            )
         except IntegrityError:
+            logger.warning(
+                'Integrity error; redirected to duplicate booking page'
+            )
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                                 args=[self.event.slug]))
 
         if booking.block:
             blocks_used = booking.block.bookings_made()
             total_blocks = booking.block.block_type.size
+            logger.info('Block used for booking id {}. Block id {}'.format(
+                booking.id, booking.block.id)
+            )
         else:
             blocks_used = None
             total_blocks = None
@@ -366,6 +382,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
 
+        logger.info('Emails sent to studio ({}) and user ({}) regarding {}booking id {}'.format(
+            settings.DEFAULT_STUDIO_EMAIL, booking.user.email,
+            're' if previously_cancelled else '', booking.id)
+            )
         messages.success(
             self.request,
             self.success_message.format(
@@ -430,6 +450,10 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
         block.user = self.request.user
         block.save()
 
+        logger.info('Block {} has been created; Block type: {}; user: {}'.format(
+            block.id, block.block_type, block.user.username
+        ) )
+
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
         ctx = Context({
@@ -454,6 +478,9 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
             settings.DEFAULT_FROM_EMAIL,
             [settings.DEFAULT_STUDIO_EMAIL],
             fail_silently=False)
+        logger.info('Emails sent to studio ({}) and user ({}) regarding block id {}'.format(
+            settings.DEFAULT_STUDIO_EMAIL, block.user.email, block.id)
+            )
         messages.success(self.request, self.success_message.format(block.block_type))
         return HttpResponseRedirect(block.get_absolute_url())
 
@@ -570,6 +597,10 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             booking.user = self.request.user
             booking.save()
 
+            logger.info('Booking id {} has been paid with block id {}'.format(
+                booking.id, booking.block.id
+            ))
+
         if booking.block:
             blocks_used = booking.block.bookings_made()
             total_blocks = booking.block.block_type.size
@@ -596,7 +627,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 html_message=get_template(
                     'booking/email/booking_updated.html').render(ctx),
                 fail_silently=False)
-
+            logger.info('Email sent to user ({}) regarding payment for booking '
+                        'id {} with block id {}'.format(
+                booking.user.email, booking.id, booking.block.id))
         messages.success(self.request, self.success_message.format(
             booking.event.name, booking.event.date.strftime(
                 '%A %d %B, %I:%M %p'
@@ -690,6 +723,9 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 booking.event.date.strftime('%A %d %B'),
                 booking.event.date.strftime('%I:%M %p'))
         )
+        logger.info('Booking id {} for event {}, user {}, was cancelled'.format(
+            booking.id, booking.event, booking.user.username
+        ))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
