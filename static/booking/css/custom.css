@@ -683,6 +683,7 @@ a > span.fa.fa-print {
 .studioadmin-help {
     font-size: smaller;
     font-style: italic;
+    font-weight: normal;
 }
 
 .studioadmincbox-help, .ext-instructor {

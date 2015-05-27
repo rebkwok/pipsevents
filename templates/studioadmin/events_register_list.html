@@ -17,7 +17,7 @@
                             <tr class="success">
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
-                                <th class="table-center">Register</th>
+                                <th class="table-center">View Register</th>
                             </tr>
 
                             {% for event in events %}
@@ -26,10 +26,11 @@
                                 <td>{{ event.name }}</td>
                                 <td class="table-center">
                                     {% if type == 'events' %}
-                                        <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">View event register
+                                        <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">
+                                            <span class="fa fa-external-link fa-lg"></span>
                                     {% elif type == 'lessons' %}
                                         <a href="{% url 'studioadmin:class_register' event.slug 'OPEN' %}">
-                                        View class register
+                                            <span class="fa fa-external-link fa-lg"></span>
                                     {% endif %}</a></td>
                             </tr>
                             {% endfor %}
