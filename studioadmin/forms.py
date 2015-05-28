@@ -708,6 +708,18 @@ class UserBlockModelChoiceField(forms.ModelChoiceField):
             return Block.objects.get(id=value)
 
 
+class NewUserBlockModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "User: {} {}; Block type: {}; {} left".format(
+            obj.user.first_name, obj.user.last_name,
+            obj.block_type.event_type,
+            obj.block_type.size - obj.bookings_made()
+        )
+    def to_python(self, value):
+        if value:
+            return Block.objects.get(id=value)
+
+
 class UserBookingInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
@@ -719,23 +731,26 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
     def add_fields(self, form, index):
         super(UserBookingInlineFormSet, self).add_fields(form, index)
 
-        if not form.instance.block:
-
-            active_user_blocks = [block.id for block in
-                                  Block.objects.filter(user=self.user)
-                                  if block.active_block()]
+        if form.instance.id and form.instance.block is None:
+            active_user_blocks = [
+                block.id for block in Block.objects.filter(
+                    user=self.user,
+                    block_type__event_type=form.instance.event.event_type)
+                if block.active_block()
+            ]
+            form.has_available_block = True if active_user_blocks else False
             form.fields['block'] = (UserBlockModelChoiceField(
                 queryset=Block.objects.filter(id__in=active_user_blocks),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
                 required=False,
-                empty_label="---Choose from user's active blocks---"
+                empty_label="---Choose from user's available active blocks---"
             ))
         else:
-            form.fields['block'] = (UserBlockModelChoiceField(
-                queryset=Block.objects.all(),
+            form.fields['block'] = (NewUserBlockModelChoiceField(
+                queryset=Block.objects.all().order_by('user__last_name'),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
                 required=False,
-                empty_label="---Choose from user's active blocks---"
+                empty_label="---Choose from active blocks---"
             ))
 
         if not form.instance.id:

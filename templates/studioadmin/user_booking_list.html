@@ -48,7 +48,7 @@
                                         {% elif booking.instance.paid %}
                                         Paid directly
                                         {% else %}
-                                            {% if booking.instance.event.cost %}
+                                            {% if booking.instance.event.cost and booking.has_available_block %}
                                                 <div class="form-group form-group-sm">{{ booking.block }}</div>
                                             {% else %}
                                                 N/A

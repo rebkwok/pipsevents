@@ -807,7 +807,7 @@ def user_bookings_view(request, user_id):
         userbookingformset = UserBookingFormSet(
             request.POST,
             instance=user,
-            user=user
+            user=user,
         )
 
         if userbookingformset.is_valid():

@@ -22,6 +22,8 @@ class Command(BaseCommand):
         self.stdout.write("Creating 5 test users")
         for i in range(1, 6):
             username = "test_{}".format(i)
+            first_name = "Test"
+            last_name = "User{}".format(i)
             email = "test{}@test.com".format(i)
             User.objects.get_or_create(username=username,
                                        email=email,
