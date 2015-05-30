@@ -178,7 +178,7 @@ if EMAIL_HOST_PASSWORD == None:
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
-DEFAULT_STUDIO_EMAIL = 'watermelonstudiotest@gmail.com' #password watermel0n
+DEFAULT_STUDIO_EMAIL = 'watermelonstudiotest@gmail.com'
 
 #####HEROKU#######
 
@@ -295,5 +295,5 @@ if DEBUG:
     EMAIL_USE_TLS = False
 
 # DJANGO-PAYPAL
-PAYPAL_RECEIVER_EMAIL = 'test-paypal@watermelon.com'
-PAYPAL_TEST = True
+PAYPAL_RECEIVER_EMAIL = os.environ.get('PAYPAL_RECEIVER_EMAIL')
+PAYPAL_TEST = os.environ.get('PAYPAL_TEST')
