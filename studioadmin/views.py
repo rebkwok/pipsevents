@@ -85,16 +85,24 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                 payment_status = "paid - payment not confirmed yet"
             else:
                 payment_status = 'not paid'
+
+            ctx = Context({
+                'event': booking.event,
+                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST')),
+                'payment_status': payment_status
+
+            })
+
             send_mail(
                 '{} Payment status updated for {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
-                "Your payment status has been updated to {}.".format(
-                    payment_status
-                ),
+                get_template(
+                    'studioadmin/email/confirm_payment.html').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [self.request.user.email],
+                html_template=get_template(
+                    'studioadmin/email/confirm_payment.html').render(ctx),
                 fail_silently=False)
-            # TODO implenent templates
 
         else:
             messages.info(
@@ -131,15 +139,21 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                                             booking.user.username)
             )
 
+            ctx = Context({
+                'event': booking.event,
+                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+
+            })
+
             send_mail(
                 '{} Payment refund confirmed for {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
-                "Your payment has been confirmed as refunded for {}".format(
-                    booking.event),
+                get_template('studioadmin/email/confirm_refund.txt').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [self.request.user.email],
+                html_message=get_template(
+                    'studioadmin/email/confirm_refund.html').render(ctx),
                 fail_silently=False)
-            # TODO implenent templates
 
         if 'cancelled' in self.request.POST:
             messages.info(

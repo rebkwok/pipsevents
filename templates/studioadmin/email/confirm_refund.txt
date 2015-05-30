@@ -1,0 +1,5 @@
+Your refund for {{ event }} has been confirmed.
+
+View your bookings: {{ host }}{% url 'booking:bookings' %}
+
+{% include "account/email/do_not_reply.txt" %}

@@ -1,0 +1,5 @@
+Your payment status for {{ event }}has been updated to {{ payment_status }}
+
+View your bookings: {{ host }}{% url 'booking:bookings' %}
+
+{% include "account/email/do_not_reply.txt" %}

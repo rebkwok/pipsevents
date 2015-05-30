@@ -36,23 +36,36 @@ class PaypalBlockTransaction(models.Model):
 
 def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, purchase):
 
+    ctx = Context({
+        'user': ' '.join(user.first_name, user.last_name),
+        'purchased': purchase,
+        'invoice_id': paypal_trans.invoice_id,
+        'paypal_transaction_id': paypal_trans.transaction_id
+    })
     # send email to studio
     send_mail(
         '{} Payment processed for {} id {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
-        'User: {} {}\n'
-        'Purchased: {}\n'
-        'Invoice number: {}\n'
-        'Paypal Transaction id: {}\n'.format(
-            user.first_name, user.last_name,
-            purchase,
-            paypal_trans.invoice_id,
-            paypal_trans.transaction_id
-        ),
+        get_template(
+            'payments/email/payment_processed_to_studio.txt').render(ctx),
         settings.DEFAULT_FROM_EMAIL,
-        [settings.DEFAULT_STUDIO_EMAIL, user.email],
+        [settings.DEFAULT_STUDIO_EMAIL],
+        html_message=get_template(
+            'payments/email/payment_processed_to_studio.html').format(ctx),
         fail_silently=False)
-    # TODO send separate email to user, implenent templates
+
+    # send email to user
+    # TODO setup separate email templates for user
+    send_mail(
+        '{} Payment processed for {} id {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
+        get_template(
+            'payments/email/payment_processed_to_studio.txt').render(ctx),
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        html_message=get_template(
+            'payments/email/payment_processed_to_studio.html').format(ctx),
+        fail_silently=False)
 
 
 def payment_received(sender, **kwargs):

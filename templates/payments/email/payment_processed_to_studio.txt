@@ -1,0 +1,6 @@
+User: {{ user }}
+Purchased: {{ purchase }}
+Invoice number: {{ invoice_id }}
+Paypal Transaction id: {{ paypal_transaction_id }}
+
+{% include "account/email/do_not_reply.txt" %}

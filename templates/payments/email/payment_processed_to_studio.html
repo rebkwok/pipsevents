@@ -1,0 +1,12 @@
+{% extends 'payments/email/email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>User: {{ user }}</p>
+<p>Purchased: {{ purchase }}</p>
+<p>Invoice number: {{ invoice_id }}</p>
+<p>Paypal Transaction id: {{ paypal_transaction_id }}</p>
+
+</div>
+{% endblock %}
