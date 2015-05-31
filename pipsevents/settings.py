@@ -12,7 +12,12 @@ import environ
 import os
 
 root = environ.Path(__file__) - 2 # two folders back (/a/b/ - 3 = /)
-# remove reading .env for heroku
+
+env = environ.Env(DEBUG=(bool, False),
+                  PAYPAL_TEST=(bool, False),
+                  USE_MAILCATCHER=(bool, False)
+                  )
+
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
 
 BASE_DIR = root()
@@ -21,12 +26,12 @@ BASE_DIR = root()
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', None)
+SECRET_KEY = env('SECRET_KEY')
 if SECRET_KEY is None:
     print("No secret key!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', False) # False if not in os.environ
+DEBUG = env('DEBUG')
 # when env variable is changed it will be a string, not bool
 if str(DEBUG).lower() in ['true', 'on']:
     DEBUG = True
@@ -129,7 +134,7 @@ WSGI_APPLICATION = 'pipsevents.wsgi.application'
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(), # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
+    'default': env.db(), # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
 }
 
 if 'TRAVIS' in os.environ:
@@ -174,7 +179,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', None)
 if EMAIL_HOST_PASSWORD == None:
     print("No email host password provided!")
 EMAIL_PORT = 587
@@ -279,8 +284,7 @@ CKEDITOR_CONFIGS = {
 CKEDITOR_JQUERY_URL = '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
 
 # MAILCATCHER
-USE_MAILCATCHER = os.environ.get('USE_MAILCATCHER')
-if USE_MAILCATCHER:
+if env('USE_MAILCATCHER'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = '127.0.0.1'
     EMAIL_HOST_USER = ''
@@ -289,5 +293,5 @@ if USE_MAILCATCHER:
     EMAIL_USE_TLS = False
 
 # DJANGO-PAYPAL
-PAYPAL_RECEIVER_EMAIL = os.environ.get('PAYPAL_RECEIVER_EMAIL')
-PAYPAL_TEST = os.environ.get('PAYPAL_TEST')
+PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
+PAYPAL_TEST = env('PAYPAL_TEST')
