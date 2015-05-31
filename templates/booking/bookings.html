@@ -75,7 +75,7 @@
                                         </div>
                                         {% endif %}
                                         {% if bookingform.booking.status == 'OPEN' %}
-                                        <a{% if not bookingform.booking.event.can_cancel %}class="disabled"{% endif %}
+                                        <a {% if not bookingform.booking.event.can_cancel %}class="disabled"{% endif %}
                                              href="{% url 'booking:delete_booking' bookingform.booking.pk %}">
                                             <div {% if not bookingform.booking.event.can_cancel %}disabled{% endif %}
                                                  class="btn btn-danger table-btn booking-btn">Cancel booking</div></a>
