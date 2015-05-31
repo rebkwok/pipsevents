@@ -137,20 +137,6 @@ DATABASES = {
     'default': env.db(), # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
 }
 
-if 'TRAVIS' in os.environ:
-    DATABASES = {
-        'default': {
-            'ENGINE':   'django.db.backends.postgresql_psycopg2',
-            'NAME':     'travis_ci_test',
-            'USER':     'postgres',
-            'PASSWORD': '',
-            'HOST':     'localhost',
-            'PORT':     '',
-        }
-    }
-    SECRET_KEY = 'dummy_secret'
-    EMAIL_HOST_PASSWORD = 'dummy_password'
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
