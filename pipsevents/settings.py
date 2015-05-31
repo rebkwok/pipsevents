@@ -286,7 +286,8 @@ CKEDITOR_CONFIGS = {
 CKEDITOR_JQUERY_URL = '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
 
 # MAILCATCHER
-if DEBUG:
+USE_MAILCATCHER = os.environ.get('USE_MAILCATCHER')
+if USE_MAILCATCHER:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = '127.0.0.1'
     EMAIL_HOST_USER = ''
