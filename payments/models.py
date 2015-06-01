@@ -34,11 +34,12 @@ class PaypalBlockTransaction(models.Model):
         return self.invoice_id
 
 
-def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, purchase):
+def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 
     ctx = Context({
-        'user': ' '.join(user.first_name, user.last_name),
-        'purchased': purchase,
+        'user': " ".join([user.first_name, user.last_name]),
+        'obj_type': obj_type.title(),
+        'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
         'paypal_transaction_id': paypal_trans.transaction_id
     })
@@ -51,20 +52,19 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, purchase
         settings.DEFAULT_FROM_EMAIL,
         [settings.DEFAULT_STUDIO_EMAIL],
         html_message=get_template(
-            'payments/email/payment_processed_to_studio.html').format(ctx),
+            'payments/email/payment_processed_to_studio.html').render(ctx),
         fail_silently=False)
 
     # send email to user
-    # TODO setup separate email templates for user
     send_mail(
         '{} Payment processed for {} id {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
         get_template(
-            'payments/email/payment_processed_to_studio.txt').render(ctx),
+            'payments/email/payment_processed_to_user.txt').render(ctx),
         settings.DEFAULT_FROM_EMAIL,
         [user.email],
         html_message=get_template(
-            'payments/email/payment_processed_to_studio.html').format(ctx),
+            'payments/email/payment_processed_to_user.html').render(ctx),
         fail_silently=False)
 
 
@@ -130,21 +130,23 @@ def payment_received(sender, **kwargs):
                 obj.paid = True
                 obj.save()
                 send_processed_payment_emails(obj_type, obj_id, paypal_trans,
-                                              obj.user, purchase)
+                                              obj.user, obj)
 
-        except:
-            # if anything goes wrong, send a warning email
+        except Exception as e:
+            # if anything else goes wrong, send a warning email
             send_mail(
-                '{} WARNING! There was some problem processing payment for '
+                '{} There was some problem processing payment for '
                 '{} id {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id
                 ),
                 'Please check your booking and paypal records for '
-                'invoice # {}, paypal transaction id {}'.format(
-                    ipn_obj.invoice, ipn_obj.txn_id
+                'invoice # {}, paypal transaction id {}.\n\nThe exception '
+                'raised was "{}"'.format(
+                    ipn_obj.invoice, ipn_obj.txn_id, e
                 ),
                 settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
                 fail_silently=False)
+
 
 
 def payment_not_received(sender, **kwargs):

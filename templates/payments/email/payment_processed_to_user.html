@@ -3,8 +3,11 @@
 {% block messagecontent %}
 <div style="font-family: sans-serif;">
 
-<p>User: {{ user }}</p>
-<p>Purchased: {% if obj_type == "Booking" %}{{ obj.event }}else{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
+<p>Dear {{ user }},</p>
+
+<p>Your payment has now been processed.</p>
+
+<p>{{ obj_type }}: {% if obj_type == "Booking" %}{{ obj.event }}else{{ obj.block_type }}{% endif %}</p>
 <p>Invoice number: {{ invoice_id }}</p>
 <p>Paypal Transaction id: {{ paypal_transaction_id }}</p>
 

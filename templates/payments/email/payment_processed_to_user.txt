@@ -1,0 +1,9 @@
+Dear {{ user }},
+
+Your payment has now been processed.
+
+{{ obj_type }}: {% if obj_type == "Booking" %}{{ obj.event }}else{{ obj.block_type }}{% endif %}
+Invoice number: {{ invoice_id }}
+Paypal Transaction id: {{ paypal_transaction_id }}
+
+{% include "account/email/do_not_reply.txt" %}
