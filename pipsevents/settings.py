@@ -170,7 +170,7 @@ if EMAIL_HOST_PASSWORD == None:
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
-DEFAULT_STUDIO_EMAIL = 'watermelonstudiotest@gmail.com'
+DEFAULT_STUDIO_EMAIL = env('DEFAULT_STUDIO_EMAIL')
 
 #####HEROKU#######
 
