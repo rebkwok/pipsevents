@@ -130,19 +130,6 @@ class EventForm(forms.ModelForm):
 
     description = forms.CharField(widget=CKEditorWidget(attrs={'class':'container-fluid'}))
 
-    date = forms.DateTimeField(
-        widget=forms.DateTimeInput(
-            attrs={'id': "datetimepicker"},
-            format='%d %b %Y %H:%M'
-        )
-    )
-    payment_due_date = forms.DateTimeField(
-        widget=forms.DateInput(
-            attrs={'id': "datepicker"},
-            format='%d %b %Y'
-        )
-    )
-
     class Meta:
         widgets = {
             # You can also use prepended and appended together
