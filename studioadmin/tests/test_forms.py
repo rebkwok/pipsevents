@@ -517,11 +517,10 @@ class UploadTimetableFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertEquals(len(form.errors), 2)
         self.assertEquals(
-            form.errors,
-            {
-                'start_date': ['This field is required'],
-                'end_date': ['This field is required']
-            }
+            form.errors.get('start_date'), ['This field is required.']
+        )
+        self.assertEquals(
+            form.errors.get('end_date'), ['This field is required.']
         )
 
     def test_invalid_start_date_format(self):
