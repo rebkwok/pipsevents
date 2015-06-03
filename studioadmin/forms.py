@@ -128,7 +128,7 @@ def convert_date(date_string, dateformat, is_new=True):
 
 
 class EventAdminForm(forms.ModelForm):
-    
+
     required_css_class = 'form-error'
 
     cost = forms.DecimalField(
@@ -709,18 +709,6 @@ class UserBlockModelChoiceField(forms.ModelChoiceField):
             return Block.objects.get(id=value)
 
 
-class NewUserBlockModelChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return "User: {} {}; Block type: {}; {} left".format(
-            obj.user.first_name, obj.user.last_name,
-            obj.block_type.event_type,
-            obj.block_type.size - obj.bookings_made()
-        )
-    def to_python(self, value):
-        if value:
-            return Block.objects.get(id=value)
-
-
 class UserBookingInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
@@ -735,7 +723,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         if form.instance.id and form.instance.block is None:
             active_user_blocks = [
                 block.id for block in Block.objects.filter(
-                    user=self.user,
+                    user=form.instance.user,
                     block_type__event_type=form.instance.event.event_type)
                 if block.active_block()
             ]
@@ -747,11 +735,15 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 empty_label="---Choose from user's available active blocks---"
             ))
         else:
-            form.fields['block'] = (NewUserBlockModelChoiceField(
-                queryset=Block.objects.all().order_by('user__last_name'),
+            active_blocks = [
+                block.id for block in Block.objects.filter(user=self.user)
+                    if block.active_block()
+            ]
+            form.fields['block'] = (UserBlockModelChoiceField(
+                queryset=Block.objects.filter(id__in=active_blocks),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
                 required=False,
-                empty_label="---Choose from active blocks---"
+                empty_label="---Choose from user's active blocks---"
             ))
 
         if not form.instance.id:
@@ -798,7 +790,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         block_tracker = {}
         for form in self.forms:
-            # this occurs when we try to create a cancelled booking;
+            # this occurs when we try to reopen a cancelled booking;
             # deal with this later in the view
             if form.errors.get('__all__') == [
                 'Booking with this User and Event already exists.'
