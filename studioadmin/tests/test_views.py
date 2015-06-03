@@ -85,10 +85,9 @@ class EmailUsersTests(TestCase):
 class UserBookingsViewTests(TestCase):
 
     pass
+    # try to rebook cancelled
 
 
 class UserBlocksViewTests(TestCase):
 
     pass
-
-
