@@ -4,7 +4,7 @@
 <div style="font-family: sans-serif;">
 
 <p>User: {{ user }}</p>
-<p>Purchased: {% if obj_type == "Booking" %}{{ obj.event }}else{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
+<p>Purchased: {% if obj_type == "Booking" %}{{ obj.event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
 <p>Invoice number: {{ invoice_id }}</p>
 <p>Paypal Transaction id: {{ paypal_transaction_id }}</p>
 

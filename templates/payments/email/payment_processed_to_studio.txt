@@ -1,5 +1,5 @@
 User: {{ user }}
-Purchased: {% if obj_type == "Booking" %}{{ obj.event }}else{{ obj.block_type }}{% endif %} ({{ obj_type }})
+Purchased: {% if obj_type == "Booking" %}{{ obj.event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})
 Invoice number: {{ invoice_id }}
 Paypal Transaction id: {{ paypal_transaction_id }}
 
