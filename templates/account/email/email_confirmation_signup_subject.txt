@@ -1,3 +1,4 @@
-{% include "account/email/email_confirmation_subject.txt" %}
-
-{% include "account/email/do_not_reply.txt" %}
+{% load i18n %}
+{% autoescape off %}
+{% blocktrans %}Confirm E-mail Address{% endblocktrans %}
+{% endautoescape %}
