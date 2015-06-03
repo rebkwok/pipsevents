@@ -588,7 +588,7 @@ class UploadTimetableForm(forms.Form):
                 self.add_error(
                     'start_date', 'Invalid date format.  Select from '
                                         'the date picker or enter date in the '
-                                        'format e.g. Fri 01 May 2015')
+                                        'format e.g. Mon 08 Jun 2015')
 
         end_date = self.data.get('end_date')
         if end_date:
@@ -596,17 +596,18 @@ class UploadTimetableForm(forms.Form):
                 del self.errors['end_date']
             try:
                 end_date = datetime.strptime(end_date, '%a %d %b %Y').date()
-                if end_date >= start_date:
-                    cleaned_data['end_date'] = end_date
-                else:
-                    self.add_error('end_date',
-                                   'Cannot be before start date')
             except ValueError:
                 self.add_error(
                     'end_date', 'Invalid date format.  Select from '
                                         'the date picker or enter date in the '
-                                        'format ddd DD Mmm YYYY (e.g. Mon 18 May 2015)')
+                                        'format ddd DD Mmm YYYY (e.g. Mon 15 Jun 2015)')
 
+        if not self.errors.get('end_date') and not self.errors.get('start_date'):
+            if end_date >= start_date:
+                cleaned_data['end_date'] = end_date
+            else:
+                self.add_error('end_date',
+                                   'Cannot be before start date')
         return cleaned_data
 
 
