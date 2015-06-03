@@ -12,7 +12,9 @@ from studioadmin.forms import (
     SimpleBookingRegisterFormSet,
     StatusFilter,
     ConfirmPaymentForm,
-    TimetableSessionFormSet
+    TimetableSessionFormSet,
+    SessionAdminForm,
+    UploadTimetableForm
 )
 from timetable.models import Session
 
@@ -399,15 +401,147 @@ class TimetableSessionFormSetTests(TestCase):
         deleted_form = formset.deleted_forms[0]
         self.assertEqual(deleted_form.cleaned_data['id'], session_to_delete)
 
+
 class SessionAdminFormTests(TestCase):
 
-    pass
+    def setUp(self):
+        self.event_type = mommy.make_recipe('booking.event_type_PC')
+        self.event_type_ev = mommy.make_recipe('booking.event_type_OE')
+        self.event_type_oc = mommy.make_recipe('booking.event_type_OC')
+
+    def form_data(self, extra_data={}):
+        data = {
+            'name': 'test_event',
+            'event_type': self.event_type.id,
+            'day': '01MON',
+            'time': '12:00',
+            'contact_email': 'test@test.com',
+            'contact_person': 'test',
+            'cancellation_period': 24,
+            'location': 'Watermelon Studio'
+        }
+
+        for key, value in extra_data.items():
+            data[key] = value
+
+        return data
+
+    def test_form_valid(self):
+
+        form = SessionAdminForm(data=self.form_data())
+        self.assertTrue(form.is_valid())
+
+    def test_form_with_invalid_contact_person(self):
+        form = SessionAdminForm(
+            data=self.form_data({'contact_person': ''}))
+        self.assertFalse(form.is_valid())
+        self.assertEquals(len(form.errors), 1)
+        self.assertIn('contact_person', form.errors.keys())
+        self.assertIn(['This field is required.'], form.errors.values())
+
+    def test_form_with_invalid_contact_email(self):
+        form = SessionAdminForm(
+            data=self.form_data({'contact_email': ''}))
+        self.assertFalse(form.is_valid())
+        self.assertEquals(len(form.errors), 1)
+        self.assertIn('contact_email', form.errors.keys())
+        self.assertIn(['This field is required.'], form.errors.values())
+
+        form = SessionAdminForm(
+            data=self.form_data({'contact_email': 'test_email'}))
+        self.assertFalse(form.is_valid())
+        self.assertEquals(len(form.errors), 1)
+        self.assertIn('contact_email', form.errors.keys())
+        self.assertIn(['Enter a valid email address.'], form.errors.values())
+
+    def test_event_type_queryset(self):
+        form = SessionAdminForm(
+            data=self.form_data())
+        ev_type_field = form.fields['event_type']
+        self.assertEqual(
+            set(EventType.objects.filter(event_type='CL')),
+            set(ev_type_field.queryset)
+        )
+        self.assertEquals(len(ev_type_field.queryset), 2)
+
+        form = SessionAdminForm(
+            data=self.form_data())
+        ev_type_field = form.fields['event_type']
+        self.assertEqual(
+            set(EventType.objects.filter(
+                id__in=[self.event_type.id, self.event_type_oc.id]
+            )),
+            set(ev_type_field.queryset)
+        )
+        self.assertEquals(len(ev_type_field.queryset), 2)
+
+    def test_invalid_time(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {'time': '25:00'}))
+        self.assertFalse(form.is_valid())
+        self.assertIn('Invalid time format', str(form.errors['time']))
+
+    def test_name_placeholder(self):
+        form = SessionAdminForm(data=self.form_data())
+        name_field = form.fields['name']
+        self.assertEquals(
+            name_field.widget.attrs['placeholder'],
+            'Name of session e.g. Pole Level 1')
 
 
 class UploadTimetableFormTests(TestCase):
 
-    pass
+    def setUp(self):
+        pass
 
+    def form_data(self, extra_data={}):
+        data = {
+            'start_date': 'Mon 08 Jun 2015',
+            'end_date': 'Mon 15 Jun 2015',
+        }
+
+        for key, value in extra_data.items():
+            data[key] = value
+
+        return data
+
+    def test_form_valid(self):
+        form = UploadTimetableForm(data=self.form_data())
+        self.assertTrue(form.is_valid())
+
+    def test_start_and_end_date_required(self):
+        form = UploadTimetableForm(
+            data={}
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEquals(len(form.errors), 2)
+        self.assertEquals(
+            form.errors,
+            {
+                'start_date': ['This field is required'],
+                'end_date': ['This field is required']
+            }
+        )
+
+    def test_invalid_start_date_format(self):
+        form = UploadTimetableForm(
+            data=self.form_data({'start_date': 'Monday 08 June 2015'})
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEquals(len(form.errors), 1)
+        self.assertIn('Invalid date format', str(form.errors['start_date']))
+
+    def test_invalid_end_date_format(self):
+        form = UploadTimetableForm(
+            data=self.form_data({'end_date': 'Monday 15 June 2015'})
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEquals(len(form.errors), 1)
+        self.assertIn('Invalid date format', str(form.errors['end_date']))
+
+    def test_end_date_before_start_date(self):
+        pass
 
 class ChooseUsersFormSetTests(TestCase):
 
