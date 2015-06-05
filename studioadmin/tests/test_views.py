@@ -86,7 +86,9 @@ class UserBookingsViewTests(TestCase):
 
     pass
     # try to rebook cancelled
-
+    # trying to overbook block
+    # cannot block book event with no available blocktype
+    # trying to block book with wrong block type
 
 class UserBlocksViewTests(TestCase):
 

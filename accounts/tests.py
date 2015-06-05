@@ -9,6 +9,10 @@ from model_mommy import mommy
 
 class SignUpFormTests(TestCase):
 
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+
     def test_signup_form(self):
         form_data = {'first_name': 'Test',
                      'last_name': 'User'}
@@ -21,6 +25,20 @@ class SignUpFormTests(TestCase):
                      'last_name': 'User'}
         form = SignupForm(data=form_data)
         self.assertFalse(form.is_valid())
+
+    def test_user_assigned_from_request(self):
+        user = mommy.make(User)
+        url = reverse('account_signup')
+        request = self.factory.get(url)
+        request.user = user
+        form_data = {'first_name': 'New',
+                     'last_name': 'Name'}
+        form = SignupForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        form.signup(request, user)
+        self.assertEquals('New', user.first_name)
+        self.assertEquals('Name', user.last_name)
+
 
 class ProfileUpdateViewTests(TestCase):
 
@@ -62,4 +80,3 @@ class ProfileTest(TestCase):
         resp = profile(request)
 
         self.assertEquals(resp.status_code, 200)
-

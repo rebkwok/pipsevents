@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         pc, _ = EventType.objects.get_or_create(event_type='CL', subtype='Pole level class')
         cl, _ = EventType.objects.get_or_create(event_type='CL', subtype='Other class')
-        ex, _ = EventType.objects.get_or_create(event_type='CL', subtype='External instructor')
+        ex, _ = EventType.objects.get_or_create(event_type='CL', subtype='External instructor class')
 
         # Monday classes
         Session.objects.get_or_create(

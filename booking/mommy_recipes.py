@@ -82,3 +82,5 @@ fb_app = Recipe(SocialApp,
                 provider='facebook')
 
 mon_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.MON)
+tue_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.TUE)
+wed_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.WED)

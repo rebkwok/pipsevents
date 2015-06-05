@@ -5,7 +5,7 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
-from booking.models import Event, EventType, Block
+from booking.models import Event, EventType, Block, BlockType
 from studioadmin.forms import (
     BlockStatusFilter,
     ChooseUsersFormSet,
@@ -698,7 +698,7 @@ class UserBookingFormSetTests(TestCase):
         self.event = mommy.make_recipe('booking.future_EV')
         self.user = mommy.make_recipe('booking.user')
         self.block_type = mommy.make_recipe('booking.blocktype',
-                                       event_type=self.event.event_type,)
+                                       event_type=self.event.event_type)
         # 5 active blocks for other users
         mommy.make_recipe(
                     'booking.block',
@@ -880,38 +880,79 @@ class UserBookingFormSetTests(TestCase):
         self.assertEquals(1, event.queryset.count())
         self.assertIn(self.event, event.queryset)
 
-    def test_cannot_use_block_with_incorrect_block_type(self):
-
-        event = mommy.make_recipe('booking.future_EV')
-        block_type = mommy.make_recipe('booking.blocktype',
-                                       event_type__event_type='CL')
-        block = mommy.make_recipe(
-                            'booking.block',
-                            user=self.user,
-                            block_type=block_type,
-                            paid=True)
-        formset = UserBookingFormSet(
-                                data=self.formset_data(
-                                        {'bookings-0-id': None,
-                                        'bookings-0-event': event.id,
-                                        'booking-0-block': block.id}
-                                    ),
-                                instance=self.user,
-                                user=self.user)
-        self.assertFalse(formset.is_valid())
-        self.assertIn("cannot be block-booked", formset.errors)
-
-
-        # overbookin gbloc
-        # cannot block book event with no available blocktype
-        # trying to block book with wrong block type
-
-
-class BlockStatusFilterTests(TestCase):
-
-    pass
-
 
 class UserBlockFormSetTests(TestCase):
 
-    pass
+    def setUp(self):
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        self.user = mommy.make_recipe('booking.user')
+        self.block_type = mommy.make_recipe(
+            'booking.blocktype', event_type=event_type)
+        self.block = mommy.make_recipe('booking.block', block_type=self.block_type, user=self.user, paid=True)
+
+    def formset_data(self, extra_data={}):
+
+        data = {
+            'blocks-TOTAL_FORMS': 1,
+            'blocks-INITIAL_FORMS': 1,
+            'blocks-0-id': self.block.id,
+            'blocks-0-block_type': self.block.block_type.id,
+            'blocks-0-start_date': self.block.start_date
+            }
+
+        for key, value in extra_data.items():
+            data[key] = value
+
+        return data
+
+    def test_form_valid(self):
+        formset = UserBlockFormSet(data=self.formset_data(),
+                                     instance=self.user,
+                                     user=self.user)
+        self.assertTrue(formset.is_valid(), formset.errors)
+
+    def test_additional_data_in_form(self):
+        event_type = mommy.make_recipe('booking.event_type_OE')
+        available_block_type = mommy.make_recipe('booking.blocktype',
+                                               event_type=event_type)
+        formset = UserBlockFormSet(data=self.formset_data(),
+                                     instance=self.user,
+                                     user=self.user)
+        form = formset.forms[0]
+        self.assertTrue(form.can_buy_block)
+        self.assertEquals(form.paid_id, 'paid_0')
+
+    def test_block_type_queryset_for_new_form(self):
+        """
+        Block_type choices should not include blocktypes for which the user
+        already has an active block
+        """
+        available_block_type = mommy.make_recipe('booking.blocktype',
+                                               _quantity=5)
+        self.assertEquals(BlockType.objects.all().count(), 6)
+        formset = UserBlockFormSet(instance=self.user, user=self.user)
+        form = formset.forms[-1]
+        block_type_queryset = form.fields['block_type'].queryset
+        self.assertEquals(block_type_queryset.count(), 5)
+        self.assertFalse(self.block_type in block_type_queryset)
+
+        # blocktypes of unpaid blocks which are otherwise active are also not
+        # included in the choices
+        self.block.paid = False
+        self.block.save()
+        formset = UserBlockFormSet(instance=self.user, user=self.user)
+        form = formset.forms[-1]
+        block_type_queryset = form.fields['block_type'].queryset
+        self.assertEquals(block_type_queryset.count(), 5)
+        self.assertFalse(self.block_type in block_type_queryset)
+        # blocktypes of expired blocks are included in the choices
+        self.block.start_date = timezone.now() - timedelta(100)
+        self.block_type.duration = 2
+        self.block_type.save()
+        self.block.save()
+        self.assertTrue(self.block.expired)
+        formset = UserBlockFormSet(instance=self.user, user=self.user)
+        form = formset.forms[-1]
+        block_type_queryset = form.fields['block_type'].queryset
+        self.assertEquals(block_type_queryset.count(), 6)
+        self.assertIn(self.block_type, block_type_queryset)
