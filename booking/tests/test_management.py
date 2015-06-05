@@ -8,7 +8,7 @@ from allauth.socialaccount.models import SocialApp
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Booking
+from booking.models import Event, Booking, EventType, BlockType
 from booking.utils import create_classes
 from timetable.models import Session
 
@@ -54,20 +54,6 @@ class ManagementCommandsTests(TestCase):
         )
         self.assertTrue(next_mon_classes)
 
-    def test_create_classes(self):
-        # create classes for a given date (22/3/16 is a Tues)
-        date = datetime(2016, 3, 22, tzinfo=timezone.utc)
-        self.assertEquals(Event.objects.all().count(), 0)
-
-        # create some timetabled sessions for mondays
-        mommy.make_recipe('booking.mon_session', _quantity=3)
-
-        create_classes(input_date=date)
-        # check that there are now classes on the Monday that week (21st Mar)
-        mon_classes = Event.objects.filter(date__gte=date - timedelta(days=1),
-                                           date__lte=date)
-        self.assertTrue(mon_classes.count(), 3)
-
     def test_create_bookings(self):
         """
         test that create_bookings creates 3 bookings per event
@@ -98,3 +84,29 @@ class ManagementCommandsTests(TestCase):
         management.call_command('create_bookings')
         # confirm no errors, and no booking are created
         self.assertEquals(Booking.objects.all().count(), 0)
+
+    def test_create_events_and_blocktypes(self):
+        """
+        test that create_events_and_blocktypes creates the default types
+        """
+        self.assertEquals(EventType.objects.all().count(), 0)
+        self.assertEquals(BlockType.objects.all().count(), 0)
+
+        management.call_command('create_event_and_blocktypes')
+        self.assertEquals(EventType.objects.all().count(), 5)
+        self.assertEquals(BlockType.objects.all().count(), 2)
+
+    def test_create_events_and_blocktypes_twice(self):
+        """
+        test that create_events_and_blocktypes does not create duplicates
+        """
+        self.assertEquals(EventType.objects.all().count(), 0)
+        self.assertEquals(BlockType.objects.all().count(), 0)
+
+        management.call_command('create_event_and_blocktypes')
+        self.assertEquals(EventType.objects.all().count(), 5)
+        self.assertEquals(BlockType.objects.all().count(), 2)
+
+        management.call_command('create_event_and_blocktypes')
+        self.assertEquals(EventType.objects.all().count(), 5)
+        self.assertEquals(BlockType.objects.all().count(), 2)
