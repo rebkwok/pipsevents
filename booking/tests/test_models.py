@@ -166,16 +166,6 @@ class BookingTests(TestCase):
                                     event=event)
         self.assertTrue(booking.space_confirmed())
 
-    def test_date_space_confirmed_free_event(self):
-        """
-        Test autopopulating date space confirmed.  For free event, this is the
-        datetime the booking is created
-        """
-        booking = mommy.make_recipe('booking.booking',
-                                    user=self.users[0],
-                                    event=self.event)
-        self.assertTrue(booking.date_space_confirmed)
-
     def test_date_payment_confirmed(self):
         """
         Test autopopulating date payment confirmed.
@@ -189,20 +179,6 @@ class BookingTests(TestCase):
         booking.payment_confirmed = True
         booking.save()
         self.assertTrue(booking.date_payment_confirmed)
-
-    def test_date_space_confirmed_paid_event(self):
-        """
-        Test autopopulating date space confirmed for paid event
-        """
-        booking = mommy.make_recipe('booking.booking',                                    user=self.users[0],
-                                    event=self.event_with_cost)
-        # booking is created with no space confirmed date
-        self.assertFalse(booking.space_confirmed())
-        self.assertFalse(booking.date_space_confirmed)
-
-        booking.confirm_space()
-        self.assertTrue(booking.space_confirmed())
-        self.assertTrue(booking.date_space_confirmed)
 
     def test_cancelled_booking_is_no_longer_confirmed(self):
         booking = mommy.make_recipe('booking.booking',

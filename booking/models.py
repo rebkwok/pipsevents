@@ -230,7 +230,6 @@ class Booking(models.Model):
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
     block = models.ForeignKey(Block, related_name='bookings', null=True, blank=True)
-    date_space_confirmed = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'
     )
@@ -241,14 +240,12 @@ class Booking(models.Model):
         if self.event.cost:
             self.paid = True
             self.payment_confirmed = True
-            self.date_space_confirmed = timezone.now()
             self.save()
 
     def space_confirmed(self):
         # False if cancelled
         # True if open and advance payment not required or cost = 0 or
         # payment confirmed
-
         if self.status == 'CANCELLED':
             return False
         return not self.event.advance_payment_required \
@@ -267,5 +264,3 @@ class Booking(models.Model):
 def booking_pre_save(sender, instance, *args, **kwargs):
     if instance.payment_confirmed and not instance.date_payment_confirmed:
         instance.date_payment_confirmed = timezone.now()
-    if not instance.event.cost and not instance.date_space_confirmed:
-        instance.date_space_confirmed = timezone.now()
