@@ -1,4 +1,5 @@
-import random
+import logging
+
 from django.db import models
 from django.conf import settings
 from django.core.mail import send_mail
@@ -10,6 +11,9 @@ from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block
+
+
+logger = logging.getLogger(__name__)
 
 
 class PayPalTransactionError(Exception):
@@ -67,6 +71,11 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
             'payments/email/payment_processed_to_user.html').render(ctx),
         fail_silently=False)
 
+    logger.info('Payment-processed email for {} {} sent to studio ({}) and'
+                'user {}'.format(
+        obj_type, obj_id, settings.DEFAULT_STUDIO_EMAIL, user.email
+    ))
+
 
 def payment_received(sender, **kwargs):
     ipn_obj = sender
@@ -89,6 +98,10 @@ def payment_received(sender, **kwargs):
             obj = Block.objects.get(id=obj_id)
             purchase = obj.block_type
         else:
+            logger.error('PaypalTransactionError: unknown object type for '
+                         'payment (ipn_obj transaction_id: {}, obj_type: {}'.format(
+                ipn_obj.txn_id, obj_type
+            ))
             raise PayPalTransactionError('unknown object type for payment')
         try:
             if ipn_obj.flag:
@@ -110,6 +123,10 @@ def payment_received(sender, **kwargs):
                     settings.DEFAULT_FROM_EMAIL,
                     [settings.DEFAULT_STUDIO_EMAIL, obj.user.email],
                     fail_silently=False)
+                logger.warning('Transaction flagged; transaction id: {}, '
+                               'flag: {}'.format(
+                    ipn_obj.txn_id, ipn_obj.flag
+                ))
 
             else:
                 if obj_type == 'booking':
@@ -120,7 +137,6 @@ def payment_received(sender, **kwargs):
                     paypal_trans = PaypalBlockTransaction.objects.get(
                         block=obj, invoice_id=ipn_obj.invoice
                     )
-
                 paypal_trans.transaction_id = ipn_obj.txn_id
                 paypal_trans.save()
 
@@ -129,6 +145,13 @@ def payment_received(sender, **kwargs):
                     obj.date_payment_confirmed = timezone.now()
                 obj.paid = True
                 obj.save()
+
+                logger.info('{} id {} has been paid by PayPal; '
+                            'invoice {}, transaction id {}'.format(
+                    obj_type.title(), obj.id, paypal_trans.invoice_id,
+                    paypal_trans.transaction_id,
+                ))
+
                 send_processed_payment_emails(obj_type, obj_id, paypal_trans,
                                               obj.user, obj)
 
@@ -146,6 +169,10 @@ def payment_received(sender, **kwargs):
                 ),
                 settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
                 fail_silently=False)
+            logger.warning('Problem processing payment for booking {}; '
+                           'invoice_id {}, transaction id: {}.  Exception: {}'.format(
+                    obj_type, obj_id, ipn_obj.txn_id, e
+                ))
 
 
 
@@ -159,6 +186,8 @@ def payment_not_received(sender, **kwargs):
         'attempting to process payment for booking id {}'.format(booking.id),
         settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
         fail_silently=False)
+    logger.warning('Invalid Payment Notification received from PayPal for '
+                   'booking id {}'.format(booking.id))
 
 
 valid_ipn_received.connect(payment_received)
