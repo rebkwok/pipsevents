@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.template.loader import get_template
 from django.template import Context
+from django.template.response import TemplateResponse
 
 from django.shortcuts import HttpResponseRedirect, redirect, \
     render, get_object_or_404
@@ -69,17 +70,20 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         }
 
     def form_valid(self, form):
-        if form.has_changed() and form.changed_data != ['date_payment_confirmed']:
+        if form.has_changed():
             booking = form.save(commit=False)
-            booking.paid = form.data.get( 'paid', False)
-            booking.payment_confirmed = form.data.get(
-                'payment_confirmed', False
-            )
-            if booking.payment_confirmed and 'payment_confirmed' in form.changed_data:
+
+            if booking.payment_confirmed and 'payment_confirmed' \
+                    in form.changed_data:
                 # if user leaves paid unchecked but checks payment confirmed
                 # as true, booking should be marked as paid
                 booking.paid = True
                 booking.date_payment_confirmed = timezone.now()
+
+            if not booking.paid and 'paid' in form.changed_data:
+                # if booking is changed to unpaid, reset payment_confirmed to
+                # False too
+                booking.payment_confirmed = False
             booking.save()
 
             if booking.paid and booking.payment_confirmed:
@@ -91,7 +95,7 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
             messages.success(
                 self.request,
-                self.success_message.format(booking.user.username, payment_status)
+                self.success_message.format(payment_status, booking.user.username)
             )
 
             ctx = Context({
@@ -100,23 +104,27 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                 'payment_status': payment_status
 
             })
-
-            send_mail(
-                '{} Payment status updated for {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
-                get_template(
-                    'studioadmin/email/confirm_payment.html').render(ctx),
-                settings.DEFAULT_FROM_EMAIL,
-                [self.request.user.email],
-                html_message=get_template(
-                    'studioadmin/email/confirm_payment.html').render(ctx),
-                fail_silently=False)
+            try:
+                send_mail(
+                    '{} Payment status updated for {}'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
+                    get_template(
+                        'studioadmin/email/confirm_payment.html').render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [self.request.user.email],
+                    html_message=get_template(
+                        'studioadmin/email/confirm_payment.html').render(ctx),
+                    fail_silently=False)
+            except Exception as e:
+                logger.error(
+                        'EXCEPTION "{}"" while sending email for booking '
+                        'id {}'.format(e, booking.id)
+                        )
 
             logger.info('Payment status for booking id {}, user {} has been '
                         'updated by admin user {}'.format(
                 booking.id, booking.user.username, self.request.user.username))
         else:
-            import ipdb; ipdb.set_trace()
             messages.info(
                 self.request, "No changes made to the payment "
                               "status for {}'s booking for {}.".format(
@@ -134,13 +142,13 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
     template_name = 'studioadmin/confirm_refunded.html'
     success_message = "Refund of payment for {}'s booking for {} has been " \
                       "confirmed.  An update email has been sent to {}."
-    fields = '__all__'
+    fields = ('id',)
 
 
     def form_valid(self, form):
+        booking = form.save(commit=False)
 
         if 'confirmed' in self.request.POST:
-            booking = form.save(commit=False)
             booking.paid = False
             booking.payment_confirmed = False
             booking.date_payment_confirmed = None
@@ -182,7 +190,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse('studioadmin:lessons')
+        return reverse('studioadmin:users')
 
 
 @login_required
@@ -283,7 +291,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
         BlockType.objects.filter(event_type=event.event_type)
     ]
 
-    return render(
+    return TemplateResponse(
         request, template, {
             'formset': formset, 'event': event, 'status_filter': status_filter,
             'extra_lines': extra_lines, 'print': print_view,

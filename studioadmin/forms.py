@@ -354,7 +354,7 @@ class StatusFilter(forms.Form):
 class ConfirmPaymentForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = '__all__'
+        fields = ('paid', 'payment_confirmed')
         widgets = {
             'paid': forms.CheckboxInput(),
             'payment_confirmed': forms.CheckboxInput()
