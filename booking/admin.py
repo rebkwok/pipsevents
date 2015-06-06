@@ -217,7 +217,7 @@ class BookingAdmin(admin.ModelAdmin):
 
     list_filter = (BookingDateListFilter, 'user', 'event')
 
-    readonly_fields = ('date_payment_confirmed')
+    readonly_fields = ('date_payment_confirmed',)
 
     actions_on_top=True
     actions_on_bottom=False
