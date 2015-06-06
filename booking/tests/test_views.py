@@ -1126,10 +1126,3 @@ class BlockListViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(Block.objects.all().count(), 4)
         self.assertEqual(resp.context_data['blocks'].count(), 1)
-
-
-
-#TODO register view
-#TODO confirm payment, confirm refund plus permissions
-
-
