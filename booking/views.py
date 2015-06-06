@@ -429,6 +429,12 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
         block = form.save(commit=False)
         block.user = self.request.user
         block.save()
+<<<<<<< Updated upstream
+=======
+        logger.info('Block {} has been created; Block type: {}; user: {}'.format(
+            block.id, block.block_type, block.user.username
+        ) )
+>>>>>>> Stashed changes
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
