@@ -15,7 +15,8 @@ root = environ.Path(__file__) - 2 # two folders back (/a/b/ - 3 = /)
 
 env = environ.Env(DEBUG=(bool, False),
                   PAYPAL_TEST=(bool, False),
-                  USE_MAILCATCHER=(bool, False)
+                  USE_MAILCATCHER=(bool, False),
+                  TRAVIS=(bool, False),
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -343,20 +344,7 @@ PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
 # TRAVIS
-if 'TRAVIS' in os.environ:
-    DATABASES = {
-        'default': {
-            'ENGINE':   'django.db.backends.postgresql_psycopg2',
-            'NAME':     'travis_ci_test',
-            'USER':     'postgres',
-            'PASSWORD': '',
-            'HOST':     'localhost',
-            'PORT':     '',
-        }
-    }
-    SECRET_KEY = 'dummy_secret'
-    EMAIL_HOST_PASSWORD = 'dummy_password'
-
+if env('TRAVIS'):
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
