@@ -11,11 +11,12 @@
         <h2>Blocks for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
         <div class="row">
             <div class="col-sm-12">
-                <div class="panel panel-success">
                 <form method="post" action="">
                     {% csrf_token %}
                     {{ userblockformset.management_form }}
+                    <input class="btn btn-success table-btn " name="formset_submitted" type="submit" value="Save changes" />
 
+                <div class="panel panel-success">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -72,9 +73,6 @@
                                 {% endif %}
                             </tr>
                             {% endfor %}
-                            <tr>
-                            <td class="studioadmin-tbl" colspan="7"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
-                            </tr>
                             </tbody>
                         </table>
                     </div>

@@ -706,3 +706,7 @@ a > span.fa.fa-print {
     font-style: italic;
     color: grey;
 }
+
+.top-button-row{
+	padding-bottom: 10;
+}

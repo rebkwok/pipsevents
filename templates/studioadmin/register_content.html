@@ -17,6 +17,7 @@
                 {% if not print %}
                 <div class="panel-heading">
                     <input class="btn btn-info table-btn" name="print" type="submit" value="Printable Version" />
+                    <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
                     <div class="pull-right">
                         {{ status_filter.status_choice }}
                         <input class="btn btn-info table-btn" name="status_choice" type="submit" value="filter" />
@@ -109,7 +110,7 @@
                         {% endif %}
                         {% if not print %}
                             <tr no-print>
-                                <td {% if available_block_type %}colspan="9"{% else %}colspan="5"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save" /></td>
+                                <td {% if available_block_type %}colspan="9"{% else %}colspan="5"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                             </tr>
                         {% endif %}
                     </table>

@@ -6,17 +6,22 @@
 
     <div class="container-fluid row">
 
-        <h2>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
+        <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% endif %} that have not yet been booked can be deleted. </p>
         {% if events %}
         <div class="row">
             <div class="col-xs-12">
-                <div class="panel panel-success">
                 <form method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
-
+                    <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                    {% if show_past %}
+                    <input class="btn btn-info table-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                    {% else %}
+                    <input class="btn btn-info table-btn" name="past" type="submit" value="Show past {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                    {% endif %}
+                <div class="panel panel-success">
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
@@ -59,7 +64,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                            <td class="studioadmin-tbl" colspan="10"><input class="btn btn-success" name="formset_submitted" type="submit" value="Update" /></td>
+                            <td class="studioadmin-tbl" colspan="10"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>

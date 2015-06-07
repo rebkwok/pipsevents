@@ -9,12 +9,13 @@
         <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
         <div class="row">
             <div class="col-sm-12">
-                <div class="panel panel-success">
                 <form method="post" action="">
                     {% csrf_token %}
                     {{ userbookingformset.management_form }}
+                    <div style="padding-bottom: 10;"><input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" /></div>
 
-                    <div class="table-responsive">
+                <div class="panel panel-success">
+                <div class="table-responsive">
                         <table class="table">
                             <thead>
                             <tr class="success">
@@ -62,9 +63,6 @@
                                 {% endif %}
                             </tr>
                             {% endfor %}
-                            <tr>
-                            <td class="studioadmin-tbl" colspan="4"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
-                            </tr>
                             </tbody>
                         </table>
                     </div>

@@ -102,7 +102,6 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                 'event': booking.event,
                 'host': 'http://{}'.format(self.request.META.get('HTTP_HOST')),
                 'payment_status': payment_status
-
             })
             try:
                 send_mail(
@@ -313,54 +312,68 @@ def event_admin_list(request, ev_type):
         date__gte=timezone.now()
     ).order_by('date')
     events = True if queryset.count() > 0 else False
+    show_past = False
 
     if request.method == 'POST':
-        eventformset = EventFormSet(request.POST)
+        if "past" in request.POST:
+            queryset = Event.objects.filter(
+                event_type__event_type=ev_type_abbreviation,
+                date__lte=timezone.now()
+            ).order_by('date')
+            events = True if queryset.count() > 0 else False
+            show_past = True
+            eventformset = EventFormSet(queryset=queryset)
+        elif "upcoming" in request.POST:
+            queryset = queryset
+            show_past = False
+            eventformset = EventFormSet(queryset=queryset)
+        else:
+            eventformset = EventFormSet(request.POST)
 
-        if eventformset.is_valid():
-            if not eventformset.has_changed():
-                messages.info(request, "No changes were made")
-            else:
-                for form in eventformset:
-                    if form.has_changed():
-                        if 'DELETE' in form.changed_data:
-                            messages.info(
-                                request,
-                                'Session <strong>{}</strong> has been deleted!'.format(
-                                    form.instance,
-                                ),
-                                extra_tags='safe'
-                            )
-                            logger.info('Session {} (id {}) deleted by admin user {}'.format(
-                                form.instance, form.instance.id, request.user.username))
-                        else:
-                            for field in form.changed_data:
+            if eventformset.is_valid():
+                if not eventformset.has_changed():
+                    messages.info(request, "No changes were made")
+                else:
+                    for form in eventformset:
+                        if form.has_changed():
+                            if 'DELETE' in form.changed_data:
                                 messages.info(
                                     request,
-                                    "<strong>{}</strong> updated for "
-                                    "<strong>{}</strong>".format(
-                                        field.title().replace("_", " "),
-                                        form.instance
-                                        ),
+                                    'Session <strong>{}</strong> has been deleted!'.format(
+                                        form.instance,
+                                    ),
                                     extra_tags='safe'
                                 )
-                                logger.info('Session {} (id {}) updated by admin user {}'.format(
-                                form.instance, form.instance.id, request.user.username))
-                        form.save()
+                                logger.info('Session {} (id {}) deleted by admin user {}'.format(
+                                    form.instance, form.instance.id, request.user.username))
+                            else:
+                                for field in form.changed_data:
+                                    messages.info(
+                                        request,
+                                        "<strong>{}</strong> updated for "
+                                        "<strong>{}</strong>".format(
+                                            field.title().replace("_", " "),
+                                            form.instance
+                                            ),
+                                        extra_tags='safe'
+                                    )
+                                    logger.info('Session {} (id {}) updated by admin user {}'.format(
+                                    form.instance, form.instance.id, request.user.username))
+                            form.save()
 
-                    for error in form.errors:
-                        messages.error(request, "{}".format(error),
-                                       extra_tags='safe')
-                eventformset.save()
-            return HttpResponseRedirect(
-                reverse('studioadmin:{}'.format(ev_type),)
-            )
-        else:
-            messages.error(
-                request, "There were errors in the following fields:"
-            )
-            for error in eventformset.errors:
-                messages.error(request, "{}".format(error), extra_tags='safe')
+                        for error in form.errors:
+                            messages.error(request, "{}".format(error),
+                                           extra_tags='safe')
+                    eventformset.save()
+                return HttpResponseRedirect(
+                    reverse('studioadmin:{}'.format(ev_type),)
+                )
+            else:
+                messages.error(
+                    request, "There were errors in the following fields:"
+                )
+                for error in eventformset.errors:
+                    messages.error(request, "{}".format(error), extra_tags='safe')
 
     else:
         eventformset = EventFormSet(queryset=queryset)
@@ -370,7 +383,8 @@ def event_admin_list(request, ev_type):
             'eventformset': eventformset,
             'type': ev_type,
             'events': events,
-            'sidenav_selection': ev_type
+            'sidenav_selection': ev_type,
+            'show_past': show_past,
             }
     )
 
@@ -809,14 +823,14 @@ def email_users_view(request,
                     email_addresses.append(from_address)
                 for email_address in email_addresses:
                     send_mail(subject, message, from_address,
-                              [email_address],
-                              html_message=get_template(
-                                  'studioadmin/email/email_users.html').render(
-                                  Context({
-                                      'subject': subject,
-                                      'message': message})
-                              ),
-                              fail_silently=False)
+                          [email_address],
+                          html_message=get_template(
+                              'studioadmin/email/email_users.html').render(
+                              Context({
+                                  'subject': subject,
+                                  'message': message})
+                          ),
+                          fail_silently=False)
                 logger.info('Bulk email with subject "{}" sent to users {} by admin user {}'.format(
                     subject, email_addresses, request.user.username))
 
