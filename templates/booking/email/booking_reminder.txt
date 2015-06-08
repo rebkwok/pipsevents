@@ -1,7 +1,7 @@
 Reminder! You have booked for {{ event }} on {{ date }} {{ time }}
 
 A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.
-{% if not paid and not payment_confirmed %}
+{% if cost and not paid and not payment_confirmed %}
 Your payment has not yet been received/confirmed for this event.  Your booking will be cancelled if your payment has not been received by the cancellation period.  Please contact {{ booking.event.contact_email }} if you have already made payment.
 {% endif %}
 

@@ -1,6 +1,6 @@
-#TODO
 '''
-Email warnings for unpaid bookings 2 days prior to payment_due_date or cancellation_period
+Email warnings for unpaid bookings 2 days prior to payment_due_date or
+cancellation_period
 Check for bookings where:
 event.payment_open == True
 booking.status == OPEN
@@ -15,6 +15,7 @@ we don't keep sending
 '''
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
@@ -22,70 +23,55 @@ from django.core.management.base import BaseCommand
 from django.core import management
 
 from booking.templatetags.bookingtags import format_cancellation
+from booking.models import Booking, Event
 
 
 class Command(BaseCommand):
     help = 'email warnings for unpaid bookings'
 
     def handle(self, *args, **options):
-        # send first warning 2 days prior to cancellation period or payment due
-        # date, second warning 1 day prior
-        first_warning_bookings = get_bookings(
-            2, first_warning_sent=False, second_warning_sent=False
-            )
-        second_warning_bookings = get_bookings(
-            1, first_warning_sent=True, second_warning_sent=False
-            )
-
-        for booking in first_warning_bookings:
-            send_warning_email(first_warning_bookings)
-            booking.first_warning_sent = True
+        # send warning 2 days prior to cancellation period or payment due
+        # date
+        warning_bookings = get_bookings(2)
+        send_warning_email(warning_bookings)
         self.stdout.write(
-            'First warning emails sent for booking ids {}'.format(
-            ', '.join([booking.id for booking in first_warning_bookings])
-            )
-        )
-
-        for booking in second_warning_bookings:
-            send_warning_email(second_warning_bookings)
-            booking.first_warning_sent = True
-            booking.second_warning_sent = True
-        self.stdout.write(
-            'Second warning emails sent for booking ids {}'.format(
-            ', '.join([booking.id for booking in second_warning_bookings])
+            'Warning emails sent for booking ids {}'.format(
+                ', '.join(
+                    [str(booking.id) for booking in warning_bookings]
+                    )
             )
         )
 
 
 def get_bookings(num_days):
-    events_payment_due_soon = [
-        event for event in Events.objects.filter(
-            date__gte(timezone.now() - timedelta(
-                event.cancellation_period + num_days
-                )
-            )
-        ]
     events_cancellation_period_soon = [
-        event for event in Events.objects.all() if event.payment_due_date >= timezone.now() - timedelta(num_days)
-        ]
+        event for event in Event.objects.all() if
+        event.date >= timezone.now() and
+        (event.date - timedelta(event.cancellation_period/24 + num_days))
+        <= timezone.now()
+    ]
+    events_payment_due_soon = [
+        event for event in Event.objects.all() if
+        event.date >= timezone.now() and
+        (event.payment_due_date - timedelta(num_days)) <= timezone.now()
+    ]
     events = list(
         set(events_payment_due_soon) | set(events_cancellation_period_soon)
         )
 
-    upcoming_bookings = Booking.objects.filter(
+    return Booking.objects.filter(
         event__in=events,
         status='OPEN',
+        event__cost__gt=0,
         event__payment_open=True,
         payment_confirmed=False,
-        first_warning_sent=first_warning_sent,
-        second_warning_sent=second_warning_sent
+        warning_sent=False,
         )
 
 
 def send_warning_email(upcoming_bookings):
     for booking in upcoming_bookings:
         ctx = Context({
-              'host': host,
               'booking': booking,
               'event': booking.event,
               'date': booking.event.date.strftime('%A %d %B'),
@@ -95,7 +81,9 @@ def send_warning_email(upcoming_bookings):
               'cancellation_period': format_cancellation(
                     booking.event.cancellation_period
                     ),
-              'payment_due_date': booking.event.payment_due_date.strftime('%A %d %B') if booking.payment_due_date else None,
+              'payment_due_date': booking.event.payment_due_date.strftime(
+                    '%A %d %B'
+                    ) if booking.event.payment_due_date else None,
 
         })
         send_mail('{} Reminder: {}'.format(
@@ -107,4 +95,5 @@ def send_warning_email(upcoming_bookings):
                 'booking/email/booking_warning.html'
                 ).render(ctx),
             fail_silently=False)
-        booking.reminder_sent = True
+        booking.warning_sent = True
+        booking.save()

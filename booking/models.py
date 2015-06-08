@@ -254,8 +254,7 @@ class Booking(models.Model):
         default=False, help_text='Student has attended this event')
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
-    first_warning_sent = models.BooleanField(default=False)
-    second_warning_sent = models.BooleanField(default=False)
+    warning_sent = models.BooleanField(default=False)
 
     def confirm_space(self):
         if self.event.cost:

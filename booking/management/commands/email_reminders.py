@@ -7,24 +7,26 @@ Add reminder_sent flag to booking model so we don't keep sending
 '''
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
 from django.core.management.base import BaseCommand
 from django.core import management
 from booking.templatetags.bookingtags import format_cancellation
+from booking.models import Booking, Event
+
 
 class Command(BaseCommand):
-    help = 'email warnings for unpaid bookings'
+    help = 'email remiders for upcoming bookings'
 
     def handle(self, *args, **options):
-        # send first warning 2 days prior to cancellation period or payment due
-        # date, second warning 1 day prior
         events = [
-            event for event in Events.objects.filter(
-                date__gte(timezone.now() - timedelta(event.cancellation_period + 2)
-                )
-            ]
+            event for event in Event.objects.all() if
+            event.date >= timezone.now() and
+            (event.date - timedelta(event.cancellation_period/24 + 2))
+            <= timezone.now()
+        ]
 
         upcoming_bookings = Booking.objects.filter(
             event__in=events,
@@ -34,12 +36,12 @@ class Command(BaseCommand):
 
         for booking in upcoming_bookings:
             ctx = Context({
-                  'host': host,
                   'booking': booking,
                   'event': booking.event,
                   'date': booking.event.date.strftime('%A %d %B'),
                   'time': booking.event.date.strftime('%I:%M %p'),
                   'paid': booking.paid,
+                  'cost': booking.event.cost,
                   'payment_confirmed': booking.payment_confirmed,
                   'ev_type': 'event' if
                   booking.event.event_type.event_type == 'EV' else 'class',
@@ -57,13 +59,10 @@ class Command(BaseCommand):
                     ).render(ctx),
                 fail_silently=False)
             booking.reminder_sent = True
-            if not booking.payment_confirmed:
-                # avoid sending the payment warning in this reminder and the warning
-                # email
-                first_warning_sent = True
+            booking.save()
 
         self.stdout.write(
             'Reminder emails sent for booking ids {}'.format(
-            ', '.join([booking.id for booking in upcoming_bookings])
+                ', '.join([str(booking.id) for booking in upcoming_bookings])
             )
         )
