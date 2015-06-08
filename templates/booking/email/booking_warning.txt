@@ -1,0 +1,14 @@
+Reminder! Your payment has not yet been received/confirmed for {{ event }} on {{ date }} {{ time }}
+
+A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.
+{% if payment_due_date %}
+The payment due date for this {{ ev_type }} is {{ payment_due_date }}
+
+If your payment is not received by the payment due date, your booking will be cancelled.
+{% else %}
+If your payment is not received by the start of the cancellation period, your booking will be cancelled.
+{% endif %}
+
+Please contact {{ booking.event.contact_email }} urgently if you have already made payment.
+
+{% include "account/email/do_not_reply.txt" %}
