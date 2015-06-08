@@ -15,6 +15,7 @@ class Command(BaseCommand):
 
         pc, _ = EventType.objects.get_or_create(event_type='CL', subtype='Pole level class')
         cl, _ = EventType.objects.get_or_create(event_type='CL', subtype='Other class')
+        pp, _ = EventType.objects.get_or_create(event_type='CL', subtype='Pole practice')
         ex, _ = EventType.objects.get_or_create(event_type='CL', subtype='External instructor class')
 
         # Monday classes
@@ -38,7 +39,7 @@ class Command(BaseCommand):
         Session.objects.get_or_create(
             name="Pole practice",
             day=Session.MON,
-            event_type=cl,
+            event_type=pp,
             cost=3.50,
             time=time(hour=20, minute=10),
             external_instructor = False,
@@ -108,6 +109,20 @@ class Command(BaseCommand):
         )
 
         Session.objects.get_or_create(
+            name="Private",
+            day=Session.THU,
+            event_type=cl,
+            time=time(hour=17, minute=45),
+            external_instructor = False,
+            cost=30,
+            email_studio_when_booked=True,
+            payment_open=False,
+            payment_info="Please contact the studio to confirm the number of "
+                         "people the private is for; additional people are "
+                         "£15 per hour"
+        )
+
+        Session.objects.get_or_create(
             name="Pole - advanced (with Polefit Starlet)",
             day=Session.THU,
             event_type=ex,
@@ -150,7 +165,7 @@ class Command(BaseCommand):
         Session.objects.get_or_create(
             name="Pole practice",
             day=Session.FRI,
-            event_type=cl,
+            event_type=pp,
             time=time(hour=20, minute=10),
             max_participants=15,
             cost=3.50,

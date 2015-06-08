@@ -207,7 +207,8 @@ class EventAdminForm(forms.ModelForm):
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'payment_info',
-            'payment_due_date', 'cancellation_period'
+            'payment_due_date', 'cancellation_period',
+            'email_studio_when_booked',
         )
         widgets = {
             'description': CKEditorWidget(
@@ -268,6 +269,12 @@ class EventAdminForm(forms.ModelForm):
                     'id': 'ext_instructor_id',
                     },
             ),
+            'email_studio_when_booked': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'email_studio_id',
+                    },
+            ),
             }
         help_texts = {
             'payment_open': _('Only use this checkbox if the cost is greater than £0'),
@@ -276,7 +283,10 @@ class EventAdminForm(forms.ModelForm):
                                     'instructors. These will not be bookable '
                                     'via the booking site.  Include '
                                     'booking/payment details in the payment '
-                                    'information field.')
+                                    'information field.'),
+            'email_studio_when_booked': _('Check if you want the studio to '
+                                          'receive email notifications when a '
+                                          'booking is made')
         }
 
 

@@ -157,11 +157,11 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('name', 'date', 'location', 'event_type', 'description')
         }),
         ('Contacts', {
-            'fields': ('contact_person', 'contact_email')
+            'fields': ('contact_person', 'contact_email', 'email_studio_when_booked')
         }),
         ('Payment Information', {
             'fields': ('cost', 'advance_payment_required', 'booking_open',
-                       'payment_open', 'payment_info',  'payment_due_date')
+            'payment_open', 'payment_info',  'payment_due_date')
         }),
         ('Cancellation Period', {
             'fields': ('cancellation_period',),

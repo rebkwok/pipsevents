@@ -61,7 +61,8 @@ def create_classes(week='this', input_date=None):
             payment_info=session.payment_info,
             cancellation_period=session.cancellation_period,
             external_instructor = session.external_instructor,
-        )
+            email_studio_when_booked = session.email_studio_when_booked
+            )
         if created:
             created_classes.append(cl)
         else:
@@ -111,6 +112,7 @@ def upload_timetable(start_date, end_date):
                 payment_info=session.payment_info,
                 cancellation_period=session.cancellation_period,
                 external_instructor = session.external_instructor,
+                email_studio_when_booked = session.email_studio_when_booked
             )
             if created:
                 created_classes.append(cl)

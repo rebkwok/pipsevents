@@ -22,7 +22,8 @@ from payments.forms import PayPalPaymentsListForm
 from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType
-from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, get_event_names
+from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, \
+    get_event_names
 import booking.context_helpers as context_helpers
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
@@ -43,14 +44,14 @@ class EventListView(ListView):
                 Q(event_type__event_type='EV') & Q(date__gte=timezone.now())
                 & Q(name=name)).order_by('date')
         return Event.objects.filter(
-            (Q(event_type__event_type='EV') & Q(date__gte=timezone.now())
-        )).order_by('date')
+            (Q(event_type__event_type='EV') & Q(date__gte=timezone.now()))
+            ).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventListView, self).get_context_data(**kwargs)
         if not self.request.user.is_anonymous():
-        # Add in the booked_events
+            # Add in the booked_events
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings
                              if not booking.status == 'CANCELLED']
@@ -99,14 +100,14 @@ class LessonListView(ListView):
                 Q(event_type__event_type='CL') & Q(date__gte=timezone.now())
                 & Q(name=name)).order_by('date')
         return Event.objects.filter(
-            (Q(event_type__event_type='CL') & Q(date__gte=timezone.now())
-        )).order_by('date')
+            (Q(event_type__event_type='CL') & Q(date__gte=timezone.now()))
+            ).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(LessonListView, self).get_context_data(**kwargs)
         if not self.request.user.is_anonymous():
-        # Add in the booked_events
+            # Add in the booked_events
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings
                              if not booking.status == 'CANCELLED']
@@ -179,12 +180,14 @@ class BookingListView(LoginRequiredMixin, ListView):
                 )
             else:
                 paypal_form = None
-            can_cancel = booking.event.can_cancel() and booking.status == 'OPEN'
+            can_cancel = booking.event.can_cancel() and \
+                booking.status == 'OPEN'
             bookingform = {
                 'ev_type': booking.event.event_type.event_type,
                 'booking': booking,
                 'paypalform': paypal_form,
-                'has_available_block': booking.event.event_type in active_block_event_types,
+                'has_available_block': booking.event.event_type in
+                active_block_event_types,
                 'can_cancel': can_cancel}
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
@@ -199,12 +202,15 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            (Q(event__date__lte=timezone.now()) | Q(status='CANCELLED')) & Q(user=self.request.user)
+            (Q(event__date__lte=timezone.now()) | Q(status='CANCELLED')) &
+            Q(user=self.request.user)
         ).order_by('-event__date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
-        context = super(BookingHistoryListView, self).get_context_data(**kwargs)
+        context = super(
+            BookingHistoryListView, self
+            ).get_context_data(**kwargs)
         # Add in the history flag
         context['history'] = True
 
@@ -242,7 +248,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 user=self.request.user, event=self.event
             )
             if booking.status == 'CANCELLED':
-                return super(BookingCreateView, self).get(request, *args, **kwargs)
+                return super(
+                    BookingCreateView, self
+                    ).get(request, *args, **kwargs)
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
         except Booking.DoesNotExist:
@@ -253,28 +261,35 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         context = super(BookingCreateView, self).get_context_data(**kwargs)
 
         # find if block booking is available for this type of event
-        blocktypes = [blocktype.event_type for blocktype in BlockType.objects.all()]
+        blocktypes = [
+            blocktype.event_type for blocktype in BlockType.objects.all()
+            ]
         blocktype_available = self.event.event_type in blocktypes
         context['blocktype_available'] = blocktype_available
 
         # Add in the event name
         context['event'] = self.event
         user_blocks = self.request.user.blocks.all()
-        active_user_block = [block for block in user_blocks
-                             if block.block_type.event_type == self.event.event_type
-                             and block.active_block()]
+        active_user_block = [
+            block for block in user_blocks
+            if block.block_type.event_type == self.event.event_type
+            and block.active_block()
+            ]
         if active_user_block:
             context['active_user_block'] = True
 
-        active_user_block_unpaid = [block for block in user_blocks
-                             if block.block_type.event_type == self.event.event_type
-                             and not block.expired
-                             and not block.full
-                             and not block.paid]
+        active_user_block_unpaid = [
+            block for block in user_blocks
+            if block.block_type.event_type == self.event.event_type
+            and not block.expired
+            and not block.full
+            and not block.paid
+             ]
         if active_user_block_unpaid:
             context['active_user_block_unpaid'] = True
 
-        ev_type = 'event' if self.event.event_type.event_type == 'EV' else 'class'
+        ev_type = 'event' if \
+            self.event.event_type.event_type == 'EV' else 'class'
 
         context['ev_type'] = ev_type
 
@@ -284,7 +299,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         booking = form.save(commit=False)
         try:
             cancelled_booking = Booking.objects.get(
-                user=self.request.user, event=booking.event, status='CANCELLED')
+                user=self.request.user,
+                event=booking.event,
+                status='CANCELLED'
+                )
             booking = cancelled_booking
             booking.status = 'OPEN'
             previously_cancelled = True
@@ -346,44 +364,54 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'blocks_used':  blocks_used,
               'total_blocks': total_blocks,
               'prev_cancelled_and_direct_paid':
-                  previously_cancelled_and_direct_paid,
-              'ev_type':
-                  'event' if
-                  self.event.event_type.event_type == 'EV'
-                  else 'class'
+              previously_cancelled_and_direct_paid,
+              'ev_type': 'event' if
+              self.event.event_type.event_type == 'EV' else 'class'
         })
         send_mail('{} Booking for {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
             get_template('booking/email/booking_received.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
             [booking.user.email],
-            html_message=get_template('booking/email/booking_received.html').render(ctx),
+            html_message=get_template(
+                'booking/email/booking_received.html'
+                ).render(ctx),
             fail_silently=False)
-        # send email to studio
-        additional_subject = ""
-        if previously_cancelled_and_direct_paid:
-            additional_subject = "ACTION REQUIRED!"
-        send_mail('{} {} {} has just booked for {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-            booking.user.username, booking.event.name),
-                  get_template('booking/email/to_studio_booking.txt').render(
-                      Context({
-                          'host': host,
-                          'booking': booking,
-                          'event': booking.event,
-                          'date': booking.event.date.strftime('%A %d %B'),
-                          'time': booking.event.date.strftime('%I:%M %p'),
-                          'prev_cancelled_and_direct_paid': previously_cancelled_and_direct_paid,
-                          'transaction_id': transaction_id,
-                          'invoice_id': invoice_id
-                      })
-                  ),
-            settings.DEFAULT_FROM_EMAIL,
-            [settings.DEFAULT_STUDIO_EMAIL],
-            fail_silently=False)
-
-        logger.info('Emails sent to studio ({}) and user ({}) regarding {}booking id {}'.format(
-            settings.DEFAULT_STUDIO_EMAIL, booking.user.email,
+        # send email to studio if flagged for the event or if previously
+        # cancelled and direct paid
+        if (booking.event.email_studio_when_booked or
+                previously_cancelled_and_direct_paid):
+            additional_subject = ""
+            if previously_cancelled_and_direct_paid:
+                additional_subject = "ACTION REQUIRED!"
+            send_mail('{} {} {} has just booked for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
+                booking.user.username, booking.event.name),
+                      get_template(
+                        'booking/email/to_studio_booking.txt'
+                        ).render(
+                          Context({
+                              'host': host,
+                              'booking': booking,
+                              'event': booking.event,
+                              'date': booking.event.date.strftime('%A %d %B'),
+                              'time': booking.event.date.strftime('%I:%M %p'),
+                              'prev_cancelled_and_direct_paid':
+                              previously_cancelled_and_direct_paid,
+                              'transaction_id': transaction_id,
+                              'invoice_id': invoice_id
+                          })
+                      ),
+                      settings.DEFAULT_FROM_EMAIL,
+                      [settings.DEFAULT_STUDIO_EMAIL],
+                      fail_silently=False)
+            logger.info(
+                'Email sent to studio ({}) regarding {}booking id {}'.format(
+                    settings.DEFAULT_STUDIO_EMAIL,
+                    're' if previously_cancelled else '', booking.id)
+                )
+        logger.info('Email sent to user ({}) regarding {}booking id {}'.format(
+            booking.user.email,
             're' if previously_cancelled else '', booking.id)
             )
         messages.success(
@@ -450,9 +478,11 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
         block.user = self.request.user
         block.save()
 
-        logger.info('Block {} has been created; Block type: {}; user: {}'.format(
-            block.id, block.block_type, block.user.username
-        ) )
+        logger.info(
+            'Block {} has been created; Block type: {}; user: {}'.format(
+                block.id, block.block_type, block.user.username
+                )
+            )
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -472,16 +502,18 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
                 'booking/email/block_booked.html').render(ctx),
             fail_silently=False)
         # send email to studio
-        send_mail('{} {} has just booked a block'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
-            get_template('booking/email/to_studio_block_booked.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [settings.DEFAULT_STUDIO_EMAIL],
-            fail_silently=False)
-        logger.info('Emails sent to studio ({}) and user ({}) regarding block id {}'.format(
-            settings.DEFAULT_STUDIO_EMAIL, block.user.email, block.id)
+        # send_mail('{} {} has just booked a block'.format(
+        #     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
+        #     get_template('booking/email/to_studio_block_booked.txt').render(ctx),
+        #     settings.DEFAULT_FROM_EMAIL,
+        #     [settings.DEFAULT_STUDIO_EMAIL],
+        #     fail_silently=False)
+        logger.info('Emails sent to user ({}) regarding block id {}'.format(
+            block.user.email, block.id)
             )
-        messages.success(self.request, self.success_message.format(block.block_type))
+        messages.success(
+            self.request, self.success_message.format(block.block_type)
+            )
         return HttpResponseRedirect(block.get_absolute_url())
 
 
@@ -527,7 +559,6 @@ class BlockListView(LoginRequiredMixin, ListView):
                 'expired': expired or full}
             blockformlist.append(blockform)
 
-
         context['blockformlist'] = blockformlist
 
         return context
@@ -558,13 +589,12 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             context['active_user_block'] = True
         else:
             # find if block booking is available for this type of event
-            blocktypes = [blocktype.event_type for blocktype in BlockType.objects.all()]
+            blocktypes = [
+                blocktype.event_type for blocktype in BlockType.objects.all()
+                ]
             blocktype_available = self.event.event_type in blocktypes
             context['blocktype_available'] = blocktype_available
 
-        #TODO redirect in get() if already paid
-        #TODO cancelled may have paid=True but payment_confirmed=False;
-        # paypal
         invoice_id = create_booking_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
@@ -615,9 +645,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                         'time': booking.event.date.strftime('%I:%M %p'),
                         'blocks_used':  blocks_used,
                         'total_blocks': total_blocks,
-                        'ev_type': 'event' if
-                              booking.event.event_type.event_type == 'EV'
-                              else 'class'
+                        'ev_type':
+                        'event' if booking.event.event_type.event_type == 'EV'
+                        else 'class'
                     })
             send_mail('{} Block used for booking for {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
@@ -627,9 +657,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 html_message=get_template(
                     'booking/email/booking_updated.html').render(ctx),
                 fail_silently=False)
-            logger.info('Email sent to user ({}) regarding payment for booking '
-                        'id {} with block id {}'.format(
-                booking.user.email, booking.id, booking.block.id))
+            logger.info('Email sent to user ({}) regarding payment for '
+                        'booking id {} with block id {}'.format(
+                            booking.user.email, booking.id, booking.block.id))
         messages.success(self.request, self.success_message.format(
             booking.event.name, booking.event.date.strftime(
                 '%A %d %B, %I:%M %p'
@@ -653,7 +683,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
         if not booking.event.can_cancel():
             return HttpResponseRedirect(
                 reverse('booking:cancellation_period_past',
-                                        args=[booking.event.slug])
+                        args=[booking.event.slug])
             )
         return super(BookingDeleteView, self).get(request, *args, **kwargs)
 
@@ -680,7 +710,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                       'event': booking.event,
                       'date': booking.event.date.strftime('%A %d %B'),
                       'time': booking.event.date.strftime('%I:%M %p'),
-                  })
+                      })
         send_mail('{} Booking for {} cancelled'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
             get_template('booking/email/booking_cancelled.txt').render(ctx),
@@ -690,20 +720,21 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 'booking/email/booking_cancelled.html').render(ctx),
             fail_silently=False)
         # send email to studio
-        send_mail('{} {} has just cancelled a booking for {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username, booking.event.name),
-                  get_template('booking/email/to_studio_booking_cancelled.txt').render(
-                      Context({
-                          'host': host,
-                          'booking': booking,
-                          'event': booking.event,
-                          'date': booking.event.date.strftime('%A %d %B'),
-                          'time': booking.event.date.strftime('%I:%M %p'),
-                      })
-                  ),
-            settings.DEFAULT_FROM_EMAIL,
-            [settings.DEFAULT_STUDIO_EMAIL],
-            fail_silently=False)
+        # send_mail('{} {} has just cancelled a booking for {}'.format(
+        #     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username,
+        #     booking.event.name),
+        #           get_template('booking/email/to_studio_booking_cancelled.txt').render(
+        #               Context({
+        #                   'host': host,
+        #                   'booking': booking,
+        #                   'event': booking.event,
+        #                   'date': booking.event.date.strftime('%A %d %B'),
+        #                   'time': booking.event.date.strftime('%I:%M %p'),
+        #               })
+        #           ),
+        #     settings.DEFAULT_FROM_EMAIL,
+        #     [settings.DEFAULT_STUDIO_EMAIL],
+        #     fail_silently=False)
 
         # if booking was bought with a block, remove from block and set
         # paid and payment_confirmed to False. If paid directly, we need to
@@ -723,9 +754,10 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 booking.event.date.strftime('%A %d %B'),
                 booking.event.date.strftime('%I:%M %p'))
         )
-        logger.info('Booking id {} for event {}, user {}, was cancelled'.format(
-            booking.id, booking.event, booking.user.username
-        ))
+        logger.info(
+            'Booking id {} for event {}, user {}, was cancelled'.format(
+                booking.id, booking.event, booking.user.username
+                ))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -745,7 +777,7 @@ def fully_booked(request, event_slug):
 
 
 def has_active_block(request):
-     return render(request, 'booking/has_active_block.html')
+    return render(request, 'booking/has_active_block.html')
 
 
 def cancellation_period_past(request, event_slug):

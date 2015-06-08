@@ -22,21 +22,21 @@ class EventType(models.Model):
         ('EV', 'Event')
     )
     event_type = models.CharField(max_length=2, choices=TYPE_CHOICE,
-                            help_text="This determines whether events of this"
-                                      "type are listed on the 'Classes' or "
-                                      "'Events' page")
+                                  help_text="This determines whether events "
+                                            "of this type are listed on the "
+                                            "'Classes' or 'Events' page")
     subtype = models.CharField(max_length=255,
                                help_text="Type of class/event. Use this to "
-                                         "categorise events/classes.  If an event "
-                                         "can be block booked, this "
-                                         "should match the event type used in the "
-                                         "Block Type.")
+                                         "categorise events/classes.  If an "
+                                         "event can be block booked, this "
+                                         "should match the event type used in "
+                                         "the Block Type.")
 
     def __str__(self):
         if self.event_type == 'CL':
             event_type = "Class"
         else:
-            event_type="Event"
+            event_type = "Event"
         return '{} - {}'.format(event_type, self.subtype)
 
     class Meta:
@@ -54,7 +54,9 @@ class Event(models.Model):
         help_text="Leave blank if no max number of participants"
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
-    contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
+    contact_email = models.EmailField(
+        default="thewatermelonstudio@hotmail.com"
+        )
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=True)
     booking_open = models.BooleanField(default=True)
@@ -73,6 +75,7 @@ class Event(models.Model):
         default=False,
         help_text='Run by external instructor; booking and payment to be made '
                   'with instructor directly')
+    email_studio_when_booked = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     def spaces_left(self):
@@ -103,6 +106,7 @@ class Event(models.Model):
         return '{} - {}'.format(
             str(self.name), self.date.strftime('%d %b %Y, %H:%M')
         )
+
 
 @receiver(pre_save, sender=Event)
 def event_pre_save(sender, instance, *args, **kwargs):
@@ -214,10 +218,11 @@ def block_delete_pre_delete(sender, instance, **kwargs):
             booking.paid = False
             booking.payment_confirmed = False
             booking.block = None
-        logger.info('Booking id {} booked with deleted block {} '
-                    'has beenhave been reset to unpaid'.format(
-            booking.id, instance.id
-        ))
+        logger.info(
+            'Booking id {} booked with deleted block {} '
+            'has beenhave been reset to unpaid'.format(
+                booking.id, instance.id
+                ))
     logger.info('Block id {} deleted'.format(instance.id))
 
 
@@ -239,7 +244,9 @@ class Booking(models.Model):
         help_text='Payment confirmed by admin/organiser'
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
-    block = models.ForeignKey(Block, related_name='bookings', null=True, blank=True)
+    block = models.ForeignKey(
+        Block, related_name='bookings', null=True, blank=True
+        )
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'
     )
@@ -251,7 +258,9 @@ class Booking(models.Model):
             self.paid = True
             self.payment_confirmed = True
             self.save()
-            logger.info('Space confirmed manually for Booking {}'.format(self.id))
+            logger.info(
+                'Space confirmed manually for Booking {}'.format(self.id)
+                )
 
     def space_confirmed(self):
         # False if cancelled
@@ -260,8 +269,8 @@ class Booking(models.Model):
         if self.status == 'CANCELLED':
             return False
         return not self.event.advance_payment_required \
-               or self.event.cost == 0 \
-               or self.payment_confirmed
+            or self.event.cost == 0 \
+            or self.payment_confirmed
     space_confirmed.boolean = True
 
     class Meta:

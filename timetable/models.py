@@ -42,6 +42,8 @@ class Session(models.Model):
         default=24
     )
     external_instructor = models.BooleanField(default=False)
+    email_studio_when_booked = models.BooleanField(default=False)
+
     def __str__(self):
         return "{} - {}".format(dict(self.DAY_CHOICES)[self.day], self.name)
 

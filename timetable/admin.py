@@ -20,7 +20,8 @@ class SessionAdmin(admin.ModelAdmin):
     ordering = ('day', 'time')
     fields = ('name', 'day', 'time', 'event_type', 'description', 'location',
               'max_participants', 'contact_person', 'contact_email',
-              'cost', 'external_instructor', 'booking_open', 'payment_open')
+              'email_studio_when_booked', 'cost',
+              'external_instructor', 'booking_open', 'payment_open')
     model = Session
     form = SessionForm
 
