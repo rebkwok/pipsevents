@@ -15,12 +15,14 @@
                 <form method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
-                    <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
-                    {% if show_past %}
-                    <input class="btn btn-info table-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% else %}classes{% endif %}" />
-                    {% else %}
-                    <input class="btn btn-info table-btn pull-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% else %}classes{% endif %}" />
-                    {% endif %}
+                    <div class="top-button-row">
+                        <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                        {% if show_past %}
+                        <input class="btn btn-info table-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                        {% else %}
+                        <input class="btn btn-info table-btn" name="past" type="submit" value="Show past {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                        {% endif %}
+                    </div>
                 <div class="panel panel-success">
                     <div class="table-responsive">
                         <table class="table">
