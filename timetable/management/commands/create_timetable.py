@@ -16,6 +16,7 @@ class Command(BaseCommand):
         pc, _ = EventType.objects.get_or_create(event_type='CL', subtype='Pole level class')
         cl, _ = EventType.objects.get_or_create(event_type='CL', subtype='Other class')
         pp, _ = EventType.objects.get_or_create(event_type='CL', subtype='Pole practice')
+        pv, _ = EventType.objects.get_or_create(event_type='CL', subtype='Private')
         ex, _ = EventType.objects.get_or_create(event_type='CL', subtype='External instructor class')
 
         # Monday classes
@@ -109,17 +110,19 @@ class Command(BaseCommand):
         )
 
         Session.objects.get_or_create(
-            name="Private",
+            name="Private (1 or more students)",
             day=Session.THU,
-            event_type=cl,
+            event_type=pv,
             time=time(hour=17, minute=45),
             external_instructor = False,
             cost=30,
             email_studio_when_booked=True,
-            payment_open=False,
-            payment_info="Please contact the studio to confirm the number of "
-                         "people the private is for; additional people are "
-                         "£15 per hour"
+            max_participants=1,
+            payment_info="Privates are charged at £30 per person. Additional "
+                         "people are £15 per hour.  Reserve your private "
+                         "by making your initial payment; if you wish to add "
+                         "additional people to the booking, please contact "
+                         "the studio to arrange the additional payments."
         )
 
         Session.objects.get_or_create(

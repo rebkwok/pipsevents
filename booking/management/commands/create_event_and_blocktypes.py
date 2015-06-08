@@ -26,6 +26,10 @@ class Command(BaseCommand):
             event_type='CL',
             subtype='Other class'
         )
+        pv, _ = EventType.objects.get_or_create(
+            event_type='CL',
+            subtype='Private'
+        )
         ex, _ = EventType.objects.get_or_create(
             event_type='CL',
             subtype='External instructor class'
