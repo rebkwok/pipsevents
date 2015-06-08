@@ -1,0 +1,13 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+
+<div style="font-family: sans-serif">
+<h4>Reminder! You have booked for {{ event }} on {{ date }} {{ time }}</h4>
+
+<p>A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.</p>
+{% if not paid and not payment_confirmed %}
+<p>Your payment has not yet been received/confirmed for this event.  Your booking will be cancelled if your payment has not been received by the cancellation period.  Please contact {{ booking.event.contact_email }} if you have already made payment.</p>
+{% endif %}
+</div>
+{% endblock %}
