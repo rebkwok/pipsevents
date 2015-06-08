@@ -14,7 +14,7 @@
                 <form method="post" action="">
                     {% csrf_token %}
                     {{ userblockformset.management_form }}
-                    <input class="btn btn-success table-btn " name="formset_submitted" type="submit" value="Save changes" />
+                    <div class="top-button-row"><input class="btn btn-success table-btn " name="formset_submitted" type="submit" value="Save changes" /></div>
 
                 <div class="panel panel-success">
                     <div class="table-responsive">
