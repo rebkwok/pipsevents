@@ -1,16 +1,12 @@
 '''
-Email warnings for unpaid bookings 2 days prior to payment_due_date or
+Email warnings for unpaid bookings 48 hrs prior to payment_due_date or
 cancellation_period
 Check for bookings where:
 event.payment_open == True
 booking.status == OPEN
 booking.payment_confirmed = False
 
-event.date - event.payment_due_date is less than a certain amount
-OR
-event.date - cancellation_period is less than a certain amount
-
-Add first_warning_sent and second_warning_sent flags to booking model so
+Add warning_sent flags to booking model so
 we don't keep sending
 '''
 from datetime import timedelta
@@ -32,7 +28,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # send warning 2 days prior to cancellation period or payment due
         # date
-        warning_bookings = get_bookings(2)
+        warning_bookings = get_bookings(48)
         send_warning_email(warning_bookings)
         self.stdout.write(
             'Warning emails sent for booking ids {}'.format(
@@ -43,17 +39,17 @@ class Command(BaseCommand):
         )
 
 
-def get_bookings(num_days):
+def get_bookings(num_hrs):
     events_cancellation_period_soon = [
         event for event in Event.objects.all() if
         event.date >= timezone.now() and
-        (event.date - timedelta(event.cancellation_period/24 + num_days))
+        (event.date - timedelta(hours=(event.cancellation_period + num_hrs)))
         <= timezone.now()
     ]
     events_payment_due_soon = [
         event for event in Event.objects.all() if
         event.date >= timezone.now() and
-        (event.payment_due_date - timedelta(num_days)) <= timezone.now()
+        (event.payment_due_date - timedelta(hours=num_hrs)) <= timezone.now()
     ]
     events = list(
         set(events_payment_due_soon) | set(events_cancellation_period_soon)
@@ -81,6 +77,8 @@ def send_warning_email(upcoming_bookings):
               'cancellation_period': format_cancellation(
                     booking.event.cancellation_period
                     ),
+              'advance_payment_required':
+              booking.event.advance_payment_required,
               'payment_due_date': booking.event.payment_due_date.strftime(
                     '%A %d %B'
                     ) if booking.event.payment_due_date else None,

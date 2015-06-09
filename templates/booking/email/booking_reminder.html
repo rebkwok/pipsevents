@@ -7,7 +7,8 @@
 
 <p>A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.</p>
 {% if cost and not paid and not payment_confirmed %}
-<p>Your payment has not yet been received/confirmed for this event.  Your booking will be cancelled if your payment has not been received by the cancellation period.  Please contact {{ booking.event.contact_email }} if you have already made payment.</p>
+<p>Your payment has not yet been received/confirmed for this event.
+    Please make your payment as soon as possible to confirm your place.</p>
 {% endif %}
 </div>
 {% endblock %}

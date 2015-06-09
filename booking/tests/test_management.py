@@ -118,21 +118,23 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders(self, mock_tz):
         """
-        Email reminders 1 day before cancellation period
+        Email reminders 24 hours before cancellation period starts
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, tzinfo=timezone.utc
+            2015, 2, 10, 19, 0, tzinfo=timezone.utc
             )
 
+        # cancellation period starts 2015/2/11 18:00
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 12, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 12, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
+        # cancellation period starts 2015/2/12 18:00
         event1 = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -152,6 +154,7 @@ class EmailReminderAndWarningTests(TestCase):
             2015, 2, 10, tzinfo=timezone.utc
             )
 
+        # cancellation period starts 2015/2/8 00:00
         event = mommy.make_recipe(
             'booking.past_event',
             date=datetime(2015, 2, 9, tzinfo=timezone.utc),
@@ -168,12 +171,13 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_not_sent_twice(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, tzinfo=timezone.utc
+            2015, 2, 11, 19, 0, tzinfo=timezone.utc
             )
 
+        # cancellation period starts 2015/2/12 18:00
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -193,12 +197,13 @@ class EmailReminderAndWarningTests(TestCase):
         Test that reminder_sent flag set
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, tzinfo=timezone.utc
+            2015, 2, 11, 19, 0, tzinfo=timezone.utc
             )
 
+        # cancellation period starts 2015/2/12 18:00
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -214,12 +219,13 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_only_sent_for_open_bookings(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, tzinfo=timezone.utc
+            2015, 2, 12, 19, 0, tzinfo=timezone.utc
             )
 
+        # cancellation period starts 2015/2/11 18:00
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -239,23 +245,27 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_warnings.timezone')
     def test_email_warnings(self, mock_tz):
         """
-        test email warning is sent 2 days before cancellation_period or
+        test email warning is sent 48 hours before cancellation_period or
         payment_due_date
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, tzinfo=timezone.utc
+            2015, 2, 10, 0, 0, tzinfo=timezone.utc
             )
 
+        # cancellation period starts 2015/2/14 17:00
+        # payment_due_date 2015/2/11 23:59
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
             cancellation_period=1)
+        # cancellation period starts 2015/2/14 17:00
+        # payment_due_date 2015/2/12 23:59
         event1 = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 12, tzinfo=timezone.utc),
@@ -274,16 +284,15 @@ class EmailReminderAndWarningTests(TestCase):
 
     @patch('booking.management.commands.email_warnings.timezone')
     def test_email_warnings_not_sent_twice(self, mock_tz):
-        """
-        test email warning is sent 2 days before payment_due_date (due
-        datetime is rounded to the end of that day)
-        """
+
         mock_tz.now.return_value = datetime(
             2015, 2, 10, tzinfo=timezone.utc
             )
+        # cancellation period starts 2015/2/13 17:00
+        # payment_due_date 2015/2/11 23:59
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
@@ -297,9 +306,6 @@ class EmailReminderAndWarningTests(TestCase):
         for booking in Booking.objects.all():
             self.assertTrue(booking.warning_sent)
 
-        mock_tz.now.return_value = datetime(
-            2015, 2, 11, tzinfo=timezone.utc
-            )
         # no additional emails sent on subsequent calls
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -313,9 +319,11 @@ class EmailReminderAndWarningTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 10, tzinfo=timezone.utc
             )
+        # cancellation period starts 2015/2/13 17:00
+        # payment_due_date 2015/2/11 23:59
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
@@ -346,7 +354,7 @@ class EmailReminderAndWarningTests(TestCase):
             )
         event = mommy.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
@@ -365,6 +373,7 @@ class EmailReminderAndWarningTests(TestCase):
             self.assertTrue(booking.warning_sent)
         for booking in Booking.objects.filter(status='CANCELLED'):
             self.assertFalse(booking.warning_sent)
+
 
 class CancelUnpaidBookingsTests(TestCase):
     pass

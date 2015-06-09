@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from mock import patch
 from model_mommy import mommy
 
 from django.conf import settings
@@ -517,11 +518,19 @@ class UploadTimetableFormTests(TestCase):
 
         return data
 
-    def test_form_valid(self):
+    @patch('studioadmin.forms.timezone')
+    def test_form_valid(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 6, 12, 0, tzinfo=timezone.utc
+            )
         form = UploadTimetableForm(data=self.form_data())
         self.assertTrue(form.is_valid())
 
-    def test_start_and_end_date_required(self):
+    @patch('studioadmin.forms.timezone')
+    def test_start_and_end_date_required(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 6, 12, 0, tzinfo=timezone.utc
+            )
         form = UploadTimetableForm(
             data={}
         )
@@ -534,7 +543,11 @@ class UploadTimetableFormTests(TestCase):
             form.errors.get('end_date'), ['This field is required.']
         )
 
-    def test_invalid_start_date_format(self):
+    @patch('studioadmin.forms.timezone')
+    def test_invalid_start_date_format(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 6, 12, 0, tzinfo=timezone.utc
+            )
         form = UploadTimetableForm(
             data=self.form_data({'start_date': 'Monday 08 June 2015'})
         )
@@ -542,7 +555,11 @@ class UploadTimetableFormTests(TestCase):
         self.assertEquals(len(form.errors), 1)
         self.assertIn('Invalid date format', str(form.errors['start_date']))
 
-    def test_start_date_in_past(self):
+    @patch('studioadmin.forms.timezone')
+    def test_start_date_in_past(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 6, 12, 0, tzinfo=timezone.utc
+            )
         form = UploadTimetableForm(
             data=self.form_data({'start_date': 'Mon 08 Jun 2000'})
         )
@@ -550,7 +567,11 @@ class UploadTimetableFormTests(TestCase):
         self.assertEquals(len(form.errors), 1)
         self.assertIn('Must be in the future', str(form.errors['start_date']))
 
-    def test_invalid_end_date_format(self):
+    @patch('studioadmin.forms.timezone')
+    def test_invalid_end_date_format(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 6, 12, 0, tzinfo=timezone.utc
+            )
         form = UploadTimetableForm(
             data=self.form_data({'end_date': 'Monday 15 June 2015'})
         )
@@ -558,7 +579,11 @@ class UploadTimetableFormTests(TestCase):
         self.assertEquals(len(form.errors), 1)
         self.assertIn('Invalid date format', str(form.errors['end_date']))
 
-    def test_end_date_before_start_date(self):
+    @patch('studioadmin.forms.timezone')
+    def test_end_date_before_start_date(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 6, 12, 0, tzinfo=timezone.utc
+            )
         form = UploadTimetableForm(
             data=self.form_data({
                 'start_date': 'Tue 16 Jun 2015',
