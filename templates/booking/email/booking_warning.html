@@ -3,11 +3,26 @@
 {% block messagecontent %}
 
 <div style="font-family: sans-serif">
-<p>Reminder! You have booked for {{ event }} on {{ date }} {{ time }}</p>
+    <h4>Reminder! Your payment has not yet been received/confirmed for {{ event }} on {{ date }} {{ time }}</h4>
 
-<p>A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.</p>
-{% if not paid and not payment_confirmed %}
-<p>Your payment has not yet been received/confirmed for this event.  Your booking will be cancelled if your payment has not been received by the cancellation period.  Please contact {{ booking.event.contact_email }} if you have already made payment.</p>
-{% endif %}
+    <p>A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.</p>
+    {% if payment_due_date %}
+        <p>The payment due date for this {{ ev_type }} is {{ payment_due_date }}.</p>
+        {% if advance_payment_required %}
+        <p>If your payment is not received by the payment due date, your booking will be cancelled.</p>
+        {% else %}
+        <p>If your payment is not received by the payment due date, your place may be offered to another student.</p>
+        {% endif %}
+    {% else %}
+        {% if advance_payment_required %}
+            <p>If your payment is not received by the start of the cancellation period, your booking will be cancelled.</p>
+        {% else %}
+            <p>If your payment is not received by the start of the cancellation period, your place may be offered to another student.</p>
+        {% endif %}
+
+    {% endif %}
+
+    <p>Please contact {{ booking.event.contact_email }} urgently if you have already made payment.</p>
+
 </div>
 {% endblock %}
