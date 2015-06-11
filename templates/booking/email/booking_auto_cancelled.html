@@ -1,0 +1,20 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<h4>Your payment has not been received for {{ event.name }} on {{ date }}
+    at {{ time }} and your booking has now been cancelled.</h4>
+
+<p>
+{% if booking.block %}
+    You used a block to make this booking; your block has been updated.
+{% endif %}
+</p>
+
+<p>
+    For further information please contact {{ event.contact_person }} at
+    <a href="mailto:{{ booking.event.contact_email }}">{{ event.contact_email }}</a>
+</p>
+</div>
+{% endblock %}

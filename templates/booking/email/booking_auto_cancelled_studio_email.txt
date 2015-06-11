@@ -1,0 +1,7 @@
+The following bookings have been automatically cancelled as they were unpaid on the payment due date or start of the cancellation period.
+{% for booking in bookings %}
+ - Event: {{ booking.event }}, Student: {{ booking.user.first_name }} {{ booking.user.last_name }} ({{ booking.user.username }})</li>
+{% endfor %}
+Students have been sent an email notifying them that their booking has been cancelled.
+
+{% include "account/email/do_not_reply.txt" %}

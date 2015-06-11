@@ -1,0 +1,19 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p><strong>The following bookings have been automatically cancelled as they
+    were unpaid on the payment due date or start of the cancellation period.</strong></p>
+
+<ul>
+{% for booking in bookings %}
+    <li>Event: {{ booking.event }}, Student: {{ booking.user.first_name }}
+        {{ booking.user.last_name }} ({{ booking.user.username }})</li>
+{% endfor %}
+</ul>
+
+<p>Students have been sent an email notifying them that their booking has been cancelled.</p>
+
+</div>
+{% endblock %}

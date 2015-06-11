@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.conf import settings
 from django.core import management
 from django.core import mail
 from django.db.models import Q
@@ -376,4 +377,197 @@ class EmailReminderAndWarningTests(TestCase):
 
 
 class CancelUnpaidBookingsTests(TestCase):
-    pass
+
+    def setUp(self):
+        self.event = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            cost=10,
+            payment_due_date=datetime(2015, 2, 9, tzinfo=timezone.utc),
+            advance_payment_required=True,
+            cancellation_period=1)
+        self.unpaid = mommy.make_recipe(
+            'booking.booking', event=self.event, paid=False,
+            payment_confirmed=False, status='OPEN',
+            user__email="unpaid@test.com"
+        )
+        self.paid = mommy.make_recipe(
+            'booking.booking', event=self.event, paid=True,
+            payment_confirmed=True, status='OPEN',
+            user__email="paid@test.com"
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_cancel_unpaid_bookings(self, mock_tz):
+        """
+        test unpaid bookings are cancelled
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        self.assertEquals(
+            self.unpaid.status, 'OPEN', self.unpaid.status
+        )
+        self.assertEquals(
+            self.paid.status, 'OPEN', self.paid.status
+        )
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        paid_booking = Booking.objects.get(id=self.paid.id)
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertEquals(
+            unpaid_booking.status, 'CANCELLED', unpaid_booking.status
+        )
+        self.assertEquals(
+            paid_booking.status, 'OPEN', paid_booking.status
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_dont_cancel_if_advance_payment_not_required(self, mock_tz):
+        """
+        test unpaid bookings are not cancelled if advance payment not required
+        for event
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        self.event.advance_payment_required = False
+        self.event.save()
+        self.assertEquals(
+            self.unpaid.status, 'OPEN', self.unpaid.status
+        )
+        self.assertEquals(
+            self.paid.status, 'OPEN', self.paid.status
+        )
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        paid_booking = Booking.objects.get(id=self.paid.id)
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertEquals(
+            unpaid_booking.status, 'OPEN', unpaid_booking.status
+        )
+        self.assertEquals(
+            paid_booking.status, 'OPEN', paid_booking.status
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_dont_cancel_for_events_with_no_cost(self, mock_tz):
+        """
+        test unpaid bookings are not cancelled if advance payment not required
+        for event
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        self.event.cost = 0
+        self.event.save()
+        self.assertEquals(
+            self.unpaid.status, 'OPEN', self.unpaid.status
+        )
+        self.assertEquals(
+            self.paid.status, 'OPEN', self.paid.status
+        )
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        paid_booking = Booking.objects.get(id=self.paid.id)
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertEquals(
+            unpaid_booking.status, 'OPEN', unpaid_booking.status
+        )
+        self.assertEquals(
+            paid_booking.status, 'OPEN', paid_booking.status
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_dont_cancel_for_events_in_the_past(self, mock_tz):
+        """
+        test don't cancel or send emails for past events
+        """
+        mock_tz.now.return_value = datetime(
+            2016, 2, 10, tzinfo=timezone.utc
+        )
+        self.assertEquals(
+            self.unpaid.status, 'OPEN', self.unpaid.status
+        )
+        self.assertEquals(
+            self.paid.status, 'OPEN', self.paid.status
+        )
+        self.assertTrue(timezone.now() > self.event.date)
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once
+        # for all cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        paid_booking = Booking.objects.get(id=self.paid.id)
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertEquals(
+            unpaid_booking.status, 'OPEN', unpaid_booking.status
+        )
+        self.assertEquals(
+            paid_booking.status, 'OPEN', paid_booking.status
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_dont_cancel_for_already_cancelled(self, mock_tz):
+        """
+        ignore already cancelled bookings
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        self.unpaid.status = 'CANCELLED'
+        self.unpaid.save()
+        self.assertEquals(
+            self.unpaid.status, 'CANCELLED', self.unpaid.status
+        )
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once
+        # for all cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertEquals(
+            unpaid_booking.status, 'CANCELLED', unpaid_booking.status
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_only_send_one_email_to_studio(self, mock_tz):
+        """
+        users are emailed per booking, studio just receives one summary
+        email
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        for i in range(5):
+            bookings = mommy.make_recipe(
+                'booking.booking', event=self.event,
+                status='OPEN', paid=False,
+                payment_confirmed=False,
+                user__email="unpaid_user{}@test.com".format(i)
+            )
+
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking (6) and studio once
+        # for all cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        self.assertEquals(len(mail.outbox), 7)
+        self.assertEquals(
+            unpaid_booking.status, 'CANCELLED', unpaid_booking.status
+        )
+        self.assertEquals(
+            Booking.objects.filter(status='CANCELLED').count(), 6
+        )
+        cancelled_booking_emails = [
+            [booking.user.email] for booking
+            in Booking.objects.filter(status='CANCELLED')
+        ]
+        all_emails = cancelled_booking_emails + [[settings.DEFAULT_STUDIO_EMAIL]]
+        self.assertEquals(
+            all_emails, [email.to for email in mail.outbox]
+        )
