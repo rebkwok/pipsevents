@@ -361,6 +361,19 @@ class StatusFilter(forms.Form):
     )
 
 
+class BookingStatusFilter(forms.Form):
+
+    booking_status = forms.ChoiceField(
+        widget=forms.Select,
+        choices=(
+            ('future_open', 'Upcoming open bookings'),
+            ('future_cancelled', 'Upcoming cancelled bookings'),
+            ('past_open', 'Past bookings (not cancelled)'),
+            ('past_cancelled', 'Past cancelled bookings'),
+        ),
+    )
+
+
 class ConfirmPaymentForm(forms.ModelForm):
     class Meta:
         model = Booking
@@ -760,7 +773,6 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             already_booked = [
                 booking.event.id for booking
                 in Booking.objects.filter(user=self.user)
-                if booking.status == 'OPEN'
             ]
 
             form.fields['event'] = (forms.ModelChoiceField(
@@ -782,6 +794,10 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             }),
             required=False
         )
+        form.fields['status'] = (forms.ChoiceField(
+            choices=(('OPEN', 'OPEN'), ('CANCELLED', 'CANCELLED')),
+            widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+        ))
         form.paid_id = 'paid_{}'.format(index)
 
     def clean(self):
@@ -800,12 +816,6 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         block_tracker = {}
         for form in self.forms:
-            # this occurs when we try to reopen a cancelled booking;
-            # deal with this later in the view
-            if form.errors.get('__all__') == [
-                'Booking with this User and Event already exists.'
-            ]:
-                del form.errors['__all__']
             block = form.cleaned_data.get('block')
             event = form.cleaned_data.get('event')
 
@@ -846,7 +856,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 UserBookingFormSet = inlineformset_factory(
     User,
     Booking,
-    fields=('paid', 'event', 'block'),
+    fields=('paid', 'event', 'block', 'status'),
     can_delete=False,
     formset=UserBookingInlineFormSet,
     extra=1,
