@@ -11,7 +11,7 @@ import dj_database_url
 import environ
 import os
 
-root = environ.Path(__file__) - 2 # two folders back (/a/b/ - 3 = /)
+root = environ.Path(__file__) - 2  # two folders back (/a/b/ - 3 = /)
 
 env = environ.Env(DEBUG=(bool, False),
                   PAYPAL_TEST=(bool, False),
@@ -103,12 +103,13 @@ AUTHENTICATION_BACKENDS = (
 )
 
 SOCIALACCOUNT_PROVIDERS = \
-    {'facebook':
-       {'SCOPE': ['email'],
+    {'facebook': {
+        'SCOPE': ['email'],
         # 'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
         'METHOD': 'oauth2',
         'VERIFIED_EMAIL': False,
-        'VERSION': 'v2.2'}}
+        'VERSION': 'v2.2'
+        }}
 
 
 ACCOUNT_AUTHENTICATION_METHOD = "username"
@@ -135,7 +136,8 @@ WSGI_APPLICATION = 'pipsevents.wsgi.application'
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db(), # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
+    'default': env.db(),
+    # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
 }
 
 # Internationalization
@@ -167,14 +169,15 @@ EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', None)
-if EMAIL_HOST_PASSWORD == None:
+if EMAIL_HOST_PASSWORD is None:
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
 DEFAULT_STUDIO_EMAIL = env('DEFAULT_STUDIO_EMAIL')
 
 
-#####LOGGING######
+# #####LOGGING######
+LOG_FOLDER = env('LOG_FOLDER')
 
 LOGGING = {
     'version': 1,
@@ -182,19 +185,17 @@ LOGGING = {
     'formatters': {
         'verbose': {
             'format': '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s',
-            'datefmt' : '%Y-%m-%d %H:%M:%S',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
         }
     },
     'handlers': {
-        'file_django': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/pipsevents/django.log',
-        },
         'file_app': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/pipsevents/pipsevents.log',
+            'class': 'logging.handlers.RotatingFileHandler',
+            # 'filename': '/var/log/pipsevents/pipsevents.log',
+            'filename': os.path.join(LOG_FOLDER, 'pipsevents.log'),
+            'maxBytes': 1024*1024*5,  # 5 MB
+            'backupCount': 5,
             'formatter': 'verbose'
         },
         'console': {
@@ -204,11 +205,6 @@ LOGGING = {
         }
     },
     'loggers': {
-        'django.request': {
-            'handlers': ['file_django'],
-            'level': 'INFO',
-            'propagate': True,
-        },
         'booking': {
             'handlers': ['console', 'file_app'],
             'level': 'INFO',
@@ -233,7 +229,7 @@ LOGGING = {
 }
 
 
-#####HEROKU#######
+# ####HEROKU#######
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -294,13 +290,14 @@ SUIT_CONFIG = {
 INTERNAL_IPS = '127.0.0.1'
 
 
-#CKEDITOR
+# CKEDITOR
 CKEDITOR_UPLOAD_PATH = "uploads/"
 CKEDITOR_IMAGE_BACKEND = 'pillow'
 CKEDITOR_CONFIGS = {
     'default': {
         'toolbar': [
-		 ['Source', '-', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
+         ['Source', '-', 'Bold', 'Italic', 'Underline',
+          'TextColor', 'BGColor'],
          ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
           'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-',
           'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
@@ -311,7 +308,8 @@ CKEDITOR_CONFIGS = {
     },
     'studioadmin': {
         'toolbar': [
-		 ['Source', '-', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
+         ['Source', '-', 'Bold', 'Italic', 'Underline',
+          'TextColor', 'BGColor'],
          ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
           'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-',
           'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
@@ -322,13 +320,14 @@ CKEDITOR_CONFIGS = {
     },
     'studioadmin_min': {
         'toolbar': [
-		 ['Bold', 'Italic', 'Underline', 'FontSize', 'Link']
+            ['Bold', 'Italic', 'Underline', 'FontSize', 'Link']
         ],
         'height': 100,
         'width': 600,
     },
 }
-CKEDITOR_JQUERY_URL = '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
+CKEDITOR_JQUERY_URL = \
+    '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
 
 # MAILCATCHER
 if env('USE_MAILCATCHER'):

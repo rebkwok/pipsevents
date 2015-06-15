@@ -95,10 +95,6 @@
     backup=yes
     line='source .bashrc_extra'
 
-- name: Create log folders
+- name: Give vagrant user permission for log folder
   sudo: yes
-  file: path={{ log_path }}{{ item }} state=directory mode=0777 owner=vagrant recurse=yes group=vagrant
-  with_items:
-      - django
-      - pipsevents
-
+  file: path={{ log_path }} state=directory mode=0777 owner=vagrant recurse=yes group=vagrant
