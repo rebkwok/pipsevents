@@ -9,7 +9,6 @@
         <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% endif %} that have not yet been booked can be deleted. </p>
-        {% if events %}
         <div class="row">
             <div class="col-xs-12">
                 <form method="post" action="">
@@ -20,9 +19,10 @@
                         {% if show_past %}
                         <input class="btn btn-info table-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% else %}classes{% endif %}" />
                         {% else %}
-                        <input class="btn btn-info table-btn" name="past" type="submit" value="Show past {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                        <input class="btn btn-info table-btn pull-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% else %}classes{% endif %}" />
                         {% endif %}
                     </div>
+                {% if events %}
                 <div class="panel panel-success">
                     <div class="table-responsive">
                         <table class="table">
@@ -70,19 +70,19 @@
                         </tr>
                     </table>
                 </div>
-
+            </div>
+            {% else %}
+                <p>There are no {% if show_past %}past{% else %}upcoming{% endif %}
+                    {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} to display.</p>
+            {% endif %}
             </form>
 
 
 
 
-                </div>
-            </div>
-         </div>
-        {% else %}
-            <p>There are currently no {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} scheduled.</p>
-        {% endif %}
-
+        </div>
     </div>
+ </div>
+
 
 {% endblock studioadmincontent %}
