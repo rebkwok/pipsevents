@@ -59,7 +59,7 @@ urlpatterns = patterns('',
     url(r'^users/email/emailform/$', 'studioadmin.views.email_users_view',
         name="email_users_view"),
     url(
-        r'^users/(?P<user_id>\d+)/bookings/$',
+        r'^users/(?P<user_id>\d+)/bookings/(?P<booking_status>[\w-]+)$',
         'studioadmin.views.user_bookings_view', name='user_bookings_list'
     ),
     url(

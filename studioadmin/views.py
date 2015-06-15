@@ -29,7 +29,8 @@ from booking.models import Event, Booking, Block, BlockType
 from booking import utils
 
 from timetable.models import Session
-from studioadmin.forms import ConfirmPaymentForm, EventFormSet, \
+from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
+    EventFormSet, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
@@ -869,82 +870,83 @@ def email_users_view(request,
 
 @login_required
 @staff_required
-def user_bookings_view(request, user_id):
-
+def user_bookings_view(request, user_id, booking_status='future_open'):
     user = get_object_or_404(User, id=user_id)
+
     if request.method == 'POST':
+
+        booking_status = request.POST.getlist('booking_status')[0]
         userbookingformset = UserBookingFormSet(
-            request.POST,
-            instance=user,
-            user=user,
+            request.POST, instance=user, user=user,
         )
 
         if userbookingformset.is_valid():
-            if not userbookingformset.has_changed():
+            if not userbookingformset.has_changed() and \
+                    request.POST.get('formset_submitted'):
                 messages.info(request, "No changes were made")
             else:
                 for form in userbookingformset:
                     if form.has_changed():
-                        new = False if form.instance.id else True
+                        booking = form.save(commit=False)
+                        action = 'updated' if form.instance.id else 'created'
                         reopened = False
-                        try:
-                            booking = Booking.objects.get(
-                                user__id=form.instance.user.id,
-                                event__id=form.instance.event.id,
-                                status='CANCELLED'
-                            )
-                            reopened = True
-                            booking.status = 'OPEN'
-                            booking.paid = form.instance.paid
-                            booking.block = form.instance.block
-                        except Booking.DoesNotExist:
-                            booking = form.save(commit=False)
+                        cancelled = False
+                        if 'status' in form.changed_data:
+                            if booking.status == 'CANCELLED':
+                                booking.paid = False
+                                booking.payment_confirmed = False
+                                booking.block = None
+                                action = 'cancelled'
+                            elif booking.status == 'OPEN':
+                                booking.paid = True
+                                booking.payment_confirmed = True
+                                action = 'reopened'
 
                         if booking.block:
                             booking.paid = True
                             booking.payment_confirmed = True
 
-                        elif booking.paid:
-                            # assume that if booking is being done via
-                            # studioadmin, marking paid also means payment
-                            # is confirmed
-                            booking. payment_confirmed = True
+                        if 'paid' in form.changed_data:
+                            if booking.paid:
+                                # assume that if booking is being done via
+                                # studioadmin, marking paid also means payment
+                                # is confirmed
+                                booking.payment_confirmed = True
+                            else:
+                                booking.payment_confirmed = False
 
-                        msg = 'created' if new else 'updated'
                         messages.info(
                             request,
-                            'Booking for {} has been {}'.format(booking.event, msg)
+                            'Booking for {} has been {}'.format(booking.event, action)
                         )
-                        logger.info('Booking id {} (user {}) for "{}" updated '
-                                    'by admin user {}'.format(
-                            booking.id, booking.user.username, booking.event,
-                            request.user.username))
-                        if reopened:
+                        if action == 'reopened':
                             messages.info(
                                 request, 'Note: this booking was previously '
-                                'cancelled and has now been reopened')
-                            logger.info('Booking id {} was previously '
-                                        'cancelled and has now been reopened'
-                                        'by admin user {}'.format(
-                                booking.id, request.user.username))
+                                'cancelled and has now been reopened.  The booking has automatically been marked as paid and payment confirmed.')
+                        elif action == 'cancelled':
+                            messages.info(
+                                request, 'Note: this booking has been cancelled.  The booking has automatically been marked as unpaid (refunded) and, if applicable, the block used has been updated.')
+                        logger.info('Booking id {} (user {}) for "{}" {} '
+                                    'by admin user {}'.format(
+                            booking.id, booking.user.username, booking.event,
+                            action, request.user.username))
+
                         booking.save()
 
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')
 
-                try:
                     userbookingformset.save(commit=False)
-                except IntegrityError:
-                    # we filter the options for event in the select, so we
-                    # only have integrity error for saving a previously
-                    # cancelled booking, which is dealt with above
-                    pass
 
             return HttpResponseRedirect(
-                reverse('studioadmin:user_bookings_list',
-                        kwargs={'user_id': user.id}
-                        )
+                reverse(
+                    'studioadmin:user_bookings_list',
+                    kwargs={
+                        'user_id': user.id,
+                        'booking_status': booking_status
+                    }
+                )
             )
         else:
             messages.error(
@@ -953,20 +955,53 @@ def user_bookings_view(request, user_id):
             for error in userbookingformset.errors:
                 messages.error(request, "{}".format(error), extra_tags='safe')
     else:
-        queryset = Booking.objects.filter(
-            user=user, event__date__gte=timezone.now(), status='OPEN'
-        ).order_by('event__date')
+        all_bookings = Booking.objects.filter(user=user)
+
+        if booking_status == 'past_open':
+            queryset = all_bookings.filter(
+                status='OPEN', event__date__lt=timezone.now()
+            ).order_by('event__date')
+            userbookingformset = UserBookingFormSet(
+                queryset=queryset, instance=user, user=user,
+            )
+        elif booking_status == 'future_cancelled':
+            queryset = all_bookings.filter(
+                status='CANCELLED', event__date__gte=timezone.now()
+            ).order_by('event__date')
+            userbookingformset = UserBookingFormSet(
+                queryset=queryset, instance=user, user=user,
+            )
+        elif booking_status == 'past_cancelled':
+            queryset = all_bookings.filter(
+                status='CANCELLED', event__date__lt=timezone.now()
+            ).order_by('event__date')
+            userbookingformset = UserBookingFormSet(
+                queryset=queryset, instance=user, user=user,
+            )
+        else:
+            # 'future_open' by default
+            queryset = all_bookings.filter(
+                status='OPEN', event__date__gte=timezone.now()
+            ).order_by('event__date')
+            userbookingformset = UserBookingFormSet(
+                queryset=queryset, instance=user, user=user,
+            )
+
         userbookingformset = UserBookingFormSet(
             instance=user,
             queryset=queryset,
             user=user
         )
 
+    booking_status_filter = BookingStatusFilter(initial={'booking_status': booking_status})
+
     template = 'studioadmin/user_booking_list.html'
     return render(
         request, template, {
             'userbookingformset': userbookingformset, 'user': user,
-            'sidenav_selection': 'users'
+            'sidenav_selection': 'users',
+            'booking_status_filter': booking_status_filter,
+            'booking_status': booking_status
         }
     )
 

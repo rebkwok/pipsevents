@@ -734,6 +734,7 @@ class UserBookingFormSetTests(TestCase):
             'bookings-INITIAL_FORMS': 1,
             'bookings-0-id': self.booking.id,
             'bookings-0-event': self.event.id,
+            'bookings-0-status': self.booking.status,
             }
 
         for key, value in extra_data.items():
@@ -881,21 +882,6 @@ class UserBookingFormSetTests(TestCase):
         event = form.fields['event']
         # queryset shows all events (will be hidden in the template)
         self.assertEquals(6, event.queryset.count())
-
-    def test_can_rebook_cancelled_booking(self):
-        self.booking.status = 'CANCELLED'
-        self.booking.save()
-        formset = UserBookingFormSet(
-                                data=self.formset_data(
-                                        {'bookings-0-id': None,
-                                        'bookings-0-event': self.event.id}
-                                    ),
-                                instance=self.user,
-                                user=self.user)
-        form = formset.forms[0]
-        event = form.fields['event']
-        self.assertEquals(1, event.queryset.count())
-        self.assertIn(self.event, event.queryset)
 
 
 class UserBlockFormSetTests(TestCase):

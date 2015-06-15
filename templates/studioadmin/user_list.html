@@ -31,7 +31,7 @@
                                 <td class="table-center studioadmin-tbl">{{ user.last_name }}</td>
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
                                 <td class="table-center studioadmin-tbl">
-                                    <a href="{% url 'studioadmin:user_bookings_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
+                                    <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:user_blocks_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
                             </tr>
