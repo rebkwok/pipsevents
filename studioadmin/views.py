@@ -849,9 +849,9 @@ def email_users_view(request,
                 form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
 
         else:
-            event_ids = ast.literal_eval(request.GET['events'])
+            event_ids = ast.literal_eval(request.GET.get('events'))
             events = Event.objects.filter(id__in=event_ids)
-            lesson_ids = ast.literal_eval(request.GET['lessons'])
+            lesson_ids = ast.literal_eval(request.GET.get('lessons'))
             lessons = Event.objects.filter(id__in=lesson_ids)
             totaleventids = event_ids + lesson_ids
             totalevents = Event.objects.filter(id__in=totaleventids)

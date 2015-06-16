@@ -16,12 +16,25 @@ from studioadmin.views import (
     ConfirmPaymentView,
     ConfirmRefundView,
     event_admin_list,
+    EventAdminCreateView,
+    EventAdminUpdateView,
     EventRegisterListView,
     register_view,
+    timetable_admin_list,
+    TimetableSessionUpdateView,
+    TimetableSessionCreateView,
+    upload_timetable_view,
+    UserListView,
+    BlockListView,
+    choose_users_to_email,
+    email_users_view,
+    user_blocks_view,
+    user_bookings_view,
+    url_with_querystring
     )
 
 
-class ConfirmPaymentViewTests(TestCase):
+class TestPermissionMixin(object):
 
     def setUp(self):
         set_up_fb()
@@ -31,6 +44,12 @@ class ConfirmPaymentViewTests(TestCase):
         self.staff_user = mommy.make_recipe('booking.user')
         self.staff_user.is_staff = True
         self.staff_user.save()
+
+
+class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super(ConfirmPaymentViewTests, self).setUp()
         self.booking = mommy.make_recipe(
             'booking.booking', user=self.user,
             paid=False,
@@ -190,16 +209,10 @@ class ConfirmPaymentViewTests(TestCase):
         self.assertEquals(resp.url, reverse('studioadmin:users'))
 
 
-class ConfirmRefundViewTests(TestCase):
+class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-        self.staff_user = mommy.make_recipe('booking.user')
-        self.staff_user.is_staff = True
-        self.staff_user.save()
+        super(ConfirmRefundViewTests, self).setUp()
         self.booking = mommy.make_recipe(
             'booking.booking', user=self.user,
             paid=True,
@@ -287,16 +300,7 @@ class ConfirmRefundViewTests(TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
 
-class EventRegisterListViewTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-        self.staff_user = mommy.make_recipe('booking.user')
-        self.staff_user.is_staff = True
-        self.staff_user.save()
+class EventRegisterListViewTests(TestPermissionMixin, TestCase):
 
     def _get_response(self, user, ev_type, url=None):
         if not url:
@@ -372,16 +376,10 @@ class EventRegisterListViewTests(TestCase):
         self.assertEquals(len(resp.context_data['events']), 5)
 
 
-class EventRegisterViewTests(TestCase):
+class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-        self.staff_user = mommy.make_recipe('booking.user')
-        self.staff_user.is_staff = True
-        self.staff_user.save()
+        super(EventRegisterViewTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_EV')
 
     def _get_response(
@@ -490,16 +488,10 @@ class EventRegisterViewTests(TestCase):
         pass
 
 
-class EventAdminListTests(TestCase):
+class EventAdminListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-        self.staff_user = mommy.make_recipe('booking.user')
-        self.staff_user.is_staff = True
-        self.staff_user.save()
+        super(EventAdminListViewTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_EV')
 
     def _get_response(self, user, ev_type, url=None):
@@ -511,10 +503,18 @@ class EventAdminListTests(TestCase):
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return event_admin_list(
-            request,
-            ev_type=ev_type
-        )
+        return event_admin_list(request, ev_type=ev_type)
+
+    def _post_response(self, user, ev_type, form_data, url=None):
+        if not url:
+            url = reverse('studioadmin:events')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return event_admin_list(request, ev_type=ev_type)
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -563,60 +563,734 @@ class EventAdminListTests(TestCase):
         pass
 
 
-class EventAdminUpdateViewTests(TestCase):
+class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
-    pass
+    def setUp(self):
+        super(EventAdminUpdateViewTests, self).setUp()
+        self.event = mommy.make_recipe('booking.future_EV')
+
+    def _get_response(self, user, event_slug, ev_type, url=None):
+        if url is None:
+            url = reverse('studioadmin:edit_event', kwargs={'slug': event_slug})
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = EventAdminUpdateView.as_view()
+        return view(request, slug=event_slug, ev_type=ev_type)
+
+    def _post_response(self, user, event_slug, ev_type, url=None):
+        if url is None:
+            url = reverse('studioadmin:edit_event', kwargs={'slug': event_slug})
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = EventAdminUpdateView.as_view()
+        return view(request, slug=event_slug, ev_type=ev_type)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:edit_event', kwargs={'slug': self.event.slug})
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user, self.event.slug, 'EV')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user, self.event.slug, 'EV')
+        self.assertEquals(resp.status_code, 200)
+
+    def test_edit_event_refers_to_events_on_page(self):
+        pass
+
+    def test_edit_class_refers_to_classes_on_page(self):
+        pass
+
+    def test_submitting_valid_event_form_redirects_back_to_events_list(self):
+        pass
+
+    def test_submitting_valid_classes_form_redirects_back_to_classes_list(self):
+        pass
+
+    def test__context_data(self):
+        pass
+
+    def test_can_edit_event_data(self):
+        pass
+
+    def test_submitting_with_no_changes_does_not_change_event(self):
+        pass
 
 
-class EventAdminCreateViewTests(TestCase):
+class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
 
-    pass
+    def setUp(self):
+        super(EventAdminCreateViewTests, self).setUp()
+
+    def _get_response(self, user, ev_type, url=None):
+        if url is None:
+            url = reverse('studioadmin:add_event')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = EventAdminCreateView.as_view()
+        return view(request, ev_type=ev_type)
+
+    def _post_response(self, user, ev_type, url=None):
+        if url is None:
+            url = reverse('studioadmin:add_event')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = EventAdminCreateView.as_view()
+        return view(request, ev_type=ev_type)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:add_event')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user, 'EV')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user, 'EV')
+        self.assertEquals(resp.status_code, 200)
+
+    def test_add_event_refers_to_events_on_page(self):
+        pass
+
+    def test_add_class_refers_to_classes_on_page(self):
+        pass
+
+    def test_submitting_valid_event_form_redirects_back_to_events_list(self):
+        pass
+
+    def test_submitting_valid_classes_form_redirects_back_to_classes_list(self):
+        pass
+
+    def test_context_data(self):
+        pass
+
+    def test_can_add_event(self):
+        pass
 
 
-class TimetableAdminListView(TestCase):
+class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
 
-    pass
+    def _get_response(self, user):
+        url = reverse('studioadmin:timetable')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return timetable_admin_list(request)
+
+    def _post_response(self, user, form_data):
+        url = reverse('studioadmin:timetable')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return timetable_admin_list(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:timetable')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_can_delete_sessions(self):
+        pass
+
+    def test_can_update_existing_session(self):
+        pass
+
+    def test_submitting_valid_form_redirects_back_to_timetable(self):
+        pass
+
+    def test_submitting_invalid_form_shows_error_message(self):
+        pass
 
 
-class TimetableSessionUpdateView(TestCase):
+class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
 
-    pass
+    def setUp(self):
+        super(TimetableSessionUpdateViewTests, self).setUp()
+        self.session = mommy.make_recipe('booking.mon_session')
+
+    def _get_response(self, user, ttsession):
+        url = reverse('studioadmin:edit_session', args=[ttsession.id])
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = TimetableSessionUpdateView.as_view()
+        return view(request, pk=ttsession.id)
+
+    def _post_response(self, user, ttsession, form_data):
+        url = reverse('studioadmin:edit_session', args=[ttsession.id])
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = TimetableSessionUpdateView.as_view()
+        return view(request, pk=ttsession.id)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:edit_session', args=[self.session.id])
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user, self.session)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user, self.session)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_submitting_valid_session_form_redirects_back_to_timetable(self):
+        pass
+
+    def test_context_data(self):
+        pass
+
+    def test_can_edit_session_data(self):
+        pass
+
+    def test_submitting_with_no_changes_does_not_change_session(self):
+        pass
 
 
-class TimetableSessionCreateView(TestCase):
+class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
 
-    pass
+    def _get_response(self, user):
+        url = reverse('studioadmin:add_session')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = TimetableSessionCreateView.as_view()
+        return view(request)
+
+    def _post_response(self, user, form_data):
+        url = reverse('studioadmin:add_session')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = TimetableSessionCreateView.as_view()
+        return view(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:add_session')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_add_event_refers_to_events_on_page(self):
+        pass
+
+    def test_add_class_refers_to_classes_on_page(self):
+        pass
+
+    def test_submitting_valid_event_form_redirects_back_to_events_list(self):
+        pass
+
+    def test_submitting_valid_classes_form_redirects_back_to_classes_list(self):
+        pass
+
+    def test_context_data(self):
+        pass
+
+    def test_can_add_event(self):
+        pass
 
 
-class UploadTimetableTests(TestCase):
+class UploadTimetableTests(TestPermissionMixin, TestCase):
 
-    pass
+    def _get_response(self, user):
+        url = reverse('studioadmin:upload_timetable')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return upload_timetable_view(request)
+
+    def _post_response(self, user):
+        url = reverse('studioadmin:upload_timetable')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return upload_timetable_view(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:upload_timetable')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_sessions_are_created(self):
+        pass
+
+    def test_does_not_create_duplicate_sessions(self):
+        pass
+
+    def test_context_is_correctly_rendered(self):
+        pass
+
+class UserListViewTests(TestPermissionMixin, TestCase):
+
+    def _get_response(self, user):
+        url = reverse('studioadmin:users')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = UserListView.as_view()
+        return view(request)
+
+    def _post_response(self, user):
+        url = reverse('studioadmin:users')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = UserListView.as_view()
+        return view(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:users')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_all_users_are_displayed(self):
+        pass
 
 
-class UserListViewTests(TestCase):
+class BlockListViewTests(TestPermissionMixin, TestCase):
 
-    pass
+    def _get_response(self, user):
+        url = reverse('studioadmin:blocks')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = BlockListView.as_view()
+        return view(request)
+
+    def _post_response(self, user):
+        url = reverse('studioadmin:blocks')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        view = BlockListView.as_view()
+        return view(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:blocks')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_all_users_are_displayed(self):
+        pass
+
+class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
+
+    def _get_response(self, user):
+        url = reverse('studioadmin:choose_email_users')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return choose_users_to_email(request)
+
+    def _post_response(self, user):
+        url = reverse('studioadmin:choose_email_users')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return choose_users_to_email(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:choose_email_users')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_filter_users_by_event_booked(self):
+        pass
+
+    def test_filter_users_by_class_booked(self):
+        pass
+
+    def test_filter_users_by_multiple_events_and_classes(self):
+        pass
+
+    def test_filtered_events_are_rendered(self):
+        pass
+
+    def test_selected_users_are_rendered(self):
+        pass
+
+    def test_form_not_valid(self):
+        pass
 
 
-class BlockListViewTests(TestCase):
+class EmailUsersTests(TestPermissionMixin, TestCase):
 
-    pass
+    def _get_response(
+        self, user, users_to_email, event_ids=[], lesson_ids=[]
+    ):
+        url = url_with_querystring(
+            reverse('studioadmin:email_users_view'),
+            events=event_ids, lessons=lesson_ids
+        )
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.session['users_to_email'] = users_to_email
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return email_users_view(request)
+
+    def _post_response(
+        self, user, users_to_email, form_data, event_ids=[], lesson_ids=[]
+    ):
+        url = url_with_querystring(
+            reverse('studioadmin:email_users_view'),
+            events=event_ids, lessons=lesson_ids
+        )
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.session['users_to_email'] = users_to_email
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return email_users_view(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:email_users_view')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user, [self.user.id])
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user, [self.user.id])
+        self.assertEquals(resp.status_code, 200)
+
+    def test_subject_is_autopoulated(self):
+        pass
+
+    def test_emails_sent(self):
+        pass
+
+    def test_cc_email_sent(self):
+        pass
+
+class UserBookingsViewTests(TestPermissionMixin, TestCase):
+
+    def _get_response(self, user, user_id, booking_status='future_open'):
+        url = reverse(
+            'studioadmin:user_bookings_list',
+            kwargs={'user_id': user_id, 'booking_status': booking_status}
+        )
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return user_bookings_view(
+            request, user_id, booking_status=booking_status
+        )
+
+    def _post_response(self, user, user_id, form_data, booking_status=None):
+        url = reverse(
+            'studioadmin:user_bookings_list',
+            kwargs={'user_id': user_id, 'booking_status': 'future_open'}
+        )
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return user_bookings_view(
+            request, user_id, booking_status=booking_status
+        )
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse(
+            'studioadmin:user_bookings_list',
+            kwargs={'user_id': self.user.id, 'booking_status': 'future_open'}
+        )
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user, self.user.id)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user, self.user.id)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_can_update_booking(self):
+        pass
+
+    def test_can_add_booking(self):
+        pass
+
+    def test_changing_booking_status_updates_payment_status_also(self):
+        pass
+
+    def test_can_assign_booking_to_available_block(self):
+        pass
+
+    def test_cannot_create_new_block_booking_with_wrong_blocktype(self):
+        pass
+
+    def test_cannot_overbook_block(self):
+        pass
+
+    def test_cannot_create_new_block_booking_when_no_available_blocktype(self):
+        pass
 
 
-class EmailUsersTests(TestCase):
-
-    pass
-
-
-class UserBookingsViewTests(TestCase):
-
-    pass
-    # try to rebook cancelled
-    # trying to overbook block
-    # cannot block book event with no available blocktype
-    # trying to block book with wrong block type
-
-
-class UserBlocksViewTests(TestCase):
+class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     pass
