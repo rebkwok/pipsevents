@@ -17,16 +17,14 @@
                         <div>
                             {% if events or lessons %}
                                 You are sending an email regarding:
-                                {% if events %}
                                 <ul>
                                     {% for event in events %}
-                                    <li>{{ event }}</li>
+                                    <li>{{ event.name }}</li>
                                     {% endfor %}
                                     {% for lesson in lessons %}
-                                    <li>{{ lesson }}</li>
+                                    <li>{{ lesson.name }}</li>
                                     {% endfor %}
                                 </ul>
-                                {% endif %}
                             {% endif %}
 
                             The following students will be emailed:
