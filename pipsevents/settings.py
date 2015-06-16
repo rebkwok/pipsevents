@@ -177,56 +177,58 @@ DEFAULT_STUDIO_EMAIL = env('DEFAULT_STUDIO_EMAIL')
 
 
 # #####LOGGING######
-LOG_FOLDER = env('LOG_FOLDER')
+if not env('HEROKU'):
+    LOG_FOLDER = env('LOG_FOLDER')
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
-        }
-    },
-    'handlers': {
-        'file_app': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            # 'filename': '/var/log/pipsevents/pipsevents.log',
-            'filename': os.path.join(LOG_FOLDER, 'pipsevents.log'),
-            'maxBytes': 1024*1024*5,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose'
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '[%(levelname)s] - %(asctime)s - %(name)s - '
+                          '%(message)s',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            }
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        }
-    },
-    'loggers': {
-        'booking': {
-            'handlers': ['console', 'file_app'],
-            'level': 'INFO',
-            'propogate': True,
+        'handlers': {
+            'file_app': {
+                'level': 'INFO',
+                'class': 'logging.handlers.RotatingFileHandler',
+                # 'filename': '/var/log/pipsevents/pipsevents.log',
+                'filename': os.path.join(LOG_FOLDER, 'pipsevents.log'),
+                'maxBytes': 1024*1024*5,  # 5 MB
+                'backupCount': 5,
+                'formatter': 'verbose'
+            },
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose'
+            }
         },
-        'payments': {
-            'handlers': ['console', 'file_app'],
-            'level': 'INFO',
-            'propogate': True,
+        'loggers': {
+            'booking': {
+                'handlers': ['console', 'file_app'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'payments': {
+                'handlers': ['console', 'file_app'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'studioadmin': {
+                'handlers': ['console', 'file_app'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'timetable': {
+                'handlers': ['console', 'file_app'],
+                'level': 'INFO',
+                'propogate': True,
+            },
         },
-        'studioadmin': {
-            'handlers': ['console', 'file_app'],
-            'level': 'INFO',
-            'propogate': True,
-        },
-        'timetable': {
-            'handlers': ['console', 'file_app'],
-            'level': 'INFO',
-            'propogate': True,
-        },
-    },
-}
+    }
 
 
 # ####HEROKU#######
@@ -343,7 +345,7 @@ PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
 # TRAVIS
-if env('TRAVIS'):
+if env('TRAVIS') or env('HEROKU'):
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,

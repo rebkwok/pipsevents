@@ -15,6 +15,7 @@ from booking.tests.helpers import set_up_fb, _create_session, setup_view
 from studioadmin.views import (
     ConfirmPaymentView,
     ConfirmRefundView,
+    event_admin_list,
     EventRegisterListView,
     register_view,
     )
@@ -464,10 +465,102 @@ class EventRegisterViewTests(TestCase):
             set([form.instance.status for form in forms]), {'CANCELLED'}
             )
 
+    def test_can_update_booking(self):
+        pass
+
+    def test_can_select_block_for_existing_booking(self):
+        pass
+
+    def test_can_add_new_booking(self):
+        pass
+
+    def test_printable_version_does_not_show_status_filter(self):
+        pass
+
+    def test_selecting_printable_version_redirects_to_print_view(self):
+        pass
+
+    def test_submitting_form_for_classes_redirects_to_class_register(self):
+        pass
+
+    def test_submitting_form_for_events_redirects_to_event_register(self):
+        pass
+
+    def test_number_of_extra_lines_displayed(self):
+        pass
+
 
 class EventAdminListTests(TestCase):
 
-    pass
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+        self.staff_user = mommy.make_recipe('booking.user')
+        self.staff_user.is_staff = True
+        self.staff_user.save()
+        self.event = mommy.make_recipe('booking.future_EV')
+
+    def _get_response(self, user, ev_type, url=None):
+        if not url:
+            url = reverse('studioadmin:events')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return event_admin_list(
+            request,
+            ev_type=ev_type
+        )
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:events')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user, ev_type='events')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user, ev_type='events')
+        self.assertEquals(resp.status_code, 200)
+
+    def test_events_url_shows_only_events(self):
+        pass
+
+    def test_classes_url_shows_only_classes(self):
+        pass
+
+    def test_past_filter(self):
+        pass
+
+    def test_upcoming_filter(self):
+        pass
+
+    def test_can_only_delete_events_with_no_bookings(self):
+        pass
+
+    def test_can_update_existing_event(self):
+        pass
+
+    def test_submitting_valid_form_redirects_back_to_correct_url(self):
+        pass
 
 
 class EventAdminUpdateViewTests(TestCase):
