@@ -295,7 +295,7 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
     def add_fields(self, form, index):
         super(BookingRegisterInlineFormSet, self).add_fields(form, index)
 
-        if form.instance:
+        if form.instance.id:
             form.index = index + 1
             user = form.instance.user
             event_type = form.instance.event.event_type

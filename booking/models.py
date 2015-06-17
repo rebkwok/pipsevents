@@ -80,7 +80,8 @@ class Event(models.Model):
 
     def spaces_left(self):
         if self.max_participants:
-            booked_number = Booking.objects.filter(event__id=self.id).count()
+            booked_number = Booking.objects.filter(
+                event__id=self.id, status='OPEN').count()
             return self.max_participants - booked_number
         else:
             return 100
