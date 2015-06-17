@@ -209,7 +209,6 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
             request.POST,
             instance=event,
         )
-
         if formset.is_valid():
             if not formset.has_changed() and \
                     request.POST.get('formset_submitted'):
@@ -874,7 +873,6 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
     user = get_object_or_404(User, id=user_id)
 
     if request.method == 'POST':
-
         booking_status = request.POST.getlist('booking_status')[0]
         userbookingformset = UserBookingFormSet(
             request.POST, instance=user, user=user,

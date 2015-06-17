@@ -9,9 +9,9 @@ from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from booking.models import Event, Booking, Block
+from booking.models import Event, Booking, Block, BlockType
 from booking.tests.helpers import set_up_fb, _create_session, setup_view
-
+from studioadmin.forms import SimpleBookingRegisterFormSet
 from studioadmin.views import (
     ConfirmPaymentView,
     ConfirmRefundView,
@@ -381,6 +381,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
     def setUp(self):
         super(EventRegisterViewTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_EV')
+        self.booking1 = mommy.make_recipe('booking.booking', event=self.event)
+        self.booking2 = mommy.make_recipe('booking.booking', event=self.event)
 
     def _get_response(
             self, user, event_slug,
@@ -401,6 +403,47 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             event_slug,
             status_choice=status_choice,
             print_view=print_view)
+
+    def _post_response(
+            self, user, event_slug, form_data,
+            status_choice='OPEN', print_view=False
+            ):
+        url = reverse(
+            'studioadmin:event_register',
+            args=[event_slug, status_choice]
+            )
+        session = _create_session()
+        request = self.factory.post(url, data=form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return register_view(
+            request,
+            event_slug,
+            status_choice=status_choice,
+            print_view=print_view)
+
+    def formset_data(self, extra_data={}, status_choice='OPEN'):
+
+        data = {
+            'bookings-TOTAL_FORMS': 2,
+            'bookings-INITIAL_FORMS': 2,
+            'bookings-0-id': self.booking1.id,
+            'bookings-0-user': self.booking1.user.id,
+            'bookings-0-paid': self.booking1.paid,
+            'bookings-0-attended': self.booking1.attended,
+            'bookings-1-id': self.booking2.id,
+            'bookings-1-user': self.booking2.user.id,
+            'bookings-1-paid': self.booking2.paid,
+            'bookings-1-attended': self.booking2.attended,
+            'status_choice': status_choice
+            }
+
+        for key, value in extra_data.items():
+            data[key] = value
+
+        return data
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -443,13 +486,15 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, self.event.slug, status_choice='ALL'
         )
-        self.assertEquals(len(resp.context_data['formset'].forms), 10)
+        # 10 plus 2 created in setup
+        self.assertEquals(len(resp.context_data['formset'].forms), 12)
 
         resp = self._get_response(
             self.staff_user, self.event.slug, status_choice='OPEN'
         )
+        # 5 open plus 2 created in setup
         forms = resp.context_data['formset'].forms
-        self.assertEquals(len(forms), 5)
+        self.assertEquals(len(forms), 7)
         self.assertEquals(
             set([form.instance.status for form in forms]), {'OPEN'}
             )
@@ -464,10 +509,45 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             )
 
     def test_can_update_booking(self):
-        pass
+        self.assertFalse(self.booking1.paid)
+        self.assertFalse(self.booking2.attended)
+
+        formset_data = self.formset_data({
+            'bookings-0-paid': True,
+            'bookings-1-attended': True,
+            'formset_submitted': 'Save changes'
+        })
+
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+
+        booking1 = Booking.objects.get(id=self.booking1.id)
+        self.assertTrue(booking1.paid)
+        booking2 = Booking.objects.get(id=self.booking2.id)
+        self.assertTrue(booking2.attended)
 
     def test_can_select_block_for_existing_booking(self):
-        pass
+        self.assertFalse(self.booking1.block)
+        block_type = mommy.make(
+            BlockType, event_type=self.event.event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type, user=self.user, paid=True
+        )
+        self.assertTrue(block.active_block())
+
+        formset_data = self.formset_data({
+            'bookings-0-block': block.id,
+            'formset_submitted': 'Save changes'
+        })
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+        booking = Booking.objects.get(id=self.booking1.id)
+        self.assertEqual(booking.block, block)
 
     def test_can_add_new_booking(self):
         pass
@@ -571,7 +651,9 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
     def _get_response(self, user, event_slug, ev_type, url=None):
         if url is None:
-            url = reverse('studioadmin:edit_event', kwargs={'slug': event_slug})
+            url = reverse(
+                'studioadmin:edit_event', kwargs={'slug': event_slug}
+            )
         session = _create_session()
         request = self.factory.get(url)
         request.session = session
@@ -584,7 +666,9 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
     def _post_response(self, user, event_slug, ev_type, url=None):
         if url is None:
-            url = reverse('studioadmin:edit_event', kwargs={'slug': event_slug})
+            url = reverse(
+                'studioadmin:edit_event', kwargs={'slug': event_slug}
+            )
         session = _create_session()
         request = self.factory.post(url, form_data)
         request.session = session
@@ -599,7 +683,9 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:edit_event', kwargs={'slug': self.event.slug})
+        url = reverse(
+            'studioadmin:edit_event', kwargs={'slug': self.event.slug}
+        )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
         self.assertEquals(resp.status_code, 302)
@@ -629,7 +715,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
     def test_submitting_valid_event_form_redirects_back_to_events_list(self):
         pass
 
-    def test_submitting_valid_classes_form_redirects_back_to_classes_list(self):
+    def test_submitting_valid_class_form_redirects_back_to_classes_list(self):
         pass
 
     def test__context_data(self):
@@ -707,7 +793,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
     def test_submitting_valid_event_form_redirects_back_to_events_list(self):
         pass
 
-    def test_submitting_valid_classes_form_redirects_back_to_classes_list(self):
+    def test_submitting_valid_class_form_redirects_back_to_classes_list(self):
         pass
 
     def test_context_data(self):
@@ -904,7 +990,7 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
     def test_submitting_valid_event_form_redirects_back_to_events_list(self):
         pass
 
-    def test_submitting_valid_classes_form_redirects_back_to_classes_list(self):
+    def test_submitting_valid_class_form_redirects_back_to_classes_list(self):
         pass
 
     def test_context_data(self):
@@ -969,6 +1055,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
 
     def test_context_is_correctly_rendered(self):
         pass
+
 
 class UserListViewTests(TestPermissionMixin, TestCase):
 
@@ -1074,6 +1161,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
 
     def test_all_users_are_displayed(self):
         pass
+
 
 class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
@@ -1208,6 +1296,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
     def test_cc_email_sent(self):
         pass
+
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
