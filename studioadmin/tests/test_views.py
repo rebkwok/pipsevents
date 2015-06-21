@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
+from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -1593,26 +1594,21 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_all_users_are_displayed(self):
-        pass
+        mommy.make_recipe('booking.user', _quantity=6)
+        # 8 users total, incl self.user and self.staff_user
+        self.assertEqual(User.objects.count(), 8)
+        resp = self._get_response(self.staff_user)
+        self.assertEqual(
+            list(resp.context_data['users']), list(User.objects.all())
+        )
 
 
 class BlockListViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
+    def _get_response(self, user, form_data={}):
         url = reverse('studioadmin:blocks')
         session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BlockListView.as_view()
-        return view(request)
-
-    def _post_response(self, user):
-        url = reverse('studioadmin:blocks')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
+        request = self.factory.get(url, form_data)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
@@ -1645,9 +1641,85 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
-    def test_all_users_are_displayed(self):
-        pass
+    def test_only_active_blocks_returned_on_get(self):
+        active_blocks = mommy.make_recipe(
+            'booking.block', _quantity=3, paid=True
+        )
+        inactive_blocks = mommy.make_recipe(
+            'booking.block', _quantity=3
+        )
 
+        resp = self._get_response(self.staff_user)
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(Block.objects.filter(
+                id__in=[block.id for block in active_blocks]
+            ))
+        )
+
+    def test_block_status_filter(self):
+        active_blocks = mommy.make_recipe(
+            'booking.block', _quantity=3, paid=True
+        )
+        unpaid_blocks = mommy.make_recipe(
+            'booking.block', _quantity=3, paid=False
+        )
+        expired_blocks = mommy.make_recipe(
+            'booking.block', paid=True,
+            start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
+            block_type__duration=1,
+            _quantity=3
+        )
+        unpaid_expired_blocks = mommy.make_recipe(
+            'booking.block', paid=False,
+            start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
+            block_type__duration=1,
+            _quantity=3
+        )
+        full_blocks = mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1,
+            _quantity=3
+        )
+        for block in full_blocks:
+            mommy.make_recipe('booking.booking', block=block)
+
+        # all blocks
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'all'}
+        )
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(Block.objects.all())
+        )
+        # active blocks are paid and not expired
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'active'}
+        )
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(Block.objects.filter(id__in=[block.id for block in active_blocks]))
+        )
+
+        # unpaid blocks are unpaid but not expired; should not show any
+        # from unpaid_expired_blocks
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'unpaid'}
+        )
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(Block.objects.filter(id__in=[block.id for block in unpaid_blocks]))
+        )
+
+        # expired blocks are past expiry date or full
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'expired'}
+        )
+        expired = expired_blocks + unpaid_expired_blocks + full_blocks
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(Block.objects.filter(id__in=[block.id for block in expired]))
+        )
 
 class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
