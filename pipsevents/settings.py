@@ -178,7 +178,7 @@ DEFAULT_STUDIO_EMAIL = env('DEFAULT_STUDIO_EMAIL')
 
 
 # #####LOGGING######
-if not env('HEROKU'):
+if not env('HEROKU') and not env('TRAVIS'):
     LOG_FOLDER = env('LOG_FOLDER')
 
     LOGGING = {
