@@ -1733,7 +1733,7 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         request._messages = messages
         return choose_users_to_email(request)
 
-    def _post_response(self, user):
+    def _post_response(self, user, form_data):
         url = reverse('studioadmin:choose_email_users')
         session = _create_session()
         request = self.factory.post(url, form_data)
@@ -1742,6 +1742,19 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         messages = FallbackStorage(request)
         request._messages = messages
         return choose_users_to_email(request)
+
+    def formset_data(self, extra_data={}):
+
+        data = {
+            'form-TOTAL_FORMS': 1,
+            'form-INITIAL_FORMS': 1,
+            'form-0-id': str(self.user.id),
+            }
+
+        for key, value in extra_data.items():
+            data[key] = value
+
+        return data
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -1769,13 +1782,81 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_filter_users_by_event_booked(self):
-        pass
+        mommy.make_recipe('booking.user', _quantity=2)
+        event = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe('booking.booking', user=self.user, event=event)
+        form_data = self.formset_data(
+            {'filter': 'Show Students', 'filter-events': [event.id]}
+        )
+        resp = self._post_response(self.staff_user, form_data)
+
+        self.assertEqual(User.objects.count(), 4)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 1)
+
+        user = usersformset.forms[0]
+        self.assertEqual(user.instance, self.user)
 
     def test_filter_users_by_class_booked(self):
-        pass
+        mommy.make_recipe('booking.user', _quantity=2)
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        form_data = self.formset_data(
+            {'filter': 'Show Students', 'filter-lessons': [pole_class.id]}
+        )
+        resp = self._post_response(self.staff_user, form_data)
+
+        self.assertEqual(User.objects.count(), 4)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 1)
+
+        user = usersformset.forms[0]
+        self.assertEqual(user.instance, self.user)
+
+    def test_filter_with_no_events_selected(self):
+        mommy.make_recipe('booking.user', _quantity=2)
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [''],
+                'filter-events': ['']}
+        )
+        resp = self._post_response(self.staff_user, form_data)
+
+        self.assertEqual(User.objects.count(), 4)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 4)
+
+        users = [form.instance for form in usersformset.forms]
+        self.assertEqual(set(users), set(User.objects.all()))
 
     def test_filter_users_by_multiple_events_and_classes(self):
-        pass
+        new_user1 = mommy.make_recipe('booking.user')
+        new_user2 = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [pole_class.id],
+                'filter-events': [event.id]}
+        )
+        resp = self._post_response(self.staff_user, form_data)
+
+        self.assertEqual(User.objects.count(), 4)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 2)
+
+        users = [form.instance for form in usersformset.forms]
+        self.assertEqual(set(users), set([self.user, new_user1]))
 
     def test_filtered_events_are_rendered(self):
         pass

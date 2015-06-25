@@ -785,7 +785,7 @@ def choose_users_to_email(request,
 
     userfilterform = UserFilterForm(prefix='filter', initial=initial_userfilterdata)
 
-    return render(
+    return TemplateResponse(
         request, template_name, {
             'usersformset': usersformset,
             'userfilterform': userfilterform,
