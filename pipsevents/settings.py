@@ -174,7 +174,7 @@ if EMAIL_HOST_PASSWORD is None:
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
-DEFAULT_STUDIO_EMAIL = env('DEFAULT_STUDIO_EMAIL')
+DEFAULT_STUDIO_EMAIL = 'thewatermelonstudio@hotmail.com'
 
 
 # #####LOGGING######
@@ -345,7 +345,7 @@ if env('USE_MAILCATCHER'):
 PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
-# TRAVIS
+# TRAVIS and HEROKU logging
 if env('TRAVIS') or env('HEROKU'):
     LOGGING = {
         'version': 1,
