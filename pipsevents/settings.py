@@ -17,6 +17,7 @@ env = environ.Env(DEBUG=(bool, False),
                   PAYPAL_TEST=(bool, False),
                   USE_MAILCATCHER=(bool, False),
                   TRAVIS=(bool, False),
+                  HEROKU=(bool, False),
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
