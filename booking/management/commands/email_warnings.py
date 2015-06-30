@@ -46,8 +46,11 @@ def get_bookings(num_hrs):
         (event.date - timedelta(hours=(event.cancellation_period + num_hrs)))
         <= timezone.now()
     ]
+
+    events_with_payment_due_dates = [
+        event for event in Event.objects.all() if event.payment_due_date]
     events_payment_due_soon = [
-        event for event in Event.objects.all() if
+        event for event in events_with_payment_due_dates if
         event.date >= timezone.now() and
         (event.payment_due_date - timedelta(hours=num_hrs)) <= timezone.now()
     ]

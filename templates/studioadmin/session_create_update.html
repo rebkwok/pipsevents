@@ -58,6 +58,13 @@
                                         <div class="col-sm-1 pull-left">{{ field }}<label for='payment_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
+                            {% elif field.label == "Advance payment required" %}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
                             {% elif field.label == "External instructor"%}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>

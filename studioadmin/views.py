@@ -808,6 +808,7 @@ def email_users_view(request,
         if request.method == 'POST':
 
             form = EmailUsersForm(request.POST)
+
             if form.is_valid():
                 subject = '{} {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
@@ -856,7 +857,7 @@ def email_users_view(request,
             totalevents = Event.objects.filter(id__in=totaleventids)
             form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
 
-        return render(
+        return TemplateResponse(
             request, template_name, {
                 'form': form,
                 'users_to_email': users_to_email,
@@ -994,7 +995,7 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
     booking_status_filter = BookingStatusFilter(initial={'booking_status': booking_status})
 
     template = 'studioadmin/user_booking_list.html'
-    return render(
+    return TemplateResponse(
         request, template, {
             'userbookingformset': userbookingformset, 'user': user,
             'sidenav_selection': 'users',
@@ -1061,7 +1062,7 @@ def user_blocks_view(request, user_id):
         )
 
     template = 'studioadmin/user_block_list.html'
-    return render(
+    return TemplateResponse(
         request, template, {
             'userblockformset': userblockformset, 'user': user,
             'sidenav_selection': 'users'

@@ -38,12 +38,19 @@ class Command(BaseCommand):
         )
 
         Session.objects.get_or_create(
-            name="Pole practice",
+            name="Private (1 or more students)",
             day=Session.MON,
-            event_type=pp,
-            cost=3.50,
+            event_type=pv,
             time=time(hour=20, minute=10),
             external_instructor = False,
+            cost=30,
+            email_studio_when_booked=True,
+            max_participants=1,
+            payment_info="Privates are charged at £30 per person. Additional "
+                         "people are £15 per hour.  Reserve your private "
+                         "by making your initial payment; if you wish to add "
+                         "additional people to the booking, please contact "
+                         "the studio to arrange the additional payments."
         )
 
         # Tuesday classes
@@ -113,6 +120,22 @@ class Command(BaseCommand):
             name="Private (1 or more students)",
             day=Session.THU,
             event_type=pv,
+            time=time(hour=16, minute=30),
+            external_instructor = False,
+            cost=30,
+            email_studio_when_booked=True,
+            max_participants=1,
+            payment_info="Privates are charged at £30 per person. Additional "
+                         "people are £15 per hour.  Reserve your private "
+                         "by making your initial payment; if you wish to add "
+                         "additional people to the booking, please contact "
+                         "the studio to arrange the additional payments."
+        )
+
+        Session.objects.get_or_create(
+            name="Private (1 or more students)",
+            day=Session.THU,
+            event_type=pv,
             time=time(hour=17, minute=45),
             external_instructor = False,
             cost=30,
@@ -149,12 +172,19 @@ class Command(BaseCommand):
 
         # Friday classes
         Session.objects.get_or_create(
-            name="Pole Level 1",
+            name="Private (1 or more students)",
             day=Session.FRI,
-            event_type=pc,
-            max_participants=15,
+            event_type=pv,
             time=time(hour=17, minute=45),
             external_instructor = False,
+            cost=30,
+            email_studio_when_booked=True,
+            max_participants=1,
+            payment_info="Privates are charged at £30 per person. Additional "
+                         "people are £15 per hour.  Reserve your private "
+                         "by making your initial payment; if you wish to add "
+                         "additional people to the booking, please contact "
+                         "the studio to arrange the additional payments."
         )
 
         Session.objects.get_or_create(
@@ -170,6 +200,17 @@ class Command(BaseCommand):
             day=Session.FRI,
             event_type=pp,
             time=time(hour=20, minute=10),
+            max_participants=15,
+            cost=3.50,
+            external_instructor = False,
+        )
+
+        # SUN CLASSES
+        Session.objects.get_or_create(
+            name="Pole practice",
+            day=Session.SUN,
+            event_type=pp,
+            time=time(hour=17, minute=45),
             max_participants=15,
             cost=3.50,
             external_instructor = False,

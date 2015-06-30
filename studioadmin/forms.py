@@ -206,7 +206,7 @@ class EventAdminForm(forms.ModelForm):
             'name', 'event_type', 'date', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
-            'booking_open', 'payment_open', 'payment_info',
+            'booking_open', 'payment_open', 'advance_payment_required', 'payment_info',
             'payment_due_date', 'cancellation_period',
             'email_studio_when_booked',
         )
@@ -263,6 +263,12 @@ class EventAdminForm(forms.ModelForm):
                     'id': 'payment_open_id',
                     },
             ),
+            'advance_payment_required': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'advance_payment_required_id',
+                    },
+            ),
             'external_instructor': forms.CheckboxInput(
                 attrs={
                     'class': "form-control regular-checkbox",
@@ -277,16 +283,21 @@ class EventAdminForm(forms.ModelForm):
             ),
             }
         help_texts = {
-            'payment_open': _('Only use this checkbox if the cost is greater than £0'),
+            'payment_open': _('Only applicable if the cost is greater than £0'),
             'payment_due_date': _('Only use this field if the cost is greater than £0'),
             'external_instructor':_('Tick for classes taught by external '
                                     'instructors. These will not be bookable '
                                     'via the booking site.  Include '
                                     'booking/payment details in the payment '
                                     'information field.'),
-            'email_studio_when_booked': _('Check if you want the studio to '
+            'email_studio_when_booked': _('Tick if you want the studio to '
                                           'receive email notifications when a '
-                                          'booking is made')
+                                          'booking is made'),
+            'advance_payment_required': _('If this checkbox is not ticked, '
+                                          'unpaid bookings will remain '
+                                          'active after the cancellation period '
+                                          'or payment due date and will not be '
+                                          'automatically cancelled')
         }
 
 
@@ -495,8 +506,8 @@ class SessionAdminForm(forms.ModelForm):
             'name', 'event_type', 'day', 'time', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
-            'booking_open', 'payment_open', 'payment_info',
-            'cancellation_period'
+            'booking_open', 'payment_open', 'advance_payment_required',
+            'payment_info', 'cancellation_period'
         )
         widgets = {
             'description': CKEditorWidget(
@@ -550,6 +561,12 @@ class SessionAdminForm(forms.ModelForm):
                     'id': 'payment_open_id',
                     }
             ),
+            'advance_payment_required': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'advance_payment_required_id',
+                    }
+            ),
             'external_instructor': forms.CheckboxInput(
                 attrs={
                     'class': "form-control regular-checkbox",
@@ -559,12 +576,17 @@ class SessionAdminForm(forms.ModelForm):
             }
 
         help_texts = {
-            'payment_open': _('Only use this checkbox if the cost is greater than £0'),
+            'payment_open': _('Only applicable if the cost is greater than £0'),
             'external_instructor':_('Tick for classes taught by external '
                             'instructors. These will not be bookable '
                             'via the booking site.  Include '
                             'booking/payment details in the payment '
-                            'information field.')
+                            'information field.'),
+            'advance_payment_required': _('If this checkbox is not ticked, '
+                                          'unpaid bookings will remain '
+                                          'active after the cancellation period '
+                                          'or payment due date and will not be '
+                                          'automatically cancelled')
         }
 
 

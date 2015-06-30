@@ -26,7 +26,7 @@ class Session(models.Model):
     day = models.CharField(max_length=5, choices=DAY_CHOICES)
     time = models.TimeField()
     event_type = models.ForeignKey(EventType, null=True)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, default="")
     location = models.CharField(max_length=255, default="Watermelon Studio")
     max_participants = models.PositiveIntegerField(
         null=True, blank=True, default=10,
@@ -37,6 +37,7 @@ class Session(models.Model):
     cost = models.DecimalField(default=7.00, max_digits=8, decimal_places=2)
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=True)
+    advance_payment_required = models.BooleanField(default=True)
     payment_info = models.TextField(blank=True)
     cancellation_period = models.PositiveIntegerField(
         default=24

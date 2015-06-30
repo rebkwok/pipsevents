@@ -1858,14 +1858,47 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         users = [form.instance for form in usersformset.forms]
         self.assertEqual(set(users), set([self.user, new_user1]))
 
-    def test_filtered_events_are_rendered(self):
-        pass
+    def test_users_for_cancelled_bookings_not_shown(self):
+        new_user = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=event, status='CANCELLED'
+        )
+        mommy.make_recipe('booking.booking', user=new_user, event=event)
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-events': [event.id]}
+        )
+        resp = self._post_response(self.staff_user, form_data)
 
-    def test_selected_users_are_rendered(self):
-        pass
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 1)
 
-    def test_form_not_valid(self):
-        pass
+        user = usersformset.forms[0].instance
+        self.assertEqual(user, new_user)
+
+    def test_filter_users_with_multiple_bookings(self):
+        new_user = mommy.make_recipe('booking.user')
+        events = mommy.make_recipe('booking.future_EV', _quantity=3)
+        for event in events:
+            mommy.make_recipe('booking.booking', user=new_user, event=event)
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-events': [event.id for event in events]}
+        )
+        resp = self._post_response(self.staff_user, form_data)
+
+        self.assertEqual(User.objects.count(), 3)
+        self.assertEqual(Booking.objects.filter(user=new_user).count(), 3)
+        usersformset = resp.context_data['usersformset']
+        # user has 3 bookings, for each of the selected events, but is only
+        # displayed once
+        self.assertEqual(len(usersformset.forms), 1)
+
+        user = usersformset.forms[0].instance
+        self.assertEqual(user, new_user)
 
 
 class EmailUsersTests(TestPermissionMixin, TestCase):
@@ -1881,6 +1914,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         request = self.factory.get(url)
         request.session = session
         request.session['users_to_email'] = users_to_email
+        request.session['events'] = event_ids
+        request.session['lessons'] = lesson_ids
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
@@ -1897,6 +1932,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         request = self.factory.post(url, form_data)
         request.session = session
         request.session['users_to_email'] = users_to_email
+        request.session['events'] = event_ids
+        request.session['lessons'] = lesson_ids
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
@@ -1927,14 +1964,63 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, [self.user.id])
         self.assertEquals(resp.status_code, 200)
 
+    def test_users_and_events_in_context(self):
+        event = mommy.make_recipe('booking.future_EV', name='Test Event')
+        lesson = mommy.make_recipe('booking.future_PC', name='Test Class')
+        resp = self._get_response(
+            self.staff_user, [self.user.id],
+            event_ids=[event.id], lesson_ids=[lesson.id]
+        )
+        self.assertEqual([ev for ev in resp.context_data['events']], [event])
+        self.assertEqual(
+            [lsn for lsn in resp.context_data['lessons']], [lesson]
+        )
+        self.assertEqual(
+            [user for user in resp.context_data['users_to_email']], [self.user]
+        )
+
     def test_subject_is_autopoulated(self):
-        pass
+        event = mommy.make_recipe('booking.future_EV')
+        lesson = mommy.make_recipe('booking.future_PC')
+        resp = self._get_response(
+            self.staff_user, [self.user.id],
+            event_ids=[event.id], lesson_ids=[lesson.id]
+        )
+        form = resp.context_data['form']
+        self.assertEqual(
+            form.initial['subject'], "; ".join([str(event), str(lesson)])
+        )
 
     def test_emails_sent(self):
-        pass
+        event = mommy.make_recipe('booking.future_EV')
+        resp = self._post_response(
+            self.staff_user, [self.user.id],
+            event_ids=[event.id], lesson_ids=[],
+            form_data={
+                'subject': 'Test email',
+                'message': 'Test message',
+                'from_address': 'test@test.com'}
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.body, 'Test message')
+        self.assertEqual(email.subject, '[watermelon studio bookings] Test email')
 
     def test_cc_email_sent(self):
-        pass
+        resp = self._post_response(
+            self.staff_user, [self.user.id],
+            event_ids=[], lesson_ids=[],
+            form_data={
+                'subject': 'Test email',
+                'message': 'Test message',
+                'from_address': 'test@test.com',
+                'cc': True}
+        )
+        self.assertEqual(len(mail.outbox), 2)
+        email_to = [mail.to[0] for mail in mail.outbox]
+        self.assertEqual(
+            sorted(email_to), ['test@test.com', self.user.email]
+        )
 
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
