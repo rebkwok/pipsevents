@@ -208,25 +208,30 @@ if not env('HEROKU') and not env('TRAVIS'):
             }
         },
         'loggers': {
+            '': {
+                'handlers': ['console', 'file_app'],
+                'level': 'WARNING',
+                'propagate': True,
+            },
             'booking': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propogate': True,
+                'propagate': True,
             },
             'payments': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propogate': True,
+                'propagate': True,
             },
             'studioadmin': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propogate': True,
+                'propagate': True,
             },
             'timetable': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propogate': True,
+                'propagate': True,
             },
         },
     }
