@@ -18,6 +18,8 @@ from django.core.management.base import BaseCommand
 from django.core import management
 
 from booking.models import Booking
+from activitylog.models import ActivityLog
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +61,12 @@ class Command(BaseCommand):
             booking.status = 'CANCELLED'
             booking.block = None
             booking.save()
-            logger.info('Booking id {} for event {}, user {} has been '
-                        'automatically cancelled'.format(
-                            booking.id, booking.event, booking.user
-                            )
-                        )
+            ActivityLog.objects.create(
+                log='Booking id {} for event {}, user {} has been '
+                    'automatically cancelled'.format(
+                        booking.id, booking.event, booking.user
+                )
+            )
 
         if bookings:
             # send single mail to Studio
@@ -86,3 +89,6 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write('No bookings to cancel')
+            ActivityLog.objects.create(
+                log='cancel_unpaid_bookings job run; no bookings to cancel'
+            )

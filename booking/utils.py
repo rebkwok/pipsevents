@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import time, timedelta, datetime, date
 from booking.models import Event
 from timetable.models import Session
+from activitylog.models import ActivityLog
 
 
 logger = logging.getLogger(__name__)
@@ -69,9 +70,11 @@ def create_classes(week='this', input_date=None):
             existing_classes.append(cl)
 
     if created_classes:
-        logger.info('Classes created from timetable for week beginning {}'.format(
-            mon.strftime('%A %d %B %Y')
-        ))
+        ActivityLog.objects.create(
+            log='Classes created from timetable for week beginning {}'.format(
+                mon.strftime('%A %d %B %Y')
+            )
+        )
     return created_classes, existing_classes
 
 
@@ -121,8 +124,11 @@ def upload_timetable(start_date, end_date):
         d += delta
 
     if created_classes:
-        logger.info('Classes uploaded from timetable for {} to {}'.format(
-            start_date.strftime('%a %d %B %Y'), end_date.strftime('%a %d %B %Y')
-        ))
+        ActivityLog.objects.create(
+            log='Classes uploaded from timetable for {} to {}'.format(
+                start_date.strftime('%a %d %B %Y'),
+                end_date.strftime('%a %d %B %Y')
+            )
+        )
 
     return created_classes, existing_classes

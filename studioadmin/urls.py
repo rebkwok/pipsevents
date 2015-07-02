@@ -9,6 +9,7 @@ from studioadmin.views import (ConfirmRefundView,
                                TimetableSessionCreateView,
                                UserListView,
                                BlockListView,
+                               ActivityLogListView
                                )
 
 
@@ -65,6 +66,9 @@ urlpatterns = patterns('',
     url(
         r'^users/(?P<user_id>\d+)/blocks/$',
         'studioadmin.views.user_blocks_view', name='user_blocks_list'
+    ),
+    url(
+        r'activitylog/$', ActivityLogListView.as_view(), name='activitylog'
     ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

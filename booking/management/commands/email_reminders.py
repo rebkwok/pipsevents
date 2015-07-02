@@ -15,7 +15,7 @@ from django.core.management.base import BaseCommand
 from django.core import management
 from booking.templatetags.bookingtags import format_cancellation
 from booking.models import Booking, Event
-
+from activitylog.models import ActivityLog
 
 class Command(BaseCommand):
     help = 'email reminders for upcoming bookings'
@@ -61,8 +61,22 @@ class Command(BaseCommand):
             booking.reminder_sent = True
             booking.save()
 
-        self.stdout.write(
-            'Reminder emails sent for booking ids {}'.format(
-                ', '.join([str(booking.id) for booking in upcoming_bookings])
+            ActivityLog.objects.create(
+                log='Reminder email sent for booking id {} for event {}, '
+                'user {}'.format(
+                    booking.id, booking.event, booking.user.username
+                )
             )
-        )
+
+        if upcoming_bookings:
+            self.stdout.write(
+                'Reminder emails sent for booking ids {}'.format(
+                    ', '.join([str(booking.id) for booking in upcoming_bookings])
+                )
+            )
+
+        else:
+            self.stdout.write('No reminders to send')
+            ActivityLog.objects.create(
+                log='email_reminders job run; no reminders to send'
+            )

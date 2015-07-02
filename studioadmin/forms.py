@@ -284,7 +284,9 @@ class EventAdminForm(forms.ModelForm):
             }
         help_texts = {
             'payment_open': _('Only applicable if the cost is greater than £0'),
-            'payment_due_date': _('Only use this field if the cost is greater than £0'),
+            'payment_due_date': _('Only use this field if the cost is greater '
+                                  'than £0.  If a payment due date is set, '
+                                  'advance payment will always be required'),
             'external_instructor':_('Tick for classes taught by external '
                                     'instructors. These will not be bookable '
                                     'via the booking site.  Include '
@@ -296,7 +298,7 @@ class EventAdminForm(forms.ModelForm):
             'advance_payment_required': _('If this checkbox is not ticked, '
                                           'unpaid bookings will remain '
                                           'active after the cancellation period '
-                                          'or payment due date and will not be '
+                                          'and will not be '
                                           'automatically cancelled')
         }
 
@@ -585,7 +587,7 @@ class SessionAdminForm(forms.ModelForm):
             'advance_payment_required': _('If this checkbox is not ticked, '
                                           'unpaid bookings will remain '
                                           'active after the cancellation period '
-                                          'or payment due date and will not be '
+                                          'and will not be '
                                           'automatically cancelled')
         }
 

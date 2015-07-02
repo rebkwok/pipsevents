@@ -36,6 +36,8 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
     BlockStatusFilter, UserBookingFormSet, UserBlockFormSet
 
+from activitylog.models import ActivityLog
+
 
 logger = logging.getLogger(__name__)
 
@@ -1069,3 +1071,12 @@ def user_blocks_view(request, user_id):
             'sidenav_selection': 'users'
         }
     )
+
+
+class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
+
+    model = ActivityLog
+    template_name = 'studioadmin/activitylog.html'
+    context_object_name = 'logs'
+    paginate_by = 20
+    queryset = ActivityLog.objects.all().order_by('-timestamp')

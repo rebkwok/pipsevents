@@ -1,0 +1,69 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Activity Log</h2>
+
+
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th>Timestamp</th>
+                                <th>Log</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+                            {% for log in logs %}
+                                <tr>
+                                    <td class="studioadmin-tbl">{{ log.timestamp|date:"d-M-Y H:i:s (T)" }}</td>
+                                    <td class="studioadmin-tbl">{{ log.log }}</td>
+                                </tr>
+                            {% endfor %}
+
+                            <tr>
+                                <td class="studioadmin-tbl" colspan="2">
+                                    {% if is_paginated %}
+                                        <div class="pagination">
+                                            <span class="page-links">
+                                                {% if page_obj.has_previous %}
+                                                    <a href="{% url 'studioadmin:activitylog' %}?page={{ page_obj.previous_page_number }}">Previous</a>
+                                                {% else %}
+                                                    <a class="disabled" href="#">Previous</a>
+                                                {% endif %}
+                                                <span class="page-current">
+                                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                                </span>
+                                                {% if page_obj.has_next %}
+                                                    <a href="{% url 'studioadmin:activitylog' %}?page={{ page_obj.next_page_number }}">Next</a>
+                                                {% else %}
+                                                    <a class="disabled" href="#">Next</a>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                            </tbody>
+                        </table>
+
+
+                    </div>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}

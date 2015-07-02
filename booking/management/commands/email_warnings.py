@@ -20,6 +20,7 @@ from django.core import management
 
 from booking.templatetags.bookingtags import format_cancellation
 from booking.models import Booking, Event
+from activitylog.models import ActivityLog
 
 
 class Command(BaseCommand):
@@ -29,9 +30,9 @@ class Command(BaseCommand):
         # send warning 2 days prior to cancellation period or payment due
         # date
         warning_bookings = get_bookings(48)
-        send_warning_email(warning_bookings)
+        send_warning_email(self, warning_bookings)
         self.stdout.write(
-            'Warning emails sent for booking ids {}'.format(
+            'Warning emails sent for bookings ids {}'.format(
                 ', '.join(
                     [str(booking.id) for booking in warning_bookings]
                     )
@@ -68,7 +69,7 @@ def get_bookings(num_hrs):
         )
 
 
-def send_warning_email(upcoming_bookings):
+def send_warning_email(self, upcoming_bookings):
     for booking in upcoming_bookings:
         ctx = Context({
               'booking': booking,
@@ -98,3 +99,24 @@ def send_warning_email(upcoming_bookings):
             fail_silently=False)
         booking.warning_sent = True
         booking.save()
+
+        ActivityLog.objects.create(
+            log='Warning email sent for booking id {}, '
+            'for event {}, user {}'.format(
+                booking.id, booking.event, booking.user.username
+            )
+        )
+
+    if upcoming_bookings:
+        self.stdout.write(
+            'Warning emails sent for booking ids {}'.format(
+                ', '.join([str(booking.id) for booking in upcoming_bookings])
+            )
+        )
+
+    else:
+        self.stdout.write('No warnings to send')
+        ActivityLog.objects.create(
+            log='email_warnings job run; no warnings to send (for '
+            'unpaid bookings for upcoming events requiring advance payment)'
+        )

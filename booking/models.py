@@ -12,6 +12,7 @@ from django_extensions.db.fields import AutoSlugField
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
+from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,9 @@ def event_pre_save(sender, instance, *args, **kwargs):
             hour=0, minute=0, second=0, microsecond=0
         )
         instance.payment_due_date = next_day - timedelta(seconds=1)
+        # if a payment due date is set, make sure advance_payment_required is
+        # set to True
+        instance.advance_payment_required = True
     if instance.external_instructor:
         # if external_instructor, make sure payment_open and booking_open
         # are False
@@ -219,12 +223,14 @@ def block_delete_pre_delete(sender, instance, **kwargs):
             booking.paid = False
             booking.payment_confirmed = False
             booking.block = None
-        logger.info(
-            'Booking id {} booked with deleted block {} '
-            'has beenhave been reset to unpaid'.format(
-                booking.id, instance.id
-                ))
-    logger.info('Block id {} deleted'.format(instance.id))
+        ActivityLog.objects.create(
+            log='Booking id {} booked with deleted block {} has been reset to '
+            'unpaid'.format(booking.id, instance.id)
+        )
+
+    ActivityLog.objects.create(
+        log='Block id {} deleted'.format(instance.id)
+    )
 
 
 class Booking(models.Model):
@@ -262,9 +268,10 @@ class Booking(models.Model):
             self.paid = True
             self.payment_confirmed = True
             self.save()
-            logger.info(
-                'Space confirmed manually for Booking {}'.format(self.id)
-                )
+            ActivityLog.objects.create(
+                log='Space confirmed manually for Booking {} ({})'.format(
+                    self.id, self.event)
+            )
 
     def space_confirmed(self):
         # False if cancelled
