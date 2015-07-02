@@ -266,14 +266,15 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
 
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
-    if event.max_participants:
-        if status_choice == 'OPEN':
-            extra_lines = event.spaces_left()
-        else:
-            extra_lines = event.spaces_left() \
-                          + Booking.objects.filter(event=event, status='CANCELLED').count()
+    if status_choice == 'CANCELLED':
+        extra_lines = 0
+    elif event.max_participants:
+        extra_lines = event.spaces_left()
     elif event.bookings.count() < 15:
-        extra_lines = 15 - event.bookings.count()
+        open_bookings = [
+            event for event in event.bookings.all() if event.status == 'OPEN'
+        ]
+        extra_lines = 15 - len(open_bookings)
     else:
         extra_lines = 2
 

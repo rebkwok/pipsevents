@@ -49,10 +49,15 @@ def get_range(value):
 
 
 @register.filter
-def get_index(event, extraline_index):
+def get_index_open(event, extraline_index):
+    spaces_left = event.spaces_left()
+    open_bookings = [booking for booking in event.bookings.all() if booking.status=='OPEN']
+    return len(open_bookings) + 1 + extraline_index
+
+@register.filter
+def get_index_all(event, extraline_index):
     spaces_left = event.spaces_left()
     return event.bookings.count() + 1 + extraline_index
-
 
 @register.filter
 def bookings_count(event):
@@ -66,4 +71,3 @@ def format_datetime(date):
 @register.filter
 def format_field_name(field):
     return field.replace('_', ' ').title()
-

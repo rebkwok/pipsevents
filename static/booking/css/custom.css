@@ -633,6 +633,7 @@ label {
 
 tr > td.table-center.register-index {
     padding-right, padding-left: 0 !important;
+	vertical-align: middle !important;
 }
 
 
@@ -677,6 +678,7 @@ a > span.fa.fa-print {
     float: left;
     white-space: nowrap;
     font-size: small;
+	vertical-align: middle !important;
 
 }
 

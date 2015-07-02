@@ -99,8 +99,11 @@
                             {% if status_choice == 'CANCELLED' %}
                             <td></td>
                             <td></td>
+                            {% elif status_choice == 'OPEN' %}
+                            <td class="table-center register-index">{{ event|get_index_open:i }}.</td>
+                            <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
                             {% else %}
-                            <td class="table-center register-index">{{ event|get_index:i }}.</td>
+                            <td class="table-center register-index">{{ event|get_index_all:i }}.</td>
                             <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
                             {% endif %}
                             <td {% if available_block_type %}colspan="7"{% else %}colspan="3"{% endif %}></td></tr>

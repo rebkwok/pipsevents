@@ -695,7 +695,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         # if there is a max_participants, and filter is not 'OPEN',
         # show extra lines to this number, plus the number of cancelled
-        # bookings
+        # bookings (extra lines is always equal to number of spaces left).
         self.assertEqual(self.event.spaces_left(), 8)
         self.assertEqual(
             Booking.objects.filter(
@@ -706,16 +706,27 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             self.staff_user, self.event.slug,
             status_choice='ALL'
         )
-        self.assertEqual(resp.context_data['extra_lines'], 9)
+        self.assertEqual(resp.context_data['extra_lines'], 8)
 
-        # if no max_participants, and bookings < 15, show up to 15
+        # if no max_participants, and open bookings < 15, show extra lines for
+        # up to 15 open bookings
         self.event.max_participants = None
         self.event.save()
         resp = self._get_response(
             self.staff_user, self.event.slug,
             status_choice='OPEN'
         )
-        self.assertEqual(resp.context_data['extra_lines'], 12)
+        open_bookings = [
+            booking for booking in self.event.bookings.all()
+            if booking.status == 'OPEN'
+        ]
+        self.assertEqual(len(open_bookings), 2)
+        cancelled_bookings = [
+            booking for booking in self.event.bookings.all()
+            if booking.status == 'CANCELLED'
+        ]
+        self.assertEqual(len(cancelled_bookings), 1)
+        self.assertEqual(resp.context_data['extra_lines'], 13)
 
         # if 15 or more bookings, just show 2 extra lines
         mommy.make_recipe('booking.booking', event=self.event, _quantity=12)

@@ -30,12 +30,12 @@
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
+                                <th class="table-center">Edit</th>
                                 <th class="table-center">Cost</th>
                                 <th class="table-center">Max spaces</th>
                                 <th class="table-center">Bookings</th>
                                 <th class="table-center">Booking open</th>
                                 <th class="table-center">Payment open</th>
-                                <th class="table-center">Edit</th>
                                 <th class="table-center">Delete</th>
                             </tr>
 
@@ -47,7 +47,15 @@
                                     <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
                                     {% elif type == 'lessons' %}
                                     <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
-                                    {% endif %}</td>
+                                    {% endif %}
+                                </td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if type == 'events' %}
+                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fa fa-pencil-square-o fa-lg"></span>
+                                    {% elif type == 'lessons' %}</a>
+                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fa fa-pencil-square-o fa-lg"></span>
+                                    {% endif %}</a>
+                                </td>
                                 <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input studioadmin-cbx-addon"><span class="input-group-addon" id="sizing-addon3">£</span>
                                     {{ event.cost }}</div></td>
                                 <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input">
@@ -55,13 +63,6 @@
                                 <td class="table-center studioadmin-tbl">{{ event.instance|bookings_count }}</td>
                                 <td class="table-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">
-                                    {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fa fa-pencil-square-o fa-2x"></span>
-                                    {% elif type == 'lessons' %}</a>
-                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fa fa-pencil-square-o fa-2x"></span>
-                                    {% endif %}</a>
-                                </td>
                                 <td class="table-center studioadmin-tbl">{{ event.DELETE }}<label for={{ event.DELETE_id }}></label></td>
                             </tr>
                         {% endfor %}
