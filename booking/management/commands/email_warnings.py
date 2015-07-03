@@ -31,13 +31,6 @@ class Command(BaseCommand):
         # date
         warning_bookings = get_bookings(48)
         send_warning_email(self, warning_bookings)
-        self.stdout.write(
-            'Warning emails sent for bookings ids {}'.format(
-                ', '.join(
-                    [str(booking.id) for booking in warning_bookings]
-                    )
-            )
-        )
 
 
 def get_bookings(num_hrs):
@@ -117,6 +110,5 @@ def send_warning_email(self, upcoming_bookings):
     else:
         self.stdout.write('No warnings to send')
         ActivityLog.objects.create(
-            log='email_warnings job run; no warnings to send (for '
-            'unpaid bookings for upcoming events requiring advance payment)'
+            log='email_warnings job run; no unpaid booking warnings to send'
         )

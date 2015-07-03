@@ -28,16 +28,22 @@ class Command(BaseCommand):
     help = 'Cancel unpaid bookings that are past payment_due_date or '
     'cancellation_period'
     def handle(self, *args, **options):
-        bookings = [booking for booking in Booking.objects.filter(
+
+        bookings = []
+        for booking in Booking.objects.filter(
             event__date__gte=timezone.now(),
             event__advance_payment_required=True,
             status='OPEN',
             paid=False,
-            payment_confirmed=False) if
-            booking.event.date - timedelta(
-                hours=booking.event.cancellation_period
-            ) < timezone.now() or
-            booking.event.payment_due_date < timezone.now()]
+            payment_confirmed=False):
+
+            if booking.event.date - timedelta(
+                    hours=booking.event.cancellation_period
+                ) < timezone.now():
+                bookings.append(booking)
+            elif booking.event.payment_due_date:
+                if booking.event.payment_due_date < timezone.now():
+                    bookings.append(booking)
 
         for booking in bookings:
             ctx = Context({
@@ -62,7 +68,7 @@ class Command(BaseCommand):
             booking.block = None
             booking.save()
             ActivityLog.objects.create(
-                log='Booking id {} for event {}, user {} has been '
+                log='Unpaid booking id {} for event {}, user {} '
                     'automatically cancelled'.format(
                         booking.id, booking.event, booking.user
                 )
