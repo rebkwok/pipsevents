@@ -78,7 +78,7 @@ def create_classes(week='this', input_date=None):
     return created_classes, existing_classes
 
 
-def upload_timetable(start_date, end_date):
+def upload_timetable(start_date, end_date, user=None):
 
     daylist = [
         '01MON',
@@ -125,9 +125,10 @@ def upload_timetable(start_date, end_date):
 
     if created_classes:
         ActivityLog.objects.create(
-            log='Classes uploaded from timetable for {} to {}'.format(
+            log='Classes uploaded from timetable for {} to {} {}'.format(
                 start_date.strftime('%a %d %B %Y'),
-                end_date.strftime('%a %d %B %Y')
+                end_date.strftime('%a %d %B %Y'),
+                'by admin user {}'.format(user.username) if user else ''
             )
         )
 

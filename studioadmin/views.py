@@ -2,6 +2,7 @@ import urllib.parse
 import ast
 import logging
 
+from datetime import datetime
 from functools import wraps
 
 
@@ -34,7 +35,8 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
-    BlockStatusFilter, UserBookingFormSet, UserBlockFormSet
+    BlockStatusFilter, UserBookingFormSet, UserBlockFormSet, \
+    ActivityLogSearchForm, convert_date
 
 from activitylog.models import ActivityLog
 
@@ -682,17 +684,12 @@ def upload_timetable_view(request,
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
             created_classes, existing_classes = \
-                utils.upload_timetable(start_date, end_date)
+                utils.upload_timetable(start_date, end_date, request.user)
             context = {'start_date': start_date,
                        'end_date': end_date,
                        'created_classes': created_classes,
                        'existing_classes': existing_classes,
                        'sidenav_selection': 'upload_timetable'}
-            ActivityLog.objects.create(
-                log='Timetable uploaded by admin user {}'.format(
-                    request.user.username
-                )
-            )
             return render(
                 request, 'studioadmin/upload_timetable_confirmation.html',
                 context
@@ -1143,4 +1140,49 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
     template_name = 'studioadmin/activitylog.html'
     context_object_name = 'logs'
     paginate_by = 20
-    queryset = ActivityLog.objects.all().order_by('-timestamp')
+
+    def get_queryset(self):
+        queryset = ActivityLog.objects.all().order_by('-timestamp')
+        reset = self.request.GET.get('reset')
+        search_text = self.request.GET.get('search')
+        search_date = self.request.GET.get('search_date')
+
+        if reset or not (search_text or search_date):
+            return queryset
+
+        if search_date:
+            try:
+                search_date = datetime.strptime(search_date, '%d-%b-%Y')
+                start_datetime = search_date
+                end_datetime = search_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                queryset = queryset.filter(
+                    Q(timestamp__gte=start_datetime) & Q(timestamp__lte=end_datetime)
+                ).order_by('-timestamp')
+            except ValueError:
+                messages.info(
+                    self.request, 'Invalid search date format.  Please select '
+                    'from datepicker or enter using the format dd-Mmm-YYYY'
+                )
+                return queryset
+
+        if search_text:
+            queryset = queryset.filter(
+                log__contains=search_text).order_by('-timestamp')
+
+        return queryset
+
+    def get_context_data(self):
+        context = super(ActivityLogListView, self).get_context_data()
+        context['sidenav_selection'] = 'activitylog'
+
+        search_text = self.request.GET.get('search', '')
+        search_date = self.request.GET.get('search_date')
+        reset = self.request.GET.get('reset')
+        if reset:
+            search_text = ''
+            search_date = None
+        form = ActivityLogSearchForm(
+            initial={'search': search_text, 'search_date': search_date})
+        context['form'] = form
+
+        return context

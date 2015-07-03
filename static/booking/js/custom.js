@@ -30,6 +30,16 @@ jQuery('#datepicker').datetimepicker({
     scrollInput: false,
 });
 
+jQuery('#logdatepicker').datetimepicker({
+    format:'DD-MMM-YYYY',
+    formatTime:'HH:mm',
+    timepicker: false,
+    closeOnDateSelect: true,
+    scrollMonth: false,
+    scrollTime: false,
+    scrollInput: false,
+});
+
 jQuery('#datepicker_startdate').datetimepicker({
     format:'ddd DD MMM YYYY',
     formatTime:'HH:mm',
