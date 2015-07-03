@@ -3,8 +3,6 @@ import logging
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models.signals import pre_save, pre_delete
-from django.dispatch import receiver
 from django.utils import timezone
 
 from django_extensions.db.fields import AutoSlugField
@@ -12,6 +10,7 @@ from django_extensions.db.fields import AutoSlugField
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
+from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
@@ -108,27 +107,29 @@ class Event(models.Model):
             str(self.name), self.date.strftime('%d %b %Y, %H:%M')
         )
 
-
-@receiver(pre_save, sender=Event)
-def event_pre_save(sender, instance, *args, **kwargs):
-    if not instance.cost:
-        instance.advance_payment_required = False
-        instance.payment_open = False
-        instance.payment_due_date = None
-    if instance.payment_due_date:
-        # replace time with very end of day
-        # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
-        # back 1 sec
-        next_day = (instance.payment_due_date + timedelta(
-            days=1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        instance.payment_due_date = next_day - timedelta(seconds=1)
-    if instance.external_instructor:
-        # if external_instructor, make sure payment_open and booking_open
-        # are False
-        instance.payment_open = False
-        instance.booking_open = False
+    def save(self, *args, **kwargs):
+        if not self.cost:
+            self.advance_payment_required = False
+            self.payment_open = False
+            self.payment_due_date = None
+        if self.payment_due_date:
+            # replace time with very end of day
+            # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
+            # back 1 sec
+            next_day = (self.payment_due_date + timedelta(
+                days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            self.payment_due_date = next_day - timedelta(seconds=1)
+            # if a payment due date is set, make sure advance_payment_required is
+            # set to True
+            self.advance_payment_required = True
+        if self.external_instructor:
+            # if external_instructor, make sure payment_open and booking_open
+            # are False
+            self.payment_open = False
+            self.booking_open = False
+        super(Event, self).save(*args, **kwargs)
 
 
 class BlockType(models.Model):
@@ -210,22 +211,21 @@ class Block(models.Model):
     def get_absolute_url(self):
         return reverse("booking:block_list")
 
-
-@receiver(pre_delete, sender=Block)
-def block_delete_pre_delete(sender, instance, **kwargs):
-    bookings = Booking.objects.filter(block=instance)
-    for booking in bookings:
-        if booking.event.cost > 0:
-            booking.paid = False
-            booking.payment_confirmed = False
-            booking.block = None
-        logger.info(
-            'Booking id {} booked with deleted block {} '
-            'has beenhave been reset to unpaid'.format(
-                booking.id, instance.id
-                ))
-    logger.info('Block id {} deleted'.format(instance.id))
-
+    def delete(self, *args, **kwargs):
+        bookings = Booking.objects.filter(block=self.id)
+        for booking in bookings:
+            if booking.event.cost > 0:
+                booking.paid = False
+                booking.payment_confirmed = False
+                booking.block = None
+            ActivityLog.objects.create(
+                log='Booking id {} booked with deleted block {} has been reset to '
+                'unpaid'.format(booking.id, self.id)
+            )
+        super(Block, self).delete(*args, **kwargs)
+        ActivityLog.objects.create(
+            log='Block id {} deleted'.format(self.id)
+        )
 
 class Booking(models.Model):
     STATUS_CHOICES = (
@@ -262,9 +262,10 @@ class Booking(models.Model):
             self.paid = True
             self.payment_confirmed = True
             self.save()
-            logger.info(
-                'Space confirmed manually for Booking {}'.format(self.id)
-                )
+            ActivityLog.objects.create(
+                log='Space confirmed manually for Booking {} ({})'.format(
+                    self.id, self.event)
+            )
 
     def space_confirmed(self):
         # False if cancelled
@@ -283,8 +284,7 @@ class Booking(models.Model):
     def __str__(self):
         return "{} - {}".format(str(self.event.name), str(self.user.username))
 
-
-@receiver(pre_save, sender=Booking)
-def booking_pre_save(sender, instance, *args, **kwargs):
-    if instance.payment_confirmed and not instance.date_payment_confirmed:
-        instance.date_payment_confirmed = timezone.now()
+    def save(self, *args, **kwargs):
+        if self.payment_confirmed and not self.date_payment_confirmed:
+            self.date_payment_confirmed = timezone.now()
+        super(Booking, self).save(*args, **kwargs)

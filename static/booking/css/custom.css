@@ -454,7 +454,13 @@ td {
 }
 a.disabled {
     color: #D8F6CE;
+	pointer-events: none;
     }
+
+.pagination > a.disabled {
+	color: #D8D8D8;
+	pointer-events: none;
+}
 
 .inc-btm-space {
     padding-bottom: 2;

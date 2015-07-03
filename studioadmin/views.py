@@ -2,6 +2,7 @@ import urllib.parse
 import ast
 import logging
 
+from datetime import datetime
 from functools import wraps
 
 
@@ -34,7 +35,10 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     EventAdminForm, SimpleBookingRegisterFormSet, StatusFilter, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
-    BlockStatusFilter, UserBookingFormSet, UserBlockFormSet
+    BlockStatusFilter, UserBookingFormSet, UserBlockFormSet, \
+    ActivityLogSearchForm, convert_date
+
+from activitylog.models import ActivityLog
 
 
 logger = logging.getLogger(__name__)
@@ -121,9 +125,12 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                         'id {}'.format(e, booking.id)
                         )
 
-            logger.info('Payment status for booking id {}, user {} has been '
-                        'updated by admin user {}'.format(
-                booking.id, booking.user.username, self.request.user.username))
+            ActivityLog(log='Payment status for booking id {} for event {}, '
+                'user {} has been updated by admin user {}'.format(
+                booking.id, booking.event, booking.user.username,
+                self.request.user.username
+                )
+            )
         else:
             messages.info(
                 self.request, "No changes made to the payment "
@@ -177,9 +184,13 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                     'studioadmin/email/confirm_refund.html').render(ctx),
                 fail_silently=False)
 
-            logger.info('Payment refund for booking id {}, user {} has been '
-                        'updated by admin user {}'.format(
-                booking.id, booking.user.username, self.request.user.username))
+            ActivityLog(
+                log='Payment refund for booking id {} for event {}, '
+                    'user {} has been updated by admin user {}'.format(
+                    booking.id, booking.event, booking.user.username,
+                    self.request.user.username
+                )
+            )
 
         if 'cancelled' in self.request.POST:
             messages.info(
@@ -226,10 +237,14 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 booking.user.username
                             )
                         )
-                        logger.info('Booking id {}, user {} has been updated '
-                                    'by admin user {}'.format(
-                            booking.id, booking.user.username,
-                            request.user.username))
+                        ActivityLog(
+                            log='Booking id {} for event {}, user {} has been '
+                                'updated by admin user {}'.format(
+                                booking.id, booking.event,
+                                booking.user.username,
+                                request.user.username
+                            )
+                        )
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')
@@ -345,8 +360,10 @@ def event_admin_list(request, ev_type):
                                     ),
                                     extra_tags='safe'
                                 )
-                                logger.info('Session {} (id {}) deleted by admin user {}'.format(
-                                    form.instance, form.instance.id, request.user.username))
+                                ActivityLog.objects.create(
+                                    log='Session {} (id {}) deleted by admin user {}'.format(
+                                    form.instance, form.instance.id, request.user.username)
+                                )
                             else:
                                 for field in form.changed_data:
                                     messages.info(
@@ -358,8 +375,11 @@ def event_admin_list(request, ev_type):
                                             ),
                                         extra_tags='safe'
                                     )
-                                    logger.info('Session {} (id {}) updated by admin user {}'.format(
-                                    form.instance, form.instance.id, request.user.username))
+                                    ActivityLog.objects.create(
+                                        log='Session {} (id {}) updated by admin user {}'.format(
+                                            form.instance, form.instance.id, request.user.username
+                                        )
+                                    )
                             form.save()
 
                         for error in form.errors:
@@ -446,8 +466,12 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
             msg = '<strong>{} {}</strong> has been updated!'.format(
                 msg_ev_type, event.name
             )
-            logger.info('{} {} (id {}) updated by admin user {}'.format(
-                msg_ev_type, event, event.id, self.request.user.username))
+            ActivityLog.objects.create(
+                log='{} {} (id {}) updated by admin user {}'.format(
+                    msg_ev_type, event, event.id,
+                    self.request.user.username
+                )
+            )
         else:
             msg = 'No changes made'
         messages.info(self.request, msg, extra_tags='safe')
@@ -484,8 +508,11 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
         messages.info(self.request, '<strong>{} {}</strong> has been '
                                     'created!'.format(msg_ev_type, event.name),
                       extra_tags='safe')
-        logger.info('{} {} (id {}) created by admin user {}'.format(
-            msg_ev_type, event, event.id, self.request.user.username))
+        ActivityLog.objects.create(
+            log='{} {} (id {}) created by admin user {}'.format(
+                msg_ev_type, event, event.id, self.request.user.username
+            )
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -515,8 +542,13 @@ def timetable_admin_list(request):
                                 ),
                                 extra_tags='safe'
                             )
-                            logger.info('Session {} (id {}) deleted by admin user {}'.format(
-                                form.instance, form.instance.id, request.user.username))
+                            ActivityLog.objects.create(
+                                log='Session {} (id {}) deleted by admin '
+                                    'user {}'.format(
+                                    form.instance, form.instance.id,
+                                    request.user.username
+                                )
+                            )
                         else:
                             for field in form.changed_data:
                                 messages.info(
@@ -528,8 +560,13 @@ def timetable_admin_list(request):
                                         ),
                                     extra_tags='safe'
                                 )
-                                logger.info('Session {} (id {}) updated by admin user {}'.format(
-                                form.instance, form.instance.id, request.user.username))
+                                ActivityLog.objects.create(
+                                    log='Session {} (id {}) updated by admin '
+                                        'user {}'.format(
+                                        form.instance, form.instance.id,
+                                        request.user.username
+                                    )
+                                )
                         form.save()
 
                     for error in form.errors:
@@ -588,8 +625,11 @@ class TimetableSessionUpdateView(
                 session.name, DAY_CHOICES[session.day],
                 session.time.strftime('%H:%M')
             )
-            logger.info('Session {} (id {}) updated by admin user {}'.format(
-                session, session.id, self.request.user.username))
+            ActivityLog.objects.create(
+                log='Session {} (id {}) updated by admin user {}'.format(
+                    session, session.id, self.request.user.username
+                )
+            )
         else:
             msg = 'No changes made'
         messages.info(self.request, msg, extra_tags='safe')
@@ -621,8 +661,11 @@ class TimetableSessionCreateView(
             session.name, DAY_CHOICES[session.day],
             session.time.strftime('%H:%M')
         )
-        logger.info('Session {} (id {}) created by admin user {}'.format(
-                session, session.id, self.request.user.username))
+        ActivityLog.objects.create(
+            log='Session {} (id {}) created by admin user {}'.format(
+                session, session.id, self.request.user.username
+            )
+        )
         messages.info(self.request, msg, extra_tags='safe')
         return HttpResponseRedirect(self.get_success_url())
 
@@ -641,14 +684,12 @@ def upload_timetable_view(request,
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
             created_classes, existing_classes = \
-                utils.upload_timetable(start_date, end_date)
+                utils.upload_timetable(start_date, end_date, request.user)
             context = {'start_date': start_date,
                        'end_date': end_date,
                        'created_classes': created_classes,
                        'existing_classes': existing_classes,
                        'sidenav_selection': 'upload_timetable'}
-            logger.info('Timetable uploaded by admin user {}'.format(
-                request.user.username))
             return render(
                 request, 'studioadmin/upload_timetable_confirmation.html',
                 context
@@ -833,8 +874,12 @@ def email_users_view(request,
                                   'message': message})
                           ),
                           fail_silently=False)
-                logger.info('Bulk email with subject "{}" sent to users {} by admin user {}'.format(
-                    subject, email_addresses, request.user.username))
+                ActivityLog.objects.create(
+                    log='Bulk email with subject "{}" sent to users {} by '
+                        'admin user {}'.format(
+                        subject, email_addresses, request.user.username
+                    )
+                )
 
                 return render(request,
                     'studioadmin/email_users_confirmation.html')
@@ -917,21 +962,30 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
 
                         messages.info(
                             request,
-                            'Booking for {} has been {}'.format(booking.event, action)
+                            'Booking for {} has been {}'.format(
+                                booking.event, action
+                            )
                         )
                         if action == 'reopened':
                             messages.info(
                                 request, 'Note: this booking was previously '
-                                'cancelled and has now been reopened.  The booking has automatically been marked as paid and payment confirmed.')
+                                'cancelled and has now been reopened.  The '
+                                'booking has automatically been marked as paid '
+                                'and payment confirmed.')
                         elif action == 'cancelled':
                             messages.info(
-                                request, 'Note: this booking has been cancelled.  The booking has automatically been marked as unpaid (refunded) and, if applicable, the block used has been updated.')
-                        logger.info('Booking id {} (user {}) for "{}" {} '
-                                    'by admin user {}'.format(
-                            booking.id, booking.user.username, booking.event,
-                            action, request.user.username))
-
+                                request, 'Note: this booking has been '
+                                'cancelled.  The booking has automatically '
+                                'been marked as unpaid (refunded) and, if '
+                                'applicable, the block used has been updated.')
                         booking.save()
+                        ActivityLog.objects.create(
+                            log='Booking id {} (user {}) for "{}" {} '
+                                    'by admin user {}'.format(
+                                booking.id, booking.user.username, booking.event,
+                                action, request.user.username
+                            )
+                        )
 
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
@@ -993,7 +1047,9 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
             user=user
         )
 
-    booking_status_filter = BookingStatusFilter(initial={'booking_status': booking_status})
+    booking_status_filter = BookingStatusFilter(
+        initial={'booking_status': booking_status}
+    )
 
     template = 'studioadmin/user_booking_list.html'
     return TemplateResponse(
@@ -1031,12 +1087,19 @@ def user_blocks_view(request, user_id):
                         msg = 'created' if new else 'updated'
                         messages.info(
                             request,
-                            'Block for {} has been {}'.format(block.block_type.event_type, msg)
+                            'Block for {} has been {}'.format(
+                                block.block_type.event_type, msg
+                            )
                         )
                         block.save()
-                        logger.info('Block id {}, user {}, has been {}'
+                        ActivityLog.objects.create(
+                            log='Block id {} ({}), user {}, has been {}'
                                     ' by admin user {}'.format(
-                            block.id, block.user.username, msg, request.user.username))
+                                block.id, block.block_type,
+                                block.user.username, msg,
+                                request.user.username
+                            )
+                        )
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')
@@ -1069,3 +1132,57 @@ def user_blocks_view(request, user_id):
             'sidenav_selection': 'users'
         }
     )
+
+
+class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
+
+    model = ActivityLog
+    template_name = 'studioadmin/activitylog.html'
+    context_object_name = 'logs'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = ActivityLog.objects.all().order_by('-timestamp')
+        reset = self.request.GET.get('reset')
+        search_text = self.request.GET.get('search')
+        search_date = self.request.GET.get('search_date')
+
+        if reset or not (search_text or search_date):
+            return queryset
+
+        if search_date:
+            try:
+                search_date = datetime.strptime(search_date, '%d-%b-%Y')
+                start_datetime = search_date
+                end_datetime = search_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                queryset = queryset.filter(
+                    Q(timestamp__gte=start_datetime) & Q(timestamp__lte=end_datetime)
+                ).order_by('-timestamp')
+            except ValueError:
+                messages.info(
+                    self.request, 'Invalid search date format.  Please select '
+                    'from datepicker or enter using the format dd-Mmm-YYYY'
+                )
+                return queryset
+
+        if search_text:
+            queryset = queryset.filter(
+                log__contains=search_text).order_by('-timestamp')
+
+        return queryset
+
+    def get_context_data(self):
+        context = super(ActivityLogListView, self).get_context_data()
+        context['sidenav_selection'] = 'activitylog'
+
+        search_text = self.request.GET.get('search', '')
+        search_date = self.request.GET.get('search_date')
+        reset = self.request.GET.get('reset')
+        if reset:
+            search_text = ''
+            search_date = None
+        form = ActivityLogSearchForm(
+            initial={'search': search_text, 'search_date': search_date})
+        context['form'] = form
+
+        return context

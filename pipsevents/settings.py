@@ -70,6 +70,7 @@ INSTALLED_APPS = (
     'ckeditor',
     'paypal.standard.ipn',
     'payments',
+    'activitylog',
 )
 
 SITE_ID = 1

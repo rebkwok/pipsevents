@@ -462,6 +462,9 @@ class CancelUnpaidBookingsTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 10, tzinfo=timezone.utc
         )
+        # set payment_due_date to None, otherwise advance_payment_required is
+        # automatically set to True
+        self.event.payment_due_date = None
         self.event.advance_payment_required = False
         self.event.save()
         self.assertEquals(

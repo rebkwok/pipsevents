@@ -23,4 +23,3 @@ class Command(BaseCommand):
         self.stdout.write("Creating next week's classes (week beginning {})"
                           .format(next_week_mon.strftime('%a %d %b %Y')))
         create_classes(week='next')
-

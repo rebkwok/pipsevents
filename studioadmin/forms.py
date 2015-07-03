@@ -284,7 +284,9 @@ class EventAdminForm(forms.ModelForm):
             }
         help_texts = {
             'payment_open': _('Only applicable if the cost is greater than £0'),
-            'payment_due_date': _('Only use this field if the cost is greater than £0'),
+            'payment_due_date': _('Only use this field if the cost is greater '
+                                  'than £0.  If a payment due date is set, '
+                                  'advance payment will always be required'),
             'external_instructor':_('Tick for classes taught by external '
                                     'instructors. These will not be bookable '
                                     'via the booking site.  Include '
@@ -296,7 +298,7 @@ class EventAdminForm(forms.ModelForm):
             'advance_payment_required': _('If this checkbox is not ticked, '
                                           'unpaid bookings will remain '
                                           'active after the cancellation period '
-                                          'or payment due date and will not be '
+                                          'and will not be '
                                           'automatically cancelled')
         }
 
@@ -585,7 +587,7 @@ class SessionAdminForm(forms.ModelForm):
             'advance_payment_required': _('If this checkbox is not ticked, '
                                           'unpaid bookings will remain '
                                           'active after the cancellation period '
-                                          'or payment due date and will not be '
+                                          'and will not be '
                                           'automatically cancelled')
         }
 
@@ -949,3 +951,39 @@ UserBlockFormSet = inlineformset_factory(
     formset=UserBlockInlineFormSet,
     extra=1,
 )
+
+
+class ActivityLogSearchForm(forms.Form):
+    search = forms.CharField(
+        widget=forms.TextInput(
+            attrs={
+                'placeholder': 'Search log text'
+            }
+        )
+    )
+    search_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={
+                'id': "logdatepicker",
+                'placeholder': "Search by log date",
+                'style': 'text-align: center'
+            },
+            format='%d-%m-%y',
+        ),
+    )
+
+    def clean(self):
+        super(ActivityLogSearchForm, self).clean()
+        cleaned_data = self.cleaned_data
+
+        search_date = self.data.get('search_date')
+        if search_date:
+            if self.errors.get('search_date'):
+                del self.errors['search_date']
+            try:
+                search_date = convert_date(self.data['search_date'], '%d-%b-%Y')
+                cleaned_data['search_date'] = search_date
+            except ValueError:
+                self.add_error('search_date', 'Invalid search date format.  Select from the '
+                                       'date picker or enter date and time in the '
+                                       'format dd-Mmm-YYYY')
