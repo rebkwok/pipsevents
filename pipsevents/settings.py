@@ -289,6 +289,11 @@ SUIT_CONFIG = {
             'icon': 'icon-asterisk',
         },
         {
+            'label': 'Activity Log',
+            'app': 'activitylog',
+            'icon': 'icon-asterisk',
+        },
+        {
             'label': 'Go to main booking site',
             'url': '/',
             'icon': 'icon-map-marker',
