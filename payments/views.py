@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.shortcuts import render
+from django.template.response import TemplateResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from booking.models import Block, Booking
@@ -53,7 +54,7 @@ def paypal_confirm_return(request):
                'sender_email': settings.DEFAULT_FROM_EMAIL,
                'organiser_email': settings.DEFAULT_STUDIO_EMAIL
                }
-    return render(request, 'payments/confirmed_payment.html', context)
+    return TemplateResponse(request, 'payments/confirmed_payment.html', context)
 
 
 @csrf_exempt
