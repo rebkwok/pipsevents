@@ -9,14 +9,7 @@ from activitylog.models import ActivityLog
 def event_post_save(sender, instance, created, *args, **kwargs):
     if created:
         ActivityLog.objects.create(
-            log='User created for {} {}, username {}'.format(
-                    instance.first_name, instance.last_name, instance.username
-            )
-        )
-
-    else:
-        ActivityLog.objects.create(
-            log='User details modified for {} {}, username {}'.format(
+            log='New user registered: {} {}, username {}'.format(
                     instance.first_name, instance.last_name, instance.username
             )
         )

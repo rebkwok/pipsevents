@@ -971,19 +971,9 @@ class ActivityLogSearchForm(forms.Form):
             format='%d-%m-%y',
         ),
     )
-
-    def clean(self):
-        super(ActivityLogSearchForm, self).clean()
-        cleaned_data = self.cleaned_data
-
-        search_date = self.data.get('search_date')
-        if search_date:
-            if self.errors.get('search_date'):
-                del self.errors['search_date']
-            try:
-                search_date = convert_date(self.data['search_date'], '%d-%b-%Y')
-                cleaned_data['search_date'] = search_date
-            except ValueError:
-                self.add_error('search_date', 'Invalid search date format.  Select from the '
-                                       'date picker or enter date and time in the '
-                                       'format dd-Mmm-YYYY')
+    hide_empty_cronjobs = forms.BooleanField(
+        widget=forms.CheckboxInput(attrs={
+            'class': "regular-checkbox",
+            'id': 'hide_empty_cronjobs_id'
+        }),
+    )
