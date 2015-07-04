@@ -1152,11 +1152,12 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
         ).order_by('-timestamp')
 
         reset = self.request.GET.get('reset')
+        search_submitted =  self.request.GET.get('search_submitted')
         search_text = self.request.GET.get('search')
         search_date = self.request.GET.get('search_date')
         hide_empty_cronjobs = self.request.GET.get('hide_empty_cronjobs')
 
-        if reset or (not (search_text or search_date) and hide_empty_cronjobs):
+        if reset or (not (search_text or search_date) and hide_empty_cronjobs) or (not reset and not search_submitted):
             return queryset
 
         if not hide_empty_cronjobs:

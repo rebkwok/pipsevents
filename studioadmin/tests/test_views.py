@@ -2190,24 +2190,33 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
+    def test_empty_cron_job_logs_filtered_by_default(self):
+        resp = self._get_response(self.staff_user)
+        self.assertEqual(len(resp.context_data['logs']), 7)
+
     def test_filter_out_empty_cron_job_logs(self):
         resp = self._get_response(
             self.staff_user, {'hide_empty_cronjobs': True}
         )
-        self.assertEquals(resp.status_code, 200)
-
         self.assertEqual(len(resp.context_data['logs']), 7)
 
     def test_search_text(self):
-        resp = self._get_response(self.staff_user, {'search': 'message1'})
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'message1'})
         self.assertEqual(len(resp.context_data['logs']), 1)
 
-        resp = self._get_response(self.staff_user, {'search': 'message'})
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'message'})
         self.assertEqual(len(resp.context_data['logs']), 3)
 
     def test_search_date(self):
         resp = self._get_response(
-            self.staff_user, {'search_date': '01-Jan-2015'}
+            self.staff_user, {
+                'search_submitted': 'Search',
+                'search_date': '01-Jan-2015'
+            }
         )
         self.assertEqual(len(resp.context_data['logs']), 2)
 
@@ -2216,13 +2225,16 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         invalid search date returns all results and a message
         """
         resp = self._get_response(
-            self.staff_user, {'search_date': '01-34-2015'}
+            self.staff_user, {
+                'search_submitted': 'Search',
+                'search_date': '01-34-2015'}
         )
         self.assertEqual(len(resp.context_data['logs']), 9)
 
     def test_search_date_and_text(self):
         resp = self._get_response(
             self.staff_user, {
+                'search_submitted': 'Search',
                 'search_date': '01-Jan-2015',
                 'search': 'test date for search'}
         )
@@ -2235,6 +2247,7 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         """
         resp = self._get_response(
             self.staff_user, {
+                'search_submitted': 'Search',
                 'search_date': '01-Jan-2015',
                 'search': 'test date for search'
             }
