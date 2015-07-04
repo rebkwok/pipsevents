@@ -2434,8 +2434,30 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(bookings), 0)
         self.assertEqual(Booking.objects.count(), 10)
 
+    def test_formset_unchanged(self):
+        """
+        test formset submitted unchanged redirects back to user bookings list
+        """
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=self.formset_data(
+                {'formset_submitted': 'Submit'}
+            )
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'studioadmin:user_bookings_list',
+                kwargs={'user_id': self.user.id, 'booking_status': 'future_open'}
+            )
+        )
+
 
 class UserBlocksViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super(UserBlocksViewTests, self).setUp()
+        self.block = mommy.make_recipe('booking.block', user=self.user)
 
     def _get_response(self, user, user_id, booking_status='future_open'):
         url = reverse(
@@ -2462,6 +2484,21 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         messages = FallbackStorage(request)
         request._messages = messages
         return user_blocks_view(request, user_id)
+
+    def formset_data(self, extra_data={}):
+
+        data = {
+            'blocks-TOTAL_FORMS': 1,
+            'blocks-INITIAL_FORMS': 1,
+            'blocks-0-id': self.block.id,
+            'blocks-0-block_type': self.block.block_type.id,
+            'blocks-0-start_date': self.block.start_date.strftime('%d/%m/%y')
+            }
+
+        for key, value in extra_data.items():
+            data[key] = value
+
+        return data
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -2491,11 +2528,63 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, self.user.id)
         self.assertEquals(resp.status_code, 200)
 
+    def test_view_users_blocks(self):
+        """
+        Test only user's bookings for future events shown by default
+        """
+        new_user = mommy.make_recipe('booking.user')
+        new_blocks = mommy.make_recipe(
+            'booking.block', user=new_user, _quantity=2
+        )
+        self.assertEqual(Block.objects.count(), 3)
+        resp = self._get_response(self.staff_user, new_user.id)
+        # get all but last form (last form is the empty extra one)
+        block_forms = resp.context_data['userblockformset'].forms[:-1]
+        self.assertEqual(len(block_forms), 2)
+        self.assertEqual(
+            [block.instance for block in block_forms],
+            new_blocks
+        )
+
     def test_can_update_block(self):
-        pass
+        self.assertFalse(self.block.paid)
+        resp = self._post_response(
+            self.staff_user, self.user.id,
+            self.formset_data({'blocks-0-paid': True})
+        )
+        block = Block.objects.get(id=self.block.id)
+        self.assertTrue(block.paid)
 
     def test_can_create_block(self):
-        pass
+        block_type = mommy.make_recipe('booking.blocktype')
+        self.assertEqual(Block.objects.count(), 1)
+        resp = self._post_response(
+            self.staff_user, self.user.id,
+            self.formset_data(
+                {
+                    'blocks-TOTAL_FORMS': 2,
+                    'blocks-1-block_type': block_type.id
+                }
+            )
+        )
+        self.assertEqual(Block.objects.count(), 2)
+
+    def test_formset_unchanged(self):
+        """
+        test formset submitted unchanged redirects back to user block list
+        """
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=self.formset_data()
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'studioadmin:user_blocks_list',
+                kwargs={'user_id': self.user.id}
+            )
+        )
+
 
 class ActivityLogListViewTests(TestPermissionMixin, TestCase):
 

@@ -1073,7 +1073,6 @@ def user_blocks_view(request, user_id):
             instance=user,
             user=user
         )
-
         if userblockformset.is_valid():
             if not userblockformset.has_changed():
                 messages.info(request, "No changes were made")
@@ -1082,8 +1081,6 @@ def user_blocks_view(request, user_id):
                     if form.has_changed():
                         new = False if form.instance.id else True
                         block = form.save(commit=False)
-                        if block.paid:
-                            block.payment_confirmed = True
                         msg = 'created' if new else 'updated'
                         messages.info(
                             request,
