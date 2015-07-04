@@ -90,8 +90,8 @@ class Command(BaseCommand):
             payment_open=False,
             external_instructor = True,
             contact_person="Alicia Alexandra",
-            contact_email="aliciaalexandra@live.co.uk",
-            payment_info="For further information and to book, please contact " \
+            contact_email="flexibeast@hotmail.com",
+            payment_info="£36 per 6 week block.  For further information and to book, please contact " \
                          "Alicia"
         )
         Session.objects.get_or_create(
@@ -103,33 +103,17 @@ class Command(BaseCommand):
             payment_open=False,
             external_instructor = True,
             contact_person="Alicia Alexandra",
-            contact_email="aliciaalexandra@live.co.uk",
-            payment_info="For further information and to book, please contact " \
+            contact_email="flexibeast@hotmail.com",
+            payment_info="£36 per 6 week block.  For further information and to book, please contact " \
                          "Alicia"
         )
         # Thursday classes
         Session.objects.get_or_create(
-            name="Pole Mixed Levels",
+            name="Mixed Pole Levels",
             day=Session.THU,
             event_type=pc,
             time=time(hour=11, minute=0),
             external_instructor = False,
-        )
-
-        Session.objects.get_or_create(
-            name="Private (1 or more students)",
-            day=Session.THU,
-            event_type=pv,
-            time=time(hour=16, minute=30),
-            external_instructor = False,
-            cost=30,
-            email_studio_when_booked=True,
-            max_participants=1,
-            payment_info="Privates are charged at £30 per person. Additional "
-                         "people are £15 per hour.  Reserve your private "
-                         "by making your initial payment; if you wish to add "
-                         "additional people to the booking, please contact "
-                         "the studio to arrange the additional payments."
         )
 
         Session.objects.get_or_create(
@@ -152,7 +136,8 @@ class Command(BaseCommand):
             name="Pole - advanced (with Polefit Starlet)",
             day=Session.THU,
             event_type=ex,
-            time=time(hour=19, minute=10),
+            time=time(hour=19, minute=00),
+            cost=7,
             booking_open=False,
             payment_open=False,
             external_instructor = True,
