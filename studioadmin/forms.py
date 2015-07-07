@@ -793,19 +793,20 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 empty_label="---Choose from user's active blocks---"
             ))
 
-        if not form.instance.id:
+        if form.instance.id is not None:
             already_booked = [
                 booking.event.id for booking
                 in Booking.objects.filter(user=self.user)
             ]
 
-            form.fields['event'] = (forms.ModelChoiceField(
+            form.fields['event'] = forms.ModelChoiceField(
                 queryset=Event.objects.filter(
                     date__gte=timezone.now()
                 ).filter(booking_open=True).exclude(
                     id__in=already_booked).order_by('date'),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
-            ))
+            )
+
         else:
             form.fields['event'] = (forms.ModelChoiceField(
                 queryset=Event.objects.all(),
@@ -818,10 +819,11 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             }),
             required=False
         )
-        form.fields['status'] = (forms.ChoiceField(
+        form.fields['status'] = forms.ChoiceField(
             choices=(('OPEN', 'OPEN'), ('CANCELLED', 'CANCELLED')),
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
-        ))
+            initial='OPEN'
+        )
         form.paid_id = 'paid_{}'.format(index)
 
     def clean(self):

@@ -926,6 +926,7 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
         )
 
         if userbookingformset.is_valid():
+
             if not userbookingformset.has_changed() and \
                     request.POST.get('formset_submitted'):
                 messages.info(request, "No changes were made")
@@ -934,9 +935,7 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
                     if form.has_changed():
                         booking = form.save(commit=False)
                         action = 'updated' if form.instance.id else 'created'
-                        reopened = False
-                        cancelled = False
-                        if 'status' in form.changed_data:
+                        if 'status' in form.changed_data and action == 'updated':
                             if booking.status == 'CANCELLED':
                                 booking.paid = False
                                 booking.payment_confirmed = False
