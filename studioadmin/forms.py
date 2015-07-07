@@ -822,7 +822,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         form.fields['status'] = forms.ChoiceField(
             choices=(('OPEN', 'OPEN'), ('CANCELLED', 'CANCELLED')),
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
-            initial='OPEN'
+            initial=''
         )
         form.paid_id = 'paid_{}'.format(index)
 
