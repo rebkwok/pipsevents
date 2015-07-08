@@ -793,7 +793,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 empty_label="---Choose from user's active blocks---"
             ))
 
-        if form.instance.id is not None:
+        if form.instance.id is None:
             already_booked = [
                 booking.event.id for booking
                 in Booking.objects.filter(user=self.user)
@@ -807,10 +807,9 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
             )
 
-        else:
-            form.fields['event'] = (forms.ModelChoiceField(
-                queryset=Event.objects.all(),
-            ))
+        form.fields['event'] = (forms.ModelChoiceField(
+            queryset=Event.objects.all(),
+        ))
 
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
@@ -822,7 +821,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         form.fields['status'] = forms.ChoiceField(
             choices=(('OPEN', 'OPEN'), ('CANCELLED', 'CANCELLED')),
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
-            initial=''
+            initial='OPEN'
         )
         form.paid_id = 'paid_{}'.format(index)
 
