@@ -12,7 +12,7 @@
 
 {% if socialaccount.providers  %}
 <div class="socialaccount_ballot">
-    Sign up with an existing third party account:</br>
+    <strong>Sign up with</strong>
   <div class="socialaccount_providers btn btn-primary" style="list-style-type: none;">
      {% include "socialaccount/snippets/provider_list.html" with process="login" %}
   </div></br></br></br>
@@ -31,5 +31,3 @@
 
 
 {% endblock %}
-
-

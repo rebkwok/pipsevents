@@ -1,5 +1,6 @@
 {% extends 'account/base.html' %}
 {% load static %}
+{% load socialaccount %}
 
 {% block content %}
 
@@ -12,13 +13,20 @@
            <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
                     {{ form.as_p}}
+
+
                     <input class="btn btn-success" type="submit" value="Update" />
                     <a href="{% url 'profile:profile' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
+            </br>
+                <p><strong>Connect your facebook account:</strong></p>
+                <div class="socialaccount_providers btn btn-primary" style="list-style-type: none;">
+                   {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+                </div>
+
             </div>
        </div>
     </div>
 </div>
 
 {% endblock content %}
-
