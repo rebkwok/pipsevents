@@ -806,10 +806,10 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                     id__in=already_booked).order_by('date'),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
             )
-
-        form.fields['event'] = (forms.ModelChoiceField(
-            queryset=Event.objects.all(),
-        ))
+        else:
+            form.fields['event'] = (forms.ModelChoiceField(
+                queryset=Event.objects.all(),
+            ))
 
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
