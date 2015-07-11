@@ -334,17 +334,18 @@ class BlockTests(TestCase):
             self.assertFalse(booking.payment_confirmed)
 
     def test_str(self):
-
-        blocktype = mommy.make_recipe('booking.blocktype', size=4)
+        blocktype = mommy.make_recipe('booking.blocktype', size=4,
+            event_type__subtype="Pole level class"
+        )
         block = mommy.make_recipe(
             'booking.block',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
             user=mommy.make_recipe('booking.user', username="TestUser"),
-            block_type=blocktype
+            block_type=blocktype,
         )
 
         self.assertEqual(
-            str(block), 'TestUser -- block size 4 -- start 01 Jan 2015, 00:00'
+            str(block), 'TestUser -- Pole level class -- size 4 -- start 01 Jan 2015'
         )
 
 
