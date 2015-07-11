@@ -3,6 +3,7 @@
 .idea/
 db.sqlite3
 staticfiles
+collected-static
 setlocalenv.sh
 /venv
 .vagrant/

@@ -163,10 +163,11 @@ class Block(models.Model):
     )
 
     def __str__(self):
-        return "{} -- block size {} -- start {}".format(
+        return "{} -- {} -- size {} -- start {}".format(
             self.user.username,
+            self.block_type.event_type.subtype,
             self.block_type.size,
-            self.start_date.strftime('%d %b %Y, %H:%M')
+            self.start_date.strftime('%d %b %Y')
         )
 
     @property
