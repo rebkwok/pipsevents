@@ -4,12 +4,15 @@ from django.contrib import admin
 from django.views.generic import RedirectView
 from django.conf.urls.static import static
 
+from accounts.views import CustomLoginView
+
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^studioadmin/',
         include('studioadmin.urls', namespace='studioadmin')),
     url(r'^', include('booking.urls', namespace='booking')),
     url(r'^accounts/profile/', include('accounts.urls', namespace='profile')),
+    url(r'^accounts/login/$', CustomLoginView.as_view(), name='login'),
     (r'^accounts/', include('allauth.urls')),
     (r'^ckeditor/', include('ckeditor.urls')),
     (r'^payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),
