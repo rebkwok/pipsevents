@@ -12,6 +12,8 @@ from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block
 
+from activitylog.models import ActivityLog
+
 
 logger = logging.getLogger(__name__)
 
