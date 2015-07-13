@@ -169,7 +169,8 @@ def payment_received(sender, **kwargs):
                 'raised was "{}"'.format(
                     ipn_obj.invoice, ipn_obj.txn_id, e
                 ),
-                settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.SUPPORT_EMAIL],
                 fail_silently=False)
             logger.warning('Problem processing payment for booking {}; '
                            'invoice_id {}, transaction id: {}.  Exception: {}'.format(

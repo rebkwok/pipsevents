@@ -176,7 +176,7 @@ if EMAIL_HOST_PASSWORD is None:
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
 DEFAULT_STUDIO_EMAIL = 'thewatermelonstudio@hotmail.com'
-
+SUPPORT_EMAIL = 'rebkwok@gmail.com'
 
 # #####LOGGING######
 if not env('HEROKU') and not env('TRAVIS'):
