@@ -66,7 +66,8 @@ class Command(BaseCommand):
                 block, block_created = Block.objects.get_or_create(
                     block_type=class_block_type,
                     user=user,
-                    start_date=block_start_date)
+                    start_date=block_start_date,
+                    paid=True)
 
                 self.stdout.write(
                     "Block {} {}".format(
