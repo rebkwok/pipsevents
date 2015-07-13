@@ -35,7 +35,8 @@ class Command(BaseCommand):
             event__advance_payment_required=True,
             status='OPEN',
             paid=False,
-            payment_confirmed=False):
+            payment_confirmed=False,
+            date_booked__lte=timezone.now() - timedelta(hours=4)):
 
             if booking.event.date - timedelta(
                     hours=booking.event.cancellation_period

@@ -92,7 +92,8 @@ class Command(BaseCommand):
             contact_person="Alicia Alexandra",
             contact_email="flexibeast@hotmail.com",
             payment_info="£36 per 6 week block.  For further information and to book, please contact " \
-                         "Alicia"
+                         "Alicia",
+            advance_payment_required=False
         )
         Session.objects.get_or_create(
             name="Flexibility (with Alicia)",
@@ -105,7 +106,8 @@ class Command(BaseCommand):
             contact_person="Alicia Alexandra",
             contact_email="flexibeast@hotmail.com",
             payment_info="£36 per 6 week block.  For further information and to book, please contact " \
-                         "Alicia"
+                         "Alicia",
+            advance_payment_required=False
         )
         # Thursday classes
         Session.objects.get_or_create(
@@ -144,7 +146,8 @@ class Command(BaseCommand):
             contact_person="Emma Junor/Kira Grant",
             contact_email="starletpolefitness@gmail.com",
             payment_info="For further information and to book, please contact " \
-                         "Polefit Starlet"
+                         "Polefit Starlet",
+            advance_payment_required=False
         )
 
         Session.objects.get_or_create(
@@ -170,6 +173,15 @@ class Command(BaseCommand):
                          "by making your initial payment; if you wish to add "
                          "additional people to the booking, please contact "
                          "the studio to arrange the additional payments."
+        )
+
+        Session.objects.get_or_create(
+            name="Pole Level 1",
+            day=Session.FRI,
+            event_type=pc,
+            time=time(hour=17, minute=45),
+            max_participants=15,
+            external_instructor = False,
         )
 
         Session.objects.get_or_create(

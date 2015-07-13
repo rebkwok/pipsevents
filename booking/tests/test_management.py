@@ -418,12 +418,19 @@ class CancelUnpaidBookingsTests(TestCase):
         self.unpaid = mommy.make_recipe(
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
-            user__email="unpaid@test.com"
+            user__email="unpaid@test.com",
+            date_booked=datetime(
+                2015, 2, 9, 18, 0, tzinfo=timezone.utc
+            ),
+            warning_sent=True
         )
         self.paid = mommy.make_recipe(
             'booking.booking', event=self.event, paid=True,
             payment_confirmed=True, status='OPEN',
-            user__email="paid@test.com"
+            user__email="paid@test.com",
+            date_booked= datetime(
+                2015, 2, 9, 18, 0, tzinfo=timezone.utc
+            )
         )
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
@@ -567,6 +574,31 @@ class CancelUnpaidBookingsTests(TestCase):
         )
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_dont_cancel_bookings_created_within_past_4_hours(self, mock_tz):
+        """
+        Avoid immediately cancelling bookings made within the cancellation
+        period to allow time for users to make payments
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, 18, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.date_booked =  datetime(
+            2015, 2, 10, 16, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        self.assertEquals(
+            self.unpaid.status, 'OPEN', self.unpaid.status
+        )
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once
+        # for all cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertEquals(
+            unpaid_booking.status, 'OPEN', unpaid_booking.status
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_only_send_one_email_to_studio(self, mock_tz):
         """
         users are emailed per booking, studio just receives one summary
@@ -580,7 +612,11 @@ class CancelUnpaidBookingsTests(TestCase):
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
-                user__email="unpaid_user{}@test.com".format(i)
+                user__email="unpaid_user{}@test.com".format(i),
+                date_booked= datetime(
+                    2015, 2, 9, tzinfo=timezone.utc
+                ),
+                warning_sent=True
             )
 
         management.call_command('cancel_unpaid_bookings')
