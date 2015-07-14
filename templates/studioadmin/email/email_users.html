@@ -1,3 +1,3 @@
 {% extends 'email_base.html' %}
 
-{% block messagecontent %}{{ message }}{% endblock %}
+{% block messagecontent %}{{ message|linebreaks }}{% endblock %}
