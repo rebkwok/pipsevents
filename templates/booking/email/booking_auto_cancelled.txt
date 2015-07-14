@@ -1,7 +1,7 @@
+{% include "account/email/do_not_reply.txt" %}
+
 Your payment has not been received for {{ event.name }} on {{ date }} at {{ time }} and your booking has now been cancelled.
 {% if booking.block %}
 You used a block to make this booking; your block has been updated.
 {% endif %}
 For further information please contact {{ booking.event.contact_person }} at {{ booking.event.contact_email }}
-
-{% include "account/email/do_not_reply.txt" %}
