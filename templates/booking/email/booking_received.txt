@@ -1,3 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
 Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
 {% if not event.cost %}
 There is no cost for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend, please delete your booking by visiting visiting your bookings page at {{ host }}{% url 'booking:bookings' %}.
@@ -21,4 +23,3 @@ Payments are not being taken for this {{ ev_type }} yet.  Further information wi
 {% if prev_cancelled_and_direct_paid %}You are rebooking a previously cancelled booking which is still marked as paid.  The organiser has been sent a request to review your payment status and confirm that this payment has not been refunded yet.  Your booking will remain as pending until your payment status has been confirmed.{% endif %}
 {% endif %}
 {% endif %}
-{% include "account/email/do_not_reply.txt" %}

@@ -1,3 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
 Your block booking has been received!
 
 Block type: {{ block_type }}
@@ -5,5 +7,3 @@ Block start date: {{ start_date }}
 Block expiry date: {{ expiry_date }}
 
 View your blocks: {{ host }}{% url 'booking:block_list' %}
-
-{% include "account/email/do_not_reply.txt" %}
