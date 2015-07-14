@@ -420,9 +420,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 )
             )
         ActivityLog.objects.create(
-            log='Email sent to user ({}) regarding {}booking id {} '
+            log='Email sent to user {} regarding {}booking id {} '
             '(for {})'.format(
-                booking.user.email,
+                booking.user.username,
                 're' if previously_cancelled else '', booking.id, booking.event
             )
         )
@@ -740,21 +740,23 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 'booking/email/booking_cancelled.html').render(ctx),
             fail_silently=False)
         # send email to studio
-        # send_mail('{} {} has just cancelled a booking for {}'.format(
-        #     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.user.username,
-        #     booking.event.name),
-        #           get_template('booking/email/to_studio_booking_cancelled.txt').render(
-        #               Context({
-        #                   'host': host,
-        #                   'booking': booking,
-        #                   'event': booking.event,
-        #                   'date': booking.event.date.strftime('%A %d %B'),
-        #                   'time': booking.event.date.strftime('%I:%M %p'),
-        #               })
-        #           ),
-        #     settings.DEFAULT_FROM_EMAIL,
-        #     [settings.DEFAULT_STUDIO_EMAIL],
-        #     fail_silently=False)
+        send_mail('{} {} {} has just cancelled a booking for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+            'ACTION REQUIRED!' if not booking.block else '',
+            booking.user.username,
+            booking.event.name),
+                  get_template('booking/email/to_studio_booking_cancelled.txt').render(
+                      Context({
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%I:%M %p'),
+                      })
+                  ),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.DEFAULT_STUDIO_EMAIL],
+            fail_silently=False)
 
         # if booking was bought with a block, remove from block and set
         # paid and payment_confirmed to False. If paid directly, we need to
