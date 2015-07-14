@@ -2,11 +2,11 @@
 
 {% block messagecontent %}
 <div style="font-family: sans-serif;">
-<p>Your block booking has been received!</p>
+<p>Your block booking has been received!  Please note that you will not be able to use your blocks until payment has been received.</p>
 <p>
 Block type: {{ block_type }} </br>
-Block start date: {{ start_date }}</br>
-Block expiry date: {{ expiry_date }}
+Block start date: {{ start_date|date:"d M Y" }}</br>
+Block expiry date: {{ expiry_date|date:"d M Y" }}
 </p>
 <p>View your blocks: <a href="{{ host }}{% url 'booking:block_list' %}">{{ host }}{% url 'booking:block_list' %}</a></p>
 

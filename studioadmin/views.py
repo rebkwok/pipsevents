@@ -966,6 +966,8 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
                                     booking.payment_confirmed = True
                                 else:
                                     booking.payment_confirmed = False
+
+                            set_as_free = 'free_class' in form.changed_data and booking.free_class
                             if 'send_confirmation' in form.changed_data:
                                 try:
                                     # send confirmation email
@@ -976,7 +978,7 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
                                           'event': booking.event,
                                           'user': booking.user,
                                           'action': action,
-                                          'set_as_free': 'free_class' in form.changed_data and booking.free_class
+                                          'set_as_free': set_as_free
                                     })
                                     send_mail('{} Your booking for {} has been {}'.format(
                                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
@@ -1025,9 +1027,10 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
                             booking.save()
                             ActivityLog.objects.create(
                                 log='Booking id {} (user {}) for "{}" {} '
-                                        'by admin user {}'.format(
+                                        'by admin user {} {}'.format(
                                     booking.id, booking.user.username, booking.event,
-                                    action, request.user.username
+                                    action, request.user.username,
+                                    "and marked as free class" if set_as_free else ""
                                 )
                             )
 
