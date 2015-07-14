@@ -257,6 +257,7 @@ class Booking(models.Model):
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
+    free_class = models.BooleanField(default=False)
 
     def confirm_space(self):
         if self.event.cost:
@@ -288,4 +289,7 @@ class Booking(models.Model):
     def save(self, *args, **kwargs):
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
+        if self.free_class:
+            self.paid = True
+            self.payment_confirmed = True
         super(Booking, self).save(*args, **kwargs)

@@ -25,6 +25,7 @@ from booking.models import Event, Booking, Block, BlockType
 from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, \
     get_event_names
 import booking.context_helpers as context_helpers
+from booking.email_helpers import send_support_email
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
 
@@ -294,164 +295,219 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         context['ev_type'] = ev_type
 
+        if self.event.event_type.subtype == "Pole level class":
+            context['can_be_free_class'] = True
+
         return context
 
     def form_valid(self, form):
-        booking = form.save(commit=False)
-        try:
-            cancelled_booking = Booking.objects.get(
+
+        if "claim_free"in form.data:
+
+            cancelled_booking = Booking.objects.filter(
                 user=self.request.user,
-                event=booking.event,
+                event=form.instance.event,
                 status='CANCELLED'
                 )
-            booking = cancelled_booking
-            booking.status = 'OPEN'
-            previously_cancelled = True
-        except Booking.DoesNotExist:
-            previously_cancelled = False
 
-        transaction_id = None
-        invoice_id = None
-        previously_cancelled_and_direct_paid = False
-        if 'block_book' in form.data:
-            blocks = self.request.user.blocks.all()
-            active_block = [
-                block for block in blocks if block.active_block()
-                and block.block_type.event_type == booking.event.event_type][0]
-
-            booking.block = active_block
-            booking.paid = True
-            booking.payment_confirmed = True
-        elif previously_cancelled and booking.paid:
-            previously_cancelled_and_direct_paid = True
-            pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
-                .exclude(transaction_id__isnull=True)
-            if pptrans:
-                transaction_id = pptrans[0].transaction_id
-                invoice_id = pptrans[0].invoice_id
-        booking.user = self.request.user
-        try:
-            booking.save()
+            # if user is requesting a free class, send email to studio but
+            # do not make booking yet
             ActivityLog.objects.create(
-                log='Booking {} {} for "{}" by user {}'.format(
-                    booking.id,
-                    'created' if not previously_cancelled else 'rebooked',
-                    booking.event, booking.user.username)
+                log='Free class requested ({}) by user {}'.format(
+                    form.instance.event, self.request.user.username)
             )
-        except IntegrityError:
-            logger.warning(
-                'Integrity error; redirected to duplicate booking page'
-            )
-            return HttpResponseRedirect(reverse('booking:duplicate_booking',
-                                                args=[self.event.slug]))
+            try:
+                # send email and set messages
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                # send email to studio
+                ctx = Context({
+                      'host': host,
+                      'event': form.instance.event,
+                      'user': self.request.user,
+                      'booking_status': 'rebook' if cancelled_booking else 'create',
+                })
+                send_mail('{} Request to claim free class from {} {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, self.request.user.first_name, self.request.user.last_name
+                    ),
+                    get_template(
+                        'studioadmin/email/free_class_request_to_studio.txt'
+                    ).render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'studioadmin/email/free_class_request_to_studio.html'
+                        ).render(ctx),
+                    fail_silently=False)
 
-        if booking.block:
-            blocks_used = booking.block.bookings_made()
-            total_blocks = booking.block.block_type.size
-            ActivityLog.objects.create(
-                log='Block used for booking id {} (for {}). Block id {}, '
-                'user {}'.format(
-                    booking.id, booking.event, booking.block.id,
-                    booking.user.username
+                messages.success(
+                    self.request,
+                    "Your request to claim a free class for {} has been sent "
+                    "to the studio for review.  Your booking has not yet been "
+                    "made; if your free class is approved, your booking will "
+                    "be confirmed.".format(form.instance.event)
                 )
-            )
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(e, __name__, "CreateBookingView - claim free class email")
+                messages.error(self.request, "An error occured, please contact "
+                    "the studio for information")
+
         else:
-            blocks_used = None
-            total_blocks = None
+            booking = form.save(commit=False)
+            try:
+                cancelled_booking = Booking.objects.get(
+                    user=self.request.user,
+                    event=booking.event,
+                    status='CANCELLED'
+                    )
+                booking = cancelled_booking
+                booking.status = 'OPEN'
+                previously_cancelled = True
+            except Booking.DoesNotExist:
+                previously_cancelled = False
 
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-        # send email to user
-        ctx = Context({
-              'host': host,
-              'booking': booking,
-              'event': booking.event,
-              'date': booking.event.date.strftime('%A %d %B'),
-              'time': booking.event.date.strftime('%I:%M %p'),
-              'blocks_used':  blocks_used,
-              'total_blocks': total_blocks,
-              'prev_cancelled_and_direct_paid':
-              previously_cancelled_and_direct_paid,
-              'ev_type': 'event' if
-              self.event.event_type.event_type == 'EV' else 'class'
-        })
-        send_mail('{} Booking for {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-            get_template('booking/email/booking_received.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
-            html_message=get_template(
-                'booking/email/booking_received.html'
-                ).render(ctx),
-            fail_silently=False)
-        # send email to studio if flagged for the event or if previously
-        # cancelled and direct paid
-        if (booking.event.email_studio_when_booked or
-                previously_cancelled_and_direct_paid):
-            additional_subject = ""
-            if previously_cancelled_and_direct_paid:
-                additional_subject = "ACTION REQUIRED!"
-            send_mail('{} {} {} has just booked for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-                booking.user.username, booking.event.name),
-                      get_template(
-                        'booking/email/to_studio_booking.txt'
-                        ).render(
-                          Context({
-                              'host': host,
-                              'booking': booking,
-                              'event': booking.event,
-                              'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%I:%M %p'),
-                              'prev_cancelled_and_direct_paid':
-                              previously_cancelled_and_direct_paid,
-                              'transaction_id': transaction_id,
-                              'invoice_id': invoice_id
-                          })
-                      ),
-                      settings.DEFAULT_FROM_EMAIL,
-                      [settings.DEFAULT_STUDIO_EMAIL],
-                      fail_silently=False)
+            transaction_id = None
+            invoice_id = None
+            previously_cancelled_and_direct_paid = False
+            if 'block_book' in form.data:
+                blocks = self.request.user.blocks.all()
+                active_block = [
+                    block for block in blocks if block.active_block()
+                    and block.block_type.event_type == booking.event.event_type][0]
+
+                booking.block = active_block
+                booking.paid = True
+                booking.payment_confirmed = True
+            elif previously_cancelled and booking.paid:
+                previously_cancelled_and_direct_paid = True
+                pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
+                    .exclude(transaction_id__isnull=True)
+                if pptrans:
+                    transaction_id = pptrans[0].transaction_id
+                    invoice_id = pptrans[0].invoice_id
+            booking.user = self.request.user
+            try:
+                booking.save()
+                ActivityLog.objects.create(
+                    log='Booking {} {} for "{}" by user {}'.format(
+                        booking.id,
+                        'created' if not previously_cancelled else 'rebooked',
+                        booking.event, booking.user.username)
+                )
+            except IntegrityError:
+                logger.warning(
+                    'Integrity error; redirected to duplicate booking page'
+                )
+                return HttpResponseRedirect(reverse('booking:duplicate_booking',
+                                                    args=[self.event.slug]))
+
+            if booking.block:
+                blocks_used = booking.block.bookings_made()
+                total_blocks = booking.block.block_type.size
+                ActivityLog.objects.create(
+                    log='Block used for booking id {} (for {}). Block id {}, '
+                    'user {}'.format(
+                        booking.id, booking.event, booking.block.id,
+                        booking.user.username
+                    )
+                )
+            else:
+                blocks_used = None
+                total_blocks = None
+
+            host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+            # send email to user
+            ctx = Context({
+                  'host': host,
+                  'booking': booking,
+                  'event': booking.event,
+                  'date': booking.event.date.strftime('%A %d %B'),
+                  'time': booking.event.date.strftime('%I:%M %p'),
+                  'blocks_used':  blocks_used,
+                  'total_blocks': total_blocks,
+                  'prev_cancelled_and_direct_paid':
+                  previously_cancelled_and_direct_paid,
+                  'ev_type': 'event' if
+                  self.event.event_type.event_type == 'EV' else 'class'
+            })
+            send_mail('{} Booking for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template('booking/email/booking_received.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_received.html'
+                    ).render(ctx),
+                fail_silently=False)
+            # send email to studio if flagged for the event or if previously
+            # cancelled and direct paid
+            if (booking.event.email_studio_when_booked or
+                    previously_cancelled_and_direct_paid):
+                additional_subject = ""
+                if previously_cancelled_and_direct_paid:
+                    additional_subject = "ACTION REQUIRED!"
+                send_mail('{} {} {} has just booked for {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
+                    booking.user.username, booking.event.name),
+                          get_template(
+                            'booking/email/to_studio_booking.txt'
+                            ).render(
+                              Context({
+                                  'host': host,
+                                  'booking': booking,
+                                  'event': booking.event,
+                                  'date': booking.event.date.strftime('%A %d %B'),
+                                  'time': booking.event.date.strftime('%I:%M %p'),
+                                  'prev_cancelled_and_direct_paid':
+                                  previously_cancelled_and_direct_paid,
+                                  'transaction_id': transaction_id,
+                                  'invoice_id': invoice_id
+                              })
+                          ),
+                          settings.DEFAULT_FROM_EMAIL,
+                          [settings.DEFAULT_STUDIO_EMAIL],
+                          fail_silently=False)
+                ActivityLog.objects.create(
+                    log= 'Email sent to studio ({}) regarding {}booking id {} '
+                    '(for {})'.format(
+                        settings.DEFAULT_STUDIO_EMAIL,
+                        're' if previously_cancelled else '', booking.id,
+                        booking.event
+                    )
+                )
             ActivityLog.objects.create(
-                log= 'Email sent to studio ({}) regarding {}booking id {} '
+                log='Email sent to user {} regarding {}booking id {} '
                 '(for {})'.format(
-                    settings.DEFAULT_STUDIO_EMAIL,
-                    're' if previously_cancelled else '', booking.id,
-                    booking.event
+                    booking.user.username,
+                    're' if previously_cancelled else '', booking.id, booking.event
                 )
             )
-        ActivityLog.objects.create(
-            log='Email sent to user {} regarding {}booking id {} '
-            '(for {})'.format(
-                booking.user.username,
-                're' if previously_cancelled else '', booking.id, booking.event
+            messages.success(
+                self.request,
+                self.success_message.format(
+                    booking.event.name,
+                    booking.event.date.strftime('%A %d %B'),
+                    booking.event.date.strftime('%I:%M %p')
+                )
             )
-        )
-        messages.success(
-            self.request,
-            self.success_message.format(
-                booking.event.name,
-                booking.event.date.strftime('%A %d %B'),
-                booking.event.date.strftime('%I:%M %p')
-            )
-        )
 
-        if previously_cancelled_and_direct_paid:
-            messages.info(
-                self.request, 'You previously paid for this booking; your '
-                              'booking will remain as pending until the '
-                              'organiser has reviewed your payment status.'
-            )
-        elif not booking.block:
-            messages.info(
-                self.request, 'Your place will be confirmed once your payment '
-                              'has been received.'
-            )
-        elif not booking.block.active_block():
-            messages.info(self.request,
-                          'You have just used the last space in your block.  '
-                          'Go to <a href="/blocks">'
-                          'Your Blocks</a> to buy a new one.',
-                          extra_tags='safe')
+            if previously_cancelled_and_direct_paid:
+                messages.info(
+                    self.request, 'You previously paid for this booking; your '
+                                  'booking will remain as pending until the '
+                                  'organiser has reviewed your payment status.'
+                )
+            elif not booking.block:
+                messages.info(
+                    self.request, 'Your place will be confirmed once your payment '
+                                  'has been received.'
+                )
+            elif not booking.block.active_block():
+                messages.info(self.request,
+                              'You have just used the last space in your block.  '
+                              'Go to <a href="/blocks">'
+                              'Your Blocks</a> to buy a new one.',
+                              extra_tags='safe')
 
         return HttpResponseRedirect(reverse('booking:bookings'))
 
@@ -609,6 +665,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             blocktype_available = self.event.event_type in blocktypes
             context['blocktype_available'] = blocktype_available
 
+        if self.object.event.event_type.subtype == "Pole level class":
+            context['can_be_free_class'] = True
+
         invoice_id = create_booking_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
@@ -627,64 +686,110 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
     def form_valid(self, form):
-        # add to active block if ticked, don't require paid to be ticked
-        booking = form.save(commit=False)
-        if 'block_book' in form.data:
-            blocks = self.request.user.blocks.all()
-            active_block = [block for block in blocks
-                            if block.active_block() and
-                            block.block_type.event_type ==
-                            booking.event.event_type][0]
-            booking.block = active_block
-            booking.payment_confirmed = True
-            booking.paid = True
-            booking.user = self.request.user
-            booking.save()
 
+        if "claim_free"in form.data:
+            # if user is requesting a free class, send email to studio but
+            # do not make booking yet
             ActivityLog.objects.create(
-                log='Booking id {} (for {}) has been paid with block id {}'.format(
-                    booking.id, booking.event, booking.block.id
-                )
+                log='Free class requested ({}) by user {}'.format(
+                    form.instance.event, self.request.user.username)
             )
+            try:
+                # send email and set messages
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                # send email to studio
+                ctx = Context({
+                      'host': host,
+                      'event': form.instance.event,
+                      'user': self.request.user,
+                      'booking_status': 'update',
+                })
+                send_mail('{} Request to claim free class from {} {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, self.request.user.first_name, self.request.user.last_name
+                    ),
+                    get_template(
+                        'studioadmin/email/free_class_request_to_studio.txt'
+                    ).render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'studioadmin/email/free_class_request_to_studio.html'
+                        ).render(ctx),
+                    fail_silently=False)
 
-        if booking.block:
-            blocks_used = booking.block.bookings_made()
-            total_blocks = booking.block.block_type.size
-            # send email to user if they used block to book (paypal payment
-            # sends separate emails
-            host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-            ctx = Context({
-                        'host': host,
-                        'booking': booking,
-                        'event': booking.event,
-                        'date': booking.event.date.strftime('%A %d %B'),
-                        'time': booking.event.date.strftime('%I:%M %p'),
-                        'blocks_used':  blocks_used,
-                        'total_blocks': total_blocks,
-                        'ev_type':
-                        'event' if booking.event.event_type.event_type == 'EV'
-                        else 'class'
-                    })
-            send_mail('{} Block used for booking for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                get_template('booking/email/booking_updated.txt').render(ctx),
-                settings.DEFAULT_FROM_EMAIL,
-                [booking.user.email],
-                html_message=get_template(
-                    'booking/email/booking_updated.html').render(ctx),
-                fail_silently=False)
-            ActivityLog.objects.create(
-                log='Email sent to user ({}) regarding payment for '
-                    'booking id {} (for {}) with block id {}'.format(
-                    booking.user.email, booking.id, booking.event,
-                    booking.block.id
+                messages.success(
+                    self.request,
+                    "Your request to claim {} as a free class for has been "
+                    "sent to the studio for review.  Your booking has not "
+                    "yet been marked as paid or confimred; if your free class "
+                    "is approved, your booking will "
+                    "be updated.".format(form.instance.event)
                 )
-            )
-        messages.success(self.request, self.success_message.format(
-            booking.event.name, booking.event.date.strftime(
-                '%A %d %B, %I:%M %p'
-            )
-        ))
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(e, __name__, "UpdateBookingView - claim free class email")
+                messages.error(self.request, "An error occured, please contact "
+                    "the studio for information")
+
+        else:
+            # add to active block if ticked, don't require paid to be ticked
+            booking = form.save(commit=False)
+            if 'block_book' in form.data:
+                blocks = self.request.user.blocks.all()
+                active_block = [block for block in blocks
+                                if block.active_block() and
+                                block.block_type.event_type ==
+                                booking.event.event_type][0]
+                booking.block = active_block
+                booking.payment_confirmed = True
+                booking.paid = True
+                booking.user = self.request.user
+                booking.save()
+
+                ActivityLog.objects.create(
+                    log='Booking id {} (for {}) has been paid with block id {}'.format(
+                        booking.id, booking.event, booking.block.id
+                    )
+                )
+
+            if booking.block:
+                blocks_used = booking.block.bookings_made()
+                total_blocks = booking.block.block_type.size
+                # send email to user if they used block to book (paypal payment
+                # sends separate emails
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                ctx = Context({
+                            'host': host,
+                            'booking': booking,
+                            'event': booking.event,
+                            'date': booking.event.date.strftime('%A %d %B'),
+                            'time': booking.event.date.strftime('%I:%M %p'),
+                            'blocks_used':  blocks_used,
+                            'total_blocks': total_blocks,
+                            'ev_type':
+                            'event' if booking.event.event_type.event_type == 'EV'
+                            else 'class'
+                        })
+                send_mail('{} Block used for booking for {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                    get_template('booking/email/booking_updated.txt').render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [booking.user.email],
+                    html_message=get_template(
+                        'booking/email/booking_updated.html').render(ctx),
+                    fail_silently=False)
+                ActivityLog.objects.create(
+                    log='Email sent to user ({}) regarding payment for '
+                        'booking id {} (for {}) with block id {}'.format(
+                        booking.user.email, booking.id, booking.event,
+                        booking.block.id
+                    )
+                )
+            messages.success(self.request, self.success_message.format(
+                booking.event.name, booking.event.date.strftime(
+                    '%A %d %B, %I:%M %p'
+                )
+            ))
 
         return HttpResponseRedirect(self.get_success_url())
 

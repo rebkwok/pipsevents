@@ -50,6 +50,15 @@
                             <input class="btn btn-success" type="submit" value="Confirm and book" />
                         {% endif %}
 
+                        {% if can_be_free_class %}
+                        <input class="btn btn-success" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
+                        <p>** Please select this option only if you have a completed loyatly card and are eligible for a
+                            free class.  Your request to
+                            claim your free class will be sent to the studio. <span class="cancel-warning">You will not be booked into
+                            the class until the studio has reviewed and confirmed that you are eligible.</span></br>
+                            Please review the studio website for information on loyalty cards.</p>
+                        {% endif %}
+
                     </div>
                 </form>
             </div>
