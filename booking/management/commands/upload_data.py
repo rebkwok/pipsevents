@@ -221,7 +221,7 @@ class Command(BaseCommand):
                     paid = True if paid_str == "y" else "n"
                     event = Event.objects.get(id=event_id)
                     booking, created = Booking.objects.get_or_create(
-                        event=event, user=user, block=block, paid=paid
+                        event=event, user=user, block=None, paid=paid
                     )
                     self.stdout.write(
                         "Booking for user {}, class {} {}".format(
