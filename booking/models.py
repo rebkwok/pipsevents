@@ -292,4 +292,5 @@ class Booking(models.Model):
         if self.free_class:
             self.paid = True
             self.payment_confirmed = True
+            self.block = None
         super(Booking, self).save(*args, **kwargs)

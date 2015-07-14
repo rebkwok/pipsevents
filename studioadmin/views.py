@@ -28,6 +28,7 @@ from braces.views import LoginRequiredMixin
 
 from booking.models import Event, Booking, Block, BlockType
 from booking import utils
+from booking.email_helpers import send_support_email
 
 from timetable.models import Session
 from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
@@ -934,64 +935,107 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
             else:
                 for form in userbookingformset:
                     if form.has_changed():
-                        booking = form.save(commit=False)
-                        action = 'updated' if form.instance.id else 'created'
-                        if 'status' in form.changed_data and action == 'updated':
-                            if booking.status == 'CANCELLED':
-                                booking.paid = False
-                                booking.payment_confirmed = False
-                                booking.block = None
-                                action = 'cancelled'
-                            elif booking.status == 'OPEN':
+                        if form.changed_data == ['send_confirmation']:
+                            messages.info(
+                                request, "'Send confirmation' checked for '{}' "
+                                "but no changes were made; email has not been "
+                                "sent to user.".format(form.instance.event))
+                        else:
+                            booking = form.save(commit=False)
+                            action = 'updated' if form.instance.id else 'created'
+                            if 'status' in form.changed_data and action == 'updated':
+                                if booking.status == 'CANCELLED':
+                                    booking.paid = False
+                                    booking.payment_confirmed = False
+                                    booking.block = None
+                                    action = 'cancelled'
+                                elif booking.status == 'OPEN':
+                                    booking.paid = True
+                                    booking.payment_confirmed = True
+                                    action = 'reopened'
+
+                            if booking.block:
                                 booking.paid = True
                                 booking.payment_confirmed = True
-                                action = 'reopened'
 
-                        if booking.block:
-                            booking.paid = True
-                            booking.payment_confirmed = True
-
-                        if 'paid' in form.changed_data:
-                            if booking.paid:
-                                # assume that if booking is being done via
-                                # studioadmin, marking paid also means payment
-                                # is confirmed
-                                booking.payment_confirmed = True
+                            if 'paid' in form.changed_data:
+                                if booking.paid:
+                                    # assume that if booking is being done via
+                                    # studioadmin, marking paid also means payment
+                                    # is confirmed
+                                    booking.payment_confirmed = True
+                                else:
+                                    booking.payment_confirmed = False
+                            if 'send_confirmation' in form.changed_data:
+                                try:
+                                    # send confirmation email
+                                    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                                    # send email to studio
+                                    ctx = Context({
+                                          'host': host,
+                                          'event': booking.event,
+                                          'user': booking.user,
+                                          'action': action,
+                                          'set_as_free': 'free_class' in form.changed_data and booking.free_class
+                                    })
+                                    send_mail('{} Your booking for {} has been {}'.format(
+                                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
+                                        ),
+                                        get_template(
+                                            'studioadmin/email/booking_change_confirmation.txt'
+                                        ).render(ctx),
+                                        settings.DEFAULT_FROM_EMAIL,
+                                        [booking.user.email],
+                                        html_message=get_template(
+                                            'studioadmin/email/booking_change_confirmation.html'
+                                            ).render(ctx),
+                                        fail_silently=False)
+                                    send_confirmation_msg = "and confirmation " \
+                                    "email sent to user"
+                                except Exception as e:
+                                    # send mail to tech support with Exception
+                                    send_support_email(
+                                        e, __name__, "user_booking_list - "
+                                        "send confirmation email"
+                                    )
+                                    send_confirmation_msg = ". There was a " \
+                                    "problem sending the confirmation email to the " \
+                                    "user.  Tech support has been notified."
                             else:
-                                booking.payment_confirmed = False
+                                send_confirmation_msg = ""
 
-                        messages.info(
-                            request,
-                            'Booking for {} has been {}'.format(
-                                booking.event, action
-                            )
-                        )
-                        if action == 'reopened':
                             messages.info(
-                                request, 'Note: this booking was previously '
-                                'cancelled and has now been reopened.  The '
-                                'booking has automatically been marked as paid '
-                                'and payment confirmed.')
-                        elif action == 'cancelled':
-                            messages.info(
-                                request, 'Note: this booking has been '
-                                'cancelled.  The booking has automatically '
-                                'been marked as unpaid (refunded) and, if '
-                                'applicable, the block used has been updated.')
-                        booking.save()
-                        ActivityLog.objects.create(
-                            log='Booking id {} (user {}) for "{}" {} '
-                                    'by admin user {}'.format(
-                                booking.id, booking.user.username, booking.event,
-                                action, request.user.username
+                                request,
+                                'Booking for {} has been {} {}'.format(
+                                    booking.event, action, send_confirmation_msg
+                                )
                             )
-                        )
+                            if action == 'reopened':
+                                messages.info(
+                                    request, 'Note: this booking was previously '
+                                    'cancelled and has now been reopened.  The '
+                                    'booking has automatically been marked as paid '
+                                    'and payment confirmed.')
+                            elif action == 'cancelled':
+                                messages.info(
+                                    request, 'Note: this booking has been '
+                                    'cancelled.  The booking has automatically '
+                                    'been marked as unpaid (refunded) and, if '
+                                    'applicable, the block used has been updated.')
+                            booking.save()
+                            ActivityLog.objects.create(
+                                log='Booking id {} (user {}) for "{}" {} '
+                                        'by admin user {}'.format(
+                                    booking.id, booking.user.username, booking.event,
+                                    action, request.user.username
+                                )
+                            )
 
-                    for error in form.errors:
-                        messages.error(request, "{}".format(error),
-                                       extra_tags='safe')
+                        for error in form.errors:
+                            messages.error(request, "{}".format(error),
+                                           extra_tags='safe')
 
-                    userbookingformset.save(commit=False)
+                        userbookingformset.save(commit=False)
 
             return HttpResponseRedirect(
                 reverse(

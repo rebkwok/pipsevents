@@ -1,0 +1,14 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Your booking for {{ event }} has been {{ action }} by an administrator.</p>
+
+{% if set_as_free %}
+<p>This is your free class!</p>
+{% endif %}
+
+<a href="{{ host }}{% url 'booking:bookings' %}">View your bookings</a>
+</div>
+{% endblock %}
