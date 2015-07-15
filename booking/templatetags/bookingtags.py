@@ -1,5 +1,6 @@
 from django import template
 
+from booking.models import Booking
 
 register = template.Library()
 
@@ -61,7 +62,7 @@ def get_index_all(event, extraline_index):
 
 @register.filter
 def bookings_count(event):
-    return event.bookings.count()
+    return len(Booking.objects.filter(event=event, status='OPEN'))
 
 @register.filter
 def format_datetime(date):
