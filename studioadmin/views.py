@@ -926,14 +926,13 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
         userbookingformset = UserBookingFormSet(
             request.POST, instance=user, user=user,
         )
-
         if userbookingformset.is_valid():
-
             if not userbookingformset.has_changed() and \
                     request.POST.get('formset_submitted'):
                 messages.info(request, "No changes were made")
             else:
                 for form in userbookingformset:
+
                     if form.has_changed():
                         if form.changed_data == ['send_confirmation']:
                             messages.info(

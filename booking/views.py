@@ -705,7 +705,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                       'booking_status': 'update',
                 })
                 send_mail('{} Request to claim free class from {} {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, self.request.user.first_name, self.request.user.last_name
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                        self.request.user.first_name,
+                        self.request.user.last_name
                     ),
                     get_template(
                         'studioadmin/email/free_class_request_to_studio.txt'
@@ -747,8 +749,8 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 booking.save()
 
                 ActivityLog.objects.create(
-                    log='Booking id {} (for {}) has been paid with block id {}'.format(
-                        booking.id, booking.event, booking.block.id
+                    log='Booking id {} (for {}), user {}, has been paid with block id {}'.format(
+                        booking.id, booking.event, booking.user.username, booking.block.id
                     )
                 )
 
