@@ -218,11 +218,18 @@ class Command(BaseCommand):
                 if booking_data[0]:
                     event_id = int(booking_data[0].split('#')[-1])
                     paid_str = booking_data[1].lower()[0]
-                    paid = True if paid_str == "y" else "n"
+                    paid = True if paid_str == "y" else False
+                    payment_confirmed = True if paid_str == "y" else False
                     event = Event.objects.get(id=event_id)
                     booking, created = Booking.objects.get_or_create(
-                        event=event, user=user, block=None, paid=paid
+                        event=event, user=user
                     )
+                    if created:
+                        booking.paid = paid
+                        booking.payment_confirmed = payment_confirmed
+                        booking.block = None
+                        booking.save()
+    
                     self.stdout.write(
                         "Booking for user {}, class {} {}".format(
                             user.username,
