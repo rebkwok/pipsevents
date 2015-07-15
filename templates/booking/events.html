@@ -17,12 +17,12 @@
                             <tr class="success">
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
-                                <th>Location</th>
-                                <th class="table-center">Cost</th>
-                                <th class="table-center">Spaces</th>
-                                <th class="table-center">Spaces left</th>
-                                <th class="table-center">Booking open</th>
-                                <th class="table-center">Payment open</th>
+                                <th class="hidden-sm hidden-xs">Location</th>
+                                <th class="hidden-sm hidden-xs table-center">Cost</th>
+                                <th class="hidden-xs table-center">Spaces</th>
+                                <th class="hidden-xs table-center">Spaces left</th>
+                                <th class="hidden-sm hidden-xs table-center">Booking open</th>
+                                <th class="hidden-sm hidden-xs table-center">Payment open</th>
                                 <th class="table-center">Booked</th>
                             </tr>
                             <tr class="filter-row">
@@ -35,18 +35,18 @@
                             </tr>
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
-                                    <td>{{ event.date | date:"D d F, g:i a" }}</td>
+                                    <td>{{ event.date | date:"D d M H:i" }}</td>
                                     <td>{% if type == 'events' %}
                                         <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
                                         {% elif type == 'lessons' %}
                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                                         {% endif %}</td>
-                                    <td>{{ event.location }}</td>
-                                    <td class="table-center">£{{ event.cost }}</td>
-                                    <td class="table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center">{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                    <td class="table-center">{% if event.cost %}
+                                    <td class="hidden-sm hidden-xs">{{ event.location }}</td>
+                                    <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
+                                    <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
+                                    <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
+                                    <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                    <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
                                         {% else %}N/A{% endif %}</td>
                                     <td class="table-center">{% if event in booked_events %}<span class="fa fa-check"></span>{% endif %}
