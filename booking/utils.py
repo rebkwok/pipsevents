@@ -103,21 +103,23 @@ def upload_timetable(start_date, end_date, user=None):
                 event_type=session.event_type,
                 date=(datetime.combine(d,
                     session.time).replace(tzinfo=timezone.utc)),
-                description=session.description,
-                max_participants=session.max_participants,
-                location=session.location,
-                contact_person=session.contact_person,
-                contact_email=session.contact_email,
-                cost=session.cost,
-                payment_open=session.payment_open,
-                advance_payment_required=session.advance_payment_required,
-                booking_open=session.booking_open,
-                payment_info=session.payment_info,
-                cancellation_period=session.cancellation_period,
-                external_instructor = session.external_instructor,
-                email_studio_when_booked = session.email_studio_when_booked
+                location=session.location
             )
             if created:
+                cl.description=session.description
+                cl.max_participants=session.max_participants
+                cl.contact_person=session.contact_person
+                cl.contact_email=session.contact_email
+                cl.cost=session.cost
+                cl.payment_open=session.payment_open
+                cl.advance_payment_required=session.advance_payment_required
+                cl.booking_open=session.booking_open
+                cl.payment_info=session.payment_info
+                cl.cancellation_period=session.cancellation_period
+                cl.external_instructor = session.external_instructor
+                cl.email_studio_when_booked = session.email_studio_when_booked
+                cl.save()
+
                 created_classes.append(cl)
             else:
                 existing_classes.append(cl)

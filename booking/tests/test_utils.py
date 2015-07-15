@@ -119,6 +119,85 @@ class UtilsTests(TestCase):
         # total number of classes created is now 9
         self.assertEquals(Event.objects.all().count(), 9)
 
+    def test_upload_timetable_only_matches_main_fields(self):
+        """
+        Test that uploading timetable only checks name, event type, date and
+        location on existing classes and doesn't create duplicates if the
+        same class exists with a minor difference
+        """
+        start_date = datetime(2016, 3, 21, tzinfo=timezone.utc) # monday
+        end_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
+        self.assertEquals(Event.objects.all().count(), 0)
+
+        # create some timetabled sessions for mondays, tuesdays and Wednesdays
+        mommy.make_recipe('booking.mon_session', _quantity=3)
+        mommy.make_recipe('booking.tue_session', _quantity=3)
+        mommy.make_recipe('booking.wed_session', _quantity=3)
+
+        upload_timetable(start_date, end_date)
+        # check that there are now classes on the dates specified
+        mon_classes = Event.objects.filter(
+            date__gte=self._start_of_day(start_date),
+            date__lte=self._end_of_day(start_date)
+            )
+        tue_classes = Event.objects.filter(
+            date__gte=self._start_of_day(end_date),
+            date__lte=self._end_of_day(end_date)
+            )
+        self.assertEquals(mon_classes.count(), 3)
+        self.assertEquals(tue_classes.count(), 3)
+
+        # make some minor changes to one of the newly uploaded classes
+        # should NOT cause a new class to be uploaded
+        tue_class = tue_classes[0]
+        tue_class.description = "A new description"
+        tue_class.save()
+
+        # upload timetable with overlapping dates
+        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
+        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
+        upload_timetable(start_date, end_date)
+        tue_classes = Event.objects.filter(
+            date__gte=self._start_of_day(start_date),
+            date__lte=self._end_of_day(start_date)
+            )
+        wed_classes = Event.objects.filter(
+            date__gte=self._start_of_day(end_date),
+            date__lte=self._end_of_day(end_date)
+            )
+        # tue classes is still 3
+        self.assertEquals(tue_classes.count(), 3)
+        self.assertEquals(wed_classes.count(), 3)
+
+        # total number of classes created is now 9
+        self.assertEquals(Event.objects.all().count(), 9)
+
+        # make some major changes to one of the newly uploaded classes
+        # SHOULD cause a new class to be uploaded
+        tue_class = tue_classes[0]
+        tue_class.name = "New Pole Class"
+        tue_class.save()
+
+        # upload timetable with overlapping dates
+        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
+        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
+        upload_timetable(start_date, end_date)
+        tue_classes = Event.objects.filter(
+            date__gte=self._start_of_day(start_date),
+            date__lte=self._end_of_day(start_date)
+            )
+        wed_classes = Event.objects.filter(
+            date__gte=self._start_of_day(end_date),
+            date__lte=self._end_of_day(end_date)
+            )
+        # tue classes is now 4
+        self.assertEquals(tue_classes.count(), 4)
+        self.assertEquals(wed_classes.count(), 3)
+
+        # total number of classes created is now 10
+        self.assertEquals(Event.objects.all().count(), 10)
+
+
     def _start_of_day(self, date):
         return date.replace(hour=0, minute=0, second=0, microsecond=0)
 
