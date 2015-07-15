@@ -1,9 +1,9 @@
-Your block booking has been received!
+{% include "account/email/do_not_reply.txt" %}
+
+Your block booking has been received!  Please note that you will not be able to use your blocks until payment has been received.
 
 Block type: {{ block_type }}
-Block start date: {{ start_date }}
-Block expiry date: {{ expiry_date }}
+Block start date: {{ start_date|date:"d M Y" }}
+Block expiry date: {{ expiry_date|date:"d M Y" }}
 
 View your blocks: {{ host }}{% url 'booking:block_list' %}
-
-{% include "account/email/do_not_reply.txt" %}

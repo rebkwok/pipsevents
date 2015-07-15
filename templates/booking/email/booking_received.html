@@ -13,6 +13,8 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
     {% if booking.block %}
         <p>You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total
         {{ total_blocks }} bookings for this block.</p>
+        <p> View your bookings at
+        <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
     {% else %}
         {% if not event.advance_payment_required %}
             <p>Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you
@@ -37,6 +39,8 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
         still marked as paid.  The organiser has been sent a request to review your payment status and
         confirm that this payment has not been refunded yet.  Your booking will remain as pending until
         your payment status has been confirmed.</p>
+        <p> View your bookings at
+        <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
         {% endif %}
 
     {% endif %}

@@ -1,3 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
 Your booking for {{ event.name }} on {{ date }} at {{ time }} has been cancelled.
 {% if booking.block %}
 You used a block to make this booking; your block has been updated.
@@ -6,5 +8,3 @@ You used a block to make this booking; your block has been updated.
 Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and will be in contact soon.
 {% endif %}
 For further information please contact {{ booking.event.contact_person }} at {{ booking.event.contact_email }}
-
-{% include "account/email/do_not_reply.txt" %}

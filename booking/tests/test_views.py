@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from mock import Mock, patch
 from model_mommy import mommy
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
@@ -680,6 +681,24 @@ class BookingCreateViewTests(TestCase):
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block)
 
+    def test_requesting_free_class(self):
+        """
+        Test that requesting a free class emails the studio but does not
+        create the booking
+        """
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 0)
+
+        form_data = {'claim_free': True}
+        resp = self._post_response(self.user, event, form_data)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 0)
+        self.assertEqual(len(mail.outbox), 1)
+
 
 class BookingErrorRedirectPagesTests(TestCase):
 
@@ -895,7 +914,7 @@ class BookingUpdateViewTests(TestCase):
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
 
-    def _get_response(self, user, booking, form_data):
+    def _post_response(self, user, booking, form_data):
         url = reverse('booking:update_booking', args=[booking.id])
         session = _create_session()
         request = self.factory.post(url, form_data)
@@ -918,10 +937,36 @@ class BookingUpdateViewTests(TestCase):
                                   block_type__event_type=event.event_type,
                                   user=self.user, paid=True)
         form_data = {'block_book': 'yes'}
-        resp = self._get_response(self.user, booking, form_data)
+        resp = self._post_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)
 
+    def test_requesting_free_class(self):
+        """
+        Test that requesting a free class emails the studio but does not
+        update the booking
+        """
+        event = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event, paid=False)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+
+        form_data = {'claim_free': True}
+        resp = self._post_response(self.user, booking, form_data)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+
+        booking_after_post = bookings[0]
+        self.assertEqual(booking.id, booking_after_post.id)
+        self.assertEqual(booking.paid, booking_after_post.paid)
+        self.assertEqual(booking.payment_confirmed, booking_after_post.payment_confirmed)
+        self.assertEqual(booking.block, booking_after_post.block)
+        self.assertEqual(booking.free_class, booking_after_post.free_class)
+
+        self.assertEqual(len(mail.outbox), 1)
 
 class BlockCreateViewTests(TestCase):
     def setUp(self):

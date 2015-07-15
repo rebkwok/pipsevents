@@ -191,6 +191,15 @@ class BookingTests(TestCase):
         booking.save()
         self.assertFalse(booking.space_confirmed())
 
+    def test_free_class_is_set_to_paid(self):
+        booking = mommy.make_recipe('booking.booking',
+                                    user=self.users[0],
+                                    event=self.event_with_cost,
+                                    free_class=True)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        self.assertTrue(booking.space_confirmed())
+
     def test_str(self):
         booking = mommy.make_recipe(
             'booking.booking',

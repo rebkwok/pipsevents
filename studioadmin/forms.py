@@ -810,6 +810,9 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             form.fields['event'] = (forms.ModelChoiceField(
                 queryset=Event.objects.all(),
             ))
+            form.can_be_free_class = True \
+                if form.instance.event.event_type.subtype == "Pole level class" \
+                else False
 
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
@@ -818,6 +821,23 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             }),
             required=False
         )
+        form.fields['free_class'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'free_class_{}'.format(index)
+            }),
+            required=False
+        )
+        form.free_class_id = 'free_class_{}'.format(index)
+        form.fields['send_confirmation'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'send_confirmation_{}'.format(index)
+            }),
+            initial=False,
+            required=False
+        )
+        form.send_confirmation_id = 'send_confirmation_{}'.format(index)
         form.fields['status'] = forms.ChoiceField(
             choices=(('OPEN', 'OPEN'), ('CANCELLED', 'CANCELLED')),
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
@@ -843,6 +863,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         for form in self.forms:
             block = form.cleaned_data.get('block')
             event = form.cleaned_data.get('event')
+            free_class = form.cleaned_data.get('free_class')
 
             if block and event:
                 if not block_tracker.get(block.id):
@@ -868,20 +889,24 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                             event, event.event_type, available_block_type[0].event_type
                         )
                     form.add_error('block', error_msg)
-                    raise forms.ValidationError(error_msg)
                 else:
                     if block.bookings_made() + block_tracker[block.id] > block.block_type.size:
                         error_msg = 'Block selected for {} is now full. ' \
                                     'Add another block for this user or confirm ' \
                                     'payment was made directly.'.format(event)
                         form.add_error('block', error_msg)
-                        raise forms.ValidationError(error_msg)
+            if block and free_class:
+                error_msg = '"Free class" cannot be assigned to a block.'
+                form.add_error('free_class', error_msg)
+            if free_class and event.event_type.subtype != "Pole level class":
+                error_msg = '"Free class" can only be applied to pole level classes.'
+                form.add_error('free_class', error_msg)
 
 
 UserBookingFormSet = inlineformset_factory(
     User,
     Booking,
-    fields=('paid', 'event', 'block', 'status'),
+    fields=('paid', 'event', 'block', 'status', 'free_class'),
     can_delete=False,
     formset=UserBookingInlineFormSet,
     extra=1,

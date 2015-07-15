@@ -1,3 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
 {{ user }} has {% if updated %}confirmed payment for a {% else %}made {% endif %} a block booking:
 
 Block type: {{ block_type }}
@@ -7,5 +9,3 @@ Block expiry date: {{ expiry_date }}
 Please review and confirm when payment has been received.
 {% endif %}
 View all block bookings: {{ host }}/admin/booking/block
-
-{% include "account/email/do_not_reply.txt" %}

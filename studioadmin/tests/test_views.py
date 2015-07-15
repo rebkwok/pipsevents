@@ -2077,9 +2077,11 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             'bookings-0-id': self.future_user_bookings[0].id,
             'bookings-0-event': self.future_user_bookings[0].event.id,
             'bookings-0-status': self.future_user_bookings[0].status,
+            'bookings-0-paid': self.future_user_bookings[0].paid,
             'bookings-1-id': self.future_user_bookings[1].id,
             'bookings-1-event': self.future_user_bookings[1].event.id,
             'bookings-1-status': self.future_user_bookings[1].status,
+            'bookings-1-paid': self.future_user_bookings[1].paid,
             }
 
         for key, value in extra_data.items():
@@ -2205,11 +2207,13 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_can_update_booking(self):
-        self.assertTrue(self.future_user_bookings[0].payment_confirmed)
-        form_data = self.formset_data({'bookings-0-payment_confirmed': False})
+        self.assertTrue(self.future_user_bookings[0].paid)
+        form_data = self.formset_data({'bookings-0-paid': False,
+        'formset_submitted': 'Submit'})
 
         self._post_response(self.staff_user, self.user.id, form_data=form_data)
         booking = Booking.objects.get(id=self.future_user_bookings[0].id)
+        self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
 
     def test_can_add_booking(self):
@@ -2237,7 +2241,6 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(self.future_user_bookings[0].status, 'OPEN')
         self.assertTrue(self.future_user_bookings[0].paid)
         self.assertTrue(self.future_user_bookings[0].payment_confirmed)
-
         form_data = self.formset_data(
             {
                 'bookings-0-status': 'CANCELLED'
@@ -2451,6 +2454,111 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
                 kwargs={'user_id': self.user.id, 'booking_status': 'future_open'}
             )
         )
+
+    def test_create_new_booking_as_free_class(self):
+        event1 = mommy.make_recipe(
+            'booking.future_PC',
+            event_type__subtype='Pole level class'
+        )
+        block1 = mommy.make_recipe(
+            'booking.block', block_type__event_type=event1.event_type,
+            user=self.user
+        )
+
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event1.id,
+                'bookings-2-status': 'OPEN',
+                'bookings-2-free_class': True
+            }
+        )
+        self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        booking = Booking.objects.get(event=event1)
+        self.assertTrue(booking.free_class)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+    def test_cannot_assign_free_class_to_block(self):
+        event1 = mommy.make_recipe(
+            'booking.future_PC',
+            event_type__subtype='Pole level class'
+        )
+        block1 = mommy.make_recipe(
+            'booking.block', block_type__event_type=event1.event_type,
+            user=self.user
+        )
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event1.id,
+                'bookings-2-status': 'OPEN',
+                'bookings-2-block': block1.id,
+                'bookings-2-free_class': True
+            }
+        )
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        errors = resp.context_data['userbookingformset'].errors
+        self.assertIn(
+            {
+                'free_class': ['"Free class" cannot be assigned to a block.']
+            },
+            errors)
+        bookings = Booking.objects.filter(event=event1)
+        self.assertEqual(len(bookings), 0)
+
+    def test_can_only_make_level_classes_free(self):
+        event1 = mommy.make_recipe(
+            'booking.future_PC',
+            event_type__subtype='Other class'
+        )
+
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event1.id,
+                'bookings-2-status': 'OPEN',
+                'bookings-2-free_class': True
+            }
+        )
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        errors = resp.context_data['userbookingformset'].errors
+        self.assertIn(
+            {
+                'free_class': ['"Free class" can only be applied to pole ' \
+                'level classes.']
+            },
+            errors)
+        bookings = Booking.objects.filter(event=event1)
+        self.assertEqual(len(bookings), 0)
+
+    def test_confirmation_email_sent_if_data_changed(self):
+        form_data = self.formset_data(
+            {
+                'bookings-0-status': 'CANCELLED',
+                'bookings-0-send_confirmation': 'on',
+            }
+        )
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_confirmation_email_not_sent_if_data_unchanged(self):
+        form_data=self.formset_data(
+            {'formset_submitted': 'Submit',
+            'bookings-0-send_confirmation': 'on'}
+        )
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+            )
+        self.assertEqual(len(mail.outbox), 0)
 
 
 class UserBlocksViewTests(TestPermissionMixin, TestCase):
