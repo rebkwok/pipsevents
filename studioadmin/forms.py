@@ -665,7 +665,7 @@ class ChooseUsersBaseFormSet(BaseModelFormSet):
 
         form.fields['email_user'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox studioadmin-list",
+                'class': "regular-checkbox studioadmin-list select-checkbox",
                 'id': 'email_user_cbox_{}'.format(index)
             }),
             initial=True,

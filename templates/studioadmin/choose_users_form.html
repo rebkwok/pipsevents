@@ -14,10 +14,8 @@
                         {% csrf_token %}
                         {{ usersformset.management_form }}
 
-
-                        <div class="table-responsive">
-                            <table class="table">
-
+                        <table class="table tablesorter" id="sortTable">
+                                <thead>
                                 <tr class="filter-row">
                                     <td class="filter-row" colspan=5>
                                     <form class="filter-row" action="" method="post">
@@ -29,8 +27,10 @@
                                         </div>
                                         <div class="form-group">
                                             <div class="col-sm-2">
-                                                <input class="btn btn-info" name="filter" type="submit" value="Show Students" />
+                                                <input class="btn btn-info" name="filter" type="submit" value="Show Students" /></br></br>
+                                                <span class="header-not-bold">Select/deselect all</span> <input checked="checked" class="regular-checkbox studioadmin-list" id="select-all" type="checkbox"><label for={{ "select-all" }}></label>
                                             </div>
+
                                         </div>
 
                                     </form>
@@ -38,13 +38,15 @@
                                 </tr>
 
                                 <tr class="success">
-                                    <th class="table-center">Username</th>
-                                    <th class="table-center">First Name</th>
-                                    <th class="table-center">Last Name</th>
+                                    <th class="table-center">Username <span class="fa fa-sort"></span></th>
+                                    <th class="table-center">First Name <span class="fa fa-sort"></span></th>
+                                    <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
                                     <th class="table-center">Email address</th>
                                     <th class="table-center">Select students to email</th>
                                 </tr>
+                            </thead>
 
+                            <tbody>
                                 {% for userform in usersformset %}
                                 <tr>
                                     <span class="hide">{{ userform.id }}</span>
@@ -56,6 +58,7 @@
                                 </tr>
                                 {% endfor %}
                                 <tr>
+                            </tbody>
                                 <td class="studioadmin-tbl" colspan="5"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email Students" /></td>
                                 </tr>
                             </table>

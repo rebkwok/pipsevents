@@ -718,3 +718,8 @@ a > span.fa.fa-print {
 .top-button-row{
 	padding-bottom: 10;
 }
+
+.header-not-bold{
+	font-weight: normal;
+	vertical-align: top;
+}

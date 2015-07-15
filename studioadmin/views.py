@@ -705,6 +705,7 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = User
     template_name = 'studioadmin/user_list.html'
     context_object_name = 'users'
+    queryset = User.objects.all().order_by('first_name')
 
     def get_context_data(self):
         context = super(UserListView, self).get_context_data()

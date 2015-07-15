@@ -84,3 +84,18 @@ $(document).ready(function()
         $("#sortTable").tablesorter();
     }
 );
+
+$(document).ready(function() {
+    $('#select-all').click(function(event) {  //on click
+        if(this.checked) { // check select status
+            $('.select-checkbox').each(function() { //loop through each checkbox
+                this.checked = true;  //select all checkboxes with class "select-checkbox"
+            });
+        }else{
+            $('.select-checkbox').each(function() { //loop through each checkbox
+                this.checked = false; //deselect all checkboxes with class "select-checkbox"                       
+            });
+        }
+    });
+
+});
