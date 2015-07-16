@@ -17,7 +17,9 @@
                             <tr class="success">
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
-                                <th class="hidden-sm hidden-xs">Location</th>
+                                {% if type == 'events' %}
+                                    <th class="hidden-sm hidden-xs">Location</th>
+                                {% endif %}
                                 <th class="hidden-sm hidden-xs table-center">Cost</th>
                                 <th class="hidden-xs table-center">Spaces</th>
                                 <th class="hidden-xs table-center">Spaces left</th>
@@ -41,7 +43,11 @@
                                         {% elif type == 'lessons' %}
                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                                         {% endif %}</td>
-                                    <td class="hidden-sm hidden-xs">{{ event.location }}</td>
+                                    {% if type == 'events' %}
+                                        <td class="hidden-sm hidden-xs">{{ event.location }}</td>
+                                    {% elif type == 'lessons' %}
+                                        <span class="hide">{{ event.location }}</span>
+                                    {% endif %}
                                     <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
                                     <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
                                     <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
@@ -54,7 +60,12 @@
                                             {% if event.bookable %}
                                                 <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
                                             {% elif event.external_instructor %}
-                                                <div class="ext-instructor">Click on name for booking/payment details</div>
+                                                {% if type == 'events' %}
+                                                    <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
+                                                {% elif type == 'lessons' %}
+                                                    <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
+                                                {% endif %}
+                                                See details</a>
                                             {% else %}
                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                             {% endif %}

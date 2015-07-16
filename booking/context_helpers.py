@@ -45,6 +45,8 @@ def get_event_context(context, event, user):
             booking_info_text = "You have previously booked for this event and" \
                                 " cancelled."
         context['booked'] = True
+    elif event.event_type.subtype == "External instructor class":
+        booking_info_text = "Please contact {} directly to book".format(event.contact_person)
     elif not event.booking_open:
         booking_info_text = "Bookings are not open for this event."
     elif event.spaces_left() <= 0:
