@@ -767,20 +767,28 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
     def add_fields(self, form, index):
         super(UserBookingInlineFormSet, self).add_fields(form, index)
 
-        if form.instance.id and form.instance.block is None:
-            active_user_blocks = [
-                block.id for block in Block.objects.filter(
-                    user=form.instance.user,
-                    block_type__event_type=form.instance.event.event_type)
-                if block.active_block()
-            ]
-            form.has_available_block = True if active_user_blocks else False
-            form.fields['block'] = (UserBlockModelChoiceField(
-                queryset=Block.objects.filter(id__in=active_user_blocks),
-                widget=forms.Select(attrs={'class': 'form-control input-sm'}),
-                required=False,
-                empty_label="---Choose from user's available active blocks---"
-            ))
+        if form.instance.id:
+            if form.instance.block is None:
+                active_user_blocks = [
+                    block.id for block in Block.objects.filter(
+                        user=form.instance.user,
+                        block_type__event_type=form.instance.event.event_type)
+                    if block.active_block()
+                ]
+                form.has_available_block = True if active_user_blocks else False
+                form.fields['block'] = (UserBlockModelChoiceField(
+                    queryset=Block.objects.filter(id__in=active_user_blocks),
+                    widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+                    required=False,
+                    empty_label="---Choose from user's available active blocks---"
+                ))
+            else:
+                form.fields['block'] = (UserBlockModelChoiceField(
+                    queryset=Block.objects.filter(id=form.instance.block.id),
+                    widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+                    required=False,
+                    empty_label="---Unselect block (change booking to unpaid)---"
+                ))
         else:
             active_blocks = [
                 block.id for block in Block.objects.filter(user=self.user)
@@ -959,6 +967,27 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
                 required=False,
             )
 
+        if form.instance:
+            # only allow deleting blocks if not yet paid
+            if form.instance.paid:
+                form.fields['DELETE'] = forms.BooleanField(
+                    widget=forms.CheckboxInput(attrs={
+                        'class': 'delete-checkbox-disabled studioadmin-list',
+                        'disabled': 'disabled',
+                        'id': 'DELETE_{}'.format(index)
+                    }),
+                    required=False
+                )
+            else:
+                form.fields['DELETE'] = forms.BooleanField(
+                    widget=forms.CheckboxInput(attrs={
+                        'class': 'delete-checkbox studioadmin-list',
+                        'id': 'DELETE_{}'.format(index)
+                    }),
+                    required=False
+                )
+            form.DELETE_id = 'DELETE_{}'.format(index)
+
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': "regular-checkbox",
@@ -969,11 +998,13 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
         form.paid_id = 'paid_{}'.format(index)
 
 
+
+
 UserBlockFormSet = inlineformset_factory(
     User,
     Block,
     fields=('paid', 'start_date', 'block_type'),
-    can_delete=False,
+    can_delete=True,
     formset=UserBlockInlineFormSet,
     extra=1,
 )

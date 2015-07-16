@@ -962,6 +962,10 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
                             if booking.block:
                                 booking.paid = True
                                 booking.payment_confirmed = True
+                            elif 'block' in form.changed_data:
+                                booking.block = None
+                                booking.paid = False
+                                booking.payment_confirmed = False
 
                             if 'paid' in form.changed_data:
                                 if booking.paid:
@@ -1131,24 +1135,42 @@ def user_blocks_view(request, user_id):
             else:
                 for form in userblockformset:
                     if form.has_changed():
-                        new = False if form.instance.id else True
+
                         block = form.save(commit=False)
-                        msg = 'created' if new else 'updated'
-                        messages.info(
-                            request,
-                            'Block for {} has been {}'.format(
-                                block.block_type.event_type, msg
+
+                        if 'DELETE' in form.changed_data:
+                            messages.info(
+                                request,
+                                'Block <strong>{}</strong> has been deleted!  Any bookings made with this block have been changed to unpaid.  Please inform user {} ({})'.format(
+                                    block, block.user.username, block.user.email)
+                                ,
+                                extra_tags='safe'
                             )
-                        )
-                        block.save()
-                        ActivityLog.objects.create(
-                            log='Block id {} ({}), user {}, has been {}'
-                                    ' by admin user {}'.format(
-                                block.id, block.block_type,
-                                block.user.username, msg,
-                                request.user.username
+                            block.delete()
+                            ActivityLog.objects.create(
+                                log='Block {} (id {}) deleted by admin user {}'.format(
+                                form.instance, form.instance.id, request.user.username)
                             )
-                        )
+
+                        else:
+                            new = False if form.instance.id else True
+                            msg = 'created' if new else 'updated'
+
+                            messages.info(
+                                request,
+                                'Block for {} has been {}'.format(
+                                    block.block_type.event_type, msg
+                                )
+                            )
+                            block.save()
+                            ActivityLog.objects.create(
+                                log='Block id {} ({}), user {}, has been {}'
+                                        ' by admin user {}'.format(
+                                    block.id, block.block_type,
+                                    block.user.username, msg,
+                                    request.user.username
+                                )
+                            )
                     for error in form.errors:
                         messages.error(request, "{}".format(error),
                                        extra_tags='safe')

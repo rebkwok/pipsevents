@@ -219,6 +219,7 @@ class Block(models.Model):
                 booking.paid = False
                 booking.payment_confirmed = False
                 booking.block = None
+                booking.save()
             ActivityLog.objects.create(
                 log='Booking id {} booked with deleted block {} has been reset to '
                 'unpaid'.format(booking.id, self.id)
@@ -247,7 +248,8 @@ class Booking(models.Model):
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
     block = models.ForeignKey(
-        Block, related_name='bookings', null=True, blank=True
+        Block, related_name='bookings', null=True, blank=True,
+        on_delete=models.SET_NULL
         )
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'

@@ -841,6 +841,13 @@ class UserBookingFormSetTests(TestCase):
         # queryset shows only the active blocks for this user and event type
         self.assertEquals(1, block.queryset.count())
 
+        # empty_label shows the "choose block" instruction
+        self.assertEquals(
+            block.empty_label,
+            "---Choose from user's available active blocks---",
+             block.empty_label
+             )
+
         # assign this block to the user's booking
         self.booking.block = active_user_block
         self.booking.save()
@@ -851,9 +858,15 @@ class UserBookingFormSetTests(TestCase):
         # get the first form
         form = formset.forms[0]
         block = form.fields['block']
-        # now queryset shows all active blocks for this user (will be ignored
-        # in the template)
-        self.assertEquals(2, block.queryset.count())
+        # queryset still only shows active blocks for this user and event type
+        self.assertEquals(1, block.queryset.count())
+
+        # empty_label shows the "Unselect block" instruction
+        self.assertEquals(
+            block.empty_label,
+            "---Unselect block (change booking to unpaid)---",
+            block.empty_label
+        )
 
     def test_block_queryset_with_existing_booking_no_active_user_block(self):
 
