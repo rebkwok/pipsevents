@@ -73,7 +73,7 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
             'payments/email/payment_processed_to_user.html').render(ctx),
         fail_silently=False)
 
-    ActivityLog(log='Payment-processed email for {} {} sent to studio ({}) and'
+    ActivityLog.objects.create(log='Payment-processed email for {} {} sent to studio ({}) and'
                 'user {}'.format(
         obj_type, obj_id, settings.DEFAULT_STUDIO_EMAIL, user.email
     ))
@@ -148,7 +148,7 @@ def payment_received(sender, **kwargs):
                 obj.paid = True
                 obj.save()
 
-                ActivityLog(log='{} id {} has been paid by PayPal; '
+                ActivityLog.objects.create(log='{} id {} has been paid by PayPal; '
                             'invoice {}, transaction id {}'.format(
                     obj_type.title(), obj.id, paypal_trans.invoice_id,
                     paypal_trans.transaction_id,
