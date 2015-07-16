@@ -962,6 +962,10 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
                             if booking.block:
                                 booking.paid = True
                                 booking.payment_confirmed = True
+                            elif 'block' in form.changed_data:
+                                booking.block = None
+                                booking.paid = False
+                                booking.payment_confirmed = False
 
                             if 'paid' in form.changed_data:
                                 if booking.paid:
