@@ -49,7 +49,7 @@
                                 {% for block in blocks %}
                                 <tr>
                                     <td class="table-center studioadmin-tbl">{{ block.block_type.event_type }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ block.user.first_name }} {{ block.user.last_name }} ({{ block.user.username }})</td>
+                                    <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:user_blocks_list' block.user.id %}">{{ block.user.first_name }} {{ block.user.last_name }} ({{ block.user.username }})</a></td>
                                     <td class="table-center studioadmin-tbl">{{ block.block_type.size }}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.bookings_made }}</td>
                                     <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
