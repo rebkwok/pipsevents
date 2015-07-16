@@ -28,6 +28,8 @@
                                 <th class="table-center">Used</th>
                                 <th class="table-center">Start Date</th>
                                 <th class="table-center">Expiry Date</th>
+                                <th class="table-center">Delete</br>
+                                <span class="studioadmin-help">Only for unpaid blocks</span></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -56,6 +58,8 @@
                                     <td class="table-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.instance.start_date | date:"d M Y"}}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.instance.expiry_date | date:"d M Y"}}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.DELETE }}<label for={{ block.DELETE_id }}></label></td>
+                                </tr>
                                 {% else %}
                                     {% if block.can_buy_block %}
                                     <td><strong>Add new block</strong></td>
@@ -69,9 +73,10 @@
                                     <td></td>
                                     {% else %}
                                     <td colspan="7"><strong>User already has an active (or unpaid) block of each available type; no additional blocks can be purchased at this time</strong></td>
+                                    <td></td>
                                     {% endif %}
                                 {% endif %}
-                            </tr>
+
                             {% endfor %}
                             </tbody>
                         </table>

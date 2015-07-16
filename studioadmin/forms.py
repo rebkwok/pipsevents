@@ -967,6 +967,27 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
                 required=False,
             )
 
+        if form.instance:
+            # only allow deleting blocks if not yet paid
+            if form.instance.paid:
+                form.fields['DELETE'] = forms.BooleanField(
+                    widget=forms.CheckboxInput(attrs={
+                        'class': 'delete-checkbox-disabled studioadmin-list',
+                        'disabled': 'disabled',
+                        'id': 'DELETE_{}'.format(index)
+                    }),
+                    required=False
+                )
+            else:
+                form.fields['DELETE'] = forms.BooleanField(
+                    widget=forms.CheckboxInput(attrs={
+                        'class': 'delete-checkbox studioadmin-list',
+                        'id': 'DELETE_{}'.format(index)
+                    }),
+                    required=False
+                )
+            form.DELETE_id = 'DELETE_{}'.format(index)
+
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': "regular-checkbox",
@@ -977,11 +998,13 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
         form.paid_id = 'paid_{}'.format(index)
 
 
+
+
 UserBlockFormSet = inlineformset_factory(
     User,
     Block,
     fields=('paid', 'start_date', 'block_type'),
-    can_delete=False,
+    can_delete=True,
     formset=UserBlockInlineFormSet,
     extra=1,
 )
