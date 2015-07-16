@@ -867,15 +867,21 @@ def email_users_view(request,
                 if cc:
                     email_addresses.append(from_address)
                 for email_address in email_addresses:
-                    send_mail(subject, message, from_address,
-                          [email_address],
-                          html_message=get_template(
-                              'studioadmin/email/email_users.html').render(
-                              Context({
-                                  'subject': subject,
-                                  'message': message})
-                          ),
-                          fail_silently=False)
+                    try:
+                        send_mail(subject, message, from_address,
+                              [email_address],
+                              html_message=get_template(
+                                  'studioadmin/email/email_users.html').render(
+                                  Context({
+                                      'subject': subject,
+                                      'message': message})
+                              ),
+                              fail_silently=False)
+                    except Exception as e:
+                        # send mail to tech support with Exception
+                        send_support_email(e, __name__, "Bulk Email to students")
+                        ActivityLog.objects.create(log="Possible error with "
+                            "sending bulk email; notification sent to tech support")
                 ActivityLog.objects.create(
                     log='Bulk email with subject "{}" sent to users {} by '
                         'admin user {}'.format(
