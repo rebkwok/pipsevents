@@ -1654,19 +1654,24 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
-    def test_only_active_blocks_returned_on_get(self):
+    def test_current_blocks_returned_on_get(self):
         active_blocks = mommy.make_recipe(
             'booking.block', _quantity=3, paid=True
         )
-        inactive_blocks = mommy.make_recipe(
-            'booking.block', _quantity=3
+        unpaid_blocks = mommy.make_recipe(
+            'booking.block', paid=False, _quantity=3
         )
+        current_blocks = active_blocks + unpaid_blocks
+        full_block = mommy.make_recipe(
+            'booking.block', paid=False, block_type__size=1
+        )
+        mommy.make_recipe('booking.booking', block=full_block)
 
         resp = self._get_response(self.staff_user)
         self.assertEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.filter(
-                id__in=[block.id for block in active_blocks]
+                id__in=[block.id for block in current_blocks]
             ))
         )
 
@@ -1677,6 +1682,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         unpaid_blocks = mommy.make_recipe(
             'booking.block', _quantity=3, paid=False
         )
+        current_blocks = active_blocks + unpaid_blocks
         expired_blocks = mommy.make_recipe(
             'booking.block', paid=True,
             start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
@@ -1722,6 +1728,15 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.filter(id__in=[block.id for block in unpaid_blocks]))
+        )
+
+        #current blocks are paid or unpaid, not expired, not full
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'current'}
+        )
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(Block.objects.filter(id__in=[block.id for block in current_blocks]))
         )
 
         # expired blocks are past expiry date or full
@@ -2089,7 +2104,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
         return data
 
-    def _get_response(self, user, user_id, booking_status='future_open'):
+    def _get_response(self, user, user_id, booking_status='future'):
         url = reverse(
             'studioadmin:user_bookings_list',
             kwargs={'user_id': user_id, 'booking_status': booking_status}
@@ -2105,7 +2120,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def _post_response(
-        self, user, user_id, form_data, booking_status='future_open'
+        self, user, user_id, form_data, booking_status='future'
         ):
         url = reverse(
             'studioadmin:user_bookings_list',
@@ -2128,7 +2143,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         """
         url = reverse(
             'studioadmin:user_bookings_list',
-            kwargs={'user_id': self.user.id, 'booking_status': 'future_open'}
+            kwargs={'user_id': self.user.id, 'booking_status': 'future'}
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
@@ -2158,52 +2173,37 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, self.user.id)
         # get all but last form (last form is the empty extra one)
         booking_forms = resp.context_data['userbookingformset'].forms[:-1]
-        self.assertEqual(len(booking_forms), 2)
+        # show future bookings, both open and cancelled
+        self.assertEqual(
+            len(booking_forms),
+            len(self.future_user_bookings) + len(self.future_cancelled_bookings)
+        )
+
         self.assertEqual(
             [booking.instance for booking in booking_forms],
-            self.future_user_bookings
+            self.future_user_bookings + self.future_cancelled_bookings
         )
 
     def test_filter_bookings_by_booking_status(self):
 
-        # future_open bookings
-        resp = self._get_response(self.staff_user, self.user.id, 'future_open')
+        # future bookings
+        resp = self._get_response(self.staff_user, self.user.id, 'future')
         # get all but last form (last form is the empty extra one)
         booking_forms = resp.context_data['userbookingformset'].forms[:-1]
-        self.assertEqual(len(booking_forms), 2)
+        self.assertEqual(len(booking_forms), 4)
         self.assertEqual(
             [booking.instance for booking in booking_forms],
-            self.future_user_bookings
+            self.future_user_bookings + self.future_cancelled_bookings
         )
 
-        # past_open bookings
-        resp = self._get_response(self.staff_user, self.user.id, 'past_open')
+        # past bookings
+        resp = self._get_response(self.staff_user, self.user.id, 'past')
         # get all but last form (last form is the empty extra one)
         booking_forms = resp.context_data['userbookingformset'].forms[:-1]
-        self.assertEqual(len(booking_forms), 2)
+        self.assertEqual(len(booking_forms), 4)
         self.assertEqual(
             [booking.instance for booking in booking_forms],
-            self.past_user_bookings
-        )
-
-        # future_cancelled bookings
-        resp = self._get_response(self.staff_user, self.user.id, 'future_cancelled')
-        # get all but last form (last form is the empty extra one)
-        booking_forms = resp.context_data['userbookingformset'].forms[:-1]
-        self.assertEqual(len(booking_forms), 2)
-        self.assertEqual(
-            [booking.instance for booking in booking_forms],
-            self.future_cancelled_bookings
-        )
-
-        # past_cancelled bookings
-        resp = self._get_response(self.staff_user, self.user.id, 'past_cancelled')
-        # get all but last form (last form is the empty extra one)
-        booking_forms = resp.context_data['userbookingformset'].forms[:-1]
-        self.assertEqual(len(booking_forms), 2)
-        self.assertEqual(
-            [booking.instance for booking in booking_forms],
-            self.past_cancelled_bookings
+            self.past_user_bookings + self.past_cancelled_bookings
         )
 
     def test_can_update_booking(self):
@@ -2451,7 +2451,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             resp.url,
             reverse(
                 'studioadmin:user_bookings_list',
-                kwargs={'user_id': self.user.id, 'booking_status': 'future_open'}
+                kwargs={'user_id': self.user.id, 'booking_status': 'future'}
             )
         )
 
@@ -2567,7 +2567,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         super(UserBlocksViewTests, self).setUp()
         self.block = mommy.make_recipe('booking.block', user=self.user)
 
-    def _get_response(self, user, user_id, booking_status='future_open'):
+    def _get_response(self, user, user_id):
         url = reverse(
             'studioadmin:user_blocks_list',
             kwargs={'user_id': user_id}

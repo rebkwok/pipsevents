@@ -7,14 +7,10 @@
     <div class="container-fluid row">
 
         <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }}):
-            {% if booking_status == 'past_open' %}
-            Past bookings (not cancelled)
-            {% elif booking_status == 'past_cancelled' %}
-            Past cancelled bookings
-            {% elif booking_status == 'future_cancelled'%}
-            Upcoming cancelled bookings
+            {% if booking_status == 'past' %}
+                Past bookings
             {% else %}
-            Upcoming open bookings
+                Upcoming bookings
             {% endif %}
             </h2>
         <div class="row">
@@ -25,10 +21,10 @@
 
                     <div class="top-button-row">
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
-                        <div class="pull-right">Showing bookings:
+                        <span class="pull-right">Show:
                             {{ booking_status_filter.booking_status }}
-                            <input class="btn btn-info table-btn" name="booking_status" type="submit" value="Filter" />
-                        </div>
+                            <input class="btn btn-info table-btn" name="booking_status" type="submit" value="Filter" /></span>
+
                     </div>
 
                 <div class="table-responsive">
@@ -46,7 +42,7 @@
                             </thead>
                             <tbody>
                             {% for booking in userbookingformset %}
-                            <tr>
+                            <tr {% if booking.instance.status == 'CANCELLED'%} class='expired'{% endif %}>
                                 <span class="hide">{{ booking.id }}</span>
                                 {% if booking.instance.id %}
                                     <span class="hide">{{ booking.event }}</span>

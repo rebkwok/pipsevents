@@ -422,9 +422,12 @@ a>.btn {
     color: #BDBDBD;
 }
 
-.expired td, .expired td a, .expired td .confirmed, .expired td .not-confirmed  {
-    color: #BDBDBD;
+.expired td, .expired td a, .expired td .confirmed, .expired td .not-confirmed ,
+.expired .input-sm {
+    color: #BDBDBD !important;
 }
+
+
 
 .not_paid_block td {
     color: red;
