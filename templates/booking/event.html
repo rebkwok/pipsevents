@@ -47,7 +47,9 @@
                     {% if event.max_participants %}
                         <h5>There are a maximum {{ event.max_participants }} spaces for this
                             {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</h5>
-                        <h5>Spaces left: {{ event.spaces_left }}</h5>
+                        {% if not event.external_instructor or type != 'lesson'%}
+                            <h5>Spaces left: {{ event.spaces_left }}</h5>
+                        {% endif %}
                     {% endif %}
 
                     {% if booked %}

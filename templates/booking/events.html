@@ -50,7 +50,10 @@
                                     {% endif %}
                                     <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
                                     <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
-                                    <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.spaces_left }}{% else %}N/A{% endif %}</td>
+                                    <td class="hidden-xs table-center">
+                                        {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
+                                        {% elif event.max_participants %}{{ event.spaces_left }}
+                                        {% else %}N/A{% endif %}</td>
                                     <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
                                     <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
@@ -65,7 +68,7 @@
                                                 {% elif type == 'lessons' %}
                                                     <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
                                                 {% endif %}
-                                                See details</a>
+                                                Further details</a>
                                             {% else %}
                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                             {% endif %}
