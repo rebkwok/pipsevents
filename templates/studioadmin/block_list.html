@@ -7,10 +7,12 @@
     <div class="container-fluid row">
 
         <h2>Blocks:
-        {% if block_status == 'active' %}
-        Showing all active (paid) blocks
+        {% if block_status == 'current' %}
+        Showing all current (paid and unpaid) blocks
+        {% elif block_status == 'active' %}
+        Showing all active (current and paid) blocks
         {% elif block_status == 'unpaid' %}
-        Showing all unpaid blocks
+        Showing all current but unpaid blocks
         {% elif block_status == 'expired' %}
         Showing expired and full blocks
         {% elif block_status == 'all' %}
@@ -54,8 +56,7 @@
                                     <td class="table-center studioadmin-tbl">{{ block.bookings_made }}</td>
                                     <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
                                     <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.expiry_date | date:"Ymd"}}</span>{{ block.expiry_date | date:"d M Y"}}</td>
-                                    <td class="table-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
-                                                                             {% else %}<span class="fa fa-times" aria-label="No"></span>{% endif %}</td>
+                                    <td class="table-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>                                                                             {% else %}<span class="not-confirmed fa fa-times " aria-label="No"></span>{% endif %}</td>
 
                                 </tr>
                                 {% endfor %}

@@ -722,10 +722,14 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
     default_sort_params = ('block_type', 'asc')
 
     def get_queryset(self):
-        block_status = self.request.GET.get('block_status', 'active')
+        block_status = self.request.GET.get('block_status', 'current')
         all_blocks = Block.objects.all()
         if block_status == 'all':
             return all_blocks
+        elif block_status == 'current':
+            current = (block.id for block in all_blocks
+                      if not block.expired and not block.full)
+            return Block.objects.filter(id__in=current)
         elif block_status == 'active':
             active = (block.id for block in all_blocks if block.active_block())
             return Block.objects.filter(id__in=active)
@@ -742,7 +746,7 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
         context = super(BlockListView, self).get_context_data()
         context['sidenav_selection'] = 'blocks'
 
-        block_status = self.request.GET.get('block_status', 'active')
+        block_status = self.request.GET.get('block_status', 'current')
         form = BlockStatusFilter(initial={'block_status': block_status})
         context['form'] = form
         context['block_status'] = block_status
@@ -924,7 +928,7 @@ def email_users_view(request,
 
 @login_required
 @staff_required
-def user_bookings_view(request, user_id, booking_status='future_open'):
+def user_bookings_view(request, user_id, booking_status='future'):
     user = get_object_or_404(User, id=user_id)
 
     if request.method == 'POST':
@@ -1067,31 +1071,17 @@ def user_bookings_view(request, user_id, booking_status='future_open'):
     else:
         all_bookings = Booking.objects.filter(user=user)
 
-        if booking_status == 'past_open':
+        if booking_status == 'past':
             queryset = all_bookings.filter(
-                status='OPEN', event__date__lt=timezone.now()
-            ).order_by('event__date')
-            userbookingformset = UserBookingFormSet(
-                queryset=queryset, instance=user, user=user,
-            )
-        elif booking_status == 'future_cancelled':
-            queryset = all_bookings.filter(
-                status='CANCELLED', event__date__gte=timezone.now()
-            ).order_by('event__date')
-            userbookingformset = UserBookingFormSet(
-                queryset=queryset, instance=user, user=user,
-            )
-        elif booking_status == 'past_cancelled':
-            queryset = all_bookings.filter(
-                status='CANCELLED', event__date__lt=timezone.now()
+                event__date__lt=timezone.now()
             ).order_by('event__date')
             userbookingformset = UserBookingFormSet(
                 queryset=queryset, instance=user, user=user,
             )
         else:
-            # 'future_open' by default
+            # 'future' by default
             queryset = all_bookings.filter(
-                status='OPEN', event__date__gte=timezone.now()
+                event__date__gte=timezone.now()
             ).order_by('event__date')
             userbookingformset = UserBookingFormSet(
                 queryset=queryset, instance=user, user=user,
