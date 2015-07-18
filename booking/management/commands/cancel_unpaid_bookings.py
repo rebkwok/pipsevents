@@ -36,6 +36,7 @@ class Command(BaseCommand):
             status='OPEN',
             paid=False,
             payment_confirmed=False,
+            warning_sent=True,
             date_booked__lte=timezone.now() - timedelta(hours=4)):
 
             if booking.event.date - timedelta(

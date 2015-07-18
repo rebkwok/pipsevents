@@ -59,6 +59,7 @@ def get_bookings(num_hrs):
         event__payment_open=True,
         payment_confirmed=False,
         warning_sent=False,
+        date_booked__lte=timezone.now() - timedelta(hours=4)
         )
 
 
