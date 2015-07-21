@@ -149,9 +149,8 @@ def payment_received(sender, **kwargs):
                 obj.save()
 
                 ActivityLog.objects.create(log='{} id {} has been paid by PayPal; '
-                            'invoice {}, transaction id {}'.format(
-                    obj_type.title(), obj.id, paypal_trans.invoice_id,
-                    paypal_trans.transaction_id,
+                            'paypal {} id {}'.format(
+                    obj_type.title(), obj.id, obj_type, paypal_trans.id
                 ))
 
                 send_processed_payment_emails(obj_type, obj_id, paypal_trans,
