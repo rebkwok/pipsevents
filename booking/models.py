@@ -225,9 +225,7 @@ class Block(models.Model):
                 'unpaid'.format(booking.id, self.id)
             )
         super(Block, self).delete(*args, **kwargs)
-        ActivityLog.objects.create(
-            log='Block id {} deleted'.format(self.id)
-        )
+
 
 class Booking(models.Model):
     STATUS_CHOICES = (

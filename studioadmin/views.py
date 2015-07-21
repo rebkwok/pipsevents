@@ -1136,12 +1136,11 @@ def user_blocks_view(request, user_id):
                                 ,
                                 extra_tags='safe'
                             )
-                            block.delete()
                             ActivityLog.objects.create(
                                 log='Block {} (id {}) deleted by admin user {}'.format(
                                 form.instance, form.instance.id, request.user.username)
                             )
-
+                            block.delete()
                         else:
                             new = False if form.instance.id else True
                             msg = 'created' if new else 'updated'
