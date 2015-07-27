@@ -262,8 +262,7 @@ class LessonListViewTests(TestCase):
         Test that only user's booked events are shown as booked
         """
         events = Event.objects.filter(event_type__event_type="CL")
-        event1 = events[0]
-        event2 = events[1]
+        event1,  event2 = events[0:2]
 
         resp = self._get_response(self.user)
         # check there are no booked events yet
@@ -285,8 +284,7 @@ class LessonListViewTests(TestCase):
 
     def test_lesson_list_only_shows_open_bookings(self):
         events = Event.objects.filter(event_type__event_type="CL")
-        event1 = events[0]
-        event2 = events[1]
+        event1,  event2 = events[0:2]
 
         resp = self._get_response(self.user)
         # check there are no booked events yet

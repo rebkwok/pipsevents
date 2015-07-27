@@ -1,7 +1,8 @@
 import json
 from django.conf import settings
 from django.conf.urls import patterns, url
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect
@@ -9,6 +10,7 @@ from django.shortcuts import render, redirect
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django import forms
 from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
@@ -319,8 +321,8 @@ class BookingAdmin(admin.ModelAdmin):
 
 
 class BookingInLine(admin.TabularInline):
-    fields = ('event', )
-    readonly_fields = ('event',)
+    fields = ('event', 'user', 'paid', 'payment_confirmed', 'status')
+    readonly_fields = ('user', 'paid', 'payment_confirmed')
     model = Booking
     extra = 0
 
@@ -353,12 +355,15 @@ class BlockFilter(admin.SimpleListFilter):
             return queryset.filter(id__in=unpaid_ids)
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'paid')
-    readonly_fields = ('block_size', 'formatted_start_date', 'formatted_cost',
+    fields = ('user', 'block_type', 'formatted_cost', 'start_date', 'paid',
+              'formatted_expiry_date')
+    readonly_fields = ('formatted_cost',
                        'formatted_expiry_date')
     list_display = ('user', 'block_type', 'block_size', 'active_block',
                     'get_full', 'paid', 'formatted_expiry_date')
+    list_editable = ('paid', )
     list_filter = ('user', 'block_type__event_type', BlockFilter,)
+
 
     inlines = [BookingInLine, ]
     actions_on_top = True
@@ -374,14 +379,63 @@ class BlockAdmin(admin.ModelAdmin):
     def formatted_cost(self, obj):
         return u"\u00A3{:.2f}".format(obj.block_type.cost)
 
-    def formatted_start_date(self, obj):
-        return obj.start_date.strftime('%d %b %Y, %H:%M')
-    formatted_start_date.short_description = 'Start date'
-
     def formatted_expiry_date(self, obj):
         return obj.expiry_date.strftime('%d %b %Y, %H:%M')
     formatted_expiry_date.short_description = 'Expiry date'
 
+    def save_formset(self, request, form, formset, change):
+        if formset.model != Booking:
+            return super(BlockAdmin, self).save_formset(request, form, formset, change)
+
+        bookingformset = formset.save(commit=False)
+        block = form.save()
+
+        for booking in bookingformset:
+            if not booking.pk:
+                booking.user = block.user
+                try:
+                    booking.validate_unique()
+                except ValidationError:
+                    booking = Booking.objects.get(
+                        user=block.user, event=booking.event
+                    )
+                    repoened = False
+                    if booking.status=='CANCELLED':
+                        booking.status='OPEN'
+                        reopened = True
+                    messages.info(
+                        request,
+                        mark_safe('<a href={}>Booking {}</a> '
+                                  'with user {} and event {} {} and '
+                                  'has been associated with block {}. '.format(
+                            reverse('admin:booking_booking_change', args=[booking.id]),
+                            booking.id,
+                            booking.user.username, booking.event,
+                            'already existed' if not reopened else 'has been reopened',
+                            block.id
+                        )),
+                        extra_tags='safe'
+                    )
+                booking.paid = True
+                booking.payment_confirmed = True
+                booking.block = block
+                booking.save()
+            elif booking.status == 'CANCELLED':
+                booking.block = None
+                booking.paid = False
+                booking.payment_confirmed = False
+                booking.save()
+                messages.info(
+                    request,
+                    mark_safe('<a href={}>Booking {}</a> '
+                              'with user {} and event {} has been cancelled, '
+                              'set to unpaid and disassociated from block. '.format(
+                        reverse('admin:booking_booking_change', args=[booking.id]),
+                        booking.id,
+                        booking.user.username, booking.event
+                    )),
+                    extra_tags='safe'
+                )
 
 class BlockTypeAdmin(admin.ModelAdmin):
     list_display = ('event_type', 'size', 'formatted_cost',

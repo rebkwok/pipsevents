@@ -77,6 +77,9 @@ class Event(models.Model):
     email_studio_when_booked = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
+    class Meta:
+        ordering = ['-date']
+
     def spaces_left(self):
         if self.max_participants:
             booked_number = Booking.objects.filter(
@@ -161,6 +164,9 @@ class Block(models.Model):
         default=False,
         help_text='Payment has been made by user'
     )
+
+    class Meta:
+        ordering = ['user__username']
 
     def __str__(self):
         return "{} -- {} -- size {} -- start {}".format(

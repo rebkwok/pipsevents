@@ -102,13 +102,6 @@ class BlockAdminTests(TestCase):
             block_admin.formatted_cost(block_query), u"\u00A3{}".format(block.block_type.cost)
         )
         self.assertEqual(
-            block_admin.formatted_start_date(block_query),
-            block.start_date.strftime('%d %b %Y, %H:%M')
-        )
-        self.assertEqual(
             block_admin.formatted_expiry_date(block_query),
             block.expiry_date.strftime('%d %b %Y, %H:%M')
         )
-
-
-
