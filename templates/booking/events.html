@@ -10,11 +10,17 @@
         <div class="row">
             <div class="col-sm-12">
                 <p>Click on {% if type == 'events' %}event{% elif type == 'lessons' %}class{% endif %} name for more details</p>
+                {% if not user.is_authenticated %}
+                    <p><a href="{% url 'account_login' %}">Sign in</a> to book</p>
+                {% endif %}
                 <div class="panel panel-success">
 
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
+                                {% if user.is_authenticated %}
+                                    <th class="table-center">Booked</th>
+                                {% endif %}
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
                                 {% if type == 'events' %}
@@ -25,18 +31,35 @@
                                 <th class="hidden-xs table-center">Spaces left</th>
                                 <th class="hidden-sm hidden-xs table-center">Booking open</th>
                                 <th class="hidden-sm hidden-xs table-center">Payment open</th>
-                                <th class="table-center">Booked</th>
                             </tr>
                             <tr class="filter-row">
                                 <td class="filter-row" colspan=9>
                                 <form class="filter-row" action="" method="get">
-                                    <strong>Filter by {% if type == 'events' %}event name{% elif type == 'lessons' %}class type{% endif %}: {{ form.name }}</strong>
-                                    <input class="btn btn-info table-btn" type="submit" value="Submit" />
+                                    <strong>
+                                        <input class="btn btn-info table-btn" type="submit" value="Filter" /> {{ form.name }}</strong>
+
                                 </form>
                                 </td>
                             </tr>
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
+                                {% if user.is_authenticated %}
+                                    <td class="table-center">{% if event in booked_events %}<span class="fa fa-check"></span>{% endif %}
+                                        {% if event not in booked_events %}
+                                            {% if event.bookable %}
+                                                <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
+                                            {% elif event.external_instructor %}
+                                                {% if type == 'events' %}
+                                                    <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
+                                                {% elif type == 'lessons' %}
+                                                    <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
+                                                {% endif %}
+                                                Further details</a>
+                                            {% else %}
+                                                <div class="disabled btn btn-success table-btn">Book</div>
+                                            {% endif %}
+                                        {% endif %}</td>
+                                    {% endif %}
                                     <td>{{ event.date | date:"D d M H:i" }}</td>
                                     <td>{% if type == 'events' %}
                                         <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
@@ -58,21 +81,6 @@
                                     <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
                                         {% else %}N/A{% endif %}</td>
-                                    <td class="table-center">{% if event in booked_events %}<span class="fa fa-check"></span>{% endif %}
-                                        {% if event not in booked_events %}
-                                            {% if event.bookable %}
-                                                <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
-                                            {% elif event.external_instructor %}
-                                                {% if type == 'events' %}
-                                                    <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
-                                                {% elif type == 'lessons' %}
-                                                    <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
-                                                {% endif %}
-                                                Further details</a>
-                                            {% else %}
-                                                <div class="disabled btn btn-success table-btn">Book</div>
-                                            {% endif %}
-                                        {% endif %}</td>
                                 </tr>
                             {% endfor %}
                         </table>

@@ -19,6 +19,9 @@
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="success">
+                            {% if not history %}
+                            <th> </th>
+                            {% endif %}
                             <th>Date</th>
                             <th>Booking</th>
                             <th>Status</th>
@@ -26,36 +29,9 @@
                             <th class="table-center">Paid</th>
                             <th class="table-center">Block used</th>
                             <th class="hidden-sm hidden-xs table-center">Place confirmed</th>
-                            {% if not history %}
-                            <th> </th>
-                            {% endif %}
                         </tr>
                         {% for bookingform in bookingformlist %}
                             <tr {% if bookingform.booking.status == 'CANCELLED' %}class='expired'{% endif %}>
-                                <td>{{ bookingform.booking.event.date |  date:"D d M H:i" }}</td>
-                                <td>
-                                    {% if bookingform.ev_type == 'EV' %}
-                                    <a href="{% url 'booking:event_detail' bookingform.booking.event.slug %}">
-                                        {{ bookingform.booking.event.name }}</a>
-                                    {% else %}
-                                    <a href="{% url 'booking:lesson_detail' bookingform.booking.event.slug %}">
-                                        {{ bookingform.booking.event.name }}</a>
-                                    {% endif %}
-                                    </td>
-                                <td>{{ bookingform.booking.status }}</td>
-                                <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
-                                <td class="table-center">{% if bookingform.booking.free_class %}<span class="confirmed">Free class</span>{% elif bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>
-                                    {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed fa fa-close"></span>
-                                    {% else %}<strong>N/A</strong>{% endif %}</td>
-                                <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
-                                    {% else %}<strong>N/A</strong>{% endif %}</td>
-                                {% if bookingform.booking.space_confirmed %}
-                                    <td class="hidden-sm hidden-xs table-center confirmed fa fa-check"></td>
-                                    {% elif bookingform.booking.status == 'CANCELLED' %}
-                                    <td class="hidden-sm hidden-xs table-center not-confirmed fa fa-close"></td>
-                                    {% else %}
-                                    <td class="hidden-sm hidden-xs table-center not-confirmed"> Pending</td>
-                                {% endif %}
 
                                 {% if not history %}
                                     <td>
@@ -85,6 +61,32 @@
                                         {% endif %}
                                     </td>
                                 {% endif %}
+
+                                <td>{{ bookingform.booking.event.date |  date:"D d M H:i" }}</td>
+                                <td>
+                                    {% if bookingform.ev_type == 'EV' %}
+                                    <a href="{% url 'booking:event_detail' bookingform.booking.event.slug %}">
+                                        {{ bookingform.booking.event.name }}</a>
+                                    {% else %}
+                                    <a href="{% url 'booking:lesson_detail' bookingform.booking.event.slug %}">
+                                        {{ bookingform.booking.event.name }}</a>
+                                    {% endif %}
+                                    </td>
+                                <td>{{ bookingform.booking.status }}</td>
+                                <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
+                                <td class="table-center">{% if bookingform.booking.free_class %}<span class="confirmed">Free class</span>{% elif bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>
+                                    {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed fa fa-close"></span>
+                                    {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
+                                    {% else %}<strong>N/A</strong>{% endif %}</td>
+                                {% if bookingform.booking.space_confirmed %}
+                                    <td class="hidden-sm hidden-xs table-center confirmed fa fa-check"></td>
+                                    {% elif bookingform.booking.status == 'CANCELLED' %}
+                                    <td class="hidden-sm hidden-xs table-center not-confirmed fa fa-close"></td>
+                                    {% else %}
+                                    <td class="hidden-sm hidden-xs table-center not-confirmed"> Pending</td>
+                                {% endif %}
+
                             </tr>
                         {% endfor %}
                     </table>

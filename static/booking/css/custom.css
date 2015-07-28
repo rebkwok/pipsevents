@@ -449,6 +449,7 @@ td {
     margin-top: 0;
     margin-bottom: 0;
     height: 85%;
+	width: 8.3em;
     }
 
 .paypal-btn-form {
@@ -725,4 +726,11 @@ a > span.fa.fa-print {
 .header-not-bold{
 	font-weight: normal;
 	vertical-align: top;
+}
+
+@media (max-width: 767px) {
+	h1 {
+		font-size: x-large;
+		font-weight: bold;
+	}
 }
