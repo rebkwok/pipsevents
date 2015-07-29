@@ -27,7 +27,6 @@ class EventBaseFormSet(BaseModelFormSet):
                     'class': "regular-checkbox studioadmin-list",
                     'id': 'booking_open_{}'.format(index)
                 }),
-                initial=form.instance.booking_open,
                 required=False
             )
             form.booking_open_id = 'booking_open_{}'.format(index)
@@ -37,20 +36,19 @@ class EventBaseFormSet(BaseModelFormSet):
                     'class': "regular-checkbox studioadmin-list",
                     'id': 'payment_open_{}'.format(index)
                 }),
-                initial=form.instance.payment_open,
                 required=False
             )
             form.payment_open_id = 'payment_open_{}'.format(index)
 
-            form.fields['cost'] = forms.DecimalField(
-                widget=forms.TextInput(attrs={
-                    'type': 'text',
-                    'class': 'form-control studioadmin-list',
-                    'aria-describedby': 'sizing-addon3',
+            form.fields['advance_payment_required'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'advance_payment_required_{}'.format(index)
                 }),
-                initial=form.instance.cost,
                 required=False
             )
+            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
+
             form.fields['max_participants'] = forms.IntegerField(
                 widget=forms.TextInput(attrs={
                     'type': 'text',
@@ -82,8 +80,8 @@ class EventBaseFormSet(BaseModelFormSet):
 EventFormSet = modelformset_factory(
     Event,
     fields=(
-        'cost', 'max_participants',
-        'booking_open', 'payment_open'
+        'max_participants',
+        'booking_open', 'payment_open', 'advance_payment_required'
     ),
     formset=EventBaseFormSet,
     extra=0,
@@ -411,7 +409,6 @@ class SessionBaseFormSet(BaseModelFormSet):
                     'class': "regular-checkbox studioadmin-list",
                     'id': 'booking_open_{}'.format(index)
                 }),
-                initial=form.instance.booking_open,
                 required=False
             )
             form.booking_open_id = 'booking_open_{}'.format(index)
@@ -425,6 +422,15 @@ class SessionBaseFormSet(BaseModelFormSet):
                 required=False
             )
             form.payment_open_id = 'payment_open_{}'.format(index)
+
+            form.fields['advance_payment_required'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'advance_payment_required_{}'.format(index)
+                }),
+                required=False
+            )
+            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
             form.fields['cost'] = forms.DecimalField(
                 widget=forms.TextInput(attrs={
@@ -456,7 +462,10 @@ class SessionBaseFormSet(BaseModelFormSet):
 
 TimetableSessionFormSet = modelformset_factory(
     Session,
-    fields=('cost', 'max_participants', 'booking_open', 'payment_open'),
+    fields=(
+        'cost', 'max_participants', 'booking_open',
+        'payment_open', 'advance_payment_required'
+    ),
     formset=SessionBaseFormSet,
     extra=0,
     can_delete=True)

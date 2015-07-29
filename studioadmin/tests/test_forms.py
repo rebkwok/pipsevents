@@ -40,10 +40,10 @@ class EventFormSetTests(TestCase):
             'form-TOTAL_FORMS': 1,
             'form-INITIAL_FORMS': 1,
             'form-0-id': str(self.event.id),
-            'form-0-cost': '7',
             'form-0-max-participants': '10',
             'form-0-booking_open': 'on',
             'form-0-payment_open': 'on',
+            'form-0-advance_payment_required': 'on',
             }
 
         for key, value in extra_data.items():
@@ -54,13 +54,6 @@ class EventFormSetTests(TestCase):
     def test_event_formset_valid(self):
         formset = EventFormSet(data=self.formset_data())
         self.assertTrue(formset.is_valid())
-
-    def test_event_formset_not_valid(self):
-        formset = EventFormSet(
-            data=self.formset_data({'form-0-cost': 'seven'})
-        )
-        self.assertIn({'cost': ['Enter a number.']}, formset.errors)
-        self.assertFalse(formset.is_valid())
 
     def test_event_formset_delete(self):
         extra_data = {
