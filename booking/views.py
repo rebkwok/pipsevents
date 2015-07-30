@@ -295,7 +295,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         context['ev_type'] = ev_type
 
-        if self.event.event_type.subtype == "Pole level class":
+        if self.event.event_type.subtype == "Pole level class" or \
+            (self.event.event_type.subtype == "Pole practice" and \
+            self.request.user.has_perm('booking.can_book_free_pole_practice')):
             context['can_be_free_class'] = True
 
         return context
@@ -665,7 +667,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             blocktype_available = self.event.event_type in blocktypes
             context['blocktype_available'] = blocktype_available
 
-        if self.object.event.event_type.subtype == "Pole level class":
+        if self.event.event_type.subtype == "Pole level class" or \
+            (self.event.event_type.subtype == "Pole practice" and \
+            self.request.user.has_perm('booking.can_book_free_pole_practice')):
             context['can_be_free_class'] = True
 
         invoice_id = create_booking_paypal_transaction(

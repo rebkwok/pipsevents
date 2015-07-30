@@ -818,9 +818,6 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             form.fields['event'] = (forms.ModelChoiceField(
                 queryset=Event.objects.all(),
             ))
-            form.can_be_free_class = True \
-                if form.instance.event.event_type.subtype == "Pole level class" \
-                else False
 
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
@@ -911,9 +908,6 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                         form.add_error('block', error_msg)
             if block and free_class:
                 error_msg = '"Free class" cannot be assigned to a block.'
-                form.add_error('free_class', error_msg)
-            if free_class and event.event_type.subtype != "Pole level class":
-                error_msg = '"Free class" can only be applied to pole level classes.'
                 form.add_error('free_class', error_msg)
 
 

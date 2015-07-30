@@ -265,6 +265,15 @@ class Booking(models.Model):
     warning_sent = models.BooleanField(default=False)
     free_class = models.BooleanField(default=False)
 
+    class Meta:
+        unique_together = ('user', 'event')
+        permissions = (
+            ("can_book_free_pole_practice", "Can book free pole practice"),
+        )
+
+    def __str__(self):
+        return "{} - {}".format(str(self.event.name), str(self.user.username))
+
     def confirm_space(self):
         if self.event.cost:
             self.paid = True
@@ -285,12 +294,6 @@ class Booking(models.Model):
             or self.event.cost == 0 \
             or self.payment_confirmed
     space_confirmed.boolean = True
-
-    class Meta:
-        unique_together = ('user', 'event')
-
-    def __str__(self):
-        return "{} - {}".format(str(self.event.name), str(self.user.username))
 
     def save(self, *args, **kwargs):
         if self.payment_confirmed and not self.date_payment_confirmed:

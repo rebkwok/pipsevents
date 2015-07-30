@@ -2511,33 +2511,6 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         bookings = Booking.objects.filter(event=event1)
         self.assertEqual(len(bookings), 0)
 
-    def test_can_only_make_level_classes_free(self):
-        event1 = mommy.make_recipe(
-            'booking.future_PC',
-            event_type__subtype='Other class'
-        )
-
-        form_data = self.formset_data(
-            {
-                'bookings-TOTAL_FORMS': 3,
-                'bookings-2-event': event1.id,
-                'bookings-2-status': 'OPEN',
-                'bookings-2-free_class': True
-            }
-        )
-        resp = self._post_response(
-            self.staff_user, self.user.id, form_data=form_data
-        )
-        errors = resp.context_data['userbookingformset'].errors
-        self.assertIn(
-            {
-                'free_class': ['"Free class" can only be applied to pole ' \
-                'level classes.']
-            },
-            errors)
-        bookings = Booking.objects.filter(event=event1)
-        self.assertEqual(len(bookings), 0)
-
     def test_confirmation_email_sent_if_data_changed(self):
         form_data = self.formset_data(
             {

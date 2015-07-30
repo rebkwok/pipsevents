@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 ]
                 paid_booking_ids = [
                     booking.id for booking in bookings_without_block if
-                    booking.paid
+                    booking.paid and not booking.free_class
                 ]
                 paid_bookings = [
                     str(id) for id in paid_booking_ids

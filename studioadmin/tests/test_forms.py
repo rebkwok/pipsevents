@@ -761,44 +761,6 @@ class UserBookingFormSetTests(TestCase):
         self.assertTrue(form.has_available_block)
         self.assertEquals(form.paid_id, 'paid_0')
 
-    def test_can_be_free_class(self):
-        booking = mommy.make_recipe(
-            'booking.booking',
-            event__event_type__subtype='Pole level class',
-            status='OPEN',
-            user=self.user
-        )
-
-        data = self.formset_data(
-            {'bookings-0-id': booking.id,
-            'bookings-0-event': booking.event.id,
-            'bookings-0-status': booking.status}
-        )
-
-        formset = UserBookingFormSet(data=data,
-                                     instance=self.user,
-                                     user=self.user)
-        form = formset.forms[0]
-        self.assertTrue(form.can_be_free_class)
-
-        booking = mommy.make_recipe(
-            'booking.booking',
-            event__event_type__subtype='Other',
-            status='OPEN',
-            user=self.user
-        )
-        data = self.formset_data(
-            {'bookings-0-id': booking.id,
-            'bookings-0-event': booking.event.id,
-            'bookings-0-status': booking.status}
-        )
-
-        formset = UserBookingFormSet(data=data,
-                                     instance=self.user,
-                                     user=self.user)
-        form = formset.forms[0]
-        self.assertFalse(form.can_be_free_class)
-
     def test_block_queryset_with_new_form(self):
         """
         New form should show all active user blocks

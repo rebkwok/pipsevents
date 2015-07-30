@@ -8,6 +8,7 @@ from django.test import TestCase, RequestFactory
 from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
+from django.contrib.auth.models import Permission
 
 from booking.forms import BlockCreateForm
 from booking.models import Event, Booking, Block
@@ -697,6 +698,43 @@ class BookingCreateViewTests(TestCase):
         self.assertEqual(bookings.count(), 0)
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_free_class_context(self):
+        """
+        Test that only pole classes can be requested as free
+        """
+        pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
+        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+
+        pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
+        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+
+        response = self._get_response(self.user, pole_class)
+        self.assertIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(self.user, pole_practice)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+    def test_free_class_context_with_permission(self):
+        """
+        Test that pole classes and pole practice can be requested as free if
+        user has 'can_book_free_pole_practice' permission
+        """
+        pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
+        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+
+        pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
+        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+
+        user = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='can_book_free_pole_practice')
+        user.user_permissions.add(perm)
+        user.save()
+
+        response = self._get_response(user, pole_class)
+        self.assertIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, pole_practice)
+        self.assertIn('can_be_free_class', response.context_data)
 
 class BookingErrorRedirectPagesTests(TestCase):
 

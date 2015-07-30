@@ -56,12 +56,7 @@
                                         <td class="table-center studioadmin-tbl">N/A</td>
                                         <span class="hide">{{ booking.paid }}</span>
                                     {% endif %}
-                                    {% if booking.can_be_free_class %}
                                     <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
-                                    {% else %}
-                                    <td class="table-center studioadmin-tbl">N/A</td>
-                                    <span class="hide">{{ booking.free_class }}</span>
-                                    {% endif %}
                                     <td class="table-center studioadmin-tbl">{% if booking.instance.block and booking.instance.paid %}
                                         <div class="form-group form-group-sm">{{ booking.block }}</div>
                                         {% elif booking.instance.free_class %}
