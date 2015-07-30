@@ -17,8 +17,7 @@ from django.template.loader import get_template
 from django.template import Context
 from braces.views import LoginRequiredMixin
 
-from paypal.standard.forms import PayPalPaymentsForm
-from payments.forms import PayPalPaymentsListForm
+from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType
@@ -676,7 +675,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             self.request.user, self.object
         ).invoice_id
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-        paypal_form = PayPalPaymentsForm(
+        paypal_form = PayPalPaymentsUpdateForm(
             initial=context_helpers.get_paypal_dict(
                 host,
                 self.object.event.cost,
