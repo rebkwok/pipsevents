@@ -14,6 +14,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Block, Booking, Event, EventType, BlockType
 from timetable.models import Session
+from payments.models import PaypalBookingTransaction
 
 
 class EventBaseFormSet(BaseModelFormSet):
@@ -776,7 +777,13 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         super(UserBookingInlineFormSet, self).add_fields(form, index)
 
         if form.instance.id:
-            camcelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
+            ppbs = PaypalBookingTransaction.objects.filter(
+                booking_id=form.instance.id
+            )
+            form.paypal = True if ppbs else False
+
+            cancelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
+
             if form.instance.block is None:
                 active_user_blocks = [
                     block.id for block in Block.objects.filter(
@@ -787,17 +794,18 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 form.has_available_block = True if active_user_blocks else False
                 form.fields['block'] = (UserBlockModelChoiceField(
                     queryset=Block.objects.filter(id__in=active_user_blocks),
-                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(camcelled_class)}),
+                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
                     required=False,
                     empty_label="---Choose from user's available active blocks---"
                 ))
             else:
                 form.fields['block'] = (UserBlockModelChoiceField(
                     queryset=Block.objects.filter(id=form.instance.block.id),
-                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(camcelled_class)}),
+                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
                     required=False,
                     empty_label="---Unselect block (change booking to unpaid)---"
                 ))
+
         else:
             active_blocks = [
                 block.id for block in Block.objects.filter(user=self.user)

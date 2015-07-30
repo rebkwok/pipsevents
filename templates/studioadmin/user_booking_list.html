@@ -34,6 +34,7 @@
                                 <th>Date</th>
                                 <th>Class/Event</th>
                                 <th class="table-center">Paid</th>
+                                <th class="table-center">PayPal ID</th>
                                 <th class="table-center">Free class?</th>
                                 <th class="table-center">Block used</th>
                                 <th class="table-center">Booking status</th>
@@ -56,6 +57,13 @@
                                         <td class="table-center studioadmin-tbl">N/A</td>
                                         <span class="hide">{{ booking.paid }}</span>
                                     {% endif %}
+                                    <td class="table-center studioadmin-tbl">
+                                        {% if booking.paypal %}
+                                            <span class="fa fa-check"></span>
+                                        {% else %}
+                                            <span class="fa fa-times"></span>
+                                        {% endif %}
+                                    </td>
                                     <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
                                     <td class="table-center studioadmin-tbl">{% if booking.instance.block and booking.instance.paid %}
                                         <div class="form-group form-group-sm">{{ booking.block }}</div>
@@ -75,6 +83,7 @@
                                     <td class="studioadmin-tbl"><strong>New booking</strong></td>
                                     <td class="studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.event }}</div></td>
                                     <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
+                                    <td></td>
                                     <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
                                     <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.block }}</div></td>
                                     <td class="table-center studioadmin-tbl">OPEN</td>
