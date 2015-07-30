@@ -734,3 +734,7 @@ a > span.fa.fa-print {
 		font-weight: bold;
 	}
 }
+
+a.btn.table-btn {
+	color: #fff !important;
+}
