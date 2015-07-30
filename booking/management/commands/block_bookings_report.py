@@ -73,8 +73,7 @@ class Command(BaseCommand):
                 ppbs = PaypalBookingTransaction.objects.filter(
                     booking_id__in=paid_booking_ids
                 )
-                paid_with_paypal = [str(ppb.booking_id) for ppb in ppbs if ppb.paypal_transaction_id is not None]
-
+                paid_with_paypal = [str(ppb.booking_id) for ppb in ppbs if ppb.transaction_id is not None]
                 self.stdout.write(
                     '{} booking{} unpaid or not marked as '
                     'payment_confirmed (ids {})'.format(
@@ -92,7 +91,8 @@ class Command(BaseCommand):
                 )
                 if paid_with_paypal:
                     self.stdout.write(
-                        'Paid booking ids with associated paypal transaction ' 'ids: '.format(
+                        'Paid booking ids that have been paid directly with '
+                        'paypal: {}'.format(
                             ', '.join(paid_with_paypal)
                         )
                     )
@@ -106,6 +106,8 @@ class Command(BaseCommand):
                     'ids {unpaid_ids}\n'
                     '{num_paid} paid bookings booked since the block start '
                     'date but not using block: ids {paid_ids}\n'
+                    'Paid bookings that were paid directly with paypal: '
+                    'ids {paypal_paid_ids}\n'
                     'Check bookings for the users associated with these '
                     ' blocks'.format(
                         block_user=block.user.username,
@@ -113,7 +115,8 @@ class Command(BaseCommand):
                         num_unpaid=len(unpaid_bookings),
                         unpaid_ids=',' .join(unpaid_bookings),
                         num_paid=len(paid_bookings),
-                        paid_ids=', '.join(paid_bookings)
+                        paid_ids=', '.join(paid_bookings),
+                        paypal_paid_ids=', '.join(paid_with_paypal)
                     ),
                     settings.DEFAULT_FROM_EMAIL,
                     [settings.SUPPORT_EMAIL],
