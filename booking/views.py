@@ -664,11 +664,11 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             blocktypes = [
                 blocktype.event_type for blocktype in BlockType.objects.all()
                 ]
-            blocktype_available = self.event.event_type in blocktypes
+            blocktype_available = self.object.event.event_type in blocktypes
             context['blocktype_available'] = blocktype_available
 
-        if self.event.event_type.subtype == "Pole level class" or \
-            (self.event.event_type.subtype == "Pole practice" and \
+        if self.object.event.event_type.subtype == "Pole level class" or \
+            (self.object.event.event_type.subtype == "Pole practice" and \
             self.request.user.has_perm('booking.can_book_free_pole_practice')):
             context['can_be_free_class'] = True
 

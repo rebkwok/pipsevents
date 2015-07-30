@@ -8,9 +8,15 @@
             <div class="panel-heading">
                 <h1 class="panel-title">Your booking for {{ booking.event.name }}</h1>
             </div>
-           <div class="panel-body">
+            <div class="panel-body">
+                <h4>Book as drop in</h4>
+                <p>Click below to be transferred to paypal to make your payment.</p>
+                {% include 'payments/payment.html' %}
+            </div>
+            <div class="panel-body">
             {% if booking.event.cost != 0 %}
                    <form action="" method="post">{% csrf_token %}
+                       <span class="divider"></span>
                         <span class="hide">{{ form.paid  }}</span>
                         <div>
                         {% if active_user_block %}
@@ -33,12 +39,7 @@
                         {% endif %}
                     </form>
            </div>
-           <span class="divider"></span>
-           <div class="panel-body">
-               <h4>Book as drop in</h4>
-               <p>Click below to be transferred to paypal to make your payment.</p>
-               {% include 'payments/payment.html' %}
-           </div>
+
                 {% else %}
            <div class="panel-body">
                <h5>There is no cost associated with this event.</h5>

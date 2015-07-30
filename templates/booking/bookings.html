@@ -37,17 +37,12 @@
                                     <td>
                                         {% if bookingform.booking.event.cost > 0 and not bookingform.booking.paid %}
                                         <div class="inc-btm-space">
-                                        {% if bookingform.has_available_block %}
                                             {% if bookingform.booking.status == 'OPEN' %}
                                              <a {% if not bookingform.booking.event.payment_open %}class="disabled"{% endif %}href="{% url 'booking:update_booking' bookingform.booking.pk %}">
                                                  <div type="button" {% if not bookingform.booking.event.payment_open %}disabled{% endif %} class="btn btn-success table-btn booking-btn">Payment options</div>
                                              </a>
                                             {% endif %}
-                                         {% elif bookingform.booking.event.payment_open %}
-                                            {% include 'payments/bookinglistpayment.html' %}
-                                         {% else %}
-                                              <div type="button" disabled class="btn btn-success table-btn booking-btn">Buy now</div>
-                                         {% endif %}
+
                                         </div>
                                         {% endif %}
                                         {% if bookingform.booking.status == 'OPEN' %}
