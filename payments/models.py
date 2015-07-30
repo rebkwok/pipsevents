@@ -74,9 +74,10 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
         fail_silently=False)
 
     ActivityLog.objects.create(log='Payment-processed email for {} {} sent to '
-        'studio ({}) and user {}'.format(
-        obj_type, obj_id, settings.DEFAULT_STUDIO_EMAIL, user.email
-    ))
+        'studio and user {} ({})'.format(
+            obj_type, obj_id, user.username, user.email
+        )
+    )
 
 
 def payment_received(sender, **kwargs):

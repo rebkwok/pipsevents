@@ -11,15 +11,19 @@ def get_event_context(context, event, user):
 
     if event.event_type.event_type == 'CL':
         context['type'] = "lesson"
+        event_type_str = "class"
     else:
         context['type'] = "event"
+        event_type_str = "event"
 
     if event.date <= timezone.now():
         context['past'] = True
 
     # payment info text to be displayed
     if event.cost == 0:
-        payment_text = "There is no cost associated with this event."
+        payment_text = "There is no cost associated with this {}.".format(
+            event_type_str
+        )
     else:
         if not event.payment_open:
             payment_text = "Online payments are not open. " + event.payment_info
@@ -40,19 +44,23 @@ def get_event_context(context, event, user):
     context['bookable'] = event.bookable()
     if booked:
         context['bookable'] = False
-        booking_info_text = "You have booked for this event."
+        booking_info_text = "You have booked for this {}.".format(event_type_str)
         if cancelled:
-            booking_info_text = "You have previously booked for this event and" \
-                                " cancelled."
+            booking_info_text = "You have previously booked for this {} and" \
+                                " cancelled.".format(event_type_str)
         context['booked'] = True
     elif event.event_type.subtype == "External instructor class":
         booking_info_text = "Please contact {} directly to book".format(event.contact_person)
     elif not event.booking_open:
-        booking_info_text = "Bookings are not open for this event."
+        booking_info_text = "Bookings are not open for this {}.".format(
+            event_type_str
+        )
     elif event.spaces_left() <= 0:
-        booking_info_text = "This event is now full."
+        booking_info_text = "This {} is now full.".format(event_type_str)
     elif not event.bookable():
-        booking_info_text = "Bookings for this event are now closed."
+        booking_info_text = "Bookings for this {} are now closed.".format(
+            event_type_str
+        )
 
     context['booking_info_text'] = booking_info_text
 
@@ -63,8 +71,10 @@ def get_booking_context(context, booking):
 
     if booking.event.event_type.event_type == 'CL':
         context['type'] = "lesson"
+        event_type_str = "class"
     else:
         context['type'] = "event"
+        event_type_str = "event"
 
     # past booking
     if booking.event.date < timezone.now():
@@ -72,7 +82,9 @@ def get_booking_context(context, booking):
 
     # payment info text to be displayed
     if booking.event.cost == 0:
-        payment_text = "There is no cost associated with this event."
+        payment_text = "There is no cost associated with this {}.".format(
+            event_type_str
+        )
     else:
         if not booking.event.payment_open:
             payment_text = "Online payments are not open. " + booking.event.payment_info
