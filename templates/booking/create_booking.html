@@ -33,10 +33,18 @@
                         {% endif %}
 
                         {% if not event.can_cancel %}
-                            <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.  If you choose to continue, you will not be able to cancel your booking.</p>
+                            <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.
+                                If you continue with the booking, you will not have the option to cancel it yourself.</p>
+                            {% if not event.advance_payment_required%}
+                                <p class="cancel-warning">Your payment will still be due even if you do not attend the {{ ev_type }}.</p>
+                            {% else %}
+                                <p class="cancel-warning">If payment has not been received within approximately
+                                    4 hours of booking, your booking will be automatically cancelled.</p>
+                            {% endif %}
                         {% else %}
                             <p>Cancellation is only allowed up to {{ event.cancellation_period | format_cancellation }}
-                            before the {{ ev_type }} date.</p>
+                            before the {{ ev_type }} date.  {% if event.advance_payment_required %}If payment has not been
+                            received by the cancellation period, your booking will be automatically cancelled. {% endif %}</p>
                         {% endif %}
 
 
@@ -52,11 +60,12 @@
 
                         {% if can_be_free_class %}
                         <input class="btn btn-success" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
-                        <p>** Please select this option only if you have a completed loyatly card and are eligible for a
+                        <p class="studioadmin-help">** Please select this option only if you have a completed loyatly card and are eligible for a
                             free class.  Your request to
                             claim your free class will be sent to the studio. <span class="cancel-warning">You will not be booked into
                             the class until the studio has reviewed and confirmed that you are eligible.</span></br>
-                            Please review the studio website for information on loyalty cards.</p>
+                            Please visit the studio <a target="_blank" href="http://thewatermelonstudio.co.uk/pricelist.php">website</a>
+                            for information on loyalty cards.</p>
                         {% endif %}
 
                     </div>

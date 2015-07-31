@@ -12,6 +12,7 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.template import Context
@@ -499,9 +500,15 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                                   'organiser has reviewed your payment status.'
                 )
             elif not booking.block:
+                cancellation_warning = ""
+                if booking.event.advance_payment_required:
+                    cancellation_warning = "Please note that if payment " \
+                        "has not been received by the cancellation period, " \
+                        "your booking will be automatically cancelled."
                 messages.info(
-                    self.request, 'Your place will be confirmed once your payment '
-                                  'has been received.'
+                    self.request, mark_safe('Your place will be confirmed '
+                        'once your payment has been received. '
+                        '<strong>{}</strong>'.format(cancellation_warning))
                 )
             elif not booking.block.active_block():
                 messages.info(self.request,
@@ -726,7 +733,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                     self.request,
                     "Your request to claim {} as a free class for has been "
                     "sent to the studio for review.  Your booking has not "
-                    "yet been marked as paid or confimred; if your free class "
+                    "yet been marked as paid or confirmed; if your free class "
                     "is approved, your booking will "
                     "be updated.".format(form.instance.event)
                 )
