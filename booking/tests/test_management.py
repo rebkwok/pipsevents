@@ -420,10 +420,9 @@ class EmailReminderAndWarningTests(TestCase):
             self.assertFalse(booking.warning_sent)
 
     @patch('booking.management.commands.email_warnings.timezone')
-    def test_email_warnings_not_sent_within_4_hrs_of_booking(self, mock_tz):
+    def test_email_warnings_not_sent_within_2_hrs_of_booking(self, mock_tz):
         """
-        test email warning is only sent for bookings that are not marked as
-        payment_confirmed
+        test email warning is only sent for bookings made more than 2 hrs ago
         """
         mock_tz.now.return_value = datetime(
             2015, 2, 10, tzinfo=timezone.utc
@@ -438,12 +437,12 @@ class EmailReminderAndWarningTests(TestCase):
         booking1 = mommy.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 9, 21, 30, tzinfo=timezone.utc)
             )
         booking2 = mommy.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
-            date_booked=datetime(2015, 2, 9, 20, 30, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 9, 22, 30, tzinfo=timezone.utc)
             )
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 1)

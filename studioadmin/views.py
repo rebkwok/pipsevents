@@ -17,18 +17,18 @@ from django.db.models import Q
 from django.template.loader import get_template
 from django.template import Context
 from django.template.response import TemplateResponse
-
 from django.shortcuts import HttpResponseRedirect, redirect, \
     render, get_object_or_404
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
-from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from booking import utils
-from booking.email_helpers import send_support_email
+from booking.email_helpers import send_support_email, send_waiting_list_email
 
 from timetable.models import Session
 from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
@@ -956,6 +956,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                 "sent to user.".format(form.instance.event))
                         else:
                             booking = form.save(commit=False)
+                            event_was_full = booking.event.spaces_left() == 0
                             action = 'updated' if form.instance.id else 'created'
                             if 'status' in form.changed_data and action == 'updated':
                                 if booking.status == 'CANCELLED':
@@ -964,8 +965,6 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     booking.block = None
                                     action = 'cancelled'
                                 elif booking.status == 'OPEN':
-                                    booking.paid = True
-                                    booking.payment_confirmed = True
                                     action = 'reopened'
 
                             if booking.block:
@@ -984,6 +983,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     booking.payment_confirmed = True
                                 else:
                                     booking.payment_confirmed = False
+                            booking.save()
 
                             set_as_free = 'free_class' in form.changed_data and booking.free_class
                             if 'send_confirmation' in form.changed_data:
@@ -1030,19 +1030,6 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     booking.event, action, send_confirmation_msg
                                 )
                             )
-                            if action == 'reopened':
-                                messages.info(
-                                    request, 'Note: this booking was previously '
-                                    'cancelled and has now been reopened.  The '
-                                    'booking has automatically been marked as paid '
-                                    'and payment confirmed.')
-                            elif action == 'cancelled':
-                                messages.info(
-                                    request, 'Note: this booking has been '
-                                    'cancelled.  The booking has automatically '
-                                    'been marked as unpaid (refunded) and, if '
-                                    'applicable, the block used has been updated.')
-                            booking.save()
                             ActivityLog.objects.create(
                                 log='Booking id {} (user {}) for "{}" {} '
                                         'by admin user {} {}'.format(
@@ -1051,6 +1038,72 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     "and marked as free class" if set_as_free else ""
                                 )
                             )
+
+                            if action == 'reopened':
+                                messages.info(
+                                    request, mark_safe(
+                                        'Note: this booking was previously '
+                                        'cancelled and has now been reopened. '
+                                        '<span class="cancel-warning">Payment '
+                                        'status has not been automatically '
+                                        'updated. Please review the booking '
+                                        'and update if paid '
+                                        'and/or block used.</span>'
+                                    )
+                                )
+                            elif action == 'cancelled':
+                                messages.info(
+                                    request, 'Note: this booking has been '
+                                    'cancelled.  The booking has automatically '
+                                    'been marked as unpaid (refunded) and, if '
+                                    'applicable, the block used has been updated.')
+
+                                if event_was_full:
+                                    waiting_list_users = WaitingListUser.objects.filter(
+                                        event=booking.event
+                                    )
+                                    if waiting_list_users:
+                                        try:
+                                            send_waiting_list_email(
+                                                booking.event,
+                                                [wluser.user for \
+                                                    wluser in waiting_list_users],
+                                                host='http://{}'.format(
+                                                    request.META.get('HTTP_HOST')
+                                                )
+                                            )
+                                            ActivityLog.objects.create(
+                                                log='Waiting list email sent to '
+                                                'user(s) {} for event {}'.format(
+                                                    ', '.join(
+                                                        [wluser.user.username \
+                                                            for wluser in \
+                                                            waiting_list_users]
+                                                    ),
+                                                    booking.event
+                                                )
+                                            )
+                                        except Exception as e:
+                                            # send mail to tech support with Exception
+                                            send_support_email(
+                                                e, __name__, "Automatic cancel job - waiting list email"
+                                            )
+
+                            if action == 'created' or action == 'reopened':
+                                try:
+                                    waiting_list_user = WaitingListUser.objects.get(
+                                        user=booking.user, event=booking.event
+                                    )
+                                    waiting_list_user.delete()
+                                    ActivityLog.objects.create(
+                                        log='User {} has been removed from the '
+                                        'waiting list for {}'.format(
+                                            booking.user.username,
+                                            booking.event
+                                        )
+                                    )
+                                except WaitingListUser.DoesNotExist:
+                                    pass
 
                         for error in form.errors:
                             messages.error(request, "{}".format(error),
@@ -1272,3 +1325,20 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
         context['form'] = form
 
         return context
+
+
+@login_required
+@staff_required
+def event_waiting_list_view(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    waiting_list_users = WaitingListUser.objects.filter(
+        event__id=event_id).order_by('user__username')
+    ev_type = 'classes' if event.event_type.event_type == 'CL' else 'events'
+
+    template = 'studioadmin/event_waiting_list.html'
+    return TemplateResponse(
+        request, template, {
+            'waiting_list_users': waiting_list_users, 'event': event,
+            'sidenav_selection': ev_type
+        }
+    )

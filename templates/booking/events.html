@@ -55,6 +55,10 @@
                                                     <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
                                                 {% endif %}
                                                 Further details</a>
+                                            {% elif event.booking_open and not event.bookable %}
+                                                <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                                    <input class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                                                </form>
                                             {% else %}
                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                             {% endif %}

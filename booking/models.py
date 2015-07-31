@@ -303,3 +303,23 @@ class Booking(models.Model):
             self.payment_confirmed = True
             self.block = None
         super(Booking, self).save(*args, **kwargs)
+
+
+class WaitingListUser(models.Model):
+    """
+    A model to represent a single user on a waiting list for an event
+
+    When a user cancels a booking OR when a booking is automatically cancelled,
+    or when an admin user cancels a booking from the studioadmin,
+    check if the event was full (i.e. there is now one space left), email
+    everyone on the waiting list.
+
+    When a user books, check if they have a WaitingListUser and delete it
+
+    In studio admin event list link to list of waiting list users
+
+    """
+    user = models.ForeignKey(User, related_name='waitinglists')
+    event = models.ForeignKey(Event, related_name='waitinglistusers')
+    # date user joined the waiting list
+    date_joined = models.DateTimeField(default=timezone.now)

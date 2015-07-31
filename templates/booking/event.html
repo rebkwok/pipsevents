@@ -63,6 +63,12 @@
                     {% if bookable %}
                         <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success">Book</div></a>
                     {% endif %}
+
+                    {% if event.booking_open and not event.bookable %}
+                        <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                            <input class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                        </form>
+                    {% endif %}
                 {% endif %}
 
             </div>

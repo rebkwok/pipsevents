@@ -16,7 +16,8 @@ from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, Booking, Block, BlockType, EventType
+from booking.models import Event, Booking, Block, BlockType, \
+    EventType, WaitingListUser
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
@@ -156,7 +157,9 @@ class EventAdmin(admin.ModelAdmin):
 
     fieldsets = [
         ('Event details', {
-            'fields': ('name', 'date', 'location', 'event_type', 'description')
+            'fields': (
+                'name', 'date', 'location', 'event_type', 'max_participants', 
+                'description')
         }),
         ('Contacts', {
             'fields': ('contact_person', 'contact_email', 'email_studio_when_booked')
@@ -451,8 +454,14 @@ class BlockTypeAdmin(admin.ModelAdmin):
     formatted_cost.short_description = "Cost"
 
 
+class WaitingListUserAdmin(admin.ModelAdmin):
+    fields = ('user', 'event')
+    list_display = ('user', 'event')
+
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(BlockType, BlockTypeAdmin)
 admin.site.register(EventType)
+admin.site.register(WaitingListUser, WaitingListUserAdmin)

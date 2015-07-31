@@ -9,7 +9,7 @@
         <h2>Scheduled {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
         {% if events %}
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-8">
                 <div class="panel panel-success">
 
                     <div class="table-responsive">
@@ -22,9 +22,9 @@
 
                             {% for event in events %}
                             <tr>
-                                <td>{{ event.date | date:"D d F, g:i a" }}</td>
-                                <td>{{ event.name }}</td>
-                                <td class="table-center">
+                                <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
+                                <td class="studioadmin-tbl">{{ event.name }}</td>
+                                <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
                                         <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">
                                             <span class="fa fa-external-link fa-lg"></span>

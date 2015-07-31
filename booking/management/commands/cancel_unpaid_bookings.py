@@ -17,7 +17,8 @@ from django.template import Context
 from django.core.management.base import BaseCommand
 from django.core import management
 
-from booking.models import Booking
+from booking.models import Booking, WaitingListUser
+from booking.email_helpers import send_support_email, send_waiting_list_email
 from activitylog.models import ActivityLog
 
 
@@ -48,6 +49,8 @@ class Command(BaseCommand):
                     bookings.append(booking)
 
         for booking in bookings:
+            event_was_full = booking.event.spaces_left() == 0
+
             ctx = Context({
                   'booking': booking,
                   'event': booking.event,
@@ -55,17 +58,23 @@ class Command(BaseCommand):
                   'time': booking.event.date.strftime('%I:%M %p'),
             })
             # send mails to users
-            send_mail('{} Booking cancelled: {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                get_template(
-                    'booking/email/booking_auto_cancelled.txt'
-                ).render(ctx),
-                settings.DEFAULT_FROM_EMAIL,
-                [booking.user.email],
-                html_message=get_template(
-                    'booking/email/booking_auto_cancelled.html'
+            try:
+                send_mail('{} Booking cancelled: {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                    get_template(
+                        'booking/email/booking_auto_cancelled.txt'
                     ).render(ctx),
-                fail_silently=False)
+                    settings.DEFAULT_FROM_EMAIL,
+                    [booking.user.email],
+                    html_message=get_template(
+                        'booking/email/booking_auto_cancelled.html'
+                        ).render(ctx),
+                    fail_silently=False)
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(
+                    e, __name__, "Automatic cancel job - cancelled email"
+                )
             booking.status = 'CANCELLED'
             booking.block = None
             booking.save()
@@ -75,6 +84,30 @@ class Command(BaseCommand):
                         booking.id, booking.event, booking.user
                 )
             )
+
+            if event_was_full:
+                waiting_list_users = WaitingListUser.objects.filter(
+                    event=booking.event
+                )
+                try:
+                    send_waiting_list_email(
+                        booking.event, [user.user for user in waiting_list_users]
+                    )
+                    ActivityLog.objects.create(
+                        log='Waiting list email sent to user(s) {} for '
+                        'event {}'.format(
+                            ', '.join(
+                                [wluser.user.username for \
+                                    wluser in waiting_list_users]
+                            ),
+                            booking.event
+                        )
+                    )
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "Automatic cancel job - waiting list email"
+                    )
 
         if bookings:
             # send single mail to Studio

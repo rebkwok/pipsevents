@@ -873,11 +873,14 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 elif event.event_type.event_type == 'EV':
                     ev_type = "event"
 
-                if not form.instance.id and event.spaces_left() == 0:
-                    error_msg = 'This {} is full.  You cannot make any more ' \
-                        'bookings.'.format(ev_type)
-                    form.add_error('event', error_msg)
-                    raise forms.ValidationError(error_msg)
+                if event.spaces_left() == 0:
+                    if not form.instance.id or \
+                        ('status' in form.changed_data and \
+                            form.instance.status == 'OPEN'):
+                        error_msg = 'This {} is full.  You cannot make any more ' \
+                            'bookings.'.format(ev_type)
+                        form.add_error('event', error_msg)
+                        raise forms.ValidationError(error_msg)
 
             if block and event:
                 if not block_tracker.get(block.id):

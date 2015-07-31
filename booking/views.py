@@ -21,11 +21,11 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, \
     get_event_names
 import booking.context_helpers as context_helpers
-from booking.email_helpers import send_support_email
+from booking.email_helpers import send_support_email, send_waiting_list_email
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
 
@@ -58,6 +58,7 @@ class EventListView(ListView):
             booked_events = [booking.event for booking in user_bookings
                              if not booking.status == 'CANCELLED']
             context['booked_events'] = booked_events
+
         context['type'] = 'events'
 
         event_name = self.request.GET.get('name', '')
@@ -242,9 +243,38 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     def get(self, request, *args, **kwargs):
         # redirect if fully booked or already booked
-        if self.event.spaces_left() == 0:
-            return HttpResponseRedirect(reverse('booking:fully_booked',
-                                        args=[self.event.slug]))
+        if self.event.spaces_left() <= 0:
+            if 'join waiting list' in request.GET:
+
+                waitinglistuser, new = WaitingListUser.objects.get_or_create(
+                        user=request.user, event=self.event
+                    )
+                if new:
+                    msg = 'You have been added to the waiting list for {}. ' \
+                        ' We will email you if a space becomes ' \
+                        'available.'.format(self.event)
+                    ActivityLog.objects.create(
+                        log='User {} has been added to the waiting list '
+                        'for {}'.format(
+                            request.user.username, self.event
+                        )
+                    )
+                else:
+                    msg = 'You are already on the waiting list for {}'.format(
+                            self.event
+                        )
+                messages.success(request, msg)
+
+                ev_type = 'lessons' \
+                    if self.event.event_type.event_type == 'CL' \
+                    else 'event'
+                return HttpResponseRedirect(
+                    reverse('booking:{}'.format(ev_type))
+                )
+            else:
+                return HttpResponseRedirect(
+                    reverse('booking:fully_booked', args=[self.event.slug])
+                )
         try:
             booking = Booking.objects.get(
                 user=self.request.user, event=self.event
@@ -261,46 +291,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingCreateView, self).get_context_data(**kwargs)
-
-        # find if block booking is available for this type of event
-        blocktypes = [
-            blocktype.event_type for blocktype in BlockType.objects.all()
-            ]
-        blocktype_available = self.event.event_type in blocktypes
-        context['blocktype_available'] = blocktype_available
-
-        # Add in the event name
-        context['event'] = self.event
-        user_blocks = self.request.user.blocks.all()
-        active_user_block = [
-            block for block in user_blocks
-            if block.block_type.event_type == self.event.event_type
-            and block.active_block()
-            ]
-        if active_user_block:
-            context['active_user_block'] = True
-
-        active_user_block_unpaid = [
-            block for block in user_blocks
-            if block.block_type.event_type == self.event.event_type
-            and not block.expired
-            and not block.full
-            and not block.paid
-             ]
-        if active_user_block_unpaid:
-            context['active_user_block_unpaid'] = True
-
-        ev_type = 'event' if \
-            self.event.event_type.event_type == 'EV' else 'class'
-
-        context['ev_type'] = ev_type
-
-        if self.event.event_type.subtype == "Pole level class" or \
-            (self.event.event_type.subtype == "Pole practice" and \
-            self.request.user.has_perm('booking.can_book_free_pole_practice')):
-            context['can_be_free_class'] = True
-
-        return context
+        updated_context = context_helpers.get_booking_create_context(
+            self.event, self.request, context
+        )
+        return updated_context
 
     def form_valid(self, form):
 
@@ -429,15 +423,28 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'ev_type': 'event' if
               self.event.event_type.event_type == 'EV' else 'class'
         })
-        send_mail('{} Booking for {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-            get_template('booking/email/booking_received.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
-            html_message=get_template(
-                'booking/email/booking_received.html'
-                ).render(ctx),
-            fail_silently=False)
+        try:
+            send_mail('{} Booking for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template('booking/email/booking_received.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_received.html'
+                    ).render(ctx),
+                fail_silently=False)
+            ActivityLog.objects.create(
+                log='Email sent to user {} regarding {}booking id {} '
+                '(for {})'.format(
+                    booking.user.username,
+                    're' if previously_cancelled else '', booking.id, booking.event
+                )
+            )
+        except Exception as e:
+            # send mail to tech support with Exception
+            send_support_email(e, __name__, "BookingCreateView")
+            messages.error(self.request, "An error occured, please contact "
+                "the studio for information")
         # send email to studio if flagged for the event or if previously
         # cancelled and direct paid
         if (booking.event.email_studio_when_booked or
@@ -466,6 +473,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                       settings.DEFAULT_FROM_EMAIL,
                       [settings.DEFAULT_STUDIO_EMAIL],
                       fail_silently=False)
+
             ActivityLog.objects.create(
                 log= 'Email sent to studio ({}) regarding {}booking id {} '
                 '(for {})'.format(
@@ -474,13 +482,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     booking.event
                 )
             )
-        ActivityLog.objects.create(
-            log='Email sent to user {} regarding {}booking id {} '
-            '(for {})'.format(
-                booking.user.username,
-                're' if previously_cancelled else '', booking.id, booking.event
-            )
-        )
+
         messages.success(
             self.request,
             self.success_message.format(
@@ -534,6 +536,20 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 except Exception as e:
                     # send mail to tech support with Exception
                     send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
+
+            try:
+                waiting_list_user = WaitingListUser.objects.get(
+                    user=booking.user, event=booking.event
+                )
+                waiting_list_user.delete()
+                ActivityLog.objects.create(
+                    log='User {} has been removed from the waiting list '
+                    'for {}'.format(
+                        booking.user.username, booking.event
+                    )
+                )
+            except WaitingListUser.DoesNotExist:
+                pass
 
         return HttpResponseRedirect(reverse('booking:bookings'))
 
@@ -878,6 +894,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
 
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
+        event_was_full = booking.event.spaces_left() == 0
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -889,14 +906,20 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                       'date': booking.event.date.strftime('%A %d %B'),
                       'time': booking.event.date.strftime('%I:%M %p'),
                       })
-        send_mail('{} Booking for {} cancelled'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-            get_template('booking/email/booking_cancelled.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
-            html_message=get_template(
-                'booking/email/booking_cancelled.html').render(ctx),
-            fail_silently=False)
+        try:
+            send_mail('{} Booking for {} cancelled'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template('booking/email/booking_cancelled.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_cancelled.html').render(ctx),
+                fail_silently=False)
+        except Exception as e:
+            # send mail to tech support with Exception
+            send_support_email(e, __name__, "DeleteBookingView - cancelled email")
+            messages.error(self.request, "An error occured, please contact "
+                "the studio for information")
 
         if not booking.block and booking.paid and not booking.free_class:
             # send email to studio
@@ -946,6 +969,34 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 booking.id, booking.event, booking.user.username
             )
         )
+
+        # if applicable, email users on waiting list
+        if event_was_full:
+            waiting_list_users = WaitingListUser.objects.filter(
+                event=booking.event
+            )
+            if waiting_list_users:
+                try:
+                    send_waiting_list_email(
+                        booking.event,
+                        [user.user for user in waiting_list_users],
+                        host='http://{}'.format(request.META.get('HTTP_HOST'))
+                    )
+                    ActivityLog.objects.create(
+                        log='Waiting list email sent to user(s) {} for '
+                        'event {}'.format(
+                            ', '.join(
+                                [user.username for user in waiting_list_users]
+                            ),
+                            booking.event
+                        )
+                    )
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(e, __name__, "DeleteBookingView - waiting list email")
+                    messages.error(self.request, "An error occured, please contact "
+                        "the studio for information")
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
