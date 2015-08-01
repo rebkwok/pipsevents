@@ -59,7 +59,7 @@
                         {% block left-nav-items %}
                         <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
                         <li class="active-nav"><a href="{% url 'booking:events' %}">Events and Workshops</a></li>
-                        {% if user.is_authenticated %}
+                        {% if request.user.is_authenticated %}
                            <li class="active-nav hidden-md hidden-sm"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
                             <li class="active-nav hidden-md hidden-sm"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>
                             <li class="active-nav hidden-md hidden-sm"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
@@ -87,13 +87,13 @@
 
                     <ul class="nav navbar-nav pull-right">
                         {% block admin-nav %}
-                            {% if user.is_staff %}
+                            {% if request.user.is_staff %}
                                <li class="active-nav"><a href="{% url 'studioadmin:lessons' %}">Studio Admin</a></li>
                             {% endif %}
                         {% endblock admin-nav %}
-                        {% if user.is_authenticated %}
+                        {% if request.user.is_authenticated %}
                         <li class="dropdown">
-                            <div class="welcome-menu">Signed in as {{user}}</div>
+                            <div class="welcome-menu">Signed in as {{request.user}}</div>
                           <a href="#" class="account-menu dropdown-toggle active-nav-login" data-toggle="dropdown" role="button" aria-expanded="false">Your account<span class="caret"></span></a>
                           <ul class="dropdown-menu" role="menu">
                             <li class="active-nav-login"><a href="{% url 'account_change_password' %}">Change password</a></li>

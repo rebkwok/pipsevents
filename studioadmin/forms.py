@@ -872,19 +872,29 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
             if form.instance.status == 'CANCELLED' and form.instance.block and \
                 'block' in form.changed_data:
-                error_msg = 'A cancelled booking cannot be assigned to a block.  Please change status of booking for {} to "OPEN" before assigning block'.format(event)
+                error_msg = 'A cancelled booking cannot be assigned to a ' \
+                    'block.  Please change status of booking for {} to "OPEN" ' \
+                    'before assigning block'.format(event)
                 form.add_error('block', error_msg)
                 raise forms.ValidationError(error_msg)
+
+            if event:
+                if event.event_type.event_type == 'CL':
+                    ev_type = "class"
+                elif event.event_type.event_type == 'EV':
+                    ev_type = "event"
+
+                if not form.instance.id and event.spaces_left() == 0:
+                    error_msg = 'This {} is full.  You cannot make any more ' \
+                        'bookings.'.format(ev_type)
+                    form.add_error('event', error_msg)
+                    raise forms.ValidationError(error_msg)
 
             if block and event:
                 if not block_tracker.get(block.id):
                     block_tracker[block.id] = 0
                 block_tracker[block.id] += 1
 
-                if event.event_type.event_type == 'CL':
-                    ev_type = "class"
-                elif event.event_type.event_type == 'EV':
-                    ev_type = "event"
                 if event.event_type != block.block_type.event_type:
                     available_block_type = BlockType.objects.filter(
                         event_type=event.event_type

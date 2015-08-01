@@ -2437,6 +2437,30 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(bookings), 0)
         self.assertEqual(Booking.objects.count(), 10)
 
+    def test_cannot_add_booking_to_full_event(self):
+        event = mommy.make_recipe('booking.future_EV', max_participants=2)
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event.id,
+                'bookings-2-status': 'OPEN'
+            }
+        )
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        errors = resp.context_data['userbookingformset'].errors
+        self.assertIn(
+            {
+                'event': [
+                    'This event is full.  You cannot make any more bookings.']
+            },
+            errors)
+         # new booking has not been made
+        bookings = Booking.objects.filter(event=event)
+        self.assertEqual(len(bookings), 2)
+
     def test_formset_unchanged(self):
         """
         test formset submitted unchanged redirects back to user bookings list
