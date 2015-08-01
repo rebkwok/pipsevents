@@ -24,6 +24,7 @@
                                 <th class="table-center">Max spaces</th>
                                 <th class="table-center">Booking open</th>
                                 <th class="table-center">Payment open</th>
+                                <th class="table-center">Advance payment required</th>
                                 <th class="table-center">Edit</th>
                                 <th class="table-center">Delete</th>
                             </tr>
@@ -34,12 +35,12 @@
                                 <td class="studioadmin-tbl">{{ session.formatted_day }}</td>
                                 <td class="studioadmin-tbl">{{ session.instance.time|time:"H:i" }}</td>
                                 <td class="studioadmin-tbl">{{ session.instance.name }}</td>
-                                <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input"><span class="input-group-addon" id="sizing-addon2">£</span>
-                                    {{ session.cost }}</div></td>
-                                <td class="table-center studioadmin-tbl"><div class="input-group input-group-sm custom-input">
-                                    {% if session.max_participants %}{{ session.max_participants }}{% else %}N/A{% endif %}</div></td>
+                                <td class="table-center studioadmin-tbl">£ {{ session.instance.cost }}</div></td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if session.max_participants %}{{ session.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">{{ session.booking_open }}<label for={{ session.booking_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ session.payment_open }}<label for={{ session.payment_open_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ session.advance_payment_required }}<label for={{ session.advance_payment_required_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:edit_session' session.instance.id %}"><span class="fa fa-pencil-square-o fa-lg"></a></td>
                                 <td class="table-center studioadmin-tbl">{{ session.DELETE }}<label for={{ session.DELETE_id }}></label></td>

@@ -14,6 +14,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Block, Booking, Event, EventType, BlockType
 from timetable.models import Session
+from payments.models import PaypalBookingTransaction
 
 
 class EventBaseFormSet(BaseModelFormSet):
@@ -27,7 +28,6 @@ class EventBaseFormSet(BaseModelFormSet):
                     'class': "regular-checkbox studioadmin-list",
                     'id': 'booking_open_{}'.format(index)
                 }),
-                initial=form.instance.booking_open,
                 required=False
             )
             form.booking_open_id = 'booking_open_{}'.format(index)
@@ -37,20 +37,19 @@ class EventBaseFormSet(BaseModelFormSet):
                     'class': "regular-checkbox studioadmin-list",
                     'id': 'payment_open_{}'.format(index)
                 }),
-                initial=form.instance.payment_open,
                 required=False
             )
             form.payment_open_id = 'payment_open_{}'.format(index)
 
-            form.fields['cost'] = forms.DecimalField(
-                widget=forms.TextInput(attrs={
-                    'type': 'text',
-                    'class': 'form-control studioadmin-list',
-                    'aria-describedby': 'sizing-addon3',
+            form.fields['advance_payment_required'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'advance_payment_required_{}'.format(index)
                 }),
-                initial=form.instance.cost,
                 required=False
             )
+            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
+
             form.fields['max_participants'] = forms.IntegerField(
                 widget=forms.TextInput(attrs={
                     'type': 'text',
@@ -82,8 +81,8 @@ class EventBaseFormSet(BaseModelFormSet):
 EventFormSet = modelformset_factory(
     Event,
     fields=(
-        'cost', 'max_participants',
-        'booking_open', 'payment_open'
+        'max_participants',
+        'booking_open', 'payment_open', 'advance_payment_required'
     ),
     formset=EventBaseFormSet,
     extra=0,
@@ -411,7 +410,6 @@ class SessionBaseFormSet(BaseModelFormSet):
                     'class': "regular-checkbox studioadmin-list",
                     'id': 'booking_open_{}'.format(index)
                 }),
-                initial=form.instance.booking_open,
                 required=False
             )
             form.booking_open_id = 'booking_open_{}'.format(index)
@@ -425,6 +423,15 @@ class SessionBaseFormSet(BaseModelFormSet):
                 required=False
             )
             form.payment_open_id = 'payment_open_{}'.format(index)
+
+            form.fields['advance_payment_required'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'advance_payment_required_{}'.format(index)
+                }),
+                required=False
+            )
+            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
             form.fields['cost'] = forms.DecimalField(
                 widget=forms.TextInput(attrs={
@@ -456,7 +463,10 @@ class SessionBaseFormSet(BaseModelFormSet):
 
 TimetableSessionFormSet = modelformset_factory(
     Session,
-    fields=('cost', 'max_participants', 'booking_open', 'payment_open'),
+    fields=(
+        'cost', 'max_participants', 'booking_open',
+        'payment_open', 'advance_payment_required'
+    ),
     formset=SessionBaseFormSet,
     extra=0,
     can_delete=True)
@@ -767,7 +777,13 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         super(UserBookingInlineFormSet, self).add_fields(form, index)
 
         if form.instance.id:
-            camcelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
+            ppbs = PaypalBookingTransaction.objects.filter(
+                booking_id=form.instance.id
+            )
+            form.paypal = True if ppbs else False
+
+            cancelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
+
             if form.instance.block is None:
                 active_user_blocks = [
                     block.id for block in Block.objects.filter(
@@ -778,17 +794,18 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 form.has_available_block = True if active_user_blocks else False
                 form.fields['block'] = (UserBlockModelChoiceField(
                     queryset=Block.objects.filter(id__in=active_user_blocks),
-                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(camcelled_class)}),
+                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
                     required=False,
                     empty_label="---Choose from user's available active blocks---"
                 ))
             else:
                 form.fields['block'] = (UserBlockModelChoiceField(
                     queryset=Block.objects.filter(id=form.instance.block.id),
-                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(camcelled_class)}),
+                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
                     required=False,
                     empty_label="---Unselect block (change booking to unpaid)---"
                 ))
+
         else:
             active_blocks = [
                 block.id for block in Block.objects.filter(user=self.user)

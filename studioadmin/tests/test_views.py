@@ -773,10 +773,10 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
             'form-TOTAL_FORMS': 1,
             'form-INITIAL_FORMS': 1,
             'form-0-id': str(self.event.id),
-            'form-0-cost': self.event.cost,
             'form-0-max-participants': self.event.max_participants,
             'form-0-booking_open': self.event.booking_open,
-            'form-0-payment_open': self.event.payment_open
+            'form-0-payment_open': self.event.payment_open,
+            'form-0-advance_payment_required': self.event.advance_payment_required
             }
 
         for key, value in extra_data.items():
@@ -845,7 +845,6 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
             'form-TOTAL_FORMS': 2,
             'form-INITIAL_FORMS': 2,
             'form-1-id': str(event.id),
-            'form-1-cost': '7',
             'form-1-max-participants': '10',
             'form-1-booking_open': 'on',
             'form-1-payment_open': 'on',
@@ -871,13 +870,13 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
     def test_can_update_existing_event(self):
-        self.assertEquals(self.event.cost, 7)
+        self.assertTrue(self.event.booking_open)
         formset_data = self.formset_data({
-            'form-0-cost': 10
+            'form-0-booking_open': 'false'
             })
         resp = self._post_response(self.staff_user, 'events', formset_data)
-        event = Event.objects.get(id=self.event.id)
-        self.assertEquals(event.cost, 10)
+        self.event.refresh_from_db()
+        self.assertFalse(self.event.booking_open)
 
     def test_submitting_valid_form_redirects_back_to_correct_url(self):
         resp = self._post_response(

@@ -733,6 +733,10 @@ a > span.fa.fa-print {
 		font-size: x-large;
 		font-weight: bold;
 	}
+th {
+	font-size: 0.9em;
+	word-wrap: normal !important;
+	white-space: normal !important;
 }
 
 a.btn.table-btn {
