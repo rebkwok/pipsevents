@@ -770,7 +770,8 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             ppbs = PaypalBookingTransaction.objects.filter(
                 booking_id=form.instance.id
             )
-            form.paypal = True if ppbs else False
+            ppbs_paypal =[True for ppb in ppbs if ppb.transaction_id]
+            form.paypal = True if ppbs_paypal else False
 
             cancelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
 
