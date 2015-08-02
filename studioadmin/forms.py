@@ -50,15 +50,6 @@ class EventBaseFormSet(BaseModelFormSet):
             )
             form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
-            form.fields['max_participants'] = forms.IntegerField(
-                widget=forms.TextInput(attrs={
-                    'type': 'text',
-                    'class': 'form-control studioadmin-list',
-                    'style': 'text-align: center; margin-left: 10;'
-                }),
-                initial=form.instance.max_participants,
-                required=False
-            )
             if form.instance.bookings.count() > 0:
                 form.fields['DELETE'] = forms.BooleanField(
                     widget=forms.CheckboxInput(attrs={
@@ -81,7 +72,6 @@ class EventBaseFormSet(BaseModelFormSet):
 EventFormSet = modelformset_factory(
     Event,
     fields=(
-        'max_participants',
         'booking_open', 'payment_open', 'advance_payment_required'
     ),
     formset=EventBaseFormSet,

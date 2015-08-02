@@ -323,6 +323,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
 def event_admin_list(request, ev_type):
 
     ev_type_abbreviation = 'EV' if ev_type == 'events' else 'CL'
+    ev_type_text = 'event' if ev_type == 'events' else 'class'
 
     queryset = Event.objects.filter(
         event_type__event_type=ev_type_abbreviation,
@@ -356,14 +357,16 @@ def event_admin_list(request, ev_type):
                             if 'DELETE' in form.changed_data:
                                 messages.info(
                                     request,
-                                    'Session <strong>{}</strong> has been deleted!'.format(
-                                        form.instance,
+                                    '{} <strong>{}</strong> has been deleted!'.format(
+                                        ev_type_text.title(), form.instance,
                                     ),
                                     extra_tags='safe'
                                 )
                                 ActivityLog.objects.create(
-                                    log='Session {} (id {}) deleted by admin user {}'.format(
-                                    form.instance, form.instance.id, request.user.username)
+                                    log='{} {} (id {}) deleted by admin user {}'.format(
+                                        ev_type_text.title(), form.instance,
+                                        form.instance.id, request.user.username
+                                    )
                                 )
                             else:
                                 for field in form.changed_data:
@@ -377,8 +380,10 @@ def event_admin_list(request, ev_type):
                                         extra_tags='safe'
                                     )
                                     ActivityLog.objects.create(
-                                        log='Session {} (id {}) updated by admin user {}'.format(
-                                            form.instance, form.instance.id, request.user.username
+                                        log='{} {} (id {}) updated by admin user {}'.format(
+                                            ev_type_text.title(),
+                                            form.instance, form.instance.id,
+                                            request.user.username
                                         )
                                     )
                             form.save()
