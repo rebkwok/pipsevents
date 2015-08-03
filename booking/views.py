@@ -23,7 +23,7 @@ from payments.models import PaypalBookingTransaction
 
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, \
-    get_event_names
+    LessonFilter, get_event_names
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
 from payments.helpers import create_booking_paypal_transaction, \
@@ -40,13 +40,19 @@ class EventListView(ListView):
     template_name = 'booking/events.html'
 
     def get_queryset(self):
+        if self.kwargs['ev_type'] == 'events':
+            ev_abbr = 'EV'
+        else:
+            ev_abbr = 'CL'
+
         name = self.request.GET.get('name')
+
         if name:
             return Event.objects.filter(
-                Q(event_type__event_type='EV') & Q(date__gte=timezone.now())
+                Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now())
                 & Q(name=name)).order_by('date')
         return Event.objects.filter(
-            (Q(event_type__event_type='EV') & Q(date__gte=timezone.now()))
+            (Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now()))
             ).order_by('date')
 
     def get_context_data(self, **kwargs):
@@ -57,12 +63,17 @@ class EventListView(ListView):
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings
                              if not booking.status == 'CANCELLED']
+            user_waiting_lists = WaitingListUser.objects.filter(user=self.request.user)
+            waiting_list_events = [wluser.event for wluser in user_waiting_lists]
             context['booked_events'] = booked_events
-
-        context['type'] = 'events'
+            context['waiting_list_events'] = waiting_list_events
+        context['type'] = self.kwargs['ev_type']
 
         event_name = self.request.GET.get('name', '')
-        form = EventFilter(initial={'name': event_name})
+        if self.kwargs['ev_type'] == 'events':
+            form = EventFilter(initial={'name': event_name})
+        else:
+            form = LessonFilter(initial={'name': event_name})
         context['form'] = form
         return context
 
@@ -74,69 +85,17 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(event_type__event_type='EV')
+        if self.kwargs['ev_type'] == 'event':
+            ev_abbr = 'EV'
+        else:
+            ev_abbr = 'CL'
+        queryset = Event.objects.filter(event_type__event_type=ev_abbr)
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data()
-        event = self.object
-        return context_helpers.get_event_context(
-            context, event, self.request.user
-        )
-
-
-class LessonFilter(forms.Form):
-    name = forms.ChoiceField(choices=get_event_names('CL'))
-
-
-class LessonListView(ListView):
-    model = Event
-    context_object_name = 'events'
-    template_name = 'booking/events.html'
-
-    def get_queryset(self):
-        name = self.request.GET.get('name')
-        if name:
-            return Event.objects.filter(
-                Q(event_type__event_type='CL') & Q(date__gte=timezone.now())
-                & Q(name=name)).order_by('date')
-        return Event.objects.filter(
-            (Q(event_type__event_type='CL') & Q(date__gte=timezone.now()))
-            ).order_by('date')
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(LessonListView, self).get_context_data(**kwargs)
-        if not self.request.user.is_anonymous():
-            # Add in the booked_events
-            user_bookings = self.request.user.bookings.all()
-            booked_events = [booking.event for booking in user_bookings
-                             if not booking.status == 'CANCELLED']
-            context['booked_events'] = booked_events
-        context['type'] = 'lessons'
-
-        event_name = self.request.GET.get('name', '')
-        form = LessonFilter(initial={'name': event_name})
-        context['form'] = form
-        return context
-
-
-class LessonDetailView(LoginRequiredMixin, DetailView):
-
-    model = Event
-    context_object_name = 'event'
-    template_name = 'booking/event.html'
-
-    def get_object(self):
-        queryset = Event.objects.filter(event_type__event_type='CL')
-
-        return get_object_or_404(queryset, slug=self.kwargs['slug'])
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(LessonDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
             context, event, self.request.user
@@ -687,6 +646,18 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
     success_message = 'Booking updated for {} on {}!'
     fields = ['paid']
 
+    def get(self, request, *args, **kwargs):
+        # redirect if cancelled
+        try:
+            booking = Booking.objects.get(
+                user=self.request.user, id=self.kwargs['pk'],
+                status='CANCELLED'
+            )
+            return HttpResponseRedirect(reverse('booking:update_booking_cancelled',
+                                        args=[booking.id]))
+        except Booking.DoesNotExist:
+            return super(BookingUpdateView, self).get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingUpdateView, self).get_context_data(**kwargs)
@@ -1008,6 +979,13 @@ def duplicate_booking(request, event_slug):
     context = {'event': event}
     return render(request, 'booking/duplicate_booking.html', context)
 
+def update_booking_cancelled(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    ev_type = 'class' if booking.event.event_type.event_type == 'CL' else 'event'
+    context = {'booking': booking, 'ev_type': ev_type}
+    if booking.event.spaces_left() == 0:
+        context['full'] = True
+    return render(request, 'booking/update_booking_cancelled.html', context)
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)

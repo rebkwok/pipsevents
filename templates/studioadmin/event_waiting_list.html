@@ -24,7 +24,11 @@
                             {% for wluser in waiting_list_users %}
                             <tr>
                                 <td class="studioadmin-tbl">{{ wluser.user.first_name }} {{ wluser.user.last_name }}</td>
-                                <td class="studioadmin-tbl">{{ wluser.user.username }} </td>
+                                <td class="studioadmin-tbl">
+                                    <a href="{% url 'studioadmin:user_bookings_list' wluser.user.id 'future_open' %}">
+                                    {{ wluser.user.username }}
+                                    </a>
+                                </td>
                                 <td class="studioadmin-tbl">{{ wluser.date_joined | date:"D d M, H:i" }}</td>
                             </tr>
                             {% endfor %}

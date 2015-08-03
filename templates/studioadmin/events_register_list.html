@@ -17,13 +17,16 @@
                             <tr class="success">
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
+                                <th class="table-center">Bookings</th>
                                 <th class="table-center">View Register</th>
+                                <th class="table-center">View Waiting List</br><span class="studioadmin-help">(only if full)</span></th>
                             </tr>
 
                             {% for event in events %}
                             <tr>
                                 <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl">{{ event.name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
                                         <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">
@@ -32,6 +35,12 @@
                                         <a href="{% url 'studioadmin:class_register' event.slug 'OPEN' %}">
                                             <span class="fa fa-external-link fa-lg"></span>
                                     {% endif %}</a></td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if not event.spaces_left %}
+                                        <a href="{% url 'studioadmin:event_waiting_list' event.id %}">
+                                            <span class="fa fa-external-link fa-lg"></span></a>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </table>

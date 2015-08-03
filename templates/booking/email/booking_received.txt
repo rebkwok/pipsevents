@@ -1,7 +1,7 @@
 {% include "account/email/do_not_reply.txt" %}
 Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
 {% if not event.cost %}There is no cost for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend, please delete your booking by visiting visiting your bookings page at {{ host }}{% url 'booking:bookings' %}.
-{% else %}{% if booking.block %}You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total {{ total_blocks }} bookings for this block.</p>
+{% else %}{% if booking.block %}You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total {{ total_blocks }} blocks.</p>
 View your bookings at {{ host }}{% url 'booking:bookings' %}
 {% else %}{% if not event.advance_payment_required %}Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend, please delete your booking by visiting your bookings page at {{ host }}{% url 'booking:bookings' %}.
 {% else %}Advance payment is required for this {{ ev_type }}.  Your space will be confirmed once the organiser has received your payment.

@@ -1333,12 +1333,12 @@ def event_waiting_list_view(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     waiting_list_users = WaitingListUser.objects.filter(
         event__id=event_id).order_by('user__username')
-    ev_type = 'classes' if event.event_type.event_type == 'CL' else 'events'
+    ev_type = 'lessons' if event.event_type.event_type == 'CL' else 'events'
 
     template = 'studioadmin/event_waiting_list.html'
     return TemplateResponse(
         request, template, {
             'waiting_list_users': waiting_list_users, 'event': event,
-            'sidenav_selection': ev_type
+            'sidenav_selection': '{}_register'.format(ev_type)
         }
     )

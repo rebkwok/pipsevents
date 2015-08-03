@@ -58,7 +58,13 @@
                                 </td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
-                                <td class="table-center studioadmin-tbl">{{ event.instance|bookings_count }}</td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if not event.instance.spaces_left %}
+                                        <a href="{% url 'studioadmin:event_waiting_list' event.instance.id %}">{{ event.instance|bookings_count }}</a>
+                                    {% else %}
+                                        {{ event.instance|bookings_count }}
+                                    {% endif %}
+                                </td>
                                 <td class="table-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
