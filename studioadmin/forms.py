@@ -423,25 +423,6 @@ class SessionBaseFormSet(BaseModelFormSet):
             )
             form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
-            form.fields['cost'] = forms.DecimalField(
-                widget=forms.TextInput(attrs={
-                    'type': 'text',
-                    'class': 'form-control studioadmin-list',
-                    'aria-describedby': 'sizing-addon3',
-                }),
-                initial=form.instance.cost,
-                required=False
-            )
-
-            form.fields['max_participants'] = forms.IntegerField(
-                widget=forms.TextInput(attrs={
-                    'type': 'text',
-                    'class': 'form-control studioadmin-list',
-                    'style': 'text-align: center; margin-left: 10;'
-                }),
-                initial=form.instance.max_participants,
-                required=False
-            )
             form.fields['DELETE'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
                     'class': 'delete-checkbox studioadmin-list',
@@ -454,7 +435,7 @@ class SessionBaseFormSet(BaseModelFormSet):
 TimetableSessionFormSet = modelformset_factory(
     Session,
     fields=(
-        'cost', 'max_participants', 'booking_open',
+        'booking_open',
         'payment_open', 'advance_payment_required'
     ),
     formset=SessionBaseFormSet,

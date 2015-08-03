@@ -37,7 +37,7 @@
                                 <td class="studioadmin-tbl">{{ session.instance.name }}</td>
                                 <td class="table-center studioadmin-tbl">£ {{ session.instance.cost }}</div></td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if session.max_participants %}{{ session.instance.max_participants }}{% else %}N/A{% endif %}</td>
+                                    {% if session.instance.max_participants %}{{ session.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">{{ session.booking_open }}<label for={{ session.booking_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ session.payment_open }}<label for={{ session.payment_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ session.advance_payment_required }}<label for={{ session.advance_payment_required_id }}></label></td>

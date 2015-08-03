@@ -383,14 +383,6 @@ class TimetableSessionFormSetTests(TestCase):
         self.assertEquals(form.booking_open_id, 'booking_open_0')
         self.assertEquals(form.payment_open_id, 'payment_open_0')
 
-    def test_formset_not_valid(self):
-        formset = TimetableSessionFormSet(
-            data=self.formset_data({'form-0-cost': 'seven'},),
-            queryset=Session.objects.all()
-        )
-        self.assertIn({'cost': ['Enter a number.']}, formset.errors)
-        self.assertFalse(formset.is_valid())
-
     def test_can_delete(self):
         session_to_delete = mommy.make(Session)
         extra_data = {

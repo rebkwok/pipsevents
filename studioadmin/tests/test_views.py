@@ -1197,10 +1197,9 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
             'form-TOTAL_FORMS': 1,
             'form-INITIAL_FORMS': 1,
             'form-0-id': self.session.id,
-            'form-0-cost': self.session.cost,
-            'form-0-max-participants': self.session.max_participants,
             'form-0-booking_open': self.session.booking_open,
-            'form-0-payment_open': self.session.payment_open
+            'form-0-payment_open': self.session.payment_open,
+            'form-0-advance_payment_required': self.session.advance_payment_required
             }
 
         for key, value in extra_data.items():
@@ -1256,12 +1255,15 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Session.objects.count(), 4)
 
     def test_can_update_existing_session(self):
-        self.assertEqual(self.session.cost, 10)
+        self.assertEqual(self.session.advance_payment_required, True)
+
         self._post_response(
-            self.staff_user, self.formset_data(extra_data={'form-0-cost': 20})
+            self.staff_user, self.formset_data(
+                extra_data={'form-0-advance_payment_required': False}
+            )
         )
-        session = Session.objects.get(id=self.session.id)
-        self.assertEqual(session. cost, 20)
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.advance_payment_required, False)
 
     def test_submitting_valid_form_redirects_back_to_timetable(self):
         resp = self._post_response(
