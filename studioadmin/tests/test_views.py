@@ -2451,14 +2451,9 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.user.id, form_data=form_data
         )
-        errors = resp.context_data['userbookingformset'].errors
-        self.assertIn(
-            {
-                'event': [
-                    'This event is full.  You cannot make any more bookings.']
-            },
-            errors)
-         # new booking has not been made
+        # redirects and doesn't make booking
+        self.assertEqual(resp.status_code, 302)
+        # new booking has not been made
         bookings = Booking.objects.filter(event=event)
         self.assertEqual(len(bookings), 2)
 

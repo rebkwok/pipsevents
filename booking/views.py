@@ -21,7 +21,8 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from booking.models import Event, Booking, Block, BlockType, WaitingListUser
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser, \
+    BookingError
 from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, \
     LessonFilter, get_event_names
 import booking.context_helpers as context_helpers
@@ -226,7 +227,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
                 ev_type = 'lessons' \
                     if self.event.event_type.event_type == 'CL' \
-                    else 'event'
+                    else 'events'
                 return HttpResponseRedirect(
                     reverse('booking:{}'.format(ev_type))
                 )
@@ -328,29 +329,57 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 send_support_email(e, __name__, "CreateBookingView - claim free class email")
                 messages.error(self.request, "An error occured, please contact "
                     "the studio for information")
+        else:
+            booking = form.save(commit=False)
+            try:
+                cancelled_booking = Booking.objects.get(
+                    user=self.request.user,
+                    event=booking.event,
+                    status='CANCELLED'
+                    )
+                booking = cancelled_booking
+                booking.status = 'OPEN'
+                previously_cancelled = True
+            except Booking.DoesNotExist:
+                previously_cancelled = False
 
-        elif previously_cancelled and booking.paid:
-            previously_cancelled_and_direct_paid = True
-            pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
-                .exclude(transaction_id__isnull=True)
-            if pptrans:
-                transaction_id = pptrans[0].transaction_id
-                invoice_id = pptrans[0].invoice_id
-        booking.user = self.request.user
-        try:
-            booking.save()
-            ActivityLog.objects.create(
-                log='Booking {} {} for "{}" by user {}'.format(
-                    booking.id,
-                    'created' if not previously_cancelled else 'rebooked',
-                    booking.event, booking.user.username)
-            )
-        except IntegrityError:
-            logger.warning(
-                'Integrity error; redirected to duplicate booking page'
-            )
-            return HttpResponseRedirect(reverse('booking:duplicate_booking',
-                                                args=[self.event.slug]))
+            transaction_id = None
+            invoice_id = None
+            previously_cancelled_and_direct_paid = False
+            if 'block_book' in form.data:
+                blocks = self.request.user.blocks.all()
+                active_block = [
+                    block for block in blocks if block.active_block()
+                    and block.block_type.event_type == booking.event.event_type][0]
+
+                booking.block = active_block
+                booking.paid = True
+                booking.payment_confirmed = True
+            elif previously_cancelled and booking.paid:
+                previously_cancelled_and_direct_paid = True
+                pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
+                    .exclude(transaction_id__isnull=True)
+                if pptrans:
+                    transaction_id = pptrans[0].transaction_id
+                    invoice_id = pptrans[0].invoice_id
+            booking.user = self.request.user
+            try:
+                booking.save()
+                ActivityLog.objects.create(
+                    log='Booking {} {} for "{}" by user {}'.format(
+                        booking.id,
+                        'created' if not previously_cancelled else 'rebooked',
+                        booking.event, booking.user.username)
+                )
+            except IntegrityError:
+                logger.warning(
+                    'Integrity error; redirected to duplicate booking page'
+                )
+                return HttpResponseRedirect(reverse('booking:duplicate_booking',
+                                                    args=[self.event.slug]))
+            except BookingError:
+                return HttpResponseRedirect(reverse('booking:fully_booked',
+                                                    args=[self.event.slug]))
 
         if booking.block:
             blocks_used = booking.block.bookings_made()
@@ -761,8 +790,14 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 booking.payment_confirmed = True
                 booking.paid = True
                 booking.user = self.request.user
+                try:
+                    booking.save()
+                except BookingError:
+                    return HttpResponseRedirect(
+                        reverse('booking:fully_booked',
+                            args=[booking.event.slug])
+                    )
                 booking.save()
-
                 ActivityLog.objects.create(
                     log='Booking id {} (for {}), user {}, has been paid with block id {}'.format(
                         booking.id, booking.event, booking.user.username, booking.block.id
@@ -989,7 +1024,8 @@ def update_booking_cancelled(request, pk):
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    context = {'event': event}
+    ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
+    context = {'event': event, 'ev_type': ev_type}
     return render(request, 'booking/fully_booked.html', context)
 
 

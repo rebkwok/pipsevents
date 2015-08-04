@@ -14,6 +14,8 @@ from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
+class BookingError(Exception):
+    pass
 
 class EventType(models.Model):
     TYPE_CHOICE = (
@@ -296,6 +298,11 @@ class Booking(models.Model):
     space_confirmed.boolean = True
 
     def save(self, *args, **kwargs):
+
+        if self.event.spaces_left() == 0 and self.status != 'CANCELLED':
+            raise BookingError(
+                'Attempting to create booking for full event %s' % self.event.id)
+
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
         if self.free_class:
