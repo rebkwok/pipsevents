@@ -84,7 +84,6 @@ class Command(BaseCommand):
                         booking.id, booking.event, booking.user
                 )
             )
-
             if event_was_full:
                 waiting_list_users = WaitingListUser.objects.filter(
                     event=booking.event

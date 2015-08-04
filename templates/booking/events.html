@@ -49,7 +49,7 @@
                                             <span class="fa fa-check"></span>
                                         {% elif event not in booked_events %}
                                             {% if event.bookable %}
-                                                <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
+                                                <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
                                             {% elif event.external_instructor %}
                                                 {% if type == 'events' %}
                                                     <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
@@ -58,12 +58,12 @@
                                                 {% endif %}
                                                 Further details</a>
 
-                                            {% elif event.booking_open and not event.bookable %}
+                                            {% elif not event.bookable and event.booking_open %}
                                                 {% if event in waiting_list_events %}
-                                                    <div class="disabled btn btn-success table-btn">On waiting list</div>
+                                                    <div id="on_waiting_list_button" class="disabled btn btn-success table-btn">On waiting list</div>
                                                 {% else %}
                                                     <form action="{% url 'booking:book_event' event.slug %}" method="get">
-                                                        <input class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                                                        <input class="btn btn-success table-btn" id="join_waiting_list_button" type="submit" value="Join waiting list" name="join waiting list"/>
                                                     </form>
                                                 {% endif %}
                                             {% else %}

@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from booking.models import BlockType
+from booking.models import BlockType, WaitingListUser
 
 def get_event_context(context, event, user):
 
@@ -33,11 +33,19 @@ def get_event_context(context, event, user):
 
     # booked flag
     user_bookings = user.bookings.all()
-    user_booked_events = [booking.event for booking in user_bookings]
+    user_booked_events = [booking.event for booking in user_bookings
+                             if booking.status == 'OPEN']
     user_cancelled_events = [booking.event for booking in user_bookings
                              if booking.status == 'CANCELLED']
     booked = event in user_booked_events
     cancelled = event in user_cancelled_events
+
+    # waiting_list flag
+    try:
+        WaitingListUser.objects.get(user=user, event=event)
+        context['waiting_list'] = True
+    except WaitingListUser.DoesNotExist:
+        pass
 
     # booking info text and bookable
     booking_info_text = ""
@@ -45,25 +53,28 @@ def get_event_context(context, event, user):
     if booked:
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
-        if cancelled:
-            booking_info_text = "You have previously booked for this {} and" \
-                                " cancelled.".format(event_type_str)
         context['booked'] = True
-    elif event.event_type.subtype == "External instructor class":
-        booking_info_text = "Please contact {} directly to book".format(event.contact_person)
-    elif not event.booking_open:
-        booking_info_text = "Bookings are not open for this {}.".format(
-            event_type_str
-        )
-    elif event.spaces_left() <= 0:
-        booking_info_text = "This {} is now full.".format(event_type_str)
-    elif not event.bookable():
-        booking_info_text = "Bookings for this {} are now closed.".format(
-            event_type_str
-        )
+    else:
+        if cancelled:
+            context['cancelled'] = True
+            booking_info_text_cancelled = "You have previously booked for this {} and" \
+                                    " cancelled.".format(event_type_str)
+            context['booking_info_text_cancelled'] = booking_info_text_cancelled
+
+        if event.event_type.subtype == "External instructor class":
+            booking_info_text = "Please contact {} directly to book".format(event.contact_person)
+
+        if not event.booking_open:
+            booking_info_text = "Bookings are not open for this {}.".format(
+                event_type_str
+            )
+        if event.spaces_left() <= 0:
+            booking_info_text = "This {} is now full.".format(event_type_str)
+        if event.payment_due_date:
+            if event.payment_due_date < timezone.now():
+                booking_info_text = "Bookings for this event are now closed."
 
     context['booking_info_text'] = booking_info_text
-
     return context
 
 

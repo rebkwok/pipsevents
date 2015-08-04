@@ -143,6 +143,13 @@ class BookingListView(LoginRequiredMixin, ListView):
                 )
             else:
                 paypal_form = None
+
+            try:
+                WaitingListUser.objects.get(user=self.request.user, event=booking.event)
+                on_waiting_list = True
+            except WaitingListUser.DoesNotExist:
+                on_waiting_list = False
+
             can_cancel = booking.event.can_cancel() and \
                 booking.status == 'OPEN'
             bookingform = {
@@ -151,7 +158,9 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'paypalform': paypal_form,
                 'has_available_block': booking.event.event_type in
                 active_block_event_types,
-                'can_cancel': can_cancel}
+                'can_cancel': can_cancel,
+                'on_waiting_list': on_waiting_list
+                }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
         return context
@@ -205,7 +214,6 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         # redirect if fully booked or already booked
         if self.event.spaces_left() <= 0:
             if 'join waiting list' in request.GET:
-
                 waitinglistuser, new = WaitingListUser.objects.get_or_create(
                         user=request.user, event=self.event
                     )
@@ -985,14 +993,15 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 try:
                     send_waiting_list_email(
                         booking.event,
-                        [user.user for user in waiting_list_users],
+                        [wluser.user for wluser in waiting_list_users],
                         host='http://{}'.format(request.META.get('HTTP_HOST'))
                     )
                     ActivityLog.objects.create(
                         log='Waiting list email sent to user(s) {} for '
                         'event {}'.format(
                             ', '.join(
-                                [user.username for user in waiting_list_users]
+                                [wluser.user.username for \
+                                wluser in waiting_list_users]
                             ),
                             booking.event
                         )

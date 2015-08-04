@@ -169,12 +169,18 @@ class EventDetailContextTests(TestCase):
                   self.CONTEXT_OPTIONS['booking_info_text_not_open'])
         self.assertFalse(resp.context_data['bookable'])
 
+    @patch('booking.context_helpers.timezone')
     @patch('booking.models.timezone')
-    def test_event_with_payment_due_date(self, mock_tz):
+    def test_event_with_payment_due_date(self, models_mock_tz, helpers_mock_tz):
         """
         Test correct context returned for an event with payment due date
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        models_mock_tz.now.return_value = datetime(
+            2015, 2, 1, tzinfo=timezone.utc
+        )
+        helpers_mock_tz.now.return_value = datetime(
+            2015, 2, 1, tzinfo=timezone.utc
+        )
         event = mommy.make_recipe(
             'booking.future_WS',
             cost=10,

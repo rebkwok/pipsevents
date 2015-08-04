@@ -57,20 +57,25 @@
                         <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
                          confirm payment and to check if your place has been confirmed{% endif %}.</h5>
                     {% else %}
-                        {{ booking_info_text }}
-                    {% endif %}
-
-                    {% if bookable %}
-                        <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success">Book</div></a>
-                    {% endif %}
-
-                    {% if event.booking_open and not event.bookable %}
-                        <form action="{% url 'booking:book_event' event.slug %}" method="get">
-                            <input class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
-                        </form>
+                        <h5>{{ booking_info_text_cancelled }}</br>{{ booking_info_text }}</h5>
+                        {% if bookable %}
+                            <a href="{% url 'booking:book_event' event.slug %}">
+                                <div id='book_button' class="btn btn-success table-btn">
+                                {% if cancelled %}Rebook{% else %}Book{% endif %}</div></a>
+                        {% elif not event.booking_open %}
+                            <div id='book_button_disabled' class="disabled btn btn-success table-btn">
+                                {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                        {% else %}
+                            {% if not waiting_list %}
+                                <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                    <input id='join_waiting_list_button' class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                                </form>
+                            {% else %}
+                                <div id='on_waiting_list_button' class="disabled btn btn-success table-btn">On waiting list</div>
+                            {% endif %}
+                        {% endif %}
                     {% endif %}
                 {% endif %}
-
             </div>
         </div>
     </div>

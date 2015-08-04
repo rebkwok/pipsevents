@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Block, Booking, EventType
+from booking.models import Event, Block, Booking, BookingError, EventType
 
 now = timezone.now()
 
@@ -208,6 +208,56 @@ class BookingTests(TestCase):
             )
         self.assertEqual(str(booking), 'Test event - Test user')
 
+    def test_booking_full_event(self):
+        """
+        Test that attempting to create new booking for full event raises
+        BookingError
+        """
+        self.event_with_cost.max_participants = 3
+        self.event_with_cost.save()
+        mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, _quantity=3
+        )
+        with self.assertRaises(BookingError):
+            Booking.objects.create(
+                event=self.event_with_cost, user=self.users[0]
+            )
+
+    def test_reopening_booking_full_event(self):
+        """
+        Test that attempting to reopen a cancelled booking for now full event
+        raises BookingError
+        """
+        self.event_with_cost.max_participants = 3
+        self.event_with_cost.save()
+        user = self.users[0]
+        booking = mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, user=user,
+            status='CANCELLED'
+        )
+        mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, _quantity=3
+        )
+        with self.assertRaises(BookingError):
+            booking.status = 'OPEN'
+            booking.save()
+
+    def test_can_create_cancelled_booking_for_full_event(self):
+        """
+        Test that attempting to create new cancelled booking for full event
+        does not raise error
+        """
+        self.event_with_cost.max_participants = 3
+        self.event_with_cost.save()
+        mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, _quantity=3
+        )
+        Booking.objects.create(
+            event=self.event_with_cost, user=self.users[0], status='CANCELLED'
+        )
+        self.assertEqual(
+            Booking.objects.filter(event=self.event_with_cost).count(), 4
+        )
 
 class BlockTests(TestCase):
 

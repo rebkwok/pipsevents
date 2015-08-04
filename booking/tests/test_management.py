@@ -686,3 +686,106 @@ class CancelUnpaidBookingsTests(TestCase):
         self.assertEquals(
             all_emails, [email.to for email in mail.outbox]
         )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_cancelling_for_full_event_emails_waiting_list(self, mock_tz):
+        """
+        Test that automatically cancelling a booking for a full event emails
+        any users on the waiting list
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 13, 17, 15, tzinfo=timezone.utc
+        )
+
+        # make full event (setup has one paid and one unpaid)
+        # cancellation period =1, date = 2015, 2, 13, 18, 0
+        self.event.max_participants = 2
+        self.event.save()
+
+        # make some waiting list users
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=self.event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking (1) and
+        # one email with bcc to waiting list (1) and studio (1)
+        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            sorted(mail.outbox[1].bcc),
+            ['test0@test.com', 'test1@test.com', 'test2@test.com']
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_cancelling_more_than_one_only_emails_once(self, mock_tz):
+        """
+        Test that the waiting list is only emailed once if more than one
+        booking is cancelled
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 13, 17, 15, tzinfo=timezone.utc
+        )
+
+        # make full event (setup has one paid and one unpaid)
+        # cancellation period =1, date = 2015, 2, 13, 18, 0
+        self.event.max_participants = 3
+        self.event.save()
+
+        # make another booking that will be cancelled
+        mommy.make_recipe(
+            'booking.booking', event=self.event, paid=False,
+            payment_confirmed=False, status='OPEN',
+            user__email="unpaid@test.com",
+            date_booked=datetime(
+                2015, 2, 9, 18, 0, tzinfo=timezone.utc
+            ),
+            warning_sent=True
+        )
+
+        # make some waiting list users
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=self.event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking (2) and
+        # one email with bcc to waiting list (1) and studio (1)
+        # waiting list email sent after the first cancelled booking
+        self.assertEqual(len(mail.outbox), 4)
+        self.assertEqual(
+            sorted(mail.outbox[1].bcc),
+            ['test0@test.com', 'test1@test.com', 'test2@test.com']
+        )
+        for email in [mail.outbox[0], mail.outbox[2], mail.outbox[3]]:
+            self.assertEqual(email.bcc, [])
+
+        self.assertEqual(Booking.objects.filter(status='CANCELLED').count(), 2)
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_cancelling_not_full_event_does_not_email_waiting_list(self, mock_tz):
+        """
+        Test that the waiting list is not emailed if event not full
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 13, 17, 15, tzinfo=timezone.utc
+        )
+
+        # make full event (setup has one paid and one unpaid)
+        # cancellation period =1, date = 2015, 2, 13, 18, 0
+        self.event.max_participants = 3
+        self.event.save()
+
+        # make some waiting list users
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=self.event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking (1) and studio (1) only
+        self.assertEqual(len(mail.outbox), 2)

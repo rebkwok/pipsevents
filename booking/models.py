@@ -298,10 +298,22 @@ class Booking(models.Model):
     space_confirmed.boolean = True
 
     def save(self, *args, **kwargs):
-
-        if self.event.spaces_left() == 0 and self.status != 'CANCELLED':
-            raise BookingError(
-                'Attempting to create booking for full event %s' % self.event.id)
+        if self.pk is not None:
+            orig = Booking.objects.get(pk=self.pk)
+            if orig.status == 'CANCELLED' and \
+            self.status == 'OPEN' and \
+            self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to reopen booking for full '
+                    'event %s' % self.event.id
+                )
+        else:
+            if self.status != "CANCELLED" and \
+            self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to create booking for full '
+                    'event %s' % self.event.id
+                )
 
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
