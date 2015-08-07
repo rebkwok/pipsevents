@@ -386,7 +386,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'booking': booking,
               'event': booking.event,
               'date': booking.event.date.strftime('%A %d %B'),
-              'time': booking.event.date.strftime('%I:%M %p'),
+              'time': booking.event.date.strftime('%H:%M'),
               'blocks_used':  blocks_used,
               'total_blocks': total_blocks,
               'prev_cancelled_and_direct_paid':
@@ -424,9 +424,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             additional_subject = ""
             if previously_cancelled_and_direct_paid:
                 additional_subject = "ACTION REQUIRED!"
-            send_mail('{} {} {} has just booked for {}'.format(
+            send_mail('{} {} {} {} has just booked for {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-                booking.user.username, booking.event.name),
+                booking.user.first_name, booking.user.last_name, booking.event.name),
                       get_template(
                         'booking/email/to_studio_booking.txt'
                         ).render(
@@ -435,7 +435,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                               'booking': booking,
                               'event': booking.event,
                               'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%I:%M %p'),
+                              'time': booking.event.date.strftime('%H:%M'),
                               'prev_cancelled_and_direct_paid':
                               previously_cancelled_and_direct_paid,
                               'transaction_id': transaction_id,
