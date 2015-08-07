@@ -15,7 +15,7 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
         {{ total_blocks }} bookings for this block.</p>
         <p> View your bookings at
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
-    {% else %}
+    {% elif not claim_free %}
         {% if not event.advance_payment_required %}
             <p>Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you
                 no longer wish to attend, please delete your booking by visiting your bookings page at
@@ -42,7 +42,9 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
         <p> View your bookings at
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
         {% endif %}
-
+    {% else %}
+        <p>You have requested this as a free class.  The studio has been notified and
+            your booking will be updated once your request has been reviewed and approved.</p>
     {% endif %}
 {% endif %}
 </div>
