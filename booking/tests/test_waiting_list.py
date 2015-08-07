@@ -383,7 +383,7 @@ class WaitingListTests(TestCase):
         self.assertEqual(waiting_list.count(), 6)
         self.assertEqual(Booking.objects.filter(event=event).count(), 2)
         resp = self._post_booking_create(self.user, event)
-        waiting_list = WaitingListUser.objects.filter(event=event)
+
         # user now removed from waiting list
         waiting_list = WaitingListUser.objects.filter(event=event)
         self.assertEqual(waiting_list.count(), 5)
