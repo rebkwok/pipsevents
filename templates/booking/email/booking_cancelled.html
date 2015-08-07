@@ -13,8 +13,13 @@
 
 <p>
 {% if not booking.block %}
-    Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and
-    will be in contact soon.
+    {% if not booking.free_class %}
+        Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and
+        will be in contact soon.
+    {% else %}
+        This booking was marked as a free class. If you decide to reopen this
+        booking you will need to resubmit a free class request for approval.
+    {% endif %}
 {% endif %}
 </p>
 

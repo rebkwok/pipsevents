@@ -682,8 +682,8 @@ class BookingCreateViewTests(TestCase):
 
     def test_requesting_free_class(self):
         """
-        Test that requesting a free class emails the studio but does not
-        create the booking
+        Test that requesting a free class emails the studio and creates booking
+        as unpaid
         """
         event_type = mommy.make_recipe('booking.event_type_PC')
         event = mommy.make_recipe('booking.future_PC', event_type=event_type)
@@ -693,10 +693,14 @@ class BookingCreateViewTests(TestCase):
 
         form_data = {'claim_free': True}
         resp = self._post_response(self.user, event, form_data)
-
         bookings = Booking.objects.filter(user=self.user)
-        self.assertEqual(bookings.count(), 0)
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(len(mail.outbox), 2)
+
+        free_booking = bookings[0]
+        self.assertFalse(free_booking.free_class)
+        self.assertFalse(free_booking.paid)
+        self.assertFalse(free_booking.payment_confirmed)
 
     def test_free_class_context(self):
         """
@@ -909,7 +913,6 @@ class BookingDeleteViewTests(TestCase):
         block = Block.objects.get(user=self.user)
         self.assertEqual(block.bookings_made(), 0)
 
-
     @patch("booking.views.timezone")
     def test_cannot_cancel_after_cancellation_period(self, mock_tz):
         """
@@ -941,6 +944,28 @@ class BookingDeleteViewTests(TestCase):
         # test redirect to cannot cancel url
         self.assertEqual(302, resp.status_code)
         self.assertEqual(resp.url, cannot_cancel_url)
+
+    def test_cancelling_free_class(self):
+        """
+        Cancelling a free class changes paid, payment_confirmed and free_class
+        to False
+        """
+        event_with_cost = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe('booking.booking', user=self.user,
+                                    event=event_with_cost)
+        booking.free_class = True
+        booking.save()
+        booking.confirm_space()
+        self.assertTrue(booking.payment_confirmed)
+        self.assertTrue(booking.free_class)
+        self._get_response(self.user, booking)
+
+        booking = Booking.objects.get(user=self.user,
+                                      event=event_with_cost)
+        self.assertEqual('CANCELLED', booking.status)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.free_class)
 
 
 class BookingUpdateViewTests(TestCase):
@@ -991,7 +1016,6 @@ class BookingUpdateViewTests(TestCase):
 
         form_data = {'claim_free': True}
         resp = self._post_response(self.user, booking, form_data)
-
         bookings = Booking.objects.filter(user=self.user)
         self.assertEqual(bookings.count(), 1)
 

@@ -6,11 +6,12 @@
 <p>{{ user.first_name }} {{ user.last_name }} has requested to claim a free class for {{ event }}.</p>
 
 {% if booking_status == 'create' %}
-<p>This is a new booking request.  <a href="{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id booking_status='future_open'%}">Click here</a> to create the booking for the user and check it as a free class.</p>
+<p>This is a new booking request.
 {% elif booking_status == 'update' %}
-<p>This is an existing booking that {{ user.first_name }} has now requested to claim as a free class. <a href="{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id booking_status='future_open'%}">Click here</a> to update this booking as a free class.</p>
+<p>This is an existing booking that {{ user.first_name }} has now requested to claim as a free class.
 {% elif booking_status == 'rebook' %}
-<p>This is an existing cancelled booking that {{ user.first_name }} has now requested to claim a as a free class. <a href="{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id booking_status='future_cancelled'%}">Click here</a> to change the status of this booking and update it as a free class.</p>
-{% endif %}
+<p>This is an existing cancelled booking that {{ user.first_name }} has now reopened and requested to claim a as a free class.
+    {% endif %}
+<a href="{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id booking_status='future_open'%}">Click here</a> to view this booking and approve it as a free class.</p>
 </div>
 {% endblock %}
