@@ -815,6 +815,29 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                         booking.block.id
                     )
                 )
+                if not booking.block.active_block():
+                    messages.info(self.request,
+                                  'You have just used the last space in your block.  '
+                                  'Go to <a href="/blocks">'
+                                  'Your Blocks</a> to buy a new one.',
+                                  extra_tags='safe')
+                    if booking.block.block_type.size == 10:
+                        try:
+                            send_mail('{} {} has just used the last of 10 blocks'.format(
+                                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                                booking.user.username),
+                                      "{} {} ({}) has just used the last of a block of 10"
+                                      " and is now eligible for a free class.".format(
+                                        booking.user.first_name,
+                                        booking.user.last_name, booking.user.username
+                                      ),
+                                      settings.DEFAULT_FROM_EMAIL,
+                                      [settings.DEFAULT_STUDIO_EMAIL],
+                                      fail_silently=False)
+                        except Exception as e:
+                            # send mail to tech support with Exception
+                            send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
+
             messages.success(self.request, self.success_message.format(
                 booking.event.name, booking.event.date.strftime(
                     '%A %d %B, %I:%M %p'
