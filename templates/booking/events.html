@@ -62,7 +62,7 @@
                                                 {% if event in waiting_list_events %}
                                                     <div id="on_waiting_list_button" class="disabled btn btn-success table-btn">On waiting list</div>
                                                 {% else %}
-                                                    <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                                    <form class="wl-table-form" action="{% url 'booking:book_event' event.slug %}" method="get">
                                                         <input class="btn btn-success table-btn" id="join_waiting_list_button" type="submit" value="Join waiting list" name="join waiting list"/>
                                                     </form>
                                                 {% endif %}

@@ -65,11 +65,16 @@ def get_bookings(num_hrs):
 
 def send_warning_email(self, upcoming_bookings):
     for booking in upcoming_bookings:
+
+        due_datetime = booking.event.date - timedelta(hours=(booking.event.cancellation_period))
+        if booking.event.payment_due_date and booking.event.payment_due_date < due_datetime:
+            due_datetime = booking.event.payment_due_date
+
         ctx = Context({
               'booking': booking,
               'event': booking.event,
               'date': booking.event.date.strftime('%A %d %B'),
-              'time': booking.event.date.strftime('%I:%M %p'),
+              'time': booking.event.date.strftime('%H:%M'),
               'ev_type': 'event' if
               booking.event.event_type.event_type == 'EV' else 'class',
               'cancellation_period': format_cancellation(
@@ -80,8 +85,9 @@ def send_warning_email(self, upcoming_bookings):
               'payment_due_date': booking.event.payment_due_date.strftime(
                     '%A %d %B'
                     ) if booking.event.payment_due_date else None,
-
+              'due_datetime': due_datetime.strftime('%A %d %B %H:%M'),
         })
+
         send_mail('{} Reminder: {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
             get_template('booking/email/booking_warning.txt').render(ctx),

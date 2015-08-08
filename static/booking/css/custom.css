@@ -434,7 +434,8 @@ a>.btn {
 }
 
 td {
-    font-size: 90%;
+    font-size: 85%;
+	padding: 4 !important;
 }
 
 .table-btn {
@@ -576,6 +577,7 @@ td.table-center.register-table {
 
 label {
     display: inline;
+	margin-bottom: 0;
 }
 .regular-checkbox {
     display: none;
@@ -745,8 +747,13 @@ a > span.fa.fa-print {
 		font-size: x-large;
 		font-weight: bold;
 	}
-th {
-	font-size: 0.9em;
-	word-wrap: normal !important;
-	white-space: normal !important;
+	th {
+		font-size: 0.9em;
+		word-wrap: normal !important;
+		white-space: normal !important;
+	}
+}
+
+.wl-table-form {
+	margin: 0;
 }
