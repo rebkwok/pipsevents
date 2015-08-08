@@ -38,7 +38,7 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
     BlockStatusFilter, UserBookingFormSet, UserBlockFormSet, \
-    ActivityLogSearchForm, convert_date
+    ActivityLogSearchForm
 
 from activitylog.models import ActivityLog
 

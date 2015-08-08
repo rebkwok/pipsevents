@@ -1,7 +1,9 @@
 import logging
+import pytz
+import time
 
 from django.utils import timezone
-from datetime import time, timedelta, datetime, date
+from datetime import timedelta, datetime, date
 from booking.models import Event
 from timetable.models import Session
 from activitylog.models import ActivityLog
@@ -44,12 +46,18 @@ def create_classes(week='this', input_date=None):
     existing_classes = []
 
     for session in timetable:
+
+        # create date in Europe/London, convert to UTC
+        localtz = pytz.timezone('Europe/London')
+        local_date = localtz.localize(
+            datetime.combine(date_dict[session.day], session.time)
+        )
+        converted_date = local_date.astimezone(pytz.utc)
+
         cl, created = Event.objects.get_or_create(
             name=session.name,
             event_type=session.event_type,
-            date=(datetime.combine(
-                date_dict[session.day],
-                session.time).replace(tzinfo=timezone.utc)),
+            date=converted_date,
             description=session.description,
             max_participants=session.max_participants,
             location=session.location,
@@ -98,11 +106,17 @@ def upload_timetable(start_date, end_date, user=None):
     while d <= end_date:
         sessions_to_create = Session.objects.filter(day=daylist[d.weekday()])
         for session in sessions_to_create:
+
+            # create date in Europe/London, convert to UTC
+            localtz = pytz.timezone('Europe/London')
+            local_date = localtz.localize(datetime.combine(d,
+                session.time))
+            converted_date = local_date.astimezone(pytz.utc)
+
             cl, created = Event.objects.get_or_create(
                 name=session.name,
                 event_type=session.event_type,
-                date=(datetime.combine(d,
-                    session.time).replace(tzinfo=timezone.utc)),
+                date=converted_date,
                 location=session.location
             )
             if created:

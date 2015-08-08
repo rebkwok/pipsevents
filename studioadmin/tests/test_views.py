@@ -1,3 +1,5 @@
+import pytz
+
 from datetime import datetime, timedelta
 from mock import Mock, patch
 from model_mommy import mommy
@@ -935,7 +937,9 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'id': event.id,
             'name': event.name,
             'event_type': event.event_type.id,
-            'date': event.date.strftime('%d %b %Y %H:%M'),
+            'date': event.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y %H:%M'),
             'contact_email': event.contact_email,
             'contact_person': event.contact_person,
             'cancellation_period': event.cancellation_period,
@@ -1036,8 +1040,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(self.event.name, event.name)
         self.assertEqual(self.event.event_type, event.event_type)
         self.assertEqual(
-            self.event.date.strftime('%d%b%y %H:%M'),
-            event.date.strftime('%d%b%y %H:%M')
+            self.event.date.strftime('%d %b %Y %H:%M'),
+            event.date.strftime('%d %b %Y %H:%M')
         )
         self.assertEqual(self.event.contact_email, event.contact_email)
         self.assertEqual(self.event.contact_person, event.contact_person)

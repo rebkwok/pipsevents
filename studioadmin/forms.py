@@ -104,18 +104,6 @@ dateoptions = {
     }
 
 
-def convert_date(date_string, dateformat, is_new=True):
-    if is_new:
-        localtz = pytz.timezone('Europe/London')
-    else:
-        localtz = pytz.utc
-    naive_date = datetime.strptime(date_string, dateformat)
-    local_dt = localtz.localize(
-                naive_date, is_dst=time.localtime().tm_isdst
-                )
-    return local_dt.astimezone(pytz.utc)
-
-
 class EventAdminForm(forms.ModelForm):
 
     required_css_class = 'form-error'
@@ -157,7 +145,7 @@ class EventAdminForm(forms.ModelForm):
             if self.errors.get('date'):
                 del self.errors['date']
             try:
-                date = convert_date(self.data['date'], '%d %b %Y %H:%M', is_new=is_new)
+                date = datetime.strptime(self.data['date'], '%d %b %Y %H:%M')
                 cleaned_data['date'] = date
             except ValueError:
                 self.add_error('date', 'Invalid date format.  Select from the '
@@ -169,10 +157,12 @@ class EventAdminForm(forms.ModelForm):
             if self.errors.get('payment_due_date'):
                 del self.errors['payment_due_date']
             try:
-                payment_due_date = convert_date(payment_due_date, '%d %b %Y', is_new=is_new)
-                if payment_due_date < convert_date(
-                        self.data['date'], '%d %b %Y %H:%M', is_new=is_new
-                ) - timedelta(hours=cleaned_data.get('cancellation_period')):
+                payment_due_date = datetime.strptime(payment_due_date, '%d %b %Y')
+                if payment_due_date < datetime.strptime(
+                    self.data['date'],
+                    '%d %b %Y %H:%M') - timedelta(
+                        hours=cleaned_data.get('cancellation_period')
+                    ):
 
                     cleaned_data['payment_due_date'] = payment_due_date
                 else:
