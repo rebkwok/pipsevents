@@ -1,3 +1,5 @@
+import pytz
+
 from django import template
 
 from booking.models import Booking
@@ -72,3 +74,11 @@ def format_datetime(date):
 @register.filter
 def format_field_name(field):
     return field.replace('_', ' ').title()
+
+@register.filter
+def formatted_uk_date(date):
+    """
+    return UTC date in uk time
+    """
+    uk=pytz.timezone('Europe/London')
+    return date.astimezone(uk).strftime("%d %b %Y %H:%M")

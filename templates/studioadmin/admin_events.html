@@ -32,7 +32,8 @@
                                     <span class="studioadmin-help">Click for register</span></th>
                                 <th class="table-center">Edit</th>
                                 <th class="table-center">Max spaces</th>
-                                <th class="table-center">Bookings</th>
+                                <th class="table-center">Bookings</br>
+                                    <span class="studioadmin-help">Click for waiting list</span></th>
                                 <th class="table-center">Booking open</th>
                                 <th class="table-center">Payment open</th>
                                 <th class="table-center">Advance payment required</th>
@@ -59,7 +60,7 @@
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if not event.instance.spaces_left %}
+                                    {% if event.instance.waitinglistusers.count > 0 %}
                                         <a href="{% url 'studioadmin:event_waiting_list' event.instance.id %}">{{ event.instance|bookings_count }}</a>
                                     {% else %}
                                         {{ event.instance|bookings_count }}

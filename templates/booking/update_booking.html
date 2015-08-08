@@ -23,7 +23,7 @@
                             <h4>You have an active block</h4>
                             <p>Would you like to use your block for this booking?</p>
                             <p>If you choose to use your active block booking, your booking will be confirmed immediately.</p>
-                            <input class="btn btn-success" type="submit" name="block_book" value="Use my block" />
+                            <input class="btn btn-success update-btn" type="submit" name="block_book" value="Use my block" />
                         {% elif blocktype_available %}
                             <p>Block booking is available for this class.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                         {% endif %}
@@ -31,7 +31,7 @@
                     </div>
                         {% if can_be_free_class %}
                         <span class="divider"></span></br>
-                        <input class="btn btn-success" type="submit" name="claim_free" value="Claim free class**" /></br></br>
+                        <input class="btn btn-success update-btn" type="submit" name="claim_free" value="Claim free class**" /></br></br>
                         <p class="studioadmin-help">** Please select this option only if you have a completed loyatly card and are eligible for a
                             free class.  Your request to
                             claim your free class will be sent to the studio. <span class="cancel-warning">Your space will not be confirmed

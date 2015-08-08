@@ -1,5 +1,6 @@
 {% extends "studioadmin/base.html" %}
 {% load static %}
+{% load tz %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
@@ -7,6 +8,7 @@
 <div class="container-fluid row">
 
     <h2>Waiting List for {{ event }}</h2>
+    <p>(Currently {% if event.spaces_left %}not {% endif %} full)
 
     <div class="row">
         <div class="col-xs-9">
@@ -29,7 +31,7 @@
                                     {{ wluser.user.username }}
                                     </a>
                                 </td>
-                                <td class="studioadmin-tbl">{{ wluser.date_joined | date:"D d M, H:i" }}</td>
+                                <td class="studioadmin-tbl">{{ wluser.date_joined|formatted_uk_date }}</td>
                             </tr>
                             {% endfor %}
                         </table>

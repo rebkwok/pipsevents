@@ -19,7 +19,7 @@
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</th>
                                 <th class="table-center">Bookings</th>
                                 <th class="table-center">View Register</th>
-                                <th class="table-center">View Waiting List</br><span class="studioadmin-help">(only if full)</span></th>
+                                <th class="table-center">View Waiting List</th>
                             </tr>
 
                             {% for event in events %}
@@ -36,7 +36,7 @@
                                             <span class="fa fa-external-link fa-lg"></span>
                                     {% endif %}</a></td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if not event.spaces_left %}
+                                    {% if event.waitinglistusers.count > 0 %}
                                         <a href="{% url 'studioadmin:event_waiting_list' event.id %}">
                                             <span class="fa fa-external-link fa-lg"></span></a>
                                     {% endif %}

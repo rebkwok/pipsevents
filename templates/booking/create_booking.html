@@ -52,15 +52,15 @@
                         <span class="hide">{{ form.user }}</span>
                         {% if blocktype_available %}
                             {% if active_user_block %}
-                                <input class="btn btn-success" type="submit" name="block_book" value="Book with my block" />
+                                <input class="btn btn-success update-btn" type="submit" name="block_book" value="Book with block" />
                             {% endif %}
-                                <input class="btn btn-success" type="submit" value="Book as drop-in" />
+                                <input class="btn btn-success update-btn" type="submit" value="Book as drop-in" />
                         {% else %}
-                            <input class="btn btn-success" type="submit" value="Confirm and book" />
+                            <input class="btn btn-success update-btn" type="submit" value="Confirm and book" />
                         {% endif %}
 
                         {% if can_be_free_class %}
-                        <input class="btn btn-success" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
+                        <input class="btn btn-success update-btn" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
                         <p class="studioadmin-help">** Please select this option only if you have a completed loyatly card and are eligible for a
                             free class.  Your request to
                             claim your free class will be sent to the studio. <span class="cancel-warning">You will not be booked into

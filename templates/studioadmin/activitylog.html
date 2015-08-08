@@ -37,7 +37,7 @@
 
                             {% for log in logs %}
                                 <tr>
-                                    <td class="studioadmin-tbl">{{ log.timestamp|date:"d-M-Y H:i:s (T)" }}</td>
+                                    <td class="studioadmin-tbl">{{ log.timestamp|formatted_uk_date }}:{{ log.timestamp|date:"s" }}</td>
                                     <td class="studioadmin-tbl">{{ log.log }}</td>
                                 </tr>
                             {% endfor %}
