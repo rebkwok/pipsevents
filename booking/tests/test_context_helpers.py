@@ -6,7 +6,7 @@ from model_mommy import mommy
 from datetime import datetime
 from mock import patch
 from booking.models import Event, Booking, Block
-from booking.views import EventDetailView, LessonDetailView, BlockListView
+from booking.views import EventDetailView, BlockListView
 from booking.tests.helpers import set_up_fb, _create_session
 
 
@@ -42,19 +42,19 @@ class EventDetailContextTests(TestCase):
             'past': True
         }
 
-    def _get_response(self, user, event):
+    def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])
         request = self.factory.get(url)
         request.user = user
         view = EventDetailView.as_view()
-        return view(request, slug=event.slug)
+        return view(request, slug=event.slug, ev_type=ev_type)
 
     def test_free_event(self):
         """
         Test correct context returned for a free event
         """
         # user not booked, event not full
-        resp = self._get_response(self.user, self.free_event)
+        resp = self._get_response(self.user, self.free_event, 'event')
 
         flags_not_expected = ['booked', 'past']
 
@@ -77,7 +77,7 @@ class EventDetailContextTests(TestCase):
             mommy.make_recipe('booking.booking',
                               user=user,
                               event=self.free_event)
-        resp = self._get_response(self.user, self.free_event)
+        resp = self._get_response(self.user, self.free_event, 'event')
 
         flags_not_expected = ['booked', 'past']
         self.assertEquals(resp.context_data['payment_text'],
@@ -91,7 +91,7 @@ class EventDetailContextTests(TestCase):
         # remove one booking, check if user can now book
         Booking.objects.all()[0].delete()
         self.assertEquals(Booking.objects.all().count(), 2)
-        resp = self._get_response(self.user, self.free_event)
+        resp = self._get_response(self.user, self.free_event, 'event')
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
         self.assertTrue(resp.context_data['bookable'])
@@ -101,7 +101,7 @@ class EventDetailContextTests(TestCase):
                           user=self.user,
                           event=self.free_event)
         self.assertEquals(Booking.objects.all().count(), 3)
-        resp = self._get_response(self.user, self.free_event)
+        resp = self._get_response(self.user, self.free_event, 'event')
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_booked'])
         self.assertFalse(resp.context_data['bookable'])
@@ -110,7 +110,7 @@ class EventDetailContextTests(TestCase):
         """
         Test correct context returned for a past event
         """
-        resp = self._get_response(self.user, self.past_event)
+        resp = self._get_response(self.user, self.past_event, 'event')
         self.past_event.save()
         # user is not booked; include book button, payment text etc is still in
         # context; template handles the display
@@ -139,7 +139,7 @@ class EventDetailContextTests(TestCase):
         #  payments closed
         event.payment_open = False
         event.save()
-        resp = self._get_response(self.user, event)
+        resp = self._get_response(self.user, event, 'event')
         flags_not_expected = ['booked', 'past']
 
         self.assertEquals(resp.context_data['payment_text'],
@@ -153,7 +153,7 @@ class EventDetailContextTests(TestCase):
         # open payments
         event.payment_open = True
         event.save()
-        resp = self._get_response(self.user, event)
+        resp = self._get_response(self.user, event, 'event')
         self.assertEquals(
             resp.context_data['payment_text'],
             "Online payments are open. {}".format(self.past_event.payment_info)
@@ -164,23 +164,29 @@ class EventDetailContextTests(TestCase):
             'booking.future_WS',
             booking_open=False,
         )
-        resp = self._get_response(self.user, event)
+        resp = self._get_response(self.user, event, 'event')
         self.assertEquals(resp.context_data['booking_info_text'],
                   self.CONTEXT_OPTIONS['booking_info_text_not_open'])
         self.assertFalse(resp.context_data['bookable'])
 
+    @patch('booking.context_helpers.timezone')
     @patch('booking.models.timezone')
-    def test_event_with_payment_due_date(self, mock_tz):
+    def test_event_with_payment_due_date(self, models_mock_tz, helpers_mock_tz):
         """
         Test correct context returned for an event with payment due date
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        models_mock_tz.now.return_value = datetime(
+            2015, 2, 1, tzinfo=timezone.utc
+        )
+        helpers_mock_tz.now.return_value = datetime(
+            2015, 2, 1, tzinfo=timezone.utc
+        )
         event = mommy.make_recipe(
             'booking.future_WS',
             cost=10,
             payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc)
         )
-        resp = self._get_response(self.user, event)
+        resp = self._get_response(self.user, event, 'event')
 
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
@@ -197,7 +203,7 @@ class EventDetailContextTests(TestCase):
             cost=10,
             payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
         )
-        resp = self._get_response(self.user, event)
+        resp = self._get_response(self.user, event, 'event')
 
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_payment_date_past'])
@@ -210,14 +216,14 @@ class EventDetailContextTests(TestCase):
         event = mommy.make_recipe('booking.future_WS', name='Wshop', cost=10)
         lesson = mommy.make_recipe('booking.future_PC', name='Lesson', cost=10)
 
-        resp = self._get_response(self.user, event)
+        resp = self._get_response(self.user, event, 'event')
         self.assertEquals(resp.context_data['type'], 'event')
 
         url = reverse('booking:lesson_detail', args=[lesson.slug])
         request = self.factory.get(url)
         request.user = self.user
-        view = LessonDetailView.as_view()
-        resp = view(request, slug=lesson.slug)
+        view = EventDetailView.as_view()
+        resp = view(request, slug=lesson.slug, ev_type='lesson')
         self.assertEquals(resp.context_data['type'], 'lesson')
 
 
@@ -304,6 +310,3 @@ class BlockListContextTests(TestCase):
         resp = self._get_response(self.user)
         self.assertIn('can_book_block', resp.context_data)
         self.assertEqual(len(resp.context_data['blockformlist']), 1)
-
-
-

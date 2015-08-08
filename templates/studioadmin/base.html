@@ -17,7 +17,7 @@
     <li class="active-nav"><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
                         <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
     <li class="active-nav"><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
-                    <span class="sidebar_active">Class registers</span>{% else %}Class registers{% endif %}</a></li>
+                    <span class="sidebar_active">Class registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
     <li class="divider"></li>
     <li class="active-nav"><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
                     <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
@@ -31,7 +31,7 @@
     <li class="active-nav"><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
                 <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
     <li class="active-nav"><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
-                    <span class="sidebar_active">Event registers</span>{% else %}Event registers{% endif %}</a></li>
+                    <span class="sidebar_active">Event registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
     <li class="divider"></li>
     <li class="active-nav"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                     <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
@@ -63,7 +63,7 @@
                     <li><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
                         <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
-                    <span class="sidebar_active">Class registers</span>{% else %}Class registers{% endif %}</a></li>
+                    <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
                 <li class="sidebar-title">Timetable</li>
                      <li><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
                     <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
@@ -77,7 +77,7 @@
                      <li><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
                     <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
-                    <span class="sidebar_active">Event registers</span>{% else %}Event registers{% endif %}</a></li>
+                    <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
                 <li class="sidebar-title">Students</li>
                     <li><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                     <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>

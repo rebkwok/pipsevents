@@ -16,7 +16,8 @@ from django.core.urlresolvers import reverse
 from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, Booking, Block, BlockType, EventType
+from booking.models import Event, Booking, Block, BlockType, \
+    EventType, WaitingListUser
 from booking.forms import CreateClassesForm, EmailUsersForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
@@ -143,7 +144,7 @@ class EventForm(forms.ModelForm):
 # TODO validation on event fields - e.g. payment due date can't be after event
 # TODO date, event date can't be in past, cost must be >= 0
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('name', 'date', 'location')
+    list_display = ('name', 'date', 'location', 'get_spaces_left')
     list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
     actions_on_top = True
     form = EventForm
@@ -156,7 +157,9 @@ class EventAdmin(admin.ModelAdmin):
 
     fieldsets = [
         ('Event details', {
-            'fields': ('name', 'date', 'location', 'event_type', 'description')
+            'fields': (
+                'name', 'date', 'location', 'event_type', 'max_participants',
+                'description')
         }),
         ('Contacts', {
             'fields': ('contact_person', 'contact_email', 'email_studio_when_booked')
@@ -170,6 +173,10 @@ class EventAdmin(admin.ModelAdmin):
             'description': '<div class="help">%s</div>' % CANCELLATION_TEXT,
         }),
     ]
+
+    def get_spaces_left(self, obj):
+        return obj.spaces_left()
+    get_spaces_left.short_description = '# Spaces left'
 
     def get_urls(self):
         urls = super(EventAdmin, self).get_urls()
@@ -215,7 +222,7 @@ class BookingAdmin(admin.ModelAdmin):
 
     list_display = ('event_name', 'get_date', 'user', 'get_user_first_name',
                     'get_user_last_name', 'get_cost', 'paid',
-                    'space_confirmed')
+                    'space_confirmed', 'status')
 
     list_filter = (BookingDateListFilter, 'user', 'event')
 
@@ -451,8 +458,14 @@ class BlockTypeAdmin(admin.ModelAdmin):
     formatted_cost.short_description = "Cost"
 
 
+class WaitingListUserAdmin(admin.ModelAdmin):
+    fields = ('user', 'event')
+    list_display = ('user', 'event')
+
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(BlockType, BlockTypeAdmin)
 admin.site.register(EventType)
+admin.site.register(WaitingListUser, WaitingListUserAdmin)

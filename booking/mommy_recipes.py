@@ -6,7 +6,8 @@ from django.utils import timezone
 from model_mommy.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
-from booking.models import Event, EventType, Block, Booking, BlockType
+from booking.models import Event, EventType, Block, Booking, \
+    BlockType, WaitingListUser
 from timetable.models import Session
 
 now = timezone.now()
@@ -84,3 +85,5 @@ fb_app = Recipe(SocialApp,
 mon_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.MON)
 tue_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.TUE)
 wed_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.WED)
+
+waiting_list_user = Recipe(WaitingListUser)

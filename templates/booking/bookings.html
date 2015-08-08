@@ -39,20 +39,28 @@
                                         <div class="inc-btm-space">
                                             {% if bookingform.booking.status == 'OPEN' %}
                                              <a {% if not bookingform.booking.event.payment_open %}class="disabled"{% endif %}href="{% url 'booking:update_booking' bookingform.booking.pk %}">
-                                                 <div type="button" {% if not bookingform.booking.event.payment_open %}disabled{% endif %} class="btn btn-success table-btn booking-btn">Payment options</div>
+                                                 <div type="button" {% if not bookingform.booking.event.payment_open %}disabled{% endif %} id="payment_options_button" class="btn btn-success table-btn booking-btn">Payment options</div>
                                              </a>
                                             {% endif %}
 
                                         </div>
                                         {% endif %}
                                         {% if bookingform.booking.status == 'OPEN' %}
-                                        <a {% if not bookingform.booking.event.can_cancel %}class="disabled"{% endif %}
+                                        <a {% if not bookingform.can_cancel %}class="disabled"{% endif %}
                                              href="{% url 'booking:delete_booking' bookingform.booking.pk %}">
-                                            <div {% if not bookingform.booking.event.can_cancel %}disabled{% endif %}
+                                            <div {% if not bookingform.can_cancel %}disabled{% endif %}
                                                  class="btn btn-danger table-btn booking-btn">Cancel booking</div></a>
+                                        {% elif not bookingform.booking.event.bookable %}
+                                            {% if not bookingform.on_waiting_list %}
+                                                <form action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">
+                                                    <input id='join_waiting_list_button' class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                                                </form>
+                                            {% else %}
+                                                <div id='on_waiting_list_button' class="disabled btn btn-success table-btn">On waiting list</div>
+                                            {% endif %}
                                         {% else %}
                                             <a href="{% url 'booking:book_event' bookingform.booking.event.slug %}">
-                                                <div type="button" class="btn btn-success table-btn booking-btn">Rebook</div></a>
+                                                <div type="button" id="rebook_button" class="btn btn-success table-btn booking-btn">Rebook</div></a>
                                         {% endif %}
                                     </td>
                                 {% endif %}

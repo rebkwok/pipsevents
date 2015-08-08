@@ -440,9 +440,21 @@ td {
 .table-btn {
     padding-top: 0;
     padding-bottom: 0;
+	padding-left: 0;
+	padding-right: 0;
     font-size: 90%;
+	width: 9.2em;
+	color: #fff !important;
     }
 
+.update-btn {
+	padding-top: 2;
+    padding-bottom: 2;
+	padding-left: 0;
+	padding-right: 0;
+	width: 9em;
+    }
+}
 .paypal-table-btn {
     padding-top: 0;
     padding-bottom: -10;
@@ -737,8 +749,4 @@ th {
 	font-size: 0.9em;
 	word-wrap: normal !important;
 	white-space: normal !important;
-}
-
-a.btn.table-btn {
-	color: #fff !important;
 }

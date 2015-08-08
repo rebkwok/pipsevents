@@ -1,6 +1,6 @@
 {% include "account/email/do_not_reply.txt" %}
 
-Reminder! Your payment has not yet been received/confirmed for {{ event }} on {{ date }} {{ time }}
+Reminder! Your payment has not yet been received/confirmed for {{ event.name }} on {{ date }} {{ time }}
 
 A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.
 

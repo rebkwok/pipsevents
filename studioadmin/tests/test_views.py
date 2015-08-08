@@ -22,6 +22,7 @@ from studioadmin.views import (
     EventAdminCreateView,
     EventAdminUpdateView,
     EventRegisterListView,
+    event_waiting_list_view,
     register_view,
     timetable_admin_list,
     TimetableSessionUpdateView,
@@ -2451,14 +2452,9 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.user.id, form_data=form_data
         )
-        errors = resp.context_data['userbookingformset'].errors
-        self.assertIn(
-            {
-                'event': [
-                    'This event is full.  You cannot make any more bookings.']
-            },
-            errors)
-         # new booking has not been made
+        # redirects and doesn't make booking
+        self.assertEqual(resp.status_code, 302)
+        # new booking has not been made
         bookings = Booking.objects.filter(event=event)
         self.assertEqual(len(bookings), 2)
 
@@ -2831,3 +2827,66 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
             }
         )
         self.assertEqual(len(resp.context_data['logs']), 7)
+
+
+class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
+
+    def _get_response(self, user, event):
+        url = reverse(
+            'studioadmin:event_waiting_list', kwargs={"event_id": event.id}
+        )
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return event_waiting_list_view(request, event_id=event.id)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        event = mommy.make_recipe('booking.future_PC')
+        url = reverse(
+            'studioadmin:event_waiting_list', kwargs={'event_id':event.id}
+        )
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        event = mommy.make_recipe('booking.future_PC')
+        resp = self._get_response(self.user, event)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        event = mommy.make_recipe('booking.future_PC')
+        resp = self._get_response(self.staff_user, event)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_waiting_list_users_shown(self):
+        """
+        Only show users on the waiting list for the relevant event
+        """
+        event = mommy.make_recipe('booking.future_PC')
+        event1 = mommy.make_recipe('booking.future_PC')
+
+        event_wl = mommy.make_recipe(
+            'booking.waiting_list_user', event=event, _quantity=3
+        )
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event1, _quantity=3
+        )
+        resp = self._get_response(self.staff_user, event)
+
+        waiting_list_users = resp.context_data['waiting_list_users']
+        self.assertEqual(set(waiting_list_users), set(event_wl))

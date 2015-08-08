@@ -44,10 +44,12 @@
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
                                 {% if user.is_authenticated %}
-                                    <td class="table-center">{% if event in booked_events %}<span class="fa fa-check"></span>{% endif %}
-                                        {% if event not in booked_events %}
+                                    <td class="table-center">
+                                        {% if event in booked_events %}
+                                            <span class="fa fa-check"></span>
+                                        {% elif event not in booked_events %}
                                             {% if event.bookable %}
-                                                <a href="{% url 'booking:book_event' event.slug %}"><div class="btn btn-success table-btn">Book</div></a>
+                                                <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
                                             {% elif event.external_instructor %}
                                                 {% if type == 'events' %}
                                                     <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
@@ -55,6 +57,15 @@
                                                     <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
                                                 {% endif %}
                                                 Further details</a>
+
+                                            {% elif not event.bookable and event.booking_open %}
+                                                {% if event in waiting_list_events %}
+                                                    <div id="on_waiting_list_button" class="disabled btn btn-success table-btn">On waiting list</div>
+                                                {% else %}
+                                                    <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                                        <input class="btn btn-success table-btn" id="join_waiting_list_button" type="submit" value="Join waiting list" name="join waiting list"/>
+                                                    </form>
+                                                {% endif %}
                                             {% else %}
                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                             {% endif %}

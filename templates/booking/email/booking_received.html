@@ -12,7 +12,7 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
 {% else %}
     {% if booking.block %}
         <p>You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total
-        {{ total_blocks }} bookings for this block.</p>
+        {{ total_blocks }} blocks.</p>
         <p> View your bookings at
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
     {% elif not claim_free %}
@@ -26,7 +26,7 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
         {% endif %}
         {% if event.payment_open %}
             <p><strong>Payment information</strong></p>
-                {{ event.payment_info }}
+                {{ event.payment_info|safe }}
             <p>Payments are open; visit your bookings page at <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a> to
                 make your payment.</p>
         {% else %}
@@ -35,17 +35,22 @@ Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
         {% endif %}
 
         {% if prev_cancelled_and_direct_paid %}
-        <p>You are rebooking a previously cancelled booking which is
-        still marked as paid.  The organiser has been sent a request to review your payment status and
-        confirm that this payment has not been refunded yet.  Your booking will remain as pending until
-        your payment status has been confirmed.</p>
-        <p> View your bookings at
-        <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
+            <p>You are rebooking a previously cancelled booking which is
+            still marked as paid.  The organiser has been sent a request to review your payment status and
+            confirm that this payment has not been refunded yet.  Your booking will remain as pending until
+            your payment status has been confirmed.</p>
+            <p> View your bookings at
+            <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
         {% endif %}
     {% else %}
         <p>You have requested this as a free class.  The studio has been notified and
             your booking will be updated once your request has been reviewed and approved.</p>
+        <p> View your bookings at
+        <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
+
     {% endif %}
+
+
 {% endif %}
 </div>
 {% endblock %}

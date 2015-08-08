@@ -2,8 +2,7 @@ from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
-    BookingDeleteView, LessonListView, LessonDetailView, \
-    BlockCreateView, BlockListView
+    BookingDeleteView, BlockCreateView, BlockListView
 
 
 urlpatterns = patterns('',
@@ -12,6 +11,9 @@ urlpatterns = patterns('',
         name='booking_history'),
     url(r'^booking/update/(?P<pk>\d+)/$', BookingUpdateView.as_view(),
         name='update_booking'),
+    url(r'^booking/update/(?P<pk>\d+)/cancelled/$',
+        'booking.views.update_booking_cancelled',
+        name='update_booking_cancelled'),
     url(r'^booking/cancel/(?P<pk>\d+)/$', BookingDeleteView.as_view(),
         name='delete_booking'),
     url(r'^events/(?P<event_slug>[\w-]+)/cancellation-period-past/$',
@@ -22,12 +24,22 @@ urlpatterns = patterns('',
         name='fully_booked'),
     url(r'^events/(?P<event_slug>[\w-]+)/book/$', BookingCreateView.as_view(),
         name='book_event'),
-    url(r'^events/(?P<slug>[\w-]+)/$', EventDetailView.as_view(),
-        name='event_detail'),
-    url(r'^events/$', EventListView.as_view(), name='events'),
-    url(r'^classes/(?P<slug>[\w-]+)/$', LessonDetailView.as_view(),
-        name='lesson_detail'),
-    url(r'^classes/$', LessonListView.as_view(), name='lessons'),
+    url(
+        r'^events/(?P<slug>[\w-]+)/$', EventDetailView.as_view(),
+        {'ev_type': 'event'}, name='event_detail'
+    ),
+    url(
+        r'^events/$', EventListView.as_view(), {'ev_type': 'events'},
+        name='events'
+    ),
+    url(
+        r'^classes/(?P<slug>[\w-]+)/$',  EventDetailView.as_view(),
+        {'ev_type': 'lesson'}, name='lesson_detail'),
+    url(
+        r'^classes/$', EventListView.as_view(), {'ev_type': 'lessons'},
+        name='lessons'
+    ),
+
     url(r'^blocks/$', BlockListView.as_view(), name='block_list'),
     url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
     url(r'^blocks/existing/$', 'booking.views.has_active_block',

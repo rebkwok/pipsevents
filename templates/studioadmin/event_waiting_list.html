@@ -1,0 +1,48 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load tz %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+
+    <h2>Waiting List for {{ event }}</h2>
+    <p>(Currently {% if event.spaces_left %}not {% endif %} full)
+
+    <div class="row">
+        <div class="col-xs-9">
+
+            {% if waiting_list_users %}
+                <div class="panel panel-success">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>User</th>
+                                <th>Username</th>
+                                <th>Date joined</th>
+                            </tr>
+
+                            {% for wluser in waiting_list_users %}
+                            <tr>
+                                <td class="studioadmin-tbl">{{ wluser.user.first_name }} {{ wluser.user.last_name }}</td>
+                                <td class="studioadmin-tbl">
+                                    <a href="{% url 'studioadmin:user_bookings_list' wluser.user.id 'future_open' %}">
+                                    {{ wluser.user.username }}
+                                    </a>
+                                </td>
+                                <td class="studioadmin-tbl">{{ wluser.date_joined|formatted_uk_date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <p>There are no users on the waiting list.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{% endblock studioadmincontent %}

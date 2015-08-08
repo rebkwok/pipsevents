@@ -1,0 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
+A space has become available for {{ event }}.  Please visit {{ host }}/{{ ev_type }}/{{ event.slug }} to book.
+
+Please note that this email is for information only and is not a guarantee that a space is being held for you!  Spaces are allocated on a first-come-first-served basis.

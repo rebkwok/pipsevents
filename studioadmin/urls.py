@@ -70,5 +70,9 @@ urlpatterns = patterns('',
     url(
         r'activitylog/$', ActivityLogListView.as_view(), name='activitylog'
     ),
+    url(
+        r'^waitinglists/(?P<event_id>\d+)$',
+        'studioadmin.views.event_waiting_list_view', name='event_waiting_list'
+    ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

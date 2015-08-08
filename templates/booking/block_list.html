@@ -33,6 +33,8 @@
                             {% for blockform in blockformlist %}
                                 <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
                                     <td>{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
+                                        {% elif blockform.expired %}
+                                            <span class="fa fa-times" aria-label="No"></span>
                                         {% else %}
                                             {% if not blockform.block.paid %}
                                             {% include 'payments/blocklistpayment.html' %}

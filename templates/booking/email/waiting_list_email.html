@@ -1,0 +1,15 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>A space has become available for {{ event }}.  Please visit
+    <a href="{{ host }}/{{ ev_type }}/{{ event.slug }}">{{ host }}/{{ ev_type }}/{{ event.slug }}</a>
+    to book.</p>
+
+<p>Please note that this email is for information
+    only and is not a guarantee that a space is being held for you!  Spaces are
+    allocated on a first-come-first-served basis.</p>
+</div>
+
+{% endblock %}

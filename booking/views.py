@@ -21,11 +21,12 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser, \
+    BookingError
 from booking.forms import BookingCreateForm, BlockCreateForm, EventFilter, \
-    get_event_names
+    LessonFilter, get_event_names
 import booking.context_helpers as context_helpers
-from booking.email_helpers import send_support_email
+from booking.email_helpers import send_support_email, send_waiting_list_email
 from payments.helpers import create_booking_paypal_transaction, \
     create_block_paypal_transaction
 
@@ -40,13 +41,19 @@ class EventListView(ListView):
     template_name = 'booking/events.html'
 
     def get_queryset(self):
+        if self.kwargs['ev_type'] == 'events':
+            ev_abbr = 'EV'
+        else:
+            ev_abbr = 'CL'
+
         name = self.request.GET.get('name')
+
         if name:
             return Event.objects.filter(
-                Q(event_type__event_type='EV') & Q(date__gte=timezone.now())
+                Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now())
                 & Q(name=name)).order_by('date')
         return Event.objects.filter(
-            (Q(event_type__event_type='EV') & Q(date__gte=timezone.now()))
+            (Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now()))
             ).order_by('date')
 
     def get_context_data(self, **kwargs):
@@ -57,11 +64,17 @@ class EventListView(ListView):
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings
                              if not booking.status == 'CANCELLED']
+            user_waiting_lists = WaitingListUser.objects.filter(user=self.request.user)
+            waiting_list_events = [wluser.event for wluser in user_waiting_lists]
             context['booked_events'] = booked_events
-        context['type'] = 'events'
+            context['waiting_list_events'] = waiting_list_events
+        context['type'] = self.kwargs['ev_type']
 
         event_name = self.request.GET.get('name', '')
-        form = EventFilter(initial={'name': event_name})
+        if self.kwargs['ev_type'] == 'events':
+            form = EventFilter(initial={'name': event_name})
+        else:
+            form = LessonFilter(initial={'name': event_name})
         context['form'] = form
         return context
 
@@ -73,69 +86,17 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     template_name = 'booking/event.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(event_type__event_type='EV')
+        if self.kwargs['ev_type'] == 'event':
+            ev_abbr = 'EV'
+        else:
+            ev_abbr = 'CL'
+        queryset = Event.objects.filter(event_type__event_type=ev_abbr)
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventDetailView, self).get_context_data()
-        event = self.object
-        return context_helpers.get_event_context(
-            context, event, self.request.user
-        )
-
-
-class LessonFilter(forms.Form):
-    name = forms.ChoiceField(choices=get_event_names('CL'))
-
-
-class LessonListView(ListView):
-    model = Event
-    context_object_name = 'events'
-    template_name = 'booking/events.html'
-
-    def get_queryset(self):
-        name = self.request.GET.get('name')
-        if name:
-            return Event.objects.filter(
-                Q(event_type__event_type='CL') & Q(date__gte=timezone.now())
-                & Q(name=name)).order_by('date')
-        return Event.objects.filter(
-            (Q(event_type__event_type='CL') & Q(date__gte=timezone.now()))
-            ).order_by('date')
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(LessonListView, self).get_context_data(**kwargs)
-        if not self.request.user.is_anonymous():
-            # Add in the booked_events
-            user_bookings = self.request.user.bookings.all()
-            booked_events = [booking.event for booking in user_bookings
-                             if not booking.status == 'CANCELLED']
-            context['booked_events'] = booked_events
-        context['type'] = 'lessons'
-
-        event_name = self.request.GET.get('name', '')
-        form = LessonFilter(initial={'name': event_name})
-        context['form'] = form
-        return context
-
-
-class LessonDetailView(LoginRequiredMixin, DetailView):
-
-    model = Event
-    context_object_name = 'event'
-    template_name = 'booking/event.html'
-
-    def get_object(self):
-        queryset = Event.objects.filter(event_type__event_type='CL')
-
-        return get_object_or_404(queryset, slug=self.kwargs['slug'])
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(LessonDetailView, self).get_context_data(**kwargs)
         event = self.object
         return context_helpers.get_event_context(
             context, event, self.request.user
@@ -182,6 +143,13 @@ class BookingListView(LoginRequiredMixin, ListView):
                 )
             else:
                 paypal_form = None
+
+            try:
+                WaitingListUser.objects.get(user=self.request.user, event=booking.event)
+                on_waiting_list = True
+            except WaitingListUser.DoesNotExist:
+                on_waiting_list = False
+
             can_cancel = booking.event.can_cancel() and \
                 booking.status == 'OPEN'
             bookingform = {
@@ -190,7 +158,9 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'paypalform': paypal_form,
                 'has_available_block': booking.event.event_type in
                 active_block_event_types,
-                'can_cancel': can_cancel}
+                'can_cancel': can_cancel,
+                'on_waiting_list': on_waiting_list
+                }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
         return context
@@ -242,9 +212,37 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     def get(self, request, *args, **kwargs):
         # redirect if fully booked or already booked
-        if self.event.spaces_left() == 0:
-            return HttpResponseRedirect(reverse('booking:fully_booked',
-                                        args=[self.event.slug]))
+        if self.event.spaces_left() <= 0:
+            if 'join waiting list' in request.GET:
+                waitinglistuser, new = WaitingListUser.objects.get_or_create(
+                        user=request.user, event=self.event
+                    )
+                if new:
+                    msg = 'You have been added to the waiting list for {}. ' \
+                        ' We will email you if a space becomes ' \
+                        'available.'.format(self.event)
+                    ActivityLog.objects.create(
+                        log='User {} has been added to the waiting list '
+                        'for {}'.format(
+                            request.user.username, self.event
+                        )
+                    )
+                else:
+                    msg = 'You are already on the waiting list for {}'.format(
+                            self.event
+                        )
+                messages.success(request, msg)
+
+                ev_type = 'lessons' \
+                    if self.event.event_type.event_type == 'CL' \
+                    else 'events'
+                return HttpResponseRedirect(
+                    reverse('booking:{}'.format(ev_type))
+                )
+            else:
+                return HttpResponseRedirect(
+                    reverse('booking:fully_booked', args=[self.event.slug])
+                )
         try:
             booking = Booking.objects.get(
                 user=self.request.user, event=self.event
@@ -261,46 +259,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingCreateView, self).get_context_data(**kwargs)
-
-        # find if block booking is available for this type of event
-        blocktypes = [
-            blocktype.event_type for blocktype in BlockType.objects.all()
-            ]
-        blocktype_available = self.event.event_type in blocktypes
-        context['blocktype_available'] = blocktype_available
-
-        # Add in the event name
-        context['event'] = self.event
-        user_blocks = self.request.user.blocks.all()
-        active_user_block = [
-            block for block in user_blocks
-            if block.block_type.event_type == self.event.event_type
-            and block.active_block()
-            ]
-        if active_user_block:
-            context['active_user_block'] = True
-
-        active_user_block_unpaid = [
-            block for block in user_blocks
-            if block.block_type.event_type == self.event.event_type
-            and not block.expired
-            and not block.full
-            and not block.paid
-             ]
-        if active_user_block_unpaid:
-            context['active_user_block_unpaid'] = True
-
-        ev_type = 'event' if \
-            self.event.event_type.event_type == 'EV' else 'class'
-
-        context['ev_type'] = ev_type
-
-        if self.event.event_type.subtype == "Pole level class" or \
-            (self.event.event_type.subtype == "Pole practice" and \
-            self.request.user.has_perm('booking.can_book_free_pole_practice')):
-            context['can_be_free_class'] = True
-
-        return context
+        updated_context = context_helpers.get_booking_create_context(
+            self.event, self.request, context
+        )
+        return updated_context
 
     def form_valid(self, form):
 
@@ -320,6 +282,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         transaction_id = None
         invoice_id = None
         previously_cancelled_and_direct_paid = False
+
         if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
             active_block = [
@@ -375,7 +338,6 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 send_support_email(e, __name__, "CreateBookingView - claim free class email")
                 messages.error(self.request, "An error occured, please contact "
                     "the studio for information")
-
         elif previously_cancelled and booking.paid:
             previously_cancelled_and_direct_paid = True
             pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
@@ -383,6 +345,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             if pptrans:
                 transaction_id = pptrans[0].transaction_id
                 invoice_id = pptrans[0].invoice_id
+
         booking.user = self.request.user
         try:
             booking.save()
@@ -397,6 +360,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 'Integrity error; redirected to duplicate booking page'
             )
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
+                                                args=[self.event.slug]))
+        except BookingError:
+            return HttpResponseRedirect(reverse('booking:fully_booked',
                                                 args=[self.event.slug]))
 
         if booking.block:
@@ -420,7 +386,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'booking': booking,
               'event': booking.event,
               'date': booking.event.date.strftime('%A %d %B'),
-              'time': booking.event.date.strftime('%I:%M %p'),
+              'time': booking.event.date.strftime('%H:%M'),
               'blocks_used':  blocks_used,
               'total_blocks': total_blocks,
               'prev_cancelled_and_direct_paid':
@@ -429,15 +395,28 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'ev_type': 'event' if
               self.event.event_type.event_type == 'EV' else 'class'
         })
-        send_mail('{} Booking for {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-            get_template('booking/email/booking_received.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
-            html_message=get_template(
-                'booking/email/booking_received.html'
-                ).render(ctx),
-            fail_silently=False)
+        try:
+            send_mail('{} Booking for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template('booking/email/booking_received.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_received.html'
+                    ).render(ctx),
+                fail_silently=False)
+            ActivityLog.objects.create(
+                log='Email sent to user {} regarding {}booking id {} '
+                '(for {})'.format(
+                    booking.user.username,
+                    're' if previously_cancelled else '', booking.id, booking.event
+                )
+            )
+        except Exception as e:
+            # send mail to tech support with Exception
+            send_support_email(e, __name__, "BookingCreateView")
+            messages.error(self.request, "An error occured, please contact "
+                "the studio for information")
         # send email to studio if flagged for the event or if previously
         # cancelled and direct paid
         if (booking.event.email_studio_when_booked or
@@ -445,9 +424,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             additional_subject = ""
             if previously_cancelled_and_direct_paid:
                 additional_subject = "ACTION REQUIRED!"
-            send_mail('{} {} {} has just booked for {}'.format(
+            send_mail('{} {} {} {} has just booked for {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-                booking.user.username, booking.event.name),
+                booking.user.first_name, booking.user.last_name, booking.event.name),
                       get_template(
                         'booking/email/to_studio_booking.txt'
                         ).render(
@@ -456,7 +435,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                               'booking': booking,
                               'event': booking.event,
                               'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%I:%M %p'),
+                              'time': booking.event.date.strftime('%H:%M'),
                               'prev_cancelled_and_direct_paid':
                               previously_cancelled_and_direct_paid,
                               'transaction_id': transaction_id,
@@ -466,6 +445,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                       settings.DEFAULT_FROM_EMAIL,
                       [settings.DEFAULT_STUDIO_EMAIL],
                       fail_silently=False)
+
             ActivityLog.objects.create(
                 log= 'Email sent to studio ({}) regarding {}booking id {} '
                 '(for {})'.format(
@@ -474,13 +454,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     booking.event
                 )
             )
-        ActivityLog.objects.create(
-            log='Email sent to user {} regarding {}booking id {} '
-            '(for {})'.format(
-                booking.user.username,
-                're' if previously_cancelled else '', booking.id, booking.event
-            )
-        )
+
         messages.success(
             self.request,
             self.success_message.format(
@@ -534,6 +508,20 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 except Exception as e:
                     # send mail to tech support with Exception
                     send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
+
+        try:
+            waiting_list_user = WaitingListUser.objects.get(
+                user=booking.user, event=booking.event
+            )
+            waiting_list_user.delete()
+            ActivityLog.objects.create(
+                log='User {} has been removed from the waiting list '
+                'for {}'.format(
+                    booking.user.username, booking.event
+                )
+            )
+        except WaitingListUser.DoesNotExist:
+            pass
 
         return HttpResponseRedirect(reverse('booking:bookings'))
 
@@ -671,6 +659,18 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
     success_message = 'Booking updated for {} on {}!'
     fields = ['paid']
 
+    def get(self, request, *args, **kwargs):
+        # redirect if cancelled
+        try:
+            booking = Booking.objects.get(
+                user=self.request.user, id=self.kwargs['pk'],
+                status='CANCELLED'
+            )
+            return HttpResponseRedirect(reverse('booking:update_booking_cancelled',
+                                        args=[booking.id]))
+        except Booking.DoesNotExist:
+            return super(BookingUpdateView, self).get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BookingUpdateView, self).get_context_data(**kwargs)
@@ -774,8 +774,14 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 booking.payment_confirmed = True
                 booking.paid = True
                 booking.user = self.request.user
+                try:
+                    booking.save()
+                except BookingError:
+                    return HttpResponseRedirect(
+                        reverse('booking:fully_booked',
+                            args=[booking.event.slug])
+                    )
                 booking.save()
-
                 ActivityLog.objects.create(
                     log='Booking id {} (for {}), user {}, has been paid with block id {}'.format(
                         booking.id, booking.event, booking.user.username, booking.block.id
@@ -878,6 +884,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
 
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
+        event_was_full = booking.event.spaces_left() == 0
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -889,14 +896,20 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                       'date': booking.event.date.strftime('%A %d %B'),
                       'time': booking.event.date.strftime('%I:%M %p'),
                       })
-        send_mail('{} Booking for {} cancelled'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-            get_template('booking/email/booking_cancelled.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
-            html_message=get_template(
-                'booking/email/booking_cancelled.html').render(ctx),
-            fail_silently=False)
+        try:
+            send_mail('{} Booking for {} cancelled'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template('booking/email/booking_cancelled.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_cancelled.html').render(ctx),
+                fail_silently=False)
+        except Exception as e:
+            # send mail to tech support with Exception
+            send_support_email(e, __name__, "DeleteBookingView - cancelled email")
+            messages.error(self.request, "An error occured, please contact "
+                "the studio for information")
 
         if not booking.block and booking.paid and not booking.free_class:
             # send email to studio
@@ -946,6 +959,35 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 booking.id, booking.event, booking.user.username
             )
         )
+
+        # if applicable, email users on waiting list
+        if event_was_full:
+            waiting_list_users = WaitingListUser.objects.filter(
+                event=booking.event
+            )
+            if waiting_list_users:
+                try:
+                    send_waiting_list_email(
+                        booking.event,
+                        [wluser.user for wluser in waiting_list_users],
+                        host='http://{}'.format(request.META.get('HTTP_HOST'))
+                    )
+                    ActivityLog.objects.create(
+                        log='Waiting list email sent to user(s) {} for '
+                        'event {}'.format(
+                            ', '.join(
+                                [wluser.user.username for \
+                                wluser in waiting_list_users]
+                            ),
+                            booking.event
+                        )
+                    )
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(e, __name__, "DeleteBookingView - waiting list email")
+                    messages.error(self.request, "An error occured, please contact "
+                        "the studio for information")
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -957,10 +999,18 @@ def duplicate_booking(request, event_slug):
     context = {'event': event}
     return render(request, 'booking/duplicate_booking.html', context)
 
+def update_booking_cancelled(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    ev_type = 'class' if booking.event.event_type.event_type == 'CL' else 'event'
+    context = {'booking': booking, 'ev_type': ev_type}
+    if booking.event.spaces_left() == 0:
+        context['full'] = True
+    return render(request, 'booking/update_booking_cancelled.html', context)
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    context = {'event': event}
+    ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
+    context = {'event': event, 'ev_type': ev_type}
     return render(request, 'booking/fully_booked.html', context)
 
 

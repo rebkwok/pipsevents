@@ -14,6 +14,8 @@ from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
+class BookingError(Exception):
+    pass
 
 class EventType(models.Model):
     TYPE_CHOICE = (
@@ -296,6 +298,23 @@ class Booking(models.Model):
     space_confirmed.boolean = True
 
     def save(self, *args, **kwargs):
+        if self.pk is not None:
+            orig = Booking.objects.get(pk=self.pk)
+            if orig.status == 'CANCELLED' and \
+            self.status == 'OPEN' and \
+            self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to reopen booking for full '
+                    'event %s' % self.event.id
+                )
+        else:
+            if self.status != "CANCELLED" and \
+            self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to create booking for full '
+                    'event %s' % self.event.id
+                )
+
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
         if self.free_class:
@@ -303,3 +322,13 @@ class Booking(models.Model):
             self.payment_confirmed = True
             self.block = None
         super(Booking, self).save(*args, **kwargs)
+
+
+class WaitingListUser(models.Model):
+    """
+    A model to represent a single user on a waiting list for an event
+    """
+    user = models.ForeignKey(User, related_name='waitinglists')
+    event = models.ForeignKey(Event, related_name='waitinglistusers')
+    # date user joined the waiting list
+    date_joined = models.DateTimeField(default=timezone.now)
