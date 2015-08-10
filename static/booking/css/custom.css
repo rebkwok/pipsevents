@@ -394,7 +394,11 @@ color: #000;
 }
 
 a>.btn {
-    color: #fff;
+    color: #fff !important;
+    text-decoration: none;
+}
+a:visited>.btn, a:link>.btn {
+    color: #fff !important;
     text-decoration: none;
 }
 
@@ -438,7 +442,7 @@ td {
 	padding: 4 !important;
 }
 
-.table-btn {
+.table-btn, .disabled .btn .btn-success .table-btn {
     padding-top: 0;
     padding-bottom: 0;
 	padding-left: 0;
@@ -454,6 +458,7 @@ td {
 	padding-left: 0;
 	padding-right: 0;
 	width: 9em;
+	color: #fff !important;
     }
 }
 .paypal-table-btn {
