@@ -198,7 +198,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     model = Booking
     template_name = 'booking/create_booking.html'
-    success_message = 'You have booked for {}, {}, {}.'
+    success_message = 'You have booked for {}.'
     form_class = BookingCreateForm
 
     def dispatch(self, *args, **kwargs):
@@ -457,11 +457,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         messages.success(
             self.request,
-            self.success_message.format(
-                booking.event.name,
-                booking.event.date.strftime('%A %d %B'),
-                booking.event.date.strftime('%I:%M %p')
-            )
+            self.success_message.format(booking.event)
         )
 
         if 'claim_free' in form.data:
@@ -656,7 +652,7 @@ class BlockListView(LoginRequiredMixin, ListView):
 class BookingUpdateView(LoginRequiredMixin, UpdateView):
     model = Booking
     template_name = 'booking/update_booking.html'
-    success_message = 'Booking updated for {} on {}!'
+    success_message = 'Booking updated for {}!'
     fields = ['paid']
 
     def get(self, request, *args, **kwargs):
@@ -844,11 +840,9 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                             # send mail to tech support with Exception
                             send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
 
-            messages.success(self.request, self.success_message.format(
-                booking.event.name, booking.event.date.strftime(
-                    '%A %d %B, %I:%M %p'
-                )
-            ))
+            messages.success(
+                self.request, self.success_message.format(booking.event)
+            )
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -859,7 +853,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
 class BookingDeleteView(LoginRequiredMixin, DeleteView):
     model = Booking
     template_name = 'booking/delete_booking.html'
-    success_message = 'Booking cancelled for {}, {}, {}'
+    success_message = 'Booking cancelled for {}'
 
     def get(self, request, *args, **kwargs):
         # redirect if cancellation period past
@@ -949,10 +943,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
 
         messages.success(
             self.request,
-            self.success_message.format(
-                booking.event.name,
-                booking.event.date.strftime('%A %d %B'),
-                booking.event.date.strftime('%I:%M %p'))
+            self.success_message.format(booking.event)
         )
         ActivityLog.objects.create(
             log='Booking id {} for event {}, user {}, was cancelled'.format(
