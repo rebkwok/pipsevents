@@ -1,4 +1,4 @@
-{{ booking.user.username }} has cancelled a booking for {{ event.name }} on {{ date }} at {{ time }}.
+{{ booking.user.username }} has cancelled a booking for {{ event }}.
 
 {% if booking.block %}
 The booking was made using a block and has been automatically updated.

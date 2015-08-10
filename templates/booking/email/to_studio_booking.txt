@@ -1,4 +1,4 @@
-{{ booking.user.first_name }} {{ booking.user.last_name }} ({{ booking.user.username }}) booked for {{ event.name }} on {{ date }} at {{ time }}.
+{{ booking.user.first_name }} {{ booking.user.last_name }} ({{ booking.user.username }}) booked for {{ event }}.
 {% if booking.block %}{{ booking.user.first_name }} used a block for this booking.{% endif %}
 {% if prev_cancelled_and_direct_paid %}{{ booking.user.first_name }} is rebooking a previously cancelled booking which is still marked as paid.
 Please review your PayPal account and confirm that this payment has not been refunded yet.  {{ booking.user.first_name }}'s booking will remain as pending until this is completed.

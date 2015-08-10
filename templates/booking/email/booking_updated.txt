@@ -1,6 +1,6 @@
 {% include "account/email/do_not_reply.txt" %}
 
-Thank you for your payment for {{ event.name }} on {{ date }} at {{ time }}.
+Thank you for your payment for {{ event }}.
 {% if booking.block %}
 You have used your block to pay for this {{ ev_type }}.  Your booking is now confirmed.
 

@@ -1,5 +1,5 @@
 {% include "account/email/do_not_reply.txt" %}
-Your booking has been received for {{ event.name }} on {{ date }} at {{ time }}.
+Your booking has been received for {{ event }}.
 {% if not event.cost %}
     There is no cost for this {{ ev_type }}.  Your space is now confirmed.  If you no longer wish to attend, please delete your booking by visiting visiting your bookings page at {{ host }}{% url 'booking:bookings' %}.
 {% else %}
