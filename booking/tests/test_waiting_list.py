@@ -157,7 +157,7 @@ class WaitingListTests(TestCase):
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertIn('on_waiting_list_button', str(resp.content))
+        self.assertIn('leave_waiting_list_button', str(resp.content))
 
     def test_waiting_list_events_context(self):
         wlevent = mommy.make_recipe('booking.future_PC', max_participants=2)
@@ -189,7 +189,7 @@ class WaitingListTests(TestCase):
         resp.render()
         self.assertIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertNotIn('on_waiting_list_button', str(resp.content))
+        self.assertNotIn('leave_waiting_list_button', str(resp.content))
 
     def test_waiting_list_button_on_event_detail_list(self):
         """
@@ -239,7 +239,7 @@ class WaitingListTests(TestCase):
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertIn('on_waiting_list_button', str(resp.content))
+        self.assertIn('leave_waiting_list_button', str(resp.content))
 
     def test_event_detail_already_on_waiting_list_not_full_event(self):
         """
@@ -256,7 +256,7 @@ class WaitingListTests(TestCase):
         resp.render()
         self.assertIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertNotIn('on_waiting_list_button', str(resp.content))
+        self.assertNotIn('leave_waiting_list_button', str(resp.content))
 
     def test_booking_list_cancelled_booking(self):
         """
@@ -276,7 +276,7 @@ class WaitingListTests(TestCase):
         resp = self._get_booking_list(self.user)
         resp.render()
         self.assertNotIn('rebook_button', str(resp.content))
-        self.assertNotIn('on_waiting_list_button', str(resp.content))
+        self.assertNotIn('leave_waiting_list_button', str(resp.content))
         self.assertIn('join_waiting_list_button', str(resp.content))
 
     def test_booking_list_cancelled_booking_already_on_waiting_list(self):
@@ -301,7 +301,7 @@ class WaitingListTests(TestCase):
         resp = self._get_booking_list(self.user)
         resp.render()
         # user is on waiting list, event is full; show "On waiting list"
-        self.assertIn('on_waiting_list_button', str(resp.content))
+        self.assertIn('leave_waiting_list_button', str(resp.content))
         self.assertNotIn('rebook_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
 

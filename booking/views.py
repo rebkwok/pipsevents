@@ -198,7 +198,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     model = Booking
     template_name = 'booking/create_booking.html'
-    success_message = 'You have booked for {}.'
+    success_message = 'Your booking has been made for {}.'
     form_class = BookingCreateForm
 
     def dispatch(self, *args, **kwargs):
@@ -212,37 +212,74 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     def get(self, request, *args, **kwargs):
         # redirect if fully booked or already booked
-        if self.event.spaces_left() <= 0:
-            if 'join waiting list' in request.GET:
-                waitinglistuser, new = WaitingListUser.objects.get_or_create(
-                        user=request.user, event=self.event
-                    )
-                if new:
-                    msg = 'You have been added to the waiting list for {}. ' \
-                        ' We will email you if a space becomes ' \
-                        'available.'.format(self.event)
-                    ActivityLog.objects.create(
-                        log='User {} has been added to the waiting list '
-                        'for {}'.format(
-                            request.user.username, self.event
-                        )
-                    )
-                else:
-                    msg = 'You are already on the waiting list for {}'.format(
-                            self.event
-                        )
-                messages.success(request, msg)
 
-                ev_type = 'lessons' \
-                    if self.event.event_type.event_type == 'CL' \
-                    else 'events'
-                return HttpResponseRedirect(
-                    reverse('booking:{}'.format(ev_type))
+        if 'join waiting list' in request.GET:
+            waitinglistuser, new = WaitingListUser.objects.get_or_create(
+                    user=request.user, event=self.event
+                )
+            if new:
+                msg = 'You have been added to the waiting list for {}. ' \
+                    ' We will email you if a space becomes ' \
+                    'available.'.format(self.event)
+                ActivityLog.objects.create(
+                    log='User {} has been added to the waiting list '
+                    'for {}'.format(
+                        request.user.username, self.event
+                    )
                 )
             else:
+                msg = 'You are already on the waiting list for {}'.format(
+                        self.event
+                    )
+            messages.success(request, msg)
+
+            ev_type = 'lessons' \
+                if self.event.event_type.event_type == 'CL' \
+                else 'events'
+
+            if 'bookings' in request.GET:
                 return HttpResponseRedirect(
-                    reverse('booking:fully_booked', args=[self.event.slug])
+                    reverse('booking:bookings')
                 )
+            return HttpResponseRedirect(
+                reverse('booking:{}'.format(ev_type))
+            )
+        elif 'leave waiting list' in request.GET:
+            try:
+                waitinglistuser = WaitingListUser.objects.get(
+                        user=request.user, event=self.event
+                    )
+                waitinglistuser.delete()
+                msg = 'You have been removed from the waiting list ' \
+                    'for {}. '.format(self.event)
+                ActivityLog.objects.create(
+                    log='User {} has left the waiting list '
+                    'for {}'.format(
+                        request.user.username, self.event
+                    )
+                )
+            except WaitingListUser.DoesNotExist:
+                msg = 'You are not on the waiting list '\
+                    'for {}. '.format(self.event)
+
+            messages.success(request, msg)
+
+            ev_type = 'lessons' \
+                if self.event.event_type.event_type == 'CL' \
+                else 'events'
+
+            if 'bookings' in request.GET:
+                return HttpResponseRedirect(
+                    reverse('booking:bookings')
+                )
+            return HttpResponseRedirect(
+                reverse('booking:{}'.format(ev_type))
+            )
+        elif self.event.spaces_left() <= 0:
+            return HttpResponseRedirect(
+                reverse('booking:fully_booked', args=[self.event.slug])
+            )
+
         try:
             booking = Booking.objects.get(
                 user=self.request.user, event=self.event
@@ -330,8 +367,8 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
                 messages.success(
                     self.request,
-                    "Your request to claim a free class for {} has been sent "
-                    "to the studio for review.".format(form.instance.event)
+                    "Your request to claim a free class has been sent "
+                    "to the studio for review."
                 )
             except Exception as e:
                 # send mail to tech support with Exception
@@ -462,7 +499,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         if 'claim_free' in form.data:
             messages.info(
-                self.request, 'Your place will be confirmed once your free '
+                self.request, 'Your place will be secured once your free '
                 'class request has been reviewed and approved. '
             )
         elif previously_cancelled_and_direct_paid:
@@ -472,16 +509,18 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                               'organiser has reviewed your payment status.'
             )
         elif not booking.block:
-            cancellation_warning = ""
-            if booking.event.advance_payment_required:
-                cancellation_warning = "Please note that if payment " \
-                    "has not been received by the cancellation period, " \
-                    "your booking will be automatically cancelled."
-            messages.info(
-                self.request, mark_safe('Your place will be confirmed '
-                    'once your payment has been received. '
-                    '<strong>{}</strong>'.format(cancellation_warning))
-            )
+            if booking.event.cost:
+                cancellation_warning = ""
+                if booking.event.advance_payment_required:
+                    cancellation_warning = "Note that if payment " \
+                        "has not been received by the cancellation period, " \
+                        "your booking will be automatically cancelled."
+                messages.info(
+                    self.request, mark_safe('Please make your payment as soon '
+                        'as possible.  '
+                        '<strong>{}</strong>'.format(cancellation_warning)
+                    )
+                )
         elif not booking.block.active_block():
             messages.info(self.request,
                           'You have just used the last space in your block.  '
@@ -519,6 +558,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         except WaitingListUser.DoesNotExist:
             pass
 
+        if "book_one_off" in form.data and booking.event.cost:
+            return HttpResponseRedirect(
+                reverse( 'booking:update_booking', args=[booking.id])
+            )
         return HttpResponseRedirect(reverse('booking:bookings'))
 
 
@@ -745,11 +788,10 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
 
                 messages.success(
                     self.request,
-                    "Your request to claim {} as a free class for has been "
-                    "sent to the studio for review.  Your booking has not "
-                    "yet been marked as paid or confirmed; if your free class "
-                    "is approved, your booking will "
-                    "be updated.".format(form.instance.event)
+                    "Your request to claim {} as a free class has been "
+                    "sent to the studio.  Your booking has been "
+                    "provisionally made and your place will be secured once "
+                    "your request has been approved.".format(form.instance.event)
                 )
             except Exception as e:
                 # send mail to tech support with Exception

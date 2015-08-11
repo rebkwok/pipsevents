@@ -21,25 +21,26 @@
                     <div class="form-group">
                         {% if blocktype_available %}
                             {% if active_user_block %}
-                                <p>You have an active block; would you like to use your block for this booking?</p>
+                                <p>You have an active block; you can use your block to pay for this booking.</p>
                             {% elif active_user_block_unpaid %}
                                 <p>You have an unpaid block.  If you would like to use your block,
                                     click <a href="{% url 'booking:block_list' %}">here</a> to review and make your payment.</p>
-                            {% else %}
-                                <p>Block booking is available for this {{ ev_type }}.  Click <a href="{% url 'booking:add_block' %}">here</a> to add a new block.</p>
                             {% endif %}
+
                         {% else %}
                             <p>(Note: block booking is not available for this {{ ev_type }} type.)</p>
                         {% endif %}
 
                         {% if not event.can_cancel %}
-                            <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.
-                                If you continue with the booking, you will not have the option to cancel it yourself.</p>
-                            {% if not event.advance_payment_required%}
-                                <p class="cancel-warning">Your payment will still be due even if you do not attend the {{ ev_type }}.</p>
-                            {% else %}
-                                <p class="cancel-warning">If payment has not been received within approximately
-                                    4 hours of booking, your booking will be automatically cancelled.</p>
+                            <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.</p>
+                            {% if event.cost %}
+                                If you continue with the booking, you will not have the option to cancel it yourself.
+                                {% if not event.advance_payment_required%}
+                                    <p class="cancel-warning">Your payment will still be due even if you do not attend the {{ ev_type }}.</p>
+                                {% else %}
+                                    <p class="cancel-warning">If payment has not been received within approximately
+                                        4 hours of booking, your booking will be automatically cancelled.</p>
+                                {% endif %}
                             {% endif %}
                         {% else %}
                             <p>Cancellation is only allowed up to {{ event.cancellation_period | format_cancellation }}
@@ -53,14 +54,13 @@
                         {% if blocktype_available %}
                             {% if active_user_block %}
                                 <input class="btn btn-success update-btn" type="submit" name="block_book" value="Book with block" />
-                                <input class="btn btn-success update-btn" type="submit" value="Book as one-off" />
+                                <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book as one-off" />
                             {% else %}
-                                <input class="btn btn-success update-btn" type="submit" value="Book" />
+                                <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book" />
                             {% endif %}
 
-
                         {% else %}
-                            <input class="btn btn-success update-btn" type="submit" value="Confirm and book" />
+                            <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book" />
                         {% endif %}
 
                         {% if can_be_free_class %}

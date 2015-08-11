@@ -71,8 +71,9 @@
                                     <input id='join_waiting_list_button' class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
                                 </form>
                             {% else %}
-                                <div id='on_waiting_list_button' class="disabled btn btn-success table-btn">On waiting list</div>
-                            {% endif %}
+                                <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                    <input id='leave_waiting_list_button' class="btn btn-warning table-btn" type="submit" value="Leave waiting list" name="leave waiting list"/>
+                                </form>                            {% endif %}
                         {% endif %}
                     {% endif %}
                 {% endif %}
