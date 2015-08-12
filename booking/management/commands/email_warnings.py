@@ -9,6 +9,7 @@ booking.payment_confirmed = False
 Add warning_sent flags to booking model so
 we don't keep sending
 '''
+import pytz
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
@@ -65,10 +66,11 @@ def get_bookings(num_hrs):
 
 def send_warning_email(self, upcoming_bookings):
     for booking in upcoming_bookings:
-
+        uk_tz = pytz.timezone('Europe/London')
         due_datetime = booking.event.date - timedelta(hours=(booking.event.cancellation_period))
         if booking.event.payment_due_date and booking.event.payment_due_date < due_datetime:
             due_datetime = booking.event.payment_due_date
+        due_datetime = due_datetime.astimezone(uk_tz)
 
         ctx = Context({
               'booking': booking,
