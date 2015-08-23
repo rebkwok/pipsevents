@@ -112,18 +112,24 @@
             </div>
         </div>
 
-    {% if messages %}
-        <div class="message alert alert-info">
-            {% for message in messages %}
-            <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>
-                {% if 'safe' in message.tags %}
-                    {{ message|safe }}
-                {% else %}
-                    {{ message }}
-                {% endif %}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
+        {% if messages %}
+          <div class="row">
+            <div class="col-sm-12">
+                {% for message in messages %}
+                <div {% if message.tags and message.tags == 'error' %}
+                            class="message alert alert-danger"
+                     {% elif message.tags %}
+                            class="message alert alert-{{ message.tags }}"
+                     {% endif %}>
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}</div>
+                {% endfor %}
+            </div>
+          </div>
+        {% endif %}
 
     {% block body %}
         {% block content %}

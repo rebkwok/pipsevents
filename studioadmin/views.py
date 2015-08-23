@@ -233,7 +233,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         if booking.block:
                             booking.paid = True
                         booking.save()
-                        messages.info(
+                        messages.success(
                             request,
                             "Register updated for user {}".format(
                                 booking.user.username
@@ -248,8 +248,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                             )
                         )
                     for error in form.errors:
-                        messages.error(request, "{}".format(error),
-                                       extra_tags='safe')
+                        messages.error(request,mark_safe("{}".format(error)))
                 formset.save()
 
             register_url = 'studioadmin:event_register'
@@ -266,10 +265,17 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
             )
         else:
             messages.error(
-                request, "There were errors in the following fields:"
+                request,
+                mark_safe(
+                    "There were errors in the following fields:\n{}".format(
+                        '\n'.join(
+                            ["{}".format(error) for error in formset.errors]
+                        )
+                    )
+                )
             )
-            for error in formset.errors:
-                messages.error(request, "{}".format(error), extra_tags='safe')
+
+
     else:
         if status_choice == 'ALL':
             queryset = Booking.objects.all()
@@ -356,12 +362,12 @@ def event_admin_list(request, ev_type):
                     for form in eventformset:
                         if form.has_changed():
                             if 'DELETE' in form.changed_data:
-                                messages.info(
-                                    request,
-                                    '{} <strong>{}</strong> has been deleted!'.format(
-                                        ev_type_text.title(), form.instance,
-                                    ),
-                                    extra_tags='safe'
+                                messages.success(
+                                    request, mark_safe(
+                                        '{} <strong>{}</strong> has been deleted!'.format(
+                                            ev_type_text.title(), form.instance,
+                                        )
+                                    )
                                 )
                                 ActivityLog.objects.create(
                                     log='{} {} (id {}) deleted by admin user {}'.format(
@@ -371,37 +377,41 @@ def event_admin_list(request, ev_type):
                                 )
                             else:
                                 for field in form.changed_data:
-                                    messages.info(
-                                        request,
-                                        "<strong>{}</strong> updated for "
-                                        "<strong>{}</strong>".format(
-                                            field.title().replace("_", " "),
-                                            form.instance
-                                            ),
-                                        extra_tags='safe'
+                                    messages.success(
+                                        request, mark_safe(
+                                            "<strong>{}</strong> updated for "
+                                            "<strong>{}</strong>".format(
+                                                field.title().replace("_", " "),
+                                                form.instance))
                                     )
+
                                     ActivityLog.objects.create(
-                                        log='{} {} (id {}) updated by admin user {}'.format(
+                                        log='{} {} (id {}) updated by admin user {}: field_changed: {}'.format(
                                             ev_type_text.title(),
                                             form.instance, form.instance.id,
-                                            request.user.username
+                                            request.user.username, field.title().replace("_", " ")
                                         )
                                     )
+
                             form.save()
 
                         for error in form.errors:
-                            messages.error(request, "{}".format(error),
-                                           extra_tags='safe')
+                            messages.error(request, mark_safe("{}".format(error)))
                     eventformset.save()
                 return HttpResponseRedirect(
                     reverse('studioadmin:{}'.format(ev_type),)
                 )
             else:
                 messages.error(
-                    request, "There were errors in the following fields:"
+                    request,
+                    mark_safe(
+                        "There were errors in the following fields:\n{}".format(
+                            '\n'.join(
+                                ["{}".format(error) for error in eventformset.errors]
+                            )
+                        )
+                    )
                 )
-                for error in eventformset.errors:
-                    messages.error(request, "{}".format(error), extra_tags='safe')
 
     else:
         eventformset = EventFormSet(queryset=queryset)
@@ -481,7 +491,7 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
             )
         else:
             msg = 'No changes made'
-        messages.info(self.request, msg, extra_tags='safe')
+        messages.success(self.request, mark_safe(msg))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -512,9 +522,8 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
     def form_valid(self, form):
         event = form.save()
         msg_ev_type = 'Event' if self.kwargs["ev_type"] == 'event' else 'Class'
-        messages.info(self.request, '<strong>{} {}</strong> has been '
-                                    'created!'.format(msg_ev_type, event.name),
-                      extra_tags='safe')
+        messages.success(self.request, mark_safe('<strong>{} {}</strong> has been '
+                                    'created!'.format(msg_ev_type, event.name)))
         ActivityLog.objects.create(
             log='{} {} (id {}) created by admin user {}'.format(
                 msg_ev_type, event, event.id, self.request.user.username
@@ -540,14 +549,13 @@ def timetable_admin_list(request):
                 for form in sessionformset:
                     if form.has_changed():
                         if 'DELETE' in form.changed_data:
-                            messages.info(
-                                request,
-                                'Session <strong>{} {} {}</strong> has been deleted!'.format(
-                                form.instance.name,
-                                DAY_CHOICES[form.instance.day],
-                                form.instance.time.strftime('%H:%M'),
-                                ),
-                                extra_tags='safe'
+                            messages.success(
+                                request, mark_safe(
+                                    'Session <strong>{} {} {}</strong> has been deleted!'.format(
+                                    form.instance.name,
+                                    DAY_CHOICES[form.instance.day],
+                                    form.instance.time.strftime('%H:%M')
+                                ))
                             )
                             ActivityLog.objects.create(
                                 log='Session {} (id {}) deleted by admin '
@@ -558,14 +566,14 @@ def timetable_admin_list(request):
                             )
                         else:
                             for field in form.changed_data:
-                                messages.info(
-                                    request,
-                                    "<strong>{}</strong> updated for "
-                                    "<strong>{}</strong>".format(
-                                        field.title().replace("_", " "),
-                                        form.instance
-                                        ),
-                                    extra_tags='safe'
+                                messages.success(
+                                    request, mark_safe(
+                                        "<strong>{}</strong> updated for "
+                                        "<strong>{}</strong>".format(
+                                            field.title().replace("_", " "),
+                                            form.instance
+                                            )
+                                    )
                                 )
                                 ActivityLog.objects.create(
                                     log='Session {} (id {}) updated by admin '
@@ -577,18 +585,22 @@ def timetable_admin_list(request):
                         form.save()
 
                     for error in form.errors:
-                        messages.error(request, "{}".format(error),
-                                       extra_tags='safe')
+                        messages.error(request, mark_safe("{}".format(error)))
                 sessionformset.save()
             return HttpResponseRedirect(
                 reverse('studioadmin:timetable')
             )
         else:
             messages.error(
-                request, "There were errors in the following fields:"
+                request,
+                mark_safe(
+                    "There were errors in the following fields:\n{}".format(
+                        '\n'.join(
+                            ["{}".format(error) for error in sessionformset.errors]
+                        )
+                    )
+                )
             )
-            for error in sessionformset.errors:
-                messages.error(request, "{}".format(error), extra_tags='safe')
 
     else:
         sessionformset = TimetableSessionFormSet(
@@ -639,7 +651,7 @@ class TimetableSessionUpdateView(
             )
         else:
             msg = 'No changes made'
-        messages.info(self.request, msg, extra_tags='safe')
+        messages.success(self.request, mark_safe(msg))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -673,7 +685,7 @@ class TimetableSessionCreateView(
                 session, session.id, self.request.user.username
             )
         )
-        messages.info(self.request, msg, extra_tags='safe')
+        messages.success(self.request, mark_safe(msg))
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -816,8 +828,7 @@ def choose_users_to_email(request,
                         users_to_email.append(form.instance.id)
                 else:
                     for error in form.errors:
-                        messages.error(request, "{}".format(error),
-                                           extra_tags='safe')
+                        messages.error(request, mark_safe("{}".format(error)))
 
             request.session['users_to_email'] = users_to_email
 
@@ -827,10 +838,15 @@ def choose_users_to_email(request,
 
         else:
             messages.error(
-                request, "There were errors in the following fields:"
+                request,
+                mark_safe(
+                    "There were errors in the following fields:\n{}".format(
+                        '\n'.join(
+                            ["{}".format(error) for error in usersformset.errors]
+                        )
+                    )
+                )
             )
-            for error in usersformset.errors:
-                messages.error(request, "{}".format(error), extra_tags='safe')
 
     else:
         usersformset = ChooseUsersFormSet(
@@ -909,7 +925,7 @@ def email_users_view(request,
                 lessons = Event.objects.filter(id__in=lesson_ids)
                 totaleventids = event_ids + lesson_ids
                 totalevents = Event.objects.filter(id__in=totaleventids)
-                messages.error(request, "Please correct errors in form: {}".format(form.errors), extra_tags='safe')
+                messages.error(request, mark_safe("Please correct errors in form: {}".format(form.errors)))
                 form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
 
         else:
@@ -1033,7 +1049,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     else:
                                         send_confirmation_msg = ""
 
-                                    messages.info(
+                                    messages.success(
                                         request,
                                         'Booking for {} has been {} {}'.format(
                                             booking.event, action, send_confirmation_msg
@@ -1115,8 +1131,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                             pass
                     else:
                         for error in form.errors:
-                            messages.error(request, "{}".format(error),
-                                           extra_tags='safe')
+                            messages.error(request, mark_safe("{}".format(error)))
 
                     userbookingformset.save(commit=False)
 
@@ -1131,10 +1146,15 @@ def user_bookings_view(request, user_id, booking_status='future'):
             )
         else:
             messages.error(
-                request, "There were errors in the following fields:"
+                request,
+                mark_safe(
+                    "There were errors in the following fields:\n{}".format(
+                        '\n'.join(
+                            ["{}".format(error) for error in userbookingformset.errors]
+                        )
+                    )
+                )
             )
-            for error in userbookingformset.errors:
-                messages.error(request, "{}".format(error), extra_tags='safe')
     else:
         all_bookings = Booking.objects.filter(user=user)
 
@@ -1196,12 +1216,16 @@ def user_blocks_view(request, user_id):
                         block = form.save(commit=False)
 
                         if 'DELETE' in form.changed_data:
-                            messages.info(
-                                request,
-                                'Block <strong>{}</strong> has been deleted!  Any bookings made with this block have been changed to unpaid.  Please inform user {} ({})'.format(
-                                    block, block.user.username, block.user.email)
-                                ,
-                                extra_tags='safe'
+                            messages.success(
+                                request, mark_safe(
+                                    'Block <strong>{}</strong> has been '
+                                    'deleted!  Any bookings made with this '
+                                    'block have been changed to unpaid.  '
+                                    'Please inform user {} ({})'.format(
+                                        block, block.user.username,
+                                        block.user.email
+                                    )
+                                )
                             )
                             ActivityLog.objects.create(
                                 log='Block {} (id {}) deleted by admin user {}'.format(
@@ -1212,7 +1236,7 @@ def user_blocks_view(request, user_id):
                             new = False if form.instance.id else True
                             msg = 'created' if new else 'updated'
 
-                            messages.info(
+                            messages.success(
                                 request,
                                 'Block for {} has been {}'.format(
                                     block.block_type.event_type, msg
@@ -1228,8 +1252,7 @@ def user_blocks_view(request, user_id):
                                 )
                             )
                     for error in form.errors:
-                        messages.error(request, "{}".format(error),
-                                       extra_tags='safe')
+                        messages.error(request, mark_safe("{}".format(error)))
                 userblockformset.save(commit=False)
 
             return HttpResponseRedirect(
@@ -1239,10 +1262,15 @@ def user_blocks_view(request, user_id):
             )
         else:
             messages.error(
-                request, "There were errors in the following fields:"
+                request,
+                mark_safe(
+                    "There were errors in the following fields:\n{}".format(
+                        '\n'.join(
+                            ["{}".format(error) for error in userblockformset.errors]
+                        )
+                    )
+                )
             )
-            for error in userblockformset.errors:
-                messages.error(request, "{}".format(error), extra_tags='safe')
     else:
         queryset = Block.objects.filter(
             user=user).order_by('start_date')
@@ -1299,7 +1327,7 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
                     Q(timestamp__gte=start_datetime) & Q(timestamp__lte=end_datetime)
                 ).order_by('-timestamp')
             except ValueError:
-                messages.info(
+                messages.error(
                     self.request, 'Invalid search date format.  Please select '
                     'from datepicker or enter using the format dd-Mmm-YYYY'
                 )

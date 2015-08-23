@@ -420,8 +420,8 @@ class BlockAdmin(admin.ModelAdmin):
                             booking.user.username, booking.event,
                             'already existed' if not reopened else 'has been reopened',
                             block.id
-                        )),
-                        extra_tags='safe'
+                            )
+                        ),
                     )
                 booking.paid = True
                 booking.payment_confirmed = True
@@ -441,7 +441,6 @@ class BlockAdmin(admin.ModelAdmin):
                         booking.id,
                         booking.user.username, booking.event
                     )),
-                    extra_tags='safe'
                 )
 
 class BlockTypeAdmin(admin.ModelAdmin):

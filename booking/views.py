@@ -522,11 +522,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     )
                 )
         elif not booking.block.active_block():
-            messages.info(self.request,
+            messages.info(self.request, mark_safe(
                           'You have just used the last space in your block.  '
                           'Go to <a href="/blocks">'
-                          'Your Blocks</a> to buy a new one.',
-                          extra_tags='safe')
+                          'Your Blocks</a> to buy a new one.'))
             if booking.block.block_type.size == 10:
                 try:
                     send_mail('{} {} has just used the last of 10 blocks'.format(
@@ -861,10 +860,11 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 )
                 if not booking.block.active_block():
                     messages.info(self.request,
-                                  'You have just used the last space in your block.  '
-                                  'Go to <a href="/blocks">'
-                                  'Your Blocks</a> to buy a new one.',
-                                  extra_tags='safe')
+                                  mark_safe(
+                                      'You have just used the last space in your block.  '
+                                      'Go to <a href="/blocks">'
+                                      'Your Blocks</a> to buy a new one.'
+                                  ))
                     if booking.block.block_type.size == 10:
                         try:
                             send_mail('{} {} has just used the last of 10 blocks'.format(

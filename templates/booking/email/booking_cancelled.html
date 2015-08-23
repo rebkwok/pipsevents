@@ -13,7 +13,7 @@
 
 <p>
 {% if not booking.block %}
-    {% if not booking.free_class %}
+    {% if not booking.free_class and booking.paid %}
         Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and
         will be in contact soon.
     {% else %}
