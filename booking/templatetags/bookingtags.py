@@ -82,3 +82,7 @@ def formatted_uk_date(date):
     """
     uk=pytz.timezone('Europe/London')
     return date.astimezone(uk).strftime("%d %b %Y %H:%M")
+
+@register.filter
+def is_regular_student(user):
+    return user.has_perm('booking.is_regular_student')

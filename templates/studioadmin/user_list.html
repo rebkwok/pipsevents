@@ -18,9 +18,10 @@
                                 <th class="table-center">Username <span class="fa fa-sort"></span></th>
                                 <th class="table-center">First Name <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Email</th>
+                                <th class="table-center">Regular student</th>
                                 <th class="table-center">Bookings</th>
                                 <th class="table-center">Blocks</th>
+                                <th class="table-center">Email</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -29,11 +30,12 @@
                                 <td class="table-center studioadmin-tbl">{{ user.username }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.first_name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.last_name }}</td>
-                                <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
+                                <td class="table-center studioadmin-tbl">{% if user|is_regular_student %}<span class="fa fa-check"></span>{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:user_blocks_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
+                                <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
                             </tr>
                             {% endfor %}
                             </tbody>

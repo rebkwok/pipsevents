@@ -54,6 +54,17 @@ def get_event_context(context, event, user):
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
         context['booked'] = True
+    elif event.event_type.subtype == "Pole practice" \
+        and not user.has_perm("booking.is_regular_student"):
+        context['bookable'] = False
+        context['unbookable_pole_practice'] = True
+        booking_info_text = "<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>" \
+                            "Pole practice is " \
+                            "only open to regular students. If " \
+                            "you are seeing this message and you are a regular " \
+                            "student, please contact " \
+                            "<a href='emailto:{}' target=_blank>{}</a> to have your account " \
+                            "upgraded.</span>".format(event.contact_email, event.contact_email)
     else:
         if cancelled:
             context['cancelled'] = True
