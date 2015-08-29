@@ -33,7 +33,7 @@
                                 <td class="table-center studioadmin-tbl">
                                     <form method="get">
                                                 <button class="btn table-btn perm-btn {% if user|is_regular_student %}btn-success{% else %}btn-default{% endif %}"
-                                                        type="submit" name="change_user" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
+                                                        type="submit" name="change_user" id="regular_student_button" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
                                     </form>
                                 </td>
                                 <td class="table-center studioadmin-tbl">

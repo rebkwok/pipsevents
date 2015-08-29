@@ -728,7 +728,6 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
     queryset = User.objects.all().order_by('first_name')
 
     def get(self, request, *args, **kwargs):
-
         if 'change_user' in self.request.GET:
             change_user_id = self.request.GET.getlist('change_user')[0]
             user_to_change = User.objects.get(id=change_user_id)
@@ -736,7 +735,6 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
             perm = Permission.objects.get(codename='is_regular_student')
             if is_regular_student:
                 user_to_change.user_permissions.remove(perm)
-
                 if user_to_change.is_superuser:
                     messages.error(
                         request,
@@ -787,7 +785,7 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
                             request.user.username
                         )
                 )
-
+            user_to_change.save()
         return super(UserListView, self).get(request, *args, **kwargs)
 
     def get_context_data(self):
