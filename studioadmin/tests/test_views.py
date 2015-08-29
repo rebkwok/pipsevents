@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -1565,21 +1565,10 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
 
 class UserListViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
+    def _get_response(self, user, form_data={}):
         url = reverse('studioadmin:users')
         session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = UserListView.as_view()
-        return view(request)
-
-    def _post_response(self, user):
-        url = reverse('studioadmin:users')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
+        request = self.factory.get(url, form_data)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
@@ -1620,6 +1609,45 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             list(resp.context_data['users']), list(User.objects.all())
         )
+
+    def test_display_regular_students(self):
+        not_reg_student = mommy.make_recipe('booking.user')
+        reg_student = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='is_regular_student')
+        reg_student.user_permissions.add(perm)
+        reg_student.save()
+
+        resp = self._get_response(self.staff_user)
+        resp.render()
+        self.assertIn(
+            'id="regular_student_button" value="{}">Yes'.format(reg_student.id),
+            str(resp.content)
+        )
+        self.assertIn(
+            'id="regular_student_button" value="{}">No'.format(not_reg_student.id),
+            str(resp.content)
+        )
+
+    def test_change_regular_student(self):
+        not_reg_student = mommy.make_recipe('booking.user')
+        reg_student = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='is_regular_student')
+        reg_student.user_permissions.add(perm)
+        reg_student.save()
+
+        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
+        self._get_response(
+            self.staff_user, {'change_user': [reg_student.id]}
+        )
+        changed_student = User.objects.get(id=reg_student.id)
+        self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
+
+        self.assertFalse(not_reg_student.has_perm('booking.is_regular_student'))
+        self._get_response(
+            self.staff_user, {'change_user': [not_reg_student.id]}
+        )
+        changed_student = User.objects.get(id=not_reg_student.id)
+        self.assertTrue(changed_student.has_perm('booking.is_regular_student'))
 
 
 class BlockListViewTests(TestPermissionMixin, TestCase):

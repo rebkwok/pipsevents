@@ -275,6 +275,7 @@ class Booking(models.Model):
         unique_together = ('user', 'event')
         permissions = (
             ("can_book_free_pole_practice", "Can book free pole practice"),
+            ("is_regular_student", "Is regular student")
         )
 
     def __str__(self):

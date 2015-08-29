@@ -394,7 +394,11 @@ class BookingCreateViewTests(TestCase):
         pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
+        perm = Permission.objects.get(codename='is_regular_student')
+        self.user.user_permissions.add(perm)
+        self.user.save()
         response = self._get_response(self.user, pole_class)
+
         self.assertIn('can_be_free_class', response.context_data)
 
         response = self._get_response(self.user, pole_practice)
@@ -413,7 +417,9 @@ class BookingCreateViewTests(TestCase):
 
         user = mommy.make_recipe('booking.user')
         perm = Permission.objects.get(codename='can_book_free_pole_practice')
+        perm1 = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
+        user.user_permissions.add(perm1)
         user.save()
 
         response = self._get_response(user, pole_class)

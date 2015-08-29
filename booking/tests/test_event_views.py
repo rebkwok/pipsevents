@@ -3,6 +3,7 @@ from model_mommy import mommy
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
+from django.contrib.auth.models import Permission
 
 from booking.models import Event, Booking
 from booking.views import EventListView, EventDetailView
@@ -122,6 +123,36 @@ class EventListViewTests(TestCase):
         resp = self.client.get(url, {'name': 'test_name'})
         self.assertEquals(resp.context['events'].count(), 3)
 
+    def test_pole_practice_context_without_permission(self):
+        Event.objects.all().delete()
+        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+
+        user = mommy.make_recipe('booking.user')
+
+        response = self._get_response(user, 'lessons')
+        response.render()
+        self.assertIn('N/A - see details', str(response.content))
+        self.assertNotIn('book_button', str(response.content))
+        self.assertNotIn('join_waiting_list_button', str(response.content))
+        self.assertNotIn('leave_waiting_list_button', str(response.content))
+
+    def test_pole_practice_context_with_permission(self):
+        Event.objects.all().delete()
+        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+
+        user = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='is_regular_student')
+        user.user_permissions.add(perm)
+        user.save()
+
+        response = self._get_response(user, 'lessons')
+        response.render()
+        self.assertIn('book_button', str(response.content))
+        self.assertNotIn('join_waiting_list_button', str(response.content))
+        self.assertNotIn('leave_waiting_list_button', str(response.content))
+
 
 class EventDetailViewTests(TestCase):
 
@@ -180,6 +211,40 @@ class EventDetailViewTests(TestCase):
         resp = self._get_response(self.user, self.event,'event')
         self.assertFalse('booked' in resp.context_data)
         self.assertEquals(resp.context_data['booking_info_text'], '')
+
+    def test_pole_practice_context_without_permission(self):
+        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+
+        user = mommy.make_recipe('booking.user')
+
+        response = self._get_response(user, pole_practice, 'lessons')
+        response.render()
+        self.assertIn('unbookable_pole_practice', response.context_data)
+        self.assertTrue(response.context_data['unbookable_pole_practice'])
+        self.assertFalse(response.context_data['bookable'])
+        self.assertNotIn('book_button_disabled', str(response.content))
+        self.assertNotIn('book_button', str(response.content))
+        self.assertNotIn('join_waiting_list_button', str(response.content))
+        self.assertNotIn('leave_waiting_list_button', str(response.content))
+
+    def test_pole_practice_context_with_permission(self):
+        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+
+        user = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='is_regular_student')
+        user.user_permissions.add(perm)
+        user.save()
+
+        response = self._get_response(user, pole_practice, 'lessons')
+        response.render()
+        self.assertNotIn('unbookable_pole_practice', response.context_data)
+        self.assertTrue(response.context_data['bookable'])
+        self.assertNotIn('book_button_disabled', str(response.content))
+        self.assertIn('book_button', str(response.content))
+        self.assertNotIn('join_waiting_list_button', str(response.content))
+        self.assertNotIn('leave_waiting_list_button', str(response.content))
 
 
 class LessonListViewTests(TestCase):
@@ -322,3 +387,4 @@ class LessonDetailViewTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEquals(resp.context_data['type'], 'lesson')
+

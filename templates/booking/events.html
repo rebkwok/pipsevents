@@ -48,8 +48,16 @@
                                         {% if event in booked_events %}
                                             <span class="fa fa-check"></span>
                                         {% elif event not in booked_events %}
-                                            {% if event.bookable %}
-                                                <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
+                                            {% if event.event_type.subtype == "Pole practice" and not is_regular_student %}
+                                                {% if type == 'events' %}
+                                                        <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
+                                                    {% elif type == 'lessons' %}
+                                                        <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
+                                                    {% endif %}
+                                                    N/A - see details</a>
+
+                                            {% elif event.bookable %}
+                                                    <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
                                             {% elif event.external_instructor %}
                                                 {% if type == 'events' %}
                                                     <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
@@ -57,7 +65,6 @@
                                                     <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
                                                 {% endif %}
                                                 Further details</a>
-
                                             {% elif not event.bookable and event.booking_open %}
                                                 {% if event in waiting_list_events %}
                                                     <form class="wl-table-form" action="{% url 'booking:book_event' event.slug %}" method="get">

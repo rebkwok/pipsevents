@@ -68,6 +68,9 @@ class EventListView(ListView):
             waiting_list_events = [wluser.event for wluser in user_waiting_lists]
             context['booked_events'] = booked_events
             context['waiting_list_events'] = waiting_list_events
+            context['is_regular_student'] = self.request.user.has_perm(
+                "booking.is_regular_student"
+            )
         context['type'] = self.kwargs['ev_type']
 
         event_name = self.request.GET.get('name', '')
@@ -211,9 +214,12 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         }
 
     def get(self, request, *args, **kwargs):
-        # redirect if fully booked or already booked
+        if self.event.event_type.subtype == "Pole practice" \
+                and not request.user.has_perm("booking.is_regular_student"):
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
 
-        if 'join waiting list' in request.GET:
+        # redirect if fully booked or already booked
+        elif 'join waiting list' in request.GET:
             waitinglistuser, new = WaitingListUser.objects.get_or_create(
                     user=request.user, event=self.event
                 )
