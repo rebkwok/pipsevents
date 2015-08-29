@@ -30,7 +30,12 @@
                                 <td class="table-center studioadmin-tbl">{{ user.username }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.first_name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.last_name }}</td>
-                                <td class="table-center studioadmin-tbl">{% if user|is_regular_student %}<span class="fa fa-check"></span>{% endif %}</td>
+                                <td class="table-center studioadmin-tbl">
+                                    <form method="get">
+                                                <button class="btn table-btn perm-btn {% if user|is_regular_student %}btn-success{% else %}btn-default{% endif %}"
+                                                        type="submit" name="change_user" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
+                                    </form>
+                                </td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
                                 <td class="table-center studioadmin-tbl">

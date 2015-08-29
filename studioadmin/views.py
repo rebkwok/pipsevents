@@ -10,14 +10,15 @@ from django.db.utils import IntegrityError
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
+
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.template.loader import get_template
 from django.template import Context
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect, redirect, \
+from django.shortcuts import HttpResponseRedirect, HttpResponse, redirect, \
     render, get_object_or_404
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView
 from django.utils import timezone
@@ -725,6 +726,69 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
     template_name = 'studioadmin/user_list.html'
     context_object_name = 'users'
     queryset = User.objects.all().order_by('first_name')
+
+    def get(self, request, *args, **kwargs):
+
+        if 'change_user' in self.request.GET:
+            change_user_id = self.request.GET.getlist('change_user')[0]
+            user_to_change = User.objects.get(id=change_user_id)
+            is_regular_student = user_to_change.has_perm('booking.is_regular_student')
+            perm = Permission.objects.get(codename='is_regular_student')
+            if is_regular_student:
+                user_to_change.user_permissions.remove(perm)
+
+                if user_to_change.is_superuser:
+                    messages.error(
+                        request,
+                        "{} {} ({}) is a superuser; you cannot remove "
+                        "permissions".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username
+                        )
+                    )
+                else:
+                    messages.success(
+                        request,
+                        "'Regular student' status has been removed for "
+                        "{} {} ({})".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="'Regular student' status has been removed for "
+                        "{} {} ({}) by admin user {}".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username,
+                            request.user.username
+                        )
+                    )
+
+            else:
+                user_to_change.user_permissions.add(perm)
+                messages.success(
+                    request,
+                    "{} {} ({}) has been given 'regular student' "
+                    "status".format(
+                        user_to_change.first_name,
+                        user_to_change.last_name,
+                        user_to_change.username
+                    )
+                )
+                ActivityLog.objects.create(
+                    log="{} {} ({}) has been given 'regular student' "
+                    "status by admin user {}".format(
+                        user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username,
+                            request.user.username
+                        )
+                )
+
+        return super(UserListView, self).get(request, *args, **kwargs)
 
     def get_context_data(self):
         context = super(UserListView, self).get_context_data()

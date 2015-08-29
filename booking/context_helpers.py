@@ -63,7 +63,7 @@ def get_event_context(context, event, user):
                             "only open to regular students. If " \
                             "you are seeing this message and you are a regular " \
                             "student, please contact " \
-                            "<a href='emailto:{}' target=_blank>{}</a> to have your account " \
+                            "<a href='mailto:{}' target=_blank>{}</a> to have your account " \
                             "upgraded.</span>".format(event.contact_email, event.contact_email)
     else:
         if cancelled:
