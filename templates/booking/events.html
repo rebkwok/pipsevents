@@ -11,7 +11,7 @@
             <div class="col-sm-12">
                 <p>Click on {% if type == 'events' %}event{% elif type == 'lessons' %}class{% endif %} name for more details</p>
                 {% if not user.is_authenticated %}
-                    <p><a href="{% url 'account_login' %}">Sign in</a> to book</p>
+                    <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
                 {% endif %}
                 <div class="panel panel-success">
 

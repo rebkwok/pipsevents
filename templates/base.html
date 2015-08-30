@@ -105,7 +105,7 @@
                         </li>
                         {% else %}
                         <div class="welcome-menu">Not signed in</div>
-                        <li class="active-nav-login account-menu"><a class="account-menu" href="{% url 'account_login' %}">Sign In</a></li>
+                        <li class="active-nav-login account-menu"><a class="account-menu" href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign In</a></li>
                         {% endif %}
                     </ul>
                 </div><!--/.nav-collapse -->

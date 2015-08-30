@@ -25,12 +25,11 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 class CustomLoginView(LoginView):
 
-    def get_context_data(self, **kwargs):
-        context = super(CustomLoginView, self).get_context_data(**kwargs)
+    def get_success_url(self):
+        super(CustomLoginView, self).get_success_url()
 
-        next_redirect = self.request.POST.get('next') or self.request.GET.get('next')
-        if next_redirect and next_redirect == '/accounts/password/change/':
-            redirect_field_value = reverse('profile:profile')
-            context.update({"redirect_field_value": redirect_field_value})
+        ret = self.request.POST.get('next') or self.request.GET.get('next')
+        if not ret or ret == '/accounts/password/change/':
+            ret = reverse('profile:profile')
 
-        return context
+        return ret
