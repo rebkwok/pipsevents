@@ -4,6 +4,9 @@ from django.core.mail.message import EmailMessage, EmailMultiAlternatives
 from django.template import Context
 from django.template.loader import get_template
 
+from activitylog.models import ActivityLog
+
+
 def send_support_email(e, module_name="", extra_subject=""):
     try:
         send_mail('{} An error occurred! ({})'.format(

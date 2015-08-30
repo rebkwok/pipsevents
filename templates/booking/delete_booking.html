@@ -10,7 +10,9 @@
                 <h2 class="panel-title">Cancel Booking</h2>
             </div>
        <div class="panel-body">
-                <h3>You are about to cancel your booking for <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}!</h3>
+                <h3>You are about to cancel your booking for
+                    {% if event.event_type.event_type == 'EV' %}<a href="{% url 'booking:event_detail' event.slug %}">
+                    {% elif event.event_type.event_type == 'CL' %}<a href="{% url 'booking:lesson_detail' event.slug %}">{% endif %}{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h3>
                 <h4>Are you sure?</h4>
                 {% if booked_with_block %}
                 <p>You used a block for this booking; your block will be updated automatically.</p>
