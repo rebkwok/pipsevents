@@ -1,7 +1,7 @@
 {% load bookingtags %}
 
 <div class="container-fluid row">
-    <h2>Register for {{ event }}</h2>
+
     {% if print %}
     <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
     {% endif %}
@@ -27,6 +27,7 @@
 
                 <div class="table-responsive">
                     <table class="table">
+                        <caption><h2>Register for {{ event }}</h2></caption>
                         <tr {% if not print %}class="success"{% endif %}>
                             <th class="table-center"></th>
                             <th class="table-center">Attended</th>
@@ -52,7 +53,7 @@
                                 <td class="table-center studioadmin-tbl">{{ bookingform.attended }}<label for={{ bookingform.checkbox_attended_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ bookingform.instance.status }}</td>
                                 <td class="table-center studioadmin-tbl">{{ bookingform.instance.user.first_name }}
-                                    {{ bookingform.instance.user.last_name }} ({{ bookingform.instance.user.username }})</td>
+                                    {{ bookingform.instance.user.last_name }}{% if not print %} ({{ bookingform.instance.user.username }}){% endif %}</td>
 
 
                                 <td class="table-center studioadmin-tbl">

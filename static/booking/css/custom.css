@@ -675,7 +675,7 @@ a > span.fa.fa-print {
 }
 
 .notes-row{
-    padding-bottom: 100 !important;
+    padding-bottom: 100px; !important;
 }
 
 .create-form {

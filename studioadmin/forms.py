@@ -562,6 +562,56 @@ class SessionAdminForm(forms.ModelForm):
         }
 
 
+class RegisterDayForm(forms.Form):
+    register_date = forms.DateField(
+        label="Date",
+        widget=forms.DateInput(
+            attrs={
+                'class': "form-control",
+                'id': 'datepicker_startdate'},
+            format='%a %d %b %Y'
+        ),
+        required=True,
+        initial=date.today()
+    )
+
+    ext_instructor = forms.BooleanField(
+        label="Exclude classes by external instructors:",
+        widget=forms.CheckboxInput(
+            attrs={
+                'class': 'regular-checkbox select-checkbox',
+                'id': 'ext_instructor_cbox',
+                'style': 'align-text: top;'
+            }
+        ),
+        initial=True,
+        required=False
+    )
+
+    def clean(self):
+        super(RegisterDayForm, self).clean()
+        cleaned_data = self.cleaned_data
+
+        register_date = self.data.get('register_date')
+        if register_date:
+            if self.errors.get('register_date'):
+                del self.errors['register_date']
+            try:
+                register_date = datetime.strptime(register_date, '%a %d %b %Y').date()
+                if register_date >= timezone.now().date():
+                    cleaned_data['register_date'] = register_date
+                else:
+                    self.add_error('register_date',
+                                   'Must be in the future')
+            except ValueError:
+                self.add_error(
+                    'register_date', 'Invalid date format.  Select from '
+                                        'the date picker or enter date in the '
+                                        'format e.g. Mon 08 Jun 2015')
+
+        return cleaned_data
+
+
 class UploadTimetableForm(forms.Form):
     start_date = forms.DateField(
         label="Start Date",

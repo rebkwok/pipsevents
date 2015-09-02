@@ -2,7 +2,7 @@ import urllib.parse
 import ast
 import logging
 
-from datetime import datetime
+from datetime import datetime, time
 from functools import wraps
 
 
@@ -39,7 +39,7 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
     BlockStatusFilter, UserBookingFormSet, UserBlockFormSet, \
-    ActivityLogSearchForm
+    ActivityLogSearchForm, RegisterDayForm
 
 from activitylog.models import ActivityLog
 
@@ -323,6 +323,96 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
             'available_block_type': True if available_block_type else False,
             'sidenav_selection': sidenav_selection
         }
+    )
+
+
+@login_required
+@staff_required
+def register_print_day(request):
+    '''
+    link to print all registers for a specific day GET --> form with date selector
+    POST sends selected date in querystring
+    get date from querystring
+    find all events for that date
+    for each event, create formset as above; only for open bookings
+    in template, iterate over events and create print version of register for each
+    '''
+
+    if request.method == 'POST':
+        form = RegisterDayForm(request.POST)
+
+        if form.is_valid():
+            register_date = form.cleaned_data['register_date']
+            exclude_ext_instructors = form.cleaned_data['ext_instructor']
+
+            events = Event.objects.filter(
+                date__gt=datetime.combine(
+                    register_date, time(hour=0, minute=0)
+                ).replace(tzinfo=timezone.utc),
+                date__lt=datetime.combine(
+                    register_date, time(hour=23, minute=59)
+                ).replace(tzinfo=timezone.utc),
+            )
+
+            if exclude_ext_instructors:
+                events = events.exclude(external_instructor=True)
+
+            eventlist = []
+            for event in events:
+                bookings = [
+                    booking for booking in Booking.objects.filter(event=event, status='OPEN')
+                    ]
+
+                bookinglist = []
+                for i, booking in enumerate(bookings):
+                    available_block = [
+                        block for block in
+                        Block.objects.filter(user=booking.user) if
+                        block.active_block() and
+                        block.block_type.event_type == event.event_type
+                    ]
+                    available_block = booking.block or (
+                        available_block[0] if available_block else None
+                    )
+                    booking_ctx = {'booking': booking, 'index': i+1, 'available_block': available_block}
+                    bookinglist.append(booking_ctx)
+
+                if event.max_participants:
+                    extra_lines = event.spaces_left()
+                elif event.bookings.count() < 15:
+                    open_bookings = [
+                        event for event in event.bookings.all() if event.status == 'OPEN'
+                    ]
+                    extra_lines = 15 - len(open_bookings)
+                else:
+                    extra_lines = 2
+
+                available_block_type = [
+                    block_type for block_type in
+                    BlockType.objects.filter(event_type=event.event_type)
+                ]
+
+                event_ctx = {
+                    'event': event,
+                    'bookings': bookinglist,
+                    'available_block_type': available_block_type,
+                    'extra_lines': extra_lines,
+                }
+                eventlist.append(event_ctx)
+
+            context = {
+                'date': register_date, 'events': eventlist,
+                'sidenav_selection': 'register_day'
+            }
+            template = 'studioadmin/print_multiple_registers.html'
+            return TemplateResponse(request, template, context)
+
+    else:
+        form = RegisterDayForm()
+
+    return TemplateResponse(
+        request, "studioadmin/register_day_form.html",
+        {'form': form, 'sidenav_selection': 'register_day'}
     )
 
 

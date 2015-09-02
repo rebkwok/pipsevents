@@ -26,6 +26,9 @@
     <li class="active-nav"><a href="{% url 'studioadmin:upload_timetable' %}">{% if sidenav_selection == 'upload_timetable' %}
                     <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
     <li class="divider"></li>
+    <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+                    <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
+    <li class="divider"></li>
     <li class="active-nav"><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
                 <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
     <li class="active-nav"><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
@@ -78,6 +81,9 @@
                     <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
                     <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+                <li class="sidebar-title">Print registers</li>
+                <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+                    <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
                 <li class="sidebar-title">Students</li>
                     <li><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                     <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
