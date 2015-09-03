@@ -588,6 +588,14 @@ class RegisterDayForm(forms.Form):
         required=False
     )
 
+    register_format = forms.ChoiceField(
+        label="Register format",
+        choices=[('full', 'Full register'), ('namesonly', 'Names only')],
+        widget=forms.RadioSelect,
+        initial='full',
+        required=False
+    )
+
     def clean(self):
         super(RegisterDayForm, self).clean()
         cleaned_data = self.cleaned_data
