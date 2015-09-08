@@ -343,7 +343,8 @@ def register_print_day(request):
 
         if form.is_valid():
             register_date = form.cleaned_data['register_date']
-            exclude_ext_instructors = form.cleaned_data['ext_instructor']
+            register_format = form.cleaned_data['register_format']
+            exclude_ext_instructors = form.cleaned_data['exclude_ext_instructor']
 
             events = Event.objects.filter(
                 date__gt=datetime.combine(
@@ -354,61 +355,100 @@ def register_print_day(request):
                 ).replace(tzinfo=timezone.utc),
             )
 
-            if exclude_ext_instructors:
-                events = events.exclude(external_instructor=True)
+            new_form = RegisterDayForm(
+                initial={'register_date': register_date,
+                         'exclude_ext_instructor': exclude_ext_instructors,
+                         'register_format': register_format},
+                events=events
+            )
+            ctx = {'form': new_form, 'sidenav_selection': 'register_day'}
 
-            eventlist = []
-            for event in events:
-                bookings = [
-                    booking for booking in Booking.objects.filter(event=event, status='OPEN')
-                    ]
+            if not events:
+                messages.info(request, 'There are no classes/workshops/events on the date selected')
+                return TemplateResponse(
+                    request, "studioadmin/register_day_form.html", ctx
+                )
 
-                bookinglist = []
-                for i, booking in enumerate(bookings):
-                    available_block = [
-                        block for block in
-                        Block.objects.filter(user=booking.user) if
-                        block.active_block() and
-                        block.block_type.event_type == event.event_type
-                    ]
-                    available_block = booking.block or (
-                        available_block[0] if available_block else None
+            if 'show' in request.POST:
+
+                return TemplateResponse(
+                    request, "studioadmin/register_day_form.html", ctx
+                )
+
+            elif 'print' in request.POST:
+
+                if 'select_events' in request.POST:
+                    event_ids=form.cleaned_data['select_events']
+                    events = Event.objects.filter(
+                        id__in=event_ids
                     )
-                    booking_ctx = {'booking': booking, 'index': i+1, 'available_block': available_block}
-                    bookinglist.append(booking_ctx)
+                elif exclude_ext_instructors:
+                    events = events.exclude(external_instructor=True)
 
-                if event.max_participants:
-                    extra_lines = event.spaces_left()
-                elif event.bookings.count() < 15:
-                    open_bookings = [
-                        event for event in event.bookings.all() if event.status == 'OPEN'
+                eventlist = []
+                for event in events:
+                    bookings = [
+                        booking for booking in Booking.objects.filter(event=event, status='OPEN')
+                        ]
+
+                    bookinglist = []
+                    for i, booking in enumerate(bookings):
+                        available_block = [
+                            block for block in
+                            Block.objects.filter(user=booking.user) if
+                            block.active_block() and
+                            block.block_type.event_type == event.event_type
+                        ]
+                        available_block = booking.block or (
+                            available_block[0] if available_block else None
+                        )
+                        booking_ctx = {'booking': booking, 'index': i+1, 'available_block': available_block}
+                        bookinglist.append(booking_ctx)
+
+                    if event.max_participants:
+                        extra_lines = event.spaces_left()
+                    elif event.bookings.count() < 15:
+                        open_bookings = [
+                            event for event in event.bookings.all() if event.status == 'OPEN'
+                        ]
+                        extra_lines = 15 - len(open_bookings)
+                    else:
+                        extra_lines = 2
+
+                    available_block_type = [
+                        block_type for block_type in
+                        BlockType.objects.filter(event_type=event.event_type)
                     ]
-                    extra_lines = 15 - len(open_bookings)
-                else:
-                    extra_lines = 2
 
-                available_block_type = [
-                    block_type for block_type in
-                    BlockType.objects.filter(event_type=event.event_type)
-                ]
+                    event_ctx = {
+                        'event': event,
+                        'bookings': bookinglist,
+                        'available_block_type': available_block_type,
+                        'extra_lines': extra_lines,
+                    }
+                    eventlist.append(event_ctx)
 
-                event_ctx = {
-                    'event': event,
-                    'bookings': bookinglist,
-                    'available_block_type': available_block_type,
-                    'extra_lines': extra_lines,
+                context = {
+                    'date': register_date, 'events': eventlist,
+                    'sidenav_selection': 'register_day',
+                    'register_format': register_format
                 }
-                eventlist.append(event_ctx)
+                template = 'studioadmin/print_multiple_registers.html'
+                return TemplateResponse(request, template, context)
+        else:
 
-            context = {
-                'date': register_date, 'events': eventlist,
-                'sidenav_selection': 'register_day'
-            }
-            template = 'studioadmin/print_multiple_registers.html'
-            return TemplateResponse(request, template, context)
+            messages.error(
+                request,
+                mark_safe('Please correct the following errors: {}'.format(
+                    form.errors
+                ))
+            )
+            return TemplateResponse(
+                    request, "studioadmin/register_day_form.html",
+                    {'form': form, 'sidenav_selection': 'register_day'}
+                    )
 
-    else:
-        form = RegisterDayForm()
+    form = RegisterDayForm()
 
     return TemplateResponse(
         request, "studioadmin/register_day_form.html",

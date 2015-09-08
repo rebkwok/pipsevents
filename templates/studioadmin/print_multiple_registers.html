@@ -6,86 +6,21 @@
 
 <div class="container-fluid row">
 <div class="row">
+    <div class="col-xs-4 col-xs-offset-1">
     <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
 </div>
-    </div>
-    {% for event in events %}
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-success">
+</div>
 
-                    <div class="table-responsive">
-                        <table class="table">
-                            <caption><h2>Register for {{ event.event }}</h2></caption>
-                            <thead>
-                            <tr>
-                                <th class="table-center"></th>
-                                <th class="table-center">Attended</th>
-                                <th class="table-center" >Status</th>
-                                <th class="table-center">User</th>
-                                <th class="table-center">Paid</th>
-                                {% if event.available_block_type %}
-                                <th class="table-center">Book with<br/>available block</th>
-                                <th class="table-center">User's block</br>expiry date</th>
-                                <th class="table-center">Block size</th>
-                                <th class="table-center">Bookings used</th>
-                                {% endif %}
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for booking in event.bookings %}
-                                <tr>
-                                    <td class="table-center register-index studioadmin-tbl">{{ booking.index }}.</td>
-                                    <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
-                                    <td class="table-center studioadmin-tbl">{{ booking.booking.status }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ booking.booking.user.first_name }}
-                                    <td class="table-center studioadmin-tbl">
-                                        {% if booking.booking.paid %}
-                                            <span class="fa fa-check"></span>
-                                        {% else %}
-                                            <span class="fa fa-times"></span>
-                                        {% endif %}
-                                    </td>
-                                        {% if event.available_block_type %}
-                                                {% if booking.booking.block %}
-                                                    <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
-                                                {% elif booking.booking.paid %}
-                                                    <td class="table-center studioadmin-tbl"><span class="fa fa-times"></span></td>
-                                                {% elif booking.booking.available_block %}
-                                                    <td class="table-center studioadmin-tbl"><span class="fa fa-times"></span></td>
-                                                {% else %}
-                                                    <td class="table-center studioadmin-tbl">N/A</td>
-                                                {% endif %}</td>
 
-                                            {% if booking.booking.available_block %}
-                                                <td class="table-center studioadmin-tbl">{{ booking.booking.available_block.expiry_date|date:"D d M Y" }}</td>
-                                                <td class="table-center studioadmin-tbl">{{ booking.booking.available_block.block_type.size }}</td>
-                                                <td class="table-center studioadmin-tbl">{{ booking.booking.available_block.bookings_made }}</td>
-                                            {% else %}
-                                                <!--<td class="no-block-comment" colspan="3">User does not have a relevant active block</td>-->
-                                                <td class="table-center studioadmin-tbl">N/A</td>
-                                                <td class="table-center studioadmin-tbl">N/A</td>
-                                                <td class="table-center studioadmin-tbl">N/A</td>
-                                            {% endif %}
-                                        {% endif %}
-                                </tr>
-                                {% endfor %}
-                            {% for i in event.extra_lines|get_range %}
-                            <tr>
-                                <td class="table-center register-index">{{ event.event|get_index_open:i }}.</td>
-                                <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
-                                <td {% if event.available_block_type %}colspan="7"{% else %}colspan="3"{% endif %}></td></tr>
-                            {% endfor %}
-                            <tr><td class="notes-row " {% if event.available_block_type %}colspan="9"{% else %}colspan="5"{% endif %}>Notes: </td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                            {% if register_format == 'full' %}
 
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+                                {% include 'studioadmin/full_registers_by_date.html' %}
 
-{% endfor %}
+                            {% elif register_format == 'namesonly' %}
+
+                                {% include 'studioadmin/names_only_registers_by_date.html' %}
+
+                            {% endif %}
+
+</div>
 {% endblock studioadmincontent %}

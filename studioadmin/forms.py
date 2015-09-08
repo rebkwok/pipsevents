@@ -563,42 +563,69 @@ class SessionAdminForm(forms.ModelForm):
 
 
 class RegisterDayForm(forms.Form):
-    register_date = forms.DateField(
-        label="Date",
-        widget=forms.DateInput(
-            attrs={
-                'class': "form-control",
-                'id': 'datepicker_startdate'},
-            format='%a %d %b %Y'
-        ),
-        required=True,
-        initial=date.today()
-    )
 
-    ext_instructor = forms.BooleanField(
-        label="Exclude classes by external instructors:",
-        widget=forms.CheckboxInput(
-            attrs={
-                'class': 'regular-checkbox select-checkbox',
-                'id': 'ext_instructor_cbox',
-                'style': 'align-text: top;'
-            }
-        ),
-        initial=True,
-        required=False
-    )
+    def __init__(self, *args, **kwargs):
+        if 'events' in kwargs:
+            self.events = kwargs.pop('events')
+        else:
+            self.events = None
+        super(RegisterDayForm, self).__init__(*args, **kwargs)
 
-    register_format = forms.ChoiceField(
-        label="Register format",
-        choices=[('full', 'Full register'), ('namesonly', 'Names only')],
-        widget=forms.RadioSelect,
-        initial='full',
-        required=False
-    )
+        self.fields['register_date'] = forms.DateField(
+            label="Date",
+            widget=forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': 'datepicker_registerdate'},
+                format='%a %d %b %Y'
+            ),
+            required=True,
+            initial=date.today()
+        )
+
+        self.fields['exclude_ext_instructor'] = forms.BooleanField(
+            label="Exclude classes by external instructors:",
+            widget=forms.CheckboxInput(
+                attrs={
+                    'class': 'regular-checkbox select-checkbox',
+                    'id': 'ext_instructor_cbox',
+                    'style': 'align-text: top;'
+                }
+            ),
+            initial=True,
+            required=False
+        )
+
+        self.fields['register_format'] = forms.ChoiceField(
+            label="Register format",
+            choices=[('full', 'Full register'), ('namesonly', 'Names only')],
+            widget=forms.RadioSelect,
+            initial='full',
+            required=False
+        )
+
+        if self.events:
+            if self.initial.get('exclude_ext_instructor'):
+                initial = [event.id for event in self.events
+                           if not event.external_instructor]
+            else:
+                initial = [event.id for event in self.events]
+            event_choices = tuple([(event.id, event.name) for event in self.events])
+            self.fields['select_events'] = forms.MultipleChoiceField(
+                label="Select registers to print:",
+                widget=forms.CheckboxSelectMultiple,
+                choices=event_choices,
+                initial=initial
+            )
 
     def clean(self):
         super(RegisterDayForm, self).clean()
         cleaned_data = self.cleaned_data
+
+        if self.data.get('select_events'):
+            selected_events = self.data.getlist('select_events')
+            if selected_events:
+                cleaned_data['select_events'] = [int(ev) for ev in selected_events]
 
         register_date = self.data.get('register_date')
         if register_date:
@@ -606,11 +633,7 @@ class RegisterDayForm(forms.Form):
                 del self.errors['register_date']
             try:
                 register_date = datetime.strptime(register_date, '%a %d %b %Y').date()
-                if register_date >= timezone.now().date():
-                    cleaned_data['register_date'] = register_date
-                else:
-                    self.add_error('register_date',
-                                   'Must be in the future')
+                cleaned_data['register_date'] = register_date
             except ValueError:
                 self.add_error(
                     'register_date', 'Invalid date format.  Select from '

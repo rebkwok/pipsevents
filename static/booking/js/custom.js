@@ -62,6 +62,16 @@ jQuery('#datepicker_enddate').datetimepicker({
     scrollInput: false,
 });
 
+jQuery('#datepicker_registerdate').datetimepicker({
+    format:'ddd DD MMM YYYY',
+    formatTime:'HH:mm',
+    timepicker: false,
+    closeOnDateSelect: true,
+    scrollMonth: false,
+    scrollTime: false,
+    scrollInput: false,
+});
+
 jQuery('#timepicker').datetimepicker({
     format:'HH:mm',
     formatTime:'HH:mm',

@@ -766,3 +766,11 @@ a > span.fa.fa-print {
 .wl-table-form {
 	margin: 0;
 }
+
+.register-form-group {
+    margin-bottom: 15px;
+}
+
+.register-form-control-label {
+    padding-top: 0 !important;
+}

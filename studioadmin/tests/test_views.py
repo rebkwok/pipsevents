@@ -34,6 +34,7 @@ from studioadmin.views import (
     BlockListView,
     choose_users_to_email,
     email_users_view,
+    register_print_day,
     user_blocks_view,
     user_bookings_view,
     url_with_querystring
@@ -2922,3 +2923,287 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
 
         waiting_list_users = resp.context_data['waiting_list_users']
         self.assertEqual(set(waiting_list_users), set(event_wl))
+
+
+class RegisterByDateTests(TestPermissionMixin, TestCase):
+
+    def _get_response(self, user):
+        url = reverse('studioadmin:register-day')
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return register_print_day(request)
+
+    def _post_response(self, user,form_data):
+        url = reverse('studioadmin:register-day')
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return register_print_day(request)
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse('studioadmin:register-day')
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        resp = self._get_response(self.staff_user)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_show_events_by_selected_date(self):
+
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+        mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=6,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'show': 'show'}
+        )
+        self.assertEqual(Event.objects.count(), 6)
+
+        form = resp.context_data['form']
+        self.assertIn('select_events', form.fields)
+        selected_events = form.fields['select_events'].choices
+
+        self.assertEqual(
+            [ev[0] for ev in selected_events],
+            [event.id for event in events]
+        )
+
+    def test_print_selected_events(self):
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+                'select_events': [events[0].id, events[1].id]}
+        )
+        self.assertEqual(len(resp.context_data['events']), 2)
+
+        for event in resp.context_data['events']:
+            self.assertTrue(event['event'] in [events[0], events[1]])
+
+    def test_print_unselected_events(self):
+        """
+        If no events selected (i.e. print button pressed without using the
+        "show classes" button first), all events for that date are printed,
+         with exception of ext instructor classes which are based on the
+         checkbox value
+        """
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+            }
+        )
+        self.assertEqual(len(resp.context_data['events']), 3)
+
+        for event in resp.context_data['events']:
+            self.assertTrue(event['event'] in events)
+
+    def test_print_open_bookings_for_events(self):
+        event1 = mommy.make_recipe(
+            'booking.future_EV',
+            name="event1",
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+        )
+        event2 = mommy.make_recipe(
+            'booking.future_EV',
+            name='event2',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=19, minute=0, tzinfo=timezone.utc
+            ),
+        )
+
+        ev1_bookings = mommy.make_recipe(
+            'booking.booking',
+            event=event1,
+            _quantity=2
+        )
+        ev1_cancelled_booking = mommy.make_recipe(
+            'booking.booking',
+            event=event2,
+            status='CANCELLED'
+        )
+        ev2_bookings = mommy.make_recipe(
+            'booking.booking',
+            event=event1,
+            _quantity=2
+        )
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 2)
+
+        for event in resp.context_data['events']:
+            self.assertTrue(event['event'] in [event1, event2])
+            for booking in event['bookings']:
+                self.assertTrue(booking['booking'] in event['event'].bookings.all())
+
+    def test_print_format_no_available_blocktype(self):
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            name="event1",
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+        )
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        # check correct headings are present
+        self.assertIn('>Attended<', resp.rendered_content)
+        self.assertIn('>Status<', resp.rendered_content)
+        self.assertIn('>User<', resp.rendered_content)
+        self.assertIn('>Paid<', resp.rendered_content)
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'namesonly',
+                'print': 'print',
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        # check correct headings are present
+        self.assertIn('>Attended<', resp.rendered_content)
+        self.assertIn('>User<', resp.rendered_content)
+        self.assertNotIn('>Status<', resp.rendered_content)
+        self.assertNotIn('>Paid<', resp.rendered_content)
+
+    def test_print_format_with_available_blocktype(self):
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            name="event1",
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+        )
+
+        mommy.make_recipe(
+            'booking.blocktype',
+            event_type=event.event_type
+        )
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        # check correct headings are present
+        self.assertIn('>Attended<', resp.rendered_content)
+        self.assertIn('>Status<', resp.rendered_content)
+        self.assertIn('>User<', resp.rendered_content)
+        self.assertIn('>Paid<', resp.rendered_content)
+        self.assertIn('>Book with<br/>available block<', resp.rendered_content)
+        self.assertIn('>User\'s block</br>expiry date<', resp.rendered_content)
+        self.assertIn('>Block size<', resp.rendered_content)
+        self.assertIn('>Bookings used<', resp.rendered_content)
+
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'namesonly',
+                'print': 'print',
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        # check correct headings are present
+        self.assertIn('>Attended<', resp.rendered_content)
+        self.assertIn('>User<', resp.rendered_content)
+        self.assertNotIn('>Status<', resp.rendered_content)
+        self.assertNotIn('>Paid<', resp.rendered_content)
+        self.assertNotIn('>Book with<br/>available block<', resp.rendered_content)
+        self.assertNotIn('>User\'s block</br>expiry date<', resp.rendered_content)
+        self.assertNotIn('>Block size<', resp.rendered_content)
+        self.assertNotIn('>Bookings used<', resp.rendered_content)
