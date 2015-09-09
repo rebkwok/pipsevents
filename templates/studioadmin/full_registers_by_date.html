@@ -30,7 +30,7 @@
                             <td class="table-center register-index studioadmin-tbl shrink-col">{{ booking.index }}.</td>
                             <td class="table-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
                             <td class="table-center studioadmin-tbl">{{ booking.booking.status }}</td>
-                            <td class="table-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.user.last_name }}
+                            <td class="table-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.booking.user.last_name }}</td>
                             <td class="table-center studioadmin-tbl">
                                 {% if booking.booking.paid %}
                                     <span class="fa fa-check"></span>

@@ -3054,6 +3054,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 'exclude_ext_instructor': True,
                 'register_format': 'full',
                 'print': 'print',
+                'select_events': [event.id for event in events]
             }
         )
         self.assertEqual(len(resp.context_data['events']), 3)
@@ -3101,6 +3102,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 'exclude_ext_instructor': True,
                 'register_format': 'full',
                 'print': 'print',
+                'select_events': [event1.id, event2.id]
             }
         )
 
@@ -3127,6 +3129,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 'exclude_ext_instructor': True,
                 'register_format': 'full',
                 'print': 'print',
+                'select_events': [event.id]
             }
         )
 
@@ -3143,6 +3146,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 'exclude_ext_instructor': True,
                 'register_format': 'namesonly',
                 'print': 'print',
+                'select_events': [event.id]
             }
         )
 
@@ -3174,6 +3178,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 'exclude_ext_instructor': True,
                 'register_format': 'full',
                 'print': 'print',
+                'select_events': [event.id]
             }
         )
 
@@ -3194,6 +3199,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 'exclude_ext_instructor': True,
                 'register_format': 'namesonly',
                 'print': 'print',
+                'select_events': [event.id]
             }
         )
 

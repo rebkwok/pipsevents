@@ -369,21 +369,26 @@ def register_print_day(request):
                     request, "studioadmin/register_day_form.html", ctx
                 )
 
-            if 'show' in request.POST:
-
-                return TemplateResponse(
-                    request, "studioadmin/register_day_form.html", ctx
-                )
-
-            elif 'print' in request.POST:
+            if 'print' in request.POST:
 
                 if 'select_events' in request.POST:
-                    event_ids=form.cleaned_data['select_events']
+                    event_ids = form.cleaned_data['select_events']
                     events = Event.objects.filter(
                         id__in=event_ids
                     )
-                elif exclude_ext_instructors:
-                    events = events.exclude(external_instructor=True)
+                else:
+                    messages.info(request, 'Please select at least one register to print')
+                    form = RegisterDayForm(
+                        initial={'register_date': register_date,
+                                 'exclude_ext_instructor': exclude_ext_instructors,
+                                 'register_format': register_format,
+                                 'select_events': []},
+                        events=events
+                    )
+                    return TemplateResponse(
+                        request, "studioadmin/register_day_form.html",
+                        {'form': form, 'sidenav_selection': 'register_day'}
+                    )
 
                 eventlist = []
                 for event in events:
@@ -435,6 +440,12 @@ def register_print_day(request):
                 }
                 template = 'studioadmin/print_multiple_registers.html'
                 return TemplateResponse(request, template, context)
+
+            else:
+                return TemplateResponse(
+                    request, "studioadmin/register_day_form.html", ctx
+                )
+
         else:
 
             messages.error(
@@ -448,7 +459,11 @@ def register_print_day(request):
                     {'form': form, 'sidenav_selection': 'register_day'}
                     )
 
-    form = RegisterDayForm()
+    events = Event.objects.filter(
+                date__gt=datetime.now().replace(hour=0, minute=0, tzinfo=timezone.utc),
+                date__lt=datetime.now().replace(hour=23, minute=59, tzinfo=timezone.utc),
+            )
+    form = RegisterDayForm(events=events, initial={'exclude_ext_instructor': True})
 
     return TemplateResponse(
         request, "studioadmin/register_day_form.html",

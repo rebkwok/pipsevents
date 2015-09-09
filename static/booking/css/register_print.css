@@ -80,9 +80,10 @@ th, td {
 
 .notes-row {
     border-top: 1px solid black;
+    height: 50px;
 }
 
 .shrink-col {
-    width: 1px;
+    width: 30px;
 }
 

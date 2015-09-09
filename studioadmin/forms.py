@@ -576,7 +576,8 @@ class RegisterDayForm(forms.Form):
             widget=forms.DateInput(
                 attrs={
                     'class': "form-control",
-                    'id': 'datepicker_registerdate'},
+                    'id': 'datepicker_registerdate',
+                    'onchange': "this.form.submit()"},
                 format='%a %d %b %Y'
             ),
             required=True,
@@ -589,7 +590,8 @@ class RegisterDayForm(forms.Form):
                 attrs={
                     'class': 'regular-checkbox select-checkbox',
                     'id': 'ext_instructor_cbox',
-                    'style': 'align-text: top;'
+                    'style': 'align-text: top;',
+                    'onchange': "this.form.submit()"
                 }
             ),
             initial=True,
@@ -610,12 +612,24 @@ class RegisterDayForm(forms.Form):
                            if not event.external_instructor]
             else:
                 initial = [event.id for event in self.events]
-            event_choices = tuple([(event.id, event.name) for event in self.events])
+            event_choices = tuple([(event.id, event) for event in self.events])
             self.fields['select_events'] = forms.MultipleChoiceField(
                 label="Select registers to print:",
                 widget=forms.CheckboxSelectMultiple,
                 choices=event_choices,
                 initial=initial
+            )
+        else:
+            self.fields['no_events'] = forms.CharField(
+                label="",
+                widget=forms.TextInput(
+                    attrs={
+                           'placeholder': "No classes/workshops on this date",
+                           'style': 'width: 200px; border: none;',
+                           'class': 'disabled studioadmin-help'
+                    }
+                ),
+                required=False
             )
 
     def clean(self):
