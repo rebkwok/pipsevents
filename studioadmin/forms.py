@@ -84,7 +84,8 @@ day = 24
 week = day * 7
 
 cancel_choices = (
-    (day, '24 hours'),
+    (day * 0, '0 hours'),
+    (day * 1, '24 hours'),
     (day * 2, '2 days'),
     (day * 3, '3 days'),
     (day * 4, '4 days'),

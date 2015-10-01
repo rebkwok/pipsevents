@@ -36,7 +36,7 @@ class Command(BaseCommand):
 
 def get_bookings(num_hrs):
     events_cancellation_period_soon = [
-        event for event in Event.objects.all() if
+        event for event in Event.objects.all() if event.cancellation_period and
         event.date >= timezone.now() and
         (event.date - timedelta(hours=(event.cancellation_period + num_hrs)))
         <= timezone.now()
