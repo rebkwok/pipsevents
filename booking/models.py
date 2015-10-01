@@ -251,6 +251,10 @@ class Booking(models.Model):
         default=False,
         help_text='Payment has been made by user'
     )
+    deposit_paid = models.BooleanField(
+        default=False,
+        help_text='Deposit payment has been made by user'
+    )
     date_booked = models.DateTimeField(default=timezone.now)
     payment_confirmed = models.BooleanField(
         default=False,

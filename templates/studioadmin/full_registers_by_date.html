@@ -15,7 +15,8 @@
                         <th class="table-center shrink-col">Attended</th>
                         <th class="table-center" >Status</th>
                         <th class="table-center">User</th>
-                        <th class="table-center">Paid</th>
+                        <th class="table-center">Deposit Paid</th>
+                        <th class="table-center">Fully Paid</th>
                         {% if event.available_block_type %}
                         <th class="table-center">Book with<br/>available block</th>
                         <th class="table-center">User's block</br>expiry date</th>
@@ -31,6 +32,10 @@
                             <td class="table-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
                             <td class="table-center studioadmin-tbl">{{ booking.booking.status }}</td>
                             <td class="table-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.booking.user.last_name }}</td>
+                            <td class="table-center studioadmin-tbl">
+                                {% if booking.booking.deposit_paid %}
+                                    <span class="fa fa-check"></span>
+                                {% endif %}
                             <td class="table-center studioadmin-tbl">
                                 {% if booking.booking.paid %}
                                     <span class="fa fa-check"></span>
@@ -69,6 +74,7 @@
                         <td class="table-center studioadmin-tbl"</td>
                         <td class="table-center studioadmin-tbl"</td>
                         <td class="table-center studioadmin-tbl"</td>
+                        <td class="table-center studioadmin-tbl"</td>
                         {% if event.available_block_type %}
                         <td class="table-center studioadmin-tbl"</td>
                         <td class="table-center studioadmin-tbl"</td>
@@ -77,7 +83,7 @@
                         {% endif %}
                     </tr>
                     {% endfor %}
-                    <tr><td class="notes-row " {% if event.available_block_type %}colspan="9"{% else %}colspan="5"{% endif %}>Notes: </td></tr>
+                    <tr><td class="notes-row " {% if event.available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>Notes: </td></tr>
                     </tbody>
 
                 </table>

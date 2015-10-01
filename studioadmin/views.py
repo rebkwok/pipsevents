@@ -146,6 +146,7 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
     def get_success_url(self):
         return reverse('studioadmin:users')
 
+
 class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
     model = Booking
@@ -153,7 +154,6 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
     success_message = "Refund of payment for {}'s booking for {} has been " \
                       "confirmed.  An update email has been sent to {}."
     fields = ('id',)
-
 
     def form_valid(self, form):
         booking = form.save(commit=False)
@@ -1179,6 +1179,8 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     "but no changes were made; email has not been "
                                     "sent to user.".format(form.instance.event))
                             else:
+                                extra_msgs = [] # these will be displayed as a list in the email to the user
+
                                 booking = form.save(commit=False)
                                 event_was_full = booking.event.spaces_left() == 0
                                 action = 'updated' if form.instance.id else 'created'
@@ -1190,6 +1192,9 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                         action = 'cancelled'
                                     elif booking.status == 'OPEN':
                                         action = 'reopened'
+                                    extra_msgs.append("Booking status changed "
+                                                      "to {}".format(action)
+                                                      )
 
                                 if booking.block:
                                     booking.paid = True
@@ -1199,14 +1204,26 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     booking.paid = False
                                     booking.payment_confirmed = False
 
+                                if 'deposit_paid' in form.changed_data:
+                                    if booking.deposit_paid:
+                                        extra_msgs.append(
+                                            "Booking payment status changed to "
+                                            "'deposit paid'"
+                                        )
+
                                 if 'paid' in form.changed_data:
                                     if booking.paid:
                                         # assume that if booking is being done via
                                         # studioadmin, marking paid also means payment
                                         # is confirmed
                                         booking.payment_confirmed = True
+                                        extra_msgs.append(
+                                            "Booking payment status changed to "
+                                            "'fully paid and confirmed'"
+                                        )
                                     else:
                                         booking.payment_confirmed = False
+
                                 try:
                                     booking.save()
                                 except BookingError:
@@ -1217,7 +1234,9 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                         '{}'.format(booking.event))
                                     )
                                 else:
-                                    set_as_free = 'free_class' in form.changed_data and booking.free_class
+                                    set_as_free = 'free_class' in \
+                                                  form.changed_data and \
+                                                  booking.free_class
                                     if 'send_confirmation' in form.changed_data:
                                         try:
                                             # send confirmation email
@@ -1228,7 +1247,8 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                                   'event': booking.event,
                                                   'user': booking.user,
                                                   'action': action,
-                                                  'set_as_free': set_as_free
+                                                  'set_as_free': set_as_free,
+                                                  'extra_msgs': extra_msgs
                                             })
                                             send_mail('{} Your booking for {} has been {}'.format(
                                                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action

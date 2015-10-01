@@ -245,6 +245,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
             'bookings-0-id': self.booking.id,
             'bookings-0-user': self.user.id,
             'bookings-0-block': self.active_block.id,
+            'bookings-0-deposit_paid': 'off',
             'bookings-0-paid': 'on',
             'bookings-0-attended': 'off'
             }
@@ -265,6 +266,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         form = formset.forms[0]
         self.assertEquals(form.index, 1)
         self.assertEquals(form.available_block, self.active_block)
+        self.assertEquals(form.checkbox_deposit_paid_id, 'checkbox_deposit_paid_0')
         self.assertEquals(form.checkbox_paid_id, 'checkbox_paid_0')
         self.assertEquals(form.checkbox_attended_id, 'checkbox_attended_0')
 

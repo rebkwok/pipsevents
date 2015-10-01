@@ -323,6 +323,15 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
             )
             form.checkbox_paid_id = 'checkbox_paid_{}'.format(index)
 
+            form.fields['deposit_paid'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox",
+                    'id': 'checkbox_deposit_paid_{}'.format(index)
+                }),
+                required=False
+            )
+            form.checkbox_deposit_paid_id = 'checkbox_deposit_paid_{}'.format(index)
+
         form.fields['attended'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': "regular-checkbox",
@@ -337,7 +346,7 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
 SimpleBookingRegisterFormSet = inlineformset_factory(
     Event,
     Booking,
-    fields=('attended', 'user', 'paid', 'block'),
+    fields=('attended', 'user', 'deposit_paid', 'paid', 'block'),
     can_delete=False,
     formset=BookingRegisterInlineFormSet,
     extra=0,
@@ -901,6 +910,17 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             }),
             required=False
         )
+        form.paid_id = 'paid_{}'.format(index)
+
+        form.fields['deposit_paid'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'deposit_paid_{}'.format(index)
+            }),
+            required=False
+        )
+        form.deposit_paid_id = 'deposit_paid_{}'.format(index)
+
         form.fields['free_class'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': "regular-checkbox",
@@ -923,7 +943,6 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
             initial='OPEN'
         )
-        form.paid_id = 'paid_{}'.format(index)
 
     def clean(self):
         """
@@ -993,7 +1012,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 UserBookingFormSet = inlineformset_factory(
     User,
     Booking,
-    fields=('paid', 'event', 'block', 'status', 'free_class'),
+    fields=('paid', 'deposit_paid', 'event', 'block', 'status', 'free_class'),
     can_delete=False,
     formset=UserBookingInlineFormSet,
     extra=1,

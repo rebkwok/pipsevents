@@ -33,7 +33,8 @@
                             <th class="table-center">Attended</th>
                             <th class="table-center" >Status</th>
                             <th class="table-center">User</th>
-                            <th class="table-center">Paid</th>
+                            <th class="table-center">Deposit Paid</th>
+                            <th class="table-center">Fully Paid</th>
                             {% if available_block_type %}
                             <th class="table-center">Book with<br/>available block</th>
                             <th class="table-center">User's block</br>expiry date</th>
@@ -55,7 +56,15 @@
                                 <td class="table-center studioadmin-tbl">{{ bookingform.instance.user.first_name }}
                                     {{ bookingform.instance.user.last_name }}{% if not print %} ({{ bookingform.instance.user.username }}){% endif %}</td>
 
-
+                                <td class="table-center studioadmin-tbl">
+                                    {% if bookingform.instance.deposit_paid %}
+                                    <span class="fa fa-check"></span>
+                                    <span class="hide">{{ bookingform.deposit_paid }}</span>
+                                    {% else %}
+                                        {% if not print %}
+                                            {{ bookingform.deposit_paid }}<label for={{ bookingform.checkbox_deposit_paid_id }}></label>
+                                        {% endif %}
+                                    {% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if bookingform.instance.paid %}
                                     <span class="fa fa-check"></span>
@@ -110,6 +119,7 @@
                             <td class="table-center studioadmin-tbl"></td>
                             <td class="table-center studioadmin-tbl"></td>
                             <td class="table-center studioadmin-tbl"></td>
+                            <td class="table-center studioadmin-tbl"></td>
                                 {% if available_block_type %}
                             <td class="table-center studioadmin-tbl"></td>
                             <td class="table-center studioadmin-tbl"></td>
@@ -119,11 +129,11 @@
                         </tr>
                         {% endfor %}
                         {% if print %}
-                        <tr><td class="notes-row " {% if available_block_type %}colspan="9"{% else %}colspan="5"{% endif %}>Notes: </td></tr>
+                        <tr><td class="notes-row " {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>Notes: </td></tr>
                         {% endif %}
                         {% if not print %}
                             <tr no-print>
-                                <td {% if available_block_type %}colspan="9"{% else %}colspan="5"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                                <td {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                             </tr>
                         {% endif %}
                     </table>
