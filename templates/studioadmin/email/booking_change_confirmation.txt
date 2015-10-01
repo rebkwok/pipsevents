@@ -1,7 +1,10 @@
 {% include "account/email/do_not_reply.txt" %}
 
 Your booking for {{ event }} has been {{ action }} by an administrator.
-{% if set_as_free %}
-<p>This is your free class!</p>
-{% endif %}
+{% if extra_msgs %}{% for msg in extra_msgs %}
+- {{ msg }}
+{% endfor %}</ul>{% endif %}
+
+{% if set_as_free %}<p>This is your free class!</p>{% endif %}
+
 View your bookings: {{ host }}{% url 'booking:bookings' %}

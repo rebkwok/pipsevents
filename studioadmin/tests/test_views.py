@@ -455,9 +455,11 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             'bookings-0-id': self.booking1.id,
             'bookings-0-user': self.booking1.user.id,
             'bookings-0-paid': self.booking1.paid,
+            'bookings-0-deposit_paid': self.booking1.paid,
             'bookings-0-attended': self.booking1.attended,
             'bookings-1-id': self.booking2.id,
             'bookings-1-user': self.booking2.user.id,
+            'bookings-1-deposit_paid': self.booking2.paid,
             'bookings-1-paid': self.booking2.paid,
             'bookings-1-attended': self.booking2.attended,
             'status_choice': status_choice
@@ -550,6 +552,24 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking1.paid)
         booking2 = Booking.objects.get(id=self.booking2.id)
         self.assertTrue(booking2.attended)
+
+    def test_can_update_booking_deposit_paid(self):
+        self.assertFalse(self.booking1.paid)
+        self.assertFalse(self.booking1.deposit_paid)
+
+        formset_data = self.formset_data({
+            'bookings-0-deposit_paid': True,
+            'formset_submitted': 'Save changes'
+        })
+
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+
+        self.booking1.refresh_from_db()
+        self.assertTrue(self.booking1.deposit_paid)
+        self.assertFalse(self.booking1.paid)
 
     def test_can_select_block_for_existing_booking(self):
         self.assertFalse(self.booking1.block)
@@ -2131,6 +2151,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             'bookings-1-id': self.future_user_bookings[1].id,
             'bookings-1-event': self.future_user_bookings[1].event.id,
             'bookings-1-status': self.future_user_bookings[1].status,
+            'bookings-1-deposit_paid': self.future_user_bookings[1].deposit_paid,
             'bookings-1-paid': self.future_user_bookings[1].paid,
             }
 
@@ -2242,14 +2263,45 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_can_update_booking(self):
+        self.assertFalse(self.future_user_bookings[0].deposit_paid)
         self.assertTrue(self.future_user_bookings[0].paid)
         form_data = self.formset_data({'bookings-0-paid': False,
         'formset_submitted': 'Submit'})
 
         self._post_response(self.staff_user, self.user.id, form_data=form_data)
         booking = Booking.objects.get(id=self.future_user_bookings[0].id)
+        self.assertFalse(booking.deposit_paid)
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
+
+    def test_can_update_booking_deposit_paid(self):
+
+        unpaid_booking = mommy.make_recipe(
+            'booking.booking', user=self.user,
+            event__date=timezone.now()+timedelta(3),
+            status='OPEN',
+        )
+        self.assertFalse(unpaid_booking.paid)
+        self.assertFalse(unpaid_booking.deposit_paid)
+
+        extra_data = {
+            'bookings-TOTAL_FORMS': 3,
+            'bookings-INITIAL_FORMS': 3,
+            'bookings-2-id': unpaid_booking.id,
+            'bookings-2-event': unpaid_booking.event.id,
+            'bookings-2-status': unpaid_booking.status,
+            'bookings-2-deposit_paid': True,
+            'bookings-2-paid': unpaid_booking.paid,
+            'formset_submitted': 'Submit'
+        }
+
+        form_data = self.formset_data(extra_data)
+
+        self._post_response(self.staff_user, self.user.id, form_data=form_data)
+        unpaid_booking.refresh_from_db()
+        self.assertTrue(unpaid_booking.deposit_paid)
+        self.assertFalse(unpaid_booking.paid)
+        self.assertFalse(unpaid_booking.payment_confirmed)
 
     def test_can_add_booking(self):
         self.assertEqual(Booking.objects.count(), 10)
@@ -3138,7 +3190,8 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('>Attended<', resp.rendered_content)
         self.assertIn('>Status<', resp.rendered_content)
         self.assertIn('>User<', resp.rendered_content)
-        self.assertIn('>Paid<', resp.rendered_content)
+        self.assertIn('>Deposit Paid<', resp.rendered_content)
+        self.assertIn('>Fully Paid<', resp.rendered_content)
 
         resp = self._post_response(
             self.staff_user, {
@@ -3155,7 +3208,8 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('>Attended<', resp.rendered_content)
         self.assertIn('>User<', resp.rendered_content)
         self.assertNotIn('>Status<', resp.rendered_content)
-        self.assertNotIn('>Paid<', resp.rendered_content)
+        self.assertNotIn('>Deposit Paid<', resp.rendered_content)
+        self.assertNotIn('>Fully Paid<', resp.rendered_content)
 
     def test_print_format_with_available_blocktype(self):
         event = mommy.make_recipe(
@@ -3187,7 +3241,8 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('>Attended<', resp.rendered_content)
         self.assertIn('>Status<', resp.rendered_content)
         self.assertIn('>User<', resp.rendered_content)
-        self.assertIn('>Paid<', resp.rendered_content)
+        self.assertIn('>Deposit Paid<', resp.rendered_content)
+        self.assertIn('>Fully Paid<', resp.rendered_content)
         self.assertIn('>Book with<br/>available block<', resp.rendered_content)
         self.assertIn('>User\'s block</br>expiry date<', resp.rendered_content)
         self.assertIn('>Block size<', resp.rendered_content)
@@ -3208,7 +3263,8 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('>Attended<', resp.rendered_content)
         self.assertIn('>User<', resp.rendered_content)
         self.assertNotIn('>Status<', resp.rendered_content)
-        self.assertNotIn('>Paid<', resp.rendered_content)
+        self.assertNotIn('>Deposit Paid<', resp.rendered_content)
+        self.assertNotIn('>Fully Paid<', resp.rendered_content)
         self.assertNotIn('>Book with<br/>available block<', resp.rendered_content)
         self.assertNotIn('>User\'s block</br>expiry date<', resp.rendered_content)
         self.assertNotIn('>Block size<', resp.rendered_content)

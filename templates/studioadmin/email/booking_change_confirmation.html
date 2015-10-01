@@ -5,6 +5,8 @@
 
 <p>Your booking for {{ event }} has been {{ action }} by an administrator.</p>
 
+{% if extra_msgs %}<ul>{% for msg in extra_msgs %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+
 {% if set_as_free %}
 <p>This is your free class!</p>
 {% endif %}

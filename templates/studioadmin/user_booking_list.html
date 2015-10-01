@@ -33,7 +33,8 @@
                             <tr class="success">
                                 <th>Date</th>
                                 <th>Class/Event</th>
-                                <th class="table-center">Paid</th>
+                                <th class="table-center">Deposit Paid</th>
+                                <th class="table-center">Fully Paid</th>
                                 <th class="table-center">PayPal ID</th>
                                 <th class="table-center">Free class?</th>
                                 <th class="table-center">Block used</th>
@@ -52,10 +53,12 @@
                                     <td class="studioadmin-tbl">{{ booking.instance.event.name }}</td>
 
                                     {% if booking.instance.event.cost %}
+                                        <td class="table-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
                                         <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
                                     {% else %}
                                         <td class="table-center studioadmin-tbl">N/A</td>
                                         <span class="hide">{{ booking.paid }}</span>
+                                        <span class="hide">{{ booking.deposit_paid }}</span>
                                     {% endif %}
                                     <td class="table-center studioadmin-tbl">
                                         {% if booking.paypal %}
@@ -80,6 +83,7 @@
                                 {% else %}
                                     <td class="studioadmin-tbl"><strong>New booking</strong></td>
                                     <td class="studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.event }}</div></td>
+                                    <td class="table-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
                                     <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
                                     <td></td>
                                     <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
