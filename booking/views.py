@@ -519,8 +519,11 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 cancellation_warning = ""
                 if booking.event.advance_payment_required:
                     cancellation_warning = "Note that if payment " \
-                        "has not been received by the cancellation period, " \
-                        "your booking will be automatically cancelled."
+                        "has not been received by the {}, " \
+                        "your booking will be automatically cancelled.".format(
+                        "payment due date" if booking.event.payment_due_date
+                        else "cancellation period"
+                    )
                 messages.info(
                     self.request, mark_safe('Please make your payment as soon '
                         'as possible.  '

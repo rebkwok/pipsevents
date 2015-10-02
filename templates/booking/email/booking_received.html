@@ -30,8 +30,10 @@ Your booking has been received for {{ event }}.
             <p>Payments are open; visit your bookings page at <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a> to
                 make your payment.</p>
         {% else %}
-            <p>Payments are not being taken for this {{ ev_type }} yet.  Further information will be
-                sent nearer the {{ ev_type }} date.</p>
+            <p><strong>Payment information</strong></p>
+            <p>Payments are not being taken online via the website at this time.
+            {{ event.payment_info|safe }}
+            </p>
         {% endif %}
 
         {% if prev_cancelled_and_direct_paid %}

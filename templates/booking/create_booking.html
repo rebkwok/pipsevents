@@ -42,7 +42,7 @@
                                         4 hours of booking, your booking will be automatically cancelled.</p>
                                 {% endif %}
                             {% endif %}
-                        {% else %}
+                        {% elif event.cancellation_period > 0 %}
                             <p>Cancellation is only allowed up to {{ event.cancellation_period | format_cancellation }}
                             before the {{ ev_type }} date.  {% if event.advance_payment_required %}If payment has not been
                             received by the cancellation period, your booking will be automatically cancelled. {% endif %}</p>
