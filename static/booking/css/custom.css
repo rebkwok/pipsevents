@@ -708,7 +708,6 @@ a > span.fa.fa-print {
 .studioadmin-tbl {
     padding-top: 5 !important;
     padding-bottom: 5 !important;
-    float: left;
     white-space: nowrap;
     font-size: small;
 	vertical-align: middle !important;
