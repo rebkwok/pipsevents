@@ -622,7 +622,7 @@ class CancelUnpaidBookingsTests(TestCase):
         )
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_dont_cancel_bookings_created_within_past_4_hours(self, mock_tz):
+    def test_dont_cancel_bookings_created_within_past_6_hours(self, mock_tz):
         """
         Avoid immediately cancelling bookings made within the cancellation
         period to allow time for users to make payments
@@ -630,21 +630,34 @@ class CancelUnpaidBookingsTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 10, 18, 0, tzinfo=timezone.utc
         )
-        self.unpaid.date_booked =  datetime(
-            2015, 2, 10, 16, 0, tzinfo=timezone.utc
+
+        unpaid_within_6_hrs = mommy.make_recipe(
+            'booking.booking', event=self.event, paid=False,
+            payment_confirmed=False, status='OPEN',
+            user__email="unpaid@test.com",
+            date_booked=datetime(
+                2015, 2, 10, 12, 30, tzinfo=timezone.utc
+            ),
+            warning_sent=True
         )
-        self.unpaid.save()
-        self.assertEquals(
-            self.unpaid.status, 'OPEN', self.unpaid.status
+        unpaid_more_than_6_hrs = mommy.make_recipe(
+            'booking.booking', event=self.event, paid=False,
+            payment_confirmed=False, status='OPEN',
+            user__email="unpaid@test.com",
+            date_booked=datetime(
+                2015, 2, 10, 11, 30, tzinfo=timezone.utc
+            ),
+            warning_sent=True
         )
+
+        self.assertEquals(unpaid_within_6_hrs.status, 'OPEN')
+        self.assertEquals(unpaid_more_than_6_hrs.status, 'OPEN')
+
         management.call_command('cancel_unpaid_bookings')
-        # emails are sent to user per cancelled booking and studio once
-        # for all cancelled bookings
-        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(
-            unpaid_booking.status, 'OPEN', unpaid_booking.status
-        )
+        unpaid_within_6_hrs.refresh_from_db()
+        unpaid_more_than_6_hrs.refresh_from_db()
+        self.assertEquals(unpaid_within_6_hrs.status, 'OPEN')
+        self.assertEquals(unpaid_more_than_6_hrs.status, 'CANCELLED')
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_only_send_one_email_to_studio(self, mock_tz):
@@ -789,3 +802,37 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         # emails are sent to user per cancelled booking (1) and studio (1) only
         self.assertEqual(len(mail.outbox), 2)
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_dont_cancel_bookings_rebooked_within_past_6_hours(self, mock_tz):
+        """
+        Avoid immediately cancelling bookings made within the cancellation
+        period to allow time for users to make payments
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, 18, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.date_rebooked = datetime(
+            2015, 2, 10, 12, 30, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+
+        self.assertEquals(self.unpaid.status, 'OPEN')
+
+        management.call_command('cancel_unpaid_bookings')
+        # self.unpaid was booked > 6 hrs ago
+        self.assertTrue(self.unpaid.date_booked <= (timezone.now() - timedelta(hours=6)))
+        self.unpaid.refresh_from_db()
+        # but still open
+        self.assertEquals(self.unpaid.status, 'OPEN')
+
+        # move time on one hour and try again
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, 19, 0, tzinfo=timezone.utc
+        )
+        management.call_command('cancel_unpaid_bookings')
+        # self.unpaid was rebooked > 6 hrs ago
+        self.assertTrue(self.unpaid.date_rebooked <= (timezone.now() - timedelta(hours=6)))
+        self.unpaid.refresh_from_db()
+        # now cancelled
+        self.assertEquals(self.unpaid.status, 'CANCELLED')
