@@ -38,9 +38,14 @@ class Command(BaseCommand):
             paid=False,
             payment_confirmed=False,
             warning_sent=True,
-            date_booked__lte=timezone.now() - timedelta(hours=4)):
+            date_booked__lte=timezone.now() - timedelta(hours=6)):
 
-            if booking.event.date - timedelta(
+            # ignore any which have been rebooked in the past 6 hrs
+            if booking.date_rebooked and \
+                    (booking.date_rebooked >=
+                         (timezone.now() - timedelta(hours=6))):
+                pass
+            elif booking.event.date - timedelta(
                     hours=booking.event.cancellation_period
                 ) < timezone.now():
                 bookings.append(booking)

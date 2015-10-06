@@ -259,6 +259,71 @@ class BookingTests(TestCase):
             Booking.objects.filter(event=self.event_with_cost).count(), 4
         )
 
+    @patch('booking.models.timezone')
+    def test_reopening_booking_sets_date_reopened(self, mock_tz):
+        """
+        Test that reopening a cancelled booking for an event with spaces sets
+        the rebooking date
+        """
+        mock_now = datetime(2015, 1, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+        user = self.users[0]
+        booking = mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, user=user,
+            status='CANCELLED'
+        )
+
+        self.assertIsNone(booking.date_rebooked)
+        booking.status = 'OPEN'
+        booking.save()
+        booking.refresh_from_db()
+        self.assertEqual(booking.date_rebooked, mock_now)
+
+
+    @patch('booking.models.timezone')
+    def test_reopening_booking_again_resets_date_reopened(self, mock_tz):
+        """
+        Test that reopening a second time resets the rebooking date
+        """
+        mock_now = datetime(2015, 3, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+        user = self.users[0]
+        booking = mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, user=user,
+            status='CANCELLED',
+            date_rebooked=datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+        self.assertEqual(
+            booking.date_rebooked, datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+        booking.status = 'OPEN'
+        booking.save()
+        booking.refresh_from_db()
+        self.assertEqual(booking.date_rebooked, mock_now)
+
+    def test_reopening_booking_full_event_does_not_set_date_reopened(self):
+        """
+        Test that attempting to reopen a cancelled booking for now full event
+        raises BookingError and does not set date_reopened
+        """
+        self.event_with_cost.max_participants = 3
+        self.event_with_cost.save()
+        user = self.users[0]
+        booking = mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, user=user,
+            status='CANCELLED'
+        )
+        mommy.make_recipe(
+            'booking.booking', event=self.event_with_cost, _quantity=3
+        )
+        with self.assertRaises(BookingError):
+            booking.status = 'OPEN'
+            booking.save()
+
+        booking.refresh_from_db()
+        self.assertIsNone(booking.date_rebooked)
+
+
 class BlockTests(TestCase):
 
     def setUp(self):

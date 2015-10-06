@@ -256,6 +256,7 @@ class Booking(models.Model):
         help_text='Deposit payment has been made by user'
     )
     date_booked = models.DateTimeField(default=timezone.now)
+    date_rebooked = models.DateTimeField(null=True, blank=True)
     payment_confirmed = models.BooleanField(
         default=False,
         help_text='Payment confirmed by admin/organiser'
@@ -309,13 +310,14 @@ class Booking(models.Model):
     def save(self, *args, **kwargs):
         if self.pk is not None:
             orig = Booking.objects.get(pk=self.pk)
-            if orig.status == 'CANCELLED' and \
-            self.status == 'OPEN' and \
-            self.event.spaces_left() == 0:
-                raise BookingError(
-                    'Attempting to reopen booking for full '
-                    'event %s' % self.event.id
-                )
+            if orig.status == 'CANCELLED' and self.status == 'OPEN':
+                if self.event.spaces_left() == 0:
+                    raise BookingError(
+                        'Attempting to reopen booking for full '
+                        'event %s' % self.event.id
+                    )
+                else:
+                    self.date_rebooked = timezone.now()
         else:
             if self.status != "CANCELLED" and \
             self.event.spaces_left() == 0:

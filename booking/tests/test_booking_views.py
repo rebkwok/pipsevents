@@ -285,11 +285,13 @@ class BookingCreateViewTests(TestCase):
         # cancel booking
         booking.status = 'CANCELLED'
         booking.save()
+        self.assertIsNone(booking.date_rebooked)
 
         # try to book again
         resp = self._post_response(self.user, event)
-        booking = Booking.objects.get(user=self.user, event=event)
+        booking.refresh_from_db()
         self.assertEqual('OPEN', booking.status)
+        self.assertIsNotNone(booking.date_rebooked)
 
     def test_rebook_cancelled_booking_still_paid(self):
 
