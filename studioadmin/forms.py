@@ -668,6 +668,19 @@ class RegisterDayForm(forms.Form):
 
 
 class UploadTimetableForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        super(UploadTimetableForm, self).__init__(*args, **kwargs)
+        self.fields['sessions'] = forms.ModelMultipleChoiceField(
+            widget=forms.CheckboxSelectMultiple(
+                attrs={'class': 'select-checkbox'}
+            ),
+            label="Choose sessions to upload",
+            queryset=Session.objects.all().order_by('day', 'time'),
+            initial=[session.pk for session in Session.objects.all()],
+            required=True
+        )
+
     start_date = forms.DateField(
         label="Start Date",
         widget=forms.DateInput(

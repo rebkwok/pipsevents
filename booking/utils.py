@@ -86,7 +86,7 @@ def create_classes(week='this', input_date=None):
     return created_classes, existing_classes
 
 
-def upload_timetable(start_date, end_date, user=None):
+def upload_timetable(start_date, end_date, session_ids, user=None):
 
     daylist = [
         '01MON',
@@ -104,7 +104,9 @@ def upload_timetable(start_date, end_date, user=None):
     d = start_date
     delta = timedelta(days=1)
     while d <= end_date:
-        sessions_to_create = Session.objects.filter(day=daylist[d.weekday()])
+        sessions_to_create = Session.objects.filter(
+            day=daylist[d.weekday()], id__in=session_ids
+        )
         for session in sessions_to_create:
 
             # create date in Europe/London, convert to UTC

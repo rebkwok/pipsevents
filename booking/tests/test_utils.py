@@ -59,7 +59,9 @@ class UtilsTests(TestCase):
         mommy.make_recipe('booking.tue_session', _quantity=3)
         mommy.make_recipe('booking.wed_session', _quantity=3)
 
-        upload_timetable(start_date, end_date)
+        session_ids = [session.id for session in Session.objects.all()]
+
+        upload_timetable(start_date, end_date, session_ids)
         # check that there are now classes on the dates specified
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
@@ -87,7 +89,9 @@ class UtilsTests(TestCase):
         mommy.make_recipe('booking.tue_session', _quantity=3)
         mommy.make_recipe('booking.wed_session', _quantity=3)
 
-        upload_timetable(start_date, end_date)
+        session_ids = [session.id for session in Session.objects.all()]
+
+        upload_timetable(start_date, end_date, session_ids)
         # check that there are now classes on the dates specified
         mon_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
@@ -103,7 +107,7 @@ class UtilsTests(TestCase):
         # upload timetable with overlapping dates
         start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
         end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
-        upload_timetable(start_date, end_date)
+        upload_timetable(start_date, end_date, session_ids)
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
             date__lte=self._end_of_day(start_date)
@@ -134,7 +138,9 @@ class UtilsTests(TestCase):
         mommy.make_recipe('booking.tue_session', _quantity=3)
         mommy.make_recipe('booking.wed_session', _quantity=3)
 
-        upload_timetable(start_date, end_date)
+        session_ids = [session.id for session in Session.objects.all()]
+
+        upload_timetable(start_date, end_date, session_ids)
         # check that there are now classes on the dates specified
         mon_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
@@ -156,7 +162,7 @@ class UtilsTests(TestCase):
         # upload timetable with overlapping dates
         start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
         end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
-        upload_timetable(start_date, end_date)
+        upload_timetable(start_date, end_date, session_ids)
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
             date__lte=self._end_of_day(start_date)
@@ -181,7 +187,7 @@ class UtilsTests(TestCase):
         # upload timetable with overlapping dates
         start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
         end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
-        upload_timetable(start_date, end_date)
+        upload_timetable(start_date, end_date, session_ids)
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
             date__lte=self._end_of_day(start_date)
@@ -197,6 +203,34 @@ class UtilsTests(TestCase):
         # total number of classes created is now 10
         self.assertEquals(Event.objects.all().count(), 10)
 
+    def upload_timetable_specified_sessions_only(self):
+        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tues
+        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # wed
+        self.assertEquals(Event.objects.all().count(), 0)
+
+        # create some timetabled sessions for mondays, tuesdays and Wednesdays
+        tues_sessions = mommy.make_recipe('booking.tue_session', _quantity=3)
+        mommy.make_recipe('booking.wed_session', _quantity=3)
+
+        session_ids = [
+            session.id for session in Session.objects.all() if
+            session in tues_sessions
+            ]
+        # choose tues-wed as date range, but specify the tues sessions only
+        upload_timetable(start_date, end_date, session_ids)
+        # check that there are now classes on the dates specified
+        tue_classes = Event.objects.filter(
+            date__gte=self._start_of_day(start_date),
+            date__lte=self._end_of_day(start_date)
+            )
+        wed_classes = Event.objects.filter(
+            date__gte=self._start_of_day(end_date),
+            date__lte=self._end_of_day(end_date)
+            )
+        # total number of classes created is 3, as no wed classes created
+        self.assertEquals(tue_classes.count(), 3)
+        self.assertEquals(wed_classes.count(), 0)
+        self.assertEquals(Event.objects.count(), 3)
 
     def _start_of_day(self, date):
         return date.replace(hour=0, minute=0, second=0, microsecond=0)
