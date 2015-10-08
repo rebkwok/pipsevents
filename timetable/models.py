@@ -46,7 +46,10 @@ class Session(models.Model):
     email_studio_when_booked = models.BooleanField(default=False)
 
     def __str__(self):
-        return "{} - {}".format(dict(self.DAY_CHOICES)[self.day], self.name)
+        return "{} - {} - {}".format(
+            dict(self.DAY_CHOICES)[self.day], self.time.strftime("%H:%M"),
+            self.name
+        )
 
 
 @receiver(pre_save, sender=Session)

@@ -1556,7 +1556,8 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         self.assertEqual(Event.objects.count(), 0)
         form_data = {
             'start_date': 'Mon 08 Jun 2015',
-            'end_date': 'Sun 14 Jun 2015'
+            'end_date': 'Sun 14 Jun 2015',
+            'sessions': [session.id for session in Session.objects.all()]
         }
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 5)
@@ -1573,12 +1574,16 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         self.assertEqual(Event.objects.count(), 0)
         form_data = {
             'start_date': 'Mon 08 Jun 2015',
-            'end_date': 'Sun 14 Jun 2015'
+            'end_date': 'Sun 14 Jun 2015',
+            'sessions': [session.id for session in Session.objects.all()]
         }
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 5)
 
         mommy.make_recipe('booking.tue_session', _quantity=2)
+        form_data.update(
+            {'sessions': [session.id for session in Session.objects.all()]}
+        )
         self.assertEqual(Session.objects.count(), 7)
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 7)

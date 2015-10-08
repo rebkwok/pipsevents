@@ -848,8 +848,12 @@ def upload_timetable_view(request,
         if form.is_valid():
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
+            session_ids = form.cleaned_data['sessions']
+
             created_classes, existing_classes = \
-                utils.upload_timetable(start_date, end_date, request.user)
+                utils.upload_timetable(
+                    start_date, end_date, session_ids, request.user
+                )
             context = {'start_date': start_date,
                        'end_date': end_date,
                        'created_classes': created_classes,

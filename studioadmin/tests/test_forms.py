@@ -495,10 +495,14 @@ class SessionAdminFormTests(TestCase):
 
 class UploadTimetableFormTests(TestCase):
 
+    def setUp(self):
+        self.session = mommy.make_recipe('booking.mon_session')
+
     def form_data(self, extra_data={}):
         data = {
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Mon 15 Jun 2015',
+            'sessions': [self.session.id]
         }
 
         for key, value in extra_data.items():
@@ -520,7 +524,7 @@ class UploadTimetableFormTests(TestCase):
             2015, 6, 6, 12, 0, tzinfo=timezone.utc
             )
         form = UploadTimetableForm(
-            data={}
+            data={'sessions': [self.session.id]}
         )
         self.assertFalse(form.is_valid())
         self.assertEquals(len(form.errors), 2)
