@@ -29,31 +29,37 @@ def view_that_asks_for_money(request):
 
 @csrf_exempt
 def paypal_confirm_return(request):
-    custom = request.POST['custom'].split()
-    obj_type = custom[0]
-    obj_id = int(custom[-1])
+    custom = request.POST.get('custom', '').split()
+    if custom:
+        obj_type = custom[0]
+        obj_id = int(custom[-1])
 
-    if obj_type == "booking":
-        obj = Booking.objects.get(id=obj_id)
-    elif obj_type == "block":
-        obj = Block.objects.get(id=obj_id)
+        if obj_type == "booking":
+            obj = Booking.objects.get(id=obj_id)
+        elif obj_type == "block":
+            obj = Block.objects.get(id=obj_id)
+        else:
+            obj = 'unknown'
+
+        # Possible payment statuses:
+        # Canceled_, Reversal, Completed, Denied, Expired, Failed, Pending,
+        # Processed, Refunded, Reversed, Voided
+        # NOTE: We can check for completed payment status for displaying
+        # information in the template, but we can only confirm payment if the
+        # booking or block has already been set to paid (i.e. the post from
+        # paypal has been successfully processed
+        context = {'obj': obj,
+                   'obj_type': obj_type,
+                   'payment_status': request.POST['payment_status'],
+                   'purchase': request.POST['item_name'],
+                   'sender_email': settings.DEFAULT_FROM_EMAIL,
+                   'organiser_email': settings.DEFAULT_STUDIO_EMAIL
+                   }
     else:
-        obj = 'unknown'
-
-    # Possible payment statuses:
-    # Canceled_, Reversal, Completed, Denied, Expired, Failed, Pending,
-    # Processed, Refunded, Reversed, Voided
-    # NOTE: We can check for completed payment status for displaying
-    # information in the template, but we can only confirm payment if the
-    # booking or block has already been set to paid (i.e. the post from
-    # paypal has been successfully processed
-    context = {'obj': obj,
-               'obj_type': obj_type,
-               'payment_status': request.POST['payment_status'],
-               'purchase': request.POST['item_name'],
-               'sender_email': settings.DEFAULT_FROM_EMAIL,
-               'organiser_email': settings.DEFAULT_STUDIO_EMAIL
-               }
+        context = {
+            'obj_unknown': True,
+            'organiser_email': settings.DEFAULT_STUDIO_EMAIL
+        }
     return TemplateResponse(request, 'payments/confirmed_payment.html', context)
 
 

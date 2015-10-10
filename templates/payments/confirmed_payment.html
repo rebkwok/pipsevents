@@ -4,24 +4,35 @@
 {% block content %}
 
 <div>
-    <h3>Payment for {{ purchase }}</h3>
+    {% if obj_unknown %}
+        <h3>PayPal Payment</h3>
+        <p>An error was encountered on return from PayPal.  </p>
+        <p>You (or PayPal) may have re-requested this page by mistake.  Please check your email for
+        payment confirmations from PayPal and from the studio.</p>
+        <p>If you have not your expected received payment confirmation within a
+            few hours, please check your spam folder and contact
+        <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
+            {{ organiser_email }}</a> if you need any further information.</p>
+
+    {% else %}
+        <h3>Payment for {{ purchase }}</h3>
 
 
-    {% if payment_status == 'Completed' and obj.paid %}
-        <p>Your payment has been successfully completed.</p>
-    {% elif payment_status == 'Completed' or payment_status == 'Pending' %}
-        <p>Your payment is being processed.
+        {% if payment_status == 'Completed' and obj.paid %}
+            <p>Your payment has been successfully completed.</p>
+        {% elif payment_status == 'Completed' or payment_status == 'Pending' %}
+            <p>Your payment is being processed.
+        {% endif %}
+
+        <p>You should receive an email shortly from {{ sender_email }}
+        confirming that your payment has been successfully processed.</p>
+
+        <p>If you
+        have not received payment confirmation within a few hours, please check
+        your spam folder and contact
+        <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
+            {{ organiser_email }}</a> if you need any further information.</p>
     {% endif %}
-
-    <p>You should receive an email shortly from {{ sender_email }}
-    confirming that your payment has been successfully processed.</p>
-
-    <p>If you
-    have not received payment confirmation within a few hours, please check
-    your spam folder and contact
-    <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
-        {{ organiser_email }}</a> if you need any further information.</p>
-
 </div>
 
 {% endblock %}
