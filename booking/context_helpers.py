@@ -1,6 +1,9 @@
 """
 Helper functions to return context and reduce logic in templates
 """
+import pytz
+
+from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.core.urlresolvers import reverse
@@ -86,6 +89,16 @@ def get_event_context(context, event, user):
                 booking_info_text = "Bookings for this event are now closed."
 
     context['booking_info_text'] = booking_info_text
+
+    # get payment due date
+    uk_tz = pytz.timezone('Europe/London')
+
+    cancellation_due_date = event.date - timedelta(
+        hours=(event.cancellation_period)
+    )
+    cancellation_due_date = cancellation_due_date.astimezone(uk_tz)
+    context['cancellation_due_date'] = cancellation_due_date
+
     return context
 
 
