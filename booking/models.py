@@ -13,15 +13,22 @@ from dateutil.relativedelta import relativedelta
 
 from activitylog.models import ActivityLog
 
+
 logger = logging.getLogger(__name__)
+
 
 class BookingError(Exception):
     pass
 
+
+class TicketBookingError(Exception):
+    pass
+
+
 class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
-        ('EV', 'Event')
+        ('EV', 'Event'),
     )
     event_type = models.CharField(max_length=2, choices=TYPE_CHOICE,
                                   help_text="This determines whether events "
@@ -344,3 +351,168 @@ class WaitingListUser(models.Model):
     event = models.ForeignKey(Event, related_name='waitinglistusers')
     # date user joined the waiting list
     date_joined = models.DateTimeField(default=timezone.now)
+
+
+class TicketedEvent(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    date = models.DateTimeField()
+    location = models.CharField(max_length=255, default="Watermelon Studio")
+    max_tickets = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Leave blank if no max number"
+    )
+    contact_person = models.CharField(max_length=255, default="Gwen Burns")
+    contact_email = models.EmailField(
+        default="thewatermelonstudio@hotmail.com"
+        )
+    ticket_cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+    advance_payment_required = models.BooleanField(default=True)
+    show_on_site = models.BooleanField(
+        default=True, help_text="Tick to show on the site")
+    payment_open = models.BooleanField(default=True)
+    payment_info = models.TextField(blank=True)
+    payment_due_date = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Tickets that are not paid by the payment due date '
+                  'will be automatically cancelled (a warning email will be '
+                  'sent to users first).')
+    payment_time_allowed = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Number of days allowed for payment after booking (after "
+                  "this ticket purchases will be cancelled.  This will be ignored "
+                  "if there is a payment due date set on the event itself. "
+    )
+    email_studio_when_purchased = models.BooleanField(default=False)
+    max_ticket_purchase = models.PositiveIntegerField(
+        null=True, help_text="Limit the number of tickets that can be "
+                             "purchased at one time"
+    )
+    slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def tickets_left(self):
+        if self.max_tickets:
+            booked_number = Ticket.objects.filter(
+                ticket_booking__event__id=self.id, status='OPEN').count()
+            return self.max_tickets - booked_number
+        else:
+            # if there is no max_tickets, return an unfeasibly high number
+            return 10000
+
+    def bookable(self):
+        return self.tickets_left() > 0
+
+    # def get_absolute_url(self):
+    #     return reverse(
+    #         "booking:ticketed_event_detail", kwargs={'slug': self.slug}
+    #     )
+
+    def __str__(self):
+        return '{} - {}'.format(
+            str(self.name),
+            self.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y, %H:%M')
+        )
+
+    def save(self, *args, **kwargs):
+        if not self.cost:
+            self.advance_payment_required = False
+            self.payment_open = False
+            self.payment_due_date = None
+        if self.payment_due_date:
+            # replace time with very end of day
+            # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
+            # back 1 sec
+            next_day = (self.payment_due_date + timedelta(
+                days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            self.payment_due_date = next_day - timedelta(seconds=1)
+            # if a payment due date is set, make sure advance_payment_required is
+            # set to True
+            self.advance_payment_required = True
+
+        super(TicketedEvent, self).save(*args, **kwargs)
+
+
+class TicketBooking(models.Model):
+    user = models.ForeignKey(User)
+    event = models.ForeignKey(TicketedEvent, related_name="ticket_bookings")
+    quantity = models.PositiveIntegerField(default=1)
+    date_booked = models.DateTimeField(default=timezone.now)
+    paid = models.BooleanField(default=False)
+    payment_confirmed = models.BooleanField(
+        default=False,
+        help_text='Payment confirmed by admin/organiser'
+    )
+    date_payment_confirmed = models.DateTimeField(null=True, blank=True)
+    # Flags for email reminders and warnings
+    reminder_sent = models.BooleanField(default=False)
+    warning_sent = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            # New bookings
+            # raise error if we try to save and there aren't enough tickets left;
+            # creating the tickets themselves will be done in the view, using the
+            # extra info provided by the user for each ticket.  Will need to change
+            # the quantity on the TicketBooking if not enough left and still create
+            # the booking. We should only be catching this error if we get that
+            # wrong
+            if self.event.tickets_left < self.quantity:
+                raise TicketBookingError(
+                    '{} tickets requested; only {} left'.format(
+                        self.quantity, self.event.tickets_left()
+                    )
+                )
+
+        if self.payment_confirmed and not self.date_payment_confirmed:
+            self.date_payment_confirmed = timezone.now()
+
+
+class Ticket(models.Model):
+    extra_info = models.TextField(blank=True, default='')
+    extra_info_label = models.CharField(max_length=255, blank=True, default='')
+    extra_info1 = models.TextField(blank=True, default='')
+    extra_info1_label = models.CharField(max_length=255, blank=True, default='')
+    ticket_booking = models.ForeignKey(TicketBooking, related_name="tickets")
+
+# TODO
+"""
+ListView:
+Has button to buy tickets
+
+CreateView (from buy tickets button):
+  Form has drop down to select number of tickets; either the max_ticket_purchase
+  on event or the number of tickets left (or an arbitrary high number if no
+  max number)
+  Selecting the number of tickets displays a number of rows with the extra_info
+  fields for each ticket
+  And shows total cost per ticket
+  Confirm Purchase button makes the bookings and creates the Tickets (checking
+  for tickets left and updating TicketBooking quantity if necessary)
+  If payment isn't open, display payment info but not paypal button
+  Goes to payment view; Paypal Button - form should include the quantity field
+    in the paypal dict
+  Allow people to cancel their ticket purchase before payment but not after
+  Include a Cancel Ticket Purchase button on the payment page, and also on the
+  Ticket Purchase list page if unpaid
+  Payment Due Date vs ticket payment due date?
+
+DeleteView
+    cancel vs delete?
+
+Show Ticket purchases on the My Bookings list?
+
+Payments
+    will need a ticket paypal trans model etc
+
+reminder, warnings and Cancel manage commands
+
+StudioAdmin
+
+"""
