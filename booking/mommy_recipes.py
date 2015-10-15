@@ -7,7 +7,7 @@ from model_mommy.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
 from booking.models import Event, EventType, Block, Booking, \
-    BlockType, WaitingListUser
+    BlockType, WaitingListUser, Ticket, TicketBooking, TicketedEvent
 from timetable.models import Session
 
 now = timezone.now()
@@ -87,3 +87,11 @@ tue_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session
 wed_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.WED)
 
 waiting_list_user = Recipe(WaitingListUser)
+
+ticketed_event_max10 = Recipe(TicketedEvent, max_tickets=10, ticket_cost=10)
+ticket_booking_max10 = Recipe(
+    TicketBooking, ticketed_event=foreign_key(ticketed_event_max10)
+)
+ticket_max10 = Recipe(
+    Ticket, ticket_booking=foreign_key(ticket_booking_max10)
+)

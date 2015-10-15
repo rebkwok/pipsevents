@@ -395,8 +395,10 @@ class TicketedEvent(models.Model):
 
     def tickets_left(self):
         if self.max_tickets:
+            ticket_bookings = TicketBooking.objects.filter(cancelled=False)
             booked_number = Ticket.objects.filter(
-                ticket_booking__event__id=self.id, status='OPEN').count()
+                ticket_booking__in=ticket_bookings
+            ).count()
             return self.max_tickets - booked_number
         else:
             # if there is no max_tickets, return an unfeasibly high number
@@ -419,7 +421,7 @@ class TicketedEvent(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        if not self.cost:
+        if not self.ticket_cost:
             self.advance_payment_required = False
             self.payment_open = False
             self.payment_due_date = None
@@ -441,37 +443,55 @@ class TicketedEvent(models.Model):
 
 class TicketBooking(models.Model):
     user = models.ForeignKey(User)
-    event = models.ForeignKey(TicketedEvent, related_name="ticket_bookings")
-    quantity = models.PositiveIntegerField(default=1)
+    ticketed_event = models.ForeignKey(TicketedEvent, related_name="ticket_bookings")
     date_booked = models.DateTimeField(default=timezone.now)
+    date_rebooked = models.DateTimeField(null=True, blank=True)
     paid = models.BooleanField(default=False)
     payment_confirmed = models.BooleanField(
         default=False,
         help_text='Payment confirmed by admin/organiser'
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
+
+    # cancelled flag so we can cancel unpaid ticket purchases and reopen if nec
+    # without having to make duplicate paypal trans
+    cancelled = models.BooleanField(default=False)
+
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
 
+    def __str__(self):
+        return 'Ticket Booking - {} - {}'.format(
+            self.ticketed_event.name, self.user.username
+        )
+
     def save(self, *args, **kwargs):
         if self.pk is None:
-            # New bookings
-            # raise error if we try to save and there aren't enough tickets left;
-            # creating the tickets themselves will be done in the view, using the
-            # extra info provided by the user for each ticket.  Will need to change
-            # the quantity on the TicketBooking if not enough left and still create
-            # the booking. We should only be catching this error if we get that
-            # wrong
-            if self.event.tickets_left < self.quantity:
+            if self.ticketed_event.tickets_left() <= 0:
                 raise TicketBookingError(
-                    '{} tickets requested; only {} left'.format(
-                        self.quantity, self.event.tickets_left()
-                    )
+                    'No tickets left for {}'.format(self.ticketed_event)
                 )
+        else:
+            orig = TicketBooking.objects.get(id=self.pk)
+            if self.cancelled and not orig.cancelled:
+                # delete the Ticket objects
+                for ticket in self.tickets.all():
+                    ticket.delete()
+            if not self.cancelled and orig.cancelled:
+                # reopening - check for full
+                if self.ticketed_event.tickets_left() <= 0:
+                    raise TicketBookingError(
+                        'No tickets left for {}'.format(self.ticketed_event)
+                    )
+                self.date_rebooked = timezone.now()
+            if self.cancelled and not orig.cancelled and orig.paid:
+                raise TicketBookingError('Cannot cancel a paid booking')
 
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
+
+        super(TicketBooking, self).save(*args, **kwargs)
 
 
 class Ticket(models.Model):
@@ -480,6 +500,18 @@ class Ticket(models.Model):
     extra_info1 = models.TextField(blank=True, default='')
     extra_info1_label = models.CharField(max_length=255, blank=True, default='')
     ticket_booking = models.ForeignKey(TicketBooking, related_name="tickets")
+
+    def save(self, *args, **kwargs):
+        # raise error for each ticket creation also if we try to book for a
+        # full event
+        if self.pk is None:
+            if self.ticket_booking.ticketed_event.tickets_left() <= 0:
+                raise TicketBookingError(
+                    'No tickets left for {}'.format(
+                        self.ticket_booking.ticketed_event
+                    )
+                )
+        super(Ticket, self).save(*args, **kwargs)
 
 # TODO
 """
@@ -490,6 +522,9 @@ CreateView (from buy tickets button):
   Form has drop down to select number of tickets; either the max_ticket_purchase
   on event or the number of tickets left (or an arbitrary high number if no
   max number)
+  Display tickets as inline; set number of empty rows depending on number of
+  tickets left (and show number of tickets left - plus disclaimer in case
+  sold in meantime)
   Selecting the number of tickets displays a number of rows with the extra_info
   fields for each ticket
   And shows total cost per ticket
