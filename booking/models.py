@@ -1,5 +1,6 @@
 import logging
 import pytz
+import shortuuid
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -380,14 +381,22 @@ class TicketedEvent(models.Model):
     payment_time_allowed = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Number of days allowed for payment after booking (after "
-                  "this ticket purchases will be cancelled.  This will be ignored "
-                  "if there is a payment due date set on the event itself. "
+                  "this ticket purchases will be cancelled.  This will be "
+                  "ignored if there is a payment due date set on the event "
+                  "itself. "
     )
     email_studio_when_purchased = models.BooleanField(default=False)
     max_ticket_purchase = models.PositiveIntegerField(
         null=True, help_text="Limit the number of tickets that can be "
                              "purchased at one time"
     )
+    extra_ticket_info_label = models.CharField(
+        max_length=255, blank=True, default=''
+    )
+    extra_ticket_info1_label = models.CharField(
+        max_length=255, blank=True, default=''
+    )
+
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     class Meta:
@@ -461,6 +470,11 @@ class TicketBooking(models.Model):
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
 
+    booking_reference = models.CharField(max_length=255)
+
+    def set_booking_reference(self):
+        self.booking_reference = shortuuid.uuid().random(length=20)
+
     def __str__(self):
         return 'Ticket Booking - {} - {}'.format(
             self.ticketed_event.name, self.user.username
@@ -472,6 +486,7 @@ class TicketBooking(models.Model):
                 raise TicketBookingError(
                     'No tickets left for {}'.format(self.ticketed_event)
                 )
+            self.set_booking_reference()
         else:
             orig = TicketBooking.objects.get(id=self.pk)
             if self.cancelled and not orig.cancelled:
@@ -495,15 +510,12 @@ class TicketBooking(models.Model):
 
 
 class Ticket(models.Model):
-    extra_info = models.TextField(blank=True, default='')
-    extra_info_label = models.CharField(max_length=255, blank=True, default='')
-    extra_info1 = models.TextField(blank=True, default='')
-    extra_info1_label = models.CharField(max_length=255, blank=True, default='')
+    extra_ticket_info = models.TextField(blank=True, default='')
+    extra_ticket_info1 = models.TextField(blank=True, default='')
     ticket_booking = models.ForeignKey(TicketBooking, related_name="tickets")
 
     def save(self, *args, **kwargs):
-        # raise error for each ticket creation also if we try to book for a
-        # full event
+        # raise error for each ticket creation also if we try to book for a_        # full event
         if self.pk is None:
             if self.ticket_booking.ticketed_event.tickets_left() <= 0:
                 raise TicketBookingError(

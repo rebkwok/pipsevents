@@ -84,8 +84,3 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         return context_helpers.get_event_context(
             context, event, self.request.user
         )
-
-
-
-
-

@@ -4,7 +4,11 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from booking.models import Booking, Event, Block
+from django.forms.models import modelformset_factory, BaseModelFormSet, \
+    inlineformset_factory, BaseInlineFormSet
+
+from booking.models import Booking, Event, Block, Ticket, TicketedEvent, \
+    TicketBooking
 from booking.widgets import DateSelectorWidget
 
 
@@ -113,3 +117,46 @@ class BlockModelChoiceField(forms.ModelChoiceField):
 class UserModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
+
+
+def get_quantity_choices(ticketed_event):
+    if ticketed_event.max_ticket_purchase:
+        if ticketed_event.tickets_left() > ticketed_event.max_ticket_purchase:
+            max_choice = ticketed_event.max_ticket_purchase
+        else:
+            max_choice = ticketed_event.tickets_left()
+    elif ticketed_event.max_tickets:
+        max_choice = ticketed_event.tickets_left()
+    else:
+        max_choice = 100
+
+    return ((i, i) for i in range(1, max_choice+1))
+
+
+class TicketPurchaseForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        super(TicketPurchaseForm, self).__init__(*args, **kwargs)
+        quantity = forms.ChoiceField(
+            choices=get_quantity_choices(self.initial['ticketed_event'])
+        )
+        ticket_booking = forms.CharField(widget=forms.HiddenInput())
+
+
+class TicketInlineFormSet(BaseInlineFormSet):
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super(TicketInlineFormSet, self).__init__(*args, **kwargs)
+
+    # def add_fields(self, form, index):
+    #     super(TicketBookingInlineFormSet, self).add_fields(form, index)
+
+TicketFormSet = inlineformset_factory(
+    TicketBooking,
+    Ticket,
+    fields=('__all__'),
+    can_delete=False,
+    formset=TicketInlineFormSet,
+    extra=1,
+)
