@@ -1,10 +1,14 @@
 import logging
 
+from django.contrib import messages
 from django.db.models import Q
-from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
+from django.shortcuts import HttpResponse, HttpResponseRedirect, render, \
+    get_object_or_404
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView, FormView, TemplateView
 )
+from django.template.response import TemplateResponse
+from django.core.urlresolvers import reverse
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
@@ -12,6 +16,8 @@ from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.forms import TicketFormSet, TicketPurchaseForm
 import booking.context_helpers as context_helpers
 
+from payments.forms import PayPalPaymentsUpdateForm
+from payments.helpers import create_ticket_booking_paypal_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +26,11 @@ class TicketedEventListView(ListView):
     model = TicketedEvent
     context_object_name = 'ticketed_events'
     template_name = 'booking/ticketed_events.html'
+
+    def get_queryset(self):
+        return TicketedEvent.objects.filter(
+            date__gte=timezone.now(), show_on_site=True
+        )
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -76,7 +87,7 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.ticketed_event = get_object_or_404(
-            TicketedEvent, slug=kwargs['event_slug']
+            TicketedEvent, slug=kwargs['event_slug'], show_on_site=True
         )
         if request.method.lower() == 'get':
             user_empty_ticket_bookings = [
@@ -95,7 +106,7 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             ticket_bk_id = request.POST['ticket_booking_id']
             self.ticket_booking = TicketBooking.objects.get(pk=ticket_bk_id)
 
-        return super(TicketCreateView, self).dispatch(*args, **kwargs)
+        return super(TicketCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(TicketCreateView, self).get_context_data(**kwargs)
@@ -104,53 +115,112 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
         ticket_purchase_form = TicketPurchaseForm(
             prefix='ticket_purchase_form',
+            ticketed_event=self.ticketed_event,
             ticket_booking=self.ticket_booking,
-            data = self.request.POST if 'ticket_purchase_form'
+            data=self.request.POST if 'ticket_purchase_form-quantity'
                                         in self.request.POST else None,
         )
         context['ticket_purchase_form'] = ticket_purchase_form
-        context['ticket_formset'] = []
-
+        context['ticket_formset'] = TicketFormSet(
+            prefix='ticket_formset',
+            data=self.request.POST if 'ticket_formset-submit'
+                                        in self.request.POST else None,
+            instance=self.ticket_booking,
+            ticketed_event=self.ticketed_event,
+        )
         return context
 
     def post(self, request, *args, **kwargs):
 
-        if 'ticket_purchase_form-submit' in request.POST:
-            pass
+        if 'cancel' in request.POST:
+            self.ticket_booking.delete()
+            messages.info(
+                request,
+                'Ticket booking for {} has been cancelled.'.format(
+                    self.ticketed_event
+                )
+            )
+            return HttpResponseRedirect(reverse('booking:ticketed_events'))
 
+        context = self.get_context_data()
+        ticket_purchase_form = context['ticket_purchase_form']
+        ticket_formset = context['ticket_formset']
 
-class TicketPurchaseView(LoginRequiredMixin, TemplateView):
+        if ticket_purchase_form.has_changed():
+            existing_tickets = self.ticket_booking.tickets.all()
+            q_existing_tickets = existing_tickets.count()
+            quantity = int(request.POST.get('ticket_purchase_form-quantity'))
 
-    template_name = 'booking/create_ticket_booking.html'
+            if self.ticketed_event.tickets_left() < quantity and quantity > q_existing_tickets:
+                messages.error(
+                    request, 'Cannot purchase the number of tickets requested.  '
+                             'Only {} tickets left.'.format(
+                        self.ticketed_event.tickets_left()
+                    )
+                )
+            else:
+                # create the correct number of tickets on this booking
+                if q_existing_tickets < quantity:
+                    for i in range(quantity-q_existing_tickets):
+                        Ticket.objects.create(ticket_booking=self.ticket_booking)
+                if q_existing_tickets > quantity:
+                    for ticket in existing_tickets[quantity:]:
+                        ticket.delete()
 
-    def dispatch(self, request, *args, **kwargs):
-        self.ticketed_event = get_object_or_404(
-            TicketedEvent, slug=kwargs['event_slug']
-        )
-        self.ticket_booking = get_object_or_404(
-            TicketBooking, booking_reference=kwargs['booking_ref']
-        )
+            tickets = self.ticket_booking.tickets.all()
+            context['tickets'] = tickets
 
-        return super(TicketPurchaseView, self).dispatch(*args, **kwargs)
+            return TemplateResponse(request, self.template_name, context)
 
-    def get_context_data(self, **kwargs):
-        context = super(TicketCreateView, self).get_context_data(**kwargs)
-        context['ticketed_event'] = self.ticketed_event
-        context['ticket_booking'] = self.ticket_booking
+        if 'ticket_formset-submit' in request.POST:
+            if ticket_formset.is_valid():
+                ticket_formset.save()
 
-        ticket_purchase_form = TicketPurchaseForm(
-            prefix='ticket_purchase_form',
-            ticket_booking=self.ticket_booking,
-            data = self.request.POST if 'ticket_purchase_form'
-                                        in self.request.POST else None,
-        )
-        ticket_formset = TicketFormSet(
-            prefix='ticket_formset',
-            user=self.request.user,
-            data = self.request.POST if 'ticket_formset'
-                                        in self.request.POST else None,
-        )
-        context['ticket_purchase_form'] = ticket_purchase_form
-        context['ticket_formset'] = ticket_formset
+                # we only create the paypal form if there is a ticket cost and
+                # online payments are open
+                if self.ticketed_event.ticket_cost and \
+                        self.ticketed_event.payment_open:
+                    invoice_id = create_ticket_booking_paypal_transaction(
+                        self.request.user, self.ticket_booking
+                    ).invoice_id
+                    host = 'http://{}'.format(self.request.META.get('HTTP_HOST')
+                                                      )
+                    paypal_form = PayPalPaymentsUpdateForm(
+                        initial=context_helpers.get_paypal_dict(
+                            host,
+                            self.ticketed_event.ticket_cost,
+                            self.ticketed_event,
+                            invoice_id,
+                            '{} {}'.format('ticket_booking', self.ticket_booking.id),
+                            quantity=self.ticket_booking.tickets.count()
+                        )
+                    )
+                    context["paypalform"] = paypal_form
+                context['purchase_confirmed'] = True
+            tickets = self.ticket_booking.tickets.all()
+            context['tickets'] = tickets
+            ticket_purchase_form = TicketPurchaseForm(
+                prefix='ticket_purchase_form',
+                ticketed_event=self.ticketed_event,
+                ticket_booking=self.ticket_booking,
+                initial={'quantity': self.ticket_booking.tickets.count()}
+            )
+            context["ticket_purchase_form"] = ticket_purchase_form
+            return TemplateResponse(request, self.template_name, context)
 
-        return context
+            # TODO
+            # 1) deal with form errors
+            # 2) activity log entries
+            # 3) payment_not_open case ("confirm purchase" button doesn't return
+            # paypalform, instead just shows message with payment info - for
+            # cases where payment isn't being taken by paypal) - DONE
+            # 4) only show ticketed_events if "show on site" is checked - DONE
+            # 5) Add "my purchased tickets" view
+            # 6) Emails when tickets purchased
+            # 7) Check paypal processes properly and emails are sent
+            # 8) Allow people to cancel their ticket purchase before payment
+            # but not after (cancel for unpaid ticket bookings on the "my
+            # purchased tickets" page
+            # 9) reminder, warnings and Cancel manage commands
+            # 10) StudioAdmin
+            # 11) Cron jobs

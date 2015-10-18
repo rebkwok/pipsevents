@@ -640,7 +640,11 @@ class TicketBookingTests(TestCase):
             ),
             user=mommy.make_recipe('booking.user', username='Test user'),
             )
-        self.assertEqual(str(booking), 'Ticket Booking - Test event - Test user')
+        self.assertEqual(
+            str(booking), 'Booking ref {} - Test event - Test user'.format(
+                booking.booking_reference
+            )
+        )
 
     def test_booking_full_event(self):
         """

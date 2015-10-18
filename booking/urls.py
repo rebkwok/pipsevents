@@ -3,9 +3,7 @@ from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockListView, \
-    TicketedEventDetailView, TicketedEventListView, TicketCreateView, \
-    TicketPurchaseView
-
+    TicketedEventDetailView, TicketedEventListView, TicketCreateView
 
 urlpatterns = patterns('',
     url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
@@ -48,19 +46,19 @@ urlpatterns = patterns('',
         name='has_active_block'),
     url(r'^not-available/$', 'booking.views.permission_denied',
         name='permission_denied'),
+   url(
+        r'^ticketed-events/$', TicketedEventListView.as_view(),
+        name='ticketed_events'
+    ),
     url(
         r'^ticketed-events/(?P<slug>[\w-]+)/$',
         TicketedEventDetailView.as_view(), name='ticketed_event_detail'
     ),
-    url(
-        r'^ticketed-events/$', TicketedEventListView.as_view(),
-        name='ticketed_events'
-    ),
     url(r'^ticketed_events/(?P<event_slug>[\w-]+)/purchase/$',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
-    url(r'^ticketed_events/(?P<event_slug>[\w-]+)/purchase/(?P<booking_ref)>[\w-]+)$',
-        TicketPurchaseView.as_view(),
-        name='book_ticketed_event'),
+    # url(r'^ticketed_events/(?P<event_slug>[\w-]+)/purchase/(?P<booking_ref>[\w-]+)/$',
+    #     TicketPurchaseView.as_view(),
+    #     name='book_tickets'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     )

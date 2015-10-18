@@ -10,7 +10,7 @@ from django.template import Context
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
-from booking.models import Booking, Block
+from booking.models import Booking, Block, TicketBooking
 
 from activitylog.models import ActivityLog
 
@@ -34,6 +34,15 @@ class PaypalBookingTransaction(models.Model):
 class PaypalBlockTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
     block = models.ForeignKey(Block, null=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+
+    def __str__(self):
+        return self.invoice_id
+
+
+class PaypalTicketBookingTransaction(models.Model):
+    invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    ticket_booking = models.ForeignKey(TicketBooking, null=True)
     transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     def __str__(self):
@@ -100,6 +109,9 @@ def payment_received(sender, **kwargs):
         elif obj_type == 'block':
             obj = Block.objects.get(id=obj_id)
             purchase = obj.block_type
+        elif obj_type == 'ticket_booking':
+            obj = TicketBooking.objects.get(id=obj_id)
+            purchase = obj.ticketed_event
         else:
             logger.error('PaypalTransactionError: unknown object type for '
                          'payment (ipn_obj transaction_id: {}, obj_type: {}'.format(
@@ -136,6 +148,10 @@ def payment_received(sender, **kwargs):
                     paypal_trans = PaypalBookingTransaction.objects.get(
                         booking=obj, invoice_id=ipn_obj.invoice
                     )
+                if obj_type == 'ticket_booking':
+                    paypal_trans = PaypalTicketBookingTransaction.objects.get(
+                        ticket_booking=obj, invoice_id=ipn_obj.invoice
+                    )
                 else:
                     paypal_trans = PaypalBlockTransaction.objects.get(
                         block=obj, invoice_id=ipn_obj.invoice
@@ -143,7 +159,7 @@ def payment_received(sender, **kwargs):
                 paypal_trans.transaction_id = ipn_obj.txn_id
                 paypal_trans.save()
 
-                if obj_type == 'booking':
+                if obj_type == 'booking' or obj_type == 'ticket_booking':
                     obj.payment_confirmed = True
                     obj.date_payment_confirmed = timezone.now()
                 obj.paid = True
@@ -182,15 +198,33 @@ def payment_received(sender, **kwargs):
 def payment_not_received(sender, **kwargs):
     ipn_obj = sender
 
-    booking = Booking.objects.filter(id=int(ipn_obj.custom))
+    custom = ipn_obj.custom.split()
+    obj_type = custom[0]
+    obj_id = int(custom[-1])
+    if obj_type == 'booking':
+        obj = Booking.objects.get(id=obj_id)
+    elif obj_type == 'block':
+        obj = Block.objects.get(id=obj_id)
+    elif obj_type == 'ticket_booking':
+        obj = TicketBooking.objects.get(id=obj_id)
+    else:
+        logger.error('PaypalTransactionError: unknown object type for '
+                     'payment (ipn_obj transaction_id: {}, obj_type: {}'.format(
+            ipn_obj.txn_id, obj_type
+        ))
+        raise PayPalTransactionError('unknown object type for payment')
+
     send_mail(
         'WARNING! Invalid Payment Notification received from PayPal',
         'PayPal sent an invalid transaction notification while '
-        'attempting to process payment for booking id {}'.format(booking.id),
+        'attempting to process payment for {} id {}'.format(
+            obj_type.title(), obj_id),
         settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
         fail_silently=False)
     logger.warning('Invalid Payment Notification received from PayPal for '
-                   'booking id {}'.format(booking.id))
+                   '{} id {}'.format(
+        obj_type.title(), obj_id)
+    )
 
 
 valid_ipn_received.connect(payment_received)

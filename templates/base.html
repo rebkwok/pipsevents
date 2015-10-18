@@ -58,7 +58,8 @@
                     <ul class="nav navbar-nav pull-left">
                         {% block left-nav-items %}
                         <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
-                        <li class="active-nav"><a href="{% url 'booking:events' %}">Events and Workshops</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:events' %}">Workshops</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:ticketed_events' %}">Ticketed Events</a></li>
                         {% if request.user.is_authenticated %}
                            <li class="active-nav hidden-md hidden-sm"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
                             <li class="active-nav hidden-md hidden-sm"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>

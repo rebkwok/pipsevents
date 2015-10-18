@@ -119,8 +119,10 @@ class UserModelChoiceField(forms.ModelChoiceField):
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
 
 
-def get_quantity_choices(ticketed_event):
-    if ticketed_event.max_ticket_purchase:
+def get_quantity_choices(ticketed_event, current_tickets):
+    if current_tickets > ticketed_event.tickets_left():
+        max_choice = current_tickets
+    elif ticketed_event.max_ticket_purchase:
         if ticketed_event.tickets_left() > ticketed_event.max_ticket_purchase:
             max_choice = ticketed_event.max_ticket_purchase
         else:
@@ -130,33 +132,66 @@ def get_quantity_choices(ticketed_event):
     else:
         max_choice = 100
 
-    return ((i, i) for i in range(1, max_choice+1))
+    choices = [(i, i) for i in range(1, max_choice+1)]
+    choices.insert(0, (0, '------'))
+    return tuple(choices)
 
 
 class TicketPurchaseForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
+        ticketed_event = kwargs.pop('ticketed_event')
+        ticket_booking = kwargs.pop('ticket_booking')
         super(TicketPurchaseForm, self).__init__(*args, **kwargs)
-        quantity = forms.ChoiceField(
-            choices=get_quantity_choices(self.initial['ticketed_event'])
-        )
-        ticket_booking = forms.CharField(widget=forms.HiddenInput())
 
+        current_tickets = ticket_booking.tickets.count()
+
+        self.fields['quantity'] = forms.ChoiceField(
+            choices=get_quantity_choices(ticketed_event, current_tickets),
+            widget=forms.Select(
+                attrs={
+                    "onchange": "ticket_purchase_form.submit();",
+                    "class": "form-control input-sm",
+                },
+            ),
+        )
 
 class TicketInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
+        self.ticketed_event = kwargs.pop('ticketed_event', None)
         super(TicketInlineFormSet, self).__init__(*args, **kwargs)
 
-    # def add_fields(self, form, index):
-    #     super(TicketBookingInlineFormSet, self).add_fields(form, index)
+    def add_fields(self, form, index):
+        super(TicketInlineFormSet, self).add_fields(form, index)
+
+        form.fields['extra_ticket_info'].widget = forms.TextInput(
+            attrs={"class": "form-control ticket-control"}
+        )
+        form.fields['extra_ticket_info'].label = \
+            self.ticketed_event.extra_ticket_info_label
+        form.fields['extra_ticket_info'].help_text = \
+            self.ticketed_event.extra_ticket_info_help
+        form.fields['extra_ticket_info'].required = \
+            self.ticketed_event.extra_ticket_info_required
+        form.fields['extra_ticket_info1'].widget = forms.TextInput(
+            attrs={"class": "form-control ticket-control"}
+        )
+        form.fields['extra_ticket_info1'].label = \
+            self.ticketed_event.extra_ticket_info1_label
+        form.fields['extra_ticket_info1'].help_text = \
+            self.ticketed_event.extra_ticket_info1_help
+        form.fields['extra_ticket_info1'].required = \
+            self.ticketed_event.extra_ticket_info1_required
+
+        form.index = index + 1
+
 
 TicketFormSet = inlineformset_factory(
     TicketBooking,
     Ticket,
-    fields=('__all__'),
+    fields=('extra_ticket_info', 'extra_ticket_info1'),
     can_delete=False,
     formset=TicketInlineFormSet,
-    extra=1,
+    extra=0,
 )

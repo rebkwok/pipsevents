@@ -380,21 +380,40 @@ class TicketedEvent(models.Model):
                   'sent to users first).')
     payment_time_allowed = models.PositiveIntegerField(
         null=True, blank=True,
-        help_text="Number of days allowed for payment after booking (after "
+        help_text="Number of hours allowed for payment after booking (after "
                   "this ticket purchases will be cancelled.  This will be "
                   "ignored if there is a payment due date set on the event "
                   "itself. "
     )
     email_studio_when_purchased = models.BooleanField(default=False)
     max_ticket_purchase = models.PositiveIntegerField(
-        null=True, help_text="Limit the number of tickets that can be "
+        null=True, blank=True,
+        help_text="Limit the number of tickets that can be "
                              "purchased at one time"
     )
     extra_ticket_info_label = models.CharField(
         max_length=255, blank=True, default=''
     )
+    extra_ticket_info_help = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text="Description/details/help text to display under the extra "
+                  "info field"
+    )
+    extra_ticket_info_required = models.BooleanField(
+        default=False,
+        help_text="Tick if this information is mandatory when booking tickets"
+    )
     extra_ticket_info1_label = models.CharField(
         max_length=255, blank=True, default=''
+    )
+    extra_ticket_info1_help = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text="Description/details/help text to display under the extra "
+                  "info field"
+    )
+    extra_ticket_info1_required = models.BooleanField(
+        default=False,
+        help_text="Tick if this information is mandatory when booking tickets"
     )
 
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
@@ -473,11 +492,11 @@ class TicketBooking(models.Model):
     booking_reference = models.CharField(max_length=255)
 
     def set_booking_reference(self):
-        self.booking_reference = shortuuid.uuid().random(length=20)
+        self.booking_reference = shortuuid.ShortUUID().random(length=22)
 
     def __str__(self):
-        return 'Ticket Booking - {} - {}'.format(
-            self.ticketed_event.name, self.user.username
+        return 'Booking ref {} - {} - {}'.format(
+            self.booking_reference, self.ticketed_event.name, self.user.username
         )
 
     def save(self, *args, **kwargs):
@@ -524,42 +543,3 @@ class Ticket(models.Model):
                     )
                 )
         super(Ticket, self).save(*args, **kwargs)
-
-# TODO
-"""
-ListView:
-Has button to buy tickets
-
-CreateView (from buy tickets button):
-  Form has drop down to select number of tickets; either the max_ticket_purchase
-  on event or the number of tickets left (or an arbitrary high number if no
-  max number)
-  Display tickets as inline; set number of empty rows depending on number of
-  tickets left (and show number of tickets left - plus disclaimer in case
-  sold in meantime)
-  Selecting the number of tickets displays a number of rows with the extra_info
-  fields for each ticket
-  And shows total cost per ticket
-  Confirm Purchase button makes the bookings and creates the Tickets (checking
-  for tickets left and updating TicketBooking quantity if necessary)
-  If payment isn't open, display payment info but not paypal button
-  Goes to payment view; Paypal Button - form should include the quantity field
-    in the paypal dict
-  Allow people to cancel their ticket purchase before payment but not after
-  Include a Cancel Ticket Purchase button on the payment page, and also on the
-  Ticket Purchase list page if unpaid
-  Payment Due Date vs ticket payment due date?
-
-DeleteView
-    cancel vs delete?
-
-Show Ticket purchases on the My Bookings list?
-
-Payments
-    will need a ticket paypal trans model etc
-
-reminder, warnings and Cancel manage commands
-
-StudioAdmin
-
-"""
