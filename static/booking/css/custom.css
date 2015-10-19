@@ -811,4 +811,14 @@ a > span.fa.fa-print {
 
 .cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a>span.fa {
     color: lightgrey !important;
+
+.ticket-error > input {
+    border: 1px solid red;
+}
+
+.errorlist {
+    list-style: none;
+    color: red;
+    font-style: italic;
+    font-size: smaller;
 }

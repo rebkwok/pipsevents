@@ -10,6 +10,7 @@ from django.views.generic import (
 from django.template.response import TemplateResponse
 from django.core.urlresolvers import reverse
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from braces.views import LoginRequiredMixin
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
@@ -18,6 +19,8 @@ import booking.context_helpers as context_helpers
 
 from payments.forms import PayPalPaymentsUpdateForm
 from payments.helpers import create_ticket_booking_paypal_transaction
+
+from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
@@ -48,39 +51,6 @@ class TicketedEventListView(ListView):
         return context
 
 
-class TicketedEventDetailView(LoginRequiredMixin, DetailView):
-
-    model = TicketedEvent
-    context_object_name = 'ticketed_event'
-    template_name = 'booking/ticketed_event.html'
-
-    def get_object(self):
-        queryset = TicketedEvent.objects.all()
-        return get_object_or_404(queryset, slug=self.kwargs['slug'])
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(TicketedEventDetailView, self).get_context_data()
-        ticketed_event = self.object
-        return context_helpers.get_ticketed_event_context(
-            context, ticketed_event, self.request.user
-        )
-
-
-"""
-use same template but 2 differnt views?
-
-TicketCreateView: for submitting the ticket_purchase_form
-Creates/gets the ticket_booking on get
-Creates the tickets on post based on the quantity submitted (checks the number
-already on the ticketbooking and adds/deletes as necessary)
-renders TicketPurchaseView
-
-TicketPurchaseView: for submitting the ticket details
-renders the same template, includes the formset
-Post saves the ticket details, returns view with payment buttons
-
-"""
 class TicketCreateView(LoginRequiredMixin, TemplateView):
 
     template_name = 'booking/create_ticket_booking.html'
@@ -151,7 +121,8 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             q_existing_tickets = existing_tickets.count()
             quantity = int(request.POST.get('ticket_purchase_form-quantity'))
 
-            if self.ticketed_event.tickets_left() < quantity and quantity > q_existing_tickets:
+            if self.ticketed_event.tickets_left() < quantity and \
+                            quantity > q_existing_tickets:
                 messages.error(
                     request, 'Cannot purchase the number of tickets requested.  '
                              'Only {} tickets left.'.format(
@@ -166,6 +137,13 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                 if q_existing_tickets > quantity:
                     for ticket in existing_tickets[quantity:]:
                         ticket.delete()
+
+                if q_existing_tickets > 0:
+                    ActivityLog.objects.create(
+                        log="Ticket number updated on booking ref {}".format(
+                            self.ticket_booking.booking_reference
+                            )
+                    )
 
             tickets = self.ticket_booking.tickets.all()
             context['tickets'] = tickets
@@ -197,6 +175,21 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                     )
                     context["paypalform"] = paypal_form
                 context['purchase_confirmed'] = True
+                ActivityLog.objects.create(
+                    log="Ticket Purchase confirmed: event {}, user {}, "
+                        "booking ref {}".format(
+                            self.ticketed_event.name, request.user.username,
+                            self.ticket_booking.booking_reference
+                        )
+                )
+                # TODO Email user
+                # TODO Email studio if ticked on ticketed_event
+
+            else:
+                messages.error(
+                    request, "Please correct errors in the form below"
+                )
+
             tickets = self.ticket_booking.tickets.all()
             context['tickets'] = tickets
             ticket_purchase_form = TicketPurchaseForm(
@@ -208,19 +201,25 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             context["ticket_purchase_form"] = ticket_purchase_form
             return TemplateResponse(request, self.template_name, context)
 
-            # TODO
-            # 1) deal with form errors
-            # 2) activity log entries
-            # 3) payment_not_open case ("confirm purchase" button doesn't return
-            # paypalform, instead just shows message with payment info - for
-            # cases where payment isn't being taken by paypal) - DONE
-            # 4) only show ticketed_events if "show on site" is checked - DONE
-            # 5) Add "my purchased tickets" view
-            # 6) Emails when tickets purchased
-            # 7) Check paypal processes properly and emails are sent
-            # 8) Allow people to cancel their ticket purchase before payment
-            # but not after (cancel for unpaid ticket bookings on the "my
-            # purchased tickets" page
-            # 9) reminder, warnings and Cancel manage commands
-            # 10) StudioAdmin
-            # 11) Cron jobs
+
+class TicketBookingListView(ListView):
+
+    model = TicketBooking
+
+
+    # TODO
+    # 1) deal with form errors - DONE
+    # 2) activity log entries - DONE
+    # 3) payment_not_open case ("confirm purchase" button doesn't return
+    # paypalform, instead just shows message with payment info - for
+    # cases where payment isn't being taken by paypal) - DONE
+    # 4) only show ticketed_events if "show on site" is checked - DONE
+    # 5) Add "my purchased tickets" view
+    # 6) Emails when tickets purchased
+    # 7) Check paypal processes properly and emails are sent
+    # 8) Allow people to cancel their ticket purchase before payment
+    # but not after (cancel for unpaid ticket bookings on the "my
+    # purchased tickets" page
+    # 9) reminder, warnings and Cancel manage commands
+    # 10) StudioAdmin
+    # 11) Cron jobs

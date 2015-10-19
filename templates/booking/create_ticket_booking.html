@@ -42,16 +42,26 @@
                                     <div class="form-group">
                                         <label class="control-label col-xs-2">{{ ticketform.extra_ticket_info.label }}
                                         {% if ticketform.extra_ticket_info.field.required %}*{% endif %}</label>
-                                        <div class="col-xs-10">{{ ticketform.extra_ticket_info }}</div>
+                                        <div class="col-xs-10 {% if ticketform.extra_ticket_info.errors %}ticket-error{% endif %}">{{ ticketform.extra_ticket_info }}</div>
                                         <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ ticketform.extra_ticket_info.help_text }}</div>
+                                        {% if ticketform.extra_ticket_info.errors %}
+                                            <div class="col-xs-10 col-xs-offset-2">
+                                                {{ ticketform.extra_ticket_info.errors }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                                 {% if ticketed_event.extra_ticket_info1_label %}
                                     <div class="form-group">
                                         <label class="control-label col-xs-2">{{ ticketform.extra_ticket_info1.label }}
                                         {% if ticketform.extra_ticket_info1.field.required %}*{% endif %}</label>
-                                        <div class="col-xs-10">{{ ticketform.extra_ticket_info1 }}</div>
+                                        <div class="col-xs-10 {% if ticketform.extra_ticket_info1.errors %}ticket-error{% endif %}"">{{ ticketform.extra_ticket_info1 }}</div>
                                         <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ ticketform.extra_ticket_info1.help_text }}</div>
+                                        {% if ticketform.extra_ticket_info1.errors %}
+                                            <div class="col-xs-10 col-xs-offset-2">
+                                                {{ ticketform.extra_ticket_info.errors }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             {% endfor %}
