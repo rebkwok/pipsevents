@@ -1,0 +1,44 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+
+    <h2>Cancelling {{ event }}</h2>
+
+    <p>You are cancelling {{ event_type }} {{ event }}.</p>
+
+    {% if open_bookings %}
+        <p>Bookings for the following users are open and will be cancelled.
+            Blocks will be updated for any bookings made with blocks.
+        </p>
+        <ul>
+            {% for booking in open_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if open_direct_paid_bookings %}
+          <p>The following users paid for this {{ event_type }} directly and
+              will need to be refunded:</p>
+            <ul>
+                {% for booking in open_direct_paid_bookings %}
+                    <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        <p>There are no open bookings on this {{ event_type }}.</p>
+    {% endif %}
+
+    <p><strong>Please confirm you want to cancel this {{ event_type }}.</strong></p>
+
+    <form action="" method="post">{% csrf_token %}
+        <input class="btn btn-success" type="submit" name="confirm" value="Yes, cancel this {{ event_type }}" />
+        <input class="btn btn-danger" type="submit" name="cancel" value="No, take me back" />
+    </form>
+
+</div>
+
+{% endblock studioadmincontent %}

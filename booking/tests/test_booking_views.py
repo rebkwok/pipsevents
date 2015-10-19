@@ -76,7 +76,7 @@ class BookingListViewTests(TestCase):
         # event listing should still only show this user's future bookings
         self.assertEquals(resp.context_data['bookings'].count(), 3)
 
-    def test_cancelled_booking_not_showing_in_booking_list(self):
+    def test_cancelled_booking_shown_in_booking_list(self):
         """
         Test that all future bookings for this user are listed
         """
@@ -92,6 +92,28 @@ class BookingListViewTests(TestCase):
         # booking listing should show this user's future bookings,
         # including the cancelled one
         self.assertEquals(resp.context_data['bookings'].count(), 4)
+
+    def test_cancelled_events_shown_in_booking_list(self):
+        """
+        Test that all future bookings for cancelled events for this user are
+        listed
+        """
+        Booking.objects.all().delete()
+        ev = mommy.make_recipe(
+            'booking.future_EV', name="future event", cancelled=True
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=ev,
+            status='CANCELLED'
+        )
+        # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
+        self.assertEquals(Booking.objects.all().count(), 1)
+        resp = self._get_response(self.user)
+
+        # booking listing should show this user's future bookings,
+        # including the cancelled one
+        self.assertEquals(resp.context_data['bookings'].count(), 1)
+        self.assertIn('EVENT CANCELLED', resp.rendered_content)
 
 
 class BookingHistoryListViewTests(TestCase):
@@ -430,6 +452,22 @@ class BookingCreateViewTests(TestCase):
         response = self._get_response(user, pole_practice)
         self.assertIn('can_be_free_class', response.context_data)
 
+    def test_cannot_book_for_cancelled_event(self):
+        """
+        Test trying to create a booking for a cancelled event redirects
+        """
+        event = mommy.make_recipe('booking.future_EV', cancelled=True)
+
+        # try to book for event
+        resp = self._get_response(self.user, event)
+        # test redirect to permission denied page
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:permission_denied',
+            )
+        )
+
 
 class BookingErrorRedirectPagesTests(TestCase):
 
@@ -666,6 +704,18 @@ class BookingUpdateViewTests(TestCase):
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
 
+    def _get_response(self, user, booking):
+        url = reverse('booking:update_booking', args=[booking.id])
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        view = BookingUpdateView.as_view()
+        return view(request, pk=booking.id)
+
     def _post_response(self, user, booking, form_data):
         url = reverse('booking:update_booking', args=[booking.id])
         session = _create_session()
@@ -718,3 +768,21 @@ class BookingUpdateViewTests(TestCase):
         self.assertEqual(booking.free_class, booking_after_post.free_class)
 
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_cannot_update_for_cancelled_event(self):
+        """
+        Test trying to update a booking for a cancelled event redirects
+        """
+        event = mommy.make_recipe('booking.future_EV', cancelled=True)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+
+        resp = self._get_response(self.user, booking)
+        # test redirect to permission denied page
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:permission_denied',
+            )
+        )

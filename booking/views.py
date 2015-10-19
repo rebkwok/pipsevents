@@ -50,11 +50,16 @@ class EventListView(ListView):
 
         if name:
             return Event.objects.filter(
-                Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now())
-                & Q(name=name)).order_by('date')
-        return Event.objects.filter(
-            (Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now()))
+                event_type__event_type=ev_abbr,
+                date__gte=timezone.now(),
+                name=name,
+                cancelled=False
             ).order_by('date')
+        return Event.objects.filter(
+            event_type__event_type=ev_abbr,
+            date__gte=timezone.now(),
+            cancelled=False
+        ).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -214,6 +219,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         }
 
     def get(self, request, *args, **kwargs):
+
+        if self.event.cancelled:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+
         if self.event.event_type.subtype == "Pole practice" \
                 and not request.user.has_perm("booking.is_regular_student"):
             return HttpResponseRedirect(reverse('booking:permission_denied'))
@@ -707,16 +716,17 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['paid']
 
     def get(self, request, *args, **kwargs):
-        # redirect if cancelled
-        try:
-            booking = Booking.objects.get(
-                user=self.request.user, id=self.kwargs['pk'],
-                status='CANCELLED'
-            )
+        # redirect if event cancelled
+        booking = get_object_or_404(Booking, id=self.kwargs['pk'])
+        if booking.event.cancelled:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+
+        # redirect if booking cancelled
+        if booking.status == 'CANCELLED':
             return HttpResponseRedirect(reverse('booking:update_booking_cancelled',
                                         args=[booking.id]))
-        except Booking.DoesNotExist:
-            return super(BookingUpdateView, self).get(request, *args, **kwargs)
+
+        return super(BookingUpdateView, self).get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context

@@ -51,14 +51,7 @@ class EventBaseFormSet(BaseModelFormSet):
             form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
             if form.instance.bookings.count() > 0:
-                form.fields['DELETE'] = forms.BooleanField(
-                    widget=forms.CheckboxInput(attrs={
-                        'class': 'delete-checkbox-disabled studioadmin-list',
-                        'disabled': 'disabled',
-                        'id': 'DELETE_{}'.format(index)
-                    }),
-                    required=False
-                )
+                form.cannot_delete = True
             else:
                 form.fields['DELETE'] = forms.BooleanField(
                     widget=forms.CheckboxInput(attrs={
@@ -189,7 +182,7 @@ class EventAdminForm(forms.ModelForm):
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required', 'payment_info',
             'payment_due_date', 'cancellation_period',
-            'email_studio_when_booked',
+            'email_studio_when_booked', 'cancelled',
         )
         widgets = {
             'description': CKEditorWidget(
@@ -261,6 +254,12 @@ class EventAdminForm(forms.ModelForm):
                     'class': "form-control regular-checkbox",
                     'id': 'email_studio_id',
                     },
+            ),
+            'cancelled': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'cancelled_id',
+                    }
             ),
             }
         help_texts = {
@@ -908,7 +907,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             form.fields['event'] = forms.ModelChoiceField(
                 queryset=Event.objects.filter(
                     date__gte=timezone.now()
-                ).filter(booking_open=True).exclude(
+                ).filter(booking_open=True, cancelled=False).exclude(
                     id__in=already_booked).order_by('date'),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
             )
@@ -978,6 +977,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             event = form.cleaned_data.get('event')
             free_class = form.cleaned_data.get('free_class')
 
+
             if form.instance.status == 'CANCELLED' and form.instance.block and \
                 'block' in form.changed_data:
                 error_msg = 'A cancelled booking cannot be assigned to a ' \
@@ -991,6 +991,24 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                     ev_type = "class"
                 elif event.event_type.event_type == 'EV':
                     ev_type = "event"
+
+                if event.cancelled:
+                    if form.instance.status == 'OPEN':
+                        error_msg = 'Cannot reopen booking for cancelled ' \
+                                    'event {}'.format(event)
+                        form.add_error('event', error_msg)
+                        raise forms.ValidationError(error_msg)
+                    if form.instance.free_class:
+                        error_msg = 'Cannot assign booking for cancelled ' \
+                                    'event {} as free class'.format(event)
+                        form.add_error('event', error_msg)
+                        raise forms.ValidationError(error_msg)
+                    if form.instance.paid or form.instance.deposit_paid:
+                        error_msg = 'Cannot assign booking for cancelled ' \
+                                    'event {} as paid'.format(event)
+                        form.add_error('event', error_msg)
+                        raise forms.ValidationError(error_msg)
+
 
             if block and event:
                 if not block_tracker.get(block.id):

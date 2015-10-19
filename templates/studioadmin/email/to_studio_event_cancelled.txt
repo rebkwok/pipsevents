@@ -1,0 +1,8 @@
+{{ event_type }} {{ event }} has been cancelled.
+
+The following users' bookings were paid for directly (i.e. not with a block).  Please review and refund these payments.
+
+When the payment has been refunded, use the links below to confirm and update the payment status on the booking site:
+{% for booking in open_direct_paid_bookings %}
+- {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}
+{% endfor %}

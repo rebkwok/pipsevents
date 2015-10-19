@@ -18,6 +18,7 @@ from booking.tests.helpers import set_up_fb, _create_session, setup_view
 from studioadmin.forms import SimpleBookingRegisterFormSet
 from studioadmin.views import (
     ActivityLogListView,
+    cancel_event_view,
     ConfirmPaymentView,
     ConfirmRefundView,
     event_admin_list,
@@ -3274,3 +3275,39 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertNotIn('>User\'s block</br>expiry date<', resp.rendered_content)
         self.assertNotIn('>Block size<', resp.rendered_content)
         self.assertNotIn('>Bookings used<', resp.rendered_content)
+
+
+class CancelEventTests(TestCase):
+
+    def _get_response(self, user, event):
+        url = reverse('studioadmin:cancel_event', kwargs={'slug': event.slug})
+        session = _create_session()
+        request = self.factory.get(url)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return cancel_event_view(request)
+
+    def _post_response(self, user, event, form_data):
+        url = reverse('studioadmin:cancel_event', kwargs={'slug': event.slug})
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return cancel_event_view(request)
+
+    # get: shows direct paid and deposit paid as due refunds
+    # get: shows free class and block paid but not as due refunds
+    # post: cancelling sets event to cancelled, booking not open, payment not opne
+    # post: cancelling cancels any open bookings
+    # post: cancelling sets any open block booked to no block, not paid, not payment confirmed
+    # post: cancelling sets any open free class to not free class, not paid, not payment confirmed
+    # post: cancelling does not change payment status for direct paid
+    # post: cancelling sends emails to all open booking users
+    # post: cancelling sends email to studio only if there are direct paid bookings
+    # user booking list view: (form tests) can't reopen booking for cancelled event
+    # user booking list view: (form tests) can't make booking for cancelled
+    # event paid, deposit paid or free class

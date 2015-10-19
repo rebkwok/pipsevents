@@ -16,6 +16,9 @@
                 {% if past %}
                 <h3>This event is now past.</h3>
                 {% endif %}
+                {% if event.cancelled %}
+                    <h3>This event has been cancelled.</h3>
+                {% endif %}
                 <ul class="list-group">
                     {% if event.description %}
                         <li class="list-group-item"><p><strong>Description</strong></p>
@@ -24,7 +27,7 @@
                     {% endif %}
                     <li class="list-group-item"><strong>Location:</strong>  {{ event.location }}</li>
                     <li class="list-group-item"><strong>Date and time:</strong> {{ event.date |  date:"D d F, g:i a" }}</li>
-                    {% if not past %}
+                    {% if not past or not event.cancelled %}
                      <li class="list-group-item"><strong>Contact:</strong> {{ event.contact_person }}
                           (<a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a>)</li>
                     <li class="list-group-item"><p><strong>Payment information</strong></p>
