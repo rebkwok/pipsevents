@@ -74,7 +74,8 @@ class EventFormSetTests(TestCase):
 
     def test_event_formset_delete_with_bookings(self):
         """
-        Test delete widget is disabled if bookings made against event
+        Test delete widget is not formatted if bookings made against event
+        (will be hidden in template and Cancel button will be displayed instead)
         """
         extra_data = {
             'form-TOTAL_FORMS': 2,
@@ -90,19 +91,22 @@ class EventFormSetTests(TestCase):
         formset = EventFormSet(data=self.formset_data(extra_data))
         deleted_form_no_bookings = formset.deleted_forms[0]
         deleted_form_with_bookings = formset.deleted_forms[1]
-        self.assertEqual(deleted_form_no_bookings.cleaned_data['id'], self.event)
-        self.assertEqual(deleted_form_with_bookings.cleaned_data['id'], self.event1)
+        self.assertEqual(
+            deleted_form_no_bookings.cleaned_data['id'], self.event
+        )
+        self.assertEqual(
+            deleted_form_with_bookings.cleaned_data['id'], self.event1
+        )
 
-        delete_no_bookings_widget = deleted_form_no_bookings.fields['DELETE'].widget
-        delete_with_bookings_widget = deleted_form_with_bookings.fields['DELETE'].widget
+        delete_no_bookings_widget = deleted_form_no_bookings.\
+            fields['DELETE'].widget
+        delete_with_bookings_widget = deleted_form_with_bookings.\
+            fields['DELETE'].widget
         self.assertEqual(
             delete_no_bookings_widget.attrs['class'],
             'delete-checkbox studioadmin-list'
         )
-        self.assertEqual(
-            delete_with_bookings_widget.attrs['class'],
-            'delete-checkbox-disabled studioadmin-list'
-        )
+        self.assertEqual(delete_with_bookings_widget.attrs, {})
 
 
 class EventAdminFormTests(TestCase):

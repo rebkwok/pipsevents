@@ -993,22 +993,26 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                     ev_type = "event"
 
                 if event.cancelled:
+                    if form.instance.block:
+                        error_msg = 'Cannot assign booking for cancelled ' \
+                                    'event {} to a block'.format(event)
+                        form.add_error('block', error_msg)
                     if form.instance.status == 'OPEN':
                         error_msg = 'Cannot reopen booking for cancelled ' \
                                     'event {}'.format(event)
-                        form.add_error('event', error_msg)
-                        raise forms.ValidationError(error_msg)
+                        form.add_error('status', error_msg)
                     if form.instance.free_class:
                         error_msg = 'Cannot assign booking for cancelled ' \
                                     'event {} as free class'.format(event)
-                        form.add_error('event', error_msg)
-                        raise forms.ValidationError(error_msg)
-                    if form.instance.paid or form.instance.deposit_paid:
+                        form.add_error('free_class', error_msg)
+                    if form.instance.paid:
                         error_msg = 'Cannot assign booking for cancelled ' \
                                     'event {} as paid'.format(event)
-                        form.add_error('event', error_msg)
-                        raise forms.ValidationError(error_msg)
-
+                        form.add_error('paid', error_msg)
+                    if form.instance.deposit_paid:
+                        error_msg = 'Cannot assign booking for cancelled ' \
+                                    'event {} as deposit paid'.format(event)
+                        form.add_error('deposit_paid', error_msg)
 
             if block and event:
                 if not block_tracker.get(block.id):

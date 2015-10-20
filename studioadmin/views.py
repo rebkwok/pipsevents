@@ -1167,7 +1167,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
     if request.method == 'POST':
         booking_status = request.POST.getlist('booking_status')[0]
         userbookingformset = UserBookingFormSet(
-            request.POST, instance=user, user=user,
+            request.POST.copy(), instance=user, user=user,
         )
         if userbookingformset.is_valid():
             if not userbookingformset.has_changed() and \
@@ -1636,7 +1636,7 @@ def cancel_event_view(request, slug):
                 direct_paid = booking in open_direct_paid_bookings
 
                 if booking.block:
-                    booking.block == None
+                    booking.block = None
                     booking.paid = False
                     booking.payment_confirmed = False
                 elif booking.free_class:
