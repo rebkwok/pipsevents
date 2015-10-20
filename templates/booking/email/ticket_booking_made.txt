@@ -1,0 +1,20 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Ticket booking has been received for {{ ticketed_event }}.
+Your booking reference: {{ ticket_booking.booking_reference }}
+Number of tickets: {{ ticket_count }}
+{% if not ticketed_event.ticket_cost %}
+There is no cost for this event.
+{% else %}
+{% if ticketed_event.payment_open %}{% if ticketed_event.payment_info %}
+Payment information
+=====================
+{{ ticketed_event.payment_info|safe }}{% endif %}
+{% else %}
+Payment information
+===================
+Payments are not being taken online via the website at this time.
+{{ ticketed_event.payment_info|safe }}
+{% endif %}{% endif %}
+
+View your ticket bookings at {{ host }}{% url 'booking:ticket_bookings' %}

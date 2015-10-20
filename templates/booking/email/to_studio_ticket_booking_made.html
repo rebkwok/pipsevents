@@ -1,0 +1,12 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+    <p>Ticket booking has been received for {{ ticketed_event }}.</p>
+    <ul>
+        <li>User: {{ user }}</li>
+        <li>Booking ref: {{ ticket_booking.booking_reference }}</li>
+        <li>Tickets purchased: {{ ticket_count }}</li>
+    </ul>
+</div>
+{% endblock %}

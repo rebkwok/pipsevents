@@ -1,0 +1,6 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Ticket booking has been received for {{ ticketed_event }}.
+    - User: {{ user }}
+    - Booking ref: {{ ticket_booking.booking_reference }}
+    - Tickets purchased: {{ ticket_count }}

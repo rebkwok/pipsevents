@@ -1,13 +1,16 @@
 import logging
 
+from django.conf import settings
 from django.contrib import messages
-from django.db.models import Q
+from django.template.loader import get_template
+from django.template import Context
 from django.shortcuts import HttpResponse, HttpResponseRedirect, render, \
     get_object_or_404
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView, FormView, TemplateView
 )
 from django.template.response import TemplateResponse
+from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -16,6 +19,7 @@ from braces.views import LoginRequiredMixin
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.forms import TicketFormSet, TicketPurchaseForm
 import booking.context_helpers as context_helpers
+from booking.email_helpers import send_support_email, send_waiting_list_email
 
 from payments.forms import PayPalPaymentsUpdateForm
 from payments.helpers import create_ticket_booking_paypal_transaction
@@ -182,9 +186,61 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                             self.ticket_booking.booking_reference
                         )
                 )
-                # TODO Email user
-                # TODO Email studio if ticked on ticketed_event
 
+                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                ctx = Context({
+                      'host': host,
+                      'ticketed_event': self.ticketed_event,
+                      'ticket_booking': self.ticket_booking,
+                      'ticket_count': self.ticket_booking.tickets.count(),
+                      'user': request.user,
+                })
+
+                try:
+                    # send notification email to user
+                    send_mail('{} Ticket booking ref {} for {}'.format(
+                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                            self.ticket_booking.booking_reference,
+                            self.ticketed_event
+                        ),
+                        get_template(
+                            'booking/email/ticket_booking_made.txt'
+                        ).render(ctx),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [request.user.email],
+                        html_message=get_template(
+                            'booking/email/ticket_booking_made.html'
+                            ).render(ctx),
+                        fail_silently=False)
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "ticket booking created - "
+                        "send email to user"
+                    )
+
+                if self.ticketed_event.email_studio_when_purchased:
+                    try:
+                        send_mail('{} Ticket booking ref {} for {}'.format(
+                                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                                self.ticket_booking.booking_reference,
+                                self.ticketed_event
+                            ),
+                            get_template(
+                                'booking/email/to_studio_ticket_booking_made.txt'
+                            ).render(ctx),
+                            settings.DEFAULT_FROM_EMAIL,
+                            [settings.DEFAULT_STUDIO_EMAIL],
+                            html_message=get_template(
+                                'booking/email/to_studio_ticket_booking_made.html'
+                                ).render(ctx),
+                            fail_silently=False)
+                    except Exception as e:
+                        # send mail to tech support with Exception
+                        send_support_email(
+                            e, __name__, "ticket booking created - "
+                            "send email to studio"
+                        )
             else:
                 messages.error(
                     request, "Please correct errors in the form below"
@@ -215,11 +271,12 @@ class TicketBookingListView(ListView):
     # cases where payment isn't being taken by paypal) - DONE
     # 4) only show ticketed_events if "show on site" is checked - DONE
     # 5) Add "my purchased tickets" view
-    # 6) Emails when tickets purchased
+    # 6) Emails when tickets purchased - DONE
     # 7) Check paypal processes properly and emails are sent
     # 8) Allow people to cancel their ticket purchase before payment
     # but not after (cancel for unpaid ticket bookings on the "my
     # purchased tickets" page
     # 9) reminder, warnings and Cancel manage commands
-    # 10) StudioAdmin
+    # 10) StudioAdmin - DONE apart from cancelling events with tickets purchased
     # 11) Cron jobs
+    # 12) tests

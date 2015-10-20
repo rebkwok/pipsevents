@@ -1246,7 +1246,7 @@ class TicketedEventAdminForm(forms.ModelForm):
         widget=forms.TextInput(
             attrs={'class': "form-control"}
             ),
-        label="Extra ticket information #1",
+        label="Label",
         help_text="Label for extra information to be entered for each ticket; "
                   "leave blank if no extra info needed.",
         required=False
@@ -1276,7 +1276,7 @@ class TicketedEventAdminForm(forms.ModelForm):
         widget=forms.TextInput(
             attrs={'class': "form-control"}
             ),
-        label="Extra ticket information #2",
+        label="Label",
         help_text="Label for extra information to be entered for each ticket; "
                   "leave blank if no extra info needed.",
         required=False
@@ -1353,6 +1353,10 @@ class TicketedEventAdminForm(forms.ModelForm):
             'extra_ticket_info1_required',
             'extra_ticket_info1_help', 'show_on_site', 'cancelled',
         )
+        labels = {
+            'max_tickets': 'Maximum available tickets',
+            'max_ticket_purchase': 'Maximum tickets per booking'
+        }
         widgets = {
             'name': forms.TextInput(
                 attrs={

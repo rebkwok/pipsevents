@@ -8,8 +8,7 @@
     <div class="col-sm-12">
        <div class="panel panel-success">
             <div class="panel-heading">
-                <h2 class="panel-title">Ticket booking for
-                    <a href="{% url 'booking:ticketed_event_detail' ticketed_event.slug %}">{{ ticketed_event.name }}</a>
+                <h2 class="panel-title">Ticket booking for {{ ticketed_event.name }}
                     on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
             </div>
 
@@ -80,28 +79,30 @@
                 </form>
 
                 {% if purchase_confirmed %}
-                    <p>Your tickets have been reserved and will be held for you
-                        {% if ticketed_event.payment_due_date %}
-                            until {{ ticketed_event.payment_due_date }}.
-                        {% elif ticketed_event.payment_time_allowed %}
-                            for {{ ticketed_event.payment_time_allowed }} hours.
+                    <div>
+                        <strong>Thank you for your purchase.</strong></br>
+                        {% if ticketed_event.payment_due_date or ticketed_event.payment_time_allowed %}
+                            Your tickets have been reserved and will be held for you {% if ticketed_event.payment_due_date %} until {{ ticketed_event.payment_due_date }}.
+                            {% elif ticketed_event.payment_time_allowed %} for {{ ticketed_event.payment_time_allowed }} hours.{% endif %}
                         {% endif %}
-                    </p>
+                    </div></br>
                     {% if paypalform %}
-                        <p>Click below to be transferred to PayPal to make your payment.</p>
+                        <div>Click below to be transferred to PayPal to make your payment.</div>
                         {% include 'payments/payment.html' %}
                     {% else %}
-                        <p>{{ ticketed_event.payment_info }}</p>
+                        <div>{{ ticketed_event.payment_info }}</div>
                     {% endif  %}
                 {% endif %}
                 </br>
             {% endif %}
 
-            <form method="post" action="">
-                {% csrf_token %}
-                <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />
-                <input class="btn btn-danger update-btn" type="submit" name="cancel" value="Cancel"/>
-            </form>
+           {% if not purchase_confirmed %}
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />
+                    <input class="btn btn-danger update-btn" type="submit" name="cancel" value="Cancel"/>
+                </form>
+           {% endif %}
             </div>
        </div>
 

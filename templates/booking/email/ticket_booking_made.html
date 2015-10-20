@@ -1,0 +1,28 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+<p>Ticket booking has been received for {{ ticketed_event }}.</p>
+<p>Your booking reference: {{ ticket_booking.booking_reference }}</p>
+<p>Number of tickets: {{ ticket_count }}</p>
+
+</p>
+{% if not ticketed_event.ticket_cost %}
+<p>There is no cost for this event.</p>
+{% else %}
+    {% if ticketed_event.payment_open %}
+        {% if ticketed_event.payment_info %}
+        <p><strong>Payment information</strong></p>
+            {{ ticketed_event.payment_info|safe }}
+        {% endif %}
+    {% else %}
+        <p><strong>Payment information</strong></p>
+        <p>Payments are not being taken online via the website at this time.
+        {{ ticketed_event.payment_info|safe }}
+        </p>
+    {% endif %}
+{% endif %}
+
+<p>View your ticket bookings at <a href="{{ host }}{% url 'booking:ticket_bookings' %}">{{ host }}{% url 'booking:ticket_bookings' %}</a></p>
+</div>
+{% endblock %}
