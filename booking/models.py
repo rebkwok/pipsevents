@@ -370,7 +370,7 @@ class TicketedEvent(models.Model):
     ticket_cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=True)
     show_on_site = models.BooleanField(
-        default=True, help_text="Tick to show on the site")
+        default=True, help_text="Tick to show on the site and allow ticket bookings")
     payment_open = models.BooleanField(default=True)
     payment_info = models.TextField(blank=True)
     payment_due_date = models.DateTimeField(
@@ -415,7 +415,7 @@ class TicketedEvent(models.Model):
         default=False,
         help_text="Tick if this information is mandatory when booking tickets"
     )
-
+    cancelled = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
 
     class Meta:

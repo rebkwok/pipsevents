@@ -12,7 +12,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Block, Booking, Event, EventType, BlockType
+from booking.models import Block, Booking, Event, EventType, BlockType, \
+    TicketedEvent
 from timetable.models import Session
 from payments.models import PaypalBookingTransaction
 
@@ -1169,3 +1170,278 @@ class ActivityLogSearchForm(forms.Form):
         }),
         initial='on'
     )
+
+
+class TicketedEventBaseFormSet(BaseModelFormSet):
+
+    def add_fields(self, form, index):
+        super(TicketedEventBaseFormSet, self).add_fields(form, index)
+
+        if form.instance:
+            form.fields['show_on_site'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'show_on_site_{}'.format(index)
+                }),
+                required=False
+            )
+            form.show_on_site_id = 'show_on_site_{}'.format(index)
+
+            form.fields['payment_open'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'payment_open_{}'.format(index)
+                }),
+                required=False
+            )
+            form.payment_open_id = 'payment_open_{}'.format(index)
+
+            form.fields['advance_payment_required'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "regular-checkbox studioadmin-list",
+                    'id': 'advance_payment_required_{}'.format(index)
+                }),
+                required=False
+            )
+            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
+
+            ticket_bookings = form.instance.ticket_bookings.all()
+            for ticket_booking in ticket_bookings:
+                if ticket_booking.tickets.exists():
+                    form.cannot_delete = True
+
+            form.fields['DELETE'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': 'delete-checkbox studioadmin-list',
+                    'id': 'DELETE_{}'.format(index)
+                }),
+                required=False
+            )
+            form.DELETE_id = 'DELETE_{}'.format(index)
+
+TicketedEventFormSet = modelformset_factory(
+    TicketedEvent,
+    fields=(
+        'payment_open', 'advance_payment_required', 'show_on_site'
+    ),
+    formset=TicketedEventBaseFormSet,
+    extra=0,
+    can_delete=True
+)
+
+
+class TicketedEventAdminForm(forms.ModelForm):
+
+    required_css_class = 'form-error'
+
+    ticket_cost = forms.DecimalField(
+        widget=forms.TextInput(attrs={
+            'type': 'text',
+            'class': 'form-control',
+            'aria-describedby': 'sizing-addon2',
+        }),
+    )
+
+    extra_ticket_info_label = forms.CharField(
+        widget=forms.TextInput(
+            attrs={'class': "form-control"}
+            ),
+        label="Extra ticket information #1",
+        help_text="Label for extra information to be entered for each ticket; "
+                  "leave blank if no extra info needed.",
+        required=False
+    )
+    extra_ticket_info_required = forms.BooleanField(
+        widget=forms.CheckboxInput(
+            attrs={
+                'class': "form-control regular-checkbox",
+                'id': 'extra_ticket_info_required_id'
+            }
+            ),
+        label="Required?",
+        help_text="Tick if this information is mandatory",
+        required=False
+    )
+    extra_ticket_info_help = forms.CharField(
+        widget=forms.TextInput(
+            attrs={'class': "form-control"}
+            ),
+        label="Help text",
+        help_text="Description/details/help text to display under the extra "
+                  "information field",
+        required=False
+    )
+
+    extra_ticket_info1_label = forms.CharField(
+        widget=forms.TextInput(
+            attrs={'class': "form-control"}
+            ),
+        label="Extra ticket information #2",
+        help_text="Label for extra information to be entered for each ticket; "
+                  "leave blank if no extra info needed.",
+        required=False
+    )
+    extra_ticket_info1_required = forms.BooleanField(
+        widget=forms.CheckboxInput(
+            attrs={
+                'class': "form-control regular-checkbox",
+                'id': 'extra_ticket_info1_required_id'
+            }
+            ),
+        label="Required?",
+        help_text="Tick if this information is mandatory",
+        required=False
+    )
+    extra_ticket_info1_help = forms.CharField(
+        widget=forms.TextInput(
+            attrs={'class': "form-control"}
+            ),
+        label="Help text",
+        help_text="Description/details/help text to display under the extra "
+                  "information field",
+        required=False
+    )
+
+    def clean(self):
+        super(TicketedEventAdminForm, self).clean()
+        cleaned_data = self.cleaned_data
+        is_new = False if self.instance else True
+
+        date = self.data.get('date')
+        if date:
+            if self.errors.get('date'):
+                del self.errors['date']
+            try:
+                date = datetime.strptime(self.data['date'], '%d %b %Y %H:%M')
+                uk = pytz.timezone('Europe/London')
+                cleaned_data['date'] = uk.localize(date).astimezone(pytz.utc)
+            except ValueError:
+                self.add_error('date', 'Invalid date format.  Select from the '
+                                       'date picker or enter date and time in the '
+                                       'format dd Mmm YYYY HH:MM')
+
+        payment_due_date = self.data.get('payment_due_date')
+        if payment_due_date:
+            if self.errors.get('payment_due_date'):
+                del self.errors['payment_due_date']
+            try:
+                payment_due_date = datetime.strptime(payment_due_date, '%d %b %Y')
+                if payment_due_date < date:
+                    cleaned_data['payment_due_date'] = payment_due_date
+                else:
+                    self.add_error('payment_due_date', 'Payment due date must '
+                                                       'be before event date')
+                cleaned_data['payment_due_date'] = payment_due_date
+            except ValueError:
+                self.add_error(
+                    'payment_due_date', 'Invalid date format.  Select from '
+                                        'the date picker or enter date in the '
+                                        'format dd Mmm YYYY')
+
+        return cleaned_data
+
+    class Meta:
+        model = TicketedEvent
+        fields = (
+            'name', 'date', 'description', 'location',
+            'max_tickets', 'contact_person', 'contact_email', 'ticket_cost',
+            'payment_open', 'advance_payment_required', 'payment_info',
+            'payment_due_date', 'payment_time_allowed',
+            'email_studio_when_purchased', 'max_ticket_purchase',
+            'extra_ticket_info_label', 'extra_ticket_info_required',
+            'extra_ticket_info_help', 'extra_ticket_info1_label',
+            'extra_ticket_info1_required',
+            'extra_ticket_info1_help', 'show_on_site', 'cancelled',
+        )
+        widgets = {
+            'name': forms.TextInput(
+                attrs={
+                    'class': "form-control",
+                    'placeholder': 'Name of event'
+                }
+            ),
+            'description': CKEditorWidget(
+                attrs={'class': 'form-control container-fluid'},
+                config_name='studioadmin',
+            ),
+            'payment_info': CKEditorWidget(
+                attrs={'class': 'form-control container-fluid'},
+                config_name='studioadmin_min',
+            ),
+            'location': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'max_tickets': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'contact_person': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'contact_email': forms.EmailInput(
+                attrs={'class': "form-control"}
+            ),
+            'payment_time_allowed': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'payment_due_date': forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': "datepicker",
+                },
+                format='%d %b %Y'
+            ),
+            'date': forms.DateTimeInput(
+                attrs={
+                    'class': "form-control",
+                    'id': "datetimepicker",
+                },
+                format='%d %b %Y %H:%M'
+            ),
+            'payment_open': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'payment_open_id',
+                    },
+            ),
+            'advance_payment_required': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'advance_payment_required_id',
+                    },
+            ),
+            'email_studio_when_purchased': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'email_studio_id',
+                    },
+            ),
+            'max_ticket_purchase': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'show_on_site': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'show_on_site_id',
+                    }
+            ),
+            'cancelled': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'cancelled_id',
+                    }
+            ),
+            }
+        help_texts = {
+            'payment_open': _('Only applicable if the ticket cost is greater than £0'),
+            'payment_due_date': _('Only use this field if the ticket cost is greater '
+                                  'than £0.  If a payment due date is set, '
+                                  'advance payment will always be required'),
+           'email_studio_when_purchased': _('Tick if you want the studio to '
+                                          'receive email notifications when a '
+                                          'ticket booking is made'),
+            'advance_payment_required': _('If this checkbox is not ticked, '
+                                          'unpaid ticket bookings will remain '
+                                          'active after the payment due date or '
+                                          'time allowed for payment, and will not be '
+                                          'automatically cancelled')
+        }

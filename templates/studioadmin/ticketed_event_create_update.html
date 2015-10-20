@@ -1,0 +1,117 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+{{ form.media }}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="panel panel-success">
+            <div class="panel-heading">
+                {% if ticketed_event %}
+                <h2 class="panel-title">{{ ticketed_event.name }} on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
+                {% if ticketed_event.cancelled %}<h4>Note: this event has been cancelled</h4>{% endif %}
+
+                {% else %}
+                <h2 class="panel-title">Adding new ticketed event</h2>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                {% if form.errors %}
+                    <div class="form-error">
+                        <p>The operation could not be performed because one or more error(s) occurred.<br />Please resubmit the form after making the following changes:</p>
+                        <ul>
+                        {% for field in form %}
+                        {% if field.errors %}<li>{{ field.name|format_field_name }}: {{ field.errors|striptags }}</li>{% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                <form class="form-horizontal" method="post" action="">
+                    {% csrf_token %}
+
+                    <div class="form-group-sm col-sm-11">
+
+                        {% for field in form %}
+                            {% if field.name == "ticket_costs" %}
+                                <div class="form-group">
+                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-9">
+                                        <div class="input-group">
+                                            <span class="input-group-addon" id="sizing-addon2">£</span>
+                                            {{ field }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% elif field.name == "cancelled"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='cancelled_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "payment_open"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='payment_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "advance_payment_required" %}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "email_studio_when_purchased"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='email_studio_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "show_on_site"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='show_on_site_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "extra_ticket_info_required"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='extra_ticket_info_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "extra_ticket_info1_required"%}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left">{{ field }}<label for='extra_ticket_info1_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                             {% else %}
+                                <div class="form-group">
+                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <div class="col-sm-9">{{ field }}<p class="studioadmin-help">{{ field.help_text }}</p></div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-9">
+                            <button type="submit" class="btn btn-success">Save</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+ </div>
+
+{% endblock studioadmincontent %}

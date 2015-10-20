@@ -36,6 +36,11 @@
     <li class="active-nav"><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
                     <span class="sidebar_active">Event registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
     <li class="divider"></li>
+    <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
+                     <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
+    <li class="active-nav"><a href="{% url 'studioadmin:add_ticketed_event' %}">{% if sidenav_selection == 'add_ticketed_event' %}
+                <span class="sidebar_active">Add new ticketed event</span>{% else %}Add new ticketed event{% endif %}</a></li>
+    <li class="divider"></li>
     <li class="active-nav"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                     <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
     <li class="active-nav"><a href="{% url 'studioadmin:blocks' %}">{% if sidenav_selection == 'blocks' %}
@@ -84,6 +89,11 @@
                 <li class="sidebar-title">Print registers</li>
                 <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
                     <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
+                <li class="sidebar-title">Ticketed Events</li>
+                <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
+                     <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
+                <li class="active-nav"><a href="{% url 'studioadmin:add_ticketed_event' %}">{% if sidenav_selection == 'add_ticketed_event' %}
+                <span class="sidebar_active">Add new ticketed event</span>{% else %}Add new ticketed event{% endif %}</a></li>
                 <li class="sidebar-title">Students</li>
                     <li><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                     <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>

@@ -20,7 +20,8 @@ from django.template import Context
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponseRedirect, HttpResponse, redirect, \
     render, get_object_or_404
-from django.views.generic import CreateView, ListView, UpdateView, DeleteView
+from django.views.generic import CreateView, ListView, UpdateView, DeleteView, \
+    TemplateView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
@@ -28,7 +29,7 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser, \
-    BookingError
+    BookingError, TicketBooking, Ticket, TicketedEvent
 from booking import utils
 from booking.email_helpers import send_support_email, send_waiting_list_email
 
@@ -39,7 +40,8 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     TimetableSessionFormSet, SessionAdminForm, DAY_CHOICES, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
     BlockStatusFilter, UserBookingFormSet, UserBlockFormSet, \
-    ActivityLogSearchForm, RegisterDayForm
+    ActivityLogSearchForm, RegisterDayForm, TicketedEventFormSet, \
+    TicketedEventAdminForm
 
 from activitylog.models import ActivityLog
 
@@ -1776,4 +1778,175 @@ def cancel_event_view(request, slug):
     return TemplateResponse(
         request, 'studioadmin/cancel_event.html', context
     )
+
+
+class TicketedEventAdminListView(TemplateView):
+
+    template_name = 'studioadmin/ticketed_events_admin_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(TicketedEventAdminListView, self).get_context_data(**kwargs)
+
+        queryset = TicketedEvent.objects.filter(
+                date__gte=timezone.now()
+            ).order_by('date')
+
+        if self.request.method == 'POST':
+            if "past" in self.request.POST:
+                queryset = TicketedEvent.objects.filter(
+                    date__lte=timezone.now()
+                ).order_by('date')
+                context['show_past'] = True
+            elif "upcoming" in self.request.POST:
+                queryset = queryset
+                context['show_past'] = False
+
+        if queryset.count() > 0:
+            context['ticketed_events'] = True
+
+        ticketed_event_formset = TicketedEventFormSet(
+            data=self.request.POST if 'formset_submitted' in self.request.POST else
+            None,
+            queryset=queryset if 'formset_submitted' not in self.request.POST else
+            None,
+        )
+        context['ticketed_event_formset'] = ticketed_event_formset
+        context['sidenav_selection'] = 'ticketed_events'
+        return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data()
+        return TemplateResponse(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+
+        context = self.get_context_data(**kwargs)
+
+        if "past" in self.request.POST or "upcoming" in self.request.POST:
+            return TemplateResponse(request, self.template_name, context)
+
+        if "formset_submitted" in request.POST:
+            ticketed_event_formset = context['ticketed_event_formset']
+
+            if ticketed_event_formset.is_valid():
+                if not ticketed_event_formset.has_changed():
+                    messages.info(request, "No changes were made")
+                else:
+                    for form in ticketed_event_formset:
+                        if form.has_changed():
+                            if 'DELETE' in form.changed_data:
+                                messages.success(
+                                    request, mark_safe(
+                                        'Event <strong>{}</strong> has been deleted!'.format(
+                                            form.instance,
+                                        )
+                                    )
+                                )
+                                ActivityLog.objects.create(
+                                    log='Ticketed Event {} (id {}) deleted by admin user {}'.format(
+                                        form.instance,
+                                        form.instance.id, request.user.username
+                                    )
+                                )
+                            else:
+                                for field in form.changed_data:
+                                    messages.success(
+                                        request, mark_safe(
+                                            "<strong>{}</strong> updated for "
+                                            "<strong>{}</strong>".format(
+                                                field.title().replace("_", " "),
+                                                form.instance))
+                                    )
+
+                                    ActivityLog.objects.create(
+                                        log='Ticketed Event {} (id {}) updated by admin user {}: field_changed: {}'.format(
+                                            form.instance, form.instance.id,
+                                            request.user.username, field.title().replace("_", " ")
+                                        )
+                                    )
+                            form.save()
+
+                        for error in form.errors:
+                            messages.error(request, mark_safe("{}".format(error)))
+                    ticketed_event_formset.save()
+                return HttpResponseRedirect(reverse('studioadmin:ticketed_events'))
+
+            else:
+                messages.error(
+                    request,
+                    mark_safe(
+                        "There were errors in the following fields:\n{}".format(
+                            '\n'.join(
+                                ["{}".format(error) for error in ticketed_event_formset.errors]
+                            )
+                        )
+                    )
+                )
+                return TemplateResponse(request, self.template_name, context)
+
+
+class TicketedEventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
+
+    form_class = TicketedEventAdminForm
+    model = TicketedEvent
+    template_name = 'studioadmin/ticketed_event_create_update.html'
+    context_object_name = 'ticketed_event'
+
+    def get_object(self):
+        queryset = TicketedEvent.objects.all()
+        return get_object_or_404(queryset, slug=self.kwargs['slug'])
+
+    def get_context_data(self, **kwargs):
+        context = super(TicketedEventAdminUpdateView, self).get_context_data(**kwargs)
+        context['sidenav_selection'] = 'ticketed_events'
+        return context
+
+    def form_valid(self, form):
+        if form.has_changed():
+            ticketed_event = form.save()
+            msg = 'Event <strong> {}</strong> has been updated!'.format(
+                ticketed_event.name
+            )
+            ActivityLog.objects.create(
+                log='Ticketed event {} (id {}) updated by admin user {}'.format(
+                    ticketed_event, ticketed_event.id,
+                    self.request.user.username
+                )
+            )
+        else:
+            msg = 'No changes made'
+        messages.success(self.request, mark_safe(msg))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:ticketed_events')
+
+
+class TicketedEventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
+
+    form_class = TicketedEventAdminForm
+    model = TicketedEvent
+    template_name = 'studioadmin/ticketed_event_create_update.html'
+    context_object_name = 'ticketed_event'
+
+    def get_context_data(self, **kwargs):
+        context = super(TicketedEventAdminCreateView, self).get_context_data(**kwargs)
+        context['sidenav_selection'] = 'add_ticketed_event'
+        return context
+
+    def form_valid(self, form):
+        ticketed_event = form.save()
+        messages.success(
+            self.request, mark_safe('Event <strong> {}</strong> has been '
+                                    'created!'.format(ticketed_event.name))
+        )
+        ActivityLog.objects.create(
+            log='Ticketed Event {} (id {}) created by admin user {}'.format(
+                ticketed_event, ticketed_event.id, self.request.user.username
+            )
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:ticketed_events')
 

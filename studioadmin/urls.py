@@ -9,7 +9,10 @@ from studioadmin.views import (ConfirmRefundView,
                                TimetableSessionCreateView,
                                UserListView,
                                BlockListView,
-                               ActivityLogListView
+                               ActivityLogListView,
+                               TicketedEventAdminListView,
+                               TicketedEventAdminCreateView,
+                               TicketedEventAdminUpdateView
                                )
 
 
@@ -78,5 +81,12 @@ urlpatterns = patterns('',
         r'^waitinglists/(?P<event_id>\d+)$',
         'studioadmin.views.event_waiting_list_view', name='event_waiting_list'
     ),
+    url(r'^ticketed-events/$', TicketedEventAdminListView.as_view(),
+        name='ticketed_events'),
+    url(r'^ticketed-events/new/$', TicketedEventAdminCreateView.as_view(),
+        name='add_ticketed_event'),
+    url(r'^ticketed-events/(?P<slug>[\w-]+)/edit$',
+        TicketedEventAdminUpdateView.as_view(),
+        name='edit_ticketed_event'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )
