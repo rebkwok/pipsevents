@@ -15,6 +15,7 @@ import booking.context_helpers as context_helpers
 logger = logging.getLogger(__name__)
 
 
+
 class EventListView(ListView):
     model = Event
     context_object_name = 'events'
@@ -30,11 +31,16 @@ class EventListView(ListView):
 
         if name:
             return Event.objects.filter(
-                Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now())
-                & Q(name=name)).order_by('date')
-        return Event.objects.filter(
-            (Q(event_type__event_type=ev_abbr) & Q(date__gte=timezone.now()))
+                event_type__event_type=ev_abbr,
+                date__gte=timezone.now(),
+                name=name,
+                cancelled=False
             ).order_by('date')
+        return Event.objects.filter(
+            event_type__event_type=ev_abbr,
+            date__gte=timezone.now(),
+            cancelled=False
+        ).order_by('date')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context

@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('booking', '0034_ticketbooking_booking_reference'),
+        ('booking', '0029_auto_20151020_1527'),
         ('payments', '0005_auto_20150407_2105'),
     ]
 
@@ -15,9 +15,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='PaypalTicketBookingTransaction',
             fields=[
-                ('id', models.AutoField(primary_key=True, auto_created=True, verbose_name='ID', serialize=False)),
-                ('invoice_id', models.CharField(null=True, blank=True, unique=True, max_length=255)),
-                ('transaction_id', models.CharField(null=True, blank=True, unique=True, max_length=255)),
+                ('id', models.AutoField(serialize=False, verbose_name='ID', primary_key=True, auto_created=True)),
+                ('invoice_id', models.CharField(max_length=255, unique=True, blank=True, null=True)),
+                ('transaction_id', models.CharField(max_length=255, unique=True, blank=True, null=True)),
                 ('ticket_booking', models.ForeignKey(null=True, to='booking.TicketBooking')),
             ],
         ),
