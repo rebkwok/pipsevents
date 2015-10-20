@@ -12,8 +12,7 @@
             <div class="panel-heading">
                 {% if event %}
                 <h2 class="panel-title">{{ event.name }} on {{ event.date | date:"D d F, g:i a" }}</h2>
-                    <h4>Note: this event has been cancelled</h4>
-
+                {% if event.cancelled %}<h4>Note: this event has been cancelled</h4>{% endif %}
                 {% else %}
                 <h2 class="panel-title">Adding new {{ type }}</h2>
                 {% endif %}
