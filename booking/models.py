@@ -79,6 +79,7 @@ class Event(models.Model):
                   'with instructor directly')
     email_studio_when_booked = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
+    cancelled = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-date']

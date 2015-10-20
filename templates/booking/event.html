@@ -13,9 +13,14 @@
                 </h3>
             </div>
             <div class="panel-body">
-                {% if past %}
-                <h3>This event is now past.</h3>
+                {% if event.cancelled and past %}
+                    <h3>This event was cancelled and is now past.</h3>
+                {% elif past %}
+                    <h3>This event is now past.</h3>
+                {% elif event.cancelled %}
+                    <h3>This event has been cancelled.</h3>
                 {% endif %}
+
                 <ul class="list-group">
                     {% if event.description %}
                         <li class="list-group-item"><p><strong>Description</strong></p>
@@ -25,64 +30,72 @@
                     <li class="list-group-item"><strong>Location:</strong>  {{ event.location }}</li>
                     <li class="list-group-item"><strong>Date and time:</strong> {{ event.date |  date:"D d F, g:i a" }}</li>
                     {% if not past %}
-                     <li class="list-group-item"><strong>Contact:</strong> {{ event.contact_person }}
-                          (<a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a>)</li>
-                    <li class="list-group-item"><p><strong>Payment information</strong></p>
-                        <p>{% if not event.advance_payment_required and event.cost and event.event_type.subtype != "External instructor class" %}Advance payment is not required for this
-                        {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.{% endif %}</p>
+                        {% if not event.cancelled %}
+                             <li class="list-group-item"><strong>Contact:</strong> {{ event.contact_person }}
+                                  (<a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a>)</li>
+                            <li class="list-group-item"><p><strong>Payment information</strong></p>
+                                <p>{% if not event.advance_payment_required and event.cost and event.event_type.subtype != "External instructor class" %}Advance payment is not required for this
+                                {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.{% endif %}</p>
 
-                        <p>Cost: £ {{ event.cost }}</p>
+                                <p>Cost: £ {{ event.cost }}</p>
 
-                        <p>{{ payment_text | safe }}</p>
+                                <p>{{ payment_text | safe }}</p>
 
-                        {% if event.payment_due_date %}
-                            <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>
-                        {% endif %}</li>
-                    {% if event.cancellation_period %}
-                        <li class="list-group-item"><strong>Cancellation information</strong>
-                            <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the
-                            {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}
-                                {% if event.cost and event.advance_payment_required and not event.payment_due_date %}
-                                    (payment due by {{ cancellation_due_date|date:"D d F, g:i a" }})
-                                {% endif %}</p></li>
-                    {% endif %}
-                    </ul>
-                    {% if event.max_participants %}
-                        <h5>There are a maximum {{ event.max_participants }} spaces for this
-                            {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</h5>
-                        {% if not event.external_instructor or type != 'lesson'%}
-                            <h5>Spaces left: {{ event.spaces_left }}</h5>
+                                {% if event.payment_open and event.payment_due_date %}
+                                    <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>
+                                {% endif %}</li>
+                            {% if event.cancellation_period %}
+                                <li class="list-group-item"><strong>Cancellation information</strong>
+                                    <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the
+                                    {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}
+                                    {% if event.cost and event.advance_payment_required and not event.payment_due_date %}
+                                        (payment due by {{ cancellation_due_date|date:"D d F, g:i a" }})
+                                    {% endif %}</p></li>
+
+                            {% endif %}
+                        {% endif %}  <!--- cancelled --->
+                    {% endif %}  <!--- past --->
+                </ul>
+
+                {% if not past %}
+                    {% if not event.cancelled %}
+                        {% if event.max_participants %}
+                            <h5>There are a maximum {{ event.max_participants }} spaces for this
+                                {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</h5>
+                            {% if not event.external_instructor or type != 'lesson'%}
+                                <h5>Spaces left: {{ event.spaces_left }}</h5>
+                            {% endif %}
                         {% endif %}
-                    {% endif %}
 
-                    {% if booked %}
-                        <h5>{{ booking_info_text }}</h5>
-                        <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
-                         confirm payment and to check if your place has been confirmed{% endif %}.</h5>
-                    {% else %}
-                        <h5>{{ booking_info_text_cancelled }}</br>{{ booking_info_text | safe }}</h5>
-                            {% if bookable %}
-                                <a href="{% url 'booking:book_event' event.slug %}">
-                                    <div id='book_button' class="btn btn-success table-btn">
-                                    {% if cancelled %}Rebook{% else %}Book{% endif %}</div></a>
-                            {% elif not event.booking_open and not unbookable_pole_practice %}
-                                <div id='book_button_disabled' class="disabled btn btn-success table-btn">
-                                    {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
-                            {% else %}
-                                {% if not unbookable_pole_practice %}
-                                    {% if not waiting_list %}
-                                        <form action="{% url 'booking:book_event' event.slug %}" method="get">
-                                            <input id='join_waiting_list_button' class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
-                                        </form>
-                                    {% else %}
-                                        <form action="{% url 'booking:book_event' event.slug %}" method="get">
-                                            <input id='leave_waiting_list_button' class="btn btn-warning table-btn" type="submit" value="Leave waiting list" name="leave waiting list"/>
-                                        </form>
+                        {% if booked %}
+                            <h5>{{ booking_info_text }}</h5>
+                            <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
+                             confirm payment and to check if your place has been confirmed{% endif %}.</h5>
+                        {% else %}
+                            <h5>{{ booking_info_text_cancelled }}</br>{{ booking_info_text | safe }}</h5>
+                                {% if bookable %}
+                                    <a href="{% url 'booking:book_event' event.slug %}">
+                                        <div id='book_button' class="btn btn-success table-btn">
+                                        {% if cancelled %}Rebook{% else %}Book{% endif %}</div></a>
+                                {% elif not event.booking_open and not unbookable_pole_practice %}
+                                    <div id='book_button_disabled' class="disabled btn btn-success table-btn">
+                                        {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                                {% else %}
+                                    {% if not unbookable_pole_practice %}
+                                        {% if not waiting_list %}
+                                            <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                                <input id='join_waiting_list_button' class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                                            </form>
+                                        {% else %}
+                                            <form action="{% url 'booking:book_event' event.slug %}" method="get">
+                                                <input id='leave_waiting_list_button' class="btn btn-warning table-btn" type="submit" value="Leave waiting list" name="leave waiting list"/>
+                                            </form>
+                                        {% endif %}
                                     {% endif %}
                                 {% endif %}
                             {% endif %}
-                        {% endif %}
-                    {% endif %}
+                        {% endif %}  <!--- cancelled --->
+                    {% endif %}  <!--- past --->
             </div>
         </div>
     </div>

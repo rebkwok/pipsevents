@@ -1,0 +1,9 @@
+{% include "account/email/do_not_reply.txt" %}
+
+We regret to inform you that {{ event_type }} {{ event }} has been cancelled.
+
+Your booking has been cancelled{% if block_paid %} and your block has been
+updated{% elif direct_paid %} and we will be in touch shortly regarding your
+payment{% endif %}.
+
+View your bookings: {{ host }}{% url 'booking:bookings' %}

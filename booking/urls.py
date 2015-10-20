@@ -44,7 +44,7 @@ urlpatterns = patterns('',
     url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
     url(r'^blocks/existing/$', 'booking.views.has_active_block',
         name='has_active_block'),
-    url(r'^permission-denied/$', 'booking.views.permission_denied',
+    url(r'^not-available/$', 'booking.views.permission_denied',
         name='permission_denied'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     )

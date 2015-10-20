@@ -456,6 +456,10 @@ td {
     width: 5em;
 }
 
+.filter-btn {
+    width: 11.2em;
+}
+
 .update-btn {
 	padding-top: 2;
     padding-bottom: 2;
@@ -617,6 +621,12 @@ label {
     left: 3px;
     color: #173B0B;
 }
+.cancelled-event > td > .regular-checkbox:checked + label {
+    background-color: #fafafa;
+}
+.cancelled-event > td > .regular-checkbox:checked + label:after {
+    color: lightgrey;
+}
 
 .delete-checkbox {
     display: none;
@@ -772,4 +782,8 @@ a > span.fa.fa-print {
 
 .register-form-control-label {
     padding-top: 0 !important;
+}
+
+.cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a>span.fa {
+    color: lightgrey !important;
 }

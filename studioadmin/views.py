@@ -1167,7 +1167,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
     if request.method == 'POST':
         booking_status = request.POST.getlist('booking_status')[0]
         userbookingformset = UserBookingFormSet(
-            request.POST, instance=user, user=user,
+            request.POST.copy(), instance=user, user=user,
         )
         if userbookingformset.is_valid():
             if not userbookingformset.has_changed() and \
@@ -1196,6 +1196,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                         action = 'cancelled'
                                     elif booking.status == 'OPEN':
                                         action = 'reopened'
+
                                     extra_msgs.append("Booking status changed "
                                                       "to {}".format(action)
                                                       )
@@ -1610,3 +1611,169 @@ def event_waiting_list_view(request, event_id):
             'sidenav_selection': '{}_register'.format(ev_type)
         }
     )
+
+@login_required
+@staff_required
+def cancel_event_view(request, slug):
+    event = get_object_or_404(Event, slug=slug)
+    ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
+
+    open_bookings = [
+        booking for booking in event.bookings.all() if booking.status == 'OPEN'
+        ]
+
+    open_direct_paid_bookings = [
+        booking for booking in open_bookings if
+        (booking.paid or booking.deposit_paid) and
+        not booking.block and not booking.free_class
+    ]
+
+    if request.method == 'POST':
+        if 'confirm' in request.POST:
+            for booking in open_bookings:
+
+                block_paid = bool(booking.block)
+                direct_paid = booking in open_direct_paid_bookings
+
+                if booking.block:
+                    booking.block = None
+                    booking.paid = False
+                    booking.payment_confirmed = False
+                elif booking.free_class:
+                    booking.free_class = False
+                    booking.paid = False
+                    booking.payment_confirmed = False
+
+                booking.status = "CANCELLED"
+                booking.save()
+
+                try:
+                    # send notification email to user
+                    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                    # send email to studio
+                    ctx = Context({
+                          'host': host,
+                          'event_type': ev_type,
+                          'block': block_paid,
+                          'direct_paid': direct_paid,
+                          'event': event,
+                          'user': booking.user,
+                    })
+                    send_mail('{} {} has been cancelled'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ev_type.title(),
+                        ),
+                        get_template(
+                            'studioadmin/email/event_cancelled.txt'
+                        ).render(ctx),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [booking.user.email],
+                        html_message=get_template(
+                            'studioadmin/email/event_cancelled.html'
+                            ).render(ctx),
+                        fail_silently=False)
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "cancel event - "
+                        "send notification email to user"
+                    )
+
+            event.cancelled = True
+            event.booking_open = False
+            event.payment_open = False
+            event.save()
+
+            if open_direct_paid_bookings:
+                # email studio with links for confirming refunds
+
+                try:
+                    # send notification email to user
+                    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                    # send email to studio
+                    ctx = Context({
+                          'host': host,
+                          'event_type': ev_type,
+                          'open_direct_paid_bookings': open_direct_paid_bookings,
+                          'event': event,
+                    })
+                    send_mail('{} Refunds due for cancelled {}'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ev_type.title(),
+                        ),
+                        get_template(
+                            'studioadmin/email/to_studio_event_cancelled.txt'
+                        ).render(ctx),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [settings.DEFAULT_STUDIO_EMAIL],
+                        html_message=get_template(
+                            'studioadmin/email/to_studio_event_cancelled.html'
+                            ).render(ctx),
+                        fail_silently=False)
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "cancel event - "
+                        "send refund notification email to tudio"
+                    )
+
+                messages.info(
+                    request,
+                    '{} has been cancelled; open booking(s) for {} have been '
+                    'cancelled and notification emails have been sent.'.format(
+                        ev_type.title(),
+                        ', '.join(
+                            ['{} {}'.format(
+                                booking.user.first_name, booking.user.last_name
+                            ) for booking in open_direct_paid_bookings]
+                        )
+                    )
+                )
+            else:
+                messages.info(
+                    request,
+                    '{} has been cancelled; there were no open '
+                    'bookings for this {}'.format(
+                        ev_type.title(), ev_type
+                    )
+                )
+
+            if open_bookings:
+                booking_cancelled_msg = "Open bookings for {} have been " \
+                                        "cancelled.".format(
+                    ', '.join(['{} {}'.format(
+                        booking.user.first_name, booking.user.last_name
+                    ) for booking in open_direct_paid_bookings]
+                    )
+                )
+            else:
+                booking_cancelled_msg = "No open bookings."
+
+            ActivityLog.objects.create(
+                log="{} {} has been cancelled by admin user {}. {}".format(
+                    ev_type.title(), event, request.user.username,
+                    booking_cancelled_msg
+                )
+            )
+
+            return HttpResponseRedirect(
+                reverse('studioadmin:{}'.format(
+                    'events' if ev_type == 'event' else 'lessons'
+                ))
+            )
+        elif 'cancel' in request.POST:
+            return HttpResponseRedirect(
+                reverse('studioadmin:{}'.format(
+                    'events' if ev_type == 'event' else 'lessons'
+                ))
+            )
+
+    context = {
+        'event': event,
+        'event_type': ev_type,
+        'open_bookings': open_bookings,
+        'open_direct_paid_bookings': open_direct_paid_bookings
+    }
+
+    return TemplateResponse(
+        request, 'studioadmin/cancel_event.html', context
+    )
+

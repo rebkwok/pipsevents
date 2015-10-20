@@ -153,6 +153,13 @@ class EventListViewTests(TestCase):
         self.assertNotIn('join_waiting_list_button', str(response.content))
         self.assertNotIn('leave_waiting_list_button', str(response.content))
 
+    def test_cancelled_events_are_not_listed(self):
+        Event.objects.all().delete()
+        cancelled_event = mommy.make_recipe('booking.future_CL', cancelled=True)
+        response = self._get_response(self.user, 'lessons')
+        self.assertEquals(Event.objects.count(), 1)
+        self.assertEquals(response.context_data['events'].count(), 0)
+
 
 class EventDetailViewTests(TestCase):
 

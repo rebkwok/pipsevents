@@ -50,6 +50,8 @@
                                              href="{% url 'booking:delete_booking' bookingform.booking.pk %}">
                                             <div {% if not bookingform.can_cancel %}disabled{% endif %}
                                                  class="btn btn-danger table-btn booking-btn">Cancel booking</div></a>
+                                        {% elif bookingform.booking.event.cancelled %}
+                                            {% if bookingform.ev_type == 'EV' %}EVENT{% else %}CLASS{% endif %} CANCELLED
                                         {% elif not bookingform.booking.event.bookable %}
                                             {% if not bookingform.on_waiting_list %}
                                                 <form class="wl-table-form" action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">

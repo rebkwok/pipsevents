@@ -50,7 +50,7 @@
                                     <span class="hide">{{ booking.event }}</span>
                                     <span class="hide">{{ booking.block }}</span>
                                     <td class="studioadmin-tbl">{{ booking.instance.event.date }}</td>
-                                    <td class="studioadmin-tbl">{{ booking.instance.event.name }}</td>
+                                    <td class="studioadmin-tbl">{{ booking.instance.event.name }} {% if booking.instance.event.cancelled %}(cancelled){% endif %}</td>
 
                                     {% if booking.instance.event.cost %}
                                         <td class="table-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
