@@ -661,54 +661,20 @@ class TicketBookingTests(TestCase):
                 user=mommy.make_recipe('booking.user')
             )
 
-    def test_cannot_reopen_booking_full_event(self):
-        """
-        Test that attempting to create new ticket booking for full event raises
-        TicketBookingError
-        """
-        # make booking with some tickets and cancel it
-        booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
-        mommy.make(Ticket, ticket_booking=booking, _quantity=5)
-        booking.cancelled = True
-        booking.save()
+    def test_booking_reference_set(self):
+        ticket_booking = mommy.make(
+            TicketBooking,
+            ticketed_event=mommy.make_recipe(
+                'booking.ticketed_event_max10', name='Test event'
+            ),
+        )
+        self.assertIsNotNone(ticket_booking.booking_reference)
 
-        # make another booking with as many tickets as the max
-        new_booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
-        mommy.make(Ticket, ticket_booking=new_booking, _quantity=10)
-        self.assertEqual(self.ticketed_event.tickets_left(), 0)
-
-        # try to reopen the cancelled booking
-        booking.cancelled = False
-        with self.assertRaises(TicketBookingError):
-            booking.save()
-
-    @patch('booking.models.timezone')
-    def test_reopening_booking_sets_reopen_date(self, mock_tz):
-        mock_now = datetime(2015, 1, 1, tzinfo=timezone.utc)
-        mock_tz.now.return_value = mock_now
-        booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
-        self.assertIsNone(booking.date_rebooked)
-        booking.cancelled = True
-        booking.save()
-        booking.cancelled = False
-        booking.save()
-        self.assertEqual(booking.date_rebooked, mock_now)
-
-    def test_failed_reopening_does_not_set_reopened_date(self):
-        booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
-        self.assertIsNone(booking.date_rebooked)
-        booking.cancelled = True
-        booking.save()
-        mommy.make(
-            Ticket, ticket_booking__ticketed_event=self.ticketed_event,
-            _quantity=10
-           )
-        booking.cancelled = False
-        try:
-            booking.save()
-        except TicketBookingError:
-            pass
-        self.assertIsNone(booking.date_rebooked)
+        # we can change the booking ref on an exisiting booking and a new one
+        # is not created on save
+        ticket_booking.booking_reference = "Test booking ref"
+        ticket_booking.save()
+        self.assertEqual(ticket_booking.booking_reference,  "Test booking ref")
 
 
 class TicketTests(TestCase):

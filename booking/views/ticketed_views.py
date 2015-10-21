@@ -21,7 +21,7 @@ from booking.forms import TicketFormSet, TicketPurchaseForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
 
-from payments.forms import PayPalPaymentsUpdateForm
+from payments.forms import PayPalPaymentsUpdateForm, PayPalPaymentsListForm
 from payments.helpers import create_ticket_booking_paypal_transaction
 
 from activitylog.models import ActivityLog
@@ -64,9 +64,11 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             TicketedEvent, slug=kwargs['event_slug'], show_on_site=True
         )
         if request.method.lower() == 'get':
+            # get non-cancelled ticket bookings withough attached tickets yet
             user_empty_ticket_bookings = [
                 tbk for tbk in TicketBooking.objects.filter(
-                    user=self.request.user, ticketed_event=self.ticketed_event
+                    user=self.request.user, ticketed_event=self.ticketed_event,
+                    cancelled=False
                 ) if not tbk.tickets.exists()
                 ]
 
@@ -178,7 +180,11 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                         )
                     )
                     context["paypalform"] = paypal_form
+                self.ticket_booking.purchase_confirmed = True
+                # reset the ticket_booking booked date to the date user confirms
                 context['purchase_confirmed'] = True
+                self.ticket_booking.date_booked = timezone.now()
+                self.ticket_booking.save()
                 ActivityLog.objects.create(
                     log="Ticket Purchase confirmed: event {}, user {}, "
                         "booking ref {}".format(
@@ -258,9 +264,79 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             return TemplateResponse(request, self.template_name, context)
 
 
-class TicketBookingListView(ListView):
+class TicketBookingListView(LoginRequiredMixin, ListView):
 
     model = TicketBooking
+    context_object_name = 'ticket_bookings'
+    template_name = 'booking/ticket_bookings.html'
+
+    def get_queryset(self):
+        return TicketBooking.objects.filter(
+            ticketed_event__date__gte=timezone.now(), user=self.request.user,
+            purchase_confirmed=True
+        ).order_by('ticketed_event__date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(TicketBookingListView, self).get_context_data(**kwargs)
+
+        ticketbookinglist = []
+        for ticket_booking in self.object_list:
+            if not ticket_booking.cancelled and not ticket_booking.paid:
+                # ONLY DO THIS IF PAYPAL BUTTON NEEDED
+                invoice_id = create_ticket_booking_paypal_transaction(
+                    self.request.user, ticket_booking).invoice_id
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                paypal_form = PayPalPaymentsListForm(
+                    initial=context_helpers.get_paypal_dict(
+                        host,
+                        ticket_booking.ticketed_event.ticket_cost,
+                        ticket_booking.ticketed_event,
+                        invoice_id,
+                        '{} {}'.format('ticket_booking', ticket_booking.id),
+                        quantity=ticket_booking.tickets.count()
+                    )
+                )
+            else:
+                paypal_form = None
+
+            ticketbookingform = {
+                'ticket_booking': ticket_booking,
+                'paypalform': paypal_form
+                }
+            ticketbookinglist.append(ticketbookingform)
+        context['ticketbookinglist'] = ticketbookinglist
+        return context
+
+
+class TicketBookingHistoryListView(LoginRequiredMixin, ListView):
+
+    model = TicketBooking
+    context_object_name = 'ticket_bookings'
+    template_name = 'booking/ticket_bookings.html'
+
+    def get_queryset(self):
+        return TicketBooking.objects.filter(
+            ticketed_event__date__lt=timezone.now(), user=self.request.user,
+            purchase_confirmed=True
+        ).order_by('ticketed_event__date')
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(
+            TicketBookingHistoryListView, self
+        ).get_context_data(**kwargs)
+        # Add in the history flag
+        context['history'] = True
+
+        ticketbookinglist = []
+        for ticket_booking in self.object_list:
+            ticketbookingform = {'ticket_booking': ticket_booking}
+            ticketbookinglist.append(ticketbookingform)
+        context['ticketbookinglist'] = ticketbookinglist
+        return context
+
+
 
 
     # TODO
@@ -270,13 +346,20 @@ class TicketBookingListView(ListView):
     # paypalform, instead just shows message with payment info - for
     # cases where payment isn't being taken by paypal) - DONE
     # 4) only show ticketed_events if "show on site" is checked - DONE
-    # 5) Add "my purchased tickets" view
+    # 5) Add "my purchased tickets" view - DONE
     # 6) Emails when tickets purchased - DONE
-    # 7) Check paypal processes properly and emails are sent
-    # 8) Allow people to cancel their ticket purchase before payment
+    # ************* 7) Check paypal processes properly and emails are sent ************************
+    # ************* 8) Allow people to cancel their ticket purchase before payment
     # but not after (cancel for unpaid ticket bookings on the "my
-    # purchased tickets" page
-    # 9) reminder, warnings and Cancel manage commands
-    # 10) StudioAdmin - DONE apart from cancelling events with tickets purchased
-    # 11) Cron jobs
-    # 12) tests
+    # purchased tickets" page).  Cancelling sets the cancel flag on the ticket
+    # booking but doesn't delete it or delete the tickets *****************************************
+    # ************* 9) reminder, warnings and Cancel manage commands for Cron jobs ****************
+    # - cancel ticket bookings with purchase_confirmed that are
+    # not paid by payment due date or within the allowed hours of booked date.
+    # - delete ticket bookings without purchase_confirmed that are > 1 hour after
+    # booking date (ie. ticket booking started but not completed and user
+    # navigated away from page instead of pressing cancel button)
+    # 10) StudioAdmin - DONE apart from cancelling events with tickets purchased ******************
+    # cancelling event cancels all ticket bookings; email all users for ticket
+    # bookings and studio
+    # ************ 11) tests **********************************************************************

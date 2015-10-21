@@ -32,13 +32,13 @@
                     <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />
                         <div {% if purchase_confirmed %}class="hide"{% endif %}>
                         {% if ticketed_event.extra_ticket_info_label or ticketed_event.extra_ticket_info1_label %}
-                            <h4>Additional ticket information</h4>
+                            <h4>Additional ticket information</h4>{% endif %}
                             {% for ticketform in ticket_formset %}
                                 <span class="hide">{{ ticketform.id }}</span>
+                                {% if ticketed_event.extra_ticket_info_label or ticketed_event.extra_ticket_info1_label %}
                                 <span class="divider ticket-divider"></span>
-                                <h5>Ticket # {{ ticketform.index }}</h5>
-                                {% if ticketed_event.extra_ticket_info_label %}
-                                    <div class="form-group">
+                                <h5>Ticket # {{ ticketform.index }}</h5>{% endif %}
+                                    <div class="form-group {% if not ticketed_event.extra_ticket_info_label %}hide{% endif %}">
                                         <label class="control-label col-xs-2">{{ ticketform.extra_ticket_info.label }}
                                         {% if ticketform.extra_ticket_info.field.required %}*{% endif %}</label>
                                         <div class="col-xs-10 {% if ticketform.extra_ticket_info.errors %}ticket-error{% endif %}">{{ ticketform.extra_ticket_info }}</div>
@@ -49,12 +49,11 @@
                                             </div>
                                         {% endif %}
                                     </div>
-                                {% endif %}
-                                {% if ticketed_event.extra_ticket_info1_label %}
-                                    <div class="form-group">
+
+                                    <div class="form-group {% if not ticketed_event.extra_ticket_info_label %}hide{% endif %}">
                                         <label class="control-label col-xs-2">{{ ticketform.extra_ticket_info1.label }}
                                         {% if ticketform.extra_ticket_info1.field.required %}*{% endif %}</label>
-                                        <div class="col-xs-10 {% if ticketform.extra_ticket_info1.errors %}ticket-error{% endif %}"">{{ ticketform.extra_ticket_info1 }}</div>
+                                        <div class="col-xs-10 {% if ticketform.extra_ticket_info1.errors %}ticket-error{% endif %}">{{ ticketform.extra_ticket_info1 }}</div>
                                         <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ ticketform.extra_ticket_info1.help_text }}</div>
                                         {% if ticketform.extra_ticket_info1.errors %}
                                             <div class="col-xs-10 col-xs-offset-2">
@@ -62,21 +61,22 @@
                                             </div>
                                         {% endif %}
                                     </div>
-                                {% endif %}
                             {% endfor %}
                         </br>
-                        {% endif %}
                         </div>
-                    <div class="form-group col-sm-12">
                         {% if not paypalform and not purchase_confirmed %}
+                            <div class="form-group col-sm-12">
+                            <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />
                                 <input
                                     class="btn btn-success update-btn"
                                     type="submit" name="ticket_formset-submit"
                                     value="Confirm purchase"
                                     />
+                             </div>
                         {% endif %}
-                    </div>
-                </form>
+                    </form>
+                {% endif %}
+
 
                 {% if purchase_confirmed %}
                     <div>
@@ -85,7 +85,8 @@
                             Your tickets have been reserved and will be held for you {% if ticketed_event.payment_due_date %} until {{ ticketed_event.payment_due_date }}.
                             {% elif ticketed_event.payment_time_allowed %} for {{ ticketed_event.payment_time_allowed }} hours.{% endif %}
                         {% endif %}
-                    </div></br>
+                    </div>
+                    </br>
                     {% if paypalform %}
                         <div>Click below to be transferred to PayPal to make your payment.</div>
                         {% include 'payments/payment.html' %}
@@ -94,7 +95,6 @@
                     {% endif  %}
                 {% endif %}
                 </br>
-            {% endif %}
 
            {% if not purchase_confirmed %}
                 <form method="post" action="">
@@ -103,10 +103,11 @@
                     <input class="btn btn-danger update-btn" type="submit" name="cancel" value="Cancel"/>
                 </form>
            {% endif %}
+
             </div>
        </div>
+       </div>
 
-</div>
 </div>
 
 {% endblock content %}

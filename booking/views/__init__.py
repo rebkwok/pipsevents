@@ -7,7 +7,7 @@ from booking.views.booking_views import BookingCreateView, BookingDeleteView, \
     has_active_block, cancellation_period_past
 from booking.views.block_views import BlockCreateView, BlockListView
 from booking.views.ticketed_views import TicketBookingListView, \
-    TicketedEventListView, TicketCreateView
+    TicketedEventListView, TicketCreateView, TicketBookingHistoryListView
 
 
 __all__ = [
@@ -16,7 +16,8 @@ __all__ = [
     'BookingDeleteView', 'duplicate_booking', 'update_booking_cancelled',
     'fully_booked', 'has_active_block', 'cancellation_period_past',
     'BlockCreateView', 'BlockListView', 'permission_denied',
-    'TicketedEventListView', 'TicketCreateView', 'TicketBookingListView'
+    'TicketedEventListView', 'TicketCreateView', 'TicketBookingListView',
+    'TicketBookingHistoryListView'
 ]
 
 

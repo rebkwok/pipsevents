@@ -435,11 +435,6 @@ class TicketedEvent(models.Model):
     def bookable(self):
         return self.tickets_left() > 0
 
-    # def get_absolute_url(self):
-    #     return reverse(
-    #         "booking:ticketed_event_detail", kwargs={'slug': self.slug}
-    #     )
-
     def __str__(self):
         return '{} - {}'.format(
             str(self.name),
@@ -473,7 +468,6 @@ class TicketBooking(models.Model):
     user = models.ForeignKey(User)
     ticketed_event = models.ForeignKey(TicketedEvent, related_name="ticket_bookings")
     date_booked = models.DateTimeField(default=timezone.now)
-    date_rebooked = models.DateTimeField(null=True, blank=True)
     paid = models.BooleanField(default=False)
     payment_confirmed = models.BooleanField(
         default=False,
@@ -481,8 +475,8 @@ class TicketBooking(models.Model):
     )
     date_payment_confirmed = models.DateTimeField(null=True, blank=True)
 
-    # cancelled flag so we can cancel unpaid ticket purchases and reopen if nec
-    # without having to make duplicate paypal trans
+    # cancelled flag so we can cancel unpaid ticket purchases
+    # do not allow reopening of cancelled ticket bookings
     cancelled = models.BooleanField(default=False)
 
     # Flags for email reminders and warnings
@@ -490,6 +484,7 @@ class TicketBooking(models.Model):
     warning_sent = models.BooleanField(default=False)
 
     booking_reference = models.CharField(max_length=255)
+    purchase_confirmed = models.BooleanField(default=False)
 
     def set_booking_reference(self):
         self.booking_reference = shortuuid.ShortUUID().random(length=22)
@@ -512,13 +507,6 @@ class TicketBooking(models.Model):
                 # delete the Ticket objects
                 for ticket in self.tickets.all():
                     ticket.delete()
-            if not self.cancelled and orig.cancelled:
-                # reopening - check for full
-                if self.ticketed_event.tickets_left() <= 0:
-                    raise TicketBookingError(
-                        'No tickets left for {}'.format(self.ticketed_event)
-                    )
-                self.date_rebooked = timezone.now()
             if self.cancelled and not orig.cancelled and orig.paid:
                 raise TicketBookingError('Cannot cancel a paid booking')
 
