@@ -186,38 +186,6 @@ def get_booking_create_context(event, request, context):
     return context
 
 
-def get_ticketed_event_context(context, event, user):
-
-    if event.date <= timezone.now():
-        context['past'] = True
-
-    # payment info text to be displayed
-    if event.ticket_cost == 0:
-        payment_text = "There is no cost associated with this event."
-    else:
-        if not event.payment_open:
-            payment_text = "Online payments are not open. " + event.payment_info
-        else:
-            payment_text = "Online payments are open. " + event.payment_info
-    context['payment_text'] = payment_text
-
-    # booked flag
-    tickets_booked_events = [
-        tbk.ticketed_event for tbk in TicketBooking.objects.filter(
-            user=user, cancelled=False) if tbk.tickets.exists()
-    ]
-    booked = event in tickets_booked_events
-    context['booked'] = booked
-
-    booking_info_text=''
-    if event.tickets_left() <= 0:
-        booking_info_text = "This event is now full."
-
-    context['booking_info_text'] = booking_info_text
-
-    return context
-
-
 def get_paypal_dict(host, cost, item_name, invoice_id, custom, quantity=1):
 
     paypal_dict = {

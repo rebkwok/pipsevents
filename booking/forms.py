@@ -120,15 +120,16 @@ class UserModelChoiceField(forms.ModelChoiceField):
 
 
 def get_quantity_choices(ticketed_event, current_tickets):
-    if current_tickets > ticketed_event.tickets_left():
-        max_choice = current_tickets
-    elif ticketed_event.max_ticket_purchase:
-        if ticketed_event.tickets_left() > ticketed_event.max_ticket_purchase:
+
+    tickets_left_this_booking = ticketed_event.tickets_left() + current_tickets
+
+    if ticketed_event.max_ticket_purchase:
+        if tickets_left_this_booking > ticketed_event.max_ticket_purchase:
             max_choice = ticketed_event.max_ticket_purchase
         else:
-            max_choice = ticketed_event.tickets_left()
+            max_choice = tickets_left_this_booking
     elif ticketed_event.max_tickets:
-        max_choice = ticketed_event.tickets_left()
+        max_choice = tickets_left_this_booking
     else:
         max_choice = 100
 
