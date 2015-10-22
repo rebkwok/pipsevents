@@ -809,7 +809,8 @@ a > span.fa.fa-print {
     padding-top: 0 !important;
 }
 
-.cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a>span.fa {
+.cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a:visited,
+.cancelled-event>td>a>span.fa {
     color: lightgrey !important;
 }
 

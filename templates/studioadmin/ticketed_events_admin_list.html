@@ -32,6 +32,7 @@
                                 <th class="table-center">Payment open</th>
                                 <th class="table-center">Advance payment required</th>
                                 <th class="table-center">Show on site</th>
+                                <th class="table-center">View ticket bookings</th>
                                 <th class="table-center">Delete</th>
                             </tr>
 
@@ -43,8 +44,10 @@
                                 <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fa fa-ticket fa-2x"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if cannot_delete %}
+                                    {% if event.cannot_delete %}
+                                        Cancel button
                                     {% else %}
                                         {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
                                     {% endif %}

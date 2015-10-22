@@ -9,6 +9,7 @@
         <h1>Your past ticket bookings</h1>
     {% else %}
         <h1>Your ticket bookings</h1>
+        <p>Please note that ticket bookings are final once paid.</p>
     {% endif %}
 
     {% if ticketbookinglist %}
@@ -34,13 +35,18 @@
                                 {% if not history %}
                                     <td>
                                         {% if bookingform.paypalform %}
-                                        <div class="inc-btm-space">{% include 'payments/bookinglistpayment.html' %}</div>
+                                            <div class="inc-btm-space">{% include 'payments/bookinglistpayment.html' %}</div>
                                         {% elif bookingform.ticket_booking.cancelled %}
-                                            TICKET BOOKING CANCELLED
+                                           <div>BOOKING CANCELLED</div>
                                         {% elif bookingform.ticked_booking.ticketed_event.cancelled %}
-                                            EVENT CANCELLED
+                                            <div>EVENT CANCELLED</div>
                                         {% elif not bookingform.ticket_booking.ticketed_event.payment_open %}
-                                            Online payments not open
+                                            <div>Online payments not open</div>
+                                        {% endif %}
+
+                                        {% if not bookingform.ticket_booking.cancelled and not bookingform.ticket_booking.paid %}
+                                            <div><a href="{% url 'booking:cancel_ticket_booking' bookingform.ticket_booking.pk %}">
+                                            <span class="btn table-btn btn-danger">Cancel booking</span></a></div>
                                         {% endif %}
                                     </td>
                                 {% endif %}
@@ -49,12 +55,22 @@
                                 <td>{{ bookingform.ticket_booking.ticketed_event.name }}</td>
                                 <td class="table-center">{{ bookingform.ticket_booking.tickets.count }}</td>
                                 <td class="hidden-sm hidden-xs table-center">£{{ bookingform.ticket_booking.ticketed_event.ticket_cost }}</td>
-                                <td class="table-center">{% if bookingform.ticket_booking.ticketed_event.ticket_cost and bookingform.ticket_booking.paid %}<span class="confirmed fa fa-check"></span>
-                                    {% elif bookingform.ticket_booking.ticketed_event.ticket_cost and not bookingform.ticket_booking.paid %}<span class="not-confirmed fa fa-close"></span>
-                                    {% else %}<strong>N/A</strong>{% endif %}</td>
-                                <td class="table-center">{% if bookingform.ticket_booking.ticketed_event.ticket_cost and bookingform.ticket_booking.payment_confirmed %}<span class="confirmed fa fa-check"></span>
-                                    {% elif bookingform.ticket_booking.ticketed_event.ticket_cost and not bookingform.ticket_booking.payment_confirmed %}<span class="not-confirmed fa fa-close"></span>
-                                    {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td class="table-center">
+                                    {% if bookingform.ticket_booking.ticketed_event.ticket_cost and bookingform.ticket_booking.paid %}
+                                        <span class="confirmed fa fa-check"></span>
+                                    {% elif bookingform.ticket_booking.ticketed_event.ticket_cost and not bookingform.ticket_booking.paid %}
+                                        <span class="not-confirmed fa fa-close"></span>
+                                    {% else %}
+                                        <strong>N/A</strong>
+                                    {% endif %}</td>
+                                <td class="table-center">
+                                    {% if bookingform.ticket_booking.ticketed_event.ticket_cost and bookingform.ticket_booking.payment_confirmed %}
+                                        <span class="confirmed fa fa-check"></span>
+                                    {% elif bookingform.ticket_booking.ticketed_event.ticket_cost and not bookingform.ticket_booking.payment_confirmed %}
+                                        <span class="not-confirmed fa fa-close"></span>
+                                    {% else %}
+                                        <strong>N/A</strong>
+                                    {% endif %}</td>
                             </tr>
                         {% endfor %}
                     </table>

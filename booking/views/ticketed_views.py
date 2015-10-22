@@ -399,6 +399,110 @@ class TicketBookingView(LoginRequiredMixin, TemplateView):
         return TemplateResponse(request, self.template_name, context)
 
 
+class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
+
+    model = TicketBooking
+    template_name = 'booking/cancel_ticket_booking.html'
+    context_object_name = 'ticket_booking'
+    fields = ('__all__')
+    success_message = "Ticket booking reference {} has been cancelled"
+
+    def check_and_redirect(self, request, ticket_booking):
+
+        if ticket_booking.paid:
+            messages.info(
+                request,
+                "Ticket booking ref {} has been paid and cannot be "
+                "cancelled".format(ticket_booking.booking_reference)
+            )
+            return HttpResponseRedirect(reverse('booking:ticket_bookings'))
+        if ticket_booking.ticketed_event.cancelled:
+            messages.info(
+                request,
+                "Ticket booking ref {} is for a cancelled event and cannot be "
+                "cancelled here.  Please contact the studio for "
+                "information.".format(ticket_booking.booking_reference)
+            )
+            return HttpResponseRedirect(reverse('booking:ticket_bookings'))
+
+        # redirect if booking cancelled
+        if ticket_booking.cancelled:
+            messages.info(
+                request,
+                "Ticket booking (ref {}) has already been cancelled".format(
+                    ticket_booking.booking_reference
+                )
+            )
+            return HttpResponseRedirect(reverse('booking:ticket_bookings'))
+
+    def get(self, request, *args, **kwargs):
+        # redirect if event cancelled
+        ticket_booking = get_object_or_404(TicketBooking, id=self.kwargs['pk'])
+
+        self.check_and_redirect(request, ticket_booking)
+        return super(TicketBookingCancelView, self).get(request, *args, **kwargs)
+
+    def form_valid(self, form):
+
+        if "confirm_cancel" in form.data:
+            ticket_booking = form.save(commit=False)
+            self.check_and_redirect(self.request, ticket_booking)
+
+            ticket_booking.cancelled = True
+            ticket_booking.save()
+            ActivityLog.objects.create(
+                log='Ticket booking ref {} (for {}) has been cancelled by '
+                    'user {}'.format(
+                        ticket_booking.booking_reference,
+                        ticket_booking.ticketed_event,
+                        ticket_booking.user.username,
+                    )
+            )
+
+            try:
+                # send email and set messages
+                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                # send email to user; no need to send to studio
+                ctx = Context({
+                      'host': host,
+                      'ticket_booking': ticket_booking,
+                })
+                send_mail('{} Ticket booking ref {} cancelled'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                        ticket_booking.booking_reference,
+                    ),
+                    get_template(
+                        'booking/email/ticket_booking_cancelled.txt'
+                    ).render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [self.request.user.email],
+                    html_message=get_template(
+                        'booking/email/ticket_booking_cancelled.html'
+                        ).render(ctx),
+                    fail_silently=False)
+
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(
+                    e, __name__, "TicketBookingCancelView - user email"
+                )
+                messages.error(
+                    self.request,
+                    "An error occured, please contact the studio for "
+                    "information"
+                )
+
+            messages.success(
+                self.request, self.success_message.format(
+                   ticket_booking.booking_reference
+               )
+            )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('booking:ticket_bookings')
+
+
     # TODO
     # 1) deal with form errors - DONE
     # 2) activity log entries - DONE
@@ -423,7 +527,7 @@ class TicketBookingView(LoginRequiredMixin, TemplateView):
     # ******************- cancelling events with tickets purchased ******************
     # cancelling event cancels all ticket bookings; email all users for ticket
     # bookings and studio
-    # ****************** - ticket booking list - allow updating paid ******************
+    # - ticket booking list - allow updating paid - DONE
     # ****************** - ticket lists - printable - select event, tick info to display, choose ordering ******************
     # 11) TicketBooking formset view for users to edit their ticket info - DONE
     # ************ 12) tests **********************************************************************

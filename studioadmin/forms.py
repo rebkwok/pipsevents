@@ -13,9 +13,10 @@ from django.utils.translation import ugettext_lazy as _
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Block, Booking, Event, EventType, BlockType, \
-    TicketedEvent
+    TicketedEvent, TicketBooking
 from timetable.models import Session
-from payments.models import PaypalBookingTransaction
+from payments.models import PaypalBookingTransaction, \
+    PaypalTicketBookingTransaction
 
 
 class EventBaseFormSet(BaseModelFormSet):
@@ -1473,3 +1474,55 @@ class TicketedEventAdminForm(forms.ModelForm):
                                           'time allowed for payment, and will not be '
                                           'automatically cancelled')
         }
+
+
+class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
+
+    def add_fields(self, form, index):
+        super(TicketBookingInlineBaseFormSet, self).add_fields(form, index)
+
+        pptbs = PaypalTicketBookingTransaction.objects.filter(
+            ticket_booking__id=form.instance.id
+        )
+        pptbs_paypal =[True for pptb in pptbs if pptb.transaction_id]
+        form.paypal = True if pptbs_paypal else False
+
+        if form.instance.paid and form.instance.payment_confirmed:
+            form.cannot_delete = True
+
+        form.fields['DELETE'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': 'delete-checkbox studioadmin-list',
+                'id': 'DELETE_{}'.format(index)
+            }),
+            required=False
+        )
+        form.DELETE_id = 'DELETE_{}'.format(index)
+
+        form.fields['paid'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': 'regular-checkbox studioadmin-list',
+                'id': 'paid_{}'.format(index)
+            }),
+            required=False
+        )
+        form.DELETE_id = 'paid_{}'.format(index)
+
+        form.fields['payment_confirmed'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': 'regular-checkbox studioadmin-list',
+                'id': 'payment_confirmed_{}'.format(index)
+            }),
+            required=False
+        )
+        form.DELETE_id = 'payment_confirmed_{}'.format(index)
+
+
+TicketBookingInlineFormSet = inlineformset_factory(
+    TicketedEvent,
+    TicketBooking,
+    fields=('paid', 'payment_confirmed'),
+    can_delete=True,
+    formset=TicketBookingInlineBaseFormSet,
+    extra=0,
+)

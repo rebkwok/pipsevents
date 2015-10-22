@@ -589,7 +589,6 @@ class TicketBookingTests(TestCase):
         )
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
-        # cancelled booking deletes the tickets
         cancelled_booking = mommy.make(
             TicketBooking, ticketed_event=self.ticketed_event, cancelled=False
         )
@@ -607,7 +606,9 @@ class TicketBookingTests(TestCase):
         event_tickets = Ticket.objects.filter(
             ticket_booking__ticketed_event=self.ticketed_event
         )
-        self.assertEqual(event_tickets.count(), 5)
+        # cancelling booking doesn't the tickets but doesn't include them in
+        # the ticket count
+        self.assertEqual(event_tickets.count(), 10)
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
 

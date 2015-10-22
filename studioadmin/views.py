@@ -41,7 +41,7 @@ from studioadmin.forms import BookingStatusFilter, ConfirmPaymentForm, \
     UploadTimetableForm, EmailUsersForm, ChooseUsersFormSet, UserFilterForm, \
     BlockStatusFilter, UserBookingFormSet, UserBlockFormSet, \
     ActivityLogSearchForm, RegisterDayForm, TicketedEventFormSet, \
-    TicketedEventAdminForm
+    TicketedEventAdminForm, TicketBookingInlineFormSet
 
 from activitylog.models import ActivityLog
 
@@ -1950,3 +1950,103 @@ class TicketedEventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateVie
     def get_success_url(self):
         return reverse('studioadmin:ticketed_events')
 
+
+class TicketedEventBookingsListView(TemplateView):
+
+    template_name = 'studioadmin/ticketed_event_bookings_admin_list.html'
+
+    def dispatch(self, request, *args, **kwargs):
+
+        self.ticketed_event = get_object_or_404(
+            TicketedEvent, slug=kwargs['slug']
+        )
+        return super(
+            TicketedEventBookingsListView, self
+        ).dispatch(request, *args, **kwargs)
+
+
+    def get_context_data(self, **kwargs):
+        context = super(
+            TicketedEventBookingsListView, self
+        ).get_context_data(**kwargs)
+
+        context['ticketed_event'] = self.ticketed_event
+        context['ticket_bookings'] = [
+            tbk for tbk in
+            TicketBooking.objects.filter(ticketed_event=self.ticketed_event)
+            if tbk.tickets.exists() and not tbk.cancelled
+            ]
+        context['ticket_booking_formset'] = TicketBookingInlineFormSet(
+            data=self.request.POST if 'formset_submitted'
+                                      in self.request.POST else None,
+            instance=self.ticketed_event,
+        )
+        context['sidenav_selection'] = 'ticketed_events'
+        return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data()
+        return TemplateResponse(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+
+        context = self.get_context_data(**kwargs)
+
+        if "formset_submitted" in request.POST:
+            ticket_booking_formset = context['ticket_booking_formset']
+
+            if ticket_booking_formset.is_valid():
+                if not ticket_booking_formset.has_changed():
+                    messages.info(request, "No changes were made")
+                else:
+                    for form in ticket_booking_formset:
+                        if form.has_changed():
+                            if 'DELETE' in form.changed_data:
+                                messages.success(
+                                    request, mark_safe(
+                                        'Ticket Booking ref <strong>{}</strong> has been deleted!'.format(
+                                            form.instance.booking_reference,
+                                        )
+                                    )
+                                )
+                                ActivityLog.objects.create(
+                                    log='Ticketed Booking ref {} deleted by admin user {}'.format(
+                                        form.instance.booking_reference,
+                                        request.user.username
+                                    )
+                                )
+                            else:
+                                for field in form.changed_data:
+                                    messages.success(
+                                        request, mark_safe(
+                                            "<strong>{}</strong> updated for "
+                                            "<strong>{}</strong>".format(
+                                                field.title().replace("_", " "),
+                                                form.instance))
+                                    )
+
+                                    ActivityLog.objects.create(
+                                        log='Ticketed Booking ref {} (user {}, event {}) updated by admin user {}: field_changed: {}'.format(
+                                            form.instance.booking_reference, form.instance.user, form.instance.ticketed_event,
+                                            request.user.username, field.title().replace("_", " ")
+                                        )
+                                    )
+                            form.save()
+
+                        for error in form.errors:
+                            messages.error(request, mark_safe("{}".format(error)))
+                    ticket_booking_formset.save()
+                return HttpResponseRedirect(reverse('studioadmin:ticketed_event_bookings'))
+
+            else:
+                messages.error(
+                    request,
+                    mark_safe(
+                        "There were errors in the following fields:\n{}".format(
+                            '\n'.join(
+                                ["{}".format(error) for error in ticket_booking_formset.errors]
+                            )
+                        )
+                    )
+                )
+                return TemplateResponse(request, self.template_name, context)

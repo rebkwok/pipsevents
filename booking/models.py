@@ -503,10 +503,6 @@ class TicketBooking(models.Model):
             self.set_booking_reference()
         else:
             orig = TicketBooking.objects.get(id=self.pk)
-            if self.cancelled and not orig.cancelled:
-                # delete the Ticket objects
-                for ticket in self.tickets.all():
-                    ticket.delete()
             if self.cancelled and not orig.cancelled and orig.paid:
                 raise TicketBookingError('Cannot cancel a paid booking')
 

@@ -1,0 +1,7 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Your ticket booking ref {{ ticket_booking.booking_reference }} for {{ ticket_booking.ticketed_event }} has been cancelled.
+
+This booking cannot be reopened. If you would like more tickets, please repurchase at {{ host }}{% url 'booking:ticketed_events' %}.
+
+For further information please contact {{ ticket_booking.ticketed_event.contact_person }} at {{ ticket_booking.ticketed_event.contact_email }}.
