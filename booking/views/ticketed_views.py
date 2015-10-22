@@ -337,6 +337,66 @@ class TicketBookingHistoryListView(LoginRequiredMixin, ListView):
         return context
 
 
+class TicketBookingView(LoginRequiredMixin, TemplateView):
+
+    template_name = 'booking/ticket_booking.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.ticket_booking = get_object_or_404(
+            TicketBooking, booking_reference=kwargs['ref'], user=request.user
+        )
+        return super(TicketBookingView, self).dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(TicketBookingView, self).get_context_data(**kwargs)
+        context['ticketed_event'] = self.ticket_booking.ticketed_event
+        context['ticket_booking'] = self.ticket_booking
+
+        context['ticket_formset'] = TicketFormSet(
+            prefix='ticket_formset',
+            data=self.request.POST if 'ticket_formset-submit'
+                                        in self.request.POST else None,
+            instance=self.ticket_booking,
+            ticketed_event=self.ticket_booking.ticketed_event,
+        )
+        tickets = self.ticket_booking.tickets.all()
+        context['tickets'] = tickets
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data()
+        ticket_formset = context['ticket_formset']
+
+        if 'ticket_formset-submit' in request.POST:
+            if ticket_formset.is_valid():
+                if not ticket_formset.has_changed():
+                    messages.info(request, "No changes made")
+                else:
+                    ticket_formset.save()
+
+                    ActivityLog.objects.create(
+                        log="Ticket info updated by {} for booking ref {}".format(
+                            request.user.username,
+                            self.ticket_booking.booking_reference
+                        )
+                    )
+
+                    messages.success(
+                        request, "Ticket information for booking reference {} "
+                                 "updated".format(
+                            self.ticket_booking.booking_reference
+                        )
+                    )
+                return HttpResponseRedirect(
+                    reverse('booking:ticket_bookings')
+                )
+            else:
+                messages.error(
+                    request, "Please correct errors in the form below"
+                )
+
+        return TemplateResponse(request, self.template_name, context)
 
 
     # TODO
@@ -359,7 +419,11 @@ class TicketBookingHistoryListView(LoginRequiredMixin, ListView):
     # - delete ticket bookings without purchase_confirmed that are > 1 hour after
     # booking date (ie. ticket booking started but not completed and user
     # navigated away from page instead of pressing cancel button)
-    # 10) StudioAdmin - DONE apart from cancelling events with tickets purchased ******************
+    # 10) StudioAdmin -
+    # ******************- cancelling events with tickets purchased ******************
     # cancelling event cancels all ticket bookings; email all users for ticket
     # bookings and studio
-    # ************ 11) tests **********************************************************************
+    # ****************** - ticket booking list - allow updating paid ******************
+    # ****************** - ticket lists - printable - select event, tick info to display, choose ordering ******************
+    # 11) TicketBooking formset view for users to edit their ticket info - DONE
+    # ************ 12) tests **********************************************************************

@@ -339,6 +339,7 @@ CKEDITOR_CONFIGS = {
         ],
         'height': 200,
         'width': '100%',
+        'max-width': 300,
     },
     'studioadmin_min': {
         'toolbar': [
@@ -346,6 +347,7 @@ CKEDITOR_CONFIGS = {
         ],
         'height': 100,
         'width': '100%',
+        'max-width': 300,
     },
 }
 CKEDITOR_JQUERY_URL = \

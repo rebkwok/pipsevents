@@ -3,7 +3,8 @@ from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockListView, TicketBookingListView, \
-    TicketedEventListView, TicketCreateView, TicketBookingHistoryListView
+    TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
+    TicketBookingView
 
 urlpatterns = patterns('',
     url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
@@ -54,6 +55,7 @@ urlpatterns = patterns('',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
     url(r'^ticket-bookings/$', TicketBookingListView.as_view(), name='ticket_bookings'),
+    url(r'^ticket-bookings/(?P<ref>[\w-]+)/$', TicketBookingView.as_view(), name='ticket_booking'),
     url(r'^ticket-booking-history/$', TicketBookingHistoryListView.as_view(),
         name='ticket_booking_history'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),

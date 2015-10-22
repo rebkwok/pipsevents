@@ -45,7 +45,7 @@
                                     </td>
                                 {% endif %}
                                 <td>{{ bookingform.ticket_booking.ticketed_event.date |  date:"D d M H:i" }}</td>
-                                <td>{{ bookingform.ticket_booking.booking_reference }}</td>
+                                <td><a href="{% url 'booking:ticket_booking' bookingform.ticket_booking.booking_reference %}">{{ bookingform.ticket_booking.booking_reference }}</a></td>
                                 <td>{{ bookingform.ticket_booking.ticketed_event.name }}</td>
                                 <td class="table-center">{{ bookingform.ticket_booking.tickets.count }}</td>
                                 <td class="hidden-sm hidden-xs table-center">£{{ bookingform.ticket_booking.ticketed_event.ticket_cost }}</td>

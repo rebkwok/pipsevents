@@ -1338,6 +1338,30 @@ class TicketedEventAdminForm(forms.ModelForm):
                                         'the date picker or enter date in the '
                                         'format dd Mmm YYYY')
 
+        if not cleaned_data['extra_ticket_info_label']:
+            if cleaned_data['extra_ticket_info_required'] == True:
+                self.add_error(
+                    'extra_ticket_info_required', 'Provide a label for this '
+                                                  'extra ticket info field'
+                )
+            if cleaned_data['extra_ticket_info_help']:
+                self.add_error(
+                    'extra_ticket_info_help', 'Provide a label for this '
+                                                  'extra ticket info field'
+                )
+        if not cleaned_data['extra_ticket_info1_label']:
+            if cleaned_data['extra_ticket_info1_required'] == True:
+                self.add_error(
+                    'extra_ticket_info1_required', 'Provide a label for this '
+                                                  'extra ticket info field'
+                )
+            if cleaned_data['extra_ticket_info1_help']:
+                self.add_error(
+                    'extra_ticket_info1_help', 'Provide a label for this '
+                                                  'extra ticket info field'
+                )
+
+
         return cleaned_data
 
     class Meta:

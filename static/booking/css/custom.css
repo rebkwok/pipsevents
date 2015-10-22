@@ -811,9 +811,11 @@ a > span.fa.fa-print {
 
 .cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a>span.fa {
     color: lightgrey !important;
+}
 
-.ticket-error > input {
+.ticket-error > input, .ticket-error > .regular-checkbox + label {
     border: 1px solid red;
+    background-color: rgba(255, 0, 0, 0.1);
 }
 
 .errorlist {
@@ -821,4 +823,5 @@ a > span.fa.fa-print {
     color: red;
     font-style: italic;
     font-size: smaller;
+    padding-left: 0;
 }
