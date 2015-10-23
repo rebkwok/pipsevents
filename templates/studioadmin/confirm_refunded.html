@@ -11,15 +11,19 @@
     ({{ booking.user.username }}) has cancelled or requested a refund for
         {{ booking.event }}</p>
 
-    <p>Click the button below to confirm that the payment has been refunded.
-        When you click 'confirm', {{ booking.user.username }} will be sent a confirmation
-        email.</p>
+    {% if not booking.paid or not booking.payment_confirmed %}
+        <p>Click the button below to confirm that the payment has been refunded.
+            When you click 'confirm', {{ booking.user.username }} will be sent a confirmation
+            email.</p>
 
-    <form action="" method="post">{% csrf_token %}
-        <span class="hide">{{ form }}</span>
-        <input class="btn btn-success" type="submit" name='confirmed' value="Confirm" />
-        <input class="btn btn-danger" type="submit" name='cancelled' value="Cancel" />
-    </form>
+        <form action="" method="post">{% csrf_token %}
+            <span class="hide">{{ form }}</span>
+            <input class="btn btn-success" type="submit" name='confirmed' value="Confirm" />
+            <input class="btn btn-danger" type="submit" name='cancelled' value="Cancel" />
+        </form>
+    {% else %}
+        This booking is unpaid or payment has already been refunded.
+    {% endif %}
     </div>
 </div>
 

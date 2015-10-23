@@ -1,6 +1,7 @@
 from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 from studioadmin.views import (ConfirmRefundView,
+                               ConfirmTicketBookingRefundView,
                                ConfirmPaymentView,
                                EventAdminUpdateView,
                                EventAdminCreateView,
@@ -92,5 +93,11 @@ urlpatterns = patterns('',
     url(r'^ticketed-events/(?P<slug>[\w-]+)/ticket-bookings$',
         TicketedEventBookingsListView.as_view(),
         name='ticketed_event_bookings'),
+    url(r'^events/(?P<slug>[\w-]+)/cancel',
+        'studioadmin.views.cancel_ticketed_event_view',
+        name='cancel_ticketed_event'),
+    url(r'^confirm-ticket-booking-refunded/(?P<pk>\d+)/$',
+        ConfirmTicketBookingRefundView.as_view(),
+        name='confirm_ticket_booking_refund'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

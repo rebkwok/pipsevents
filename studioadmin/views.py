@@ -1717,40 +1717,29 @@ def cancel_event_view(request, slug):
                         "send refund notification email to tudio"
                     )
 
-                messages.info(
-                    request,
-                    '{} has been cancelled; open booking(s) for {} have been '
-                    'cancelled and notification emails have been sent.'.format(
-                        ev_type.title(),
-                        ', '.join(
-                            ['{} {}'.format(
-                                booking.user.first_name, booking.user.last_name
-                            ) for booking in open_direct_paid_bookings]
+            if open_bookings:
+                booking_cancelled_msg = 'open ' \
+                                        'booking(s) for {} have been cancelled ' \
+                                        'and notification emails have been ' \
+                                        'sent.'.format(
+                    ev_type.title(),
+                    ', '.join(
+                        ['{} {}'.format(booking.user.first_name,
+                                        booking.user.last_name)
+                         for booking in open_bookings]
                         )
                     )
-                )
             else:
-                messages.info(
-                    request,
-                    '{} has been cancelled; there were no open '
-                    'bookings for this {}'.format(
-                        ev_type.title(), ev_type
-                    )
+                booking_cancelled_msg = 'there were ' \
+                                        'no open bookings for this {}'.format(
+                    ev_type.title(), ev_type
                 )
-
-            if open_bookings:
-                booking_cancelled_msg = "Open bookings for {} have been " \
-                                        "cancelled.".format(
-                    ', '.join(['{} {}'.format(
-                        booking.user.first_name, booking.user.last_name
-                    ) for booking in open_direct_paid_bookings]
-                    )
-                )
-            else:
-                booking_cancelled_msg = "No open bookings."
+            messages.info(
+                request, '{} has been cancelled; ' + booking_cancelled_msg
+            )
 
             ActivityLog.objects.create(
-                log="{} {} has been cancelled by admin user {}. {}".format(
+                log="{} {} has been cancelled by admin user {}; {}".format(
                     ev_type.title(), event, request.user.username,
                     booking_cancelled_msg
                 )
@@ -1785,7 +1774,9 @@ class TicketedEventAdminListView(TemplateView):
     template_name = 'studioadmin/ticketed_events_admin_list.html'
 
     def get_context_data(self, **kwargs):
-        context = super(TicketedEventAdminListView, self).get_context_data(**kwargs)
+        context = super(
+            TicketedEventAdminListView, self
+        ).get_context_data(**kwargs)
 
         queryset = TicketedEvent.objects.filter(
                 date__gte=timezone.now()
@@ -1805,10 +1796,10 @@ class TicketedEventAdminListView(TemplateView):
             context['ticketed_events'] = True
 
         ticketed_event_formset = TicketedEventFormSet(
-            data=self.request.POST if 'formset_submitted' in self.request.POST else
-            None,
-            queryset=queryset if 'formset_submitted' not in self.request.POST else
-            None,
+            data=self.request.POST if 'formset_submitted' in self.request.POST
+            else None,
+            queryset=queryset if 'formset_submitted' not in self.request.POST
+            else None,
         )
         context['ticketed_event_formset'] = ticketed_event_formset
         context['sidenav_selection'] = 'ticketed_events'
@@ -1837,13 +1828,15 @@ class TicketedEventAdminListView(TemplateView):
                             if 'DELETE' in form.changed_data:
                                 messages.success(
                                     request, mark_safe(
-                                        'Event <strong>{}</strong> has been deleted!'.format(
+                                        'Event <strong>{}</strong> has been '
+                                        'deleted!'.format(
                                             form.instance,
                                         )
                                     )
                                 )
                                 ActivityLog.objects.create(
-                                    log='Ticketed Event {} (id {}) deleted by admin user {}'.format(
+                                    log='Ticketed Event {} (id {}) deleted by '
+                                        'admin user {}'.format(
                                         form.instance,
                                         form.instance.id, request.user.username
                                     )
@@ -1859,17 +1852,24 @@ class TicketedEventAdminListView(TemplateView):
                                     )
 
                                     ActivityLog.objects.create(
-                                        log='Ticketed Event {} (id {}) updated by admin user {}: field_changed: {}'.format(
+                                        log='Ticketed Event {} (id {}) updated '
+                                            'by admin user {}: field_'
+                                            'changed: {}'.format(
                                             form.instance, form.instance.id,
-                                            request.user.username, field.title().replace("_", " ")
+                                            request.user.username,
+                                            field.title().replace("_", " ")
                                         )
                                     )
                             form.save()
 
                         for error in form.errors:
-                            messages.error(request, mark_safe("{}".format(error)))
+                            messages.error(
+                                request, mark_safe("{}".format(error))
+                            )
                     ticketed_event_formset.save()
-                return HttpResponseRedirect(reverse('studioadmin:ticketed_events'))
+                return HttpResponseRedirect(
+                    reverse('studioadmin:ticketed_events')
+                )
 
             else:
                 messages.error(
@@ -1877,7 +1877,8 @@ class TicketedEventAdminListView(TemplateView):
                     mark_safe(
                         "There were errors in the following fields:\n{}".format(
                             '\n'.join(
-                                ["{}".format(error) for error in ticketed_event_formset.errors]
+                                ["{}".format(error)
+                                 for error in ticketed_event_formset.errors]
                             )
                         )
                     )
@@ -1885,7 +1886,9 @@ class TicketedEventAdminListView(TemplateView):
                 return TemplateResponse(request, self.template_name, context)
 
 
-class TicketedEventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
+class TicketedEventAdminUpdateView(
+    LoginRequiredMixin, StaffUserMixin, UpdateView
+):
 
     form_class = TicketedEventAdminForm
     model = TicketedEvent
@@ -1897,7 +1900,9 @@ class TicketedEventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateVie
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
     def get_context_data(self, **kwargs):
-        context = super(TicketedEventAdminUpdateView, self).get_context_data(**kwargs)
+        context = super(
+            TicketedEventAdminUpdateView, self
+        ).get_context_data(**kwargs)
         context['sidenav_selection'] = 'ticketed_events'
         return context
 
@@ -1922,7 +1927,9 @@ class TicketedEventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateVie
         return reverse('studioadmin:ticketed_events')
 
 
-class TicketedEventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
+class TicketedEventAdminCreateView(
+    LoginRequiredMixin, StaffUserMixin, CreateView
+):
 
     form_class = TicketedEventAdminForm
     model = TicketedEvent
@@ -1930,7 +1937,9 @@ class TicketedEventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateVie
     context_object_name = 'ticketed_event'
 
     def get_context_data(self, **kwargs):
-        context = super(TicketedEventAdminCreateView, self).get_context_data(**kwargs)
+        context = super(
+            TicketedEventAdminCreateView, self
+        ).get_context_data(**kwargs)
         context['sidenav_selection'] = 'add_ticketed_event'
         return context
 
@@ -2004,13 +2013,15 @@ class TicketedEventBookingsListView(TemplateView):
                             if 'DELETE' in form.changed_data:
                                 messages.success(
                                     request, mark_safe(
-                                        'Ticket Booking ref <strong>{}</strong> has been deleted!'.format(
+                                        'Ticket Booking ref <strong>{}</strong> '
+                                        'has been deleted!'.format(
                                             form.instance.booking_reference,
                                         )
                                     )
                                 )
                                 ActivityLog.objects.create(
-                                    log='Ticketed Booking ref {} deleted by admin user {}'.format(
+                                    log='Ticketed Booking ref {} deleted by '
+                                        'admin user {}'.format(
                                         form.instance.booking_reference,
                                         request.user.username
                                     )
@@ -2026,17 +2037,26 @@ class TicketedEventBookingsListView(TemplateView):
                                     )
 
                                     ActivityLog.objects.create(
-                                        log='Ticketed Booking ref {} (user {}, event {}) updated by admin user {}: field_changed: {}'.format(
-                                            form.instance.booking_reference, form.instance.user, form.instance.ticketed_event,
-                                            request.user.username, field.title().replace("_", " ")
+                                        log='Ticketed Booking ref {} (user {}, '
+                                            'event {}) updated by admin user '
+                                            '{}: field_changed: {}'.format(
+                                            form.instance.booking_reference,
+                                            form.instance.user,
+                                            form.instance.ticketed_event,
+                                            request.user.username,
+                                            field.title().replace("_", " ")
                                         )
                                     )
                             form.save()
 
                         for error in form.errors:
-                            messages.error(request, mark_safe("{}".format(error)))
+                            messages.error(
+                                request, mark_safe("{}".format(error))
+                            )
                     ticket_booking_formset.save()
-                return HttpResponseRedirect(reverse('studioadmin:ticketed_event_bookings'))
+                return HttpResponseRedirect(
+                    reverse('studioadmin:ticketed_event_bookings')
+                )
 
             else:
                 messages.error(
@@ -2044,9 +2064,215 @@ class TicketedEventBookingsListView(TemplateView):
                     mark_safe(
                         "There were errors in the following fields:\n{}".format(
                             '\n'.join(
-                                ["{}".format(error) for error in ticket_booking_formset.errors]
+                                ["{}".format(error)
+                                 for error in ticket_booking_formset.errors]
                             )
                         )
                     )
                 )
                 return TemplateResponse(request, self.template_name, context)
+
+
+@login_required
+@staff_required
+def cancel_ticketed_event_view(request, slug):
+    ticketed_event = get_object_or_404(TicketedEvent, slug=slug)
+
+    open_paid_ticket_bookings = [
+        booking for booking in ticketed_event.ticket_bookings.all()
+        if booking.cancelled and booking.tickets.exists() and booking.paid
+        ]
+
+    open_unpaid_ticket_bookings = [
+        booking for booking in ticketed_event.ticket_bookings.all()
+        if not booking.cancelled and booking.tickets.exists()
+        and not booking.paid
+        ]
+
+    if request.method == 'POST':
+        if 'confirm' in request.POST:
+
+            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+
+            for booking in open_paid_ticket_bookings + \
+                    open_unpaid_ticket_bookings:
+                booking.cancelled = True
+                booking.save()
+
+                try:
+                    # send notification email to user to all ticket booking,
+                    # paid or unpaid
+                    ctx = Context({
+                          'host': host,
+                          'ticketed_event': ticketed_event,
+                          'ticket_booking': booking,
+                    })
+                    send_mail('{} {} has been cancelled'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                        ticketed_event.name,
+                        ),
+                        get_template(
+                            'studioadmin/email/ticketed_event_cancelled.txt'
+                        ).render(ctx),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [booking.user.email],
+                        html_message=get_template(
+                            'studioadmin/email/ticketed_event_cancelled.html'
+                            ).render(ctx),
+                        fail_silently=False)
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "cancel ticketed event - "
+                        "send notification email to user"
+                    )
+
+            ticketed_event.cancelled = True
+            ticketed_event.show_on_site = False
+            ticketed_event.payment_open = False
+            ticketed_event.save()
+
+            if open_paid_ticket_bookings:
+                # email studio with links for confirming refunds for paid only
+
+                try:
+                    # send email to studio
+                    ctx = Context({
+                          'host': host,
+                          'open_paid_ticket_bookings': open_paid_ticket_bookings,
+                          'ticketed_event': ticketed_event,
+                    })
+                    send_mail('{} Refunds due for ticket bookings for '
+                              'cancelled event {}'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                        ticketed_event.name,
+                        ),
+                        get_template(
+                            'studioadmin/email/to_studio_ticketed_event_cancelled.txt'
+                        ).render(ctx),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [settings.DEFAULT_STUDIO_EMAIL],
+                        html_message=get_template(
+                            'studioadmin/email/to_studio_ticketed_event_cancelled.html'
+                            ).render(ctx),
+                        fail_silently=False)
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "cancel ticketed event - "
+                        "send refund notification email to studio"
+                    )
+
+            if open_paid_ticket_bookings + open_unpaid_ticket_bookings:
+
+                booking_cancelled_msg = '{} has been cancelled; open ticket ' \
+                                        'booking refs {} have been ' \
+                                        'cancelled'.format(
+                    ', '.join(['{}'.format(booking.booking_reference) for
+                               booking in open_paid_ticket_bookings]
+                    )
+                )
+                messages.info(
+                    request,
+                    booking_cancelled_msg + 'and notification emails have '
+                                            'been sent.'
+                )
+            else:
+                booking_cancelled_msg = '{} has been cancelled; there were ' \
+                                        'no open ticket bookings for this ' \
+                                        'event'.format(ticketed_event)
+                messages.info(booking_cancelled_msg)
+
+            ActivityLog.objects.create(
+                log="{} has been cancelled by admin user {}. {}".format(
+                    ticketed_event, request.user.username,
+                    booking_cancelled_msg
+                )
+            )
+
+            return HttpResponseRedirect(reverse('studioadmin:ticketed_events'))
+
+        elif 'cancel' in request.POST:
+            return HttpResponseRedirect(reverse('studioadmin:ticketed_events'))
+
+    context = {
+        'ticketed_event': ticketed_event,
+        'open_paid_ticket_bookings': open_paid_ticket_bookings,
+        'open_unpaid_ticket_bookings': open_unpaid_ticket_bookings
+    }
+
+    return TemplateResponse(
+        request, 'studioadmin/cancel_ticketed_event.html', context
+    )
+
+
+class ConfirmTicketBookingRefundView(
+    LoginRequiredMixin, StaffUserMixin, UpdateView
+):
+
+    model = TicketBooking
+    template_name = 'studioadmin/confirm_ticket_booking_refunded.html'
+    success_message = "Refund of payment for {}'s ticket booking (ref {}) for " \
+                      "{} has been confirmed.  An update email has been sent " \
+                      "to {}."
+    fields = ('id',)
+
+    def form_valid(self, form):
+        ticket_booking = form.save(commit=False)
+
+        if 'confirmed' in self.request.POST:
+            ticket_booking.paid = False
+            ticket_booking.payment_confirmed = False
+            ticket_booking.date_payment_confirmed = None
+            ticket_booking.save()
+
+            messages.success(
+                self.request,
+                self.success_message.format(ticket_booking.user.username,
+                                            ticket_booking.booking_reference,
+                                            ticket_booking.ticketed_event,
+                                            ticket_booking.user.username)
+            )
+
+            ctx = Context({
+                'ticketed_event': ticket_booking.ticketed_event,
+                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+
+            })
+
+            send_mail(
+                '{} Payment refund confirmed for ticket booking ref {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    ticket_booking.booking_reference
+                ),
+                get_template(
+                    'studioadmin/email/confirm_ticket_booking_refund.txt'
+                ).render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [self.request.user.email],
+                html_message=get_template(
+                    'studioadmin/email/confirm_ticket_booking_refund.html').render(ctx),
+                fail_silently=False)
+
+            ActivityLog(
+                log='Payment refund for ticket booking ref {} for event {}, '
+                    '(user {}) has been updated by admin user {}'.format(
+                    ticket_booking.booking_reference,
+                    ticket_booking.ticketed_event, ticket_booking.user.username,
+                    self.request.user.username
+                )
+            )
+
+        if 'cancelled' in self.request.POST:
+            messages.info(
+                self.request,
+                "Cancelled; no changes to payment status for {}'s ticket "
+                "booking ref {}".format(
+                    ticket_booking.user.username,
+                    ticket_booking.booking_reference,
+                    )
+            )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:ticketed_events')

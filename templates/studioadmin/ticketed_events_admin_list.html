@@ -47,7 +47,7 @@
                                 <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fa fa-ticket fa-2x"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.cannot_delete %}
-                                        Cancel button
+                                        <a href="{% url 'studioadmin: cancel_ticketed_event' event.slug %}"><div class="btn table-btn btn-danger">Cancel event</div></a>
                                     {% else %}
                                         {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
                                     {% endif %}
