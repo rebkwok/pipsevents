@@ -27,14 +27,7 @@
                                 <th class="table-center">Payment Confirmed</th>
                                 <th class="table-center">Paid by PayPal</th>
                                 <th class="table-center">Tickets</th>
-                                <th class="table-center">Delete/Cancel
-                                    <a href="#" data-toggle="tooltip" data-placement="top"
-                                       title="Unpaid bookings will be deleted and will not reappear in this list;
-                                       paid bookings will be marked as cancelled.">
-                                        <span class="fa fa-question-circle"></span>
-                                    </a>
-                                </th>
-                                <th class="table-center">Reopen</th>
+                                <th class="table-center">Cancel/Reopen</th>
                                 <th class="table-center">Send confirmation</th>
                             </tr>
                             </thead>
@@ -55,12 +48,10 @@
                                 </td>
                                 <td class="table-center studioadmin-tbl">{{ tbooking.instance.tickets.count }}</td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if not tbooking.instance.cancelled %}
-                                        {{ tbooking.DELETE }}<label for={{ tbooking.DELETE_id }}></label></td>
-                                    {% endif %}
-                                <td class="table-center studioadmin-tbl">
                                     {% if tbooking.instance.cancelled %}
                                         {{ tbooking.reopen }}<label for={{ tbooking.reopen_id }}></label></td>
+                                    {% else %}
+                                        {{ tbooking.cancel }}<label for={{ tbooking.cancel_id }}></label></td>
                                     {% endif %}
                                 <td class="table-center studioadmin-tbl">{{ tbooking.send_confirmation }}<label for={{ tbooking.send_confirmation_id }}></label></td>
                             </tr>

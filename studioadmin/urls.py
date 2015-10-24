@@ -99,5 +99,7 @@ urlpatterns = patterns('',
     url(r'^confirm-ticket-booking-refunded/(?P<pk>\d+)/$',
         ConfirmTicketBookingRefundView.as_view(),
         name='confirm_ticket_booking_refund'),
+    url(r'^ticketed-events/print-tickets-list/$', 'studioadmin.views.print_tickets_list',
+        name='print_tickets_list'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

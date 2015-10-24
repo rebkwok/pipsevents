@@ -1487,18 +1487,18 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
         pptbs_paypal =[True for pptb in pptbs if pptb.transaction_id]
         form.paypal = True if pptbs_paypal else False
 
-        form.fields['DELETE'] = forms.BooleanField(
+        form.fields['cancel'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': 'delete-checkbox studioadmin-list',
-                'id': 'DELETE_{}'.format(index)
+                'id': 'cancel_{}'.format(index)
             }),
             required=False
         )
-        form.DELETE_id = 'DELETE_{}'.format(index)
+        form.cancel_id = 'cancel_{}'.format(index)
 
         form.fields['reopen'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': 'regular-checkbox studioadmin-list',
+                'class': 'regular-checkbox reopen studioadmin-list',
                 'id': 'reopen_{}'.format(index)
             }),
             required=False
@@ -1537,7 +1537,104 @@ TicketBookingInlineFormSet = inlineformset_factory(
     TicketedEvent,
     TicketBooking,
     fields=('paid', 'payment_confirmed'),
-    can_delete=True,
     formset=TicketBookingInlineBaseFormSet,
     extra=0,
 )
+
+
+class PrintTicketsForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        self.ticketed_event = kwargs.pop('ticketed_event_instance', None)
+        super(PrintTicketsForm, self).__init__(*args, **kwargs)
+
+        self.fields['ticketed_event'] = forms.ModelChoiceField(
+            label="Event",
+            widget=forms.Select(
+              attrs={'class': 'form-control', 'onchange': 'form.submit()'}
+            ),
+            queryset=TicketedEvent.objects.filter(
+                date__gte=timezone.now(),
+                cancelled=False
+            ),
+            required=True,
+            initial=self.ticketed_event
+        )
+
+        order_field_choices = [
+            ('ticket_booking__date_booked', 'Date booked'),
+            ('ticket_booking__booking_reference', 'Booking reference'),
+            ('ticket_booking__user__first_name', 'User who made the booking'),
+        ]
+        show_fields_choices = [
+            ('show_booking_user', 'User who made the booking'),
+            ('show_date_booked', 'Date booked'),
+            ('show_booking_reference', 'Booking reference'),
+            ('show_paid', 'Paid status'),
+        ]
+
+        if self.ticketed_event:
+            if self.ticketed_event.extra_ticket_info_label:
+                order_field_choices.insert(
+                    len(order_field_choices) + 1, (
+                        'extra_ticket_info',
+                        self.ticketed_event.extra_ticket_info_label +
+                        " (extra requested ticket info)"
+                    )
+                )
+                show_fields_choices.insert(
+                    len(show_fields_choices) + 1, (
+                        'show_extra_ticket_info',
+                        self.ticketed_event.extra_ticket_info_label +
+                        " (extra requested ticket info)"
+                    )
+                )
+
+            if self.ticketed_event.extra_ticket_info1_label:
+                order_field_choices.insert(
+                    len(order_field_choices) + 1, (
+                        'extra_ticket_info1',
+                        self.ticketed_event.extra_ticket_info1_label +
+                        " (extra requested ticket info)"
+                    )
+                )
+                show_fields_choices.insert(
+                    len(show_fields_choices) + 1, (
+                        'show_extra_ticket_info1',
+                        self.ticketed_event.extra_ticket_info1_label +
+                        " (extra requested ticket info)"
+                    )
+                )
+
+        self.fields['show_fields'] = forms.MultipleChoiceField(
+            label="Choose fields to show:",
+            widget=forms.CheckboxSelectMultiple,
+            choices=show_fields_choices,
+            initial=[
+                'show_booking_user', 'show_date_booked',
+                'show_booking_reference'
+            ],
+            required=True
+        )
+
+        self.fields['order_field'] = forms.ChoiceField(
+            label="Sort tickets by:",
+            choices=order_field_choices,
+            widget=forms.RadioSelect,
+            initial='ticket_booking__user__first_name',
+            required=True
+        )
+    
+    def clean(self):
+        cleaned_data = super(PrintTicketsForm, self).clean()
+        if 'show_fields' in self.errors:
+            if self.data['show_fields'] == 'show_extra_ticket_info' \
+                    or self.data['show_fields'] == 'show_extra_ticket_info1':
+                del self.errors['show_fields']
+                cleaned_data['show_fields'] = self.data.getlist('show_fields')
+        if 'order_field' in self.errors:
+            if self.data['order_field'] == 'extra_ticket_info' \
+                    or self.data['order_field'] == 'extra_ticket_info1':
+                del self.errors['order_field']
+                cleaned_data['order_field'] = self.data.get('order_field')
+        return cleaned_data

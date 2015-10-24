@@ -36,7 +36,7 @@ class TicketedEventListView(ListView):
 
     def get_queryset(self):
         return TicketedEvent.objects.filter(
-            date__gte=timezone.now(), show_on_site=True
+            date__gte=timezone.now(), show_on_site=True, cancelled=False
         )
 
     def get_context_data(self, **kwargs):
@@ -52,6 +52,11 @@ class TicketedEventListView(ListView):
             ]
             context['tickets_booked_events'] = tickets_booked_events
 
+        if self.request.user.is_staff:
+            context['not_visible_events'] = TicketedEvent.objects.filter(
+                date__gte=timezone.now(), show_on_site=False
+            )
+
         return context
 
 
@@ -60,9 +65,18 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
     template_name = 'booking/create_ticket_booking.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.ticketed_event = get_object_or_404(
-            TicketedEvent, slug=kwargs['event_slug'], show_on_site=True
-        )
+        # allow staff users to see this page for not show_on_site events too
+        if request.user.is_staff:
+            self.ticketed_event = get_object_or_404(
+                TicketedEvent, slug=kwargs['event_slug'],
+                cancelled=False
+            )
+        else:
+            self.ticketed_event = get_object_or_404(
+                TicketedEvent, slug=kwargs['event_slug'], show_on_site=True,
+                cancelled=False
+            )
+
         if request.method.lower() == 'get':
             # get non-cancelled ticket bookings withough attached tickets yet
             user_empty_ticket_bookings = [
@@ -512,7 +526,7 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
     # 4) only show ticketed_events if "show on site" is checked - DONE
     # 5) Add "my purchased tickets" view - DONE
     # 6) Emails when tickets purchased - DONE
-    # ************* 7) Check paypal processes properly and emails are sent ************************
+    # 7) Check paypal processes properly and emails are sent - DONE
     # 8) Allow people to cancel their ticket purchase before payment
     # but not after (cancel for unpaid ticket bookings on the "my
     # purchased tickets" page).  Cancelling sets the cancel flag on the ticket
@@ -528,6 +542,6 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
     # cancelling event cancels all ticket bookings; email all users for ticket
     # bookings and studio - DONE
     # - ticket booking list - allow updating paid - DONE
-    # ****************** - ticket lists - printable - select event, tick info to display, choose ordering ******************
+    # - ticket lists - printable - select event, tick info to display, choose ordering - DONE
     # 11) TicketBooking formset view for users to edit their ticket info - DONE
     # ************ 12) tests **********************************************************************

@@ -87,3 +87,12 @@ th, td {
     width: 30px;
 }
 
+.tickets-table-index {
+    width: 50px;
+    text-indent: 8px;
+}
+
+.tickets-table {
+    min-width: 80px;
+    max-width: 300px
+}

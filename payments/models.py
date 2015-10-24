@@ -53,7 +53,7 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 
     ctx = Context({
         'user': " ".join([user.first_name, user.last_name]),
-        'obj_type': obj_type.title(),
+        'obj_type': obj_type.title().replace('_', ' '),
         'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
         'paypal_transaction_id': paypal_trans.transaction_id
