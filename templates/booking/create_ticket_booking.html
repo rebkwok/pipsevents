@@ -16,14 +16,18 @@
                 <h4>Booking reference: {{ ticket_booking.booking_reference }}</h4>
 
                 <p>Ticket price : £ {{ ticketed_event.ticket_cost }}</p>
-
-                <form name="ticket_purchase_form" class="form-inline" method="post" action="">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        {{ ticket_purchase_form.as_p }}
-                        <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />
-                    </div>
-                </form>
+                {% if not purchase_confirmed %}
+                    <form name="ticket_purchase_form" class="form-inline" method="post" action="">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            {{ ticket_purchase_form.as_p }}
+                            <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />
+                        </div>
+                    </form>
+                {% else %}
+                    <p>Quantity: {{ ticket_booking.tickets.count }}</p>
+                    <p>Total ticket cost: £{{ ticket_booking|total_ticket_cost }}</p>
+                {% endif %}
 
             {% if tickets %}
                 <form method="post" class="form-horizontal" action="">
@@ -83,7 +87,7 @@
 
                 {% if purchase_confirmed %}
                     <div>
-                        <strong>Thank you for your purchase.</strong></br>
+                        <strong>Thank you for your ticket booking.</strong></br>
                         {% if ticketed_event.payment_due_date or ticketed_event.payment_time_allowed %}
                             Your tickets have been reserved and will be held for you {% if ticketed_event.payment_due_date %} until {{ ticketed_event.payment_due_date }}.
                             {% elif ticketed_event.payment_time_allowed %} for {{ ticketed_event.payment_time_allowed }} hours.{% endif %}
@@ -91,11 +95,20 @@
                     </div>
                     </br>
                     {% if paypalform %}
-                        <div>Click below to be transferred to PayPal to make your payment.</div>
-                        {% include 'payments/payment.html' %}
-                    {% else %}
                         <div>{{ ticketed_event.payment_info }}</div>
+                        <div>Click below to be transferred to PayPal to make your payment.</div>
+                        {% include 'payments/payment.html' %}</br>
+                    {% else %}
+                        <div>
+                            {% if not ticketed_event.payment_info %}
+                                Online payment is not available.  Please contact
+                                <a href="mailto:{{ ticketed_event.contact_email }}">{{ ticketed_event.contact_email }}</a> for payment information.
+                            {% else %}
+                                {{ ticketed_event.payment_info }}
+                            {% endif %}
+                        </div></br>
                     {% endif  %}
+                    <input type="button" class="btn btn-danger" onclick="history.back();" value="Back to ticket details">
                 {% endif %}
                 </br>
 

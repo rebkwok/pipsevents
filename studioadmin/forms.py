@@ -1487,9 +1487,6 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
         pptbs_paypal =[True for pptb in pptbs if pptb.transaction_id]
         form.paypal = True if pptbs_paypal else False
 
-        if form.instance.paid and form.instance.payment_confirmed:
-            form.cannot_delete = True
-
         form.fields['DELETE'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': 'delete-checkbox studioadmin-list',
@@ -1499,6 +1496,15 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
         )
         form.DELETE_id = 'DELETE_{}'.format(index)
 
+        form.fields['reopen'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': 'regular-checkbox studioadmin-list',
+                'id': 'reopen_{}'.format(index)
+            }),
+            required=False
+        )
+        form.reopen_id = 'reopen_{}'.format(index)
+
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': 'regular-checkbox studioadmin-list',
@@ -1506,7 +1512,7 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
             }),
             required=False
         )
-        form.DELETE_id = 'paid_{}'.format(index)
+        form.paid_id = 'paid_{}'.format(index)
 
         form.fields['payment_confirmed'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
@@ -1515,7 +1521,16 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
             }),
             required=False
         )
-        form.DELETE_id = 'payment_confirmed_{}'.format(index)
+        form.payment_confirmed_id = 'payment_confirmed_{}'.format(index)
+
+        form.fields['send_confirmation'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': 'regular-checkbox studioadmin-list',
+                'id': 'send_confirmation_{}'.format(index)
+            }),
+            required=False
+        )
+        form.send_confirmation_id = 'send_confirmation_{}'.format(index)
 
 
 TicketBookingInlineFormSet = inlineformset_factory(

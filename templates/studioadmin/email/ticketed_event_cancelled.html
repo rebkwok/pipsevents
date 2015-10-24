@@ -5,10 +5,10 @@
 
 <p>We regret to inform you that the event {{ ticket_booking.ticketed_event }} has been cancelled.</p>
 
-<p>Your ticket booking has been cancelled{% if ticket_booking.paid %}and we will be in touch shortly regarding your
+<p>Your ticket booking has been cancelled{% if ticket_booking.paid %} and we will be in touch shortly regarding your
 payment{% endif %}.</p>
 
 
-<a href="{{ host }}{% url 'booking:bookings' %}">View your bookings</a>
+<a href="{{ host }}{% url 'booking:ticket_bookings' %}">View your ticket bookings</a>
 </div>
 {% endblock %}

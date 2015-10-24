@@ -611,7 +611,6 @@ class TicketBookingTests(TestCase):
         self.assertEqual(event_tickets.count(), 10)
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
-
     def test_date_payment_confirmed(self):
         """
         Test autopopulating date payment confirmed.
@@ -623,15 +622,6 @@ class TicketBookingTests(TestCase):
         booking.payment_confirmed = True
         booking.save()
         self.assertTrue(booking.date_payment_confirmed)
-
-    def test_cannot_cancel_paid_booking(self):
-        booking = mommy.make(
-            TicketBooking, ticketed_event=self.ticketed_event, paid=True
-        )
-        booking.cancelled = True
-        with self.assertRaises(TicketBookingError):
-            booking.save()
-
 
     def test_str(self):
         booking = mommy.make(

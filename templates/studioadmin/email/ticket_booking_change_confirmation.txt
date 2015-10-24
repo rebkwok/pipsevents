@@ -1,0 +1,11 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Your ticket booking (ref {{ ticket_booking.booking_reference }} for {{ ticketed_event }} has been {{ action }} by an administrator.
+
+{% if action == "deleted" %}This ticket booking will no longer appear on your ticket booking list on the website.
+{% elif action == "cancelled" and ticket_booking.paid %}We will be in touch shortly regarding your payment.
+{% elif action == "reopened" and ticketed_event.ticket_cost and not ticket_booking.paid and ticketed_event.advance_payment_required %}
+Please note that payment is due {% if ticketed_event.payment_due_date %}by {{ ticketed_event.payment_due_date }} {% else %}within {{ ticketed_event.payment_time_allowed }} hours{% endif %}.
+{% endif %}
+
+View your ticket bookings: {{ host }}{% url 'booking:ticket_bookings' %}

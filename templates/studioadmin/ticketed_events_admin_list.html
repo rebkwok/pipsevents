@@ -32,22 +32,28 @@
                                 <th class="table-center">Payment open</th>
                                 <th class="table-center">Advance payment required</th>
                                 <th class="table-center">Show on site</th>
+                                <th class="table-center">Max tickets</th>
+                                <th class="table-center">Tickets left</th>
                                 <th class="table-center">View ticket bookings</th>
                                 <th class="table-center">Delete</th>
                             </tr>
 
                             {% for event in ticketed_event_formset %}
-                            <tr>
+                            <tr {% if event.instance.cancelled %}class="cancelled-event"{% endif %}>
                                 <span class="hide">{{ event.id }}</span>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_ticketed_event' event.instance.slug %}">{{ event.instance.name }}</a></td>
                                 <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ event.instance.max_tickets }}</td>
+                                <td class="table-center studioadmin-tbl">{{ event.instance.tickets_left }}</td>
                                 <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fa fa-ticket fa-2x"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if event.cannot_delete %}
-                                        <a href="{% url 'studioadmin: cancel_ticketed_event' event.slug %}"><div class="btn table-btn btn-danger">Cancel event</div></a>
+                                    {% if event.instance.cancelled %}
+                                        CANCELLED
+                                    {% elif event.cannot_delete %}
+                                        <a href="{% url 'studioadmin:cancel_ticketed_event' event.instance.slug %}"><div class="btn table-btn btn-danger">Cancel event</div></a>
                                     {% else %}
                                         {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
                                     {% endif %}
@@ -55,7 +61,7 @@
                             </tr>
                             {% endfor %}
                         <tr>
-                            <td class="studioadmin-tbl" colspan="7"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl" colspan="9"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>

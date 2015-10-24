@@ -1983,7 +1983,7 @@ class TicketedEventBookingsListView(TemplateView):
         context['ticket_bookings'] = [
             tbk for tbk in
             TicketBooking.objects.filter(ticketed_event=self.ticketed_event)
-            if tbk.tickets.exists() and not tbk.cancelled
+            if tbk.tickets.exists()
             ]
         context['ticket_booking_formset'] = TicketBookingInlineFormSet(
             data=self.request.POST if 'formset_submitted'
@@ -2010,52 +2010,113 @@ class TicketedEventBookingsListView(TemplateView):
                 else:
                     for form in ticket_booking_formset:
                         if form.has_changed():
-                            if 'DELETE' in form.changed_data:
-                                messages.success(
-                                    request, mark_safe(
-                                        'Ticket Booking ref <strong>{}</strong> '
-                                        'has been deleted!'.format(
-                                            form.instance.booking_reference,
-                                        )
-                                    )
-                                )
-                                ActivityLog.objects.create(
-                                    log='Ticketed Booking ref {} deleted by '
-                                        'admin user {}'.format(
-                                        form.instance.booking_reference,
-                                        request.user.username
-                                    )
-                                )
+                            if form.changed_data == ['send_confirmation']:
+                                messages.info(
+                                    request, "'Send confirmation' checked for '{}' "
+                                    "but no changes were made; email has not been "
+                                    "sent to user.".format(form.instance.event))
                             else:
-                                for field in form.changed_data:
-                                    messages.success(
-                                        request, mark_safe(
-                                            "<strong>{}</strong> updated for "
-                                            "<strong>{}</strong>".format(
-                                                field.title().replace("_", " "),
-                                                form.instance))
-                                    )
+                                ticket_booking = form.save(commit=False)
+                                if 'DELETE' in form.changed_data:
+                                    if ticket_booking.paid:
+                                        tb_to_cancel = TicketBooking.objects.get(
+                                            id=ticket_booking.id
+                                        )
+                                        action = 'cancelled'
+                                        success_msg = 'Ticket Booking ref <strong>{}' \
+                                              '</strong> has been cancelled! ' \
+                                              'This booking is marked as paid; ' \
+                                              'click <a href={}>here</a> to ' \
+                                              'confirm payment ' \
+                                              'has been refunded'.format(
+                                            tb_to_cancel.booking_reference,
+                                            reverse(
+                                                'studioadmin:confirm_ticket_booking_refund',
+                                                args=[tb_to_cancel.id]
+                                            )
+                                        )
+                                        tb_to_cancel.cancelled = True
+                                        tb_to_cancel.save()
+                                    else:
+                                        action = 'deleted'
+                                        success_msg = 'Ticket Booking ref <strong>{}' \
+                                               '</strong> has been ' \
+                                               'deleted!'.format(
+                                            ticket_booking.booking_reference
+                                        )
+                                        ticket_booking.save()
 
                                     ActivityLog.objects.create(
-                                        log='Ticketed Booking ref {} (user {}, '
-                                            'event {}) updated by admin user '
-                                            '{}: field_changed: {}'.format(
-                                            form.instance.booking_reference,
-                                            form.instance.user,
-                                            form.instance.ticketed_event,
-                                            request.user.username,
-                                            field.title().replace("_", " ")
+                                        log='Ticketed Booking ref {} {} by '
+                                            'admin user {}'.format(
+                                            ticket_booking.booking_reference,
+                                            action,
+                                            request.user.username
                                         )
                                     )
-                            form.save()
+                                elif 'reopen' in form.changed_data:
+                                    success_msg = 'Ticket Booking ref <strong>{}' \
+                                               '</strong> has been ' \
+                                               'reopened!'.format(
+                                            ticket_booking.booking_reference
+                                        )
+                                    action = "reopened"
+                                    ticket_booking.cancelled = False
+                                    ticket_booking.date_booked = timezone.now()
+                                    ticket_booking.save()
+
+                                    ActivityLog.objects.create(
+                                        log='Ticketed Booking ref {} {} by '
+                                            'admin user {}'.format(
+                                            ticket_booking.booking_reference,
+                                            action,
+                                            request.user.username
+                                        )
+                                    )
+                                else:
+                                    action = "updated"
+                                    for field in form.changed_data:
+                                        success_msg = mark_safe(
+                                                "<strong>{}</strong> updated for "
+                                                "<strong>{}</strong>".format(
+                                                    field.title().replace("_", " "),
+                                                    ticket_booking))
+
+                                        ActivityLog.objects.create(
+                                            log='Ticketed Booking ref {} (user {}, '
+                                                'event {}) updated by admin user '
+                                                '{}: field_changed: {}'.format(
+                                                ticket_booking.booking_reference,
+                                                ticket_booking.user,
+                                                ticket_booking.ticketed_event,
+                                                ticket_booking.user.username,
+                                                field.title().replace("_", " ")
+                                            )
+                                        )
+                                    ticket_booking.save()
+
+                                send_conf_msg = ""
+                                if 'send_confirmation' in form.changed_data:
+                                    send_conf_msg = self._send_confirmation_email(
+                                        request, ticket_booking, action
+                                    )
+
+                                messages.success(
+                                    request,
+                                    mark_safe("{}.</br>{}".format(
+                                        success_msg, send_conf_msg
+                                    ))
+                                )
 
                         for error in form.errors:
                             messages.error(
                                 request, mark_safe("{}".format(error))
                             )
-                    ticket_booking_formset.save()
                 return HttpResponseRedirect(
-                    reverse('studioadmin:ticketed_event_bookings')
+                    reverse(
+                        'studioadmin:ticketed_event_bookings',
+                        kwargs={'slug': self.ticketed_event.slug}
+                    )
                 )
 
             else:
@@ -2072,6 +2133,48 @@ class TicketedEventBookingsListView(TemplateView):
                 )
                 return TemplateResponse(request, self.template_name, context)
 
+    def _send_confirmation_email(self, request, ticket_booking, action):
+        try:
+            # send confirmation email
+            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+            # send email to studio
+            ctx = Context({
+                  'host': host,
+                  'ticketed_event': self.ticketed_event,
+                  'action': action,
+            })
+            send_mail('{} Your ticket booking ref {} for {} has been {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                ticket_booking.booking_reference,
+                self.ticketed_event,
+                action
+                ),
+                get_template(
+                    'studioadmin/email/ticket_booking_change_confirmation.txt'
+                ).render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [ticket_booking.user.email],
+                html_message=get_template(
+                    'studioadmin/email/ticket_booking_change_confirmation.html'
+                    ).render(ctx),
+                fail_silently=False)
+            send_confirmation_msg = "Confirmation email was sent to " \
+                                    "user {}.".format(
+                ticket_booking.user.username
+            )
+        except Exception as e:
+            # send mail to tech support with Exception
+            send_support_email(
+                e, __name__, "ticketed_event_booking_list - "
+                "send confirmation email"
+            )
+            send_confirmation_msg = "There was a " \
+            "problem sending the confirmation email to " \
+            "user {}.  Tech support has been notified.".format(
+                ticket_booking.user.username
+            )
+
+        return send_confirmation_msg
 
 @login_required
 @staff_required
@@ -2080,7 +2183,7 @@ def cancel_ticketed_event_view(request, slug):
 
     open_paid_ticket_bookings = [
         booking for booking in ticketed_event.ticket_bookings.all()
-        if booking.cancelled and booking.tickets.exists() and booking.paid
+        if not booking.cancelled and booking.tickets.exists() and booking.paid
         ]
 
     open_unpaid_ticket_bookings = [
@@ -2181,7 +2284,7 @@ def cancel_ticketed_event_view(request, slug):
                 booking_cancelled_msg = '{} has been cancelled; there were ' \
                                         'no open ticket bookings for this ' \
                                         'event'.format(ticketed_event)
-                messages.info(booking_cancelled_msg)
+                messages.info(request, booking_cancelled_msg)
 
             ActivityLog.objects.create(
                 log="{} has been cancelled by admin user {}. {}".format(
@@ -2198,7 +2301,8 @@ def cancel_ticketed_event_view(request, slug):
     context = {
         'ticketed_event': ticketed_event,
         'open_paid_ticket_bookings': open_paid_ticket_bookings,
-        'open_unpaid_ticket_bookings': open_unpaid_ticket_bookings
+        'open_unpaid_ticket_bookings': open_unpaid_ticket_bookings,
+        'already_cancelled': ticketed_event.cancelled
     }
 
     return TemplateResponse(
@@ -2211,6 +2315,7 @@ class ConfirmTicketBookingRefundView(
 ):
 
     model = TicketBooking
+    context_object_name = "ticket_booking"
     template_name = 'studioadmin/confirm_ticket_booking_refunded.html'
     success_message = "Refund of payment for {}'s ticket booking (ref {}) for " \
                       "{} has been confirmed.  An update email has been sent " \
@@ -2236,6 +2341,7 @@ class ConfirmTicketBookingRefundView(
 
             ctx = Context({
                 'ticketed_event': ticket_booking.ticketed_event,
+                'ticket_booking': ticket_booking,
                 'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
 
             })

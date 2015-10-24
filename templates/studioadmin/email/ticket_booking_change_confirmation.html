@@ -1,0 +1,24 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Your ticket booking (ref {{ ticket_booking.booking_reference }} for
+    {{ ticketed_event }} has been {{ action }} by an administrator.</p>
+
+{% if action == "deleted" %}
+    <p>This ticket booking will no longer appear on your ticket booking list on the website.</p>
+{% elif action == "cancelled" and ticket_booking.paid %}
+    <p>We will be in touch shortly regarding your payment.</p>
+{% elif action == "reopened" and ticketed_event.ticket_cost
+    and not ticket_booking.paid and ticketed_event.advance_payment_required %}
+    <p>Please note that payment is due
+    {% if ticketed_event.payment_due_date %}by {{ ticketed_event.payment_due_date }}
+    {% else %}within {{ ticketed_event.payment_time_allowed }} hours
+    {% endif %}.
+    </p>
+{% endif %}
+
+<a href="{{ host }}{% url 'booking:ticket_bookings' %}">View your ticket bookings</a>
+</div>
+{% endblock %}

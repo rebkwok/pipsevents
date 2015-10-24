@@ -2,7 +2,7 @@
 
 We regret to inform you that the event {{ ticket_booking.ticketed_event }} has been cancelled.</p>
 
-Your ticket booking has been cancelled{% if ticket_booking.paid %}and we will be in touch shortly regarding your
+Your ticket booking has been cancelled{% if ticket_booking.paid %} and we will be in touch shortly regarding your
 payment{% endif %}.
 
-View your bookings: {{ host }}{% url 'booking:bookings' %}
+View your ticket_bookings: {{ host }}{% url 'booking:ticket_bookings' %}

@@ -501,11 +501,8 @@ class TicketBooking(models.Model):
                     'No tickets left for {}'.format(self.ticketed_event)
                 )
             self.set_booking_reference()
-        else:
-            orig = TicketBooking.objects.get(id=self.pk)
-            if self.cancelled and not orig.cancelled and orig.paid:
-                raise TicketBookingError('Cannot cancel a paid booking')
-
+        if self.payment_confirmed and not self.paid:
+            self.paid = True
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
 

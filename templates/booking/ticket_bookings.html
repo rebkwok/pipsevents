@@ -36,10 +36,10 @@
                                     <td>
                                         {% if bookingform.paypalform %}
                                             <div class="inc-btm-space">{% include 'payments/bookinglistpayment.html' %}</div>
+                                        {% elif bookingform.ticket_booking.ticketed_event.cancelled %}
+                                            <div>EVENT CANCELLED</div>
                                         {% elif bookingform.ticket_booking.cancelled %}
                                            <div>BOOKING CANCELLED</div>
-                                        {% elif bookingform.ticked_booking.ticketed_event.cancelled %}
-                                            <div>EVENT CANCELLED</div>
                                         {% elif not bookingform.ticket_booking.ticketed_event.payment_open %}
                                             <div>Online payments not open</div>
                                         {% endif %}

@@ -1,0 +1,5 @@
+Your refund for {{ ticketed_event }} (booking reference {{ ticket_booking.booking_reference }}has been confirmed.
+
+View your ticket bookings: {{ host }}{% url 'booking:ticket_bookings' %}
+
+{% include "account/email/do_not_reply.txt" %}
