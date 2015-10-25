@@ -259,9 +259,13 @@ color: #000;
 
 }
 
+.sidebar-nav .collapse li {
+  text-indent: 20px;
+}
+
 .sidebar-nav li {
   line-height: 25px;
-  text-indent: 20px;
+  text-indent: 2px;
 }
 
 .sidebar-nav li a {
@@ -651,7 +655,6 @@ label {
     color: #173B0B;
 }
 
-
 .delete-checkbox {
     display: none;
 }
@@ -832,4 +835,8 @@ a > span.fa.fa-print {
     font-style: italic;
     font-size: smaller;
     padding-left: 0;
+}
+
+.show-cancelled-label {
+    font-weight: bold;
 }

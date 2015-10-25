@@ -471,11 +471,6 @@ class TicketBooking(models.Model):
     ticketed_event = models.ForeignKey(TicketedEvent, related_name="ticket_bookings")
     date_booked = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(default=False)
-    payment_confirmed = models.BooleanField(
-        default=False,
-        help_text='Payment confirmed by admin/organiser'
-    )
-    date_payment_confirmed = models.DateTimeField(null=True, blank=True)
 
     # cancelled flag so we can cancel unpaid ticket purchases
     # do not allow reopening of cancelled ticket bookings
@@ -503,10 +498,6 @@ class TicketBooking(models.Model):
                     'No tickets left for {}'.format(self.ticketed_event)
                 )
             self.set_booking_reference()
-        if self.payment_confirmed and not self.paid:
-            self.paid = True
-        if self.payment_confirmed and not self.date_payment_confirmed:
-            self.date_payment_confirmed = timezone.now()
 
         super(TicketBooking, self).save(*args, **kwargs)
 

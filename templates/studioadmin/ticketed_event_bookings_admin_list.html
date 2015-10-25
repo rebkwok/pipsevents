@@ -14,6 +14,15 @@
                     {{ ticket_booking_formset.management_form }}
 
                 {% if ticket_bookings %}
+                    <div>
+                        <input id=show_cancelled_id
+                                type="checkbox"
+                                name="show_cancelled"
+                                class="form-control regular-checkbox"
+                                onchange="form.submit()" {% if show_cancelled_ctx %}checked{% endif %}
+                                /><label for="show_cancelled_id"></label>
+                                <span class="show-cancelled-label">Include cancelled bookings</span>
+                    </div>
                 <div class="panel panel-success">
                     <div class="table-responsive">
                         <table class="table tablesorter" id="sortTable">
@@ -24,7 +33,6 @@
                                 <th>Ref # <span class="fa fa-sort"></span></th>
                                 <th>Date booked <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Paid</span></th>
-                                <th class="table-center">Payment Confirmed</th>
                                 <th class="table-center">Paid by PayPal</th>
                                 <th class="table-center">Tickets</th>
                                 <th class="table-center">Cancel/Reopen</th>
@@ -40,7 +48,6 @@
                                 <td class="studioadmin-tbl">{{ tbooking.instance.booking_reference | abbr_ref }}</td>
                                 <td class="studioadmin-tbl"><span style="display: none;">{{ tbooking.instance.date_booked | date:"Ymd"}}</span>{{ tbooking.instance.date_booked| date:"d-M-y" }}</a></td>
                                 <td class="table-center studioadmin-tbl">{{ tbooking.paid }}<label for={{ tbooking.paid_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{{ tbooking.payment_confirmed }}<label for={{ tbooking.payment_confirmed_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">
                                         {% if booking.paypal %}
                                             <span class="fa fa-check"></span>
@@ -58,7 +65,7 @@
                             {% endfor %}
                             </tbody>
                         <tr>
-                            <td class="studioadmin-tbl" colspan="8"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl" colspan="7"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>

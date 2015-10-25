@@ -1514,15 +1514,6 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
         )
         form.paid_id = 'paid_{}'.format(index)
 
-        form.fields['payment_confirmed'] = forms.BooleanField(
-            widget=forms.CheckboxInput(attrs={
-                'class': 'regular-checkbox studioadmin-list',
-                'id': 'payment_confirmed_{}'.format(index)
-            }),
-            required=False
-        )
-        form.payment_confirmed_id = 'payment_confirmed_{}'.format(index)
-
         form.fields['send_confirmation'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': 'regular-checkbox studioadmin-list',
@@ -1536,7 +1527,7 @@ class TicketBookingInlineBaseFormSet(BaseInlineFormSet):
 TicketBookingInlineFormSet = inlineformset_factory(
     TicketedEvent,
     TicketBooking,
-    fields=('paid', 'payment_confirmed'),
+    fields=('paid', ),
     formset=TicketBookingInlineBaseFormSet,
     extra=0,
 )

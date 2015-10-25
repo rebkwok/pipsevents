@@ -159,7 +159,7 @@ def payment_received(sender, **kwargs):
                 paypal_trans.transaction_id = ipn_obj.txn_id
                 paypal_trans.save()
 
-                if obj_type == 'booking' or obj_type == 'ticket_booking':
+                if obj_type == 'booking':
                     obj.payment_confirmed = True
                     obj.date_payment_confirmed = timezone.now()
                 obj.paid = True
