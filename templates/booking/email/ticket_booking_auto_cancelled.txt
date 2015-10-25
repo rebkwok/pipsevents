@@ -1,0 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Your payment has not been received for {{ ticketed_event }} and your ticket booking (ref {{ ticket_booking.booking_reference }}has now been cancelled.
+
+For further information please contact {{ ticketed_event.contact_person }} at {{ ticketed_event.contact_email }}

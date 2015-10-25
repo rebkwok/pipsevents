@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytz
 from datetime import datetime, timedelta, date
 import time
@@ -1241,6 +1242,7 @@ class TicketedEventAdminForm(forms.ModelForm):
             'class': 'form-control',
             'aria-describedby': 'sizing-addon2',
         }),
+        initial=0,
     )
 
     extra_ticket_info_label = forms.CharField(
@@ -1330,38 +1332,88 @@ class TicketedEventAdminForm(forms.ModelForm):
                 if payment_due_date < date:
                     cleaned_data['payment_due_date'] = payment_due_date
                 else:
-                    self.add_error('payment_due_date', 'Payment due date must '
-                                                       'be before event date')
+                    self.add_error(
+                        'payment_due_date',
+                        'Payment due date must be before event date'
+                    )
                 cleaned_data['payment_due_date'] = payment_due_date
             except ValueError:
                 self.add_error(
-                    'payment_due_date', 'Invalid date format.  Select from '
-                                        'the date picker or enter date in the '
-                                        'format dd Mmm YYYY')
+                    'payment_due_date',
+                    'Invalid date format.  Select from the date picker or '
+                    'enter date in the format dd Mmm YYYY')
 
-        if not cleaned_data['extra_ticket_info_label']:
-            if cleaned_data['extra_ticket_info_required'] == True:
+        if not cleaned_data.get('extra_ticket_info_label'):
+            if cleaned_data.get('extra_ticket_info_required'):
                 self.add_error(
-                    'extra_ticket_info_required', 'Provide a label for this '
-                                                  'extra ticket info field'
+                    'extra_ticket_info_required',
+                    'Provide a label for this extra ticket info field'
                 )
-            if cleaned_data['extra_ticket_info_help']:
+            if cleaned_data.get('extra_ticket_info_help'):
                 self.add_error(
-                    'extra_ticket_info_help', 'Provide a label for this '
-                                                  'extra ticket info field'
+                    'extra_ticket_info_help',
+                    'Provide a label for this extra ticket info field'
                 )
-        if not cleaned_data['extra_ticket_info1_label']:
-            if cleaned_data['extra_ticket_info1_required'] == True:
+        if not cleaned_data.get('extra_ticket_info1_label'):
+            if cleaned_data.get('extra_ticket_info1_required'):
                 self.add_error(
-                    'extra_ticket_info1_required', 'Provide a label for this '
-                                                  'extra ticket info field'
+                    'extra_ticket_info1_required',
+                    'Provide a label for this extra ticket info field'
                 )
-            if cleaned_data['extra_ticket_info1_help']:
+            if cleaned_data.get('extra_ticket_info1_help'):
                 self.add_error(
-                    'extra_ticket_info1_help', 'Provide a label for this '
-                                                  'extra ticket info field'
+                    'extra_ticket_info1_help',
+                    'Provide a label for this extra ticket info field'
                 )
 
+        if cleaned_data.get('advance_payment_required'):
+            if not (cleaned_data.get('payment_due_date') or
+                        cleaned_data.get('payment_time_allowed')):
+                self.add_error(
+                    'advance_payment_required',
+                    'Please provide either a payment due date or payment '
+                    'time allowed'
+                    )
+            elif cleaned_data.get('payment_due_date') and \
+                    cleaned_data.get('payment_time_allowed'):
+                self.add_error(
+                    'payment_due_date',
+                    'Please provide either a payment due date or payment time '
+                    'allowed (but not both)'
+                )
+                self.add_error(
+                    'payment_time_allowed',
+                    'Please provide either a payment due date or payment time '
+                    'allowed (but not both)'
+                )
+        else:
+            if cleaned_data.get('payment_due_date'):
+                self.add_error(
+                    'payment_due_date',
+                    'To specify a payment due date, please also tick '
+                    '"advance payment required"'
+                    )
+            if cleaned_data.get('payment_due_date'):
+                self.add_error(
+                    'payment_time_allowed',
+                    'To specify a payment time allowed,  date, please also '
+                    'tick "advance payment required"'
+                    )
+
+        if not cleaned_data.get('ticket_cost'):
+            ticket_cost_errors = []
+            if cleaned_data.get('advance_payment_required'):
+                ticket_cost_errors.append('advance payment required')
+            if cleaned_data.get('payment_due_date'):
+                ticket_cost_errors.append('payment due date')
+            if cleaned_data.get('payment_time_allowed'):
+                ticket_cost_errors.append('payment time allowed')
+            if ticket_cost_errors:
+                self.add_error(
+                    'ticket_cost',
+                    'The following fields require a ticket cost greater than '
+                    '£0: {}'.format(', '.join(ticket_cost_errors))
+                )
 
         return cleaned_data
 
@@ -1465,7 +1517,7 @@ class TicketedEventAdminForm(forms.ModelForm):
             'payment_due_date': _('Only use this field if the ticket cost is greater '
                                   'than £0.  If a payment due date is set, '
                                   'advance payment will always be required'),
-           'email_studio_when_purchased': _('Tick if you want the studio to '
+            'email_studio_when_purchased': _('Tick if you want the studio to '
                                           'receive email notifications when a '
                                           'ticket booking is made'),
             'advance_payment_required': _('If this checkbox is not ticked, '

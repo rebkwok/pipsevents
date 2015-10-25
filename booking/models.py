@@ -381,9 +381,9 @@ class TicketedEvent(models.Model):
     payment_time_allowed = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Number of hours allowed for payment after booking (after "
-                  "this ticket purchases will be cancelled.  This will be "
-                  "ignored if there is a payment due date set on the event "
-                  "itself. "
+                  "this ticket purchases will be cancelled.  Note that the "
+                  "automatic cancel job allows 6 hours after booking, so "
+                  "6 hours is the minimum time that will be applied."
     )
     email_studio_when_purchased = models.BooleanField(default=False)
     max_ticket_purchase = models.PositiveIntegerField(

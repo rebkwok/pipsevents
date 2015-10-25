@@ -10,9 +10,8 @@ from allauth.socialaccount.models import SocialApp
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Booking, EventType, BlockType
-from booking.utils import create_classes
-from timetable.models import Session
+from booking.models import Event, Booking, EventType, BlockType, \
+    TicketBooking, Ticket
 
 
 class ManagementCommandsTests(TestCase):
@@ -836,3 +835,750 @@ class CancelUnpaidBookingsTests(TestCase):
         self.unpaid.refresh_from_db()
         # now cancelled
         self.assertEquals(self.unpaid.status, 'CANCELLED')
+
+
+class TicketBookingWarningTests(TestCase):
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings(self, mock_tz):
+        """
+        test email warning is sent 24 hours before payment_due_date
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+        # payment_due_date 2015/2/12 23:59 (>24hrs - warnings not sent)
+        ticketed_event1 = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 12, tzinfo=timezone.utc),
+        )
+
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event1, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_not_sent_for_payment_time_allowed(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # no payment_due_date
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_time_allowed=4,
+        )
+
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 0)
+
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_sent_if_both_due_date_and_time_allowed(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # payment_time_allowed is set
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_time_allowed=4,
+        )
+
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_not_sent_twice(self, mock_tz):
+
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+        for ticket_booking in TicketBooking.objects.all():
+            self.assertTrue(ticket_booking.warning_sent)
+
+        # no additional emails sent on subsequent calls
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_only_sent_for_unpaid(self, mock_tz):
+        """
+        test email warning is only sent for bookings that are not marked as
+        payment_confirmed
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=True,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+        for ticket_booking in TicketBooking.objects.filter(paid=False):
+            self.assertTrue(ticket_booking.warning_sent)
+        for ticket_booking in TicketBooking.objects.filter(paid=True):
+            self.assertFalse(ticket_booking.warning_sent)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_only_sent_for_open_bookings(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            cancelled=True,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+        for ticket_booking in TicketBooking.objects.filter(cancelled=False):
+            self.assertTrue(ticket_booking.warning_sent)
+        for ticket_booking in TicketBooking.objects.filter(cancelled=True):
+            self.assertFalse(ticket_booking.warning_sent)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_only_sent_for_open_events(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+        ticketed_event_cancelled = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            cancelled=True,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event_cancelled,
+            paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+        for ticket_booking in TicketBooking.objects.filter(
+                ticketed_event=ticketed_event
+        ):
+            self.assertTrue(ticket_booking.warning_sent)
+        for ticket_booking in TicketBooking.objects.filter(
+            ticketed_event=ticketed_event_cancelled
+        ):
+            self.assertFalse(ticket_booking.warning_sent)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_only_sent_for_bookings_with_tickets(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+        mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        for ticket_booking in TicketBooking.objects.all()[0:5]:
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 5)
+        for ticket_booking in TicketBooking.objects.all():
+            if ticket_booking.tickets.exists():
+                self.assertTrue(ticket_booking.warning_sent)
+            else:
+                self.assertFalse(ticket_booking.warning_sent)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    def test_email_warnings_not_sent_within_2_hrs_of_booking(self, mock_tz):
+        """
+        test email warning is only sent for bookings made more than 2 hrs ago
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 0, 0, tzinfo=timezone.utc
+            )
+
+        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+        )
+        booking1 = mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            )
+        booking2 = mommy.make(
+            TicketBooking,  ticketed_event=ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 10, 23, 0, tzinfo=timezone.utc),
+            )
+        for ticket_booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=ticket_booking)
+
+        management.call_command('email_ticket_booking_warnings')
+        self.assertEquals(len(mail.outbox), 1)
+        booking1.refresh_from_db()
+        booking2.refresh_from_db()
+        self.assertTrue(booking1.warning_sent)
+        self.assertFalse(booking2.warning_sent)
+
+
+class CancelUnpaidTicketBookingsTests(TestCase):
+
+    def setUp(self):
+        # payment_due_date 2015/2/10 23:59
+        self.ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            ticket_cost=10,
+            advance_payment_required=True,
+            payment_due_date=datetime(2015, 2, 10, tzinfo=timezone.utc),
+        )
+        self.paid = mommy.make(
+            TicketBooking,  ticketed_event=self.ticketed_event, paid=True,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            warning_sent=True,
+            user__email='paid@test.com'
+            )
+        self.unpaid = mommy.make(
+            TicketBooking,  ticketed_event=self.ticketed_event, paid=False,
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            warning_sent=True,
+            user__email='unpaid@test.com'
+            )
+        for booking in [self.paid, self.unpaid]:
+            mommy.make(Ticket, ticket_booking=booking)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_cancel_unpaid_bookings(self, mock_tz):
+        """
+        test unpaid bookings are cancelled
+        """
+        # one min after payment due date
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.paid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertTrue(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_dont_cancel_if_advance_payment_not_required(self, mock_tz):
+        """
+        test unpaid bookings are not cancelled if advance payment not required
+        for event
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        # set payment_due_date to None, otherwise advance_payment_required is
+        # automatically set to True
+        self.ticketed_event.payment_due_date = None
+        self.ticketed_event.advance_payment_required = False
+        self.ticketed_event.save()
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.paid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_dont_cancel_for_events_with_no_cost(self, mock_tz):
+        """
+        test unpaid bookings are not cancelled if no cost for event
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        self.ticketed_event.ticket_cost = 0
+        self.ticketed_event.save()
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.paid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+    @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_only_cancel_with_payment_due_date_if_warning_sent(
+            self, cancel_mock_tz, warn_mock_tz
+    ):
+        cancel_mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        warn_mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        self.assertFalse(self.unpaid.cancelled)
+        self.unpaid.warning_sent = False
+        self.unpaid.save()
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+
+        # send warnings
+        management.call_command('email_ticket_booking_warnings')
+        self.unpaid.refresh_from_db()
+        self.assertTrue(self.unpaid.warning_sent)
+        self.assertFalse(self.unpaid.cancelled)
+
+        # run cancel commmand again now that warning is set
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings; plus warning email
+        self.unpaid.refresh_from_db()
+
+        self.assertEquals(len(mail.outbox), 3)
+        warning_email = mail.outbox[0]
+        cancel_email_to_user = mail.outbox[1]
+        cancel_email_to_studio = mail.outbox[2]
+        self.assertEqual(
+            warning_email.subject,
+            '[watermelon studio bookings] Reminder: Ticket booking ref {} is '
+            'not yet paid'.format(self.unpaid.booking_reference)
+        )
+        self.assertEqual(warning_email.to[0], self.unpaid.user.email)
+        self.assertEqual(
+            cancel_email_to_user.subject,
+            '[watermelon studio bookings] Ticket Booking ref {} '
+            'cancelled'.format(self.unpaid.booking_reference)
+        )
+        self.assertEqual(cancel_email_to_user.to[0], self.unpaid.user.email)
+        self.assertEqual(
+            cancel_email_to_studio.subject,
+            '[watermelon studio bookings] Ticket Booking has been '
+            'automatically cancelled'
+        )
+        self.assertEqual(cancel_email_to_studio.to[0], settings.DEFAULT_STUDIO_EMAIL)
+        self.assertTrue(self.unpaid.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_cancel_ticket_bookings_over_payment_time_allowed_without_warnings(
+            self, mock_tz
+    ):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+        )
+        self.ticketed_event.payment_due_date = None
+        self.ticketed_event.payment_time_allowed = 8
+        self.ticketed_event.save()
+
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.warning_sent = False
+        self.unpaid.save()
+        # self.unpaid.date_booked is within 8 hrs, so not cancelled
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+
+
+        # set date booked to >8 hrs ago
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 1, 59, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        # self.unpaid.date_booked is within 4 hrs, so not cancelled
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertTrue(self.unpaid.cancelled)
+        # even though warning has not been sent
+        self.assertFalse(self.unpaid.warning_sent)
+
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_payment_time_allowed_less_than_6_hours_defaults_to_6(
+            self, mock_tz
+    ):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+        )
+        self.ticketed_event.payment_due_date = None
+        self.ticketed_event.payment_time_allowed = 4
+        self.ticketed_event.save()
+
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 5, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.warning_sent = False
+        self.unpaid.save()
+        # self.unpaid.date_booked is more than 4 but <6 hrs, so not cancelled
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+
+
+        # set date booked to >6 hrs ago
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 3, 59, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        # self.unpaid.date_booked is within 4 hrs, so not cancelled
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertTrue(self.unpaid.cancelled)
+        # even though warning has not been sent
+        self.assertFalse(self.unpaid.warning_sent)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_dont_cancel_for_events_in_the_past(self, mock_tz):
+        """
+        test don't cancel or send emails for past events
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+        # make date of event in the past
+        self.ticketed_event.date = datetime(2015, 2, 9, tzinfo=timezone.utc)
+        self.ticketed_event.save()
+        self.assertTrue(timezone.now() > self.ticketed_event.date)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once
+        # for all cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.paid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+        self.assertFalse(self.paid.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_dont_cancel_for_already_cancelled(self, mock_tz):
+        """
+        ignore already cancelled bookings
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        self.unpaid.cancelled = True
+        self.unpaid.save()
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once
+        # for all cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertTrue(self.unpaid.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_dont_cancel_for_cancelled_events(self, mock_tz):
+        """
+        ignore bookings for cancelled events
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        self.ticketed_event.cancelled = True
+        self.ticketed_event.save()
+        self.assertFalse(self.unpaid.cancelled)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking and studio once
+        # for all cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertFalse(self.unpaid.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_dont_cancel_bookings_created_within_past_6_hours(self, mock_tz):
+        """
+        Avoid immediately cancelling bookings made within the cancellation
+        period to allow time for users to make payments
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 12, 0, tzinfo=timezone.utc
+        )
+
+        # self.ticketed_event payment due date 2015/2/11 23:59
+
+        unpaid_within_6_hrs = mommy.make(
+            TicketBooking,
+            ticketed_event=self.ticketed_event,
+            paid=False,
+            date_booked=datetime(
+                2015, 2, 11, 6, 30, tzinfo=timezone.utc
+            ),
+            warning_sent=True
+        )
+        unpaid_more_than_6_hrs = mommy.make(
+            TicketBooking,
+            ticketed_event=self.ticketed_event,
+            paid=False,
+            date_booked=datetime(
+                2015, 2, 10, 5, 30, tzinfo=timezone.utc
+            ),
+            warning_sent=True
+        )
+
+        self.assertFalse(unpaid_within_6_hrs.cancelled)
+        self.assertFalse(unpaid_more_than_6_hrs.cancelled)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        unpaid_within_6_hrs.refresh_from_db()
+        unpaid_more_than_6_hrs.refresh_from_db()
+        self.assertFalse(unpaid_within_6_hrs.cancelled)
+        self.assertTrue(unpaid_more_than_6_hrs.cancelled)
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_only_send_one_email_to_studio(self, mock_tz):
+        """
+        users are emailed per booking, studio just receives one summary
+        email
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        for i in range(5):
+            mommy.make(
+                TicketBooking, ticketed_event=self.ticketed_event,
+                cancelled=False, paid=False,
+                user__email="unpaid_user{}@test.com".format(i),
+                date_booked= datetime(
+                    2015, 2, 9, tzinfo=timezone.utc
+                ),
+                warning_sent=True
+            )
+        for booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=booking)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking (6) (these 5 plus
+        # self.unpaid) and studio once for all cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 7)
+        self.assertTrue(self.unpaid.cancelled)
+        self.assertEquals(
+            TicketBooking.objects.filter(cancelled=True).count(), 6
+        )
+        cancelled_booking_emails = [
+            booking.user.email for booking
+            in TicketBooking.objects.filter(cancelled=True)
+        ]
+        all_emails = cancelled_booking_emails + [settings.DEFAULT_STUDIO_EMAIL]
+
+        self.assertEquals(
+            all_emails, [email.to[0] for email in mail.outbox]
+        )
+
+    @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
+    def test_delete_unconfirmed_ticket_bookings_after_1_hr(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 12, 0, tzinfo=timezone.utc
+        )
+        unconfirmed_ticket_booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            date_booked=datetime(2015, 2, 10, 10, 0, tzinfo=timezone.utc),
+            purchase_confirmed=False
+        )
+        unconfirmed_ticket_booking1 = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            date_booked=datetime(2015, 2, 10, 11, 30, tzinfo=timezone.utc),
+            purchase_confirmed=False
+        )
+        for booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=booking)
+
+        management.call_command('delete_unconfirmed_ticket_bookings')
+        # only unconfirmed_ticket_booking has been deleted (booked >1 hr ago)
+        self.assertEqual(
+            TicketBooking.objects.filter(purchase_confirmed=False).count(),
+            1
+        )
+
+        with self.assertRaises(TicketBooking.DoesNotExist):
+            TicketBooking.objects.get(id=unconfirmed_ticket_booking.id)
+
+        # confirm that associated tickets have also been deleted
+        self.assertEqual(
+            Ticket.objects.filter(
+                ticket_booking__id=unconfirmed_ticket_booking.id
+            ).count(),
+            0
+        )
+        # unconfirmed_ticket_booking1 still has its ticket
+        self.assertEqual(
+            Ticket.objects.filter(
+                ticket_booking__id=unconfirmed_ticket_booking1.id
+            ).count(),
+            0
+        )

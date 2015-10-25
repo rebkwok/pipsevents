@@ -515,33 +515,3 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('booking:ticket_bookings')
-
-
-    # TODO
-    # 1) deal with form errors - DONE
-    # 2) activity log entries - DONE
-    # 3) payment_not_open case ("confirm purchase" button doesn't return
-    # paypalform, instead just shows message with payment info - for
-    # cases where payment isn't being taken by paypal) - DONE
-    # 4) only show ticketed_events if "show on site" is checked - DONE
-    # 5) Add "my purchased tickets" view - DONE
-    # 6) Emails when tickets purchased - DONE
-    # 7) Check paypal processes properly and emails are sent - DONE
-    # 8) Allow people to cancel their ticket purchase before payment
-    # but not after (cancel for unpaid ticket bookings on the "my
-    # purchased tickets" page).  Cancelling sets the cancel flag on the ticket
-    # booking but doesn't delete it or delete the tickets- DONE
-    # ************* 9) reminder, warnings and Cancel manage commands for Cron jobs ****************
-    # - cancel ticket bookings with purchase_confirmed that are
-    # not paid by payment due date or within the allowed hours of booked date.
-    # - delete ticket bookings without purchase_confirmed that are > 1 hour after
-    # booking date (ie. ticket booking started but not completed and user
-    # navigated away from page instead of pressing cancel button)
-    # 10) StudioAdmin -
-    # - cancelling events with tickets purchased
-    # cancelling event cancels all ticket bookings; email all users for ticket
-    # bookings and studio - DONE
-    # - ticket booking list - allow updating paid - DONE
-    # - ticket lists - printable - select event, tick info to display, choose ordering - DONE
-    # 11) TicketBooking formset view for users to edit their ticket info - DONE
-    # ************ 12) tests **********************************************************************

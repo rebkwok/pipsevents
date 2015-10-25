@@ -2068,6 +2068,7 @@ class TicketedEventBookingsListView(TemplateView):
                                         action = "reopened"
                                         ticket_booking.cancelled = False
                                         ticket_booking.date_booked = timezone.now()
+                                        ticket_booking.warning_sent = False
 
                                         ActivityLog.objects.create(
                                             log='Ticketed Booking ref {} {} by '

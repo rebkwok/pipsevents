@@ -1,0 +1,5 @@
+The following bookings have been automatically cancelled as they were unpaid the payment due date or after the time allowed for payment.
+{% for booking in bookings %}
+ - Event: {{ booking.ticketed_event }}, Booking reference: {{ booking.booking_reference }}, User: {{ booking.user.first_name }} {{ booking.user.last_name }} ({{ booking.user.username }})</li>
+{% endfor %}
+Users have been sent an email notifying them that their ticket booking has been cancelled.

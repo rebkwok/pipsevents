@@ -94,9 +94,3 @@ ticketed_event_max10 = Recipe(
 ticketed_event_past_max10 = Recipe(TicketedEvent, max_tickets=10,
                                    ticket_cost=10, date=past)
 
-ticket_booking_max10 = Recipe(
-    TicketBooking, ticketed_event=foreign_key(ticketed_event_max10)
-)
-ticket_max10 = Recipe(
-    Ticket, ticket_booking=foreign_key(ticket_booking_max10)
-)
