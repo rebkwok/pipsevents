@@ -22,7 +22,6 @@
                         <div>
                         {% if ticketed_event.extra_ticket_info_label or ticketed_event.extra_ticket_info1_label %}
                             <h4>Additional ticket information</h4>
-                        {% endif %}
                             {% for ticketform in ticket_formset %}
                                 <span class="hide">{{ ticketform.id }}</span>
                                 {% if ticketed_event.extra_ticket_info_label %}
@@ -64,10 +63,14 @@
                                     />
                                 <a href="{% url 'booking:ticket_bookings' %}"><div class="btn btn-danger update-btn">Cancel</div></a>
                              </div>
+
+                        {% else %}
+                            <div>No additional ticket information required for these tickets.</div></br>
+                            <a href="{% url 'booking:ticket_bookings' %}"><div class="btn btn-danger update-btn">Back to your Ticket Bookings</div></a>
+
+                        {% endif %}
                     </form>
-                {% else %}
-                    <div>No additional ticket information required for these tickets.</div></br>
-                {% endif %}
+            {% endif %}
 
 
 

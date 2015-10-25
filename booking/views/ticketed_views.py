@@ -77,24 +77,25 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                 cancelled=False
             )
 
-        if request.method.lower() == 'get':
-            # get non-cancelled ticket bookings withough attached tickets yet
-            user_empty_ticket_bookings = [
-                tbk for tbk in TicketBooking.objects.filter(
-                    user=self.request.user, ticketed_event=self.ticketed_event,
-                    cancelled=False
-                ) if not tbk.tickets.exists()
-                ]
+        if not request.user.is_anonymous():
+            if request.method.lower() == 'get':
+                # get non-cancelled ticket bookings withough attached tickets yet
+                user_empty_ticket_bookings = [
+                    tbk for tbk in TicketBooking.objects.filter(
+                        user=self.request.user, ticketed_event=self.ticketed_event,
+                        cancelled=False
+                    ) if not tbk.tickets.exists()
+                    ]
 
-            if user_empty_ticket_bookings:
-                self.ticket_booking = user_empty_ticket_bookings[0]
-            else:
-                self.ticket_booking = TicketBooking.objects.create(
-                    user=self.request.user, ticketed_event=self.ticketed_event
-                )
-        elif request.method.lower() == 'post':
-            ticket_bk_id = request.POST['ticket_booking_id']
-            self.ticket_booking = TicketBooking.objects.get(pk=ticket_bk_id)
+                if user_empty_ticket_bookings:
+                    self.ticket_booking = user_empty_ticket_bookings[0]
+                else:
+                    self.ticket_booking = TicketBooking.objects.create(
+                        user=self.request.user, ticketed_event=self.ticketed_event
+                    )
+            elif request.method.lower() == 'post':
+                ticket_bk_id = request.POST['ticket_booking_id']
+                self.ticket_booking = TicketBooking.objects.get(pk=ticket_bk_id)
 
         return super(TicketCreateView, self).dispatch(request, *args, **kwargs)
 
@@ -141,8 +142,9 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             q_existing_tickets = existing_tickets.count()
             quantity = int(request.POST.get('ticket_purchase_form-quantity'))
 
-            if self.ticketed_event.tickets_left() < quantity and \
-                            quantity > q_existing_tickets:
+            if quantity > (
+                        self.ticketed_event.tickets_left() + q_existing_tickets
+            ):
                 messages.error(
                     request, 'Cannot purchase the number of tickets requested.  '
                              'Only {} tickets left.'.format(
@@ -218,10 +220,11 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
                 try:
                     # send notification email to user
-                    send_mail('{} Ticket booking ref {} for {}'.format(
+                    send_mail('{} Ticket booking confirmed for {}: ref {}'.format(
                             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                            self.ticketed_event,
                             self.ticket_booking.booking_reference,
-                            self.ticketed_event
+
                         ),
                         get_template(
                             'booking/email/ticket_booking_made.txt'
@@ -241,10 +244,10 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
                 if self.ticketed_event.email_studio_when_purchased:
                     try:
-                        send_mail('{} Ticket booking ref {} for {}'.format(
+                        send_mail('{} Ticket booking confirmed for {}: ref {}'.format(
                                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                                self.ticketed_event,
                                 self.ticket_booking.booking_reference,
-                                self.ticketed_event
                             ),
                             get_template(
                                 'booking/email/to_studio_ticket_booking_made.txt'
@@ -296,7 +299,8 @@ class TicketBookingListView(LoginRequiredMixin, ListView):
 
         ticketbookinglist = []
         for ticket_booking in self.object_list:
-            if not ticket_booking.cancelled and not ticket_booking.paid:
+            if not ticket_booking.cancelled and not ticket_booking.paid \
+                    and ticket_booking.ticketed_event.payment_open:
                 # ONLY DO THIS IF PAYPAL BUTTON NEEDED
                 invoice_id = create_ticket_booking_paypal_transaction(
                     self.request.user, ticket_booking).invoice_id
@@ -356,9 +360,11 @@ class TicketBookingView(LoginRequiredMixin, TemplateView):
     template_name = 'booking/ticket_booking.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.ticket_booking = get_object_or_404(
-            TicketBooking, booking_reference=kwargs['ref'], user=request.user
-        )
+        if not request.user.is_anonymous():
+            self.ticket_booking = get_object_or_404(
+                TicketBooking, booking_reference=kwargs['ref'],
+                user=request.user
+            )
         return super(TicketBookingView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

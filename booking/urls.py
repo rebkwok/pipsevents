@@ -51,7 +51,7 @@ urlpatterns = patterns('',
         r'^ticketed-events/$', TicketedEventListView.as_view(),
         name='ticketed_events'
     ),
-    url(r'^ticketed_events/(?P<event_slug>[\w-]+)/purchase/$',
+    url(r'^ticketed-events/(?P<event_slug>[\w-]+)/purchase/$',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
     url(r'^ticket-bookings/$', TicketBookingListView.as_view(), name='ticket_bookings'),
