@@ -446,40 +446,29 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
     model = TicketBooking
     template_name = 'booking/cancel_ticket_booking.html'
     context_object_name = 'ticket_booking'
-    fields = ('__all__')
+    fields = ('id',)
     success_message = "Ticket booking reference {} has been cancelled"
 
     def check_and_redirect(self, request, ticket_booking):
 
         if ticket_booking.paid:
-            messages.info(
-                request,
-                "Ticket booking ref {} has been paid and cannot be "
+            return "Ticket booking ref {} has been paid and cannot be " \
                 "cancelled".format(ticket_booking.booking_reference)
-            )
-            return HttpResponseRedirect(reverse('booking:ticket_bookings'))
-        if ticket_booking.ticketed_event.cancelled:
-            messages.info(
-                request,
-                "Ticket booking ref {} is for a cancelled event and cannot be "
-                "cancelled here.  Please contact the studio for "
-                "information.".format(ticket_booking.booking_reference)
-            )
-            return HttpResponseRedirect(reverse('booking:ticket_bookings'))
-
+        elif ticket_booking.ticketed_event.cancelled:
+            return "Ticket booking ref {} is for a cancelled event and " \
+                   "cannot be cancelled here.  Please contact the studio " \
+                   "for information.".format(ticket_booking.booking_reference)
         # redirect if booking cancelled
-        if ticket_booking.cancelled:
-            messages.info(
-                request,
-                "Ticket booking (ref {}) has already been cancelled".format(
+        elif ticket_booking.cancelled:
+            return "Ticket booking (ref {}) has already been cancelled".format(
                     ticket_booking.booking_reference
                 )
-            )
-            return HttpResponseRedirect(reverse('booking:ticket_bookings'))
+        else:
+            return None
 
     def get(self, request, *args, **kwargs):
         # redirect if event cancelled
-        ticket_booking = get_object_or_404(TicketBooking, id=self.kwargs['pk'])
+        ticket_booking = get_object_or_404(TicketBooking, pk=self.kwargs['pk'])
 
         self.check_and_redirect(request, ticket_booking)
         return super(TicketBookingCancelView, self).get(request, *args, **kwargs)
@@ -488,7 +477,10 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
 
         if "confirm_cancel" in form.data:
             ticket_booking = form.save(commit=False)
-            self.check_and_redirect(self.request, ticket_booking)
+            err_msg = self.check_and_redirect(self.request, ticket_booking)
+            if err_msg:
+                messages.info(self.request, err_msg)
+                return HttpResponseRedirect(reverse('booking:ticket_bookings'))
 
             ticket_booking.cancelled = True
             ticket_booking.save()
@@ -504,7 +496,8 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
             try:
                 # send email and set messages
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-                # send email to user; no need to send to studio
+                # send email to user; no need to send to studio as cancelled
+                # before payment
                 ctx = Context({
                       'host': host,
                       'ticket_booking': ticket_booking,

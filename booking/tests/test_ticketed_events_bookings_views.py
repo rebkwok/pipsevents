@@ -1068,7 +1068,13 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(TicketBookingCancelViewTests, self).setUp()
-        self.ticket_booking = mommy.make(TicketBooking)
+        self.ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10'
+        )
+        self.ticket_booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True
+        )
         mommy.make(Ticket, ticket_booking=self.ticket_booking)
 
     def _get_response(self, user, ticket_booking):
@@ -1078,16 +1084,21 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
         request = self.factory.get(url)
         request.user = user
         view = TicketBookingCancelView.as_view()
-        return view(request)
+        return view(request, pk=ticket_booking.id)
 
     def _post_response(self, user, ticket_booking, form_data={}):
         url = reverse(
             'booking:cancel_ticket_booking', args=[ticket_booking.id]
         )
+        store = _create_session()
         request = self.factory.post(url, form_data)
         request.user = user
+        request.session = store
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
         view = TicketBookingCancelView.as_view()
-        return view(request)
+        return view(request, pk=ticket_booking.id)
 
     def test_login_required(self):
         """
@@ -1099,21 +1110,82 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 302)
 
+    def test_can_access_if_logged_in(self):
+        resp = self._get_response(self.user, self.ticket_booking)
+        self.assertEqual(resp.status_code, 200)
+
     def test_can_cancel_unpaid_ticket_booking(self):
-        pass
+        self.assertFalse(self.ticket_booking.cancelled)
+        resp = self._post_response(
+            self.user, self.ticket_booking,
+            {
+                'id': self.ticket_booking.id,
+                'confirm_cancel': 'Yes, cancel my ticket booking'
+            }
+        )
+        self.ticket_booking.refresh_from_db()
+        self.assertTrue(self.ticket_booking.cancelled)
 
     def test_cannot_cancel_paid_ticket_booking(self):
-        pass
+        self.ticket_booking.paid = True
+        self.ticket_booking.save()
+        self.assertFalse(self.ticket_booking.cancelled)
+        resp = self._post_response(
+            self.user, self.ticket_booking,
+            {
+                'id': self.ticket_booking.id,
+                'confirm_cancel': 'Yes, cancel my ticket booking'
+            }
+        )
+        self.ticket_booking.refresh_from_db()
+        self.assertFalse(self.ticket_booking.cancelled)
 
     def test_cannot_cancel_ticket_booking_for_cancelled_event(self):
-        pass
-
-    def test_cannot_cancel_already_cancelled_ticket_booking(self):
-        pass
+        self.ticketed_event.cancelled = True
+        self.ticketed_event.save()
+        self.assertFalse(self.ticket_booking.cancelled)
+        resp = self._post_response(
+            self.user, self.ticket_booking,
+            {
+                'id': self.ticket_booking.id,
+                'confirm_cancel': 'Yes, cancel my ticket booking'
+            }
+        )
+        self.ticket_booking.refresh_from_db()
+        self.assertFalse(self.ticket_booking.cancelled)
 
     def test_cancel_email_is_sent_to_user(self):
-        pass
+        self.assertFalse(self.ticket_booking.cancelled)
+        resp = self._post_response(
+            self.user, self.ticket_booking,
+            {
+                'id': self.ticket_booking.id,
+                'confirm_cancel': 'Yes, cancel my ticket booking'
+            }
+        )
+        self.ticket_booking.refresh_from_db()
+        self.assertTrue(self.ticket_booking.cancelled)
+        self.assertEqual(len(mail.outbox), 1)
+        user_email = mail.outbox[0]
+        self.assertEqual(user_email.to, [self.user.email])
+        self.assertEqual(
+            user_email.subject,
+            '{} Ticket booking ref {} cancelled'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                self.ticket_booking.booking_reference
+            )
+        )
 
-
-# TODO ticket create view - show booking may have expired page if booking ref not found
-
+    def test_cannot_cancel_already_cancelled_ticket_booking(self):
+        self.ticket_booking.cancelled = True
+        self.ticket_booking.save()
+        resp = self._post_response(
+            self.user, self.ticket_booking,
+            {
+                'id': self.ticket_booking.id,
+                'confirm_cancel': 'Yes, cancel my ticket booking'
+            }
+        )
+        self.ticket_booking.refresh_from_db()
+        self.assertTrue(self.ticket_booking.cancelled)
+        self.assertEqual(len(mail.outbox), 0)
