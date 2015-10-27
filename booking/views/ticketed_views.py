@@ -97,7 +97,20 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                     )
             elif request.method.lower() == 'post':
                 ticket_bk_id = request.POST['ticket_booking_id']
-                self.ticket_booking = TicketBooking.objects.get(pk=ticket_bk_id)
+                # first check this ticket booking exists, in case the user never
+                # confirmed and is returning to this page after an hour or more
+                # and it's been automatically deleted
+                try:
+                    self.ticket_booking = TicketBooking.objects.get(
+                        pk=ticket_bk_id
+                    )
+                except TicketBooking.DoesNotExist:
+                    return HttpResponseRedirect(
+                        reverse(
+                            'booking:ticket_purchase_expired',
+                            kwargs={'slug': self.ticketed_event.slug}
+                        )
+                    )
 
         return super(TicketCreateView, self).dispatch(request, *args, **kwargs)
 
@@ -124,21 +137,6 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
         return context
 
     def post(self, request, *args, **kwargs):
-
-        # first check this ticket booking exists, in case the user never
-        # confirmed and is returning to this page after an hour or more and
-        # it's been automatically
-        # deleted
-        try:
-            TicketBooking.objects.get(id=self.ticket_booking.id)
-        except TicketBooking.DoesNotExist:
-            return HttpResponseRedirect(
-                reverse(
-                    'booking:ticket_purchase_expired',
-                    kwargs={'slug': self.ticketed_event.slug}
-                )
-            )
-
         if 'cancel' in request.POST:
             self.ticket_booking.delete()
             messages.info(

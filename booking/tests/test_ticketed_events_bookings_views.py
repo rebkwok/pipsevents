@@ -3,11 +3,12 @@ from model_mommy import mommy
 from mock import patch
 
 from django.conf import settings
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core import mail
+from django.core import management
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
-from django.core import mail
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.views import TicketedEventListView, TicketCreateView, \
@@ -306,6 +307,85 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         # no new ticket booking has been created as the existing one can be used
         self.assertEqual(TicketBooking.objects.count(), 1)
         self.assertEqual(resp.context_data['ticket_booking'], tb)
+
+    def test_expired_ticket_booking(self):
+        """
+        If we post to the create booking view with a ticket booking that doesn't
+        exist, it's because a user left the ticket booking page open but didn't
+        press the confirm purchase button.  After 1 hour the ticket booking gets
+        deleted so the booking no longer exists and page should redirect
+        :return:
+        """
+        # post to change ticket quantity with nonexistent booking
+        resp = self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 2, 'ticket_booking_id': 787283748}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:ticket_purchase_expired',
+                kwargs={'slug': self.ticketed_event.slug}
+            )
+        )
+
+        # post to purchase tickets with nonexistent booking
+        form_data = {
+            'ticket_booking_id': 787283748,
+            'ticket_formset-MIN_NUM_FORMS': 0,
+            'ticket_formset-TOTAL_FORMS': 2,
+            'ticket_formset-INITIAL_FORMS': 2,
+            'ticket_formset-0-id': 1,
+            'ticket_formset-1-id': 2,
+            'ticket_formset-submit': 'Confirm purchase',
+            }
+
+        resp = self._post_response(self.user, self.ticketed_event, form_data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:ticket_purchase_expired',
+                kwargs={'slug': self.ticketed_event.slug}
+            )
+        )
+
+    @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
+    def test_automatically_cancelled_ticket_booking(self, delete_job_mock_tz):
+        delete_job_mock_tz.now.return_value = datetime(
+            2015, 10, 1, 11, 30, tzinfo=timezone.utc
+        )
+
+        # create a ticket booking
+        tb = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            date_booked=datetime(2015, 10, 1, 10, 0, tzinfo=timezone.utc)
+        )
+        #add some tickets
+        self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 2, 'ticket_booking_id': tb.id}
+        )
+        tb.refresh_from_db()
+        self.assertEqual(tb.tickets.count(), 2)
+
+        # run the delete unconfirmed job
+        management.call_command('delete_unconfirmed_ticket_bookings')
+
+        # try to change ticket quantity
+        resp = self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 4, 'ticket_booking_id': tb.id}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:ticket_purchase_expired',
+                kwargs={'slug': self.ticketed_event.slug}
+            )
+        )
 
     def test_create_booking_confirmed_purchase(self):
 
