@@ -47,7 +47,8 @@ class TicketedEventListView(ListView):
 
             tickets_booked_events = [
                 tbk.ticketed_event for tbk in TicketBooking.objects.filter(
-                    user=self.request.user, cancelled=False
+                    user=self.request.user, cancelled=False,
+                    purchase_confirmed=True
                 ) if tbk.tickets.exists()
             ]
             context['tickets_booked_events'] = tickets_booked_events
@@ -79,19 +80,20 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
         if not request.user.is_anonymous():
             if request.method.lower() == 'get':
-                # get non-cancelled ticket bookings withough attached tickets yet
-                user_empty_ticket_bookings = [
-                    tbk for tbk in TicketBooking.objects.filter(
-                        user=self.request.user, ticketed_event=self.ticketed_event,
-                        cancelled=False
-                    ) if not tbk.tickets.exists()
-                    ]
+                # get non-cancelled and unconfirmed ticket bookings
+                user_unconfirmed_ticket_bookings = TicketBooking.objects.filter(
+                        user=self.request.user,
+                    ticketed_event=self.ticketed_event,
+                        cancelled=False,
+                        purchase_confirmed=False
+                    )
 
-                if user_empty_ticket_bookings:
-                    self.ticket_booking = user_empty_ticket_bookings[0]
+                if user_unconfirmed_ticket_bookings:
+                    self.ticket_booking = user_unconfirmed_ticket_bookings[0]
                 else:
                     self.ticket_booking = TicketBooking.objects.create(
-                        user=self.request.user, ticketed_event=self.ticketed_event
+                        user=self.request.user,
+                        ticketed_event=self.ticketed_event
                     )
             elif request.method.lower() == 'post':
                 ticket_bk_id = request.POST['ticket_booking_id']
@@ -123,6 +125,20 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
 
+        # first check this ticket booking exists, in case the user never
+        # confirmed and is returning to this page after an hour or more and
+        # it's been automatically
+        # deleted
+        try:
+            TicketBooking.objects.get(id=self.ticket_booking.id)
+        except TicketBooking.DoesNotExist:
+            return HttpResponseRedirect(
+                reverse(
+                    'booking:ticket_purchase_expired',
+                    kwargs={'slug': self.ticketed_event.slug}
+                )
+            )
+
         if 'cancel' in request.POST:
             self.ticket_booking.delete()
             messages.info(
@@ -138,13 +154,20 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
         ticket_formset = context['ticket_formset']
 
         if ticket_purchase_form.has_changed():
-            existing_tickets = self.ticket_booking.tickets.all()
-            q_existing_tickets = existing_tickets.count()
-            quantity = int(request.POST.get('ticket_purchase_form-quantity'))
+            # tickets on current booking are only included in the tickets_left
+            # calculation if purchase has been confirmed
+            old_tickets = self.ticket_booking.tickets.all()
+            old_ticket_count = old_tickets.count()
 
-            if quantity > (
-                        self.ticketed_event.tickets_left() + q_existing_tickets
-            ):
+            if self.ticket_booking.purchase_confirmed:
+                tickets_left_excl_this = self.ticketed_event.tickets_left() \
+                                            + old_ticket_count
+            else:
+                tickets_left_excl_this = self.ticketed_event.tickets_left()
+
+            new_quantity = int(request.POST.get('ticket_purchase_form-quantity'))
+
+            if new_quantity > tickets_left_excl_this:
                 messages.error(
                     request, 'Cannot purchase the number of tickets requested.  '
                              'Only {} tickets left.'.format(
@@ -153,14 +176,14 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                 )
             else:
                 # create the correct number of tickets on this booking
-                if q_existing_tickets < quantity:
-                    for i in range(quantity-q_existing_tickets):
+                if old_ticket_count < new_quantity:
+                    for i in range(new_quantity-old_ticket_count):
                         Ticket.objects.create(ticket_booking=self.ticket_booking)
-                if q_existing_tickets > quantity:
-                    for ticket in existing_tickets[quantity:]:
+                if old_ticket_count > new_quantity:
+                    for ticket in old_tickets[new_quantity:]:
                         ticket.delete()
 
-                if q_existing_tickets > 0:
+                if old_ticket_count > 0:
                     ActivityLog.objects.create(
                         log="Ticket number updated on booking ref {}".format(
                             self.ticket_booking.booking_reference
@@ -363,6 +386,7 @@ class TicketBookingView(LoginRequiredMixin, TemplateView):
         if not request.user.is_anonymous():
             self.ticket_booking = get_object_or_404(
                 TicketBooking, booking_reference=kwargs['ref'],
+                purchase_confirmed=True,
                 user=request.user
             )
         return super(TicketBookingView, self).dispatch(request, *args, **kwargs)
@@ -521,3 +545,13 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('booking:ticket_bookings')
+
+
+def ticket_purchase_expired(request, slug):
+    ticketed_event = get_object_or_404(
+        TicketedEvent, slug=slug
+    )
+    return render(
+        request, 'booking/ticket_purchase_expired.html',
+        {'ticketed_event': ticketed_event}
+    )

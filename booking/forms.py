@@ -120,9 +120,14 @@ class UserModelChoiceField(forms.ModelChoiceField):
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
 
 
-def get_quantity_choices(ticketed_event, current_tickets):
+def get_quantity_choices(ticketed_event, ticket_booking):
 
-    tickets_left_this_booking = ticketed_event.tickets_left() + current_tickets
+    current_tickets = ticket_booking.tickets.count()
+    if ticket_booking.purchase_confirmed:
+        tickets_left_this_booking = ticketed_event.tickets_left() + \
+                                    current_tickets
+    else:
+        tickets_left_this_booking = ticketed_event.tickets_left()
 
     if ticketed_event.max_ticket_purchase:
         if tickets_left_this_booking > ticketed_event.max_ticket_purchase:
@@ -146,10 +151,8 @@ class TicketPurchaseForm(forms.Form):
         ticket_booking = kwargs.pop('ticket_booking')
         super(TicketPurchaseForm, self).__init__(*args, **kwargs)
 
-        current_tickets = ticket_booking.tickets.count()
-
         self.fields['quantity'] = forms.ChoiceField(
-            choices=get_quantity_choices(ticketed_event, current_tickets),
+            choices=get_quantity_choices(ticketed_event, ticket_booking),
             widget=forms.Select(
                 attrs={
                     "onchange": "ticket_purchase_form.submit();",

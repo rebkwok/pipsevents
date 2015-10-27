@@ -105,12 +105,40 @@ class EventListViewTests(TestSetupMixin, TestCase):
         booked_event = TicketedEvent.objects.all()[0]
         mommy.make(
             Ticket, ticket_booking__user=self.user,
-            ticket_booking__ticketed_event=booked_event
+            ticket_booking__ticketed_event=booked_event,
+            ticket_booking__purchase_confirmed=True
         )
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(booked_event in booked_events)
+
+    def test_event_list_only_shows_confirmed_bookings_events(self):
+        """
+        test that only confirmed bookings are shown on listing
+        """
+        resp = self._get_response(self.user)
+        # check there are no booked events yet
+        booked_events = [event for event in resp.context_data['tickets_booked_events']]
+        self.assertEquals(len(resp.context_data['tickets_booked_events']), 0)
+
+        # create a confirmed booking for this user
+        booked_event = TicketedEvent.objects.all()[0]
+        mommy.make(
+            Ticket, ticket_booking__user=self.user,
+            ticket_booking__ticketed_event=booked_event,
+            ticket_booking__purchase_confirmed=True
+        )
+        # create an unconfirmed booking for this user
+        unconfirmed = mommy.make(
+            Ticket, ticket_booking__user=self.user,
+            ticket_booking__ticketed_event=booked_event,
+        )
+        resp = self._get_response(self.user)
+        booked_events = [event for event in resp.context_data['tickets_booked_events']]
+        self.assertEquals(len(booked_events), 1)
+        self.assertTrue(booked_event in booked_events)
+        self.assertFalse(unconfirmed in booked_events)
 
     def test_event_list_shows_only_current_user_bookings(self):
         """
@@ -128,13 +156,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
         # create booking for this user
         mommy.make(
             Ticket, ticket_booking__user=self.user,
-            ticket_booking__ticketed_event=event1
+            ticket_booking__ticketed_event=event1,
+            ticket_booking__purchase_confirmed=True
         )
         # create booking for another user
         user1 = mommy.make_recipe('booking.user')
         mommy.make(
             Ticket, ticket_booking__user=user1,
-            ticket_booking__ticketed_event=event2
+            ticket_booking__ticketed_event=event2,
+            ticket_booking__purchase_confirmed=True
         )
 
         # check only event1 shows in the booked events
@@ -252,14 +282,24 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     def test_create_ticket_booking_uses_existing_available_booking_ref(self):
         """
         If a user goes to the book ticket page, a ticket booking is created;
-        if they leave the page before selecting the ticket quantity, the
+        if they leave the page before confirming the purchase, the
         booking will be reused on a subsequent attempt
         """
         # create an existing ticket booking for the user and event without
         # tickets
         tb = mommy.make(
-            TicketBooking, user=self.user, ticketed_event=self.ticketed_event
+            TicketBooking, user=self.user, ticketed_event=self.ticketed_event,
         )
+        self.assertEqual(TicketBooking.objects.count(), 1)
+        resp = self._get_response(self.user, self.ticketed_event)
+
+        # no new ticket booking has been created as the existing one can be used
+        self.assertEqual(TicketBooking.objects.count(), 1)
+        self.assertEqual(resp.context_data['ticket_booking'], tb)
+
+
+        # add tickets to the booking, but leave unconfirmed
+        mommy.make(Ticket, ticket_booking=tb)
         self.assertEqual(TicketBooking.objects.count(), 1)
         resp = self._get_response(self.user, self.ticketed_event)
 
@@ -871,7 +911,7 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
             extra_ticket_info_label="Name",
         )
         self.ticket_booking = mommy.make(
-            TicketBooking, user=self.user
+            TicketBooking, user=self.user, purchase_confirmed=True
         )
         mommy.make(Ticket, ticket_booking=self.ticket_booking)
 
@@ -993,3 +1033,7 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
 
     def test_cancel_email_is_sent_to_user(self):
         pass
+
+
+# TODO ticket create view - show booking may have expired page if booking ref not found
+

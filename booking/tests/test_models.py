@@ -500,12 +500,14 @@ class TicketedEventTests(TestCase):
         self.assertTrue(self.ticketed_event.bookable())
         # if we make 10 bookings on this event, it should no longer be bookable
         ticket_booking = mommy.make(
-            TicketBooking, ticketed_event=self.ticketed_event
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True
         )
         mommy.make(
             Ticket,
-            ticket_booking__ticketed_event=self.ticketed_event, _quantity=10
+            ticket_booking=ticket_booking, _quantity=10
         )
+        self.assertEqual(self.ticketed_event.tickets_left(), 0)
         self.assertFalse(self.ticketed_event.bookable())
 
     def test_payment_fields_set_on_save(self):
@@ -540,12 +542,6 @@ class TicketedEventTests(TestCase):
         )
         )
 
-    # def test_absolute_url(self):
-    #     self.assertEqual(
-    #         self.event.get_absolute_url(),
-    #         reverse('booking:ticketed_event_detail', kwargs={'slug': self.event.slug})
-    #     )
-
     def test_str(self):
         ticketed_event = mommy.make_recipe(
             'booking.ticketed_event_max10',
@@ -573,7 +569,9 @@ class TicketBookingTests(TestCase):
 
         mommy.make(
             Ticket,
-            ticket_booking__ticketed_event=self.ticketed_event, _quantity=5
+            ticket_booking__ticketed_event=self.ticketed_event,
+            ticket_booking__purchase_confirmed=True,
+            _quantity=5
         )
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
@@ -582,7 +580,9 @@ class TicketBookingTests(TestCase):
         self.assertEqual(self.ticketed_event.tickets_left(), 10)
 
         open_booking = mommy.make(
-            TicketBooking, ticketed_event=self.ticketed_event, cancelled=False
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True,
+            cancelled=False
         )
         mommy.make(
             Ticket, ticket_booking=open_booking, _quantity=5
@@ -590,7 +590,9 @@ class TicketBookingTests(TestCase):
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
         cancelled_booking = mommy.make(
-            TicketBooking, ticketed_event=self.ticketed_event, cancelled=False
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True,
+            cancelled=False
         )
         mommy.make(
             Ticket, ticket_booking=cancelled_booking, _quantity=5
@@ -611,6 +613,31 @@ class TicketBookingTests(TestCase):
         self.assertEqual(event_tickets.count(), 10)
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
+    def test_event_tickets_left_does_not_count_unconfirmed_purchases(self):
+        self.assertEqual(self.ticketed_event.max_tickets, 10)
+        self.assertEqual(self.ticketed_event.tickets_left(), 10)
+
+        confirmed_booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True,
+            cancelled=False
+        )
+        mommy.make(
+            Ticket, ticket_booking=confirmed_booking, _quantity=5
+        )
+        self.assertEqual(self.ticketed_event.tickets_left(), 5)
+
+        # make purchase unconfirmed
+        confirmed_booking.purchase_confirmed=False
+        confirmed_booking.save()
+
+        event_tickets = Ticket.objects.filter(
+            ticket_booking__ticketed_event=self.ticketed_event
+        )
+        self.assertEqual(event_tickets.count(), 5)
+        self.assertEqual(self.ticketed_event.tickets_left(), 10)
+
+
     def test_str(self):
         booking = mommy.make(
             TicketBooking,
@@ -630,8 +657,13 @@ class TicketBookingTests(TestCase):
         Test that attempting to create new ticket booking for full event raises
         TicketBookingError
         """
-        booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
-        mommy.make(Ticket, ticket_booking=booking, _quantity=10)
+        booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True
+        )
+        mommy.make(
+            Ticket, ticket_booking=booking,
+            _quantity=10)
 
         self.assertEqual(self.ticketed_event.tickets_left(), 0)
         with self.assertRaises(TicketBookingError):
@@ -643,6 +675,7 @@ class TicketBookingTests(TestCase):
     def test_booking_reference_set(self):
         ticket_booking = mommy.make(
             TicketBooking,
+            purchase_confirmed=True,
             ticketed_event=mommy.make_recipe(
                 'booking.ticketed_event_max10', name='Test event'
             ),
@@ -660,8 +693,13 @@ class TicketTests(TestCase):
 
     def test_cannot_create_ticket_for_full_event(self):
         ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
-        booking = mommy.make(TicketBooking, ticketed_event=ticketed_event)
-        mommy.make(Ticket, ticket_booking=booking, _quantity=10)
+        booking = mommy.make(
+            TicketBooking, ticketed_event=ticketed_event,
+            purchase_confirmed=True
+        )
+        mommy.make(
+            Ticket, ticket_booking=booking,
+            _quantity=10)
         self.assertEqual(ticketed_event.tickets_left(), 0)
 
         with self.assertRaises(TicketBookingError):

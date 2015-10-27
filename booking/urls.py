@@ -54,9 +54,22 @@ urlpatterns = patterns('',
     url(r'^ticketed-events/(?P<event_slug>[\w-]+)/purchase/$',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
-    url(r'^ticket-bookings/$', TicketBookingListView.as_view(), name='ticket_bookings'),
-    url(r'^ticket-bookings/(?P<ref>[\w-]+)/$', TicketBookingView.as_view(), name='ticket_booking'),
-    url(r'^ticket-bookings/(?P<pk>\d+)/cancel/$', TicketBookingCancelView.as_view(), name='cancel_ticket_booking'),
+    url(
+        r'^ticket-bookings/$', TicketBookingListView.as_view(),
+        name='ticket_bookings'
+    ),
+    url(
+        r'^ticket-bookings/(?P<ref>[\w-]+)/$', TicketBookingView.as_view(),
+        name='ticket_booking'
+    ),
+    url(
+        r'^ticket-bookings/(?P<pk>\d+)/cancel/$',
+        TicketBookingCancelView.as_view(), name='cancel_ticket_booking'
+    ),
+    url(
+        r'^ticket-bookings/(?P<slug>[\w-]+)/expired/$',
+        'booking.views.ticket_purchase_expired', name='ticket_purchase_expired'
+    ),
     url(r'^ticket-booking-history/$', TicketBookingHistoryListView.as_view(),
         name='ticket_booking_history'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),

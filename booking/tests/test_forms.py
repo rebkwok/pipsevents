@@ -47,7 +47,8 @@ class TicketPurchaseFormTests(TestCase):
         self.user = mommy.make_recipe('booking.user')
         self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
         self.ticket_booking = mommy.make(
-            TicketBooking, ticketed_event=self.ticketed_event
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True,
         )
 
     def test_form_valid(self):
@@ -92,7 +93,10 @@ class TicketPurchaseFormTests(TestCase):
         self.assertEqual(quantity_widget.choices, choices)
 
     def test_quantity_choices_with_booked_tickets(self):
-        new_booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
+        new_booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True,
+        )
         mommy.make(Ticket, ticket_booking=new_booking, _quantity=8)
         form = TicketPurchaseForm(
             ticketed_event=self.ticketed_event,
@@ -130,8 +134,37 @@ class TicketPurchaseFormTests(TestCase):
         choices.insert(0, (0, '------'))
         self.assertEqual(quantity_widget.choices, choices)
 
+    def test_quantity_choices_with_booked_unconfirmed_tickets_on_same_tb(self):
+        """
+        same quantity choices shoould be returned if the purchase is not
+        yet confirmed
+        """
+        self.ticket_booking.purchase_confirmed = False
+        self.ticket_booking.save()
+        mommy.make(
+            Ticket, ticket_booking=self.ticket_booking, _quantity=8
+        )
+        form = TicketPurchaseForm(
+            ticketed_event=self.ticketed_event,
+            ticket_booking=self.ticket_booking
+        )
+        # tickets left is 10 since this booking is unconfirmed
+        self.assertEqual(self.ticketed_event.tickets_left(), 10)
+        self.assertEqual(self.ticketed_event.max_tickets, 10)
+        self.assertIsNone(self.ticketed_event.max_ticket_purchase)
+
+        quantity_widget = form.fields['quantity'].widget
+        # choices = 1-10; 8 tickets booked on this booking, user can change
+        # quantity to up to 10 still
+        choices = [(i, i) for i in range(1, 11)]
+        choices.insert(0, (0, '------'))
+        self.assertEqual(quantity_widget.choices, choices)
+
     def test_quantity_choices_with_booked_tickets_multiple_bookings(self):
-        new_booking = mommy.make(TicketBooking, ticketed_event=self.ticketed_event)
+        new_booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True
+        )
         mommy.make(Ticket, ticket_booking=new_booking, _quantity=4)
         mommy.make(Ticket, ticket_booking=self.ticket_booking, _quantity=4)
         form = TicketPurchaseForm(
@@ -151,7 +184,9 @@ class TicketPurchaseFormTests(TestCase):
 
     def test_quantity_choices_with_booked_tickets_on_cancelled_booking(self):
         new_booking = mommy.make(
-            TicketBooking, ticketed_event=self.ticketed_event, cancelled=True
+            TicketBooking, ticketed_event=self.ticketed_event,
+            purchase_confirmed=True,
+            cancelled=True
         )
         mommy.make(Ticket, ticket_booking=new_booking, _quantity=8)
         form = TicketPurchaseForm(

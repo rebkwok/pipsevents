@@ -1982,7 +1982,9 @@ class TicketedEventBookingsListView(TemplateView):
         context['ticketed_event'] = self.ticketed_event
         bookingids = [
             tbk.id for tbk in
-            TicketBooking.objects.filter(ticketed_event=self.ticketed_event)
+            TicketBooking.objects.filter(
+                ticketed_event=self.ticketed_event, purchase_confirmed=True,
+            )
             if tbk.tickets.exists()
             ]
 
@@ -2417,13 +2419,14 @@ def print_tickets_list(request):
 
             ticket_bookings = TicketBooking.objects.filter(
                 ticketed_event=ticketed_event,
+                purchase_confirmed=True,
                 cancelled=False
             )
             ctx = {'form': form, 'sidenav_selection': 'print_tickets_list'}
 
             if not ticket_bookings:
-                messages.info(request, 'There are no ticket bookings for the '
-                                       'event selected')
+                messages.info(request, 'There are no open ticket bookings for '
+                                       'the event selected')
                 return TemplateResponse(
                     request, "studioadmin/print_tickets_form.html", ctx
                 )

@@ -424,7 +424,8 @@ class TicketedEvent(models.Model):
     def tickets_left(self):
         if self.max_tickets:
             ticket_bookings = TicketBooking.objects.filter(
-                ticketed_event__id=self.id, cancelled=False
+                ticketed_event__id=self.id, cancelled=False,
+                purchase_confirmed=True
             )
             booked_number = Ticket.objects.filter(
                 ticket_booking__in=ticket_bookings
