@@ -53,7 +53,7 @@
                                     {% if event.instance.cancelled %}
                                         CANCELLED
                                     {% elif event.cannot_delete %}
-                                        <a href="{% url 'studioadmin:cancel_ticketed_event' event.instance.slug %}"><div class="btn table-btn btn-danger">Cancel event</div></a>
+                                        <a href="{% url 'studioadmin:cancel_ticketed_event' event.instance.slug %}"><div id='cancel_button' class="btn table-btn btn-danger">Cancel event</div></a>
                                     {% else %}
                                         {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
                                     {% endif %}

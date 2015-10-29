@@ -1769,7 +1769,9 @@ def cancel_event_view(request, slug):
     )
 
 
-class TicketedEventAdminListView(TemplateView):
+class TicketedEventAdminListView(
+    LoginRequiredMixin, StaffUserMixin, TemplateView
+):
 
     template_name = 'studioadmin/ticketed_events_admin_list.html'
 
@@ -1960,7 +1962,9 @@ class TicketedEventAdminCreateView(
         return reverse('studioadmin:ticketed_events')
 
 
-class TicketedEventBookingsListView(TemplateView):
+class TicketedEventBookingsListView(
+    LoginRequiredMixin, StaffUserMixin, TemplateView
+):
 
     template_name = 'studioadmin/ticketed_event_bookings_admin_list.html'
 
@@ -1972,7 +1976,6 @@ class TicketedEventBookingsListView(TemplateView):
         return super(
             TicketedEventBookingsListView, self
         ).dispatch(request, *args, **kwargs)
-
 
     def get_context_data(self, **kwargs):
         context = super(
@@ -1993,7 +1996,8 @@ class TicketedEventBookingsListView(TemplateView):
             context['show_cancelled_ctx'] = True
         else:
             queryset = TicketBooking.objects.filter(
-                id__in=bookingids, cancelled=False)
+                id__in=bookingids, cancelled=False
+            )
 
         context['ticket_bookings'] = bool(queryset)
         context['ticket_booking_formset'] = TicketBookingInlineFormSet(
@@ -2193,14 +2197,20 @@ def cancel_ticketed_event_view(request, slug):
 
     open_paid_ticket_bookings = [
         booking for booking in ticketed_event.ticket_bookings.all()
-        if not booking.cancelled and booking.tickets.exists() and booking.paid
+        if not booking.cancelled and booking.purchase_confirmed and
+        booking.tickets.exists() and booking.paid
         ]
 
     open_unpaid_ticket_bookings = [
         booking for booking in ticketed_event.ticket_bookings.all()
-        if not booking.cancelled and booking.tickets.exists()
+        if not booking.cancelled and booking.purchase_confirmed and
+        booking.tickets.exists()
         and not booking.paid
         ]
+
+    unconfirmed_ticket_bookings = TicketBooking.objects.filter(
+        ticketed_event=ticketed_event, purchase_confirmed=False
+    )
 
     if request.method == 'POST':
         if 'confirm' in request.POST:
@@ -2239,6 +2249,8 @@ def cancel_ticketed_event_view(request, slug):
                         e, __name__, "cancel ticketed event - "
                         "send notification email to user"
                     )
+            for booking in unconfirmed_ticket_bookings:
+                booking.delete()
 
             ticketed_event.cancelled = True
             ticketed_event.show_on_site = False
@@ -2276,11 +2288,11 @@ def cancel_ticketed_event_view(request, slug):
                         "send refund notification email to studio"
                     )
 
-            if open_paid_ticket_bookings + open_unpaid_ticket_bookings:
-
+            if open_paid_ticket_bookings and open_unpaid_ticket_bookings:
                 booking_cancelled_msg = '{} has been cancelled; open ticket ' \
                                         'booking refs {} have been ' \
                                         'cancelled'.format(
+                    ticketed_event,
                     ', '.join(['{}'.format(booking.booking_reference) for
                                booking in open_paid_ticket_bookings]
                     )
@@ -2454,7 +2466,9 @@ def print_tickets_list(request):
                     request.POST,
                     ticketed_event_instance=ticketed_event
                 )
-                ctx = {'form': new_form, 'sidenav_selection': 'print_tickets_list'}
+                ctx = {
+                    'form': new_form, 'sidenav_selection': 'print_tickets_list'
+                }
                 return TemplateResponse(
                         request, "studioadmin/print_tickets_form.html", ctx
                     )
