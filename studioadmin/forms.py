@@ -1207,10 +1207,11 @@ class TicketedEventBaseFormSet(BaseModelFormSet):
             )
             form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
-            ticket_bookings = form.instance.ticket_bookings.all()
-            for ticket_booking in ticket_bookings:
-                if ticket_booking.tickets.exists():
-                    form.cannot_delete = True
+            confirmed_ticket_bookings = form.instance.ticket_bookings.filter(
+                purchase_confirmed=True
+            )
+            if confirmed_ticket_bookings:
+                form.cannot_delete = True
 
             form.fields['DELETE'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
@@ -1393,10 +1394,10 @@ class TicketedEventAdminForm(forms.ModelForm):
                     'To specify a payment due date, please also tick '
                     '"advance payment required"'
                     )
-            if cleaned_data.get('payment_due_date'):
+            if cleaned_data.get('payment_time_allowed'):
                 self.add_error(
                     'payment_time_allowed',
-                    'To specify a payment time allowed,  date, please also '
+                    'To specify payment time allowed, please also '
                     'tick "advance payment required"'
                     )
 
