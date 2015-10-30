@@ -1679,7 +1679,7 @@ class PrintTicketsForm(forms.Form):
                 del self.errors['show_fields']
                 cleaned_data['show_fields'] = self.data.getlist('show_fields')
         if 'order_field' in self.errors:
-            if self.data['order_field'] == 'extra_ticket_info' \
+            if self.data.get('order_field') == 'extra_ticket_info' \
                     or self.data.get('order_field') == 'extra_ticket_info1':
                 del self.errors['order_field']
                 cleaned_data['order_field'] = self.data.get('order_field')
