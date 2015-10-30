@@ -2434,6 +2434,7 @@ def print_tickets_list(request):
                 purchase_confirmed=True,
                 cancelled=False
             )
+
             ctx = {'form': form, 'sidenav_selection': 'print_tickets_list'}
 
             if not ticket_bookings:
@@ -2462,8 +2463,18 @@ def print_tickets_list(request):
                 return TemplateResponse(request, template, context)
 
             elif 'ticketed_event' in form.changed_data:
+
+                if ticketed_event.extra_ticket_info_label:
+                    show_fields += ['show_extra_ticket_info']
+                if ticketed_event.extra_ticket_info1_label:
+                    show_fields += ['show_extra_ticket_info1']
+
+                data = dict(request.POST)
+                data['show_fields'] = show_fields
+                data['ticketed_event'] = ticketed_event.id
+                data['order_field'] = order_field
                 new_form = PrintTicketsForm(
-                    request.POST,
+                    data,
                     ticketed_event_instance=ticketed_event
                 )
                 ctx = {

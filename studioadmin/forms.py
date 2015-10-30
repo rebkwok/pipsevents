@@ -1606,7 +1606,8 @@ class PrintTicketsForm(forms.Form):
         )
 
         order_field_choices = [
-            ('ticket_booking__date_booked', 'Date booked'),
+            ('ticket_booking__date_booked', 'Date booked (earliest first)'),
+            ('-ticket_booking__date_booked', 'Date booked (latest first)'),
             ('ticket_booking__booking_reference', 'Booking reference'),
             ('ticket_booking__user__first_name', 'User who made the booking'),
         ]
@@ -1671,14 +1672,16 @@ class PrintTicketsForm(forms.Form):
     
     def clean(self):
         cleaned_data = super(PrintTicketsForm, self).clean()
+
         if 'show_fields' in self.errors:
-            if self.data['show_fields'] == 'show_extra_ticket_info' \
-                    or self.data['show_fields'] == 'show_extra_ticket_info1':
+            if self.data.get('show_fields') == 'show_extra_ticket_info' \
+                    or self.data.get('show_fields') == 'show_extra_ticket_info1':
                 del self.errors['show_fields']
                 cleaned_data['show_fields'] = self.data.getlist('show_fields')
         if 'order_field' in self.errors:
             if self.data['order_field'] == 'extra_ticket_info' \
-                    or self.data['order_field'] == 'extra_ticket_info1':
+                    or self.data.get('order_field') == 'extra_ticket_info1':
                 del self.errors['order_field']
                 cleaned_data['order_field'] = self.data.get('order_field')
+
         return cleaned_data
