@@ -553,6 +553,11 @@ a.disabled {
   background-color: #e5e5e5;
 }
 
+.bold-divider {
+    height: 4px;
+    background-color: green;
+}
+
 .ticket-divider {
     margin-top: 10px;
 }
@@ -848,4 +853,9 @@ a > span.fa.fa-print {
     margin-right: 1px;
     padding-top: 2px;
     padding-bottom: 2px;
+}
+
+.ticketed-event-info {
+    font-style: italic;
+    color: green;
 }
