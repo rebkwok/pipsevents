@@ -1,0 +1,14 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+
+<div style="font-family: sans-serif">
+    <h4>Reminder! Your payment has not yet been received for ticket booking ref {{ ticket_booking.booking_reference }} for {{ event }}.</h4>
+
+    <p><strong>Payment is due by {{ due_datetime }}</strong></p>
+    <p>If your payment is not received by this time, your ticket booking <strong>will be cancelled</strong>.</p>
+
+    <p>Please contact <a href="mailto:{{ event.contact_email }}">{{ event.contact_email }}</a> urgently if you have already made payment.</p>
+
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Ticket Bookings for {{ ticketed_event }}</h2>
+        <div class="row">
+            <div class="col-xs-12">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ ticket_booking_formset.management_form }}
+
+                {% if ticket_bookings %}
+                    <div>
+                        <input id=show_cancelled_id
+                                type="checkbox"
+                                name="show_cancelled"
+                                class="form-control regular-checkbox"
+                                onchange="form.submit()" {% if show_cancelled_ctx %}checked{% endif %}
+                                /><label for="show_cancelled_id"></label>
+                                <span class="show-cancelled-label">Include cancelled bookings</span>
+                    </div>
+                <div class="panel panel-success">
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="table-center"></th>
+                                <th>User <span class="fa fa-sort"></span></th>
+                                <th>Ref # <span class="fa fa-sort"></span></th>
+                                <th>Date booked <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Paid</span></th>
+                                <th class="table-center">Paid by PayPal</th>
+                                <th class="table-center">Tickets</th>
+                                <th class="table-center">Cancel/Reopen</th>
+                                <th class="table-center">Send confirmation</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for tbooking in ticket_booking_formset %}
+                            <tr {% if tbooking.instance.cancelled %}class="cancelled-event"{% endif %}>
+                                <span class="hide">{{ tbooking.id }}</span>
+                                <td>{% if tbooking.instance.cancelled %}CANCELLED{% endif %}</td>
+                                <td class="studioadmin-tbl">{{ tbooking.instance.user.username }}</td>
+                                <td class="studioadmin-tbl">{{ tbooking.instance.booking_reference | abbr_ref }}</td>
+                                <td class="studioadmin-tbl"><span style="display: none;">{{ tbooking.instance.date_booked | date:"Ymd"}}</span>{{ tbooking.instance.date_booked| date:"d-M-y" }}</a></td>
+                                <td class="table-center studioadmin-tbl">{{ tbooking.paid }}<label for={{ tbooking.paid_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">
+                                        {% if booking.paypal %}
+                                            <span class="fa fa-check"></span>
+                                        {% endif %}
+                                </td>
+                                <td class="table-center studioadmin-tbl">{{ tbooking.instance.tickets.count }}</td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if tbooking.instance.cancelled %}
+                                        {{ tbooking.reopen }}<label for={{ tbooking.reopen_id }}></label></td>
+                                    {% else %}
+                                        {{ tbooking.cancel }}<label for={{ tbooking.cancel_id }}></label></td>
+                                    {% endif %}
+                                <td class="table-center studioadmin-tbl">{{ tbooking.send_confirmation }}<label for={{ tbooking.send_confirmation_id }}></label></td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        <tr>
+                            <td class="studioadmin-tbl" colspan="7"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+                <p>There are no open ticket bookings for this event.</p>
+            {% endif %}
+            </form>
+
+        </div>
+    </div>
+ </div>
+
+
+{% endblock studioadmincontent %}

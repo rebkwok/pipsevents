@@ -1,0 +1,79 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>{% if show_past %}Past {% endif %}Ticketed Events</h2>
+        <div class="row">
+            <div class="col-xs-12">
+                <form method="post" action="">
+
+                    <div class="top-button-row">
+                        {% if show_past %}
+                        <input class="btn btn-info table-btn filter-btn" name="upcoming" type="submit" value="Show upcoming events" />
+                        {% else %}
+                        <input class="btn btn-info table-btn filter-btn" name="past" type="submit" value="Show past events" />
+                        {% endif %}
+                    </div>
+
+                    {% csrf_token %}
+                    {{ ticketed_event_formset.management_form }}
+
+                {% if ticketed_events %}
+                <div class="panel panel-success">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>Date</th>
+                                <th>Event</br><span class="studioadmin-help">Click on name to edit</span></th>
+                                <th class="table-center">Payment open</th>
+                                <th class="table-center">Advance payment required</th>
+                                <th class="table-center">Show on site</th>
+                                <th class="table-center">Max tickets</th>
+                                <th class="table-center">Tickets left</th>
+                                <th class="table-center">View ticket bookings</th>
+                                <th class="table-center">Delete</th>
+                            </tr>
+
+                            {% for event in ticketed_event_formset %}
+                            <tr {% if event.instance.cancelled %}class="cancelled-event"{% endif %}>
+                                <span class="hide">{{ event.id }}</span>
+                                <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
+                                <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_ticketed_event' event.instance.slug %}">{{ event.instance.name }}</a></td>
+                                <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{% if event.instance.max_tickets %}{{ event.instance.max_tickets }}{% else %}N/A{% endif %}</td>
+                                <td class="table-center studioadmin-tbl">{% if event.instance.tickets_left < 10000 %}{{ event.instance.tickets_left }}{% else %}N/A{% endif %}</td>
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fa fa-ticket fa-2x"></span></a></td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if event.instance.cancelled %}
+                                        CANCELLED
+                                    {% elif event.cannot_delete %}
+                                        <a href="{% url 'studioadmin:cancel_ticketed_event' event.instance.slug %}"><div id='cancel_button' class="btn table-btn btn-danger">Cancel event</div></a>
+                                    {% else %}
+                                        {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        <tr>
+                            <td class="studioadmin-tbl" colspan="9"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+                <p>There are no {% if show_past %}past{% else %}upcoming{% endif %} events to display.</p>
+            {% endif %}
+            </form>
+
+        </div>
+    </div>
+ </div>
+
+
+{% endblock studioadmincontent %}

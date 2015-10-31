@@ -1,0 +1,79 @@
+{% extends "studioadmin/print_base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+<div class="row">
+    <div class="col-xs-4 col-xs-offset-1">
+    <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
+</div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="panel panel-success">
+
+            <div class="table-responsive">
+                <table class="table">
+
+                    <caption><h2>Tickets for {{ ticketed_event }}</h2></caption>
+                    <thead>
+                    <tr>
+                        <th class="tickets-table-index"></th>
+                        {% if 'show_booking_user' in show_fields %}
+                            <th class="table-center tickets-table">Booked by</th>
+                        {% endif %}
+                        {% if 'show_date_booked' in show_fields %}
+                            <th class="table-center tickets-table">Date booked</th>
+                        {% endif %}
+                        {% if 'show_booking_reference' in show_fields %}
+                            <th class="table-center tickets-table">Booking reference</th>
+                        {% endif %}
+                        {% if 'show_paid' in show_fields %}
+                            <th class="table-center tickets-table">Paid</th>
+                        {% endif %}
+                        {% if 'show_extra_ticket_info' in show_fields %}
+                            <th class="table-center tickets-table">{{ ticketed_event.extra_ticket_info_label }}</th>
+                        {% endif %}
+                        {% if 'show_extra_ticket_info1'  in show_fields %}
+                            <th class="table-center tickets-table">{{ ticketed_event.extra_ticket_info1_label }}</th>
+                        {% endif %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for ticket in tickets %}
+                        <tr>
+                            <td class="tickets-table-index">{{ forloop.counter }}.</td>
+                            {% if 'show_booking_user' in show_fields %}
+                                <td class="table-center studioadmin-tbl;">{{ ticket.ticket_booking.user.first_name }} {{ ticket.ticket_booking.user.last_name }}</td>
+                            {% endif %}
+                            {% if 'show_date_booked' in show_fields %}
+                                <td class="table-center studioadmin-tbl">{{ ticket.ticket_booking.date_booked }}</td>
+                            {% endif %}
+                            {% if 'show_booking_reference' in show_fields %}
+                                <td class="table-center studioadmin-tbl">{{ ticket.ticket_booking.booking_reference }}</td>
+                            {% endif %}
+                            {% if 'show_paid' in show_fields %}
+                                <td class="table-center studioadmin-tbl">{% if ticket.ticket_booking.paid %}Yes{% else %}No{% endif %}</td>
+                            {% endif %}
+                            {% if 'show_extra_ticket_info' in show_fields %}
+                                <td class="table-center studioadmin-tbl">{{ ticket.extra_ticket_info }}</td>
+                            {% endif %}
+                            {% if 'show_extra_ticket_info1' in show_fields %}
+                                <td class="table-center studioadmin-tbl">{{ ticket.extra_ticket_info1 }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+{% endblock studioadmincontent %}

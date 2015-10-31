@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from booking.models import BlockType, WaitingListUser
+from booking.models import BlockType, TicketBooking, WaitingListUser
 
 def get_event_context(context, event, user):
 
@@ -186,7 +186,7 @@ def get_booking_create_context(event, request, context):
     return context
 
 
-def get_paypal_dict(host, cost, item_name, invoice_id, custom):
+def get_paypal_dict(host, cost, item_name, invoice_id, custom, quantity=1):
 
     paypal_dict = {
         "business": settings.PAYPAL_RECEIVER_EMAIL,
@@ -195,6 +195,7 @@ def get_paypal_dict(host, cost, item_name, invoice_id, custom):
         "custom": custom,
         "invoice": invoice_id,
         "currency_code": "GBP",
+        "quantity": quantity,
         "notify_url": host + reverse('paypal-ipn'),
         "return_url": host + reverse('payments:paypal_confirm'),
         "cancel_return": host + reverse('payments:paypal_cancel'),

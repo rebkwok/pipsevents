@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+
+<div class="container-fluid row">
+    {% if history %}
+        <h1>Your past ticket bookings</h1>
+    {% else %}
+        <h1>Your ticket bookings</h1>
+        <p>Please note that ticket bookings are final once paid.</p>
+    {% endif %}
+
+    {% if ticketbookinglist %}
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-success">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            {% if not history %}
+                            <th></th>
+                            {% endif %}
+                            <th>Date</th>
+                            <th>Booking Ref</br><span class="studioadmin-help">Click to edit ticket details</span></th>
+                            <th>Event</th>
+                            <th class="table-center"># Tickets</th>
+                            <th class="hidden-sm hidden-xs table-center">Ticket Cost</th>
+                        </tr>
+                        {% for bookingform in ticketbookinglist %}
+                            <tr {% if bookingform.ticket_booking.cancelled or bookingform.ticket_booking.ticketed_event.cancelled %}class="cancelled-event"{% endif %}>
+                                {% if not history %}
+                                    <td>
+                                        {% if bookingform.paypalform %}
+                                            <div class="inc-btm-space">{% include 'payments/bookinglistpayment.html' %}</div>
+                                        {% elif bookingform.ticket_booking.ticketed_event.cancelled %}
+                                            <div>EVENT CANCELLED</div>
+                                        {% elif bookingform.ticket_booking.cancelled %}
+                                           <div>BOOKING CANCELLED</div>
+                                        {% elif bookingform.ticket_booking.paid %}
+                                            <div>PAID</div>
+                                        {% elif not bookingform.ticket_booking.ticketed_event.payment_open %}
+                                            <div>Online payments not open</div>
+                                        {% endif %}
+
+                                        {% if not bookingform.ticket_booking.cancelled and not bookingform.ticket_booking.paid %}
+                                            <div><a href="{% url 'booking:cancel_ticket_booking' bookingform.ticket_booking.pk %}">
+                                            <span class="btn table-btn btn-danger">Cancel booking</span></a></div>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td>{{ bookingform.ticket_booking.ticketed_event.date |  date:"D d M H:i" }}</td>
+                                <td><a href="{% url 'booking:ticket_booking' bookingform.ticket_booking.booking_reference %}">{{ bookingform.ticket_booking.booking_reference }}</a></td>
+                                <td>{{ bookingform.ticket_booking.ticketed_event.name }}</td>
+                                <td class="table-center">{{ bookingform.ticket_booking.tickets.count }}</td>
+                                <td class="hidden-sm hidden-xs table-center">£{{ bookingform.ticket_booking.ticketed_event.ticket_cost }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        {% if history %}
+            <p>You do not have any past class or event bookings.</p>
+        {% else %}
+            <p>You are not booked into any upcoming classes or events.</p>
+        {% endif %}
+    {% endif %}
+
+</div>
+
+{% endblock content %}

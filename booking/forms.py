@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
 from datetime import date
 from django import forms
-from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from booking.models import Booking, Event, Block
+from django.forms.models import modelformset_factory, BaseModelFormSet, \
+    inlineformset_factory, BaseInlineFormSet
+
+from booking.models import Booking, Event, Block, Ticket, TicketedEvent, \
+    TicketBooking
 from booking.widgets import DateSelectorWidget
 
 
@@ -116,87 +120,83 @@ class UserModelChoiceField(forms.ModelChoiceField):
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
 
 
-# class BookingInlineFormSet(BaseInlineFormSet):
-#
-#     def __init__(self, *args, **kwargs):
-#         self.event = kwargs.pop('event', None)
-#         super(BookingInlineFormSet, self).__init__(*args, **kwargs)
-#         # this calls _construct_forms()
-#
-#     def add_fields(self, form, index):
-#         super(BookingInlineFormSet, self).add_fields(form, index)
-#         if form.initial.get('user'):
-#             user = form.instance.user
-#             event_type = form.instance.event.event_type
-#             block = form.instance.block
-#             form.fields['block'] = BlockModelChoiceField(
-#                 queryset=get_user_blocks(user, event_type),
-#                 initial=block,
-#                 required=False,
-#                 widget=forms.Select(attrs={'class': 'custom-select',
-#                                            'id': 'id_block{}'.format(index)}))
-#             form.fields['block'].empty_label = "--No block selected--"
-#
-#             form.fields['user']=forms.ModelChoiceField(
-#                 queryset=User.objects.all(),
-#                 initial=user,
-#                 widget=forms.Select(attrs={'class': 'hide'})
-#             )
-#             form.fields['userdisplay'] = UserModelChoiceField(
-#                 queryset=User.objects.all(),
-#                 initial=user,
-#                 required=False,
-#                 widget=forms.Select(attrs={
-#                     'class': 'custom-select',
-#                     'data-style': 'btn-info user-dropdown',
-#                     'disabled': 'disabled'})
-#             )
-#         else:
-#             form.fields['block'] = BlockModelChoiceField(
-#                 queryset=Block.objects.none(),
-#                 required=False,
-#                 widget=forms.Select(attrs={'class': 'custom-select',
-#                                            'id': 'id_block{}'.format(index)}))
-#             booked_users = [booking.user.id for booking in
-#                             Booking.objects.all()
-#                             if booking.event == self.event]
-#             form.fields['user'] = UserModelChoiceField(
-#                 queryset=User.objects.all().exclude(id__in=booked_users),
-#                 widget=forms.Select(attrs={
-#                     'class': 'custom-select',
-#                     'id': 'id_user{}'.format(index),
-#                     'onchange': 'FilterBlocks({})'.format(index)
-#                 }))
-#
-#     def clean(self):
-#         super(BookingInlineFormSet, self).clean()
-#         for form in self.forms:
-#             if not form.cleaned_data.get('block'):
-#                 form.cleaned_data['block'] = None
-#
-#
-# def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
-#     return {
-#         'class': 'toggle-checkbox',
-#         'data-size': 'mini',
-#         'data-on-color': 'success',
-#         'data-off-color': 'danger',
-#         'data-on-text': on_text,
-#         'data-off-text': off_text,
-#         'data-label-text': label_text,
-#     }
-#
-# BookingRegisterFormSet = inlineformset_factory(
-#     Event,
-#     Booking,
-#     fields=('user', 'paid', 'payment_confirmed', 'block', 'status',
-#             'attended'),
-#     can_delete=False,
-#     extra=2,
-#     formset=BookingInlineFormSet,
-#     widgets={
-#         'paid': forms.CheckboxInput(attrs=set_toggle_attrs()),
-#         'attended': forms.CheckboxInput(attrs=set_toggle_attrs()),
-#         'status': forms.Select(attrs={'class': 'custom-select'})
-#         }
-#     )
+def get_quantity_choices(ticketed_event, ticket_booking):
+
+    current_tickets = ticket_booking.tickets.count()
+    if ticket_booking.purchase_confirmed:
+        tickets_left_this_booking = ticketed_event.tickets_left() + \
+                                    current_tickets
+    else:
+        tickets_left_this_booking = ticketed_event.tickets_left()
+
+    if ticketed_event.max_ticket_purchase:
+        if tickets_left_this_booking > ticketed_event.max_ticket_purchase:
+            max_choice = ticketed_event.max_ticket_purchase
+        else:
+            max_choice = tickets_left_this_booking
+    elif ticketed_event.max_tickets:
+        max_choice = tickets_left_this_booking
+    else:
+        max_choice = 100
+
+    choices = [(i, i) for i in range(1, max_choice+1)]
+    choices.insert(0, (0, '------'))
+    return tuple(choices)
+
+
+class TicketPurchaseForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        ticketed_event = kwargs.pop('ticketed_event')
+        ticket_booking = kwargs.pop('ticket_booking')
+        super(TicketPurchaseForm, self).__init__(*args, **kwargs)
+
+        self.fields['quantity'] = forms.ChoiceField(
+            choices=get_quantity_choices(ticketed_event, ticket_booking),
+            widget=forms.Select(
+                attrs={
+                    "onchange": "ticket_purchase_form.submit();",
+                    "class": "form-control input-sm",
+                },
+            ),
+        )
+
+class TicketInlineFormSet(BaseInlineFormSet):
+
+    def __init__(self, *args, **kwargs):
+        self.ticketed_event = kwargs.pop('ticketed_event', None)
+        super(TicketInlineFormSet, self).__init__(*args, **kwargs)
+
+    def add_fields(self, form, index):
+        super(TicketInlineFormSet, self).add_fields(form, index)
+
+        form.fields['extra_ticket_info'].widget = forms.TextInput(
+            attrs={"class": "form-control ticket-control"}
+        )
+        form.fields['extra_ticket_info'].label = \
+            self.ticketed_event.extra_ticket_info_label
+        form.fields['extra_ticket_info'].help_text = \
+            self.ticketed_event.extra_ticket_info_help
+        form.fields['extra_ticket_info'].required = \
+            self.ticketed_event.extra_ticket_info_required
+        form.fields['extra_ticket_info1'].widget = forms.TextInput(
+            attrs={"class": "form-control ticket-control"}
+        )
+        form.fields['extra_ticket_info1'].label = \
+            self.ticketed_event.extra_ticket_info1_label
+        form.fields['extra_ticket_info1'].help_text = \
+            self.ticketed_event.extra_ticket_info1_help
+        form.fields['extra_ticket_info1'].required = \
+            self.ticketed_event.extra_ticket_info1_required
+
+        form.index = index + 1
+
+
+TicketFormSet = inlineformset_factory(
+    TicketBooking,
+    Ticket,
+    fields=('extra_ticket_info', 'extra_ticket_info1'),
+    can_delete=False,
+    formset=TicketInlineFormSet,
+    extra=0,
+)

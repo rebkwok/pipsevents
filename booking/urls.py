@@ -2,8 +2,9 @@ from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
-    BookingDeleteView, BlockCreateView, BlockListView
-
+    BookingDeleteView, BlockCreateView, BlockListView, TicketBookingListView, \
+    TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
+    TicketBookingView, TicketBookingCancelView
 
 urlpatterns = patterns('',
     url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
@@ -46,5 +47,30 @@ urlpatterns = patterns('',
         name='has_active_block'),
     url(r'^not-available/$', 'booking.views.permission_denied',
         name='permission_denied'),
+    url(
+        r'^ticketed-events/$', TicketedEventListView.as_view(),
+        name='ticketed_events'
+    ),
+    url(r'^ticketed-events/(?P<event_slug>[\w-]+)/purchase/$',
+        TicketCreateView.as_view(),
+        name='book_ticketed_event'),
+    url(
+        r'^ticket-bookings/$', TicketBookingListView.as_view(),
+        name='ticket_bookings'
+    ),
+    url(
+        r'^ticket-bookings/(?P<ref>[\w-]+)/$', TicketBookingView.as_view(),
+        name='ticket_booking'
+    ),
+    url(
+        r'^ticket-bookings/(?P<pk>\d+)/cancel/$',
+        TicketBookingCancelView.as_view(), name='cancel_ticket_booking'
+    ),
+    url(
+        r'^ticket-bookings/(?P<slug>[\w-]+)/expired/$',
+        'booking.views.ticket_purchase_expired', name='ticket_purchase_expired'
+    ),
+    url(r'^ticket-booking-history/$', TicketBookingHistoryListView.as_view(),
+        name='ticket_booking_history'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     )

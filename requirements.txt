@@ -19,3 +19,4 @@ django-ckeditor==4.4.7
 pillow==2.7.0
 gunicorn==19.3.0
 static3==0.5.1
+shortuuid==0.4.2

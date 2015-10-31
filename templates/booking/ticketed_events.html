@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block bg_class %}watermelon_bg{%  endblock %}
+
+{% block content %}
+
+    <div class="container-fluid row">
+
+        <h1>Tickets for Watermelon Studio Shows, Competitions and Events</h1>
+        {% if ticketed_events or not_visible_events %}
+        <div class="row">
+            <div class="col-sm-12">
+                {% if not user.is_authenticated and ticketed_events %}
+                    <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
+                {% endif %}
+
+                {% for ticketed_event in ticketed_events %}
+
+                    <h2>{{ ticketed_event.name }}</h2>
+                    <h4>{{ ticketed_event.date |  date:"D d F, g:i a" }}</h4>
+
+                    <div>{{ ticketed_event.description | safe }}</div>
+                    <div><strong>Location:</strong>  {{ ticketed_event.location }}<div>
+                     <div><strong>Contact:</strong> {{ ticketed_event.contact_person }}
+                          (<a href="mailto:{{ ticketed_event.contact_email }}?Subject=Enquiry regarding booking for {{ ticketed_event.name }}" target="_blank">{{ ticketed_event.contact_email }}</a>)</div>
+                    {% if payment_info %}
+                        <div><strong>Payment information</strong><p>{{ ticketed_event.payment_info }}</p></div>
+                    {% endif %}
+                    <div><strong>Ticket cost:</strong> £ {{ ticketed_event.ticket_cost }}</div>
+                    {% if not ticketed_event.advance_payment_required and ticketed_event.ticket_cost %}<p>Advance payment is not required for this event.</p>{% endif %}
+
+                    {% if user.is_authenticated %}
+                        {% if ticketed_event in tickets_booked_events %}
+                            <div><strong>You have already booked tickets for this event.</strong></div>
+                            {% if ticketed_event.bookable %}
+                                <div class="inc-space"></div>
+                                <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
+                                    <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
+                                </a>
+                            {% else %}
+                                <div class="cancel-warning">This event has now sold out.</div>
+                            {% endif %}
+                        {% else %}
+                            {% if ticketed_event.bookable %}
+                                <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
+                                    <div class="inc-space"></div>
+                                    <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
+                                </a>
+                            {% else %}
+                                <div class="cancel-warning">This event has now sold out.</div>
+                            {% endif %}
+                        {% endif %}
+                        </br></br>
+                    {% endif %}
+                    </div>
+                    <span class="divider"></span>
+                {% endfor %}
+
+                {% if not_visible_events %}
+                    <span class="divider bold-divider"></span>
+                    <h2 class="ticketed-event-info">(The following events are displayed for staff information only; this is not visible to normal users)</h2>
+                    {% for ticketed_event in not_visible_events %}
+                        <h2>{{ ticketed_event.name }}</h2>
+                        <h4>{{ ticketed_event.date |  date:"D d F, g:i a" }}</h4>
+
+                        <div>{{ ticketed_event.description | safe }}</div>
+                        <div><strong>Location:</strong>  {{ ticketed_event.location }}<div>
+                         <div><strong>Contact:</strong> {{ ticketed_event.contact_person }}
+                              (<a href="mailto:{{ ticketed_event.contact_email }}?Subject=Enquiry regarding booking for {{ ticketed_event.name }}" target="_blank">{{ ticketed_event.contact_email }}</a>)</div>
+                        {% if payment_info %}
+                            <div><strong>Payment information</strong><p>{{ ticketed_event.payment_info }}</p></div>
+                        {% endif %}
+                        <div><strong>Ticket cost:</strong> £ {{ ticketed_event.ticket_cost }}</div>
+                        {% if not ticketed_event.advance_payment_required and ticketed_event.ticket_cost %}<p>Advance payment is not required for this event.</p>{% endif %}
+
+                        {% if user.is_authenticated %}
+                            {% if ticketed_event in tickets_booked_events %}
+                                <div><strong>You have already booked tickets for this event.</strong></div>
+                                {% if ticketed_event.bookable %}
+                                    <div class="inc-space"></div>
+                                    <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
+                                        <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
+                                    </a>
+                                {% else %}
+                                    <div class="cancel-warning">This event has now sold out.</div>
+                                {% endif %}
+                            {% else %}
+                                {% if ticketed_event.bookable  %}
+                                    <div class="inc-space"></div>
+                                    <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
+                                        <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
+                                    </a>
+                                {% else %}
+                                    <div class="cancel-warning">This event has now sold out.</div>
+                                {% endif %}
+                            {% endif %}
+                            </br></br>
+                        {% endif %}
+                        </div>
+                        <span class="divider"></span>
+                    {% endfor %}
+                {% endif %}
+        </div>
+    </div>
+    {% else %}
+        <p>There are currently no ticketed events available to book.</p>
+    {% endif %}
+</div>
+</div>
+
+
+{% endblock content %}

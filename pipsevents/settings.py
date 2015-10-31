@@ -266,6 +266,14 @@ SUIT_CONFIG = {
             'models': ('booking.booking',)
         },
         {
+            'label': 'Ticket Bookings',
+            'icon': 'icon-heart',
+            'models': (
+                'booking.ticketedevent', 'booking.ticketbooking',
+                'booking.ticket',
+            )
+        },
+        {
             'app': 'timetable',
             'label': 'Weekly timetable',
             'icon': 'icon-calendar',
@@ -330,14 +338,16 @@ CKEDITOR_CONFIGS = {
          ['Format', 'Font', 'FontSize', 'Link']
         ],
         'height': 200,
-        'width': 600,
+        'width': '100%',
+        'max-width': 300,
     },
     'studioadmin_min': {
         'toolbar': [
             ['Bold', 'Italic', 'Underline', 'FontSize', 'Link']
         ],
         'height': 100,
-        'width': 600,
+        'width': '100%',
+        'max-width': 300,
     },
 }
 CKEDITOR_JQUERY_URL = \

@@ -1,0 +1,18 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Event {{ event }} has been cancelled.</p>
+
+<p>The following users' ticket bookings were paid.  Please review and refund these payments.</p>
+
+<p>When the payment has been refunded, use the links below to confirm and update the payment status on the booking site:</p>
+
+    <ul>
+        {% for booking in open_paid_ticket_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} <a href="{{ host }}/studioadmin/confirm-ticket-booking-refunded/{{ booking.id }}">Confirm refund</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

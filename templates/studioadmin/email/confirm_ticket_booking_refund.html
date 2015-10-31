@@ -1,0 +1,10 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Your refund for {{ ticketed_event }} (booking reference {{ ticket_booking.booking_reference }}has been confirmed.</p>
+
+<p>View your ticket bookings: {{ host }}{% url 'booking:ticket_bookings' %}</p>
+</div>
+{% endblock %}

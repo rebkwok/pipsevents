@@ -94,3 +94,13 @@ def formatted_uk_date(date):
 def is_regular_student(user):
     return user.has_perm('booking.is_regular_student')
 
+
+@register.filter
+def total_ticket_cost(ticket_booking):
+    num_tickets = ticket_booking.tickets.count()
+    return ticket_booking.ticketed_event.ticket_cost * num_tickets
+
+
+@register.filter
+def abbr_ref(ref):
+    return "{}...".format(ref[:5])

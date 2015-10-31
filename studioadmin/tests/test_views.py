@@ -872,15 +872,6 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(event.bookings.all().count(), 1)
         self.assertEquals(self.event.bookings.all().count(), 0)
 
-        formset_data = self.formset_data({
-            'form-TOTAL_FORMS': 2,
-            'form-INITIAL_FORMS': 2,
-            'form-1-id': str(event.id),
-            'form-1-max-participants': '10',
-            'form-1-booking_open': 'on',
-            'form-1-payment_open': 'on',
-            }
-        )
         resp = self._get_response(self.staff_user, 'events')
         self.assertIn(
             'class="delete-checkbox studioadmin-list" '

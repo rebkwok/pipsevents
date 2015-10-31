@@ -1,0 +1,14 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>We regret to inform you that the event {{ ticket_booking.ticketed_event }} has been cancelled.</p>
+
+<p>Your ticket booking has been cancelled{% if ticket_booking.paid %} and we will be in touch shortly regarding your
+payment{% endif %}.</p>
+
+
+<a href="{{ host }}{% url 'booking:ticket_bookings' %}">View your ticket bookings</a>
+</div>
+{% endblock %}

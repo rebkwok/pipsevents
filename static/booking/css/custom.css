@@ -12,6 +12,10 @@
 	background-color: #F2F2F2;
 }
 
+.white_bg {
+	background-color: #fff;
+}
+
 body {
 	background-color: transparent;
 	padding-left: 15;
@@ -255,9 +259,13 @@ color: #000;
 
 }
 
+.sidebar-nav .collapse li {
+  text-indent: 20px;
+}
+
 .sidebar-nav li {
   line-height: 25px;
-  text-indent: 20px;
+  text-indent: 2px;
 }
 
 .sidebar-nav li a {
@@ -458,6 +466,9 @@ td {
 
 .filter-btn {
     width: 11.2em;
+
+.ticket-btn {
+    width: 10em;
 }
 
 .update-btn {
@@ -542,6 +553,21 @@ a.disabled {
   background-color: #e5e5e5;
 }
 
+.bold-divider {
+    height: 4px;
+    background-color: green;
+}
+
+.ticket-divider {
+    margin-top: 10px;
+}
+
+.ticket-info {
+    margin-left: 15px;
+    margin-right: 15px;
+    font-style: italic;
+}
+
 .selectpicker {
    font-size: 12;
 }
@@ -599,7 +625,7 @@ label {
     background-color: #fafafa;
     border: 1px solid #cacece;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05);
-    padding: 9px;
+    padding: 8px;
     border-radius: 3px;
     display: inline-block;
     position: relative;
@@ -615,7 +641,7 @@ label {
 }
 .regular-checkbox:checked + label:after {
     content: '\2714';
-    font-size: 14px;
+    font-size: 12px;
     position: absolute;
     top: 0px;
     left: 3px;
@@ -627,6 +653,12 @@ label {
 .cancelled-event > td > .regular-checkbox:checked + label:after {
     color: lightgrey;
 }
+.cancelled-event > td > .reopen.regular-checkbox:checked + label {
+    background-color: #d6e9c6;
+}
+.cancelled-event > td > .reopen.regular-checkbox:checked + label:after {
+    color: #173B0B;
+}
 
 .delete-checkbox {
     display: none;
@@ -635,7 +667,7 @@ label {
     background-color: #fafafa;
     border: 1px solid #cacece;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05);
-    padding: 9px;
+    padding: 8px;
     border-radius: 3px;
     display: inline-block;
     position: relative;
@@ -651,7 +683,7 @@ label {
 }
 .delete-checkbox:checked + label:after {
     content: '\2714';
-    font-size: 14px;
+    font-size: 12px;
     position: absolute;
     top: 0px;
     left: 3px;
@@ -765,6 +797,14 @@ a > span.fa.fa-print {
 		font-size: x-large;
 		font-weight: bold;
 	}
+    h2 {
+		font-size: large;
+		font-weight: bold;
+	}
+    h4 {
+		font-size: medium;
+		font-weight: bold;
+	}
 	th {
 		font-size: 0.9em;
 		word-wrap: normal !important;
@@ -784,6 +824,42 @@ a > span.fa.fa-print {
     padding-top: 0 !important;
 }
 
-.cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a>span.fa {
+.cancelled-event, .cancelled-event>td>a:link, .cancelled-event>td>a:visited,
+.cancelled-event>td>a>span.fa {
     color: lightgrey !important;
+}
+
+.ticket-error > input, .ticket-error > .regular-checkbox + label {
+    border: 1px solid red;
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+.errorlist {
+    list-style: none;
+    color: red;
+    font-style: italic;
+    font-size: smaller;
+    padding-left: 0;
+}
+
+.show-cancelled-label {
+    font-weight: bold;
+}
+
+.message {
+    margin-top: 15px;
+    margin-bottom: -10px;
+    margin-left: 1px;
+    margin-right: 1px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.ticketed-event-info {
+    font-style: italic;
+    color: green;
+}
+
+.inc-space {
+    padding-bottom: 12px;
 }

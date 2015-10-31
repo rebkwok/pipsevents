@@ -1,6 +1,7 @@
 from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 from studioadmin.views import (ConfirmRefundView,
+                               ConfirmTicketBookingRefundView,
                                ConfirmPaymentView,
                                EventAdminUpdateView,
                                EventAdminCreateView,
@@ -9,7 +10,11 @@ from studioadmin.views import (ConfirmRefundView,
                                TimetableSessionCreateView,
                                UserListView,
                                BlockListView,
-                               ActivityLogListView
+                               ActivityLogListView,
+                               TicketedEventAdminListView,
+                               TicketedEventAdminCreateView,
+                               TicketedEventAdminUpdateView,
+                               TicketedEventBookingsListView
                                )
 
 
@@ -78,5 +83,23 @@ urlpatterns = patterns('',
         r'^waitinglists/(?P<event_id>\d+)$',
         'studioadmin.views.event_waiting_list_view', name='event_waiting_list'
     ),
+    url(r'^ticketed-events/$', TicketedEventAdminListView.as_view(),
+        name='ticketed_events'),
+    url(r'^ticketed-events/new/$', TicketedEventAdminCreateView.as_view(),
+        name='add_ticketed_event'),
+    url(r'^ticketed-events/(?P<slug>[\w-]+)/edit$',
+        TicketedEventAdminUpdateView.as_view(),
+        name='edit_ticketed_event'),
+    url(r'^ticketed-events/(?P<slug>[\w-]+)/ticket-bookings$',
+        TicketedEventBookingsListView.as_view(),
+        name='ticketed_event_bookings'),
+    url(r'^ticketed-events/(?P<slug>[\w-]+)/cancel',
+        'studioadmin.views.cancel_ticketed_event_view',
+        name='cancel_ticketed_event'),
+    url(r'^confirm-ticket-booking-refunded/(?P<pk>\d+)/$',
+        ConfirmTicketBookingRefundView.as_view(),
+        name='confirm_ticket_booking_refund'),
+    url(r'^ticketed-events/print-tickets-list/$', 'studioadmin.views.print_tickets_list',
+        name='print_tickets_list'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     )

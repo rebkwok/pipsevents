@@ -10,7 +10,7 @@ from django.template import Context
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
-from booking.models import Booking, Block
+from booking.models import Booking, Block, TicketBooking
 
 from activitylog.models import ActivityLog
 
@@ -40,11 +40,20 @@ class PaypalBlockTransaction(models.Model):
         return self.invoice_id
 
 
+class PaypalTicketBookingTransaction(models.Model):
+    invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    ticket_booking = models.ForeignKey(TicketBooking, null=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+
+    def __str__(self):
+        return self.invoice_id
+
+
 def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 
     ctx = Context({
         'user': " ".join([user.first_name, user.last_name]),
-        'obj_type': obj_type.title(),
+        'obj_type': obj_type.title().replace('_', ' '),
         'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
         'paypal_transaction_id': paypal_trans.transaction_id
@@ -100,6 +109,9 @@ def payment_received(sender, **kwargs):
         elif obj_type == 'block':
             obj = Block.objects.get(id=obj_id)
             purchase = obj.block_type
+        elif obj_type == 'ticket_booking':
+            obj = TicketBooking.objects.get(id=obj_id)
+            purchase = obj.ticketed_event
         else:
             logger.error('PaypalTransactionError: unknown object type for '
                          'payment (ipn_obj transaction_id: {}, obj_type: {}'.format(
@@ -135,6 +147,10 @@ def payment_received(sender, **kwargs):
                 if obj_type == 'booking':
                     paypal_trans = PaypalBookingTransaction.objects.get(
                         booking=obj, invoice_id=ipn_obj.invoice
+                    )
+                if obj_type == 'ticket_booking':
+                    paypal_trans = PaypalTicketBookingTransaction.objects.get(
+                        ticket_booking=obj, invoice_id=ipn_obj.invoice
                     )
                 else:
                     paypal_trans = PaypalBlockTransaction.objects.get(
@@ -182,15 +198,33 @@ def payment_received(sender, **kwargs):
 def payment_not_received(sender, **kwargs):
     ipn_obj = sender
 
-    booking = Booking.objects.filter(id=int(ipn_obj.custom))
+    custom = ipn_obj.custom.split()
+    obj_type = custom[0]
+    obj_id = int(custom[-1])
+    if obj_type == 'booking':
+        obj = Booking.objects.get(id=obj_id)
+    elif obj_type == 'block':
+        obj = Block.objects.get(id=obj_id)
+    elif obj_type == 'ticket_booking':
+        obj = TicketBooking.objects.get(id=obj_id)
+    else:
+        logger.error('PaypalTransactionError: unknown object type for '
+                     'payment (ipn_obj transaction_id: {}, obj_type: {}'.format(
+            ipn_obj.txn_id, obj_type
+        ))
+        raise PayPalTransactionError('unknown object type for payment')
+
     send_mail(
         'WARNING! Invalid Payment Notification received from PayPal',
         'PayPal sent an invalid transaction notification while '
-        'attempting to process payment for booking id {}'.format(booking.id),
+        'attempting to process payment for {} id {}'.format(
+            obj_type.title(), obj_id),
         settings.DEFAULT_FROM_EMAIL, [settings.DEFAULT_STUDIO_EMAIL],
         fail_silently=False)
     logger.warning('Invalid Payment Notification received from PayPal for '
-                   'booking id {}'.format(booking.id))
+                   '{} id {}'.format(
+        obj_type.title(), obj_id)
+    )
 
 
 valid_ipn_received.connect(payment_received)

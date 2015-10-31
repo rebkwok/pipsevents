@@ -14,7 +14,6 @@
             <li>{{ booking.user.first_name }} {{ booking.user.last_name }} <a href="{{ host }}/studioadmin/confirm-refunded/{{ booking.id }}">Confirm refund</a></li>
         {% endfor %}
     </ul>
-<a href="{{ host }}{% url 'booking:bookings' %}">View your bookings</a>
 
 </div>
 {% endblock %}

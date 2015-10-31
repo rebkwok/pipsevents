@@ -642,7 +642,7 @@ class BookingDeleteViewTests(TestCase):
         block = Block.objects.get(user=self.user)
         self.assertEqual(block.bookings_made(), 0)
 
-    @patch("booking.views.timezone")
+    @patch("booking.views.booking_views.timezone")
     def test_cannot_cancel_after_cancellation_period(self, mock_tz):
         """
         Test trying to cancel after cancellation period

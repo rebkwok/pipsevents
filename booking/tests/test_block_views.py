@@ -1,15 +1,13 @@
 from datetime import timedelta
 from model_mommy import mommy
 
-from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
-from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.forms import BlockCreateForm
-from booking.models import Event, Booking, Block
+from booking.models import Block
 from booking.views import BlockCreateView, BlockListView
 from booking.tests.helpers import set_up_fb, _create_session, setup_view
 

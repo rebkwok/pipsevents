@@ -1,5 +1,6 @@
 from django.contrib import admin
-from payments.models import PaypalBookingTransaction, PaypalBlockTransaction
+from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
+    PaypalTicketBookingTransaction
 
 
 class PaypalBookingTransactionAdmin(admin.ModelAdmin):
@@ -64,3 +65,4 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
 
 admin.site.register(PaypalBookingTransaction, PaypalBookingTransactionAdmin)
 admin.site.register(PaypalBlockTransaction, PaypalBlockTransactionAdmin)
+admin.site.register(PaypalTicketBookingTransaction)

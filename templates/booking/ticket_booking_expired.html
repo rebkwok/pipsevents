@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h2>This ticket booking appears to have expired.</h2>
+
+    <div><a href={% url "booking:book_ticketed_event" ticketed_event.slug %}>
+        Begin ticket booking for {{ ticketed_event.name }} again
+        </a></div>
+
+</div>
+
+{% endblock content %}

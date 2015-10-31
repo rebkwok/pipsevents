@@ -1,0 +1,49 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+
+    <h2>Cancelling {{ ticketed_event }}</h2>
+
+    {% if not already_cancelled %}
+        <p>You are cancelling {{ ticketed_event }}.</p>
+
+        {% if open_paid_ticket_bookings or open_unpaid_ticket_bookings %}
+            <p>This event has the following open ticket bookings which will be cancelled.  Users will be sent
+            a notification email.</p>
+
+            {% if open_paid_ticket_bookings %}
+                <p>Paid bookings that will need to be refunded:</p>
+                <ul>
+                    {% for booking in open_paid_ticket_bookings %}
+                    <li>{{ booking.user.first_name }} {{ booking.user.last_name }}; booking ref: {{ booking.booking_reference }}; tickets: {{ booking.tickets.count }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if open_unpaid_ticket_bookings %}
+                <p>Unpaid bookings:</p>
+                <ul>
+                    {% for booking in open_unpaid_ticket_bookings %}
+                    <li>{{ booking.user.first_name }} {{ booking.user.last_name }}; booking ref: {{ booking.booking_reference }}; tickets: {{ booking.tickets.count }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% else %}
+            <p>There are no open ticket bookings for this event.</p>
+        {% endif %}
+
+        <p><strong>Please confirm you want to cancel this event.</strong></p>
+
+        <form action="" method="post">{% csrf_token %}
+            <input class="btn btn-success" type="submit" name="confirm" value="Yes, cancel this event" />
+            <input class="btn btn-danger" type="submit" name="cancel" value="No, take me back" />
+        </form>
+    {% else %}
+        <h4>This event is already cancelled.</h4>
+    {% endif %}
+
+</div>
+
+{% endblock studioadmincontent %}

@@ -60,6 +60,7 @@ class TestViews(TestCase):
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
 
+
 class TestHelpers(TestCase):
 
     def test_create_booking_transaction(self):

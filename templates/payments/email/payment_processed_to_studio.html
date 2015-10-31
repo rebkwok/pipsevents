@@ -3,10 +3,10 @@
 {% block messagecontent %}
 <div style="font-family: sans-serif;">
 
-<p>User: {{ user }}</p>
-<p>Purchased: {% if obj_type == "Booking" %}{{ obj.event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
-<p>Invoice number: {{ invoice_id }}</p>
-<p>Paypal Transaction id: {{ paypal_transaction_id }}</p>
+<p><strong>User: {{ user }}</strong></p>
+<p><strong>Purchased:</strong> {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
+<p><strong>Invoice number:</strong> {{ invoice_id }}</p>
+<p><strong>Paypal Transaction id:</strong> {{ paypal_transaction_id }}</p>
 
 </div>
 {% endblock %}
