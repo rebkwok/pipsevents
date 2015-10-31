@@ -217,7 +217,7 @@ class WaitingListTests(TestCase):
         event = mommy.make_recipe('booking.future_PC', max_participants=3)
         mommy.make_recipe('booking.booking', event=event, _quantity=2)
         mommy.make_recipe('booking.booking', event=event, user=self.user)
-        resp = self._get_event_detail(self.user, event, "lessons")
+        resp = self._get_event_detail(self.user, event, "lesson")
         self.assertTrue(resp.context_data['booked'])
         self.assertNotIn('waiting_list', resp.context_data)
         resp.render()
@@ -234,7 +234,7 @@ class WaitingListTests(TestCase):
         mommy.make_recipe(
             'booking.waiting_list_user', event=event, user=self.user
         )
-        resp = self._get_event_detail(self.user, event,  "lessons")
+        resp = self._get_event_detail(self.user, event,  "lesson")
         self.assertTrue(resp.context_data['waiting_list'])
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
@@ -251,7 +251,7 @@ class WaitingListTests(TestCase):
         mommy.make_recipe(
             'booking.waiting_list_user', event=event, user=self.user
         )
-        resp = self._get_event_detail(self.user, event, "lessons")
+        resp = self._get_event_detail(self.user, event, "lesson")
         self.assertTrue(resp.context_data['waiting_list'])
         resp.render()
         self.assertIn('book_button', str(resp.content))

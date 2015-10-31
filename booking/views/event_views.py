@@ -9,7 +9,7 @@ from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
 from booking.models import Event, WaitingListUser
-from booking.forms import EventFilter, LessonFilter
+from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers
 
 logger = logging.getLogger(__name__)
@@ -24,8 +24,10 @@ class EventListView(ListView):
     def get_queryset(self):
         if self.kwargs['ev_type'] == 'events':
             ev_abbr = 'EV'
-        else:
+        elif self.kwargs['ev_type'] == 'lessons':
             ev_abbr = 'CL'
+        else:
+            ev_abbr = 'RH'
 
         name = self.request.GET.get('name')
 
@@ -62,8 +64,10 @@ class EventListView(ListView):
         event_name = self.request.GET.get('name', '')
         if self.kwargs['ev_type'] == 'events':
             form = EventFilter(initial={'name': event_name})
-        else:
+        elif self.kwargs['ev_type'] == 'lessons':
             form = LessonFilter(initial={'name': event_name})
+        else:
+            form = RoomHireFilter(initial={'name': event_name})
         context['form'] = form
         return context
 
@@ -77,8 +81,10 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     def get_object(self):
         if self.kwargs['ev_type'] == 'event':
             ev_abbr = 'EV'
-        else:
+        elif self.kwargs['ev_type'] == 'lesson':
             ev_abbr = 'CL'
+        else:
+            ev_abbr = 'RH'
         queryset = Event.objects.filter(event_type__event_type=ev_abbr)
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])

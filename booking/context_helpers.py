@@ -15,9 +15,14 @@ def get_event_context(context, event, user):
     if event.event_type.event_type == 'CL':
         context['type'] = "lesson"
         event_type_str = "class"
-    else:
+    elif event.event_type.event_type == 'EV':
         context['type'] = "event"
         event_type_str = "event"
+    else:
+        context['type'] = "room_hire"
+        event_type_str = "room hire"
+
+    context['event_type_str'] = event_type_str
 
     if event.date <= timezone.now():
         context['past'] = True
@@ -86,7 +91,8 @@ def get_event_context(context, event, user):
             booking_info_text = "This {} is now full.".format(event_type_str)
         if event.payment_due_date:
             if event.payment_due_date < timezone.now():
-                booking_info_text = "Bookings for this event are now closed."
+                booking_info_text = "Bookings for this {} are now " \
+                                    "closed.".format(event_type_str)
 
     context['booking_info_text'] = booking_info_text
 
@@ -107,9 +113,13 @@ def get_booking_context(context, booking):
     if booking.event.event_type.event_type == 'CL':
         context['type'] = "lesson"
         event_type_str = "class"
-    else:
+    elif booking.event.event_type.event_type == 'EV':
         context['type'] = "event"
         event_type_str = "event"
+    else:
+        context['type'] = "room_hire"
+        event_type_str = "room hire"
+    context['event_type_str'] = event_type_str
 
     # past booking
     if booking.event.date < timezone.now():
@@ -167,8 +177,12 @@ def get_booking_create_context(event, request, context):
     if active_user_block_unpaid:
         context['active_user_block_unpaid'] = True
 
-    ev_type = 'event' if \
-        event.event_type.event_type == 'EV' else 'class'
+    if event.event_type.event_type == 'EV':
+        ev_type = 'event'
+    elif event.event_type.event_type == 'CL':
+        ev_type = 'class'
+    else:
+        ev_type = 'room hire'
 
     context['ev_type'] = ev_type
 

@@ -103,6 +103,10 @@ class LessonFilter(forms.Form):
     name = forms.ChoiceField(choices=get_event_names('CL'))
 
 
+class RoomHireFilter(forms.Form):
+    name = forms.ChoiceField(choices=get_event_names('RH'))
+
+
 def get_user_blocks(user, event_type):
     blocks = [block.id for block in Block.objects.filter(
         block_type__event_type=event_type, user=user

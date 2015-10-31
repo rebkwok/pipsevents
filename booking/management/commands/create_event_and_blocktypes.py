@@ -44,6 +44,11 @@ class Command(BaseCommand):
             subtype='Other event'
         )
 
+        rh = EventType.objects.get_or_create(
+            event_type='RH',
+            subtype='Studio/room hire'
+        )
+
         self.stdout.write("Creating block types")
         BlockType.objects.get_or_create(
             event_type=pc,

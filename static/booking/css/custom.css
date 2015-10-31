@@ -259,6 +259,10 @@ color: #000;
 
 }
 
+.sidebar-help {
+    padding-left: 18px;
+}
+
 .sidebar-nav .collapse li {
   text-indent: 20px;
 }

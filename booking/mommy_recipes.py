@@ -27,6 +27,7 @@ event_type_PC = Recipe(EventType, event_type="CL", subtype=seq("Pole level class
 event_type_WS = Recipe(EventType, event_type="EV", subtype=seq("Workshop"))
 event_type_OE = Recipe(EventType, event_type="EV", subtype=seq("Other event"))
 event_type_OC = Recipe(EventType, event_type="CL", subtype=seq("Other class"))
+event_type_RH = Recipe(EventType, event_type="RH", subtype=seq("Room hire"))
 
 future_EV = Recipe(Event,
                       date=future,
@@ -43,6 +44,9 @@ future_PC = Recipe(Event,
 future_CL = Recipe(Event,
                    date=future,
                    event_type=foreign_key(event_type_OC))
+future_RH = Recipe(Event,
+                   date=future,
+                   event_type=foreign_key(event_type_RH))
 
 # past event
 past_event = Recipe(Event,

@@ -131,6 +131,12 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     def dispatch(self, *args, **kwargs):
         self.event = get_object_or_404(Event, slug=kwargs['event_slug'])
+        if self.event.event_type.event_type == 'CL':
+            self.ev_type = 'lessons'
+        elif self.event.event_type.event_type == 'EV':
+            self.ev_type = 'events'
+        else:
+            self.ev_type = 'room_hires'
         return super(BookingCreateView, self).dispatch(*args, **kwargs)
 
     def get_initial(self):
@@ -168,16 +174,12 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     )
             messages.success(request, msg)
 
-            ev_type = 'lessons' \
-                if self.event.event_type.event_type == 'CL' \
-                else 'events'
-
             if 'bookings' in request.GET:
                 return HttpResponseRedirect(
                     reverse('booking:bookings')
                 )
             return HttpResponseRedirect(
-                reverse('booking:{}'.format(ev_type))
+                reverse('booking:{}'.format(self.ev_type))
             )
         elif 'leave waiting list' in request.GET:
             try:
@@ -199,16 +201,12 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
             messages.success(request, msg)
 
-            ev_type = 'lessons' \
-                if self.event.event_type.event_type == 'CL' \
-                else 'events'
-
             if 'bookings' in request.GET:
                 return HttpResponseRedirect(
                     reverse('booking:bookings')
                 )
             return HttpResponseRedirect(
-                reverse('booking:{}'.format(ev_type))
+                reverse('booking:{}'.format(self.ev_type))
             )
         elif self.event.spaces_left() <= 0:
             return HttpResponseRedirect(
@@ -364,8 +362,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'prev_cancelled_and_direct_paid':
               previously_cancelled_and_direct_paid,
               'claim_free': True if "claim_free" in form.data else False,
-              'ev_type': 'event' if
-              self.event.event_type.event_type == 'EV' else 'class'
+              'ev_type': self.ev_type
         })
         try:
             send_mail('{} Booking for {}'.format(
@@ -643,6 +640,13 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 # send email to user if they used block to book (paypal payment
                 # sends separate emails
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                if booking.event.event_type.event_type == 'EV':
+                    ev_type = 'event'
+                elif booking.event.event_type.event_type == 'CL':
+                    ev_type = 'class'
+                else:
+                    ev_type = 'room hire'
+
                 ctx = Context({
                             'host': host,
                             'booking': booking,
@@ -651,9 +655,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                             'time': booking.event.date.strftime('%I:%M %p'),
                             'blocks_used':  blocks_used,
                             'total_blocks': total_blocks,
-                            'ev_type':
-                            'event' if booking.event.event_type.event_type == 'EV'
-                            else 'class'
+                            'ev_type': ev_type
                         })
                 send_mail('{} Block used for booking for {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
@@ -846,7 +848,12 @@ def duplicate_booking(request, event_slug):
 
 def update_booking_cancelled(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
-    ev_type = 'class' if booking.event.event_type.event_type == 'CL' else 'event'
+    if booking.event.event_type.event_type == 'EV':
+        ev_type = 'event'
+    elif booking.event.event_type.event_type == 'CL':
+        ev_type = 'class'
+    else:
+        ev_type = 'room hire'
     context = {'booking': booking, 'ev_type': ev_type}
     if booking.event.spaces_left() == 0:
         context['full'] = True
@@ -854,7 +861,13 @@ def update_booking_cancelled(request, pk):
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
+    if event.event_type.event_type == 'EV':
+        ev_type = 'event'
+    elif event.event_type.event_type == 'CL':
+        ev_type = 'class'
+    else:
+        ev_type = 'room hire'
+
     context = {'event': event, 'ev_type': ev_type}
     return render(request, 'booking/fully_booked.html', context)
 

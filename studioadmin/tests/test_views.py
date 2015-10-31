@@ -379,12 +379,21 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(len(resp.context_data['events']), 4)
 
-    def test_class_register_list_shows_classes_only(self):
+    def test_class_register_list_excludes_events(self):
         mommy.make_recipe('booking.future_EV', _quantity=4)
         mommy.make_recipe('booking.future_PC', _quantity=5)
         url = reverse('studioadmin:class_register_list')
         resp = self._get_response(self.staff_user, 'lessons', url=url)
         self.assertEquals(len(resp.context_data['events']), 5)
+
+    def test_class_register_list_shows_room_hire_with_classes(self):
+        mommy.make_recipe('booking.future_EV', _quantity=4)
+        mommy.make_recipe('booking.future_PC', _quantity=5)
+        mommy.make_recipe('booking.future_RH', _quantity=5)
+
+        url = reverse('studioadmin:class_register_list')
+        resp = self._get_response(self.staff_user, 'lessons', url=url)
+        self.assertEquals(len(resp.context_data['events']), 10)
 
 
 class EventRegisterViewTests(TestPermissionMixin, TestCase):
@@ -397,7 +406,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def _get_response(
             self, user, event_slug,
-            status_choice='OPEN', print=False, ev_type='event'
+            status_choice='OPEN', print_view=False, ev_type='event'
             ):
         if not print:
             url = reverse(
@@ -420,11 +429,11 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             request,
             event_slug,
             status_choice=status_choice,
-            print_view=print)
+            print_view=print_view)
 
     def _post_response(
             self, user, event_slug, form_data,
-            status_choice='OPEN', print=False, ev_type='event'
+            status_choice='OPEN', print_view=False, ev_type='event'
             ):
         if not print:
             url = reverse(
@@ -447,7 +456,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             request,
             event_slug,
             status_choice=status_choice,
-            print_view=print)
+            print_view=print_view)
 
     def formset_data(self, extra_data={}, status_choice='OPEN'):
 
@@ -616,7 +625,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def test_printable_version_does_not_show_status_filter(self):
         resp = self._get_response(
-            self.staff_user, self.event.slug, print=False,
+            self.staff_user, self.event.slug, print_view=False,
             status_choice='OPEN'
         )
         resp.render()
@@ -625,7 +634,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             str(resp.content),
         )
         resp = self._get_response(
-            self.staff_user, self.event.slug, print=True,
+            self.staff_user, self.event.slug, print_view=True,
             status_choice='OPEN'
         )
         resp.render()
@@ -642,7 +651,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.event.slug,
             form_data=self.formset_data({'print': 'printable version'}),
-            print=False,
+            print_view=False,
             status_choice='OPEN'
         )
 
@@ -675,7 +684,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, event.slug,
             form_data=form_data,
-            print=False,
+            print_view=False,
             ev_type='class',
             status_choice='OPEN'
         )
@@ -692,7 +701,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.event.slug,
             form_data=self.formset_data(),
-            print=False,
+            print_view=False,
             ev_type='event',
             status_choice='OPEN'
         )
@@ -836,30 +845,78 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_events_url_shows_only_events(self):
-        classes = mommy.make_recipe('booking.future_PC')
+        events = mommy.make_recipe('booking.future_EV', _quantity=5)
+        events.append(self.event)
         resp = self._get_response(self.staff_user, ev_type='events')
-        self.assertIn('Scheduled Events', str(resp.content))
 
+        eventsformset = resp.context_data['eventformset']
 
-    def test_classes_url_shows_only_classes(self):
-        classes = mommy.make_recipe('booking.future_PC')
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            sorted([ev.id for ev in events])
+        )
+        self.assertIn('Scheduled Events', resp.rendered_content)
+
+    def test_classes_url_shows_excludes_events(self):
+        classes = mommy.make_recipe('booking.future_PC', _quantity=5)
         url = reverse('studioadmin:lessons')
         resp = self._get_response(self.staff_user, ev_type='classes', url=url)
-        self.assertIn('Scheduled Classes', str(resp.content))
+        eventsformset = resp.context_data['eventformset']
+
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            sorted([ev.id for ev in classes])
+        )
+        self.assertIn('Scheduled Classes', resp.rendered_content)
+
+    def test_classes_url_shows_room_hire_with_classes(self):
+        classes = mommy.make_recipe('booking.future_PC', _quantity=5)
+        room_hires = mommy.make_recipe('booking.future_RH', _quantity=5)
+        url = reverse('studioadmin:lessons')
+        resp = self._get_response(self.staff_user, ev_type='classes', url=url)
+        eventsformset = resp.context_data['eventformset']
+
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            sorted([ev.id for ev in classes + room_hires])
+        )
+        self.assertEqual(Event.objects.count(), 11)
+        self.assertEqual(eventsformset.queryset.count(), 10)
+
+        self.assertIn('Scheduled Classes', resp.rendered_content)
 
     def test_past_filter(self):
+        past_evs = mommy.make_recipe('booking.past_event', _quantity=5)
         resp = self._post_response(
             self.staff_user, 'events', {'past': 'Show past'}
         )
-        self.assertIn('Past Events', str(resp.content))
-        self.assertNotIn('Scheduled Events', str(resp.content))
+
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            sorted([ev.id for ev in past_evs])
+        )
+        self.assertEqual(Event.objects.count(), 6)
+        self.assertEqual(eventsformset.queryset.count(), 5)
+
+        self.assertIn('Past Events', resp.rendered_content)
+        self.assertNotIn('Scheduled Events',resp.rendered_content)
 
     def test_upcoming_filter(self):
+        past_evs = mommy.make_recipe('booking.past_event', _quantity=5)
         resp = self._post_response(
             self.staff_user, 'events', {'upcoming': 'Show upcoming'}
         )
-        self.assertIn('Scheduled Events', str(resp.content))
-        self.assertNotIn('Past Events', str(resp.content))
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            [self.event.id]
+        )
+        self.assertEqual(Event.objects.count(), 6)
+        self.assertEqual(eventsformset.queryset.count(), 1)
+
+        self.assertIn('Scheduled Events', resp.rendered_content)
+        self.assertNotIn('Past Events', resp.rendered_content)
 
     def test_cancel_button_shown_for_events_with_bookings(self):
         """
@@ -876,12 +933,12 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn(
             'class="delete-checkbox studioadmin-list" '
             'id="DELETE_0" name="form-0-DELETE"',
-            str(resp.content)
+            resp.rendered_content
         )
         self.assertNotIn('id="DELETE_1" name="form-1-DELETE"',
-            str(resp.content)
+            resp.rendered_content
         )
-        self.assertIn('cancel_button', str(resp.content))
+        self.assertIn('cancel_button', resp.rendered_content)
 
     def test_can_delete(self):
         self.assertEquals(Event.objects.all().count(), 1)
