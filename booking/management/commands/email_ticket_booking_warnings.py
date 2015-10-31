@@ -109,3 +109,7 @@ def send_warning_email(self, upcoming_bookings):
 
     else:
         self.stdout.write('No warnings to send')
+        ActivityLog.objects.create(
+            log='email_ticket_booking_warnings job run; '
+                'no unpaid booking warnings to send'
+        )

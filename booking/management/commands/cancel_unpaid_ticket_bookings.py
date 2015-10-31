@@ -139,4 +139,7 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write('No ticket bookings to cancel')
+            ActivityLog.objects.create(
+                log='cancel_unpaid_ticket_bookings job run; no bookings to cancel'
+            )
 

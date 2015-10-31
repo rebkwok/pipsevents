@@ -63,5 +63,8 @@ class Command(BaseCommand):
                 )
             )
         else:
-            self.stdout.write('No ticket bookings to cancel')
+            self.stdout.write('No unconfirmed ticket bookings to delete')
+            ActivityLog.objects.create(
+                log='deleted_unconfirmed_bookings job run; no bookings to cancel'
+            )
 
