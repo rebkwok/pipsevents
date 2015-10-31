@@ -148,7 +148,7 @@ def payment_received(sender, **kwargs):
                     paypal_trans = PaypalBookingTransaction.objects.get(
                         booking=obj, invoice_id=ipn_obj.invoice
                     )
-                if obj_type == 'ticket_booking':
+                elif obj_type == 'ticket_booking':
                     paypal_trans = PaypalTicketBookingTransaction.objects.get(
                         ticket_booking=obj, invoice_id=ipn_obj.invoice
                     )
