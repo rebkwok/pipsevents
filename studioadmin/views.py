@@ -1534,7 +1534,10 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
         empty_text = [
             'email_warnings job run; no unpaid booking warnings to send',
-            'cancel_unpaid_bookings job run; no bookings to cancel'
+            'cancel_unpaid_bookings job run; no bookings to cancel',
+            'deleted_unconfirmed_bookings job run; no bookings to cancel',
+            'email_ticket_booking_warnings job run; no unpaid booking warnings to send',
+            'cancel_unpaid_ticket_bookings job run; no bookings to cancel'
         ]
         queryset = ActivityLog.objects.exclude(
             log__in=empty_text
