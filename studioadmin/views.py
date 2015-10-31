@@ -308,9 +308,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     if print_view:
         template = 'studioadmin/register_print.html'
 
-    sidenav_selection = 'events_register'
-    if event.event_type.event_type == 'CL':
-        sidenav_selection = 'lessons_register'
+    sidenav_selection = 'lessons_register'
+    if event.event_type.event_type == 'EV':
+        sidenav_selection = 'events_register'
 
     available_block_type = [
         block_type for block_type in
@@ -477,22 +477,34 @@ def register_print_day(request):
 @staff_required
 def event_admin_list(request, ev_type):
 
-    ev_type_abbreviation = 'EV' if ev_type == 'events' else 'CL'
-    ev_type_text = 'event' if ev_type == 'events' else 'class'
 
-    queryset = Event.objects.filter(
-        event_type__event_type=ev_type_abbreviation,
-        date__gte=timezone.now()
-    ).order_by('date')
+    if ev_type == 'events':
+        ev_type_text = 'event'
+        queryset = Event.objects.filter(
+            event_type__event_type='EV',
+            date__gte=timezone.now()
+        ).order_by('date')
+    else:
+        ev_type_text = 'class'
+        queryset = Event.objects.filter(
+            date__gte=timezone.now()
+        ).exclude(event_type__event_type='EV').order_by('date')
+
     events = True if queryset.count() > 0 else False
     show_past = False
 
     if request.method == 'POST':
         if "past" in request.POST:
-            queryset = Event.objects.filter(
-                event_type__event_type=ev_type_abbreviation,
-                date__lte=timezone.now()
-            ).order_by('date')
+
+            if ev_type == 'events':
+                queryset = Event.objects.filter(
+                    event_type__event_type='EV',
+                    date__lte=timezone.now()
+                ).order_by('date')
+            else:
+                queryset = Event.objects.filter(
+                    date__lte=timezone.now()
+                ).exclude(event_type__event_type='EV').order_by('date')
             events = True if queryset.count() > 0 else False
             show_past = True
             eventformset = EventFormSet(queryset=queryset)
@@ -564,7 +576,7 @@ def event_admin_list(request, ev_type):
     else:
         eventformset = EventFormSet(queryset=queryset)
 
-    return render(
+    return TemplateResponse(
         request, 'studioadmin/admin_events.html', {
             'eventformset': eventformset,
             'type': ev_type,
@@ -582,13 +594,16 @@ class EventRegisterListView(LoginRequiredMixin, StaffUserMixin, ListView):
     context_object_name = 'events'
 
     def get_queryset(self):
-        ev_type_abbreviation = 'EV' if self.kwargs["ev_type"] == 'events' \
-            else 'CL'
-
-        return Event.objects.filter(
-            event_type__event_type=ev_type_abbreviation,
-            date__gte=timezone.now()
-        ).order_by('date')
+        if self.kwargs["ev_type"] == 'events':
+            queryset = Event.objects.filter(
+                event_type__event_type='EV',
+                date__gte=timezone.now()
+            ).order_by('date')
+        else:
+            queryset = Event.objects.filter(
+                date__gte=timezone.now()
+            ).exclude(event_type__event_type='EV').order_by('date')
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super(EventRegisterListView, self).get_context_data(**kwargs)

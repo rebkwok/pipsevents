@@ -40,7 +40,13 @@ urlpatterns = patterns('',
         r'^classes/$', EventListView.as_view(), {'ev_type': 'lessons'},
         name='lessons'
     ),
-
+    url(
+        r'^room-hire/(?P<slug>[\w-]+)/$',  EventDetailView.as_view(),
+        {'ev_type': 'room_hire'}, name='room_hire_detail'),
+    url(
+        r'^room-hire/$', EventListView.as_view(), {'ev_type': 'room_hire'},
+        name='room_hires'
+    ),
     url(r'^blocks/$', BlockListView.as_view(), name='block_list'),
     url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
     url(r'^blocks/existing/$', 'booking.views.has_active_block',

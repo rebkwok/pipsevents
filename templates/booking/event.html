@@ -14,11 +14,11 @@
             </div>
             <div class="panel-body">
                 {% if event.cancelled and past %}
-                    <h3>This event was cancelled and is now past.</h3>
+                    <h3>This {{ event_type_str }} was cancelled and is now past.</h3>
                 {% elif past %}
-                    <h3>This event is now past.</h3>
+                    <h3>This {{ event_type_str }} is now past.</h3>
                 {% elif event.cancelled %}
-                    <h3>This event has been cancelled.</h3>
+                    <h3>This {{ event_type_str }} has been cancelled.</h3>
                 {% endif %}
 
                 <ul class="list-group">
@@ -35,7 +35,7 @@
                                   (<a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a>)</li>
                             <li class="list-group-item"><p><strong>Payment information</strong></p>
                                 <p>{% if not event.advance_payment_required and event.cost and event.event_type.subtype != "External instructor class" %}Advance payment is not required for this
-                                {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.{% endif %}</p>
+                                {{ event_type_str }}.{% endif %}</p>
 
                                 <p>Cost: £ {{ event.cost }}</p>
 
@@ -47,7 +47,7 @@
                             {% if event.cancellation_period %}
                                 <li class="list-group-item"><strong>Cancellation information</strong>
                                     <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the
-                                    {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}
+                                    {{ event_type_str }}
                                     {% if event.cost and event.advance_payment_required and not event.payment_due_date %}
                                         (payment due by {{ cancellation_due_date|date:"D d F, g:i a" }})
                                     {% endif %}</p></li>
@@ -61,7 +61,7 @@
                     {% if not event.cancelled %}
                         {% if event.max_participants %}
                             <h5>There are a maximum {{ event.max_participants }} spaces for this
-                                {% if type == "event" %}event{% elif type == "lesson" %}class{% endif %}.</h5>
+                                {{ event_type_str }}.</h5>
                             {% if not event.external_instructor or type != 'lesson'%}
                                 <h5>Spaces left: {{ event.spaces_left }}</h5>
                             {% endif %}

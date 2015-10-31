@@ -189,6 +189,28 @@ class EventAdminFormTests(TestCase):
         )
         self.assertEquals(len(ev_type_field.queryset), 2)
 
+    def test_event_type_queryset_shows_room_hire_with_classes(self):
+        rh_type = mommy.make_recipe('booking.event_type_RH')
+        form = EventAdminForm(
+            data=self.form_data(), ev_type='EV')
+        ev_type_field = form.fields['event_type']
+        self.assertEqual(
+            set(EventType.objects.filter(id=self.event_type_ev.id)),
+            set(ev_type_field.queryset)
+        )
+        self.assertEquals(len(ev_type_field.queryset), 1)
+
+        form = EventAdminForm(
+            data=self.form_data(), ev_type='CL')
+        ev_type_field = form.fields['event_type']
+        self.assertEqual(
+            set(EventType.objects.filter(
+                id__in=[self.event_type.id, self.event_type_oc.id, rh_type.id]
+            )),
+            set(ev_type_field.queryset)
+        )
+        self.assertEquals(len(ev_type_field.queryset), 3)
+
     def test_invalid_date(self):
         form = EventAdminForm(
             data=self.form_data(
@@ -469,26 +491,34 @@ class SessionAdminFormTests(TestCase):
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['Enter a valid email address.'], form.errors.values())
 
-    def test_event_type_queryset(self):
-        form = SessionAdminForm(
-            data=self.form_data())
+    def test_event_type_queryset_excludes_events(self):
+        form = SessionAdminForm(data=self.form_data())
         ev_type_field = form.fields['event_type']
         self.assertEqual(
             set(EventType.objects.filter(event_type='CL')),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(len(ev_type_field.queryset), 2)
-
-        form = SessionAdminForm(
-            data=self.form_data())
-        ev_type_field = form.fields['event_type']
+        self.assertEquals(ev_type_field.queryset.count(), 2)
         self.assertEqual(
             set(EventType.objects.filter(
                 id__in=[self.event_type.id, self.event_type_oc.id]
             )),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(len(ev_type_field.queryset), 2)
+
+    def test_event_type_queryset_inlcudes_room_hire_and_classes(self):
+
+        rh_type = mommy.make_recipe('booking.event_type_RH')
+
+        form = SessionAdminForm(data=self.form_data())
+        ev_type_field = form.fields['event_type']
+        self.assertEqual(
+            set(EventType.objects.filter(
+                id__in=[self.event_type.id, self.event_type_oc.id, rh_type.id]
+            )),
+            set(ev_type_field.queryset)
+        )
+        self.assertEquals(ev_type_field.queryset.count(), 3)
 
     def test_invalid_time(self):
         form = SessionAdminForm(

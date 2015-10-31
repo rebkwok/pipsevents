@@ -51,7 +51,7 @@
                                             <div {% if not bookingform.can_cancel %}disabled{% endif %}
                                                  class="btn btn-danger table-btn booking-btn">Cancel booking</div></a>
                                         {% elif bookingform.booking.event.cancelled %}
-                                            {% if bookingform.ev_type == 'EV' %}EVENT{% else %}CLASS{% endif %} CANCELLED
+                                            {% if bookingform.ev_type == 'EV' %}EVENT{% elif bookingform.ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
                                         {% elif not bookingform.booking.event.bookable %}
                                             {% if not bookingform.on_waiting_list %}
                                                 <form class="wl-table-form" action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">
@@ -76,8 +76,11 @@
                                     {% if bookingform.ev_type == 'EV' %}
                                     <a href="{% url 'booking:event_detail' bookingform.booking.event.slug %}">
                                         {{ bookingform.booking.event.name }}</a>
-                                    {% else %}
+                                    {% elif bookingform.ev_type == 'EV' %}
                                     <a href="{% url 'booking:lesson_detail' bookingform.booking.event.slug %}">
+                                        {{ bookingform.booking.event.name }}</a>
+                                    {% else %}
+                                    <a href="{% url 'booking:room_hire_detail' bookingform.booking.event.slug %}">
                                         {{ bookingform.booking.event.name }}</a>
                                     {% endif %}
                                     </td>
@@ -107,9 +110,9 @@
     </div>
     {% else %}
         {% if history %}
-            <p>You do not have any past class or event bookings.</p>
+            <p>You do not have any past class, event or room hire bookings.</p>
         {% else %}
-            <p>You are not booked into any upcoming classes or events.</p>
+            <p>You are not booked into any upcoming classes, events or room hires.</p>
         {% endif %}
     {% endif %}
 

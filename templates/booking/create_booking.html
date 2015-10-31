@@ -11,8 +11,10 @@
                 <h2 class="panel-title">You are now booking for
                     {% if ev_type == 'event' %}
                     <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
-                    {% else %}
+                    {% elif ev_type == 'class' %}
                     <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
+                    {% else %}
+                    <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
                     {% endif %}
                     on {{ event.date | date:"D d F, g:i a" }}</h2>
             </div>
@@ -28,7 +30,7 @@
                             {% endif %}
 
                         {% else %}
-                            <p>(Note: block booking is not available for this {{ ev_type }} type.)</p>
+                            <p>(Note: block booking is not available.)</p>
                         {% endif %}
 
                         {% if not event.can_cancel %}

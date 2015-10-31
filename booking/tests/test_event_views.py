@@ -225,7 +225,7 @@ class EventDetailViewTests(TestCase):
 
         user = mommy.make_recipe('booking.user')
 
-        response = self._get_response(user, pole_practice, 'lessons')
+        response = self._get_response(user, pole_practice, 'lesson')
         response.render()
         self.assertIn('unbookable_pole_practice', response.context_data)
         self.assertTrue(response.context_data['unbookable_pole_practice'])
@@ -244,7 +244,7 @@ class EventDetailViewTests(TestCase):
         user.user_permissions.add(perm)
         user.save()
 
-        response = self._get_response(user, pole_practice, 'lessons')
+        response = self._get_response(user, pole_practice, 'lesson')
         response.render()
         self.assertNotIn('unbookable_pole_practice', response.context_data)
         self.assertTrue(response.context_data['bookable'])
@@ -368,6 +368,121 @@ class LessonListViewTests(TestCase):
         self.assertTrue(event1 in booked_events)
 
 
+class RoomHireListViewTests(TestCase):
+    """
+    Test EventListView with room hires; reuses the event templates and context
+    data helpers
+    """
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+        self.factory = RequestFactory()
+        mommy.make_recipe('booking.future_RH', _quantity=4)
+        mommy.make_recipe('booking.future_EV', _quantity=1)
+        mommy.make_recipe('booking.future_PC', _quantity=3)
+        mommy.make_recipe('booking.future_CL', _quantity=3)
+        mommy.make_recipe('booking.future_WS', _quantity=1)
+        self.user = mommy.make_recipe('booking.user')
+
+    def _get_response(self, user, ev_type):
+        url = reverse('booking:room_hires')
+        request = self.factory.get(url)
+        request.user = user
+        view = EventListView.as_view()
+        return view(request, ev_type=ev_type)
+
+    def test_with_logged_in_user(self):
+        """
+        test that page loads if there is a user is available
+        """
+        resp = self._get_response(self.user, 'room_hires')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(resp.context_data['type'], 'room_hires')
+        self.assertTrue('booked_events' in resp.context_data)
+
+    def test_lesson_list_with_anonymous_user(self):
+        """
+        Test that no booked_events in context
+        """
+        url = reverse('booking:room_hires')
+        resp = self.client.get(url)
+
+        # event listing should still only show future events
+        self.assertFalse('booked_events' in resp.context)
+
+    def test_lesson_list(self):
+        """
+        Test that only room hires are listed
+        """
+        url = reverse('booking:room_hires')
+        resp = self.client.get(url)
+
+        self.assertEquals(Event.objects.all().count(), 12)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.context['events'].count(), 4)
+        self.assertEquals(resp.context['type'], 'room_hire')
+
+    def test_filter_lessons(self):
+        """
+        Test that we can filter the room hires by name
+        """
+        mommy.make_recipe('booking.future_RH', name='test_name', _quantity=3)
+        mommy.make_recipe('booking.future_RH', name='test_name1', _quantity=4)
+
+        url = reverse('booking:room_hires')
+        resp = self.client.get(url, {'name': 'test_name'})
+        self.assertEquals(resp.context['events'].count(), 3)
+        resp = self.client.get(url, {'name': 'test_name1'})
+        self.assertEquals(resp.context['events'].count(), 4)
+
+    def test_lesson_list_shows_only_current_user_bookings(self):
+        """
+        Test that only user's booked room hires are shown as booked
+        """
+        events = Event.objects.filter(event_type__event_type="RH")
+        event1,  event2 = events[0:2]
+
+        resp = self._get_response(self.user, 'room_hires')
+        # check there are no booked events yet
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(len(resp.context_data['booked_events']), 0)
+
+        # create booking for this user
+        mommy.make_recipe('booking.booking', user=self.user, event=event1)
+        # create booking for another user
+        user1 = mommy.make_recipe('booking.user')
+        mommy.make_recipe('booking.booking', user=user1, event=event2)
+
+        # check only event1 shows in the booked events
+        resp = self._get_response(self.user, 'room_hires')
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(Booking.objects.all().count(), 2)
+        self.assertEquals(len(booked_events), 1)
+        self.assertTrue(event1 in booked_events)
+
+    def test_lesson_list_only_shows_open_bookings(self):
+        events = Event.objects.filter(event_type__event_type="RH")
+        event1,  event2 = events[0:2]
+
+        resp = self._get_response(self.user, 'room_hires')
+        # check there are no booked events yet
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(len(resp.context_data['booked_events']), 0)
+
+        # create open and cancelled booking for this user
+        mommy.make_recipe('booking.booking', user=self.user, event=event1)
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=event2, status='CANCELLED'
+        )
+
+        # check only event1 shows in the booked events
+        resp = self._get_response(self.user, 'room_hires')
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(Booking.objects.all().count(), 2)
+        self.assertEquals(len(booked_events), 1)
+        self.assertTrue(event1 in booked_events)
+
+
 class LessonDetailViewTests(TestCase):
     """
     Test EventDetailView with lessons; reuses the event templates and
@@ -395,3 +510,31 @@ class LessonDetailViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEquals(resp.context_data['type'], 'lesson')
 
+
+class RoomHireDetailViewTests(TestCase):
+    """
+    Test EventDetailView with room hires; reuses the event templates and
+    context data helpers
+    """
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.room_hire = mommy.make_recipe('booking.future_RH')
+        mommy.make_recipe('booking.future_EV', _quantity=3)
+        mommy.make_recipe('booking.future_PC', _quantity=3)
+        mommy.make_recipe('booking.future_RH', _quantity=3)
+        set_up_fb()
+        self.user = mommy.make_recipe('booking.user')
+
+    def test_with_logged_in_user(self):
+        """
+        test that page loads if there user is available
+        """
+        url = reverse('booking:room_hire_detail', args=[self.room_hire.slug])
+        request = self.factory.get(url)
+        # Set the user on the request
+        request.user = self.user
+        view = EventDetailView.as_view()
+        resp = view(request, slug=self.room_hire.slug, ev_type='room_hire')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(resp.context_data['type'], 'room_hire')

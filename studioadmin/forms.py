@@ -117,12 +117,18 @@ class EventAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         ev_type = kwargs.pop('ev_type')
         super(EventAdminForm, self).__init__(*args, **kwargs)
+
+        if ev_type == 'EV':
+            ev_type_qset = EventType.objects.filter(event_type='EV')
+        else:
+            ev_type_qset = EventType.objects.exclude(event_type='EV')
+
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
-            queryset=EventType.objects.filter(event_type=ev_type),
+            queryset=ev_type_qset,
         )
-        ph_type = "class" if ev_type == 'CL' else 'event'
-        ex_name = "Pole Level 1" if ev_type == 'CL' else "Workshop"
+        ph_type = "event" if ev_type == 'EV' else 'class'
+        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1"
         self.fields['name'] = forms.CharField(
             widget=forms.TextInput(
                 attrs={
@@ -464,7 +470,7 @@ class SessionAdminForm(forms.ModelForm):
         super(SessionAdminForm, self).__init__(*args, **kwargs)
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
-            queryset=EventType.objects.filter(event_type="CL"),
+            queryset=EventType.objects.exclude(event_type="EV"),
         )
 
     def clean(self):

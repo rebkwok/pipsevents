@@ -30,11 +30,13 @@ class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
         ('EV', 'Event'),
+        ('RH', 'Room hire')
     )
     event_type = models.CharField(max_length=2, choices=TYPE_CHOICE,
                                   help_text="This determines whether events "
                                             "of this type are listed on the "
-                                            "'Classes' or 'Events' page")
+                                            "'Classes', 'Workshops' or 'Room "
+                                            "Hire' pages")
     subtype = models.CharField(max_length=255,
                                help_text="Type of class/event. Use this to "
                                          "categorise events/classes.  If an "
@@ -45,8 +47,12 @@ class EventType(models.Model):
     def __str__(self):
         if self.event_type == 'CL':
             event_type = "Class"
-        else:
+        elif self.event_type == 'EV':
             event_type = "Event"
+        elif self.event_type == 'RH':
+            event_type = "Room hire"
+        else:
+            event_type  = "Unknown"
         return '{} - {}'.format(event_type, self.subtype)
 
     class Meta:

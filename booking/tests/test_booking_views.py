@@ -28,8 +28,8 @@ class BookingListViewTests(TestCase):
         # (event name initials and datetime)
         self.events = [
             mommy.make_recipe('booking.future_EV',  name="First Event"),
-            mommy.make_recipe('booking.future_EV',  name="Scnd Event"),
-            mommy.make_recipe('booking.future_EV',  name="Third Event")
+            mommy.make_recipe('booking.future_PC',  name="Scnd Event"),
+            mommy.make_recipe('booking.future_RH',  name="Third Event")
         ]
         future_bookings = [mommy.make_recipe(
             'booking.booking', user=self.user,
