@@ -34,6 +34,7 @@
                         {% if ticketed_event in tickets_booked_events %}
                             <div><strong>You have already booked tickets for this event.</strong></div>
                             {% if ticketed_event.bookable %}
+                                <div class="inc-space"></div>
                                 <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
                                     <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
                                 </a>
@@ -43,12 +44,14 @@
                         {% else %}
                             {% if ticketed_event.bookable %}
                                 <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
+                                    <div class="inc-space"></div>
                                     <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
                                 </a>
                             {% else %}
                                 <div class="cancel-warning">This event has now sold out.</div>
                             {% endif %}
                         {% endif %}
+                        </br></br>
                     {% endif %}
                     </div>
                     <span class="divider"></span>
@@ -75,6 +78,7 @@
                             {% if ticketed_event in tickets_booked_events %}
                                 <div><strong>You have already booked tickets for this event.</strong></div>
                                 {% if ticketed_event.bookable %}
+                                    <div class="inc-space"></div>
                                     <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
                                         <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
                                     </a>
@@ -83,6 +87,7 @@
                                 {% endif %}
                             {% else %}
                                 {% if ticketed_event.bookable  %}
+                                    <div class="inc-space"></div>
                                     <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
                                         <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
                                     </a>
@@ -90,6 +95,7 @@
                                     <div class="cancel-warning">This event has now sold out.</div>
                                 {% endif %}
                             {% endif %}
+                            </br></br>
                         {% endif %}
                         </div>
                         <span class="divider"></span>

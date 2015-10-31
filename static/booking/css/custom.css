@@ -859,3 +859,7 @@ a > span.fa.fa-print {
     font-style: italic;
     color: green;
 }
+
+.inc-space {
+    padding-bottom: 12px;
+}
