@@ -767,7 +767,7 @@ def timetable_admin_list(request):
 
     else:
         sessionformset = TimetableSessionFormSet(
-            queryset=Session.objects.all().order_by('day')
+            queryset=Session.objects.all().order_by('day', 'time')
         )
 
     return render(
