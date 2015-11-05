@@ -2159,12 +2159,21 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
                 'from_address': 'test@test.com',
                 'cc': True}
         )
-        self.assertEqual(len(mail.outbox), 2)
-        email_to = [mail.to[0] for mail in mail.outbox]
-        self.assertEqual(
-            sorted(email_to), ['test@test.com', self.user.email]
-        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].cc[0], 'test@test.com')
 
+    def test_reply_to_set_to_from_address(self):
+        resp = self._post_response(
+            self.staff_user, [self.user.id],
+            event_ids=[], lesson_ids=[],
+            form_data={
+                'subject': 'Test email',
+                'message': 'Test message',
+                'from_address': 'test@test.com',
+                'cc': True}
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].reply_to[0], 'test@test.com')
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
