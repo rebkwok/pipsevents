@@ -27,6 +27,7 @@ class Command(BaseCommand):
                        "for invoice when booking for more than one " \
                        "person.&nbsp;</p>"
         external_instructor = False
+        max_participants = 1
 
         sessions_to_add = [
             (Session.MON, time(hour=19, minute=0)),
@@ -52,6 +53,7 @@ class Command(BaseCommand):
                 day=session[0],
                 time=session[1],
                 external_instructor=external_instructor,
+                max_participants=max_participants
             )
             if created:
                 new.append(new_session)
