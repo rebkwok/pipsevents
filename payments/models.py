@@ -124,10 +124,21 @@ def payment_received(sender, **kwargs):
             obj = TicketBooking.objects.get(id=obj_id)
             purchase = obj.ticketed_event
         else:
+            obj_type = 'unknown'
+            send_mail(
+                'WARNING! Unknown object type in PayPal IPN',
+                'Valid Payment Notification received from PayPal but unknown '
+                'object type.\n\nTransaction id {}\n\nThe flag info '
+                'was "{}"'.format(
+                    ipn_obj.txn_id,
+                    ipn_obj.flag_info
+                ),
+                settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
+                fail_silently=False)
             logger.error('PaypalTransactionError: unknown object type for '
                          'payment (ipn_obj transaction_id: {}, obj_type: {}'.format(
-                ipn_obj.txn_id, obj_type
-            ))
+                            ipn_obj.txn_id, obj_type
+                            ))
             raise PayPalTransactionError('unknown object type for payment')
         try:
             if ipn_obj.flag:
