@@ -8,7 +8,8 @@ from django.test import TestCase, Client
 
 from booking.tests.helpers import set_up_fb
 from payments import helpers
-from payments.models import (PaypalBookingTransaction, PayPalTransactionError)
+from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
+    PaypalTicketBookingTransaction
 from paypal.standard.ipn.models import PayPalIPN
 
 from six import b, text_type
@@ -107,8 +108,8 @@ class TestHelpers(TestCase):
     def test_create_existing_booking_txn_with_txn_id(self):
         """
         if the existing transaction is already associated with a paypal
-        transaction_id, we do need to create a new transaction, with incremented
-        counter
+        transaction_id, we do need to create a new transaction, with new
+        invoice number with incremented counter
         """
         user = mommy.make_recipe('booking.user', username="testuser")
         booking = mommy.make_recipe(
@@ -133,14 +134,75 @@ class TestHelpers(TestCase):
                 booking.event.date.strftime("%d%m%y%H%M")
             )
         )
-    def test_do_not_create_duplicate_invoice_id(self):
-        pass
 
     def test_create_block_transaction(self):
-        pass
+        user = mommy.make_recipe('booking.user', username="testuser")
+        block = mommy.make_recipe(
+            'booking.block', user=user,
+            block_type__event_type__subtype="Pole Level Class",
+            block_type__size=10
+        )
+        block_txn = helpers.create_block_paypal_transaction(user, block)
+        self.assertEqual(block_txn.block, block)
+        self.assertEqual(
+            block_txn.invoice_id,
+            'testuser-PLC-10-{}-inv#001'.format(
+                block.start_date.strftime("%d%m%y%H%M")
+            )
+        )
 
     def test_create_existing_block_transaction(self):
-        pass
+        user = mommy.make_recipe('booking.user', username="testuser")
+        block = mommy.make_recipe(
+            'booking.block', user=user,
+            block_type__event_type__subtype="Pole Level Class",
+            block_type__size=10
+        )
+        block_txn = helpers.create_block_paypal_transaction(user, block)
+        self.assertEqual(block_txn.block, block)
+        self.assertEqual(
+            block_txn.invoice_id,
+            'testuser-PLC-10-{}-inv#001'.format(
+                block.start_date.strftime("%d%m%y%H%M")
+            )
+        )
+        self.assertEqual(PaypalBlockTransaction.objects.count(), 1)
+
+        dp_block_txn = helpers.create_block_paypal_transaction(user, block)
+        self.assertEqual(PaypalBlockTransaction.objects.count(), 1)
+        self.assertEqual(block_txn, dp_block_txn)
+
+    def test_create_ticket_booking_transaction(self):
+        user = mommy.make_recipe('booking.user', username="testuser")
+        tbooking = mommy.make_recipe(
+            'booking.ticket_booking', user=user
+        )
+        tbooking_txn = helpers.create_ticket_booking_paypal_transaction(
+            user, tbooking)
+        self.assertEqual(tbooking_txn.ticket_booking, tbooking)
+        self.assertEqual(
+            tbooking_txn.invoice_id, '{}001'.format(tbooking.booking_reference)
+        )
+
+
+    def test_create_existing_ticket_booking_transaction(self):
+        user = mommy.make_recipe('booking.user', username="testuser")
+        tbooking = mommy.make_recipe(
+            'booking.ticket_booking', user=user
+        )
+        tbooking_txn = helpers.create_ticket_booking_paypal_transaction(
+            user, tbooking)
+        self.assertEqual(tbooking_txn.ticket_booking, tbooking)
+        self.assertEqual(
+            tbooking_txn.invoice_id, '{}001'.format(tbooking.booking_reference)
+        )
+        self.assertEqual(PaypalTicketBookingTransaction.objects.count(), 1)
+
+        dp_tbooking_txn = helpers.create_ticket_booking_paypal_transaction(
+            user, tbooking
+        )
+        self.assertEqual(PaypalTicketBookingTransaction.objects.count(), 1)
+        self.assertEqual(tbooking_txn, dp_tbooking_txn)
 
 
 # Parameters are all bytestrings, so we can construct a bytestring

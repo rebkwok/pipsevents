@@ -97,4 +97,4 @@ ticketed_event_max10 = Recipe(
 )
 ticketed_event_past_max10 = Recipe(TicketedEvent, max_tickets=10,
                                    ticket_cost=10, date=past)
-
+ticket_booking = Recipe(TicketBooking)
