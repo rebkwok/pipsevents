@@ -1,7 +1,7 @@
 There may have been a problem with this payment.
 
 The system flagged the transaction with the following reason:
-{{ ipn_obj.reason }}
+{{ ipn_obj.flag_info }}
 
 The {{ obj_type }} has not been marked as paid yet.
 
