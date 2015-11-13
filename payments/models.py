@@ -89,6 +89,31 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
     )
 
 
+def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
+
+    ctx = Context({
+        'user': " ".join([user.first_name, user.last_name]),
+        'obj_type': obj_type.title().replace('_', ' '),
+        'obj': obj,
+        'invoice_id': paypal_trans.invoice_id,
+        'paypal_transaction_id': paypal_trans.transaction_id
+    })
+    # send email to studio only and to support for checking;
+    # user will have received automated paypal payment
+    send_mail(
+        '{} Payment refund processed for {} id {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
+        get_template(
+            'payments/email/payment_refunded_processed_to_studio.txt'
+        ).render(ctx),
+        settings.DEFAULT_FROM_EMAIL,
+        [settings.DEFAULT_STUDIO_EMAIL, settings.SUPPORT_EMAIL],
+        html_message=get_template(
+            'payments/email/payment_refunded_processed_to_studio.html'
+        ).render(ctx),
+        fail_silently=False)
+
+
 def get_obj(ipn_obj):
 
     try:
@@ -106,6 +131,9 @@ def get_obj(ipn_obj):
                 'Booking with id {} does not exist'.format(obj_id)
             )
         purchase = obj.event
+        paypal_trans = PaypalBookingTransaction.objects.get(
+                        booking=obj
+                    )
     elif obj_type == 'block':
         try:
             obj = Block.objects.get(id=obj_id)
@@ -114,6 +142,9 @@ def get_obj(ipn_obj):
                 'Block with id {} does not exist'.format(obj_id)
             )
         purchase = obj.block_type
+        paypal_trans = PaypalBlockTransaction.objects.get(
+                        block=obj
+                    )
     elif obj_type == 'ticket_booking':
         try:
             obj = TicketBooking.objects.get(id=obj_id)
@@ -122,61 +153,49 @@ def get_obj(ipn_obj):
                 'Ticket Booking with id {} does not exist'.format(obj_id)
             )
         purchase = obj.ticketed_event
+        paypal_trans = PaypalTicketBookingTransaction.objects.get(
+                        ticket_booking=obj
+                    )
     else:
         raise PayPalTransactionError('Unknown object type for payment')
 
-    return {'obj_type': obj_type, 'obj': obj, 'purchase': purchase}
+    return {
+        'obj_type': obj_type,
+        'obj': obj,
+        'purchase': purchase,
+        'paypal_trans': paypal_trans
+    }
 
 
 def payment_received(sender, **kwargs):
     ipn_obj = sender
-    if ipn_obj.payment_status == ST_PP_REFUNDED:
-        # send information email to support
+    try:
+        obj_dict = get_obj(ipn_obj)
+    except PayPalTransactionError as e:
         send_mail(
-            '{} Refund from paypal for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ipn_obj.custom
-            ),
-            'Custom: {}\n\nTransaction id: {}\n\n, invoice: {}'.format(
-                ipn_obj.custom, ipn_obj.txn_id, ipn_obj.invoice
-            ),
-            settings.DEFAULT_FROM_EMAIL,
-            [settings.SUPPORT_EMAIL],
-            fail_silently=False
-        )
-
-    if ipn_obj.payment_status == ST_PP_COMPLETED:
-        # we only process if payment status is completed
-        # check for django-paypal flags (checks for valid payment status,
-        # duplicate trans id, correct receiver email, valid secret (if using
-        # encrypted), mc_gross, mc_currency, item_name and item_number are all
-        # correct
-
-        try:
-            obj_dict = get_obj(ipn_obj)
-        except PayPalTransactionError as e:
-            send_mail(
-            'WARNING! Error processing PayPal IPN',
-            'Valid Payment Notification received from PayPal but an error '
-            'occurred during processing.\n\nTransaction id {}\n\nThe flag info '
-            'was "{}"\n\nError raised: {}'.format(
-                ipn_obj.txn_id, ipn_obj.flag_info, e
-            ),
-            settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
-            fail_silently=False)
-            logger.error(
-                'PaypalTransactionError: unknown object type for payment '
-                '(ipn_obj transaction_id: {}, error: {})'.format(
-                    ipn_obj.txn_id, e
-                )
+        'WARNING! Error processing PayPal IPN',
+        'Valid Payment Notification received from PayPal but an error '
+        'occurred during processing.\n\nTransaction id {}\n\nThe flag info '
+        'was "{}"\n\nError raised: {}'.format(
+            ipn_obj.txn_id, ipn_obj.flag_info, e
+        ),
+        settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
+        fail_silently=False)
+        logger.error(
+            'PaypalTransactionError: unknown object type for payment '
+            '(ipn_obj transaction_id: {}, error: {})'.format(
+                ipn_obj.txn_id, e
             )
-            return
+        )
+        return
 
-        try:
-            obj = obj_dict['obj']
-            obj_type = obj_dict['obj_type']
-            purchase = obj_dict['purchase']
+    obj = obj_dict['obj']
+    obj_type = obj_dict['obj_type']
+    purchase = obj_dict['purchase']
+    paypal_trans = obj_dict['paypal_trans']
 
-            if ipn_obj.flag:
+    try:
+        if ipn_obj.flag:
                 # email studio and support
                 send_mail(
                     '{} Problem with payment from {} for {}'.format(
@@ -200,19 +219,30 @@ def payment_received(sender, **kwargs):
                     ipn_obj.txn_id, ipn_obj.flag_info
                 ))
 
-            else:
+        else:
+            if ipn_obj.payment_status == ST_PP_REFUNDED:
                 if obj_type == 'booking':
-                    paypal_trans = PaypalBookingTransaction.objects.get(
-                        booking=obj
-                    )
-                elif obj_type == 'ticket_booking':
-                    paypal_trans = PaypalTicketBookingTransaction.objects.get(
-                        ticket_booking=obj
-                    )
-                else:
-                    paypal_trans = PaypalBlockTransaction.objects.get(
-                        block=obj
-                    )
+                    obj.payment_confirmed = False
+                obj.paid = False
+                obj.save()
+
+                ActivityLog.objects.create(
+                    log='{} id {} for user {} has been refunded from paypal; '
+                        'paypal transaction id {}, invoice id {}'.format(
+                        obj_type.title(), obj.id, obj.user.username,
+                        ipn_obj.txn_id, paypal_trans.invoice_id
+                        )
+                )
+
+                send_processed_refund_emails(obj_type, obj.id, paypal_trans,
+                                              obj.user, obj)
+
+            if ipn_obj.payment_status == ST_PP_COMPLETED:
+                # we only process if payment status is completed
+                # check for django-paypal flags (checks for valid payment status,
+                # duplicate trans id, correct receiver email, valid secret (if using
+                # encrypted), mc_gross, mc_currency, item_name and item_number are all
+                # correct
                 paypal_trans.transaction_id = ipn_obj.txn_id
                 paypal_trans.save()
 
@@ -251,26 +281,27 @@ def payment_received(sender, **kwargs):
                         [settings.SUPPORT_EMAIL],
                         fail_silently=False
                     )
-        except Exception as e:
-            # if anything else goes wrong, send a warning email
-            send_mail(
-                '{} There was some problem processing payment for '
-                '{} id {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj.id
-                ),
-                'Please check your booking and paypal records for '
-                'invoice # {}, paypal transaction id {}.\n\nThe exception '
-                'raised was "{}"'.format(
-                    ipn_obj.invoice, ipn_obj.txn_id, e
-                ),
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.SUPPORT_EMAIL],
-                fail_silently=False)
-            logger.warning('Problem processing payment for {} {}; '
-                           'transaction id: {}.  '
-                           'Exception: {}'.format(
-                            obj_type, obj.id, ipn_obj.txn_id, e
-                            ))
+
+    except Exception as e:
+        # if anything else goes wrong, send a warning email
+        send_mail(
+            '{} There was some problem processing payment for '
+            '{} id {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj.id
+            ),
+            'Please check your booking and paypal records for '
+            'invoice # {}, paypal transaction id {}.\n\nThe exception '
+            'raised was "{}"'.format(
+                ipn_obj.invoice, ipn_obj.txn_id, e
+            ),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.SUPPORT_EMAIL],
+            fail_silently=False)
+        logger.warning('Problem processing payment for booking {}; '
+                       'invoice_id {}, transaction id: {}.  '
+                       'Exception: {}'.format(
+                        obj_type, obj.id, ipn_obj.txn_id, e
+                        ))
 
 
 def payment_not_received(sender, **kwargs):
