@@ -130,8 +130,7 @@ def get_obj(ipn_obj):
             raise PayPalTransactionError(
                 'Booking with id {} does not exist'.format(obj_id)
             )
-        purchase = obj.event
-        paypal_trans = PaypalBookingTransaction.objects.get(
+        paypal_trans, _ = PaypalBookingTransaction.objects.get_or_create(
                         booking=obj
                     )
     elif obj_type == 'block':
@@ -141,8 +140,7 @@ def get_obj(ipn_obj):
             raise PayPalTransactionError(
                 'Block with id {} does not exist'.format(obj_id)
             )
-        purchase = obj.block_type
-        paypal_trans = PaypalBlockTransaction.objects.get(
+        paypal_trans, _ = PaypalBlockTransaction.objects.get_or_create(
                         block=obj
                     )
     elif obj_type == 'ticket_booking':
@@ -152,8 +150,7 @@ def get_obj(ipn_obj):
             raise PayPalTransactionError(
                 'Ticket Booking with id {} does not exist'.format(obj_id)
             )
-        purchase = obj.ticketed_event
-        paypal_trans = PaypalTicketBookingTransaction.objects.get(
+        paypal_trans, _ = PaypalTicketBookingTransaction.objects.get_or_create(
                         ticket_booking=obj
                     )
     else:
@@ -162,7 +159,6 @@ def get_obj(ipn_obj):
     return {
         'obj_type': obj_type,
         'obj': obj,
-        'purchase': purchase,
         'paypal_trans': paypal_trans
     }
 
@@ -191,7 +187,6 @@ def payment_received(sender, **kwargs):
 
     obj = obj_dict['obj']
     obj_type = obj_dict['obj_type']
-    purchase = obj_dict['purchase']
     paypal_trans = obj_dict['paypal_trans']
 
     try:
