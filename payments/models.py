@@ -92,7 +92,18 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 def payment_received(sender, **kwargs):
     ipn_obj = sender
     if ipn_obj.payment_status == ST_PP_REFUNDED:
-        pass
+        # send information email to support
+        send_mail(
+            '{} Refund from paypal for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ipn_obj.custom
+            ),
+            'Custom: {}\n\nTransaction id: {}\n\n, invoice: {}'.format(
+                ipn_obj.custom, ipn_obj.txn_id, ipn_obj.invoice
+            ),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.SUPPORT_EMAIL],
+            fail_silently=False
+        )
 
     if ipn_obj.payment_status == ST_PP_COMPLETED:
         # we only process if payment status is completed
@@ -183,7 +194,9 @@ def payment_received(sender, **kwargs):
                         ),
                         'Please check booking and paypal records for '
                         'paypal transaction id {}.  No invoice number on paypal'
-                        ' IPN'.format(ipn_obj.txn_id),
+                        ' IPN.  Invoice number should be {}.'.format(
+                            ipn_obj.txn_id, paypal_trans.invoice_id
+                        ),
                         settings.DEFAULT_FROM_EMAIL,
                         [settings.SUPPORT_EMAIL],
                         fail_silently=False
@@ -203,8 +216,8 @@ def payment_received(sender, **kwargs):
                 settings.DEFAULT_FROM_EMAIL,
                 [settings.SUPPORT_EMAIL],
                 fail_silently=False)
-            logger.warning('Problem processing payment for booking {}; '
-                           'invoice_id {}, transaction id: {}.  '
+            logger.warning('Problem processing payment for {} {}; '
+                           'transaction id: {}.  '
                            'Exception: {}'.format(
                             obj_type, obj_id, ipn_obj.txn_id, e
                             ))
