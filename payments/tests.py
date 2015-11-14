@@ -2,17 +2,24 @@ from datetime import datetime
 from model_mommy import mommy
 from mock import Mock, patch
 
+from django.contrib.admin.sites import AdminSite
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, Client
 from django.utils import timezone
 
+from booking.context_helpers import get_paypal_dict
 from booking.models import Booking
 from booking.tests.helpers import set_up_fb
 from payments import helpers
+from payments.admin import PaypalBookingTransactionAdmin, \
+    PaypalBlockTransactionAdmin
+from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
+from payments.models import logger as payment_models_logger
+
 from paypal.standard.ipn.models import PayPalIPN
 
 from six import b, text_type
@@ -981,8 +988,6 @@ class PaypalSignalsTests(TestCase):
         during the payment processing; most likely to be something wrong with
         sending the emails, so we need to check the logs
         """
-        from payments.models import logger as payment_models_logger
-
         mock_send_emails.side_effect = Exception('Error sending mail')
         payment_models_logger.warning = Mock()
 
@@ -1014,3 +1019,102 @@ class PaypalSignalsTests(TestCase):
         self.assertTrue(ppipn.flag)
         self.assertEqual(ppipn.flag_info, 'Invalid postback. (INVALID)')
 
+
+class PayPalFormTests(TestCase):
+
+    def test_PayPalPaymentsListForm_renders_buy_it_now_button(self):
+        booking = mommy.make_recipe('booking.booking')
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        form = PayPalPaymentsListForm(
+            initial=get_paypal_dict(
+                        'http://example.com',
+                        booking.event.cost,
+                        booking.event,
+                        pptrans.invoice_id,
+                        '{} {}'.format('booking', booking.id)
+                    )
+        )
+        self.assertIn('Buy it Now', form.render())
+
+    def test_PayPalPaymentsUpdateForm_renders_buy_it_now_button(self):
+        booking = mommy.make_recipe('booking.booking')
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        form = PayPalPaymentsUpdateForm(
+            initial=get_paypal_dict(
+                        'http://example.com',
+                        booking.event.cost,
+                        booking.event,
+                        pptrans.invoice_id,
+                        '{} {}'.format('booking', booking.id)
+                    )
+        )
+        self.assertIn('Buy it Now', form.render())
+
+
+class PaymentsAdminTests(TestCase):
+
+    def test_paypal_booking_admin_display(self):
+        user = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User')
+        booking = mommy.make_recipe('booking.booking', user=user)
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        ppbooking_admin = PaypalBookingTransactionAdmin(
+            PaypalBookingTransaction, AdminSite()
+        )
+        ppbooking_query = ppbooking_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            ppbooking_admin.get_booking_id(ppbooking_query), booking.id
+        )
+        self.assertEqual(
+            ppbooking_admin.get_user(ppbooking_query), 'Test User'
+        )
+        self.assertEqual(
+            ppbooking_admin.get_event(ppbooking_query), booking.event
+        )
+        self.assertEqual(
+            ppbooking_admin.cost(ppbooking_query),
+            u"\u00A3{}.00".format(booking.event.cost)
+        )
+
+    def test_paypal_block_admin_display(self):
+        user = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User')
+        block = mommy.make_recipe('booking.block_5', user=user)
+        pptrans = helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+
+        ppblock_admin = PaypalBlockTransactionAdmin(
+            PaypalBlockTransaction, AdminSite()
+        )
+        ppblock_query = ppblock_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            ppblock_admin.get_block_id(ppblock_query), block.id
+        )
+        self.assertEqual(
+            ppblock_admin.get_user(ppblock_query), 'Test User'
+        )
+        self.assertEqual(
+            ppblock_admin.get_blocktype(ppblock_query), block.block_type
+        )
+        self.assertEqual(
+            ppblock_admin.cost(ppblock_query),
+            u"\u00A3{:.2f}".format(block.block_type.cost)
+        )
+        self.assertEqual(
+            ppblock_admin.block_start(ppblock_query),
+            block.start_date.strftime('%d %b %Y, %H:%M')
+        )
+        self.assertEqual(
+            ppblock_admin.block_expiry(ppblock_query),
+            block.expiry_date.strftime('%d %b %Y, %H:%M')
+        )
