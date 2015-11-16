@@ -434,7 +434,9 @@ class PaypalSignalsTests(TestCase):
 
     def test_paypal_notify_url_with_no_data(self):
         self.assertFalse(PayPalIPN.objects.exists())
-        resp = self.paypal_post({'charset': b(CHARSET)})
+        resp = self.paypal_post(
+            {'charset': b(CHARSET), 'txn_id': 'test'}
+        )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
 
@@ -459,7 +461,9 @@ class PaypalSignalsTests(TestCase):
 
     def test_paypal_notify_url_with_unknown_obj_type(self):
         self.assertFalse(PayPalIPN.objects.exists())
-        resp = self.paypal_post({'charset': b(CHARSET), 'custom': b'test 1'})
+        resp = self.paypal_post(
+            {'charset': b(CHARSET), 'custom': b'test 1', 'txn_id': 'test'}
+        )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
 
@@ -485,7 +489,9 @@ class PaypalSignalsTests(TestCase):
     def test_paypal_notify_url_with_no_matching_booking(self):
         self.assertFalse(PayPalIPN.objects.exists())
 
-        resp = self.paypal_post({'custom': b'booking 1', 'charset': b(CHARSET)})
+        resp = self.paypal_post(
+            {'custom': b'booking 1', 'charset': b(CHARSET), 'txn_id': 'test'}
+        )
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
@@ -509,7 +515,9 @@ class PaypalSignalsTests(TestCase):
     def test_paypal_notify_url_with_no_matching_block(self):
         self.assertFalse(PayPalIPN.objects.exists())
 
-        resp = self.paypal_post({'custom': b'block 1', 'charset': b(CHARSET)})
+        resp = self.paypal_post(
+            {'custom': b'block 1', 'charset': b(CHARSET), 'txn_id': 'test'}
+        )
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
@@ -534,7 +542,8 @@ class PaypalSignalsTests(TestCase):
         self.assertFalse(PayPalIPN.objects.exists())
 
         resp = self.paypal_post(
-            {'custom': b'ticket_booking 1', 'charset': b(CHARSET)}
+            {'custom': b'ticket_booking 1', 'charset': b(CHARSET),
+             'txn_id': 'test'}
         )
 
         self.assertEqual(resp.status_code, 200)
@@ -797,7 +806,7 @@ class PaypalSignalsTests(TestCase):
                 self.assertFalse(bkg.paid)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
-    def test_paypal_notify_url_without_paypal_trans_object(self, mock_postback):
+    def test_paypal_notify_url_without_booking_trans_object(self, mock_postback):
         """
         A PayPalBooking/Block/TicketBookingTransaction object should be created
         when the paypal form button is created (to generate and store the inv
@@ -827,6 +836,79 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(PaypalBookingTransaction.objects.count(), 1)
         booking.refresh_from_db()
         self.assertTrue(booking.paid)
+        # 3 emails sent, to user and studio and support because there is no inv
+        self.assertEqual(len(mail.outbox), 3)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_without_block_trans_object(self, mock_postback):
+        """
+        A PayPalBooking/Block/TicketBookingTransaction object should be created
+        when the paypal form button is created (to generate and store the inv
+        number and transaction id against each booking type.  In case it isn't,
+        we create one when processing the payment
+        """
+        mock_postback.return_value = b"VERIFIED"
+        block = mommy.make_recipe('booking.block_5', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalBlockTransaction.objects.exists())
+
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {}'.format(block.id)),
+                'invoice': b''
+            }
+        )
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        self.assertEqual(PaypalBlockTransaction.objects.count(), 1)
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+        pptrans = PaypalBlockTransaction.objects.first()
+        self.assertEqual(ppipn.invoice, pptrans.invoice_id)
+
+        # 3 emails sent, to user and studio and support because there is no inv
+        self.assertEqual(len(mail.outbox), 3)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_without_tck_bkg_trans_object(self, mock_postback):
+        """
+        A PayPalBooking/Block/TicketBookingTransaction object should be created
+        when the paypal form button is created (to generate and store the inv
+        number and transaction id against each booking type.  In case it isn't,
+        we create one when processing the payment
+        """
+        mock_postback.return_value = b"VERIFIED"
+        tbooking = mommy.make_recipe('booking.ticket_booking', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalTicketBookingTransaction.objects.exists())
+
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('ticket_booking {}'.format(tbooking.id)),
+                'invoice': b''
+            }
+        )
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        self.assertEqual(PaypalTicketBookingTransaction.objects.count(), 1)
+        tbooking.refresh_from_db()
+        self.assertTrue(tbooking.paid)
+        pptrans = PaypalTicketBookingTransaction.objects.first()
+        self.assertEqual(ppipn.invoice, pptrans.invoice_id)
         # 3 emails sent, to user and studio and support because there is no inv
         self.assertEqual(len(mail.outbox), 3)
 
@@ -868,7 +950,11 @@ class PaypalSignalsTests(TestCase):
         """
         self.assertFalse(PayPalIPN.objects.exists())
         resp = self.paypal_post(
-            {"payment_date": b"2015-10-25 01:21:32", 'charset': b(CHARSET)}
+            {
+                "payment_date": b"2015-10-25 01:21:32",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
         )
         ppipn = PayPalIPN.objects.first()
         self.assertTrue(ppipn.flag)

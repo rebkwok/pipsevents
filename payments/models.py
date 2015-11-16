@@ -115,6 +115,7 @@ def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
 
 
 def get_obj(ipn_obj):
+    from payments import helpers
 
     try:
         custom = ipn_obj.custom.split()
@@ -130,9 +131,13 @@ def get_obj(ipn_obj):
             raise PayPalTransactionError(
                 'Booking with id {} does not exist'.format(obj_id)
             )
-        paypal_trans, _ = PaypalBookingTransaction.objects.get_or_create(
-                        booking=obj
-                    )
+        try:
+            paypal_trans = PaypalBookingTransaction.objects.get(booking=obj)
+        except PaypalBookingTransaction.DoesNotExist:
+            paypal_trans = helpers.create_booking_paypal_transaction(
+                user=obj.user, booking=obj
+            )
+
     elif obj_type == 'block':
         try:
             obj = Block.objects.get(id=obj_id)
@@ -140,9 +145,12 @@ def get_obj(ipn_obj):
             raise PayPalTransactionError(
                 'Block with id {} does not exist'.format(obj_id)
             )
-        paypal_trans, _ = PaypalBlockTransaction.objects.get_or_create(
-                        block=obj
-                    )
+        try:
+            paypal_trans = PaypalBlockTransaction.objects.get(block=obj)
+        except PaypalBlockTransaction.DoesNotExist:
+            paypal_trans = helpers.create_block_paypal_transaction(
+                user=obj.user, block=obj
+            )
     elif obj_type == 'ticket_booking':
         try:
             obj = TicketBooking.objects.get(id=obj_id)
@@ -150,9 +158,14 @@ def get_obj(ipn_obj):
             raise PayPalTransactionError(
                 'Ticket Booking with id {} does not exist'.format(obj_id)
             )
-        paypal_trans, _ = PaypalTicketBookingTransaction.objects.get_or_create(
-                        ticket_booking=obj
-                    )
+        try:
+            paypal_trans = PaypalTicketBookingTransaction.objects.get(
+                ticket_booking=obj
+            )
+        except PaypalTicketBookingTransaction.DoesNotExist:
+            paypal_trans = helpers.create_ticket_booking_paypal_transaction(
+                user=obj.user, ticket_booking=obj
+            )
     else:
         raise PayPalTransactionError('Unknown object type for payment')
 
@@ -236,6 +249,8 @@ def payment_received(sender, **kwargs):
             if not ipn_obj.invoice:
                 # sometimes paypal doesn't send back the invoice id -
                 # everything should be ok but email to check
+                ipn_obj.invoice = paypal_trans.invoice_id
+                ipn_obj.save()
                 send_mail(
                     '{} No invoice number on paypal ipn for '
                     '{} id {}'.format(
@@ -244,7 +259,7 @@ def payment_received(sender, **kwargs):
                     ),
                     'Please check booking and paypal records for '
                     'paypal transaction id {}.  No invoice number on paypal'
-                    ' IPN.  Invoice number should be {}.'.format(
+                    ' IPN.  Invoice number has been set to {}.'.format(
                         ipn_obj.txn_id, paypal_trans.invoice_id
                     ),
                     settings.DEFAULT_FROM_EMAIL,
