@@ -1,0 +1,8 @@
+Payment has been refunded from paypal and payment status set to unpaid.
+
+User: {{ user }}
+Purchased: {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})
+Invoice number: {{ invoice_id }}
+Paypal Transaction id: {{ paypal_transaction_id }}
+
+{% include "account/email/do_not_reply.txt" %}

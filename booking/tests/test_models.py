@@ -484,6 +484,10 @@ class EventTypeTests(TestCase):
         evtype = mommy.make_recipe('booking.event_type_OE', subtype="event subtype")
         self.assertEqual(str(evtype), 'Event - event subtype')
 
+        evtype.event_type = 'OT'
+        evtype.save()
+        self.assertEqual(str(evtype), 'Unknown - event subtype')
+
 
 class TicketedEventTests(TestCase):
 

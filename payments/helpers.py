@@ -25,18 +25,20 @@ def create_booking_paypal_transaction(user, booking):
     else:
         counter = '001'
 
-    try:
-        pbt = PaypalBookingTransaction.objects.create(
-            invoice_id=id_string+counter, booking=booking
-        )
-    except IntegrityError:
-        # in case we end up creating a duplicate invoice id for a different
+    invoice_id = id_string + counter
+    existing_inv = PaypalBookingTransaction.objects.filter(
+        invoice_id=invoice_id
+    )
+    if existing_inv:
+        # in case we already have the same invoice id for a different
         # booking (the check for existing above checked for this exact
         # combination of invoice id and booking
-        random_prefix = random.randrange(100,999)
-        pbt = PaypalBookingTransaction.objects.create(
-            invoice_id=id_string+str(random_prefix)+counter, booking=booking
-        )
+        random_prefix = random.randrange(100, 999)
+        invoice_id = id_string + str(random_prefix) + counter
+
+    pbt = PaypalBookingTransaction.objects.create(
+        invoice_id=invoice_id, booking=booking
+    )
     return pbt
 
 
@@ -63,18 +65,21 @@ def create_block_paypal_transaction(user, block):
     else:
         counter = '001'
 
-    try:
-        pbt = PaypalBlockTransaction.objects.create(
-            invoice_id=id_string+counter, block=block
-        )
-    except IntegrityError:
-        # in case we end up creating a duplicate invoice id for a different
-        # booking (the check for existing above checked for this exact
-        # combination of invoice id and booking
+    invoice_id = id_string + counter
+    existing_inv = PaypalBlockTransaction.objects.filter(
+        invoice_id=invoice_id
+    )
+
+    if existing_inv:
+        # in case we already have the same invoice id for a different
+        # block (the check for existing above checked for this exact
+        # combination of invoice id and block
         random_prefix = random.randrange(100, 999)
-        pbt = PaypalBlockTransaction.objects.create(
-            invoice_id=id_string+str(random_prefix)+counter, block=block
-        )
+        invoice_id = id_string + str(random_prefix) + counter
+
+    pbt = PaypalBlockTransaction.objects.create(
+        invoice_id=invoice_id, block=block
+    )
     return pbt
 
 
@@ -97,18 +102,18 @@ def create_ticket_booking_paypal_transaction(user, ticket_booking):
     else:
         counter = '001'
 
-    try:
-        pbt = PaypalTicketBookingTransaction.objects.create(
-            invoice_id=ticket_booking.booking_reference+counter,
-            ticket_booking=ticket_booking
-        )
-    except IntegrityError:
-        # in case we end up creating a duplicate invoice id for a different
+    invoice_id = ticket_booking.booking_reference + counter
+    existing_inv = PaypalTicketBookingTransaction.objects.filter(
+        invoice_id=invoice_id
+    )
+    if existing_inv:
+        # in case we already have the same invoice id for a different
         # booking (the check for existing above checked for this exact
         # combination of invoice id and booking
-        random_prefix = random.randrange(100,999)
-        pbt = PaypalBookingTransaction.objects.create(
-            invoice_id=ticket_booking.booking_reference+str(random_prefix)+counter,
-            ticket_booking=ticket_booking
-        )
+        random_prefix = random.randrange(100, 999)
+        invoice_id = ticket_booking.booking_reference + str(random_prefix) + counter
+
+    pbt = PaypalTicketBookingTransaction.objects.create(
+        invoice_id=invoice_id, ticket_booking=ticket_booking
+    )
     return pbt
