@@ -138,6 +138,20 @@ class EventAdminForm(forms.ModelForm):
             )
         )
 
+        if self.instance.id:
+            if not self.instance.cancelled:
+                self.fields['cancelled'].label = "Cancelled: No"
+                self.fields['cancelled'].help_text = 'To cancel, use the Cancel ' \
+                                                     'button on the event/class ' \
+                                                     'list page'
+                self.fields['cancelled'].widget.attrs.update(
+                    {'disabled': 'disabled', 'class': "hide"})
+            else:
+                self.fields['cancelled'].\
+                    help_text = 'Untick to reopen event; note that this does ' \
+                                'not change any other event attributes and ' \
+                                'does not reopen previously cancelled bookings'
+
     def clean(self):
         super(EventAdminForm, self).clean()
         cleaned_data = self.cleaned_data
@@ -180,6 +194,70 @@ class EventAdminForm(forms.ModelForm):
                                         'the date picker or enter date in the '
                                         'format dd Mmm YYYY')
 
+        if cleaned_data.get('advance_payment_required'):
+            if not (cleaned_data.get('payment_due_date') or
+                        cleaned_data.get('payment_time_allowed') or
+                            cleaned_data.get('cancellation_period') > 0
+                    ):
+                self.add_error(
+                    'advance_payment_required',
+                    'Please provide a payment due date, payment '
+                    'time allowed or cancellation period'
+                    )
+            elif cleaned_data.get('payment_due_date') and \
+                    cleaned_data.get('payment_time_allowed'):
+                self.add_error(
+                    'payment_due_date',
+                    'Please provide payment due date OR payment time '
+                    'allowed (but not both)'
+                )
+                self.add_error(
+                    'payment_time_allowed',
+                    'Please provide payment due date OR payment time '
+                    'allowed (but not both)'
+                )
+        else:
+            if cleaned_data.get('payment_due_date'):
+                self.add_error(
+                    'payment_due_date',
+                    'To specify a payment due date, please also tick '
+                    '"advance payment required"'
+                    )
+            if cleaned_data.get('payment_time_allowed'):
+                self.add_error(
+                    'payment_time_allowed',
+                    'To specify payment time allowed, please also '
+                    'tick "advance payment required"'
+                    )
+
+        if not cleaned_data.get('cost'):
+            cost_errors = []
+            if cleaned_data.get('advance_payment_required'):
+                cost_errors.append('advance payment required')
+            if cleaned_data.get('payment_due_date'):
+                cost_errors.append('payment due date')
+            if cleaned_data.get('payment_time_allowed'):
+                cost_errors.append('payment time allowed')
+            if cost_errors:
+                self.add_error(
+                    'cost',
+                    'The following fields require a cost greater than '
+                    '£0: {}'.format(', '.join(cost_errors))
+                )
+
+        if not cleaned_data.get('allow_booking_cancellation'):
+            if not cleaned_data.get('cost'):
+                self.add_error(
+                    'allow_booking_cancellation',
+                    'Booking cancellation should be allowed for events/classes '
+                    'with no associated cost'
+                )
+            elif not cleaned_data.get('advance_payment_required'):
+                self.add_error(
+                    'allow_booking_cancellation',
+                    'Advance payment must be required in order to make '
+                    'booking cancellation disallowed (i.e. non-refundable)'
+                )
 
         return cleaned_data
 
@@ -189,8 +267,10 @@ class EventAdminForm(forms.ModelForm):
             'name', 'event_type', 'date', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
-            'booking_open', 'payment_open', 'advance_payment_required', 'payment_info',
-            'payment_due_date', 'cancellation_period',
+            'booking_open', 'payment_open', 'advance_payment_required',
+            'payment_info',
+            'payment_due_date', 'payment_time_allowed', 'cancellation_period',
+            'allow_booking_cancellation',
             'email_studio_when_booked', 'cancelled',
         )
         widgets = {
@@ -220,6 +300,9 @@ class EventAdminForm(forms.ModelForm):
                     'id': "datepicker",
                 },
                 format='%d %b %Y'
+            ),
+            'payment_time_allowed': forms.TextInput(
+                attrs={'class': "form-control"}
             ),
             'date': forms.DateTimeInput(
                 attrs={
@@ -270,6 +353,12 @@ class EventAdminForm(forms.ModelForm):
                     'id': 'cancelled_id',
                     }
             ),
+            'allow_booking_cancellation': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'allow_booking_cancellation_id',
+                    }
+            ),
             }
         help_texts = {
             'payment_open': _('Only applicable if the cost is greater than £0'),
@@ -288,7 +377,16 @@ class EventAdminForm(forms.ModelForm):
                                           'unpaid bookings will remain '
                                           'active after the cancellation period '
                                           'and will not be '
-                                          'automatically cancelled')
+                                          'automatically cancelled'),
+            'cancellation_period': _(
+                'Set the time prior to class/event after which cancellation '
+                'is NOT allowed.  If advance payment is required, unpaid '
+                'bookings will be cancelled after this time'
+            ),
+            'allow_booking_cancellation': _(
+                'Untick to make class/event non-cancellable by user (and '
+                'payment non-refundable'
+            )
         }
 
 
@@ -474,6 +572,7 @@ class SessionAdminForm(forms.ModelForm):
         )
 
     def clean(self):
+        super(SessionAdminForm, self).clean()
         cleaned_data = self.cleaned_data
 
         time = self.data.get('time')
@@ -487,7 +586,21 @@ class SessionAdminForm(forms.ModelForm):
                 self.add_error('time', 'Invalid time format.  Select from the '
                                        'time picker or enter date and time in the '
                                        '24-hour format HH:MM')
-        super(SessionAdminForm, self).clean()
+
+        if not cleaned_data.get('allow_booking_cancellation'):
+            if not cleaned_data.get('cost'):
+                self.add_error(
+                    'allow_booking_cancellation',
+                    'Booking cancellation should be allowed for events/classes '
+                    'with no associated cost'
+                )
+            elif not cleaned_data.get('advance_payment_required'):
+                self.add_error(
+                    'allow_booking_cancellation',
+                    'Advance payment must be required in order to make '
+                    'booking cancellation disallowed (i.e. non-refundable)'
+                )
+
         return cleaned_data
 
     class Meta:
@@ -497,7 +610,8 @@ class SessionAdminForm(forms.ModelForm):
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',
-            'payment_info', 'cancellation_period'
+            'payment_info', 'payment_time_allowed', 'cancellation_period',
+            'allow_booking_cancellation'
         )
         widgets = {
             'description': CKEditorWidget(
@@ -563,6 +677,12 @@ class SessionAdminForm(forms.ModelForm):
                     'id': 'ext_instructor_id',
                     },
             ),
+            'allow_booking_cancellation': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'allow_booking_cancellation_id',
+                    }
+            ),
             }
 
         help_texts = {
@@ -576,7 +696,17 @@ class SessionAdminForm(forms.ModelForm):
                                           'unpaid bookings will remain '
                                           'active after the cancellation period '
                                           'and will not be '
-                                          'automatically cancelled')
+                                          'automatically cancelled'),
+            'cancellation_period': _(
+                'Set the time prior to class/event after which cancellation '
+                'is NOT allowed.  If advance payment is required, unpaid '
+                'bookings will be cancelled after this time'
+            ),
+            'allow_booking_cancellation': _(
+                'Untick to make class/event non-cancellable by user (and '
+                'payment non-refundable'
+            )
+
         }
 
 
@@ -1312,6 +1442,23 @@ class TicketedEventAdminForm(forms.ModelForm):
                   "information field",
         required=False
     )
+
+    def __init__(self, *args, **kwargs):
+        super(TicketedEventAdminForm, self).__init__(*args, **kwargs)
+        if self.instance.id:
+            if not self.instance.cancelled:
+                self.fields['cancelled'].label = "Cancelled: No"
+                self.fields['cancelled'].help_text = 'To cancel, use the Cancel ' \
+                                                     'button on the event ' \
+                                                     'list page'
+                self.fields['cancelled'].widget.attrs.update(
+                    {'disabled': 'disabled', 'class': "hide"})
+            else:
+                self.fields['cancelled'].\
+                    help_text = 'Untick to reopen event; note that this does ' \
+                                'not change any other event attributes and ' \
+                                'does not reopen previously cancelled ticket ' \
+                                'bookings'
 
     def clean(self):
         super(TicketedEventAdminForm, self).clean()

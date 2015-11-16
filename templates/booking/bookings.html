@@ -27,6 +27,7 @@
                             <th>Status</th>
                             <th class="hidden-sm hidden-xs table-center">Cost</th>
                             <th class="table-center">Paid</th>
+                            <th class="table-center">Payment due</th>
                             <th class="table-center">Block used</th>
                             <th class="hidden-sm hidden-xs table-center">Place confirmed</th>
                         </tr>
@@ -89,6 +90,7 @@
                                 <td class="table-center">{% if bookingform.booking.free_class %}<span class="confirmed">Free class</span>{% elif bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>
                                     {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed fa fa-close"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td class="table-center">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
                                 <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
                                 {% if bookingform.booking.space_confirmed %}

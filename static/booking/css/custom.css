@@ -405,7 +405,7 @@ color: #000;
     color: green;
 }
 
-a>.btn {
+a>.btn, a.btn {
     color: #fff !important;
     text-decoration: none;
 }
@@ -866,4 +866,9 @@ a > span.fa.fa-print {
 
 .inc-space {
     padding-bottom: 12px;
+}
+
+label.control-label {
+    padding-top: 0px !important;
+    margin-top: -2px !important;
 }

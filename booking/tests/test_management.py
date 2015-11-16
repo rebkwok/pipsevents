@@ -836,6 +836,170 @@ class CancelUnpaidBookingsTests(TestCase):
         # now cancelled
         self.assertEquals(self.unpaid.status, 'CANCELLED')
 
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_cancel_bookings_over_payment_time_allowed_without_warnings(
+            self, mock_tz
+    ):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+        )
+        self.event.payment_due_date = None
+        self.event.payment_time_allowed = 8
+        self.event.save()
+
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.warning_sent = False
+        self.unpaid.save()
+        # self.unpaid.date_booked is within 8 hrs, so not cancelled
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(self.unpaid.status, "OPEN")
+
+
+        # set date booked to >8 hrs ago
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 1, 59, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        # self.unpaid.date_booked is within 4 hrs, so not cancelled
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(self.unpaid.status, "CANCELLED")
+        # even though warning has not been sent
+        self.assertFalse(self.unpaid.warning_sent)
+
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_payment_time_allowed_less_than_6_hours_defaults_to_6(
+            self, mock_tz
+    ):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+        )
+        self.event.payment_due_date = None
+        self.event.payment_time_allowed = 4
+        self.event.save()
+
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 5, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.warning_sent = False
+        self.unpaid.save()
+        # self.unpaid.date_booked is more than 4 but <6 hrs, so not cancelled
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(self.unpaid.status, "OPEN")
+
+        # set date booked to >6 hrs ago
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 3, 59, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        # self.unpaid.date_booked is within 4 hrs, so not cancelled
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(self.unpaid.status, "CANCELLED")
+        # even though warning has not been sent
+        self.assertFalse(self.unpaid.warning_sent)
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_free_class_requested_allows_24_hrs_after_booking(
+            self, mock_tz
+    ):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+        )
+        self.event.payment_due_date = None
+        self.event.payment_time_allowed = 6
+        self.event.save()
+
+        self.unpaid.date_booked = datetime(
+            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.warning_sent = False
+        self.unpaid.free_class_requested = True
+        self.unpaid.save()
+        # self.unpaid.date_booked is more than 6 hrs ago, but is free class
+        # requested so should default to 24 hrs instead
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(self.unpaid.status, "OPEN")
+
+        # set date booked to >24 hrs ago
+        self.unpaid.date_booked = datetime(
+            2015, 2, 10, 9, 59, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(self.unpaid.status, "CANCELLED")
+        # even though warning has not been sent
+        self.assertFalse(self.unpaid.warning_sent)
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_free_class_requested_allows_24_hrs_after_rebooking(
+            self, mock_tz
+    ):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+        )
+        self.event.payment_due_date = None
+        self.event.payment_time_allowed = 6
+        self.event.save()
+
+        self.unpaid.date_booked = datetime(
+            2015, 2, 9, 3, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.date_rebooked = datetime(
+            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.warning_sent = False
+        self.unpaid.free_class_requested = True
+        self.unpaid.save()
+        # self.unpaid.date_booked is and date_rebooked are more than 6 hrs ago,
+        # but is free class
+        # requested so should default to 24 hrs past date_rebooked instead
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(self.unpaid.status, "OPEN")
+
+        # set date rebooked to >24 hrs ago
+        self.unpaid.date_rebooked = datetime(
+            2015, 2, 10, 9, 59, tzinfo=timezone.utc
+        )
+        self.unpaid.save()
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(self.unpaid.status, "CANCELLED")
+        # even though warning has not been sent
+        self.assertFalse(self.unpaid.warning_sent)
+
 
 class TicketBookingWarningTests(TestCase):
 

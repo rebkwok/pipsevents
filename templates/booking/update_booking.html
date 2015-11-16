@@ -15,6 +15,14 @@
                         <h4>Buy with PayPal</h4>
                         <p>Click below to be transferred to paypal to make your payment.</p>
                         {% include 'payments/payment.html' %}
+
+                        {% if event.payment_open and event.payment_time_allowed %}
+                            <p>Note: Your space will be held for
+                                {{ event.payment_time_allowed }} hours pending payment.  If payment is not
+                                received within this time, your booking will be automatically cancelled.
+                            </p>
+                        {% endif %}
+
                     {% else %}
                         <h4>Payment information</h4>
                         {{ booking.event.payment_info|safe }}

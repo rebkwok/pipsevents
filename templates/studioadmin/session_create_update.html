@@ -37,7 +37,7 @@
                                 <div class="form-group">
                                     <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                     <div class="col-sm-9">
-                                        <div class="input-group">
+                                        <div class="input-group {% if field.errors %}ticket-error{% endif %}">
                                             <span class="input-group-addon" id="sizing-addon2">£</span>
                                             {{ field }}
                                         </div>
@@ -48,41 +48,48 @@
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left">{{ field }}<label for='booking_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='booking_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.label == "Payment open"%}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left">{{ field }}<label for='payment_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='payment_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.label == "Advance payment required" %}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.label == "External instructor"%}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left">{{ field }}<label for='ext_instructor_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='ext_instructor_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.label == "Email studio when booked"%}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left">{{ field }}<label for='email_studio_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='email_studio_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                </div>
+                            </div>
+                            {% elif field.name == "allow_booking_cancellation" %}
+                            <div class="form-group cbox">
+                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div class="col-sm-9">
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='allow_booking_cancellation_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                              {% else %}
                                 <div class="form-group">
                                     <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
-                                    <div class="col-sm-9">
+                                    <div class="col-sm-9 {% if field.errors %}ticket-error{% endif %}">
                                         {{ field }}<p class="studioadmin-help">{{ field.help_text }}</p>
                                     </div>
                                 </div>

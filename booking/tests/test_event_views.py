@@ -1,9 +1,12 @@
 from model_mommy import mommy
+from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
 from django.contrib.auth.models import Permission
+from django.utils import timezone
 
 from booking.models import Event, Booking
 from booking.views import EventListView, EventDetailView
@@ -252,6 +255,156 @@ class EventDetailViewTests(TestCase):
         self.assertIn('book_button', str(response.content))
         self.assertNotIn('join_waiting_list_button', str(response.content))
         self.assertNotIn('leave_waiting_list_button', str(response.content))
+
+    def test_payment_due_information_displayed_payment_due_date(self):
+        """
+        For not cancelled future events, show payment due date/time
+        Payment open and payment due date --> show payment due date
+        Payment open and time allowed --> show hours allowed
+        """
+        self.event.cost = 10
+        self.event.advance_payment_required = True
+        self.event.payment_due_date = timezone.now() + timedelta(15)
+        self.event.payment_open = True
+        self.event.save()
+
+        self.assertTrue(self.event.allow_booking_cancellation)
+        self.assertTrue(self.event.can_cancel())
+
+        resp = self._get_response(self.user, self.event, 'event')
+        soup = BeautifulSoup(resp.rendered_content, 'html.parser')
+        content = soup.text
+
+        # show text for payment due date, but not any for payment time allowed
+        # or cancellation due date
+        self.assertIn('Payment is due by', content)
+        self.assertNotIn(
+            'Once booked, your space will be held for', content
+        )
+        self.assertNotIn('(payment due ', content)
+
+        self.event.payment_time_allowed = 4
+        self.event.save()
+        # payment due date overrides payment time allowed; if both are set, use
+        # the due date
+        resp = self._get_response(self.user, self.event, 'event')
+        soup = BeautifulSoup(resp.rendered_content, 'html.parser')
+        content = soup.text
+
+        self.assertIn('Payment is due by', content)
+        self.assertNotIn(
+            'Once booked, your space will be held for', content
+        )
+        self.assertNotIn('(payment due ', content)
+
+    def test_payment_due_information_displayed_payment_time(self):
+        """
+        For not cancelled future events, show payment due date/time
+        Payment open and payment due date --> show payment due date
+        Payment open and time allowed --> show hours allowed
+        """
+        self.event.cost = 10
+        self.event.advance_payment_required = True
+        self.event.payment_time_allowed = 6
+        self.event.payment_open = True
+        self.event.save()
+
+        self.assertTrue(self.event.allow_booking_cancellation)
+        self.assertTrue(self.event.can_cancel())
+
+        resp = self._get_response(self.user, self.event, 'event')
+        soup = BeautifulSoup(resp.rendered_content, 'html.parser')
+        content = soup.text
+
+        # show text for payment time allowed, but not any for payment due date
+        # or cancellation due date
+        self.assertNotIn('Payment is due by', content)
+        self.assertIn(
+            'Once booked, your space will be held for 6 hours', content
+        )
+        self.assertNotIn('(payment due ', content)
+
+    def test_payment_due_information_displayed_cancellation_period(self):
+        """
+        For not cancelled future events, show payment due date/time
+        Payment open and payment due date --> show payment due date
+        Payment open and time allowed --> show hours allowed
+        """
+        self.event.cost = 10
+        self.event.payment_open = True
+        self.event.advance_payment_required = True
+        self.event.save()
+
+        self.assertTrue(self.event.allow_booking_cancellation)
+        self.assertTrue(self.event.can_cancel())
+
+        resp = self._get_response(self.user, self.event, 'event')
+        soup = BeautifulSoup(resp.rendered_content, 'html.parser')
+        content = soup.text
+
+        # show text for cancellation due date, but not any for payment due date
+        # or payment time allowed
+        self.assertNotIn('Payment is due by', content)
+        self.assertNotIn( 'Once booked, your space will be held for', content)
+        self.assertIn('(payment due ', content)
+
+    def test_cancellation_information_displayed_cancellation_period(self):
+        """
+        For not cancelled future events, show cancellation info
+        If booking cancellation allowed, show cancellation period if there
+        is one
+        No payment_due_date or payment_time_allowed --> show due date with
+        cancellation period
+        If booking cancellation not allowed, show nonrefundable message
+        """
+        self.event.cost = 10
+        self.event.advance_payment_required = True
+        self.event.payment_open = True
+        self.event.save()
+
+        self.assertTrue(self.event.allow_booking_cancellation)
+        self.assertEqual(self.event.cancellation_period, 24)
+
+        resp = self._get_response(self.user, self.event, 'event')
+        soup = BeautifulSoup(resp.rendered_content, 'html.parser')
+        content = soup.text
+        # show cancellation period and due date text
+        self.assertIn(
+            'Cancellation is allowed up to 24 hours prior to the event',
+            content
+        )
+        self.assertIn('(payment due ', content)
+
+    def test_cancellation_information_displayed_cancellation_not_allowed(self):
+        """
+        For not cancelled future events, show cancellation info
+        If booking cancellation allowed, show cancellation period if there
+        is one
+        No payment_due_date or payment_time_allowed --> show due date with
+        cancellation period
+        If booking cancellation not allowed, show nonrefundable message
+        """
+        self.event.cost = 10
+        self.event.advance_payment_required = True
+        self.event.payment_open = True
+        self.event.allow_booking_cancellation = False
+        self.event.save()
+
+        self.assertEqual(self.event.cancellation_period, 24)
+
+        resp = self._get_response(self.user, self.event, 'event')
+        soup = BeautifulSoup(resp.rendered_content, 'html.parser')
+        content = soup.text
+        # don't show cancellation period and due date text
+        self.assertNotIn(
+            'Cancellation is allowed up to 24 hours prior to the event ',
+            content
+        )
+        self.assertNotIn('(payment due ', content)
+        self.assertIn(
+            'Bookings are final and non-refundable; cancellation is not '
+            'allowed for this event', content
+        )
 
 
 class LessonListViewTests(TestCase):

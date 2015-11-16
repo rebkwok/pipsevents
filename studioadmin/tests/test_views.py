@@ -1019,7 +1019,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_email': event.contact_email,
             'contact_person': event.contact_person,
             'cancellation_period': event.cancellation_period,
-            'location': event.location
+            'location': event.location,
+            'allow_booking_cancellation': True
         }
 
         for key, value in extra_data.items():
@@ -1168,7 +1169,8 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test',
             'cancellation_period': 24,
-            'location': 'Watermelon Studio'
+            'location': 'Watermelon Studio',
+            'allow_booking_cancellation': True
         }
         for key, value in extra_data.items():
             data[key] = value
@@ -1393,7 +1395,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_email': ttsession.contact_email,
             'contact_person': ttsession.contact_person,
             'cancellation_period': ttsession.cancellation_period,
-            'location': ttsession.location
+            'location': ttsession.location,
+            'allow_booking_cancellation': True
         }
 
         for key, value in extra_data.items():
@@ -1506,7 +1509,8 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test',
             'cancellation_period': 24,
-            'location': 'Watermelon Studio'
+            'location': 'Watermelon Studio',
+            'allow_booking_cancellation': True
         }
         for key, value in extra_data.items():
             data[key] = value

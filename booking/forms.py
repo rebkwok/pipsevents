@@ -96,15 +96,24 @@ def get_event_names(event_type):
 
 
 class EventFilter(forms.Form):
-    name = forms.ChoiceField(choices=get_event_names('EV'))
+    name = forms.ChoiceField(
+        choices=get_event_names('EV'),
+        widget=forms.Select(attrs={'onchange': 'form.submit()'})
+    )
 
 
 class LessonFilter(forms.Form):
-    name = forms.ChoiceField(choices=get_event_names('CL'))
+    name = forms.ChoiceField(
+        choices=get_event_names('CL'),
+        widget=forms.Select(attrs={'onchange': 'form.submit()'})
+     )
 
 
 class RoomHireFilter(forms.Form):
-    name = forms.ChoiceField(choices=get_event_names('RH'))
+    name = forms.ChoiceField(
+        choices=get_event_names('RH'),
+        widget=forms.Select(attrs={'onchange': 'form.submit()'})
+    )
 
 
 def get_user_blocks(user, event_type):
