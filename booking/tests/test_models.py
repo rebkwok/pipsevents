@@ -50,19 +50,29 @@ class EventTests(TestCase):
         self.assertFalse(event1.bookable())
 
 
-    def test_event_pre_save(self):
+    def test_event_pre_save_event_with_no_cost(self):
         """
         Test that an event with no cost has correct fields set
         """
         # if an event is created with 0 cost, the following fields are set to
         # False/None/""
-        # advance_payment_required, payment_open, payment_due_date
+        # advance_payment_required, payment_open, payment_due_date,
+        # payment_time_allowed
 
-        poleclass = mommy.make_recipe('booking.future_PC', cost=7)
+        poleclass = mommy.make_recipe(
+            'booking.future_PC', cost=7, payment_open=True,
+            advance_payment_required=True,
+            payment_time_allowed=4,
+            payment_due_date=timezone.now() + timedelta(hours=1))
 
         #change cost to 0
         poleclass.cost = 0
         poleclass.save()
+
+        self.assertFalse(poleclass.payment_open)
+        self.assertFalse(poleclass.advance_payment_required)
+        self.assertIsNone(poleclass.payment_time_allowed)
+        self.assertIsNone(poleclass.payment_due_date)
 
         # event with cost, check other fields are left as is
         workshop = mommy.make_recipe('booking.future_WS',
@@ -71,6 +81,32 @@ class EventTests(TestCase):
                                      payment_info="Pay me")
         self.assertEquals(workshop.payment_open, True)
         self.assertEquals(workshop.payment_info, "Pay me")
+
+    def test_pre_save_external_instructor(self):
+        pc = mommy.make_recipe(
+            'booking.future_PC', external_instructor=True
+        )
+        self.assertFalse(pc.booking_open)
+        self.assertFalse(pc.payment_open)
+        # we can't make these fields true
+        pc.booking_open = True
+        pc.payment_open = True
+        pc.save()
+        self.assertFalse(pc.booking_open)
+        self.assertFalse(pc.payment_open)
+
+    def test_pre_save_payment_time_allowed(self):
+        """
+        payment_time_allowed automatically makes advance_payment_required true
+        """
+        pc = mommy.make_recipe(
+            'booking.future_PC', cost=10, advance_payment_required=False
+        )
+        self.assertFalse(pc.advance_payment_required)
+
+        pc.payment_time_allowed = 4
+        pc.save()
+        self.assertTrue(pc.advance_payment_required)
 
     def test_absolute_url(self):
         self.assertEqual(
@@ -492,7 +528,9 @@ class EventTypeTests(TestCase):
 class TicketedEventTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10', payment_time_allowed=4
+        )
 
     def tearDown(self):
         del self.ticketed_event
@@ -520,16 +558,49 @@ class TicketedEventTests(TestCase):
         """
         # if an event is created with 0 cost, the following fields are set to
         # False/None/""
-        # advance_payment_required, payment_open, payment_due_date
+        # advance_payment_required, payment_open, payment_due_date,
+        # payment_time_allowed
 
         self.assertTrue(self.ticketed_event.advance_payment_required)
         self.assertTrue(self.ticketed_event.payment_open)
+        self.assertTrue(self.ticketed_event.payment_time_allowed)
         self.assertTrue(self.ticketed_event.ticket_cost > 0)
         #change cost to 0
         self.ticketed_event.ticket_cost = 0
         self.ticketed_event.save()
         self.assertFalse(self.ticketed_event.advance_payment_required)
         self.assertFalse(self.ticketed_event.payment_open)
+        self.assertFalse(self.ticketed_event.payment_time_allowed)
+
+    def test_pre_save_payment_time_allowed(self):
+        """
+        payment_time_allowed automatically makes advance_payment_required true
+        """
+
+        self.ticketed_event.payment_due_date = None
+        self.ticketed_event.payment_time_allowed = None
+        self.ticketed_event.advance_payment_required = False
+        self.ticketed_event.save()
+        self.assertFalse(self.ticketed_event.advance_payment_required)
+
+        self.ticketed_event.payment_time_allowed = 4
+        self.ticketed_event.save()
+        self.assertTrue(self.ticketed_event.advance_payment_required)
+
+    def test_pre_save_payment_due_date(self):
+        """
+        payment_due_date automatically makes advance_payment_required true
+        """
+
+        self.ticketed_event.payment_due_date = None
+        self.ticketed_event.payment_time_allowed = None
+        self.ticketed_event.advance_payment_required = False
+        self.ticketed_event.save()
+        self.assertFalse(self.ticketed_event.advance_payment_required)
+
+        self.ticketed_event.payment_due_date = timezone.now() + timedelta(1)
+        self.ticketed_event.save()
+        self.assertTrue(self.ticketed_event.advance_payment_required)
 
     def test_payment_due_date_set_on_save(self):
         """

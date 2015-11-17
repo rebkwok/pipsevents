@@ -144,6 +144,7 @@ class Event(models.Model):
             self.advance_payment_required = False
             self.payment_open = False
             self.payment_due_date = None
+            self.payment_time_allowed = None
         if self.payment_due_date:
             # replace time with very end of day
             # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
@@ -155,6 +156,8 @@ class Event(models.Model):
             self.payment_due_date = next_day - timedelta(seconds=1)
             # if a payment due date is set, make sure advance_payment_required is
             # set to True
+            self.advance_payment_required = True
+        if self.payment_time_allowed:
             self.advance_payment_required = True
         if self.external_instructor:
             # if external_instructor, make sure payment_open and booking_open
@@ -466,6 +469,7 @@ class TicketedEvent(models.Model):
             self.advance_payment_required = False
             self.payment_open = False
             self.payment_due_date = None
+            self.payment_time_allowed = None
         if self.payment_due_date:
             # replace time with very end of day
             # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
@@ -478,7 +482,8 @@ class TicketedEvent(models.Model):
             # if a payment due date is set, make sure advance_payment_required is
             # set to True
             self.advance_payment_required = True
-
+        if self.payment_time_allowed:
+            self.advance_payment_required = True
         super(TicketedEvent, self).save(*args, **kwargs)
 
 

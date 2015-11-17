@@ -29,18 +29,6 @@ MONTH_CHOICES = {
         }
 
 
-def set_toggle_attrs(on_text='Yes', off_text='No', label_text=''):
-    return {
-        'class': 'toggle-checkbox',
-        'data-size': 'mini',
-        'data-on-color': 'success',
-        'data-off-color': 'danger',
-        'data-on-text': on_text,
-        'data-off-text': off_text,
-        'data-label-text': label_text,
-    }
-
-
 class BookingCreateForm(forms.ModelForm):
 
     class Meta:
