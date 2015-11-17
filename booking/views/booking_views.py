@@ -387,7 +387,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'prev_cancelled_and_direct_paid':
               previously_cancelled_and_direct_paid,
               'claim_free': True if "claim_free" in form.data else False,
-              'ev_type': self.ev_type
+              'ev_type': self.ev_type[:-1]
         })
         try:
             send_mail('{} Booking for {}'.format(

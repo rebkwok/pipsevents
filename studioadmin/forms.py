@@ -139,18 +139,24 @@ class EventAdminForm(forms.ModelForm):
         )
 
         if self.instance.id:
+            ev_type_str = 'class' if ev_type == 'CL' else 'event'
+
             if not self.instance.cancelled:
                 self.fields['cancelled'].label = "Cancelled: No"
-                self.fields['cancelled'].help_text = 'To cancel, use the Cancel ' \
-                                                     'button on the event/class ' \
-                                                     'list page'
+                self.fields['cancelled'].\
+                    help_text = 'To cancel, use the Cancel button on the {} ' \
+                                'list page'.format(ev_type_str)
                 self.fields['cancelled'].widget.attrs.update(
                     {'disabled': 'disabled', 'class': "hide"})
             else:
                 self.fields['cancelled'].\
-                    help_text = 'Untick to reopen event; note that this does ' \
-                                'not change any other event attributes and ' \
-                                'does not reopen previously cancelled bookings'
+                    help_text = 'Untick to reopen {}; note that this does ' \
+                                'not change any other attributes and ' \
+                                'does not reopen previously cancelled ' \
+                                'bookings.  {} will be reopened with both ' \
+                                'booking and payment CLOSED'.format(
+                    ev_type_str, ev_type_str.title()
+                )
 
     def clean(self):
         super(EventAdminForm, self).clean()
@@ -1458,7 +1464,7 @@ class TicketedEventAdminForm(forms.ModelForm):
                     help_text = 'Untick to reopen event; note that this does ' \
                                 'not change any other event attributes and ' \
                                 'does not reopen previously cancelled ticket ' \
-                                'bookings'
+                                'bookings.'
 
     def clean(self):
         super(TicketedEventAdminForm, self).clean()

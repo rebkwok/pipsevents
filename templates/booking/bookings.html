@@ -54,16 +54,20 @@
                                         {% elif bookingform.booking.event.cancelled %}
                                             {% if bookingform.ev_type == 'EV' %}EVENT{% elif bookingform.ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
                                         {% elif not bookingform.booking.event.bookable %}
-                                            {% if not bookingform.on_waiting_list %}
-                                                <form class="wl-table-form" action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">
-                                                    <input id='join_waiting_list_button' class="btn btn-success table-btn booking-btn" type="submit" value="Join waiting list" name="join waiting list"/>
-                                                    <input class="hide" type="text" name="bookings" value="bookings" />
-                                                </form>
-                                            {% else %}
-                                                <form class="wl-table-form" action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">
-                                                    <input id='leave_waiting_list_button' class="btn btn-warning table-btn booking-btn" type="submit" value="Leave waiting list" name="leave waiting list"/>
-                                                    <input class="hide" type="text" name="bookings" value="bookings" />
-                                                </form>
+                                            {% if not bookingform.booking.event.spaces_left %}
+                                                {% if bookingform.on_waiting_list %}
+                                                    <form class="wl-table-form" action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">
+                                                        <input id='leave_waiting_list_button' class="btn btn-warning table-btn booking-btn" type="submit" value="Leave waiting list" name="leave waiting list"/>
+                                                        <input class="hide" type="text" name="bookings" value="bookings" />
+                                                    </form>
+                                                {% else %}
+                                                    <form class="wl-table-form" action="{% url 'booking:book_event' bookingform.booking.event.slug %}" method="get">
+                                                        <input id='join_waiting_list_button' class="btn btn-success table-btn booking-btn" type="submit" value="Join waiting list" name="join waiting list"/>
+                                                        <input class="hide" type="text" name="bookings" value="bookings" />
+                                                    </form>
+                                                {% endif %}
+                                            {% elif bookingform.booking.status == 'CANCELLED' %}
+                                                <div type="button" id="rebook_button_disabled" class="btn btn-success table-btn booking-btn disabled">Rebook</div>
                                             {% endif %}
                                         {% else %}
                                             <a href="{% url 'booking:book_event' bookingform.booking.event.slug %}">
@@ -77,7 +81,7 @@
                                     {% if bookingform.ev_type == 'EV' %}
                                     <a href="{% url 'booking:event_detail' bookingform.booking.event.slug %}">
                                         {{ bookingform.booking.event.name }}</a>
-                                    {% elif bookingform.ev_type == 'EV' %}
+                                    {% elif bookingform.ev_type == 'CL' %}
                                     <a href="{% url 'booking:lesson_detail' bookingform.booking.event.slug %}">
                                         {{ bookingform.booking.event.name }}</a>
                                     {% else %}

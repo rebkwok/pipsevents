@@ -284,7 +284,8 @@ class WaitingListTests(TestCase):
         Test that a cancelled booking shows 'on waiting list' button if
         event is full and user already on the waiting list
         """
-        event = mommy.make_recipe('booking.future_PC', max_participants=3)
+        event = mommy.make_recipe(
+            'booking.future_PC', max_participants=3)
         mommy.make_recipe('booking.booking', event=event, _quantity=2)
         mommy.make_recipe(
             'booking.booking', event=event, user=self.user, status='CANCELLED'
@@ -304,6 +305,24 @@ class WaitingListTests(TestCase):
         self.assertIn('leave_waiting_list_button', str(resp.content))
         self.assertNotIn('rebook_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
+
+    def test_cancelled_booking_for_non_bookable_not_full_event(self):
+        """
+        Regression test: if an event is cancelled, bookings on it are
+        cancelled.  If it's reopened, booking_open and payment_open are set to
+        False.  Cancelled bookings are still listed on booking page but can't
+        be rebooked.  Previously this was incorrectly showing 'join waiting
+        list' button.  Should show disabled 'rebook' buttong
+        """
+        # event is not full but booking_open is False, so it's not bookable
+        event = mommy.make_recipe(
+            'booking.future_PC', max_participants=3, booking_open=False
+        )
+        mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, status='CANCELLED'
+        )
+        resp = self._get_booking_list(self.user)
+        self.assertIn('rebook_button_disabled', resp.rendered_content)
 
     def test_join_waiting_list(self):
         """
