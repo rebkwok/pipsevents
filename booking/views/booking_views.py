@@ -1,4 +1,7 @@
 import logging
+import pytz
+
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -78,8 +81,24 @@ class BookingListView(LoginRequiredMixin, ListView):
             except WaitingListUser.DoesNotExist:
                 on_waiting_list = False
 
-            can_cancel = booking.event.can_cancel() and \
-                booking.status == 'OPEN'
+            can_cancel = booking.event.allow_booking_cancellation and \
+                         booking.event.can_cancel() and \
+                         booking.status == 'OPEN'
+
+            due_date_time = None
+            if booking.event.advance_payment_required:
+                uk_tz = pytz.timezone('Europe/London')
+                if booking.event.payment_due_date:
+                    due_date_time = booking.event.payment_due_date
+                elif booking.event.payment_time_allowed:
+                    last_booked = booking.date_rebooked if booking.date_rebooked else booking.date_booked
+                    due_date_time = last_booked + timedelta(hours=booking.event.payment_time_allowed)
+                elif booking.event.cancellation_period:
+                    due_date_time = booking.event.date - timedelta(
+                        hours=booking.event.cancellation_period
+                    )
+                    due_date_time = due_date_time.astimezone(uk_tz)
+
             bookingform = {
                 'ev_type': booking.event.event_type.event_type,
                 'booking': booking,
@@ -87,7 +106,8 @@ class BookingListView(LoginRequiredMixin, ListView):
                 'has_available_block': booking.event.event_type in
                 active_block_event_types,
                 'can_cancel': can_cancel,
-                'on_waiting_list': on_waiting_list
+                'on_waiting_list': on_waiting_list,
+                'due_date_time': due_date_time,
                 }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
@@ -208,7 +228,11 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             return HttpResponseRedirect(
                 reverse('booking:{}'.format(self.ev_type))
             )
-        elif self.event.spaces_left() <= 0:
+        elif self.event.spaces_left() <= 0 and self.request.user not in \
+            [
+                booking.user for booking in self.event.bookings.all()
+                if booking.status == 'OPEN'
+                ]:
             return HttpResponseRedirect(
                 reverse('booking:fully_booked', args=[self.event.slug])
             )
@@ -270,6 +294,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 log='Free class requested ({}) by user {}'.format(
                     form.instance.event, self.request.user.username)
             )
+            booking.free_class_requested = True
             booking.paid = False
             booking.payment_confirmed = False
             booking.block = None
@@ -362,7 +387,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               'prev_cancelled_and_direct_paid':
               previously_cancelled_and_direct_paid,
               'claim_free': True if "claim_free" in form.data else False,
-              'ev_type': self.ev_type
+              'ev_type': self.ev_type[:-1]
         })
         try:
             send_mail('{} Booking for {}'.format(
@@ -424,43 +449,40 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 )
             )
 
-        messages.success(
-            self.request,
-            self.success_message.format(booking.event)
-        )
-
+        extra_msg = ''
         if 'claim_free' in form.data:
-            messages.info(
-                self.request, 'Your place will be secured once your free '
-                'class request has been reviewed and approved. '
-            )
+            extra_msg = 'Your place will be secured once your free class ' \
+                        'request has been reviewed and approved. '
         elif previously_cancelled_and_direct_paid:
-            messages.info(
-                self.request, 'You previously paid for this booking; your '
-                              'booking will remain as pending until the '
-                              'organiser has reviewed your payment status.'
-            )
+            extra_msg = 'You previously paid for this booking; your booking ' \
+                        'will remain as pending until the organiser has ' \
+                        'reviewed your payment status.'
         elif not booking.block:
             if booking.event.cost:
                 cancellation_warning = ""
-                if booking.event.advance_payment_required:
+                if booking.event.advance_payment_required and \
+                        booking.event.allow_booking_cancellation:
+
+                    if booking.event.payment_due_date:
+                        cancel_str = "by the payment due date"
+                    elif booking.event.payment_time_allowed:
+                        cancel_str = "within {} hours".format(
+                            booking.event.payment_time_allowed
+                        )
+                    else:
+                        cancel_str = "by the cancellation period"
+
                     cancellation_warning = "Note that if payment " \
-                        "has not been received by the {}, " \
+                        "has not been received {}, " \
                         "your booking will be automatically cancelled.".format(
-                        "payment due date" if booking.event.payment_due_date
-                        else "cancellation period"
-                    )
-                messages.info(
-                    self.request, mark_safe('Please make your payment as soon '
-                        'as possible.  '
-                        '<strong>{}</strong>'.format(cancellation_warning)
-                    )
-                )
+                            cancel_str
+                        )
+                extra_msg = 'Please make your payment as soon as possible. ' \
+                            '<strong>{}</strong>'.format(cancellation_warning)
         elif not booking.block.active_block():
-            messages.info(self.request, mark_safe(
-                          'You have just used the last space in your block.  '
-                          'Go to <a href="/blocks">'
-                          'Your Blocks</a> to buy a new one.'))
+            extra_msg = 'You have just used the last space in your block. ' \
+                        'Go to <a href="/blocks">Your Blocks</a> to buy a ' \
+                        'new one.'
             if booking.block.block_type.size == 10:
                 try:
                     send_mail('{} {} has just used the last of 10 blocks'.format(
@@ -477,6 +499,13 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 except Exception as e:
                     # send mail to tech support with Exception
                     send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
+
+        messages.success(
+            self.request,
+            mark_safe("{}<br>{}".format(
+                self.success_message.format(booking.event),
+                extra_msg))
+        )
 
         try:
             waiting_list_user = WaitingListUser.objects.get(
@@ -714,7 +743,9 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
     def get(self, request, *args, **kwargs):
         # redirect if cancellation period past
         booking = get_object_or_404(Booking, pk=self.kwargs['pk'])
-        if not booking.event.can_cancel():
+        if not booking.event.allow_booking_cancellation:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+        elif not booking.event.can_cancel():
             return HttpResponseRedirect(
                 reverse('booking:cancellation_period_past',
                         args=[booking.event.slug])
@@ -843,7 +874,15 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
 
 def duplicate_booking(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    context = {'event': event}
+    if event.event_type.event_type == 'EV':
+        ev_type = 'event'
+    elif event.event_type.event_type == 'CL':
+        ev_type = 'class'
+    else:
+        ev_type = 'room hire'
+
+    context = {'event': event, 'ev_type': ev_type}
+
     return render(request, 'booking/duplicate_booking.html', context)
 
 def update_booking_cancelled(request, pk):

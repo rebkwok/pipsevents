@@ -39,9 +39,17 @@ class Session(models.Model):
     payment_open = models.BooleanField(default=True)
     advance_payment_required = models.BooleanField(default=True)
     payment_info = models.TextField(blank=True)
+    payment_time_allowed = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Number of hours allowed for payment after booking (after "
+                  "this bookings will be cancelled.  Note that the "
+                  "automatic cancel job allows 6 hours after booking, so "
+                  "6 hours is the minimum time that will be applied."
+    )
     cancellation_period = models.PositiveIntegerField(
         default=24
     )
+    allow_booking_cancellation = models.BooleanField(default=True)
     external_instructor = models.BooleanField(default=False)
     email_studio_when_booked = models.BooleanField(default=False)
 

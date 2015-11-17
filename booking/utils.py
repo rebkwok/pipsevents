@@ -69,8 +69,11 @@ def create_classes(week='this', input_date=None):
             booking_open=session.booking_open,
             payment_info=session.payment_info,
             cancellation_period=session.cancellation_period,
-            external_instructor = session.external_instructor,
-            email_studio_when_booked = session.email_studio_when_booked
+            external_instructor=session.external_instructor,
+            email_studio_when_booked=session.email_studio_when_booked,
+            allow_booking_cancellation=session.allow_booking_cancellation,
+            payment_time_allowed=session.payment_time_allowed
+
             )
         if created:
             created_classes.append(cl)
@@ -122,18 +125,20 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
                 location=session.location
             )
             if created:
-                cl.description=session.description
-                cl.max_participants=session.max_participants
-                cl.contact_person=session.contact_person
-                cl.contact_email=session.contact_email
-                cl.cost=session.cost
-                cl.payment_open=session.payment_open
-                cl.advance_payment_required=session.advance_payment_required
-                cl.booking_open=session.booking_open
-                cl.payment_info=session.payment_info
-                cl.cancellation_period=session.cancellation_period
+                cl.description = session.description
+                cl.max_participants = session.max_participants
+                cl.contact_person = session.contact_person
+                cl.contact_email = session.contact_email
+                cl.cost = session.cost
+                cl.payment_open = session.payment_open
+                cl.advance_payment_required = session.advance_payment_required
+                cl.booking_open = session.booking_open
+                cl.payment_info = session.payment_info
+                cl.cancellation_period = session.cancellation_period
                 cl.external_instructor = session.external_instructor
                 cl.email_studio_when_booked = session.email_studio_when_booked
+                cl.payment_time_allowed = session.payment_time_allowed
+                cl.allow_booking_cancellatin = session.allow_booking_cancellation
                 cl.save()
 
                 created_classes.append(cl)

@@ -43,14 +43,26 @@
 
                                 {% if event.payment_open and event.payment_due_date %}
                                     <p>Payment is due by {{ event.payment_due_date |  date:"D d F Y" }}</p>
-                                {% endif %}</li>
-                            {% if event.cancellation_period %}
+                                {% elif event.payment_open and event.payment_time_allowed %}
+                                    <p>Once booked, your space will be held for {{ event.payment_time_allowed }} hours pending payment.  If payment is not
+                                        received within this time, your booking will be automatically cancelled.
+                                    </p>
+                                {% endif %}
+                            </li>
+                            {% if not event.allow_booking_cancellation %}
                                 <li class="list-group-item"><strong>Cancellation information</strong>
-                                    <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the
-                                    {{ event_type_str }}
-                                    {% if event.cost and event.advance_payment_required and not event.payment_due_date %}
-                                        (payment due by {{ cancellation_due_date|date:"D d F, g:i a" }})
-                                    {% endif %}</p></li>
+                                    <p>Bookings are final and non-refundable; cancellation is not allowed for this {{ event_type_str }}</p>
+                                </li>
+                            {% elif event.cancellation_period %}
+                                <li class="list-group-item"><strong>Cancellation information</strong>
+                                    <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the {{ event_type_str }}
+                                        {% if event.advance_payment_required %}
+                                        {% if not event.payment_due_date and not event.payment_time_allowed %}
+                                            (payment due {{ cancellation_due_date|date:"D d F, g:i a" }})
+                                        {% endif %}
+                                        {% endif %}
+                                    </p>
+                                </li>
 
                             {% endif %}
                         {% endif %}  <!--- cancelled --->

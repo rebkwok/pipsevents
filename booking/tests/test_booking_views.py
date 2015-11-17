@@ -404,9 +404,35 @@ class BookingCreateViewTests(TestCase):
         self.assertEqual(len(mail.outbox), 2)
 
         free_booking = bookings[0]
+        self.assertTrue(free_booking.free_class_requested)
         self.assertFalse(free_booking.free_class)
         self.assertFalse(free_booking.paid)
         self.assertFalse(free_booking.payment_confirmed)
+
+    def test_rebook_cancelled_booking_as_free_class(self):
+        """
+        Test can rebook a cancelled booking
+        """
+
+        event = mommy.make_recipe('booking.future_EV')
+        # book for event
+        resp = self._post_response(self.user, event, {'claim_free': True})
+
+        booking = Booking.objects.get(user=self.user, event=event)
+        # cancel booking
+        booking.status = 'CANCELLED'
+        booking.save()
+        self.assertIsNone(booking.date_rebooked)
+
+        # try to book again
+        resp = self._post_response(self.user, event)
+        booking.refresh_from_db()
+        self.assertEqual('OPEN', booking.status)
+        self.assertIsNotNone(booking.date_rebooked)
+        self.assertTrue(booking.free_class_requested)
+        self.assertFalse(booking.free_class)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
 
     def test_free_class_context(self):
         """

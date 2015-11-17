@@ -33,6 +33,13 @@
                             <p>(Note: block booking is not available.)</p>
                         {% endif %}
 
+                        {% if event.payment_open and event.payment_time_allowed %}
+                            <p>Once booked, your space will be held for
+                                {{ event.payment_time_allowed }} hours pending payment.  If payment is not
+                                received within this time, your booking will be automatically cancelled.
+                            </p>
+                        {% endif %}
+
                         {% if not event.can_cancel %}
                             <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.</p>
                             {% if event.cost %}
@@ -44,10 +51,11 @@
                                         4 hours of booking, your booking will be automatically cancelled.</p>
                                 {% endif %}
                             {% endif %}
+                        {% elif not event.allow_booking_cancellation %}
+                            <p>Bookings are final and non-refundable; cancellation is not allowed for this {{ ev_type }}.</p>
                         {% elif event.cancellation_period > 0 %}
                             <p>Cancellation is only allowed up to {{ event.cancellation_period | format_cancellation }}
-                            before the {{ ev_type }} date.  {% if event.advance_payment_required %}If payment has not been
-                            received by the cancellation period, your booking will be automatically cancelled. {% endif %}</p>
+                            before the {{ ev_type }} date.</p>
                         {% endif %}
 
 
@@ -67,10 +75,10 @@
 
                         {% if can_be_free_class %}
                         <input class="btn btn-success update-btn" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
-                        <p class="studioadmin-help">** Please select this option only if you have a completed loyatly card and are eligible for a
+                        <p class="studioadmin-help">** Please select this option only if you have a completed loyalty card and are eligible for a
                             free class.  Your request to
-                            claim your free class will be sent to the studio. <span class="cancel-warning">You will not be booked into
-                            the class until the studio has reviewed and confirmed that you are eligible.</span></br>
+                            claim your free class will be sent to the studio. <span class="cancel-warning">Your space will not be confirmed
+                                until the studio has reviewed and confirmed that you are eligible.</span></br>
                             Please visit the studio <a target="_blank" href="http://thewatermelonstudio.co.uk/pricelist.php">website</a>
                             for information on loyalty cards.</p>
                         {% endif %}

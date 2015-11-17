@@ -13,6 +13,9 @@
                 {% if not user.is_authenticated %}
                     <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
                 {% endif %}
+                <form class="filter-row" action="" method="get">
+                    <strong>Filter by: {{ form.name }}</strong>
+                </form><br>
                 <div class="panel panel-success">
 
                     <div class="table-responsive">
@@ -32,15 +35,7 @@
                                 <th class="hidden-sm hidden-xs table-center">Booking open</th>
                                 <th class="hidden-sm hidden-xs table-center">Payment open</th>
                             </tr>
-                            <tr class="filter-row">
-                                <td class="filter-row" colspan=9>
-                                <form class="filter-row" action="" method="get">
-                                    <strong>
-                                        <input class="btn btn-info table-btn" type="submit" value="Filter" /> {{ form.name }}</strong>
 
-                                </form>
-                                </td>
-                            </tr>
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
                                 {% if user.is_authenticated %}

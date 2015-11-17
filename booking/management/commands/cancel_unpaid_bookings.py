@@ -2,8 +2,15 @@
 Check for unpaid bookings and cancel where:
 booking.status = OPEN
 paid = False
-payment_due_date < timezone.now()
-date - canellation_period < timezone.now()
+advance_payment_required = True
+Booking date booked OR booking date rebooked > 6 hrs ago
+AND
+(payment_due_date < timezone.now()
+OR
+date - cancellation_period < timezone.now()
+OR
+timezone.now() - date_booked/rebooked > payment_time_allowed
+)
 Email user that their booking has been cancelled
 '''
 import logging
@@ -26,8 +33,9 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Cancel unpaid bookings that are past payment_due_date or '
-    'cancellation_period'
+    help = 'Cancel unpaid bookings that are past payment_due_date, ' \
+           'payment_time_allowed or cancellation_period'
+
     def handle(self, *args, **options):
 
         bookings = []
@@ -37,7 +45,6 @@ class Command(BaseCommand):
             status='OPEN',
             paid=False,
             payment_confirmed=False,
-            warning_sent=True,
             date_booked__lte=timezone.now() - timedelta(hours=6)):
 
             # ignore any which have been rebooked in the past 6 hrs
@@ -47,11 +54,26 @@ class Command(BaseCommand):
                 pass
             elif booking.event.date - timedelta(
                     hours=booking.event.cancellation_period
-                ) < timezone.now():
+            ) < timezone.now() and booking.warning_sent:
                 bookings.append(booking)
-            elif booking.event.payment_due_date:
+            elif booking.event.payment_due_date and booking.warning_sent:
                 if booking.event.payment_due_date < timezone.now():
                     bookings.append(booking)
+            elif booking.event.payment_time_allowed:
+                # if there's a payment time allowed, cancel bookings booked
+                # longer ago than this (bookings already filtered out
+                # any booked or rebooked within 6 hrs)
+                # don't check for warning sent this time
+                # for free class requests, always allow them 24 hrs so admin
+                # have time to mark classes as free (i.e.paid)
+                last_booked_date = booking.date_rebooked \
+                        if booking.date_rebooked else booking.date_booked
+                if booking.free_class_requested:
+                    if last_booked_date < timezone.now() - timedelta(hours=24):
+                        bookings.append(booking)
+                elif last_booked_date < timezone.now() \
+                        - timedelta(hours=booking.event.payment_time_allowed):
+                        bookings.append(booking)
 
         for booking in bookings:
             event_was_full = booking.event.spaces_left() == 0

@@ -1744,8 +1744,8 @@ def cancel_event_view(request, slug):
                 booking_cancelled_msg = 'open ' \
                                         'booking(s) for {} have been cancelled ' \
                                         'and notification emails have been ' \
-                                        'sent.'.format(
-                    ev_type.title(),
+                                        'sent to {}.'.format(
+                    ev_type,
                     ', '.join(
                         ['{} {}'.format(booking.user.first_name,
                                         booking.user.last_name)
@@ -1755,10 +1755,11 @@ def cancel_event_view(request, slug):
             else:
                 booking_cancelled_msg = 'there were ' \
                                         'no open bookings for this {}'.format(
-                    ev_type.title(), ev_type
+                    ev_type
                 )
             messages.info(
-                request, '{} has been cancelled; ' + booking_cancelled_msg
+                request,
+                '{} has been cancelled; '.format(ev_type.title()) + booking_cancelled_msg
             )
 
             ActivityLog.objects.create(

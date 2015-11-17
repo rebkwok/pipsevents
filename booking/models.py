@@ -84,6 +84,13 @@ class Event(models.Model):
                   'than the cancellation period.  Booking that are not paid '
                   'will be automatically cancelled (a warning email will be '
                   'sent to users first).')
+    payment_time_allowed = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Number of hours allowed for payment after booking (after "
+                  "this bookings will be cancelled.  Note that the "
+                  "automatic cancel job allows 6 hours after booking, so "
+                  "6 hours is the minimum time that will be applied."
+    )
     cancellation_period = models.PositiveIntegerField(
         default=24
     )
@@ -94,6 +101,7 @@ class Event(models.Model):
     email_studio_when_booked = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
     cancelled = models.BooleanField(default=False)
+    allow_booking_cancellation = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-date']
@@ -289,6 +297,7 @@ class Booking(models.Model):
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
+    free_class_requested = models.BooleanField(default=False)
     free_class = models.BooleanField(default=False)
 
     class Meta:

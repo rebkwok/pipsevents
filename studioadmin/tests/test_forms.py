@@ -132,7 +132,8 @@ class EventAdminFormTests(TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test',
             'cancellation_period': 24,
-            'location': 'Watermelon Studio'
+            'location': 'Watermelon Studio',
+            'allow_booking_cancellation': True,
         }
 
         for key, value in extra_data.items():
@@ -141,7 +142,6 @@ class EventAdminFormTests(TestCase):
         return data
 
     def test_form_valid(self):
-
         form = EventAdminForm(data=self.form_data(), ev_type='CL')
         self.assertTrue(form.is_valid())
 
@@ -238,8 +238,12 @@ class EventAdminFormTests(TestCase):
     def test_valid_payment_due_date(self):
         form = EventAdminForm(
             data=self.form_data(
-                {'date': '15 Jun 2015 20:00',
-                 'payment_due_date': '10 Jun 2015'},
+                {
+                 'advance_payment_required': True,
+                 'date': '15 Jun 2015 20:00',
+                 'payment_due_date': '10 Jun 2015',
+                 'cost': 1
+                },
             ), ev_type='CL')
         self.assertTrue(form.is_valid())
 
@@ -255,6 +259,201 @@ class EventAdminFormTests(TestCase):
         self.assertEquals(
             name_field.widget.attrs['placeholder'],
             'Name of class e.g. Pole Level 1')
+
+    def test_adv_payment_req_requires_due_date_or_time_or_cancel_period(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': True,
+                    'cancellation_period': 0,
+                    'cost': 1,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Please provide a payment due date, payment time allowed or '
+            'cancellation period',
+            str(form.errors['advance_payment_required'])
+        )
+
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': True,
+                    'payment_due_date': '30 Jun 2015',
+                    'payment_time_allowed': 4,
+                    'cancellation_period': 1,
+                    'cost': 1,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Please provide payment due date OR payment time '
+            'allowed (but not both)',
+            str(form.errors['payment_due_date'])
+        )
+        self.assertIn(
+            'Please provide payment due date OR payment time '
+            'allowed (but not both)',
+            str(form.errors['payment_time_allowed'])
+        )
+
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': True,
+                    'payment_due_date': '01 Jun 2015',
+                    'cancellation_period': 1,
+                    'cost': 1,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertTrue(form.is_valid())
+
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': True,
+                    'payment_time_allowed': 4,
+                    'cancellation_period': 1,
+                    'cost': 1,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_payment_due_date_requires_advance_payment_req(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': False,
+                    'payment_due_date': '01 Jun 2015',
+                    'cost': 1,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+
+        self.assertIn(
+            'To specify a payment due date, please also tick '
+            '&quot;advance payment required&quot',
+            str(form.errors['payment_due_date'])
+        )
+
+    def test_payment_time_allowed_requires_advance_payment_req(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': False,
+                    'payment_time_allowed': 4,
+                    'cost': 1,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'To specify payment time allowed, please also tick '
+            '&quot;advance payment required&quot;',
+            str(form.errors['payment_time_allowed'])
+        )
+
+    def adv_payment_due_date_and_time_allowed_require_ticket_cost(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': True,
+                    'cost': ''
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'The following fields require a cost greater than £0: '
+            'advance payment required',
+            str(form.errors['cost'])
+        )
+
+        form = TicketedEventAdminForm(
+            data=self.form_data(
+                {
+                    'payment_due_date': 4,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'The following fields require a cost greater than £0: '
+            'payment due date',
+            str(form.errors['cost'])
+        )
+
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'payment_due_date': 4,
+                    'advance_payment_required': True,
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'The following fields require a cost greater than £0: '
+            'advance payment required, payment due date',
+            str(form.errors['cost'])
+        )
+
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'payment_due_date': 4,
+                    'advance_payment_required': True,
+                },
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'The following fields require a cost greater than £0: '
+            'advance payment required, payment due date, payment time allowed',
+            str(form.errors['cost'])
+        )
+
+    def test_disallow_booking_cancellation_requires_adv_payment_required(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {'allow_booking_cancellation': False, 'cost': 1}),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Advance payment must be required in order to make booking '
+            'cancellation disallowed (i.e. non-refundable)',
+            str(form.errors['allow_booking_cancellation'])
+        )
+
+    def test_disallow_booking_cancellation_requires_cost(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {'allow_booking_cancellation': False}
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Booking cancellation should be allowed for events/classes with '
+            'no associated cost',
+            str(form.errors['allow_booking_cancellation'])
+        )
 
 class SimpleBookingRegisterFormSetTests(TestCase):
 
@@ -455,7 +654,8 @@ class SessionAdminFormTests(TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test',
             'cancellation_period': 24,
-            'location': 'Watermelon Studio'
+            'location': 'Watermelon Studio',
+            'allow_booking_cancellation': True
         }
 
         for key, value in extra_data.items():
@@ -534,6 +734,31 @@ class SessionAdminFormTests(TestCase):
             name_field.widget.attrs['placeholder'],
             'Name of session e.g. Pole Level 1')
 
+    def test_disallow_booking_cancellation_requires_adv_payment_required(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {'allow_booking_cancellation': False, 'cost': 1}
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Advance payment must be required in order to make booking '
+            'cancellation disallowed (i.e. non-refundable)',
+            str(form.errors['allow_booking_cancellation'])
+        )
+
+    def test_disallow_booking_cancellation_requires_cost(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {'allow_booking_cancellation': False}
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Booking cancellation should be allowed for events/classes with '
+            'no associated cost',
+            str(form.errors['allow_booking_cancellation'])
+        )
 
 class UploadTimetableFormTests(TestCase):
 

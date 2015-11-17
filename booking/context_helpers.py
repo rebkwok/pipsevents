@@ -76,8 +76,9 @@ def get_event_context(context, event, user):
     else:
         if cancelled:
             context['cancelled'] = True
-            booking_info_text_cancelled = "You have previously booked for this {} and" \
-                                    " cancelled.".format(event_type_str)
+            booking_info_text_cancelled = "You have previously booked for " \
+                                          "this {} and your booking has been " \
+                                          "cancelled.".format(event_type_str)
             context['booking_info_text_cancelled'] = booking_info_text_cancelled
 
         if event.event_type.subtype == "External instructor class":
