@@ -44,7 +44,8 @@ class Command(BaseCommand):
             )
 
             bookings_without_block = [
-                booking for booking in open_user_bookings_since_block_start if booking.block == None
+                booking for booking in open_user_bookings_since_block_start
+                if booking.block == None and not booking.free_class
             ]
 
             if bookings_without_block:
@@ -53,18 +54,20 @@ class Command(BaseCommand):
                 self.stdout.write(
                     'User {} ({}) has {} booking{} made for class '
                     'type {} without using the active block {}'.format(
-                        block.user.username, block.user.id, len(bookings_without_block), '' if len(bookings_without_block) == 1 else 's',
+                        block.user.username, block.user.id,
+                        len(bookings_without_block), ''
+                        if len(bookings_without_block) == 1 else 's',
                         block_subtype, block.id
                     )
                 )
 
                 unpaid_bookings = [
-                    str(booking.id) for booking in bookings_without_block if \
+                    str(booking.id) for booking in bookings_without_block if
                     not booking.paid or not booking.payment_confirmed
                 ]
                 paid_booking_ids = [
                     booking.id for booking in bookings_without_block if
-                    booking.paid and not booking.free_class
+                    booking.paid
                 ]
                 paid_bookings = [
                     str(id) for id in paid_booking_ids
@@ -73,7 +76,8 @@ class Command(BaseCommand):
                 ppbs = PaypalBookingTransaction.objects.filter(
                     booking_id__in=paid_booking_ids
                 )
-                paid_with_paypal = [str(ppb.booking_id) for ppb in ppbs if ppb.transaction_id is not None]
+                paid_with_paypal = [str(ppb.booking_id) for ppb in ppbs if
+                                    ppb.transaction_id is not None]
                 self.stdout.write(
                     '{} booking{} unpaid or not marked as '
                     'payment_confirmed (ids {})'.format(
