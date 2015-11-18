@@ -1,3 +1,6 @@
+import sys
+from io import StringIO
+
 from django.test import TestCase
 from django.conf import settings
 from django.core import management
@@ -10,9 +13,10 @@ from allauth.socialaccount.models import SocialApp
 from mock import patch
 from model_mommy import mommy
 
+from activitylog.models import ActivityLog
 from booking.models import Event, Booking, EventType, BlockType, \
     TicketBooking, Ticket
-
+from payments.models import PaypalBookingTransaction
 
 class ManagementCommandsTests(TestCase):
 
@@ -1745,4 +1749,157 @@ class CancelUnpaidTicketBookingsTests(TestCase):
                 ticket_booking__id=unconfirmed_ticket_booking1.id
             ).count(),
             0
+        )
+
+class BlockBookingsReportTests(TestCase):
+
+    def setUp(self):
+        """
+        Users with active/inactive blocks
+        Bookings for relevant classes not made with the active block but
+        booked after it's start date
+        Report unpaid/paid/paid with paypal
+        Ignore free
+        """
+        self.user1 = mommy.make_recipe('booking.user')
+        self.user2 = mommy.make_recipe('booking.user')
+
+        self.event_type = mommy.make_recipe('booking.event_type_PC')
+
+        self.user1_active_block = mommy.make_recipe(
+            'booking.block_5', user=self.user1,
+            start_date=timezone.now() - timedelta(10),
+            block_type__event_type=self.event_type,
+            paid=True
+        )
+        self.user2_active_block = mommy.make_recipe(
+            'booking.block_5', user=self.user2,
+            start_date=timezone.now() - timedelta(10),
+            block_type__event_type=self.event_type, paid=True
+        )
+
+        user1_bookings_on_block = mommy.make_recipe(
+            'booking.booking',
+            user=self.user1,
+            event__event_type=self.event_type,
+            block=self.user1_active_block,
+            date_booked=timezone.now() - timedelta(8),
+            _quantity=2
+        )
+        self.user1_booking_not_on_block = mommy.make_recipe(
+            'booking.booking',
+            user=self.user1,
+            event__event_type=self.event_type,
+            date_booked=timezone.now() - timedelta(8)
+        )
+        user1_booking_old = mommy.make_recipe(
+            'booking.booking',
+            user=self.user1,
+            event__event_type=self.event_type,
+            date_booked=timezone.now() - timedelta(12)
+        )
+        user1_booking_free = mommy.make_recipe(
+            'booking.booking',
+            user=self.user1,
+            event__event_type=self.event_type,
+            free_class=True,
+            date_booked=timezone.now() - timedelta(8)
+        )
+
+        # redirect stdout so we can test it
+        self.output = StringIO()
+        self.saved_stdout = sys.stdout
+        sys.stdout = self.output
+
+    def tearDown(self):
+        self.output.close()
+        sys.stdout = self.saved_stdout
+
+    def test_block_booking_report(self):
+        management.call_command('block_bookings_report')
+
+        # user 1: one booking made on the active block in the right time
+        # period which is not free
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            ActivityLog.objects.last().log,
+            'Possible issues with bookings for user {}. Check bookings since '
+            '{} block ({}) start that are not assigned to the block ('
+            'support notified by email)'.format(
+                self.user1.username,
+                self.user1_active_block.block_type.event_type.subtype,
+                self.user1_active_block.id
+            )
+        )
+        self.assertEqual(
+            self.output.getvalue(),
+            'User {username} ({user_id}) has 1 booking made for class type '
+            '{block_subtype} without using the active block {block_id}\n'
+            '1 booking is unpaid or not marked as payment_confirmed '
+            '(ids {unpaid_id})\n'.format(
+                username=self.user1.username, user_id=self.user1.id,
+                block_subtype=self.user1_active_block.block_type.event_type.subtype,
+                block_id=self.user1_active_block.id,
+                unpaid_id=self.user1_booking_not_on_block.id,
+            )
+        )
+
+    def test_block_booking_report_with_paid(self):
+        paid_booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user1,
+            event__event_type=self.event_type,
+            date_booked=timezone.now() - timedelta(8),
+            paid=True, payment_confirmed=True
+        )
+        paid_by_pp_booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user1,
+            event__event_type=self.event_type,
+            date_booked=timezone.now() - timedelta(8),
+            paid=True, payment_confirmed=True
+        )
+        mommy.make(
+            PaypalBookingTransaction, booking=paid_by_pp_booking,
+            invoice_id='inv', transaction_id='1'
+        )
+
+        management.call_command('block_bookings_report')
+        # user 1: 3 bookings made on the active block in the right time
+        # period which are not free (2 paid, 1 with pp, 1 unpaid)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            ActivityLog.objects.last().log,
+            'Possible issues with bookings for user {}. Check bookings since '
+            '{} block ({}) start that are not assigned to the block ('
+            'support notified by email)'.format(
+                self.user1.username,
+                self.user1_active_block.block_type.event_type.subtype,
+                self.user1_active_block.id
+            )
+        )
+        self.assertEqual(
+            self.output.getvalue(),
+            'User {username} ({user_id}) has 3 bookings made for class type '
+            '{block_subtype} without using the active block {block_id}\n'
+            '1 booking is unpaid or not marked as payment_confirmed '
+            '(ids {unpaid_id})\n'
+            '2 bookings are paid (ids {paid1}, {paid2})\n'
+            'Paid booking ids that have been paid directly with '
+            'paypal: {paid2}\n'.format(
+                username=self.user1.username, user_id=self.user1.id,
+                block_subtype=self.user1_active_block.block_type.event_type.subtype,
+                block_id=self.user1_active_block.id,
+                unpaid_id=self.user1_booking_not_on_block.id,
+                paid1=paid_booking.id, paid2=paid_by_pp_booking.id
+            )
+        )
+
+    def test_block_booking_report_with_no_issues(self):
+        self.user1_booking_not_on_block.delete()
+        management.call_command('block_bookings_report')
+
+        self.assertEqual(
+            self.output.getvalue(),
+            'No issues to report for users with blocks\n'
         )

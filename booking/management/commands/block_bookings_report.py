@@ -34,7 +34,6 @@ class Command(BaseCommand):
         ]
 
         blocks_with_issues = []
-
         for block in active_blocks:
             block_subtype = block.block_type.event_type.subtype
 
@@ -78,21 +77,23 @@ class Command(BaseCommand):
                 )
                 paid_with_paypal = [str(ppb.booking_id) for ppb in ppbs if
                                     ppb.transaction_id is not None]
-                self.stdout.write(
-                    '{} booking{} unpaid or not marked as '
-                    'payment_confirmed (ids {})'.format(
-                        len(unpaid_bookings),
-                        ' is' if len(unpaid_bookings) == 1 else 's are',
-                        ', '.join(unpaid_bookings)
+                if unpaid_bookings:
+                    self.stdout.write(
+                        '{} booking{} unpaid or not marked as '
+                        'payment_confirmed (ids {})'.format(
+                            len(unpaid_bookings),
+                            ' is' if len(unpaid_bookings) == 1 else 's are',
+                            ', '.join(unpaid_bookings)
+                        )
                     )
-                )
-                self.stdout.write(
-                    '{} booking{} paid (ids {})'.format(
-                        len(paid_bookings),
-                        ' is' if len(paid_bookings) == 1 else 's are',
-                        ', '.join(paid_bookings)
+                if paid_bookings:
+                    self.stdout.write(
+                        '{} booking{} paid (ids {})'.format(
+                            len(paid_bookings),
+                            ' is' if len(paid_bookings) == 1 else 's are',
+                            ', '.join(paid_bookings)
+                        )
                     )
-                )
                 if paid_with_paypal:
                     self.stdout.write(
                         'Paid booking ids that have been paid directly with '
@@ -129,7 +130,10 @@ class Command(BaseCommand):
 
 
                 ActivityLog.objects.create(
-                    log='Possible issues with bookings for user {}. Check bookings since {} block ({}) start that are not assigned to the block (support notified by email)'.format(
+                    log='Possible issues with bookings for user {}. Check '
+                        'bookings since {} block ({}) start that are not '
+                        'assigned to the block (support notified by '
+                        'email)'.format(
                         block.user.username, block_subtype, block.id
                     )
                 )
