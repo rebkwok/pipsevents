@@ -29,13 +29,13 @@ BASE_DIR = root()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
-if SECRET_KEY is None:
+if SECRET_KEY is None:  # pragma: no cover
     print("No secret key!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 # when env variable is changed it will be a string, not bool
-if str(DEBUG).lower() in ['true', 'on']:
+if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
     DEBUG = True
 else:
     DEBUG = False
@@ -171,7 +171,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', None)
-if EMAIL_HOST_PASSWORD is None:
+if EMAIL_HOST_PASSWORD is None:  # pragma: no cover
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
@@ -179,7 +179,7 @@ DEFAULT_STUDIO_EMAIL = 'thewatermelonstudio@hotmail.com'
 SUPPORT_EMAIL = 'rebkwok@gmail.com'
 
 # #####LOGGING######
-if not env('HEROKU') and not env('TRAVIS'):
+if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
 
     LOGGING = {
@@ -354,7 +354,7 @@ CKEDITOR_JQUERY_URL = \
     '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
 
 # MAILCATCHER
-if env('USE_MAILCATCHER'):
+if env('USE_MAILCATCHER'):  # pragma: no cover
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = '127.0.0.1'
     EMAIL_HOST_USER = ''
