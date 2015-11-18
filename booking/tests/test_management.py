@@ -20,6 +20,16 @@ from payments.models import PaypalBookingTransaction
 
 class ManagementCommandsTests(TestCase):
 
+    def setUp(self):
+        # redirect stdout so we can test it
+        self.output = StringIO()
+        self.saved_stdout = sys.stdout
+        sys.stdout = self.output
+
+    def tearDown(self):
+        self.output.close()
+        sys.stdout = self.saved_stdout
+
     def test_setup_fb(self):
         self.assertEquals(SocialApp.objects.all().count(), 0)
         management.call_command('setup_fb')
@@ -29,6 +39,23 @@ class ManagementCommandsTests(TestCase):
         self.assertEquals(User.objects.all().count(), 0)
         management.call_command('load_users')
         self.assertEquals(User.objects.all().count(), 6)
+
+    def test_load_users_existing_superuser(self):
+        suser = mommy.make_recipe(
+            'booking.user', username='admin', email='admin@admin.com'
+        )
+        suser.is_superuser = True
+        suser.save()
+        self.assertEquals(User.objects.all().count(), 1)
+        management.call_command('load_users')
+        self.assertEquals(User.objects.all().count(), 6)
+
+        self.assertEqual(
+            self.output.getvalue(),
+            'Trying to create superuser...\n'
+            'Superuser with username "admin" already exists\n'
+            'Creating 5 test users\n'
+        )
 
     def test_create_events(self):
         self.assertEquals(Event.objects.all().count(), 0)

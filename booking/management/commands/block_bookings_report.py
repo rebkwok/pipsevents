@@ -60,17 +60,17 @@ class Command(BaseCommand):
                     )
                 )
 
-                unpaid_bookings = [
+                unpaid_bookings = sorted([
                     str(booking.id) for booking in bookings_without_block if
                     not booking.paid or not booking.payment_confirmed
-                ]
-                paid_booking_ids = [
+                ])
+                paid_booking_ids = sorted([
                     booking.id for booking in bookings_without_block if
                     booking.paid
-                ]
-                paid_bookings = [
+                ])
+                paid_bookings = sorted([
                     str(id) for id in paid_booking_ids
-                ]
+                ])
 
                 ppbs = PaypalBookingTransaction.objects.filter(
                     booking_id__in=paid_booking_ids
