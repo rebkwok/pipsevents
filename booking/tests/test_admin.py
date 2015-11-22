@@ -24,6 +24,34 @@ class EventAdminTests(TestCase):
         event = filter.queryset(None, Event.objects.all())[0]
         self.assertEqual(event.name, 'future')
 
+    def test_event_type_list_filter(self):
+        event = mommy.make_recipe('booking.future_EV', name='event')
+        pclass = mommy.make_recipe('booking.future_PC', name='pole class')
+
+        filter = admin.EventTypeListFilter(
+            None, {'type': 'class'}, Event, admin.EventAdmin
+        )
+
+        result = filter.queryset(None, Event.objects.all())
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result[0].name, 'pole class')
+
+        filter = admin.EventTypeListFilter(
+            None, {'type': 'event'}, Event, admin.EventAdmin
+        )
+
+        result = filter.queryset(None, Event.objects.all())
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result[0].name, 'event')
+
+    def test_spaces_left_display(self):
+        event = mommy.make_recipe('booking.future_EV', max_participants=5)
+        mommy.make_recipe('booking.booking', event=event, _quantity=3)
+
+        ev_admin = admin.EventAdmin(Event, AdminSite())
+        ev_query = ev_admin.get_queryset(None)[0]
+        self.assertEqual(ev_admin.get_spaces_left(ev_query), 2)
+
 
 class BookingAdminTests(TestCase):
 
