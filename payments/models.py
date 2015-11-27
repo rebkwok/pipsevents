@@ -104,12 +104,12 @@ def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
         '{} Payment refund processed for {} id {}'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
         get_template(
-            'payments/email/payment_refunded_processed_to_studio.txt'
+            'payments/email/payment_refund_processed_to_studio.txt'
         ).render(ctx),
         settings.DEFAULT_FROM_EMAIL,
         [settings.DEFAULT_STUDIO_EMAIL, settings.SUPPORT_EMAIL],
         html_message=get_template(
-            'payments/email/payment_refunded_processed_to_studio.html'
+            'payments/email/payment_refund_processed_to_studio.html'
         ).render(ctx),
         fail_silently=False)
 
