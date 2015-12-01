@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.contrib.admin.sites import AdminSite
+from django.utils import timezone
 
 from model_mommy import mommy
-from booking.models import Event, Booking, Block
+from booking.models import Event, Booking, Block, BlockType
 import booking.admin as admin
 
 
@@ -132,4 +135,73 @@ class BlockAdminTests(TestCase):
         self.assertEqual(
             block_admin.formatted_expiry_date(block_query),
             block.expiry_date.strftime('%d %b %Y, %H:%M')
+        )
+        self.assertEqual(
+            block_admin.get_full(block_query), False
+        )
+        self.assertEqual(
+            block_admin.block_size(block_query), 5
+        )
+
+    def test_block_list_filter(self):
+        unpaid_block = mommy.make_recipe(
+            'booking.block_5', paid=False,
+            start_date=timezone.now() - timedelta(1)
+        )
+        paid_block = mommy.make_recipe(
+            'booking.block_5', paid=True,
+            start_date=timezone.now() - timedelta(1)
+        )
+        expired_block = mommy.make_recipe(
+            'booking.block_5', paid=True,
+            start_date=timezone.now() - timedelta(weeks=10)
+        )
+        full_block = mommy.make_recipe(
+            'booking.block_5', paid=True,
+            start_date=timezone.now() - timedelta(1)
+        )
+        mommy.make_recipe('booking.booking', block=full_block, _quantity=5)
+
+        filter = admin.BlockFilter(
+            None, {'status': 'active'}, Block, admin.BlockAdmin
+        )
+        block_qset = filter.queryset(None, Block.objects.all())
+        self.assertEqual(block_qset.count(), 1)
+        block = block_qset[0]
+        self.assertEqual(block.id, paid_block.id)
+
+        filter = admin.BlockFilter(
+            None, {'status': 'inactive'}, Block, admin.BlockAdmin
+        )
+        block_qset = filter.queryset(None, Block.objects.all())
+        self.assertEqual(block_qset.count(), 3)
+        block_ids = [block.id for block in block_qset]
+        self.assertEqual(
+            sorted(block_ids),
+            sorted([expired_block.id, full_block.id, unpaid_block.id])
+        )
+
+        filter = admin.BlockFilter(
+            None, {'status': 'unpaid'}, Block, admin.BlockAdmin
+        )
+        block_qset = filter.queryset(None, Block.objects.all())
+        self.assertEqual(block_qset.count(), 1)
+        block = block_qset[0]
+        self.assertEqual(block.id, unpaid_block.id)
+
+
+class BlockTypeAdminTests(TestCase):
+
+    def test_block_type_admin_display(self):
+        block = mommy.make_recipe('booking.block_5')
+        block_type_admin = admin.BlockTypeAdmin(BlockType, AdminSite())
+        block_type_query = block_type_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            block_type_admin.formatted_cost(block_type_query),
+            u"\u00A3{}".format(block.block_type.cost)
+        )
+        self.assertEqual(
+            block_type_admin.formatted_duration(block_type_query),
+            '2 months'
         )
