@@ -970,24 +970,32 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
     def get_queryset(self):
         block_status = self.request.GET.get('block_status', 'current')
-        all_blocks = Block.objects.all()
+        all_blocks = Block.objects.all().order_by('user__first_name')
         if block_status == 'all':
             return all_blocks
         elif block_status == 'current':
             current = (block.id for block in all_blocks
                       if not block.expired and not block.full)
-            return Block.objects.filter(id__in=current)
+            return Block.objects.filter(id__in=current).order_by(
+                'user__first_name'
+            )
         elif block_status == 'active':
             active = (block.id for block in all_blocks if block.active_block())
-            return Block.objects.filter(id__in=active)
+            return Block.objects.filter(id__in=active).order_by(
+                'user__first_name'
+            )
         elif block_status == 'unpaid':
             unpaid = (block.id for block in all_blocks
                       if not block.expired and not block.paid
                       and not block.full)
-            return Block.objects.filter(id__in=unpaid)
+            return Block.objects.filter(id__in=unpaid).order_by(
+                'user__first_name'
+            )
         elif block_status == 'expired':
             expired = (block.id for block in all_blocks if block.expired or block.full)
-            return Block.objects.filter(id__in=expired)
+            return Block.objects.filter(id__in=expired).order_by(
+                'user__first_name'
+            )
 
     def get_context_data(self):
         context = super(BlockListView, self).get_context_data()

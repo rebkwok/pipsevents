@@ -1791,7 +1791,8 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             list(resp.context_data['blocks']),
             list(Block.objects.filter(
                 id__in=[block.id for block in current_blocks]
-            ))
+            ).order_by('user__first_name')
+            )
         )
 
     def test_block_status_filter(self):
@@ -1828,7 +1829,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(
             list(resp.context_data['blocks']),
-            list(Block.objects.all())
+            list(Block.objects.all().order_by('user__first_name'))
         )
         # active blocks are paid and not expired
         resp = self._get_response(
@@ -1836,7 +1837,11 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(
             list(resp.context_data['blocks']),
-            list(Block.objects.filter(id__in=[block.id for block in active_blocks]))
+            list(
+                Block.objects.filter(
+                    id__in=[block.id for block in active_blocks]
+                ).order_by('user__first_name')
+            )
         )
 
         # unpaid blocks are unpaid but not expired; should not show any
@@ -1846,7 +1851,11 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(
             list(resp.context_data['blocks']),
-            list(Block.objects.filter(id__in=[block.id for block in unpaid_blocks]))
+            list(
+                Block.objects.filter(
+                    id__in=[block.id for block in unpaid_blocks]
+                ).order_by('user__first_name')
+            )
         )
 
         #current blocks are paid or unpaid, not expired, not full
@@ -1855,7 +1864,10 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(
             list(resp.context_data['blocks']),
-            list(Block.objects.filter(id__in=[block.id for block in current_blocks]))
+            list(Block.objects.filter(
+                id__in=[block.id for block in current_blocks]
+            ).order_by('user__first_name')
+            )
         )
 
         # expired blocks are past expiry date or full
@@ -1865,7 +1877,11 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         expired = expired_blocks + unpaid_expired_blocks + full_blocks
         self.assertEqual(
             list(resp.context_data['blocks']),
-            list(Block.objects.filter(id__in=[block.id for block in expired]))
+            list(
+                Block.objects.filter(
+                    id__in=[block.id for block in expired]
+                ).order_by('user__first_name')
+            )
         )
 
 class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
