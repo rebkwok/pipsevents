@@ -20,7 +20,7 @@ from ckeditor.widgets import CKEditorWidget
 from booking.models import Event, Booking, Block, BlockType, \
     EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket
 from booking.forms import CreateClassesForm, EmailUsersForm, BookingAdminForm, \
-    BlockAdminForm, TicketBookingAdminForm, UserModelChoiceField
+    BlockAdminForm, TicketBookingAdminForm, WaitingListUserAdminForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
 
@@ -43,7 +43,7 @@ class UserFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(self.value())
+            return queryset.filter(user__username=self.value())
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -251,6 +251,10 @@ class BookingAdmin(admin.ModelAdmin):
     list_filter = (BookingDateListFilter, UserFilter, 'event')
 
     readonly_fields = ('date_payment_confirmed',)
+
+    search_fields = (
+        'user__first_name', 'user__last_name', 'user__username', 'event__name'
+    )
 
     actions_on_top=True
     actions_on_bottom=False
@@ -499,7 +503,11 @@ class BlockTypeAdmin(admin.ModelAdmin):
 class WaitingListUserAdmin(admin.ModelAdmin):
     fields = ('user', 'event')
     list_display = ('user', 'event')
-
+    list_filter = (UserFilter, 'event')
+    search_fields = (
+        'user__first_name', 'user__last_name', 'user__username', 'event__name'
+    )
+    form = WaitingListUserAdminForm
 
 class TicketAdminInline(admin.TabularInline):
     model = Ticket
@@ -512,7 +520,11 @@ class TicketBookingAdmin(admin.ModelAdmin):
         'paid', 'cancelled', 'purchase_confirmed'
     )
     form = TicketBookingAdminForm
-
+    search_fields = (
+        'user__first_name', 'user__last_name', 'user__username',
+        'ticketed_event__name'
+    )
+    list_filter = (UserFilter, 'ticketed_event')
     actions_on_top = True
 
     inlines = (TicketAdminInline,)

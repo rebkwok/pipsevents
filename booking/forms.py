@@ -255,3 +255,15 @@ class TicketBookingAdminForm(forms.ModelForm):
         self.fields['user'] = UserModelChoiceField(
             queryset=User.objects.all().order_by('first_name')
         )
+
+class WaitingListUserAdminForm(forms.ModelForm):
+
+    class Meta:
+        model = Block
+        fields = ('__all__')
+
+    def __init__(self, *args, **kwargs):
+        super(WaitingListUserAdminForm, self).__init__(*args, **kwargs)
+        self.fields['user'] = UserModelChoiceField(
+            queryset=User.objects.all().order_by('first_name')
+        )

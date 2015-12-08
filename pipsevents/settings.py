@@ -293,7 +293,7 @@ SUIT_CONFIG = {
             'label': 'Payments',
             'models': ('payments.paypalbookingtransaction',
                        'payments.paypalblocktransaction',
-                       'payments.paypalticketbookingtransaction'
+                       'payments.paypalticketbookingtransaction',
                        'ipn.paypalipn'),
             'icon': 'icon-asterisk',
         },

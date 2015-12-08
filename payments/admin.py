@@ -1,6 +1,49 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
+
+
+class PaymentsUserFilter(admin.SimpleListFilter):
+
+    title = 'User'
+    parameter_name = 'user'
+
+    def lookups(self, request, model_admin):
+        qs = User.objects.all().order_by('first_name')
+        return [
+            (
+                user,
+                "{} {} ({})".format(
+                    user.first_name, user.last_name, user.username
+                )
+             ) for user in qs
+            ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(user__username=self.value())
+
+
+class PaypalBookingUserFilter(PaymentsUserFilter):
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(booking__user__username=self.value())
+
+
+class PaypalBlockUserFilter(PaymentsUserFilter):
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(block__user__username=self.value())
+
+
+class PaypalTicketBookingUserFilter(PaymentsUserFilter):
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(ticket_booking__user__username=self.value())
 
 
 class PaypalBookingTransactionAdmin(admin.ModelAdmin):
@@ -9,6 +52,7 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
                     'transaction_id', 'get_booking_id')
     readonly_fields = ('id', 'booking', 'get_user', 'get_event', 'invoice_id',
                     'transaction_id', 'get_booking_id', 'cost')
+    list_filter = (PaypalBookingUserFilter, 'booking__event')
 
     def get_booking_id(self, obj):
         return obj.booking.id
@@ -35,6 +79,7 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
     readonly_fields = ('block', 'id', 'get_user', 'get_blocktype', 'invoice_id',
                     'transaction_id', 'get_block_id', 'cost', 'block_start',
                     'block_expiry')
+    list_filter = (PaypalBlockUserFilter,)
 
 
     def get_block_id(self, obj):
@@ -71,6 +116,9 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'ticket_booking', 'get_user', 'get_ticketed_event',
                        'invoice_id', 'transaction_id', 'get_ticket_booking_id',
                        'ticket_cost', 'number_of_tickets', 'total_cost')
+    list_filter = (
+        PaypalTicketBookingUserFilter, 'ticket_booking__ticketed_event'
+    )
 
     def get_ticket_booking_id(self, obj):
         return obj.ticket_booking.id
