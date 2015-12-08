@@ -60,7 +60,8 @@ class BookingAdminTests(TestCase):
 
     def setUp(self):
         self.user = mommy.make_recipe(
-            'booking.user', first_name="Test", last_name="User"
+            'booking.user', first_name="Test", last_name="User",
+            username="testuser"
         )
 
     def test_booking_date_list_filter(self):
@@ -95,10 +96,7 @@ class BookingAdminTests(TestCase):
             booking_admin.get_date(booking_query), booking.event.date
         )
         self.assertEqual(
-            booking_admin.get_user_first_name(booking_query), 'Test'
-        )
-        self.assertEqual(
-            booking_admin.get_user_last_name(booking_query), 'User'
+            booking_admin.get_user(booking_query), 'Test User (testuser)'
         )
         self.assertEqual(booking_admin.get_cost(booking_query), u"\u00A3{}.00".format(event.cost))
         self.assertEqual(booking_admin.event_name(booking_query), event.name)

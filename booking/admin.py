@@ -2,6 +2,7 @@ import json
 from django.conf import settings
 from django.conf.urls import patterns, url
 from django.contrib import admin, messages
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db.models import Q
@@ -18,9 +19,31 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
     EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket
-from booking.forms import CreateClassesForm, EmailUsersForm
+from booking.forms import CreateClassesForm, EmailUsersForm, BookingAdminForm, \
+    BlockAdminForm, TicketBookingAdminForm, UserModelChoiceField
 from booking import utils
 from booking.widgets import DurationSelectorWidget
+
+
+class UserFilter(admin.SimpleListFilter):
+
+    title = 'User'
+    parameter_name = 'user'
+
+    def lookups(self, request, model_admin):
+        qs = User.objects.all().order_by('first_name')
+        return [
+            (
+                user,
+                "{} {} ({})".format(
+                    user.first_name, user.last_name, user.username
+                )
+             ) for user in qs
+            ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(self.value())
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -210,6 +233,8 @@ class EventAdmin(admin.ModelAdmin):
 
 class BookingAdmin(admin.ModelAdmin):
 
+    form = BookingAdminForm
+
     def get_urls(self):
         urls = super(BookingAdmin, self).get_urls()
         extra_urls = patterns(
@@ -220,11 +245,10 @@ class BookingAdmin(admin.ModelAdmin):
         )
         return extra_urls + urls
 
-    list_display = ('event_name', 'get_date', 'user', 'get_user_first_name',
-                    'get_user_last_name', 'get_cost', 'paid',
+    list_display = ('event_name', 'get_date', 'get_user', 'get_cost', 'paid',
                     'space_confirmed', 'status')
 
-    list_filter = (BookingDateListFilter, 'user', 'event')
+    list_filter = (BookingDateListFilter, UserFilter, 'event')
 
     readonly_fields = ('date_payment_confirmed',)
 
@@ -234,19 +258,19 @@ class BookingAdmin(admin.ModelAdmin):
     def get_date(self, obj):
         return obj.event.date
     get_date.short_description = 'Date'
+    get_date.admin_order_field = 'event__date'
 
     def event_name(self, obj):
         return obj.event.name
     event_name.short_description = 'Event or Class'
     event_name.admin_order_field = 'event'
 
-    def get_user_first_name(self, obj):
-        return obj.user.first_name
-    get_user_first_name.short_description = 'First name'
-
-    def get_user_last_name(self, obj):
-        return obj.user.last_name
-    get_user_last_name.short_description = 'Last name'
+    def get_user(self, obj):
+        return '{} {} ({})'.format(
+            obj.user.first_name, obj.user.last_name, obj.user.username
+        )
+    get_user.short_description = 'User'
+    get_user.admin_order_field = 'user__first_name'
 
     actions = ['confirm_space', 'email_users_action']
 
@@ -361,19 +385,29 @@ class BlockFilter(admin.SimpleListFilter):
             and not obj.expired and not obj.paid]
             return queryset.filter(id__in=unpaid_ids)
 
+
 class BlockAdmin(admin.ModelAdmin):
     fields = ('user', 'block_type', 'formatted_cost', 'start_date', 'paid',
               'formatted_expiry_date')
     readonly_fields = ('formatted_cost',
                        'formatted_expiry_date')
-    list_display = ('user', 'block_type', 'block_size', 'active_block',
-                    'get_full', 'paid', 'formatted_expiry_date')
+    list_display = ('get_user', 'block_type', 'block_size', 'active_block',
+                    'get_full', 'paid', 'formatted_start_date',
+                    'formatted_expiry_date')
     list_editable = ('paid', )
-    list_filter = ('user', 'block_type__event_type', BlockFilter,)
+    list_filter = (UserFilter, 'block_type__event_type', BlockFilter,)
 
+    form = BlockAdminForm
 
     inlines = [BookingInLine, ]
     actions_on_top = True
+
+    def get_user(self, obj):
+        return '{} {} ({})'.format(
+            obj.user.first_name, obj.user.last_name, obj.user.username
+        )
+    get_user.short_description = 'User'
+    get_user.admin_order_field = 'user__first_name'
 
     def get_full(self, obj):
         return obj.full
@@ -385,6 +419,11 @@ class BlockAdmin(admin.ModelAdmin):
 
     def formatted_cost(self, obj):
         return u"\u00A3{:.2f}".format(obj.block_type.cost)
+
+    def formatted_start_date(self, obj):
+        return obj.start_date.strftime('%d %b %Y, %H:%M')
+    formatted_start_date.short_description = 'Start date'
+    formatted_start_date.admin_order_field = 'start_date'
 
     def formatted_expiry_date(self, obj):
         return obj.expiry_date.strftime('%d %b %Y, %H:%M')
@@ -462,12 +501,59 @@ class WaitingListUserAdmin(admin.ModelAdmin):
     list_display = ('user', 'event')
 
 
+class TicketAdminInline(admin.TabularInline):
+    model = Ticket
+    extra = 0
+
+
+class TicketBookingAdmin(admin.ModelAdmin):
+    list_display = (
+        'ticketed_event', 'user', 'booking_reference', 'number_of_tickets',
+        'paid', 'cancelled', 'purchase_confirmed'
+    )
+    form = TicketBookingAdminForm
+
+    actions_on_top = True
+
+    inlines = (TicketAdminInline,)
+
+    def number_of_tickets(self, obj):
+        return obj.tickets.count()
+
+
+class TicketedEventAdmin(admin.ModelAdmin):
+    list_display = ('name', 'date', 'tickets_left')
+
+
+class TicketAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'ticket_booking_ref', 'ticketed_event', 'user'
+    )
+
+    def ticketed_event(self, obj):
+        return obj.ticket_booking.ticketed_event
+    ticketed_event.short_description = 'Event'
+    ticketed_event.admin_order_field = 'ticket_booking__ticketed_event'
+
+    def ticket_booking_ref(self, obj):
+        return obj.ticket_booking.booking_reference
+    ticket_booking_ref.short_description = 'Ticket Booking Reference'
+    ticket_booking_ref.admin_order_field = 'ticket_booking__booking_reference'
+
+    def user(self, obj):
+        return '{} {} ({})'.format(
+            obj.ticket_booking.user.first_name,
+            obj.ticket_booking.user.last_name,
+            obj.ticket_booking.user.username
+        )
+    user.admin_order_field = 'ticket_booking__user__first_name'
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(BlockType, BlockTypeAdmin)
 admin.site.register(EventType)
 admin.site.register(WaitingListUser, WaitingListUserAdmin)
-admin.site.register(TicketBooking)
-admin.site.register(Ticket)
-admin.site.register(TicketedEvent)
+admin.site.register(TicketBooking, TicketBookingAdmin)
+admin.site.register(Ticket, TicketAdmin)
+admin.site.register(TicketedEvent, TicketedEventAdmin)

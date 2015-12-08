@@ -263,7 +263,7 @@ SUIT_CONFIG = {
         {
             'label': 'Bookings',
             'icon': 'icon-heart',
-            'models': ('booking.booking',)
+            'models': ('booking.booking', 'booking.waitinglistuser')
         },
         {
             'label': 'Ticket Bookings',
@@ -293,6 +293,7 @@ SUIT_CONFIG = {
             'label': 'Payments',
             'models': ('payments.paypalbookingtransaction',
                        'payments.paypalblocktransaction',
+                       'payments.paypalticketbookingtransaction'
                        'ipn.paypalipn'),
             'icon': 'icon-asterisk',
         },

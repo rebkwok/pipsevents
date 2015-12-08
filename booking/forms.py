@@ -2,6 +2,7 @@
 from datetime import date
 from django import forms
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -201,3 +202,56 @@ TicketFormSet = inlineformset_factory(
     formset=TicketInlineFormSet,
     extra=0,
 )
+
+
+class UserModelChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
+
+    def to_python(self, value):
+        if value:
+            return User.objects.get(id=value)
+
+
+class BookingAdminForm(forms.ModelForm):
+
+    class Meta:
+        model = Booking
+        fields = ('__all__')
+
+    def __init__(self, *args, **kwargs):
+        super(BookingAdminForm, self).__init__(*args, **kwargs)
+        if self.instance.id:
+            self.fields['block'].queryset = Block.objects.filter(
+                user=self.instance.user
+            )
+        self.fields['user'] = UserModelChoiceField(
+            queryset=User.objects.all().order_by('first_name')
+        )
+
+
+class BlockAdminForm(forms.ModelForm):
+
+    class Meta:
+        model = Block
+        fields = ('__all__')
+
+    def __init__(self, *args, **kwargs):
+        super(BlockAdminForm, self).__init__(*args, **kwargs)
+        self.fields['user'] = UserModelChoiceField(
+            queryset=User.objects.all().order_by('first_name')
+        )
+
+
+class TicketBookingAdminForm(forms.ModelForm):
+
+    class Meta:
+        model = Block
+        fields = ('__all__')
+
+    def __init__(self, *args, **kwargs):
+        super(TicketBookingAdminForm, self).__init__(*args, **kwargs)
+        self.fields['user'] = UserModelChoiceField(
+            queryset=User.objects.all().order_by('first_name')
+        )
