@@ -186,6 +186,32 @@ class BlockCreateViewTests(TestCase):
         self.assertEqual(len(resp.context_data['block_types']), 1)
         self.assertEqual(resp.context_data['block_types'][0], other_block_type)
 
+    def test_only_active_blocktypes_available(self):
+        block_type = mommy.make_recipe('booking.blocktype5')
+        inactive_block_type = mommy.make_recipe(
+            'booking.blocktype_other', active=False
+        )
+        resp = self._get_response(self.user)
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], block_type)
+
+    def test_only_active_and_unbooked_blocktypes_vailable(self):
+        """
+        Test that only user does not have the option to book a blocktype
+        for which they already have an active block
+        """
+        block_type = mommy.make_recipe('booking.blocktype5')
+        active_block_type = mommy.make_recipe('booking.blocktype5')
+        inactive_block_type = mommy.make_recipe(
+            'booking.blocktype_other', active=False
+        )
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=block_type
+        )
+        resp = self._get_response(self.user)
+        self.assertEqual(len(resp.context_data['block_types']), 1)
+        self.assertEqual(resp.context_data['block_types'][0], active_block_type)
+
 
 class BlockListViewTests(TestCase):
     def setUp(self):

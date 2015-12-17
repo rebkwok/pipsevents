@@ -173,11 +173,17 @@ class BlockType(models.Model):
     5 classes = GBP 32, 10 classes = GBP 62
     5 classes expires in 2 months, 10 classes expires in 4 months
     """
+    identifier = models.CharField(
+        max_length=255, null=True, blank=True,
+        help_text="Optional identifier for individual or group of block types "
+                  "(e.g. sale blocks)"
+    )
     size = models.PositiveIntegerField(help_text="Number of classes in block")
     event_type = models.ForeignKey(EventType)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     duration = models.PositiveIntegerField(
         help_text="Number of months until block expires")
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return '{} - quantity {}'.format(self.event_type.subtype, self.size)

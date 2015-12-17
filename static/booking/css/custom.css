@@ -39,17 +39,19 @@ body {
 	padding-top: 50px;
 	min-height: 100%;
 	height: auto !important;
-	height: 100%;
-	/* Negative indent footer by it's height */
-	margin: 0 auto -40px;
+	/* Negative indent footer by its height plus top padding? */
+	margin: 0 auto -100px;
 }
 
 /* Set the fixed height of the footer here */
 .push,
 .footer {
-	height: 40px;
+	height: 50px;
 }
 
+.panel {
+    margin-bottom: 50px
+}
 .footer {
 	background-color: transparent;
 }
@@ -383,6 +385,10 @@ color: #000;
 .footer-credit {
     font-size: 10px;
     }
+
+.footer-tc {
+    font-size: 12px;
+}
 
 .small-margin {
     padding-left: 30px;
@@ -871,4 +877,20 @@ a > span.fa.fa-print {
 label.control-label {
     padding-top: 0px !important;
     margin-top: -2px !important;
+}
+
+.jumbotron{
+    color: red;
+    background-color: rgba(0, 175, 0, 0.1);
+    margin-top: 10px;
+    padding-top: 1px;
+    padding-top: 10px;
+    padding-bottom: 1px;
+    padding-left: 15px;
+    margin-bottom: 0px;
+    line-height: 1.2;
+}
+
+.sale {
+    font-size: small;
 }

@@ -226,6 +226,6 @@ def get_blocktypes_available_to_book(user):
                                    for block in user_blocks
                                    if not block.expired
                                    and not block.full]
-    return BlockType.objects.exclude(
+    return BlockType.objects.filter(active=True).exclude(
         event_type__in=available_block_event_types
     )

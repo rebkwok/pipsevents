@@ -1930,3 +1930,177 @@ class BlockBookingsReportTests(TestCase):
             self.output.getvalue(),
             'No issues to report for users with blocks\n'
         )
+
+
+class ActivateBlockTypeTests(TestCase):
+
+    def test_activate_blocktypes(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command(
+            'activate_blocktypes', 'test', 'on'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+
+    def test_deactivate_blocktypes(self):
+        mommy.make_recipe(
+            'booking.blocktype5', identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+        management.call_command(
+            'activate_blocktypes', 'test', 'off'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+
+    def test_activate_blocktypes_only_activates_by_identifier(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test1', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command('activate_blocktypes', 'test', 'on')
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+
+    def test_activate_multiple_identifiers(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test1', _quantity=5
+        )
+        inactive_blocktypes = mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test2', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command('activate_blocktypes', 'test', 'test1', 'on')
+        active_blocktypes = BlockType.objects.filter(active=True)
+        self.assertEqual(active_blocktypes.count(), 10)
+        for blocktype in inactive_blocktypes:
+            self.assertTrue(blocktype not in active_blocktypes)
+
+    def test_activate_blocktypes_emails_support(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command(
+            'activate_blocktypes', 'test', 'on'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Block types activated'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+
+class ActivateSaleTests(TestCase):
+
+    def test_activate_sale_prices(self):
+
+        pc_ev_type, _ = EventType.objects.get_or_create(
+            event_type='CL', subtype='Pole level class'
+        )
+        oc_ev_type, _ = EventType.objects.get_or_create(
+            event_type='CL', subtype='Other class'
+        )
+        pp_ev_type, _ = EventType.objects.get_or_create(
+            event_type='CL', subtype='Pole practice'
+        )
+
+        mommy.make(
+            Event, date=timezone.now() + timedelta(1),
+            cost=7.50, booking_open=False,
+            payment_open=False, event_type=pc_ev_type,
+            _quantity=5
+        )
+        mommy.make(
+            Event, date=timezone.now() + timedelta(1),
+            cost=7.50, booking_open=False,
+            payment_open=False, event_type=oc_ev_type,
+            _quantity=5
+        )
+        mommy.make(
+            Event, date=timezone.now() + timedelta(1),
+            cost=4, booking_open=False,
+            payment_open=False, event_type=pp_ev_type,
+            _quantity=5
+        )
+
+        management.call_command('sale', 'on')
+
+        classes = Event.objects.filter(event_type__subtype='Pole level class')
+        other_classes = Event.objects.filter(event_type__subtype='Other class')
+        practices = Event.objects.filter(event_type__subtype='Pole practice')
+
+        self.assertEqual(classes.count(), 5)
+        for pc in classes:
+            self.assertEqual(pc.cost, 6.50)
+            self.assertTrue(pc.booking_open)
+            self.assertTrue(pc.payment_open)
+
+        self.assertEqual(practices.count(), 5)
+        for pp in practices:
+            self.assertEqual(pp.cost, 3.00)
+            self.assertTrue(pp.booking_open)
+            self.assertTrue(pp.payment_open)
+
+        self.assertEqual(other_classes.count(), 5)
+        for oc in other_classes:
+            self.assertEqual(oc.cost, 7.50)
+            self.assertFalse(oc.booking_open)
+            self.assertFalse(oc.payment_open)
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+        management.call_command('sale', 'off')
+
+        classes = Event.objects.filter(event_type__subtype='Pole level class')
+        other_classes = Event.objects.filter(event_type__subtype='Other class')
+        practices = Event.objects.filter(event_type__subtype='Pole practice')
+
+        self.assertEqual(classes.count(), 5)
+        for pc in classes:
+            self.assertEqual(pc.cost, 7.50)
+            self.assertTrue(pc.booking_open)
+            self.assertTrue(pc.payment_open)
+
+        self.assertEqual(practices.count(), 5)
+        for pp in practices:
+            self.assertEqual(pp.cost, 4.00)
+            self.assertTrue(pp.booking_open)
+            self.assertTrue(pp.payment_open)
+
+        self.assertEqual(other_classes.count(), 5)
+        for oc in other_classes:
+            self.assertEqual(oc.cost, 7.50)
+            self.assertFalse(oc.booking_open)
+            self.assertFalse(oc.payment_open)
