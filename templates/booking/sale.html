@@ -1,5 +1,8 @@
 {% if is_sale_period %}
     <div class="jumbotron">
-        <p><strong>JANUARY SALE NOW ON!</strong><br><span class='sale'>From {{ sale_start|date:"D dS M Y" }} to {{ sale_end|date:"D dS M Y" }} all blocks and classes are on sale!</span></p>
+        <p><strong>JANUARY SALE NOW ON!</strong><br>
+            <span class='sale'>From {{ sale_start|date:"D dS M Y" }} to {{ sale_end|date:"D dS M Y" }}
+                most blocks and classes are on sale!</span>
+        </p>
     </div>
 {% endif %}
