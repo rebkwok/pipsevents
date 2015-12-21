@@ -18,12 +18,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        # delete pole practice 5 blocktypes
-        BlockType.objects.filter(
-            size=5,
-            event_type__subtype='Pole practice'
-        ).delete()
-
         # make existing blocktypes standard and copy to make sale blocks
         for bt in BlockType.objects.all():
             bt.identifier = 'standard'
