@@ -1,6 +1,11 @@
+import os
 import pytz
 
+from datetime import datetime
+
 from django import template
+from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 from booking.models import Booking
 
@@ -54,14 +59,14 @@ def get_range(value):
 
 @register.filter
 def get_index_open(event, extraline_index):
-    spaces_left = event.spaces_left()
-    open_bookings = [booking for booking in event.bookings.all() if booking.status=='OPEN']
+    open_bookings = [
+        booking for booking in event.bookings.all() if booking.status == 'OPEN'
+        ]
     return len(open_bookings) + 1 + extraline_index
 
 
 @register.filter
 def get_index_all(event, extraline_index):
-    spaces_left = event.spaces_left()
     return event.bookings.count() + 1 + extraline_index
 
 
@@ -104,3 +109,24 @@ def total_ticket_cost(ticket_booking):
 @register.filter
 def abbr_ref(ref):
     return "{}...".format(ref[:5])
+
+
+@register.inclusion_tag('booking/sale.html')
+def sale_text():
+    now = timezone.now()
+    sale_start = os.environ.get('SALE_ON')
+    sale_end = os.environ.get('SALE_OFF')
+    if sale_start and sale_end:
+        sale_start = datetime.strptime(sale_start, '%d-%b-%Y').replace(
+            tzinfo=timezone.utc
+        )
+        sale_end = datetime.strptime(sale_end, '%d-%b-%Y').replace(
+            hour=23, minute=59, tzinfo=timezone.utc
+        )
+        if now > sale_start and now < sale_end:
+            return {
+                'is_sale_period': True,
+                'sale_start': sale_start,
+                'sale_end': sale_end
+            }
+    return {'is_sale_period': False}

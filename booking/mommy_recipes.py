@@ -24,6 +24,7 @@ user = Recipe(User,
 # override when using recipes, eg. mommy.make_recipe('future_event', cost=10)
 
 event_type_PC = Recipe(EventType, event_type="CL", subtype=seq("Pole level class"))
+event_type_PP = Recipe(EventType, event_type="CL", subtype=seq("Pole practice"))
 event_type_WS = Recipe(EventType, event_type="EV", subtype=seq("Workshop"))
 event_type_OE = Recipe(EventType, event_type="EV", subtype=seq("Other event"))
 event_type_OC = Recipe(EventType, event_type="CL", subtype=seq("Other class"))
@@ -40,7 +41,9 @@ future_WS = Recipe(Event,
 future_PC = Recipe(Event,
                    date=future,
                    event_type=foreign_key(event_type_PC))
-
+future_PP = Recipe(Event,
+                   date=future,
+                   event_type=foreign_key(event_type_PP))
 future_CL = Recipe(Event,
                    date=future,
                    event_type=foreign_key(event_type_OC))

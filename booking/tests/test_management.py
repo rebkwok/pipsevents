@@ -2018,3 +2018,89 @@ class ActivateBlockTypeTests(TestCase):
             )
         )
         self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+
+class ActivateSaleTests(TestCase):
+
+    def test_activate_sale_prices(self):
+
+        pc_ev_type, _ = EventType.objects.get_or_create(
+            event_type='CL', subtype='Pole level class'
+        )
+        oc_ev_type, _ = EventType.objects.get_or_create(
+            event_type='CL', subtype='Other class'
+        )
+        pp_ev_type, _ = EventType.objects.get_or_create(
+            event_type='CL', subtype='Pole practice'
+        )
+
+        mommy.make(
+            Event, date=timezone.now() + timedelta(1),
+            cost=7.50, booking_open=False,
+            payment_open=False, event_type=pc_ev_type,
+            _quantity=5
+        )
+        mommy.make(
+            Event, date=timezone.now() + timedelta(1),
+            cost=7.50, booking_open=False,
+            payment_open=False, event_type=oc_ev_type,
+            _quantity=5
+        )
+        mommy.make(
+            Event, date=timezone.now() + timedelta(1),
+            cost=4, booking_open=False,
+            payment_open=False, event_type=pp_ev_type,
+            _quantity=5
+        )
+
+        management.call_command('sale', 'on')
+
+        classes = Event.objects.filter(event_type__subtype='Pole level class')
+        other_classes = Event.objects.filter(event_type__subtype='Other class')
+        practices = Event.objects.filter(event_type__subtype='Pole practice')
+
+        self.assertEqual(classes.count(), 5)
+        for pc in classes:
+            self.assertEqual(pc.cost, 6.50)
+            self.assertTrue(pc.booking_open)
+            self.assertTrue(pc.payment_open)
+
+        self.assertEqual(practices.count(), 5)
+        for pp in practices:
+            self.assertEqual(pp.cost, 3.00)
+            self.assertTrue(pp.booking_open)
+            self.assertTrue(pp.payment_open)
+
+        self.assertEqual(other_classes.count(), 5)
+        for oc in other_classes:
+            self.assertEqual(oc.cost, 7.50)
+            self.assertFalse(oc.booking_open)
+            self.assertFalse(oc.payment_open)
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+        management.call_command('sale', 'off')
+
+        classes = Event.objects.filter(event_type__subtype='Pole level class')
+        other_classes = Event.objects.filter(event_type__subtype='Other class')
+        practices = Event.objects.filter(event_type__subtype='Pole practice')
+
+        self.assertEqual(classes.count(), 5)
+        for pc in classes:
+            self.assertEqual(pc.cost, 7.50)
+            self.assertTrue(pc.booking_open)
+            self.assertTrue(pc.payment_open)
+
+        self.assertEqual(practices.count(), 5)
+        for pp in practices:
+            self.assertEqual(pp.cost, 4.00)
+            self.assertTrue(pp.booking_open)
+            self.assertTrue(pp.payment_open)
+
+        self.assertEqual(other_classes.count(), 5)
+        for oc in other_classes:
+            self.assertEqual(oc.cost, 7.50)
+            self.assertFalse(oc.booking_open)
+            self.assertFalse(oc.payment_open)

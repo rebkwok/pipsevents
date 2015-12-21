@@ -2,6 +2,7 @@
 {% load url from future %}
 {% load socialaccount %}
 {% providers_media_js %}
+{% load bookingtags %}
 
 <!DOCTYPE html>
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
@@ -131,6 +132,8 @@
           </div>
         {% endif %}
 
+      {% sale_text %}
+
     {% block body %}
         {% block content %}
             <div class="container-fluid">
@@ -163,10 +166,14 @@
         </div>
     </div>
 -->
-  <div class="pull-right">
-          <div class="footer-credit">Site developed by <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a></div>
-   </div>
-
+<div>
+{% block extra_footer %}
+  <div class="footer-tc col-xs-8">
+      Terms and conditions apply to all purchases, including sale items; for full T&C <a href="www.thewatermelonstudio.co.uk/t&c.php" target="_blank">click here</a>
+  </div>
+{% endblock %}
+     <div class="footer-credit pull-right">Site developed by <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a></div>
+</div>
 
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
