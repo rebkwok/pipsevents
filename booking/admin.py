@@ -487,8 +487,8 @@ class BlockAdmin(admin.ModelAdmin):
                 )
 
 class BlockTypeAdmin(admin.ModelAdmin):
-    list_display = ('event_type', 'size', 'formatted_cost',
-                    'formatted_duration')
+    list_display = ('event_type', 'identifier', 'size', 'formatted_cost',
+                    'formatted_duration', 'active')
     actions_on_top = True
 
     def formatted_duration(self, obj):

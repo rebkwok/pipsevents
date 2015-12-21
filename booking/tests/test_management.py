@@ -1930,3 +1930,91 @@ class BlockBookingsReportTests(TestCase):
             self.output.getvalue(),
             'No issues to report for users with blocks\n'
         )
+
+
+class ActivateBlockTypeTests(TestCase):
+
+    def test_activate_blocktypes(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command(
+            'activate_blocktypes', 'test', 'on'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+
+    def test_deactivate_blocktypes(self):
+        mommy.make_recipe(
+            'booking.blocktype5', identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+        management.call_command(
+            'activate_blocktypes', 'test', 'off'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+
+    def test_activate_blocktypes_only_activates_by_identifier(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test1', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command('activate_blocktypes', 'test', 'on')
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+
+    def test_activate_multiple_identifiers(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test1', _quantity=5
+        )
+        inactive_blocktypes = mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test2', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command('activate_blocktypes', 'test', 'test1', 'on')
+        active_blocktypes = BlockType.objects.filter(active=True)
+        self.assertEqual(active_blocktypes.count(), 10)
+        for blocktype in inactive_blocktypes:
+            self.assertTrue(blocktype not in active_blocktypes)
+
+    def test_activate_blocktypes_emails_support(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command(
+            'activate_blocktypes', 'test', 'on'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Block types activated'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
