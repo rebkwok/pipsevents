@@ -356,7 +356,7 @@ def register_print_day(request):
                 date__lt=datetime.combine(
                     register_date, time(hour=23, minute=59)
                 ).replace(tzinfo=timezone.utc),
-            )
+            ).order_by('date')
 
             new_form = RegisterDayForm(
                 initial={'register_date': register_date,
@@ -378,7 +378,7 @@ def register_print_day(request):
                     event_ids = form.cleaned_data['select_events']
                     events = Event.objects.filter(
                         id__in=event_ids
-                    )
+                    ).order_by('date')
                 else:
                     messages.info(request, 'Please select at least one register to print')
                     form = RegisterDayForm(
@@ -465,7 +465,7 @@ def register_print_day(request):
     events = Event.objects.filter(
                 date__gt=datetime.now().replace(hour=0, minute=0, tzinfo=timezone.utc),
                 date__lt=datetime.now().replace(hour=23, minute=59, tzinfo=timezone.utc),
-            )
+            ).order_by('date')
     form = RegisterDayForm(events=events, initial={'exclude_ext_instructor': True})
 
     return TemplateResponse(
