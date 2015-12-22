@@ -21,3 +21,4 @@ gunicorn==19.3.0
 static3==0.5.1
 shortuuid==0.4.2
 beautifulsoup4==4.4.1
+django-responsive==0.3.0

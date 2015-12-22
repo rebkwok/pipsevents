@@ -84,6 +84,7 @@ MIDDLEWARE_CLASSES = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'responsive.middleware.DeviceInfoMiddleware',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -93,7 +94,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     # allauth specific context processors
     "allauth.account.context_processors.account",
     "allauth.socialaccount.context_processors.socialaccount",
-    "django.contrib.messages.context_processors.messages"
+    "django.contrib.messages.context_processors.messages",
+    'responsive.context_processors.device_info',
 )
 
 AUTHENTICATION_BACKENDS = (

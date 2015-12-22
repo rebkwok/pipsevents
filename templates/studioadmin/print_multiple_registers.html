@@ -11,16 +11,15 @@
 </div>
 </div>
 
+    {% if register_format == 'full' %}
 
-                            {% if register_format == 'full' %}
+        {% include 'studioadmin/full_registers_by_date.html' %}
 
-                                {% include 'studioadmin/full_registers_by_date.html' %}
+    {% elif register_format == 'namesonly' %}
 
-                            {% elif register_format == 'namesonly' %}
+        {% include 'studioadmin/names_only_registers_by_date.html' %}
 
-                                {% include 'studioadmin/names_only_registers_by_date.html' %}
-
-                            {% endif %}
+    {% endif %}
 
 </div>
 {% endblock studioadmincontent %}
