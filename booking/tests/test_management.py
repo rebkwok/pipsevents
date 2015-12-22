@@ -2061,13 +2061,13 @@ class ActivateSaleTests(TestCase):
 
         self.assertEqual(classes.count(), 5)
         for pc in classes:
-            self.assertEqual(pc.cost, 6.50)
+            self.assertEqual(pc.cost, 6)
             self.assertTrue(pc.booking_open)
             self.assertTrue(pc.payment_open)
 
         self.assertEqual(practices.count(), 5)
         for pp in practices:
-            self.assertEqual(pp.cost, 3.00)
+            self.assertEqual(pp.cost, 2.75)
             self.assertTrue(pp.booking_open)
             self.assertTrue(pp.payment_open)
 

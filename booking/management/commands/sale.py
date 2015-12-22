@@ -23,7 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         action = options['action'][0]
         prices = {
-            'on': {'pc': 6.50, 'pp': 3},
+            'on': {'pc': 6, 'pp': 2.75},
             'off': {'pc': 7.50, 'pp': 4},
         }
 
