@@ -10,7 +10,7 @@ from django.db.utils import IntegrityError
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import Group, User, Permission
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -59,12 +59,34 @@ def staff_required(func):
     return wraps(func)(decorator)
 
 
+def is_instructor_or_staff(func):
+    def decorator(request, *args, **kwargs):
+        group = Group.objects.get(name='instructors')
+        if request.user.is_staff or group in request.user.groups.all():
+            return func(request, *args, **kwargs)
+        else:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+    return wraps(func)(decorator)
+
+
 class StaffUserMixin(object):
 
     def dispatch(self, request, *args, **kwargs):
         if not self.request.user.is_staff:
             return HttpResponseRedirect(reverse('booking:permission_denied'))
         return super(StaffUserMixin, self).dispatch(request, *args, **kwargs)
+
+
+class InstructorOrStaffUserMixin(object):
+
+    def dispatch(self, request, *args, **kwargs):
+        group = Group.objects.get(name='instructors')
+        if self.request.user.is_staff or \
+                        group in self.request.user.groups.all():
+            return super(
+                InstructorOrStaffUserMixin, self
+            ).dispatch(request, *args, **kwargs)
+        return HttpResponseRedirect(reverse('booking:permission_denied'))
 
 
 class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
@@ -131,7 +153,8 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                         'id {}'.format(e, booking.id)
                         )
 
-            ActivityLog(log='Payment status for booking id {} for event {}, '
+            ActivityLog.objects.create(
+                log='Payment status for booking id {} for event {}, '
                 'user {} has been updated by admin user {}'.format(
                 booking.id, booking.event, booking.user.username,
                 self.request.user.username
@@ -190,7 +213,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                     'studioadmin/email/confirm_refund.html').render(ctx),
                 fail_silently=False)
 
-            ActivityLog(
+            ActivityLog.objects.create(
                 log='Payment refund for booking id {} for event {}, '
                     'user {} has been updated by admin user {}'.format(
                     booking.id, booking.event, booking.user.username,
@@ -211,7 +234,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
 
 @login_required
-@staff_required
+@is_instructor_or_staff
 def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     event = get_object_or_404(Event, slug=event_slug)
 
@@ -234,26 +257,93 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                 for form in formset:
                     booking = form.save(commit=False)
                     if form.has_changed():
-                        if booking.block:
-                            booking.paid = True
-                        booking.save()
-                        messages.success(
-                            request,
-                            "Register updated for user {}".format(
-                                booking.user.username
+
+                        # new booking
+                        if 'user' in form.changed_data:
+
+                            try:
+                                booking.save()
+                                ActivityLog.objects.create(
+                                    log='Booking id {} for event {}, user {} has been '
+                                        'created by admin user {}'.format(
+                                        booking.id, booking.event,
+                                        booking.user.username,
+                                        request.user.username
+                                    )
+                                )
+                                messages.success(
+                                    request,
+                                    "Booking created for user {}".format(
+                                        booking.user.username
+                                    )
+                                )
+                            except IntegrityError:
+                                try:
+                                    new_booking = Booking.objects.get(
+                                        user=booking.user, event=booking.event,
+                                        status='CANCELLED'
+                                    )
+                                except Booking.DoesNotExist:
+                                    continue
+
+                                new_booking.status = 'OPEN'
+                                new_booking.save()
+
+                                ActivityLog.objects.create(
+                                    log='Cancelled booking id {} for event {}, user {} has been '
+                                        'reopened by admin user {}'.format(
+                                        new_booking.id, new_booking.event,
+                                        new_booking.user.username,
+                                        request.user.username
+                                    )
+                                )
+                                messages.success(
+                                    request,
+                                    "Cancelled booking reopened for user {}".format(
+                                        booking.user.username
+                                    )
+                                )
+                        elif 'block' in form.changed_data and not booking.block:
+                            booking.paid = False
+                            booking.payment_confirmed = False
+                            booking.save()
+                            messages.success(
+                                request,
+                                "Block removed for user {} and booking set to unpaid".format(
+                                    booking.user.username
+                                )
                             )
-                        )
-                        ActivityLog(
-                            log='Booking id {} for event {}, user {} has been '
-                                'updated by admin user {}'.format(
-                                booking.id, booking.event,
-                                booking.user.username,
-                                request.user.username
+                            ActivityLog.objects.create(
+                                log='Block removed for booking id {} for event {}, user {} has been '
+                                    'updated by admin user {}'.format(
+                                    booking.id, booking.event,
+                                    booking.user.username,
+                                    request.user.username
+                                )
                             )
-                        )
+
+                        else:
+                            if booking.block:
+                                booking.paid = True
+                                booking.payment_confirmed = True
+                            booking.save()
+                            messages.success(
+                                request,
+                                "Register updated for user {}".format(
+                                    booking.user.username
+                                )
+                            )
+                            ActivityLog.objects.create(
+                                log='Booking id {} for event {}, user {} has been '
+                                    'updated by admin user {}'.format(
+                                    booking.id, booking.event,
+                                    booking.user.username,
+                                    request.user.username
+                                )
+                            )
                     for error in form.errors:
                         messages.error(request,mark_safe("{}".format(error)))
-                formset.save()
+                # formset.save()
 
             register_url = 'studioadmin:event_register'
             if event.event_type.event_type == 'CL':
@@ -330,7 +420,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
 
 
 @login_required
-@staff_required
+@is_instructor_or_staff
 def register_print_day(request):
     '''
     link to print all registers for a specific day GET --> form with date selector
@@ -588,7 +678,9 @@ def event_admin_list(request, ev_type):
     )
 
 
-class EventRegisterListView(LoginRequiredMixin, StaffUserMixin, ListView):
+class EventRegisterListView(
+    LoginRequiredMixin, InstructorOrStaffUserMixin, ListView
+):
 
     model = Event
     template_name = 'studioadmin/events_register_list.html'
@@ -1630,7 +1722,7 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
 
 @login_required
-@staff_required
+@is_instructor_or_staff
 def event_waiting_list_view(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     waiting_list_users = WaitingListUser.objects.filter(
@@ -2412,7 +2504,7 @@ class ConfirmTicketBookingRefundView(
                     'studioadmin/email/confirm_ticket_booking_refund.html').render(ctx),
                 fail_silently=False)
 
-            ActivityLog(
+            ActivityLog.objects.create(
                 log='Payment refund for ticket booking ref {} for event {}, '
                     '(user {}) has been updated by admin user {}'.format(
                     ticket_booking.booking_reference,

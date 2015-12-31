@@ -58,7 +58,7 @@
                         <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
                         <li class="active-nav"><a href="{% url 'booking:events' %}">Workshops</a></li>
                         <li class="active-nav"><a href="{% url 'booking:room_hires' %}">Room Hire</a></li>
-                        <li class="active-nav"><a href="{% url 'booking:ticketed_events' %}">Event Tickets</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
                         {% if request.user.is_authenticated %}
 
                             <li class="hidden-sm dropdown">
@@ -88,8 +88,8 @@
 
                     <ul class="nav navbar-nav pull-right">
                         {% block admin-nav %}
-                            {% if request.user.is_staff %}
-                               <li class="active-nav"><a href="{% url 'studioadmin:lessons' %}">Studio Admin</a></li>
+                            {% if request.user.is_staff or request.user|in_group:"instructors" %}
+                               <li class="active-nav"><a href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a></li>
                             {% endif %}
                         {% endblock admin-nav %}
                         {% if request.user.is_authenticated %}

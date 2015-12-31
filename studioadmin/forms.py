@@ -398,11 +398,26 @@ class EventAdminForm(forms.ModelForm):
 
 class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
+    def __init__(self, *args, **kwargs):
+
+        super(BookingRegisterInlineFormSet, self).__init__(*args, **kwargs)
+        if self.instance.max_participants:
+            self.extra = self.instance.spaces_left()
+        elif self.instance.bookings.count() < 15:
+            open_bookings = [
+                bk for bk in self.instance.bookings.all() if bk.status == 'OPEN'
+                ]
+            self.extra = 15 - len(open_bookings)
+        else:
+            self.extra = 2
+
+
     def add_fields(self, form, index):
         super(BookingRegisterInlineFormSet, self).add_fields(form, index)
 
+        form.index = index + 1
+
         if form.instance.id:
-            form.index = index + 1
             user = form.instance.user
             event_type = form.instance.event.event_type
             available_block = [
@@ -417,8 +432,10 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                                    ]
             form.fields['block'] = UserBlockModelChoiceField(
                 queryset=Block.objects.filter(id__in=available_block_ids),
-                widget=forms.Select(attrs={'class': 'form-control input-sm studioadmin-list'}),
-                required=False
+                widget=forms.Select(
+                    attrs={'class': 'form-control input-xs studioadmin-list'}),
+                required=False,
+                empty_label="Active block not used"
             )
 
             form.fields['user'] = forms.ModelChoiceField(
@@ -427,23 +444,42 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                 widget=forms.Select(attrs={'class': 'hide'})
             )
 
-            form.fields['paid'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox",
-                    'id': 'checkbox_paid_{}'.format(index)
-                }),
-                required=False
+            # add field for if booking has been paid by paypal (don't allow
+            # changing paid in register for paypal payments
+            pbts = PaypalBookingTransaction.objects.filter(
+                booking=form.instance
             )
-            form.checkbox_paid_id = 'checkbox_paid_{}'.format(index)
+            if pbts and pbts[0].transaction_id:
+                form.paid_by_paypal = True
 
-            form.fields['deposit_paid'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox",
-                    'id': 'checkbox_deposit_paid_{}'.format(index)
-                }),
-                required=False
+        else:
+            booked_user_ids = [
+                bk.user.id for bk in self.instance.bookings.all()
+                if bk.status == 'OPEN'
+                ]
+
+            form.fields['user'] = UserModelChoiceField(
+                queryset=User.objects.exclude(id__in=booked_user_ids).order_by('first_name'),
+                widget=forms.Select(attrs={'class': 'form-control input-xs studioadmin-list'})
             )
-            form.checkbox_deposit_paid_id = 'checkbox_deposit_paid_{}'.format(index)
+
+        form.fields['paid'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'checkbox_paid_{}'.format(index)
+            }),
+            required=False
+        )
+        form.checkbox_paid_id = 'checkbox_paid_{}'.format(index)
+
+        form.fields['deposit_paid'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'checkbox_deposit_paid_{}'.format(index)
+            }),
+            required=False
+        )
+        form.checkbox_deposit_paid_id = 'checkbox_deposit_paid_{}'.format(index)
 
         form.fields['attended'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
@@ -455,6 +491,17 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
         )
         form.checkbox_attended_id = 'checkbox_attended_{}'.format(index)
 
+    def clean(self):
+        if not self.is_valid():
+            for form in self.forms:
+                if form.errors:
+                    if form.errors == {
+                        '__all__': [
+                            'Booking with this User and Event already exists.'
+                        ]
+                    }:
+                        del form.errors['__all__']
+
 
 SimpleBookingRegisterFormSet = inlineformset_factory(
     Event,
@@ -462,7 +509,6 @@ SimpleBookingRegisterFormSet = inlineformset_factory(
     fields=('attended', 'user', 'deposit_paid', 'paid', 'block'),
     can_delete=False,
     formset=BookingRegisterInlineFormSet,
-    extra=0,
 )
 
 
@@ -988,6 +1034,18 @@ class UserBlockModelChoiceField(forms.ModelChoiceField):
     def to_python(self, value):
         if value:
             return Block.objects.get(id=value)
+
+
+class UserModelChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return "{} {} ({})".format(
+            obj.first_name, obj.last_name, obj.username
+        )
+
+    def to_python(self, value):
+        if value:
+            return User.objects.get(id=value)
 
 
 class UserBookingInlineFormSet(BaseInlineFormSet):

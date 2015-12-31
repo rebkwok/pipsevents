@@ -10,7 +10,6 @@
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
         <div class="row">
-            <div class="col-xs-12">
                 <form method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
@@ -95,10 +94,7 @@
             </form>
 
 
-
-
         </div>
-    </div>
  </div>
 
 

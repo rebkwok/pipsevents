@@ -16,11 +16,10 @@
 
                 {% if not print %}
                 <div class="panel-heading">
-                    <a target="_blank" href="{% url 'studioadmin:event_register_print' event.slug status_choice %}" %} class="btn btn-info table-btn" name="print" type="submit">Printable Version</a>
-                    <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                    <input class="btn btn-success table-btn register-table-btn" name="formset_submitted" type="submit" value="Save" />
                     <div class="pull-right">
                         {{ status_filter.status_choice }}
-                        <input class="btn btn-info table-btn" name="status_choice" type="submit" value="Filter" />
+                        <input class="btn btn-info table-btn register-table-btn" name="status_choice" type="submit" value="Filter" />
                     </div>
                 </div>
                 {% endif %}
@@ -36,104 +35,118 @@
                             <th class="table-center">Deposit Paid</th>
                             <th class="table-center">Fully Paid</th>
                             {% if available_block_type %}
-                            <th class="table-center">Book with<br/>available block</th>
-                            <th class="table-center">User's block</br>expiry date</th>
-                            <th class="table-center">Block size</th>
-                            <th class="table-center">Bookings used</th>
+                            <th class="table-center">Block</th>
+                            <!--<th class="table-center">User's block</br>expiry date</th>-->
+                            <!--<th class="table-center">Block size</th>-->
+                            <!--<th class="table-center">Block bookings</br>used</th>-->
                             {% endif %}
                         </tr>
 
                         {% for bookingform in formset %}
                             <tr>
-                                <span class="hide">{{ bookingform.id }}{{ bookingform.user }}</span>
+                                <span class="hide">{{ bookingform.id }}</span>
                                 {% if status_choice == 'CANCELLED' %}
                                 <td></td>
                                 {% else %}
                                 <td class="table-center register-index studioadmin-tbl">{{ bookingform.index }}.</td>
                                 {% endif %}
                                 <td class="table-center studioadmin-tbl">{{ bookingform.attended }}<label for={{ bookingform.checkbox_attended_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.status }}</td>
-                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.user.first_name }}
-                                    {{ bookingform.instance.user.last_name }}{% if not print %} ({{ bookingform.instance.user.username }}){% endif %}</td>
+                                <td class="table-center studioadmin-tbl">{% if bookingform.instance.id %}{{ bookingform.instance.status }}{% else %}NEW{% endif %}</td>
+                                <td class="table-center studioadmin-tbl">
+                                {% if bookingform.instance.id %}
+                                    <span class="hide">{{ bookingform.user }}</span>
+                                    {{ bookingform.instance.user.first_name }}
+                                    {{ bookingform.instance.user.last_name }}{% if not print %} ({{ bookingform.instance.user.username }}){% endif %}
+                                {% elif not print %}
+                                    {{ bookingform.user }}
+                                {% endif %}
+                                </td>
 
-                                <td class="table-center studioadmin-tbl">
-                                    {% if bookingform.instance.deposit_paid %}
-                                    <span class="fa fa-check"></span>
-                                    <span class="hide">{{ bookingform.deposit_paid }}</span>
-                                    {% else %}
-                                        {% if not print %}
-                                            {{ bookingform.deposit_paid }}<label for={{ bookingform.checkbox_deposit_paid_id }}></label>
-                                        {% endif %}
-                                    {% endif %}</td>
-                                <td class="table-center studioadmin-tbl">
-                                    {% if bookingform.instance.paid %}
-                                    <span class="fa fa-check"></span>
-                                    <span class="hide">{{ bookingform.paid }}</span>
-                                    {% else %}
-                                        {% if not print %}
-                                            {{ bookingform.paid }}<label for={{ bookingform.checkbox_paid_id }}></label>
+                                {% if bookingform.instance.id %}
+                                    <td class="table-center studioadmin-tbl">
+                                        {% if bookingform.instance.deposit_paid %}
+                                            {% if bookingform.paid_by_paypal %}
+                                                <span class="fa fa-check"></span>
+                                                <span class="hide">{{ bookingform.deposit_paid }}</span>
+                                            {% else %}
+                                                {{ bookingform.deposit_paid }}<label for={{ bookingform.checkbox_deposit_paid_id }}></label>
+                                            {% endif %}
                                         {% else %}
-                                        <span class="fa fa-times"></span>
+                                            {% if not print %}
+                                                {{ bookingform.deposit_paid }}<label for={{ bookingform.checkbox_deposit_paid_id }}></label>
+                                            {% endif %}
                                         {% endif %}
-                                    {% endif %}</td>
-                                    {% if available_block_type %}
+                                    </td>
+                                    <td class="table-center studioadmin-tbl {% if bookingform.instance.id and not bookingform.instance.paid and not print %}register-unpaid{% endif %}">
+                                        {% if bookingform.instance.paid %}
+                                            {% if bookingform.paid_by_paypal %}
+                                                <span class="fa fa-check"></span>
+                                                <span class="hide">{{ bookingform.paid }}</span>
+                                            {% else %}
+                                                {{ bookingform.paid }}<label for={{ bookingform.checkbox_paid_id }}></label>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if not print %}
+                                                {{ bookingform.paid }}<label for={{ bookingform.checkbox_paid_id }}></label>
+                                            {% else %}
+                                            <span class="fa fa-times"></span>
+                                            {% endif %}
+                                        {% endif %}</td>
+                                        {% if available_block_type %}
                                             {% if bookingform.instance.block %}
-                                                <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
-                                            {% elif bookingform.instance.paid %}
-                                                <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center studioadmin-tbl"><span class="fa fa-times"></span></td>
+                                                <td class="table-center studioadmin-tbl">{{ bookingform.block }}</td>
+                                            {% elif bookingform.instance.paid and bookingform.available_block %}
+                                                {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}
                                             {% elif bookingform.available_block %}
-                                                <td class="table-center studioadmin-tbl">{% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                                <td class="table-center studioadmin-tbl">
+                                                    {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}</td>
                                             {% else %}
                                                 <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center studioadmin-tbl">N/A</td>
+                                                <td class="table-center no-block-comment studioadmin-tbl">User has no active block</td>
                                             {% endif %}</td>
-
-                                        {% if bookingform.available_block %}
-                                            <span class="hide">{{ bookingform.block }}</span>
-                                            <td class="table-center studioadmin-tbl">{{ bookingform.available_block.expiry_date|date:"D d M Y" }}</td>
-                                            <td class="table-center studioadmin-tbl">{{ bookingform.available_block.block_type.size }}</td>
-                                            <td class="table-center studioadmin-tbl">{{ bookingform.available_block.bookings_made }}</td>
-                                        {% else %}
-                                            <!--<td class="no-block-comment" colspan="3">User does not have a relevant active block</td>-->
-                                            <td class="table-center studioadmin-tbl">N/A</td>
-                                            <td class="table-center studioadmin-tbl">N/A</td>
-                                            <td class="table-center studioadmin-tbl">N/A</td>
                                         {% endif %}
+                                    {% elif not print %}
+                                        <td class="no-block-comment table-center" colspan="3">Click <strong>Save</strong> button to see block/payment options for selected user</td>
+                                    {% else %}
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
                                     {% endif %}
                             </tr>
                         {% endfor %}
-                        {% for i in extra_lines|get_range %}
-                        <tr>
-                            {% if status_choice == 'CANCELLED' %}
-                            <td></td>
-                            <td></td>
-                            {% elif status_choice == 'OPEN' %}
-                            <td class="table-center register-index">{{ event|get_index_open:i }}.</td>
-                            <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
-                            {% else %}
-                            <td class="table-center register-index">{{ event|get_index_all:i }}.</td>
-                            <td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
-                            {% endif %}
-                            <td class="table-center studioadmin-tbl"></td>
-                            <td class="table-center studioadmin-tbl"></td>
-                            <td class="table-center studioadmin-tbl"></td>
-                            <td class="table-center studioadmin-tbl"></td>
-                                {% if available_block_type %}
-                            <td class="table-center studioadmin-tbl"></td>
-                            <td class="table-center studioadmin-tbl"></td>
-                            <td class="table-center studioadmin-tbl"></td>
-                            <td class="table-center studioadmin-tbl"></td>
-                            {% endif %}
-                        </tr>
-                        {% endfor %}
+                        <!--{% for i in extra_lines|get_range %}-->
+                        <!--<tr>-->
+                            <!--{% if status_choice == 'CANCELLED' %}-->
+                            <!--<td></td>-->
+                            <!--<td></td>-->
+                            <!--{% elif status_choice == 'OPEN' %}-->
+                            <!--<td class="table-center register-index">{{ event|get_index_open:i }}.</td>-->
+                            <!--<td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>-->
+                            <!--{% else %}-->
+                            <!--<td class="table-center register-index">{{ event|get_index_all:i }}.</td>-->
+                            <!--<td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>-->
+                            <!--{% endif %}-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                                <!--{% if available_block_type %}-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--<td class="table-center studioadmin-tbl"></td>-->
+                            <!--{% endif %}-->
+                        <!--</tr>-->
+                        <!--{% endfor %}-->
                         {% if print %}
                         <tr><td class="notes-row " {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>Notes: </td></tr>
                         {% endif %}
                         {% if not print %}
                             <tr no-print>
-                                <td {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                                <td {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>
+                                    <a target="_blank" href="{% url 'studioadmin:event_register_print' event.slug status_choice %}" %} class="btn btn-info table-btn" name="print" type="submit">Printable Version</a>
+                                    <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                                </td>
                             </tr>
                         {% endif %}
                     </table>

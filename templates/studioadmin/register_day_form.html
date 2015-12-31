@@ -34,7 +34,7 @@
                         {% for field in form %}
                                 <div class="form-group register-form-group">
                                     <label class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
-                                    <div class="col-sm-5">
+                                    <div class="col-sm-9">
                                         {% if field.label == 'Exclude classes by external instructors:'%}
                                         {{ field }}<label for='ext_instructor_cbox'></label>
                                         {% elif field.label == 'Register format' %}

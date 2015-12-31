@@ -3,6 +3,7 @@ import pytz
 
 from datetime import datetime
 
+from django.contrib.auth.models import Group
 from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -130,3 +131,9 @@ def sale_text():
                 'sale_end': sale_end
             }
     return {'is_sale_period': False}
+
+
+@register.filter(name='in_group')
+def in_group(user, group_name):
+    group = Group.objects.get(name=group_name)
+    return True if group in user.groups.all() else False

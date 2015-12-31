@@ -1,5 +1,5 @@
 from django.test import TestCase, RequestFactory
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
 
 from accounts.forms import SignupForm
@@ -71,6 +71,7 @@ class ProfileTest(TestCase):
     def setUp(self):
         set_up_fb()
         self.factory = RequestFactory()
+        Group.objects.get_or_create(name='instructors')
 
     def test_profile_view(self):
         user = mommy.make(User)

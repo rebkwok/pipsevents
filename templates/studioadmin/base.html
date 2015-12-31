@@ -9,50 +9,58 @@
 {% block left-nav-items %}
 <li class="active-nav"><a href="{% url 'booking:lessons' %}" target="_blank">Main booking site</a></li>
 <!---add to menu at small sizes where side nav disappears-->
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false">Studio Admin<span class="caret"></span></a>
-  <ul class="dropdown-menu" role="menu">
-    <li class="active-nav"><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
-                    <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
-                        <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
-                    <span class="sidebar_active">Class registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
-    <li class="divider"></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
-                    <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:add_session' %}">{% if sidenav_selection == 'add_session' %}
-                    <span class="sidebar_active">Add a new session</span>{% else %}Add a new session{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:upload_timetable' %}">{% if sidenav_selection == 'upload_timetable' %}
-                    <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
-    <li class="divider"></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
-                    <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
-    <li class="divider"></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
-                <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
-                <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
-                    <span class="sidebar_active">Event registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
-    <li class="divider"></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
-                     <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:add_ticketed_event' %}">{% if sidenav_selection == 'add_ticketed_event' %}
-                <span class="sidebar_active">Add new ticketed event</span>{% else %}Add new ticketed event{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:print_tickets_list' %}">{% if sidenav_selection == 'print_ticket_list' %}
-                <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
-    <li class="divider"></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
-                    <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:blocks' %}">{% if sidenav_selection == 'blocks' %}
-                    <span class="sidebar_active">Blocks</span>{% else %}Blocks{% endif %}</a></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:choose_email_users' %}">{% if sidenav_selection == 'email_users' %}
-                    <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
-    <li class="divider"></li>
-    <li class="active-nav"><a href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
-                    <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
-
+{% if request.user.is_staff %}
+    <li class="dropdown">
+      <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false">Studio Admin<span class="caret"></span></a>
+      <ul class="dropdown-menu" role="menu">
+        <li class="active-nav"><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
+                        <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
+                            <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+                        <span class="sidebar_active">Class registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+        <li class="divider"></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
+                        <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:add_session' %}">{% if sidenav_selection == 'add_session' %}
+                        <span class="sidebar_active">Add a new session</span>{% else %}Add a new session{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:upload_timetable' %}">{% if sidenav_selection == 'upload_timetable' %}
+                        <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
+        <li class="divider"></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+                        <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
+        <li class="divider"></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
+                    <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
+                    <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
+                        <span class="sidebar_active">Event registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+        <li class="divider"></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
+                         <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:add_ticketed_event' %}">{% if sidenav_selection == 'add_ticketed_event' %}
+                    <span class="sidebar_active">Add new ticketed event</span>{% else %}Add new ticketed event{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:print_tickets_list' %}">{% if sidenav_selection == 'print_ticket_list' %}
+                    <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
+        <li class="divider"></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
+                        <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:blocks' %}">{% if sidenav_selection == 'blocks' %}
+                        <span class="sidebar_active">Blocks</span>{% else %}Blocks{% endif %}</a></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:choose_email_users' %}">{% if sidenav_selection == 'email_users' %}
+                        <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
+        <li class="divider"></li>
+        <li class="active-nav"><a href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
+                        <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
+{% else %}
+    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+        <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
+    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
+        <span class="sidebar_active">Workshop registers</span>{% else %}Workshop Registers{% endif %}</a></li>
+    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+        <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
+{% endif %}
   </ul>
 </li>
 {% endblock %}
@@ -67,143 +75,158 @@
 
             <ul class="sidebar-nav">
                 <li class="sidebar-brand">Studio Admin</li>
-                <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#classes">
-                        <span class="fa classes
-                            {% if sidenav_selection == 'lessons' or sidenav_selection == 'add_lesson' %}
-                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
+
+                {% if request.user.is_staff %}
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#classes">
+                            <span class="fa classes
+                                {% if sidenav_selection == 'lessons' or sidenav_selection == 'add_lesson' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Scheduled Classes</br><span class="studioadmin-help sidebar-help">(including room hire)</span>
+                        </a>
+                    </li>
+                        <span id="classes" class="collapse {% if sidenav_selection == 'lessons' or sidenav_selection == 'add_lesson' %} in{% endif %}">
+                            <li><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
+                        <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
+                            <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+                        <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
                         </span>
-                        Scheduled Classes</br><span class="studioadmin-help sidebar-help">(including room hire)</span>
-                    </a>
-                </li>
-                    <span id="classes" class="collapse {% if sidenav_selection == 'lessons' or sidenav_selection == 'add_lesson' %} in{% endif %}">
-                        <li><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
-                    <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:add_lesson' %}">{% if sidenav_selection == 'add_lesson' %}
-                        <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
-                    <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#timetable">
+                            <span class="fa timetable
+                                {% if sidenav_selection == 'timetable' or sidenav_selection == 'add_session' or sidenav_selection == 'upload_timetable'%}                                fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Timetable
+                        </a>
+                    </li>
+                    <span id="timetable" class="collapse {% if sidenav_selection == 'timetable' or sidenav_selection == 'add_session' or sidenav_selection == 'upload_timetable'%} in{% endif %}">
+                         <li><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
+                        <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:add_session' %}">{% if sidenav_selection == 'add_session' %}
+                        <span class="sidebar_active">Add a new session</span>{% else %}Add a new session{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:upload_timetable' %}">{% if sidenav_selection == 'upload_timetable' %}
+                        <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
                     </span>
 
-                <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#timetable">
-                        <span class="fa timetable
-                            {% if sidenav_selection == 'timetable' or sidenav_selection == 'add_session' or sidenav_selection == 'upload_timetable'%}                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
-                        </span>
-                        Timetable
-                    </a>
-                </li>
-                <span id="timetable" class="collapse {% if sidenav_selection == 'timetable' or sidenav_selection == 'add_session' or sidenav_selection == 'upload_timetable'%} in{% endif %}">
-                     <li><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
-                    <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:add_session' %}">{% if sidenav_selection == 'add_session' %}
-                    <span class="sidebar_active">Add a new session</span>{% else %}Add a new session{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:upload_timetable' %}">{% if sidenav_selection == 'upload_timetable' %}
-                    <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
-                </span>
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#events">
+                            <span class="fa events
+                                {% if sidenav_selection == 'events' or sidenav_selection == 'add_event' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Events/Workshops
+                        </a>
+                    </li>
+                    <span id="events" class="collapse {% if sidenav_selection == 'events' or sidenav_selection == 'add_event' %} in{% endif %}">
+                         <li><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
+                        <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
+                         <li><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
+                        <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
+                        <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+                    </span>
 
-                <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#events">
-                        <span class="fa events
-                            {% if sidenav_selection == 'events' or sidenav_selection == 'add_event' %}
-                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
-                        </span>
-                        Events/Workshops
-                    </a>
-                </li>
-                <span id="events" class="collapse {% if sidenav_selection == 'events' or sidenav_selection == 'add_event' %} in{% endif %}">
-                     <li><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
-                    <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
-                     <li><a href="{% url 'studioadmin:add_event' %}">{% if sidenav_selection == 'add_event' %}
-                    <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
+                     <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#registers">
+                            <span class="fa registers
+                                {% if sidenav_selection == 'register_day' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Print Registers
+                        </a>
+                    </li>
+                    <span id="registers" class="collapse {% if sidenav_selection == 'register_day' %} in{% endif %}">
+                        <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+                        <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
+                    </span>
+
+                     <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#ticketed-events">
+                            <span class="fa ticketed-events
+                                {% if sidenav_selection == 'ticketed_events' or sidenav_selection == 'add_ticketed_event' or sidenav_selection == 'print_tickets_list' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Ticketed Events/Shows
+                        </a>
+                    </li>
+                    <span id="ticketed-events" class="collapse {% if sidenav_selection == 'ticketed_events' or sidenav_selection == 'add_ticketed_event' or sidenav_selection == 'print_tickets_list' %} in{% endif %}">
+                        <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
+                             <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
+                        <li class="active-nav"><a href="{% url 'studioadmin:add_ticketed_event' %}">{% if sidenav_selection == 'add_ticketed_event' %}
+                            <span class="sidebar_active">Add new ticketed event</span>{% else %}Add new ticketed event{% endif %}</a></li>
+                        <li class="active-nav"><a href="{% url 'studioadmin:print_tickets_list' %}">{% if sidenav_selection == 'print_tickets_list' %}
+                            <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
+                    </span>
+
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#users">
+                            <span class="fa users
+                                {% if sidenav_selection == 'users' or sidenav_selection == 'blocks' or sidenav_selection == 'email_users' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Students
+                        </a>
+                    </li>
+                    <span id="users" class="collapse {% if sidenav_selection == 'users' or sidenav_selection == 'blocks' or sidenav_selection == 'email_users' %} in{% endif %}">
+                        <li><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
+                        <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:blocks' %}">{% if sidenav_selection == 'blocks' %}
+                        <span class="sidebar_active">Blocks</span>{% else %}Blocks{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:choose_email_users' %}">{% if sidenav_selection == 'email_users' %}
+                        <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
+                    </span>
+
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#log">
+                            <span class="fa log
+                                {% if sidenav_selection == 'activitylog' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Site Activity Log
+                        </a>
+                    </li>
+                    <span id="log" class="collapse {% if sidenav_selection == 'activitylog' %} in{% endif %}">
+                        <li class="active-nav"><a href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
+                        <span class="sidebar_active">View log</span>{% else %}View log{% endif %}</a></li>
+                    </span>
+
+                {% else %}
+                    <li class="sidebar-title">
+                            Registers/Waiting lists
+                    </li>
+                        <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+                        <span class="sidebar_active">Classes/Room Hire</span>{% else %}Classes/Room Hire{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
-                    <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
-                </span>
+                        <span class="sidebar_active">Workshops</span>{% else %}Workshops{% endif %}</a></li>
+                    <li><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+                        <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
 
-                 <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#registers">
-                        <span class="fa registers
-                            {% if sidenav_selection == 'register_day' %}
-                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
-                        </span>
-                        Print Registers
-                    </a>
-                </li>
-                <span id="registers" class="collapse {% if sidenav_selection == 'register_day' %} in{% endif %}">
-                    <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
-                    <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
-                </span>
-
-                 <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#ticketed-events">
-                        <span class="fa ticketed-events
-                            {% if sidenav_selection == 'ticketed_events' or sidenav_selection == 'add_ticketed_event' or sidenav_selection == 'print_tickets_list' %}
-                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
-                        </span>
-                        Ticketed Events/Shows
-                    </a>
-                </li>
-                <span id="ticketed-events" class="collapse {% if sidenav_selection == 'ticketed_events' or sidenav_selection == 'add_ticketed_event' or sidenav_selection == 'print_tickets_list' %} in{% endif %}">
-                    <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
-                         <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
-                    <li class="active-nav"><a href="{% url 'studioadmin:add_ticketed_event' %}">{% if sidenav_selection == 'add_ticketed_event' %}
-                        <span class="sidebar_active">Add new ticketed event</span>{% else %}Add new ticketed event{% endif %}</a></li>
-                    <li class="active-nav"><a href="{% url 'studioadmin:print_tickets_list' %}">{% if sidenav_selection == 'print_tickets_list' %}
-                        <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
-                </span>
-
-                <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#users">
-                        <span class="fa users
-                            {% if sidenav_selection == 'users' or sidenav_selection == 'blocks' or sidenav_selection == 'email_users' %}
-                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
-                        </span>
-                        Students
-                    </a>
-                </li>
-                <span id="users" class="collapse {% if sidenav_selection == 'users' or sidenav_selection == 'blocks' or sidenav_selection == 'email_users' %} in{% endif %}">
-                    <li><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
-                    <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:blocks' %}">{% if sidenav_selection == 'blocks' %}
-                    <span class="sidebar_active">Blocks</span>{% else %}Blocks{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:choose_email_users' %}">{% if sidenav_selection == 'email_users' %}
-                    <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
-                </span>
-
-                <li class="sidebar-title">
-                    <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#log">
-                        <span class="fa log
-                            {% if sidenav_selection == 'activitylog' %}
-                                fa-minus-square
-                            {% else %}
-                                fa-plus-square
-                            {% endif %}">
-                        </span>
-                        Site Activity Log
-                    </a>
-                </li>
-                <span id="log" class="collapse {% if sidenav_selection == 'activitylog' %} in{% endif %}">
-                    <li class="active-nav"><a href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
-                    <span class="sidebar_active">View log</span>{% else %}View log{% endif %}</a></li>
-                </span>
+                {% endif %}
             </ul>
 
         </div>

@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase, RequestFactory
 from django.test.client import Client
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User, Permission, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -55,7 +55,11 @@ class TestPermissionMixin(object):
         self.staff_user = mommy.make_recipe('booking.user')
         self.staff_user.is_staff = True
         self.staff_user.save()
-
+        self.instructor_user = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename="can_view_registers")
+        group, _ = Group.objects.get_or_create(name="instructors")
+        group.permissions.add(perm)
+        self.instructor_user.groups.add(group)
 
 class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
 
@@ -105,6 +109,15 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.booking)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, self.booking)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -271,6 +284,15 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, self.booking)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -348,6 +370,14 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(resp.status_code, 200)
 
+    def test_can_access_if_instructor(self):
+        """
+        test that the page can be accessed by a non staff user if in the
+        instructors group
+        """
+        resp = self._get_response(self.instructor_user, 'events')
+        self.assertEquals(resp.status_code, 200)
+
     def test_event_context(self):
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(resp.status_code, 200)
@@ -400,7 +430,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(EventRegisterViewTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_EV')
+        self.event = mommy.make_recipe(
+            'booking.future_EV', max_participants=16
+        )
         self.booking1 = mommy.make_recipe('booking.booking', event=self.event)
         self.booking2 = mommy.make_recipe('booking.booking', event=self.event)
 
@@ -502,6 +534,14 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_can_access_if_instructor(self):
+        """
+        test that the page can be accessed by a non staff user if in the
+        instructors group
+        """
+        resp = self._get_response(self.instructor_user, self.event.slug)
+        self.assertEquals(resp.status_code, 200)
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -522,15 +562,17 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, self.event.slug, status_choice='ALL'
         )
-        # 10 plus 2 created in setup
-        self.assertEquals(len(resp.context_data['formset'].forms), 12)
+        # bookings: open - 5 plus 2 created in setup, cancelled = 5 (12)
+        # also shows forms for available spaces (16 max, 9 spaces)
+        self.assertEquals(len(resp.context_data['formset'].forms), 21)
 
         resp = self._get_response(
             self.staff_user, self.event.slug, status_choice='OPEN'
         )
-        # 5 open plus 2 created in setup
+        # 5 open plus 2 created in setup, plus empty forms for available
+        # spaces to max participants 16
         forms = resp.context_data['formset'].forms
-        self.assertEquals(len(forms), 7)
+        self.assertEquals(len(forms), 16)
         self.assertEquals(
             set([form.instance.status for form in forms]), {'OPEN'}
             )
@@ -539,10 +581,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             self.staff_user, self.event.slug, status_choice='CANCELLED'
         )
         forms = resp.context_data['formset'].forms
-        self.assertEquals(len(forms), 5)
-        self.assertEquals(
-            set([form.instance.status for form in forms]), {'CANCELLED'}
-            )
+        # 5 cancelled plus empty forms for 9 available spaces
+        self.assertEquals(len(forms), 14)
 
     def test_can_update_booking(self):
         self.assertFalse(self.booking1.paid)
@@ -602,6 +642,54 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         booking = Booking.objects.get(id=self.booking1.id)
         self.assertEqual(booking.block, block)
+
+    def test_selecting_block_makes_booking_paid(self):
+        self.booking1.paid = False
+        self.booking1.save()
+        self.assertFalse(self.booking1.block)
+        block_type = mommy.make(
+            BlockType, event_type=self.event.event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type, user=self.user, paid=True
+        )
+        self.assertTrue(block.active_block())
+
+        formset_data = self.formset_data({
+            'bookings-0-block': block.id,
+            'formset_submitted': 'Save changes'
+        })
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+        booking = Booking.objects.get(id=self.booking1.id)
+        self.assertEqual(booking.block, block)
+        self.assertTrue(booking.paid)
+
+    def test_unselecting_block_makes_booking_paid(self):
+        block_type = mommy.make(
+            BlockType, event_type=self.event.event_type
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type, user=self.user, paid=True
+        )
+        self.booking1.block = block
+        self.booking1.paid = True
+        self.booking1.save()
+        self.assertTrue(block.active_block())
+
+        formset_data = self.formset_data({
+            'bookings-0-block': '',
+            'formset_submitted': 'Save changes'
+        })
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+        booking = Booking.objects.get(id=self.booking1.id)
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
 
     def test_can_add_new_booking(self):
 
@@ -837,6 +925,15 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, ev_type='events')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1048,6 +1145,15 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, self.event.slug, 'EV')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1195,6 +1301,15 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, 'EV')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1305,6 +1420,15 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -1422,6 +1546,15 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, self.session)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1535,6 +1668,15 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1596,6 +1738,15 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -1679,6 +1830,15 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1688,8 +1848,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
     def test_all_users_are_displayed(self):
         mommy.make_recipe('booking.user', _quantity=6)
-        # 8 users total, incl self.user and self.staff_user
-        self.assertEqual(User.objects.count(), 8)
+        # 9 users total, incl self.user, self.instructor_user self.staff_user
+        self.assertEqual(User.objects.count(), 9)
         resp = self._get_response(self.staff_user)
         self.assertEqual(
             list(resp.context_data['users']), list(User.objects.all())
@@ -1763,6 +1923,15 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -1937,6 +2106,15 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -1953,7 +2131,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         )
         resp = self._post_response(self.staff_user, form_data)
 
-        self.assertEqual(User.objects.count(), 4)
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
 
         usersformset = resp.context_data['usersformset']
         self.assertEqual(len(usersformset.forms), 1)
@@ -1970,7 +2149,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         )
         resp = self._post_response(self.staff_user, form_data)
 
-        self.assertEqual(User.objects.count(), 4)
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
 
         usersformset = resp.context_data['usersformset']
         self.assertEqual(len(usersformset.forms), 1)
@@ -1990,10 +2170,11 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         )
         resp = self._post_response(self.staff_user, form_data)
 
-        self.assertEqual(User.objects.count(), 4)
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
 
         usersformset = resp.context_data['usersformset']
-        self.assertEqual(len(usersformset.forms), 4)
+        self.assertEqual(len(usersformset.forms), 5)
 
         users = [form.instance for form in usersformset.forms]
         self.assertEqual(set(users), set(User.objects.all()))
@@ -2013,7 +2194,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         )
         resp = self._post_response(self.staff_user, form_data)
 
-        self.assertEqual(User.objects.count(), 4)
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
 
         usersformset = resp.context_data['usersformset']
         self.assertEqual(len(usersformset.forms), 2)
@@ -2053,7 +2235,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         )
         resp = self._post_response(self.staff_user, form_data)
 
-        self.assertEqual(User.objects.count(), 3)
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 4)
         self.assertEqual(Booking.objects.filter(user=new_user).count(), 3)
         usersformset = resp.context_data['usersformset']
         # user has 3 bookings, for each of the selected events, but is only
@@ -2117,6 +2300,15 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, [self.user.id])
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, [self.user.id])
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -2300,6 +2492,15 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.user.id)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, self.user.id)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -3030,6 +3231,15 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user, self.user.id)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -3099,8 +3309,9 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(ActivityLogListViewTests, self).setUp()
-        # 9 logs
-        # 2 logs when self.user and self.staff_user are created in setUp
+        # 10 logs
+        # 3 logs when self.user, self.instructor_user and self.staff_user
+        # are created in setUp
         # 2 for empty cron jobs
         # 3 with log messages to test search text
         # 2 with fixed dates to test search date
@@ -3155,6 +3366,15 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        resp = self._get_response(self.instructor_user)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -3164,13 +3384,13 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
 
     def test_empty_cron_job_logs_filtered_by_default(self):
         resp = self._get_response(self.staff_user)
-        self.assertEqual(len(resp.context_data['logs']), 7)
+        self.assertEqual(len(resp.context_data['logs']), 8)
 
     def test_filter_out_empty_cron_job_logs(self):
         resp = self._get_response(
             self.staff_user, {'hide_empty_cronjobs': True}
         )
-        self.assertEqual(len(resp.context_data['logs']), 7)
+        self.assertEqual(len(resp.context_data['logs']), 8)
 
     def test_search_text(self):
         resp = self._get_response(self.staff_user, {
@@ -3201,7 +3421,7 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
                 'search_submitted': 'Search',
                 'search_date': '01-34-2015'}
         )
-        self.assertEqual(len(resp.context_data['logs']), 9)
+        self.assertEqual(len(resp.context_data['logs']), 10)
 
     def test_search_date_and_text(self):
         resp = self._get_response(
@@ -3233,7 +3453,7 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
                 'reset': 'Reset'
             }
         )
-        self.assertEqual(len(resp.context_data['logs']), 7)
+        self.assertEqual(len(resp.context_data['logs']), 8)
 
 
 class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
@@ -3271,6 +3491,15 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.user, event)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_if_instructor(self):
+        """
+        test that the page can be accessed by a non staff user if in the
+        instructors group
+        """
+        event = mommy.make_recipe('booking.future_PC')
+        resp = self._get_response(self.instructor_user, event)
+        self.assertEquals(resp.status_code, 200)
 
     def test_can_access_as_staff_user(self):
         """
@@ -3565,10 +3794,10 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('>User<', resp.rendered_content)
         self.assertIn('>Deposit Paid<', resp.rendered_content)
         self.assertIn('>Fully Paid<', resp.rendered_content)
-        self.assertIn('>Book with<br/>available block<', resp.rendered_content)
+        self.assertIn('>Booked with<br/>block<', resp.rendered_content)
         self.assertIn('>User\'s block</br>expiry date<', resp.rendered_content)
         self.assertIn('>Block size<', resp.rendered_content)
-        self.assertIn('>Bookings used<', resp.rendered_content)
+        self.assertIn('>Block bookings</br>used<', resp.rendered_content)
 
         resp = self._post_response(
             self.staff_user, {
