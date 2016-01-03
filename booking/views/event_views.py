@@ -11,12 +11,14 @@ from braces.views import LoginRequiredMixin
 from booking.models import Event, WaitingListUser
 from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers
+from booking.views.views_utils import DisclaimerMixin
+
 
 logger = logging.getLogger(__name__)
 
 
 
-class EventListView(ListView):
+class EventListView(DisclaimerMixin, ListView):
     model = Event
     context_object_name = 'events'
     template_name = 'booking/events.html'
@@ -72,7 +74,7 @@ class EventListView(ListView):
         return context
 
 
-class EventDetailView(LoginRequiredMixin, DetailView):
+class EventDetailView(DisclaimerMixin, LoginRequiredMixin, DetailView):
 
     model = Event
     context_object_name = 'event'

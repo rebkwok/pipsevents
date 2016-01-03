@@ -8,11 +8,13 @@
     <h1>Your blocks</h1>
     <div class="row>">
         <div class="col-sm-12">
-            <div {% if not can_book_block %}class="hide {% endif %}">
-                <p>{% if not can_book_block %}
-                    You don't have any active blocks.
-                    {% endif %}
-                    {% if can_book_block %}
+            <div>
+                <p>
+                    {% if not perms.booking.has_signed_disclaimer %}
+                        Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
+                    {% elif not can_book_block %}
+                        You don't have any active blocks.
+                    {% else %}
                     <a href="{% url 'booking:add_block' %}"><span class="btn btn-success">Get a new block!</span></a>
                     {% endif %}
                 </p>

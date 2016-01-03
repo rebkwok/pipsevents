@@ -1,8 +1,8 @@
 from django.test import TestCase, RequestFactory
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.core.urlresolvers import reverse
 
-from accounts.forms import SignupForm
+from accounts.forms import SignupForm, DisclaimerForm
 from accounts.views import ProfileUpdateView, profile
 from booking.tests.helpers import set_up_fb, TestSetupMixin
 from model_mommy import mommy
@@ -34,6 +34,29 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form.signup(request, user)
         self.assertEquals('New', user.first_name)
         self.assertEquals('Name', user.last_name)
+
+
+class DisclaimerFormTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+
+    def test_disclaimer_form(self):
+        form_data = {'terms_accepted': True}
+        form = DisclaimerForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid(self):
+        form_data = {'terms_accepted': False}
+        form = DisclaimerForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'terms_accepted': [
+                'You must confirm that you accept the disclaimer terms'
+            ]}
+        )
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
@@ -73,3 +96,20 @@ class ProfileTest(TestSetupMixin, TestCase):
         resp = profile(request)
 
         self.assertEquals(resp.status_code, 200)
+
+
+class DisclaimerCreateViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+
+    def login_required(self):
+        pass
+
+    def cannot_access_if_already_has_disclaimer(self):
+        pass
+
+    def submitting_form_creates_disclaimer(self):
+        pass

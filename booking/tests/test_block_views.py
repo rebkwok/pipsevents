@@ -3,6 +3,7 @@ from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
 from django.test import Client, TestCase, RequestFactory
+from django.contrib.auth.models import Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -33,6 +34,20 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         self._set_session(user, request)
         view = BlockCreateView.as_view()
         return view(request)
+
+    def test_cannot_create_block_if_no_disclaimer(self):
+        block_type = mommy.make_recipe('booking.blocktype5')
+        resp = self._get_response(self.user_no_disclaimer)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 200)
+
+        form_data={'block_type': block_type}
+        resp = self._post_response(self.user_no_disclaimer, form_data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_create_block(self):
         """

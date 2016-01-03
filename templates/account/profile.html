@@ -44,6 +44,25 @@
                            {% endif %}
                         </p>
                    </div>
+
+                   <div class="col-xs-3"><p><strong>Disclaimer:</strong></p></div>
+                   <div class="col-xs-9">
+                        <p>
+                           {% if perms.booking.has_signed_disclaimer %}
+                                Completed
+                           {% else %}
+                                Not completed
+                           {% endif %}
+                        </p>
+                   </div>
+                   {% if not perms.booking.has_signed_disclaimer %}
+                   <div class="col-xs-12">
+                       <h3>DISCLAIMER</h3>
+                       <p>You have not completed a disclaimer form.
+                           This must be completed before attending any classes or workshops.</p>
+                       <p><a href="{% url 'disclaimer_form' %}">Complete disclaimer form now</a></p>
+                   </div>
+                   {% endif %}
                </div>
 
 

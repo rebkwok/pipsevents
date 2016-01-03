@@ -1,11 +1,15 @@
-from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
-from django.utils import timezone
-from django.contrib.messages.storage.fallback import FallbackStorage
 from model_mommy import mommy
 from datetime import datetime
 from mock import patch
-from booking.models import Booking
+
+
+from django.contrib.auth.models import Permission
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.urlresolvers import reverse
+from django.test import TestCase, RequestFactory
+from django.utils import timezone
+
+from booking.models import Event, Booking, Block
 from booking.views import EventDetailView, BlockListView
 from booking.tests.helpers import _create_session, TestSetupMixin
 

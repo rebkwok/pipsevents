@@ -9,6 +9,9 @@
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
+                {% if not perms.booking.has_signed_disclaimer %}
+                    <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before booking</p>
+                {% endif %}
                 <p>Click on name for more details</p>
                 {% if not user.is_authenticated %}
                     <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
@@ -43,9 +46,17 @@
                                         {% if event in booked_events %}
                                             <span class="fa fa-check"></span>
                                         {% elif event not in booked_events %}
-                                            {% if event.event_type.subtype == "Pole practice" and not is_regular_student %}
+                                            {% if not perms.booking.has_signed_disclaimer %}
+                                                {% if type == 'lessons' %}
+                                                    <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
+                                                {% elif type == 'events' %}
+                                                    <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">N/A - see details</a>
+                                                {% else %}
+                                                    <a class="ext-instructor" href="{% url 'booking:room_hire_detail' event.slug %}">N/A - see details</a>
+                                                {% endif %}
+                                            {% elif event.event_type.subtype == "Pole practice" and not is_regular_student %}
                                                 <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
-                                            {% elif event.bookable %}
+                                             {% elif event.bookable %}
                                                     <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
                                             {% elif event.external_instructor %}
                                                 {% if type == 'events' %}

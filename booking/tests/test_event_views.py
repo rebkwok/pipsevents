@@ -20,19 +20,10 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-<<<<<<< bc31d23c9e3d41e20dead1c7702f72779b552259
         super(EventListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-=======
-        set_up_fb()
-        cls.factory = RequestFactory()
-        mommy.make_recipe('booking.future_EV', _quantity=3)
-        mommy.make_recipe('booking.future_PC', _quantity=3)
-        mommy.make_recipe('booking.future_CL', _quantity=3)
-        cls.user = mommy.make_recipe('booking.user')
->>>>>>> Refactor tests to user setUpTestData where possible
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:events')
@@ -157,7 +148,9 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         user = mommy.make_recipe('booking.user')
         perm = Permission.objects.get(codename='is_regular_student')
+        perm1 = Permission.objects.get(codename='has_signed_disclaimer')
         user.user_permissions.add(perm)
+        user.user_permissions.add(perm1)
         user.save()
 
         response = self._get_response(user, 'lessons')
@@ -248,6 +241,9 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='has_signed_disclaimer')
+        user.user_permissions.add(perm)
+        user.save()
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
@@ -265,7 +261,9 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
 
         user = mommy.make_recipe('booking.user')
         perm = Permission.objects.get(codename='is_regular_student')
+        perm1 = Permission.objects.get(codename='has_signed_disclaimer')
         user.user_permissions.add(perm)
+        user.user_permissions.add(perm1)
         user.save()
 
         response = self._get_response(user, pole_practice, 'lesson')

@@ -61,6 +61,11 @@ def get_event_context(context, event, user):
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
         context['booked'] = True
+    elif not user.has_perm("booking.has_signed_disclaimer"):
+        booking_info_text = "<span class='cancel-warning'>Please complete a " \
+                            "<a href='{}' " \
+                            "target=_blank>disclaimer form</a> before booking." \
+                            "</span>".format(reverse('disclaimer_form'))
     elif event.event_type.subtype == "Pole practice" \
         and not user.has_perm("booking.is_regular_student"):
         context['bookable'] = False

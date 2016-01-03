@@ -1,0 +1,45 @@
+{% extends 'account/base.html' %}
+{% load bookingtags %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+       <div class="panel panel-success">
+
+            <div class="panel-heading">
+                <h1 class="panel-title">Disclaimer Form</h1>
+            </div>
+           <div class="panel-body">
+
+               {% if perms.booking.has_signed_disclaimer %}
+                    <div>
+                        <p>You have already completed a disclaimer.</p>
+                    </div>
+                {% else %}
+
+                   <form action="" method="post">
+                       {% csrf_token %}
+                       {% for field in form %}
+                           <div class="form-group">
+                                <label class="control-label col-xs-2">{{ field.label }}
+                                {% if field.required %}*{% endif %}</label>
+                                <div class="col-xs-10 {% if field.errors %}ticket-error{% endif %}">
+                                    {{ field }}
+                                    {% if field.name == 'terms_accepted' %}<label for='id_terms_accepted'></label>{% endif %}
+                                </div>
+                                <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ field.help_text }}</div>
+                                {% if field.errors %}
+                                    <div class="col-xs-10 col-xs-offset-2">
+                                        {{ field.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                       {% endfor %}
+                        <div class="col-xs-12"><input class="btn btn-success" type="submit" value="Submit" /></div>
+                   </form>
+                {% endif %}
+           </div>
+
+       </div>
+</div>
+{% endblock content %}

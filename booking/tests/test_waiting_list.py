@@ -17,6 +17,11 @@ from studioadmin.views import user_bookings_view
 
 class WaitingListTests(TestSetupMixin, TestCase):
 
+    def setUpTestData(cls):
+        super(WaitingListTests, cls).setUpTestData()
+        perm = Permission.objects.get(codename='has_signed_disclaimer')
+        cls.user.user_permissions.add(perm)
+
     def _get_event_list(self, user, ev_type):
         url = reverse('booking:events')
         request = self.factory.get(url)

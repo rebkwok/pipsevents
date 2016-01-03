@@ -1,16 +1,21 @@
 from django.shortcuts import render, HttpResponse, get_object_or_404
-from django.views.generic import UpdateView
-from django.contrib.auth.models import User
+from django.views.generic import UpdateView, CreateView
+from django.contrib.auth.models import User, Permission
 from django.core.urlresolvers import reverse
 from braces.views import LoginRequiredMixin
 
 from allauth.account.views import LoginView
 
+from accounts.forms import DisclaimerForm
+
+from booking.views.views_utils import DisclaimerMixin
+
+
 def profile(request):
     return render(request, 'account/profile.html')
 
 
-class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+class ProfileUpdateView(DisclaimerMixin, LoginRequiredMixin, UpdateView):
 
     model = User
     template_name = 'account/update_profile.html'
@@ -33,3 +38,25 @@ class CustomLoginView(LoginView):
             ret = reverse('profile:profile')
 
         return ret
+
+
+class DisclaimerCreateView(DisclaimerMixin, CreateView):
+
+    form_class = DisclaimerForm
+    template_name = 'account/disclaimer_form.html'
+
+
+    def form_valid(self, form):
+
+        disclaimer = form.save(commit=False)
+        disclaimer.user = self.request.user
+        disclaimer.save()
+
+        disclaimer_perm = Permission.objects.get(codename="has_signed_disclaimer")
+        self.request.user.user_permissions.add(disclaimer_perm)
+
+        return super(DisclaimerCreateView, self).form_valid(form)
+
+
+    def get_success_url(self):
+        return reverse('profile:profile')
