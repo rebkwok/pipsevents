@@ -363,6 +363,10 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
+        resp = self._get_response(self.user, 'lessons')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
@@ -370,12 +374,16 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(resp.status_code, 200)
 
-    def test_can_access_if_instructor(self):
+    def test_can_access_class_registers_if_instructor(self):
         """
         test that the page can be accessed by a non staff user if in the
-        instructors group
+        instructors group and event type is not events
         """
         resp = self._get_response(self.instructor_user, 'events')
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+        resp = self._get_response(self.instructor_user, 'lessons')
         self.assertEquals(resp.status_code, 200)
 
     def test_event_context(self):

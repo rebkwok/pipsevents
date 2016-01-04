@@ -448,6 +448,9 @@ def register_print_day(request):
                 ).replace(tzinfo=timezone.utc),
             ).order_by('date')
 
+            if not request.user.is_staff:
+                events = events.exclude(event_type__event_type='EV')
+
             new_form = RegisterDayForm(
                 initial={'register_date': register_date,
                          'exclude_ext_instructor': exclude_ext_instructors,
@@ -556,6 +559,8 @@ def register_print_day(request):
                 date__gt=datetime.now().replace(hour=0, minute=0, tzinfo=timezone.utc),
                 date__lt=datetime.now().replace(hour=23, minute=59, tzinfo=timezone.utc),
             ).order_by('date')
+    if not request.user.is_staff:
+        events = events.exclude(event_type__event_type='EV')
     form = RegisterDayForm(events=events, initial={'exclude_ext_instructor': True})
 
     return TemplateResponse(
@@ -567,7 +572,6 @@ def register_print_day(request):
 @login_required
 @staff_required
 def event_admin_list(request, ev_type):
-
 
     if ev_type == 'events':
         ev_type_text = 'event'
@@ -685,6 +689,12 @@ class EventRegisterListView(
     model = Event
     template_name = 'studioadmin/events_register_list.html'
     context_object_name = 'events'
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_staff \
+                and self.kwargs['ev_type'] == 'events':
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+        return super(EventRegisterListView, self).get(request, *args, **kwargs)
 
     def get_queryset(self):
         if self.kwargs["ev_type"] == 'events':
