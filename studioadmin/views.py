@@ -303,6 +303,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                         booking.user.username
                                     )
                                 )
+
                         elif 'block' in form.changed_data and not booking.block:
                             booking.paid = False
                             booking.payment_confirmed = False

@@ -79,7 +79,7 @@
                                     </td>
                                     <td class="table-center studioadmin-tbl {% if bookingform.instance.id and not bookingform.instance.paid and not print %}register-unpaid{% endif %}">
                                         {% if bookingform.instance.paid %}
-                                            {% if bookingform.paid_by_paypal %}
+                                            {% if bookingform.paid_by_paypal or bookingform.instance.block %}
                                                 <span class="fa fa-check"></span>
                                                 <span class="hide">{{ bookingform.paid }}</span>
                                             {% else %}
@@ -93,8 +93,9 @@
                                             {% endif %}
                                         {% endif %}</td>
                                         {% if available_block_type %}
-                                            {% if bookingform.instance.block %}
-                                                <td class="table-center studioadmin-tbl">{{ bookingform.block }}</td>
+                                            {% if bookingform.instance.paid and bookingform.instance.block %}
+                                                <span class="hide">{{ bookingform.block }}</span>
+                                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.block }}</td>
                                             {% elif bookingform.instance.paid and bookingform.available_block %}
                                                 {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}
                                             {% elif bookingform.available_block %}
