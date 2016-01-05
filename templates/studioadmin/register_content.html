@@ -95,7 +95,7 @@
                                         {% if available_block_type %}
                                             {% if bookingform.instance.paid and bookingform.instance.block %}
                                                 <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.block }}</td>
+                                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.block | format_block }}</td>
                                             {% elif bookingform.instance.paid and bookingform.available_block %}
                                                 {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}
                                             {% elif bookingform.available_block %}
