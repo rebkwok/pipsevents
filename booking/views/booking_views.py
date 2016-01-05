@@ -29,7 +29,7 @@ from booking.models import Event, Booking, Block, BlockType, WaitingListUser, \
 from booking.forms import BookingCreateForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
-from booking.views.views_utils import DisclaimerRequiredMixin, DisclaimerMixin
+from booking.views.views_utils import DisclaimerRequiredMixin
 
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
@@ -37,7 +37,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class BookingListView(DisclaimerMixin, LoginRequiredMixin, ListView):
+class BookingListView(LoginRequiredMixin, ListView):
 
     model = Booking
     context_object_name = 'bookings'
@@ -117,7 +117,7 @@ class BookingListView(DisclaimerMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class BookingHistoryListView(DisclaimerMixin, LoginRequiredMixin, ListView):
+class BookingHistoryListView(LoginRequiredMixin, ListView):
 
     model = Booking
     context_object_name = 'bookings'

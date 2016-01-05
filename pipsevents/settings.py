@@ -291,7 +291,8 @@ SUIT_CONFIG = {
                 'auth.user',
                 'account.emailaddress',
                 'account.emailconfirmation',
-                'accounts.disclaimer'),
+                'accounts.onlinedisclaimer',
+                'accounts.printdisclaimer'),
             'icon': 'icon-user',
         },
         {

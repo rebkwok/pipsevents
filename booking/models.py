@@ -354,7 +354,6 @@ class Booking(models.Model):
             ("can_request_free_class", "Can request free class and pole practice"),
             ("is_regular_student", "Is regular student"),
             ("can_view_registers", "Can view registers"),
-            ("has_signed_disclaimer", "Has signed disclaimer")
         )
 
     def __str__(self):

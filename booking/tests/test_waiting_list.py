@@ -6,6 +6,8 @@ from django.test import TestCase, RequestFactory
 from django.contrib.messages.storage.fallback import FallbackStorage
 
 from booking.models import Booking, WaitingListUser
+from accounts.models import PrintDisclaimer
+
 from booking.views import BookingListView, BookingCreateView, \
     BookingDeleteView, BookingUpdateView, update_booking_cancelled, \
     EventListView, EventDetailView
@@ -19,8 +21,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
 
     def setUpTestData(cls):
         super(WaitingListTests, cls).setUpTestData()
-        perm = Permission.objects.get(codename='has_signed_disclaimer')
-        cls.user.user_permissions.add(perm)
+        mommy.make(PrintDisclaimer, user=self.user)
 
     def _get_event_list(self, user, ev_type):
         url = reverse('booking:events')

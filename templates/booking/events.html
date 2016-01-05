@@ -9,7 +9,7 @@
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
-                {% if not perms.booking.has_signed_disclaimer %}
+                {% if not disclaimer and user.is_authenticated %}
                     <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before booking</p>
                 {% endif %}
                 <p>Click on name for more details</p>
@@ -46,7 +46,7 @@
                                         {% if event in booked_events %}
                                             <span class="fa fa-check"></span>
                                         {% elif event not in booked_events %}
-                                            {% if not perms.booking.has_signed_disclaimer %}
+                                            {% if not disclaimer %}
                                                 {% if type == 'lessons' %}
                                                     <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                                                 {% elif type == 'events' %}

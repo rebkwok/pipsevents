@@ -16,7 +16,7 @@ from payments.forms import PayPalPaymentsListForm
 from booking.models import Booking, Block
 from booking.forms import BlockCreateForm
 import booking.context_helpers as context_helpers
-from booking.views.views_utils import DisclaimerRequiredMixin, DisclaimerMixin
+from booking.views.views_utils import DisclaimerRequiredMixin
 from payments.helpers import create_block_paypal_transaction
 
 from activitylog.models import ActivityLog
@@ -88,7 +88,7 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
         return HttpResponseRedirect(block.get_absolute_url())
 
 
-class BlockListView(DisclaimerMixin, LoginRequiredMixin, ListView):
+class BlockListView(LoginRequiredMixin, ListView):
 
     model = Block
     context_object_name = 'blocks'

@@ -48,14 +48,14 @@
                    <div class="col-xs-3"><p><strong>Disclaimer:</strong></p></div>
                    <div class="col-xs-9">
                         <p>
-                           {% if perms.booking.has_signed_disclaimer %}
+                           {% if disclaimer %}
                                 Completed
                            {% else %}
                                 Not completed
                            {% endif %}
                         </p>
                    </div>
-                   {% if not perms.booking.has_signed_disclaimer %}
+                   {% if not disclaimer %}
                    <div class="col-xs-12">
                        <h3>DISCLAIMER</h3>
                        <p>You have not completed a disclaimer form.

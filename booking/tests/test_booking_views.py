@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.contrib.auth.models import Permission, User
 
 from activitylog.models import ActivityLog
+from accounts.models import PrintDisclaimer
 
 from booking.models import Event, EventType, Booking, Block, WaitingListUser
 from booking.views import BookingListView, BookingHistoryListView, \
@@ -969,12 +970,11 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
 
         user = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user)
         perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
-        perm2 = Permission.objects.get(codename='has_signed_disclaimer')
         user.user_permissions.add(perm)
         user.user_permissions.add(perm1)
-        user.user_permissions.add(perm2)
         user.save()
 
         response = self._get_response(user, pole_class)

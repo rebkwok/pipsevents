@@ -42,14 +42,31 @@ class DisclaimerFormTests(TestCase):
         set_up_fb()
         self.factory = RequestFactory()
 
+        self.form_data = {
+            'name': 'test', 'dob': '01 Jan 1990', 'address': '1 test st',
+            'postcode': 'TEST1', 'home_phone': '123445', 'mobile_phone': '124566',
+            'emergency_contact1_name': 'test1',
+            'emergency_contact1_relationship': 'mother',
+            'emergency_contact1_phone': '4547',
+            'emergency_contact2_name': 'test2',
+            'emergency_contact2_relationship': 'father',
+            'emergency_contact2_phone': '34657',
+            'medical_conditions': False, 'medical_conditions_details': '',
+            'joint_problems': False, 'joint_problems_details': '',
+            'allergies': False, 'allergies_details': '',
+            'medical_treatment_permission': True,
+            'terms_accepted': True,
+            'age_over_18_confirmed': True,
+            'password': 'password'
+        }
+
     def test_disclaimer_form(self):
-        form_data = {'terms_accepted': True}
-        form = DisclaimerForm(data=form_data)
+        form = DisclaimerForm(data=self.form_data)
         self.assertTrue(form.is_valid())
 
     def test_form_invalid(self):
-        form_data = {'terms_accepted': False}
-        form = DisclaimerForm(data=form_data)
+        self.form_data['terms_accepted'] = False
+        form = DisclaimerForm(data=self.form_data)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,

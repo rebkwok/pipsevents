@@ -1,3 +1,5 @@
+from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, HttpResponse, get_object_or_404
 from django.views.generic import UpdateView, CreateView
 from django.contrib.auth.models import User, Permission
@@ -8,14 +10,25 @@ from allauth.account.views import LoginView
 
 from accounts.forms import DisclaimerForm
 
-from booking.views.views_utils import DisclaimerMixin
-
 
 def profile(request):
-    return render(request, 'account/profile.html')
+    disclaimer = False
+    try:
+        request.user.online_disclaimer
+        disclaimer = True
+    except ObjectDoesNotExist:
+        pass
+
+    try:
+        request.user.print_disclaimer
+        disclaimer = True
+    except ObjectDoesNotExist:
+        pass
+
+    return render(request, 'account/profile.html', {'disclaimer': disclaimer})
 
 
-class ProfileUpdateView(DisclaimerMixin, LoginRequiredMixin, UpdateView):
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
     model = User
     template_name = 'account/update_profile.html'
@@ -40,20 +53,41 @@ class CustomLoginView(LoginView):
         return ret
 
 
-class DisclaimerCreateView(DisclaimerMixin, CreateView):
+class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
     form_class = DisclaimerForm
     template_name = 'account/disclaimer_form.html'
 
 
+    def get_context_data(self, **kwargs):
+        context = super(DisclaimerCreateView, self).get_context_data(**kwargs)
+
+        try:
+            self.request.user.online_disclaimer
+            context['disclaimer'] = True
+        except ObjectDoesNotExist:
+            pass
+
+        try:
+            self.request.user.print_disclaimer
+            context['disclaimer'] = True
+        except ObjectDoesNotExist:
+            pass
+
+        return context
+
+
     def form_valid(self, form):
-
         disclaimer = form.save(commit=False)
-        disclaimer.user = self.request.user
-        disclaimer.save()
 
-        disclaimer_perm = Permission.objects.get(codename="has_signed_disclaimer")
-        self.request.user.user_permissions.add(disclaimer_perm)
+        password = form.cleaned_data['password']
+        if self.request.user.check_password(password):
+            disclaimer.user = self.request.user
+            disclaimer.save()
+        else:
+            messages.error(self.request, "Password is incorrect")
+            form = DisclaimerForm(form.data)
+            return render(self.request, self.template_name, {'form':form})
 
         return super(DisclaimerCreateView, self).form_valid(form)
 

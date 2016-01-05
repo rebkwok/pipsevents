@@ -868,7 +868,7 @@ a > span.fa.fa-print {
     list-style: none;
     color: red;
     font-style: italic;
-    font-size: smaller;
+    font-size: small;
     padding-left: 0;
 }
 
@@ -928,3 +928,7 @@ label.control-label {
     width: 90%;
     margin-left: 5%;
     }
+
+.form-group.space-below {
+    padding-bottom: 15px;
+}

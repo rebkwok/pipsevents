@@ -7,6 +7,8 @@ from django.contrib.auth.models import Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
+from accounts.models import PrintDisclaimer
+
 from booking.forms import BlockCreateForm
 from booking.models import Block
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
