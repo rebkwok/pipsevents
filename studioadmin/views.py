@@ -287,6 +287,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                     continue
 
                                 new_booking.status = 'OPEN'
+                                new_booking.attended = booking.attended
                                 new_booking.save()
 
                                 ActivityLog.objects.create(
@@ -315,8 +316,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 )
                             )
                             ActivityLog.objects.create(
-                                log='Block removed for booking id {} for event {}, user {} has been '
-                                    'updated by admin user {}'.format(
+                                log='Block removed for booking id {} for event '
+                                    '{}, user {} by admin user {}'.format(
                                     booking.id, booking.event,
                                     booking.user.username,
                                     request.user.username
