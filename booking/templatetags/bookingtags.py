@@ -8,6 +8,8 @@ from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from accounts.models import OnlineDisclaimer, PrintDisclaimer
+
 from booking.models import Booking
 
 
@@ -135,3 +137,15 @@ def format_block(block):
             block.block_type.size,
             block.expiry_date.strftime('%d %b %y')
         )
+
+
+@register.filter
+def has_print_disclaimer(user):
+    disclaimer = PrintDisclaimer.objects.filter(user=user)
+    return bool(disclaimer)
+
+
+@register.filter
+def has_online_disclaimer(user):
+    disclaimer = OnlineDisclaimer.objects.filter(user=user)
+    return bool(disclaimer)
