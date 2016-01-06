@@ -32,6 +32,7 @@
                             <th class="table-center">Attended</th>
                             <th class="table-center" >Status</th>
                             <th class="table-center">User</th>
+                            <th class="table-center">Disclaimer</th>
                             <th class="table-center">Deposit Paid</th>
                             <th class="table-center">Fully Paid</th>
                             {% if available_block_type %}
@@ -56,6 +57,10 @@
                                     {{ bookingform.instance.user.last_name }}{% if not print %} ({{ bookingform.instance.user.username }}){% endif %}
                                 {% elif not print %}
                                     {{ bookingform.user }}
+                                {% endif %}
+                                </td>
+                                <td class="table-center studioadmin-tbl">{% if bookingform.user_has_disclaimer %}
+                                    <span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>
                                 {% endif %}
                                 </td>
 
@@ -106,11 +111,11 @@
                         {% endfor %}
 
                         {% if print %}
-                        <tr><td class="notes-row " {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>Notes: </td></tr>
+                        <tr><td class="notes-row " {% if available_block_type %}colspan="11"{% else %}colspan="7"{% endif %}>Notes: </td></tr>
                         {% endif %}
                         {% if not print %}
                             <tr no-print>
-                                <td {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>
+                                <td {% if available_block_type %}colspan="10"{% else %}colspan="7"{% endif %}>
                                     <a target="_blank" href="{% url 'studioadmin:event_register_print' event.slug status_choice %}" %} class="btn btn-info table-btn" name="print" type="submit">Printable Version</a>
                                     <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
                                 </td>

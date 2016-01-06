@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from dateutil.relativedelta import relativedelta
+
 from django import forms
 
 from accounts import validators as account_validators
@@ -171,4 +173,8 @@ class DisclaimerForm(forms.ModelForm):
                                     'the date picker or enter date in the '
                                     'format e.g. 08 Jun 1990')
 
+        yearsago = datetime.today().date() - relativedelta(years=18)
+        if dob > yearsago:
+            self.add_error(
+                'dob', 'You must be over 18 years in order to register.')
         return super(DisclaimerForm, self).clean()

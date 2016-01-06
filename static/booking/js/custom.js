@@ -95,6 +95,7 @@ jQuery(document).ready(function () {
         format:'DD MMM YYYY',
         formatTime:'HH:mm',
         timepicker: false,
+        defaultDate: '1990/01/01',
         closeOnDateSelect: true,
         scrollMonth: false,
         scrollTime: false,
