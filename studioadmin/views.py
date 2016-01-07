@@ -254,9 +254,23 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                     request.POST.get('formset_submitted'):
                 messages.info(request, "No changes were made")
             else:
+                attended_checked = []
+                attended_unchecked = []
+                deposit_updates = {}
+                paid_updates = {}
+                # for messages; show separate message if booking created or
+                # reopened; show combined message for other updates; show
+                # additional payment info in log (but not messages)
+                updated = []
+
                 for form in formset:
                     booking = form.save(commit=False)
+
                     if form.has_changed():
+                        if 'attended' in form.changed_data:
+                            attended_checked.append(booking.user.username) \
+                                if booking.attended \
+                                else attended_unchecked.append(booking.user.username)
 
                         # new booking
                         if 'user' in form.changed_data:
@@ -264,8 +278,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                             try:
                                 booking.save()
                                 ActivityLog.objects.create(
-                                    log='Booking id {} for event {}, user {} has been '
-                                        'created by admin user {}'.format(
+                                    log='(Register) Booking id {} for event '
+                                        '{}, user {} has been created by admin '
+                                        'user {} '.format(
                                         booking.id, booking.event,
                                         booking.user.username,
                                         request.user.username
@@ -291,8 +306,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 new_booking.save()
 
                                 ActivityLog.objects.create(
-                                    log='Cancelled booking id {} for event {}, user {} has been '
-                                        'reopened by admin user {}'.format(
+                                    log='(Register) Cancelled booking id {} for event {}, '
+                                        'user {} has been  reopened by admin '
+                                        'user {}'.format(
                                         new_booking.id, new_booking.event,
                                         new_booking.user.username,
                                         request.user.username
@@ -305,46 +321,110 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                     )
                                 )
 
-                        elif 'block' in form.changed_data and not booking.block:
-                            booking.paid = False
-                            booking.payment_confirmed = False
+                        elif 'block' in form.changed_data:
+                            booking.paid = bool(booking.block)
+                            booking.payment_confirmed = bool(booking.block)
                             booking.save()
-                            messages.success(
-                                request,
-                                "Block removed for user {} and booking set to unpaid".format(
-                                    booking.user.username
-                                )
-                            )
+
                             ActivityLog.objects.create(
-                                log='Block removed for booking id {} for event '
+                                log='(Register) Block {} for booking id {} for event '
                                     '{}, user {} by admin user {}'.format(
+                                    'added' if booking.block else 'removed',
                                     booking.id, booking.event,
                                     booking.user.username,
                                     request.user.username
                                 )
                             )
+                            updated.append(booking)
 
                         else:
-                            if booking.block:
-                                booking.paid = True
-                                booking.payment_confirmed = True
+                            # add to updated list if something more than just the
+                            # attended checkbox has changed
                             booking.save()
-                            messages.success(
-                                request,
-                                "Register updated for user {}".format(
-                                    booking.user.username
-                                )
+                            if form.changed_data != ['attended']:
+                                updated.append(booking)
+
+                            # activity logs for changed to payment status
+                            if 'deposit_paid' in form.changed_data:
+                                change = 'yes' if booking.deposit_paid else 'no'
+                                deposit_updates[booking.user.username] = change
+
+                            if 'paid' in form.changed_data:
+                                change = 'yes' if booking.paid else 'no'
+                                paid_updates[booking.user.username] = change
+
+                if deposit_updates:
+                    ActivityLog.objects.create(
+                        log='(Register) Deposit paid updated for user{} {} for '
+                            'event {} by admin user {}'.format(
+                                's' if len(deposit_updates) > 1 else '',
+                                ', '.join(
+                                    ['{} ({})'.format(k, v)
+                                     for k, v in deposit_updates.items()]
+                                ),
+                                booking.event,
+                                request.user.username
                             )
-                            ActivityLog.objects.create(
-                                log='Booking id {} for event {}, user {} has been '
-                                    'updated by admin user {}'.format(
-                                    booking.id, booking.event,
-                                    booking.user.username,
-                                    request.user.username
-                                )
+                        )
+
+                if paid_updates:
+                    ActivityLog.objects.create(
+                        log='(Register) Fully paid updated for user{} {} for '
+                            'event {} by admin user {}'.format(
+                                's' if len(paid_updates) > 1 else '',
+                                ', '.join(
+                                    ['{} ({})'.format(k, v)
+                                     for k, v in paid_updates.items()]
+                                ),
+                                booking.event,
+                                request.user.username
                             )
+                        )
+
+                if updated:
+                    messages.success(
+                        request,
+                        "Booking updated for user{} {}".format(
+                            's' if len(updated) > 1 else '',
+                            ', '.join([bk.user.username for bk in updated])
+                        )
+                    )
+                if attended_checked:
+                    messages.success(
+                        request,
+                        "Booking changed to attended for user{} {}".format(
+                            's' if len(attended_checked) > 1 else '',
+                            ', '.join(attended_checked)
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="(Register) User{} {} marked as attended for event {} by "
+                            "admin user {}".format(
+                            's' if len(attended_checked) > 1 else '',
+                            ', '.join(attended_checked),
+                            booking.event, request.user.username
+                        )
+                    )
+
+                if attended_unchecked:
+                    messages.success(
+                        request,
+                        "Booking changed to unattended for user{} {}".format(
+                            's' if len(attended_unchecked) > 1 else '',
+                            ', '.join(attended_unchecked)
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="(Register) User{} {} marked as unattended for event {} by "
+                            "admin user {}".format(
+                            's' if len(attended_unchecked) > 1 else '',
+                            ', '.join(attended_unchecked),
+                            booking.event, request.user.username
+                        )
+                    )
+
                     for error in form.errors:
-                        messages.error(request,mark_safe("{}".format(error)))
+                        messages.error(request, mark_safe("{}".format(error)))
                 # formset.save()
 
             register_url = 'studioadmin:event_register'
