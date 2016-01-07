@@ -31,8 +31,8 @@
                                 <th class="table-center">First Name <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Regular student</th>
-                                <th class="table-center">Print Disclaimer</th>
-                                <th class="table-center">Online Disclaimer</th>
+                                <th class="table-center">Paper Disclaimer</th>
+                                <th class="table-center">Online Disclaimer</br><span class="studioadmin-help">Click to view/print disclaimer</span></th>
                                 <th class="table-center">Bookings</th>
                                 <th class="table-center">Blocks</th>
                                 <th class="table-center">Email</th>
@@ -56,7 +56,10 @@
                                                         type="submit" name="change_print_disclaimer" id="print_disclaimer_button" value="{{ user.id }}">{% if user|has_print_disclaimer %}Yes{% else %}No{% endif %}</button>
                                     </form>
                                 </td>
-                                <td class="table-center studioadmin-tbl">{% if user|has_online_disclaimer %}<span class="has-disclaimer-pill">Yes</span>{% else %}No{% endif %}</td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if user|has_online_disclaimer %}
+                                        <a href="{% url 'studioadmin:user_disclaimer' user.id %}" target="_blank"><span class="has-disclaimer-pill">Yes</span></a>
+                                    {% else %}No{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
