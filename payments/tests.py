@@ -840,6 +840,81 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(len(mail.outbox), 3)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_more_than_one_booking_trans_object(
+            self, mock_postback
+    ):
+        """
+        The PayPalBooking/Block/TicketBookingTransaction object is created and
+        retrieved using the username and event name/date.  If the user changes
+        their username between booking and paying, a second Transaction object
+        will be created.  In this case, we use the Transaction object that has
+        the invoice number that matches the paypal ipn; if the paypal ipn has
+        no invoice associated, we use the latest one.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe('booking.booking', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalBookingTransaction.objects.exists())
+
+        pptn = helpers.create_booking_paypal_transaction(booking.user, booking)
+        pptn.invoice_id = 'invoice_1'
+        pptn.save()
+        pptn1 = helpers.create_booking_paypal_transaction(booking.user, booking)
+        pptn1.invoice_id = 'invoice_2'
+        pptn1.save()
+
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b'invoice_1'
+            }
+        )
+        self.paypal_post(params)
+        pptn.refresh_from_db()
+        self.assertEqual(b(pptn.transaction_id), IPN_POST_PARAMS['txn_id'])
+
+        booking.refresh_from_db()
+        self.assertTrue(booking.paid)
+        # 2 emails sent, to user and studio
+        self.assertEqual(len(mail.outbox), 2)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_more_than_one_booking_trans_object_no_invoice(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe('booking.booking', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalBookingTransaction.objects.exists())
+
+        pptn = helpers.create_booking_paypal_transaction(booking.user, booking)
+        pptn.invoice_id = 'invoice_1'
+        pptn.save()
+        pptn1 = helpers.create_booking_paypal_transaction(booking.user, booking)
+        pptn1.invoice_id = 'invoice_2'
+        pptn1.save()
+
+        # if paypal ipn doesn't contain invoice number
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b''
+            }
+        )
+        self.paypal_post(params)
+        pptn1.refresh_from_db()
+        self.assertEqual(b(pptn1.transaction_id), IPN_POST_PARAMS['txn_id'])
+
+        booking.refresh_from_db()
+        self.assertTrue(booking.paid)
+        # 3 emails sent, to user and studio, and support b/c no invoice id
+        self.assertEqual(len(mail.outbox), 3)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_without_block_trans_object(self, mock_postback):
         """
         A PayPalBooking/Block/TicketBookingTransaction object should be created
@@ -877,6 +952,81 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(len(mail.outbox), 3)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_more_than_one_block_trans_object(
+            self, mock_postback
+    ):
+        """
+        The PayPalBooking/Block/TicketBookingTransaction object is created and
+        retrieved using the username and event name/date.  If the user changes
+        their username between booking and paying, a second Transaction object
+        will be created.  In this case, we use the Transaction object that has
+        the invoice number that matches the paypal ipn; if the paypal ipn has
+        no invoice associated, we use the latest one.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        block = mommy.make_recipe('booking.block_5', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalBlockTransaction.objects.exists())
+
+        pptn = helpers.create_block_paypal_transaction(block.user, block)
+        pptn.invoice_id = 'invoice_1'
+        pptn.save()
+        pptn1 = helpers.create_block_paypal_transaction(block.user, block)
+        pptn1.invoice_id = 'invoice_2'
+        pptn1.save()
+
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {}'.format(block.id)),
+                'invoice': b'invoice_1'
+            }
+        )
+        self.paypal_post(params)
+        pptn.refresh_from_db()
+        self.assertEqual(b(pptn.transaction_id), IPN_POST_PARAMS['txn_id'])
+
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+        # 2 emails sent, to user and studio
+        self.assertEqual(len(mail.outbox), 2)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_more_than_one_block_trans_object_no_invoice(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        block = mommy.make_recipe('booking.block_5', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalBlockTransaction.objects.exists())
+
+        pptn = helpers.create_block_paypal_transaction(block.user, block)
+        pptn.invoice_id = 'invoice_1'
+        pptn.save()
+        pptn1 = helpers.create_block_paypal_transaction(block.user, block)
+        pptn1.invoice_id = 'invoice_2'
+        pptn1.save()
+
+        # if paypal ipn doesn't contain invoice number
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {}'.format(block.id)),
+                'invoice': b''
+            }
+        )
+        self.paypal_post(params)
+        pptn1.refresh_from_db()
+        self.assertEqual(b(pptn1.transaction_id), IPN_POST_PARAMS['txn_id'])
+
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+        # 3 emails sent, to user and studio, and support b/c no invoice id
+        self.assertEqual(len(mail.outbox), 3)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_without_tck_bkg_trans_object(self, mock_postback):
         """
         A PayPalBooking/Block/TicketBookingTransaction object should be created
@@ -910,6 +1060,88 @@ class PaypalSignalsTests(TestCase):
         pptrans = PaypalTicketBookingTransaction.objects.first()
         self.assertEqual(ppipn.invoice, pptrans.invoice_id)
         # 3 emails sent, to user and studio and support because there is no inv
+        self.assertEqual(len(mail.outbox), 3)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_more_than_one_ticket_booking_trans_object(
+            self, mock_postback
+    ):
+        """
+        The PayPalBooking/Block/TicketBookingTransaction object is created and
+        retrieved using the username and event name/date.  If the user changes
+        their username between booking and paying, a second Transaction object
+        will be created.  In this case, we use the Transaction object that has
+        the invoice number that matches the paypal ipn; if the paypal ipn has
+        no invoice associated, we use the latest one.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        tbooking = mommy.make_recipe('booking.ticket_booking', paid=False)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalTicketBookingTransaction.objects.exists())
+
+        pptn = helpers.create_ticket_booking_paypal_transaction(
+            tbooking.user, tbooking
+        )
+        pptn.invoice_id = 'invoice_1'
+        pptn.save()
+        pptn1 = helpers.create_ticket_booking_paypal_transaction(
+            tbooking.user, tbooking
+        )
+        pptn1.invoice_id = 'invoice_2'
+        pptn1.save()
+
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('ticket_booking {}'.format(tbooking.id)),
+                'invoice': b'invoice_1'
+            }
+        )
+        self.paypal_post(params)
+        pptn.refresh_from_db()
+        self.assertEqual(b(pptn.transaction_id), IPN_POST_PARAMS['txn_id'])
+
+        tbooking.refresh_from_db()
+        self.assertTrue(tbooking.paid)
+        # 2 emails sent, to user and studio
+        self.assertEqual(len(mail.outbox), 2)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_more_than_one_tbkng_trans_object_no_invoice(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        tbooking = mommy.make_recipe('booking.ticket_booking', paid=False)
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertFalse(PaypalTicketBookingTransaction.objects.exists())
+
+        pptn = helpers.create_ticket_booking_paypal_transaction(
+            tbooking.user, tbooking
+        )
+        pptn.invoice_id = 'invoice_1'
+        pptn.save()
+        pptn1 = helpers.create_ticket_booking_paypal_transaction(
+            tbooking.user, tbooking
+        )
+        pptn1.invoice_id = 'invoice_2'
+        pptn1.save()
+
+        # if paypal ipn doesn't contain invoice number
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('ticket_booking {}'.format(tbooking.id)),
+                'invoice': b''
+            }
+        )
+        self.paypal_post(params)
+        pptn1.refresh_from_db()
+        self.assertEqual(b(pptn1.transaction_id), IPN_POST_PARAMS['txn_id'])
+
+        tbooking.refresh_from_db()
+        self.assertTrue(tbooking.paid)
+        # 3 emails sent, to user and studio, and support b/c no invoice id
         self.assertEqual(len(mail.outbox), 3)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
