@@ -3,6 +3,9 @@ from django.contrib.auth.models import User
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
 
+from paypal.standard.ipn.models import PayPalIPN
+from paypal.standard.ipn.admin import PayPalIPNAdmin
+
 
 class PaymentsUserFilter(admin.SimpleListFilter):
 
@@ -148,8 +151,27 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
             obj.ticket_booking.tickets.count()
         )
 
+
+class PayPalAdmin(PayPalIPNAdmin):
+
+    search_fields = [
+        "txn_id", "recurring_payment_id", 'custom', 'invoice',
+        'first_name', 'last_name'
+    ]
+    list_display = [
+        "txn_id", "flag", "flag_info", "invoice", "custom",
+        "payment_status", "buyer", "created_at"
+    ]
+
+    def buyer(self, obj):
+        return "{} {}".format(obj.first_name, obj.last_name)
+    buyer.admin_order_field = 'first_name'
+
+
 admin.site.register(PaypalBookingTransaction, PaypalBookingTransactionAdmin)
 admin.site.register(PaypalBlockTransaction, PaypalBlockTransactionAdmin)
 admin.site.register(
     PaypalTicketBookingTransaction, PaypalTicketBookingTransactionAdmin
 )
+admin.site.unregister(PayPalIPN)
+admin.site.register(PayPalIPN, PayPalAdmin)
