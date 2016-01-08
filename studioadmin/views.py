@@ -2,7 +2,7 @@ import urllib.parse
 import ast
 import logging
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from functools import wraps
 
 
@@ -659,12 +659,12 @@ def event_admin_list(request, ev_type):
         ev_type_text = 'event'
         queryset = Event.objects.filter(
             event_type__event_type='EV',
-            date__gte=timezone.now()
+            date__gte=timezone.now() - timedelta(hours=1)
         ).order_by('date')
     else:
         ev_type_text = 'class'
         queryset = Event.objects.filter(
-            date__gte=timezone.now()
+            date__gte=timezone.now() - timedelta(hours=1)
         ).exclude(event_type__event_type='EV').order_by('date')
 
     events = True if queryset.count() > 0 else False
@@ -782,11 +782,11 @@ class EventRegisterListView(
         if self.kwargs["ev_type"] == 'events':
             queryset = Event.objects.filter(
                 event_type__event_type='EV',
-                date__gte=timezone.now()
+                date__gte=timezone.now() - timedelta(hours=1)
             ).order_by('date')
         else:
             queryset = Event.objects.filter(
-                date__gte=timezone.now()
+                date__gte=timezone.now() - timedelta(hours=1)
             ).exclude(event_type__event_type='EV').order_by('date')
         return queryset
 
