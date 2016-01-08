@@ -58,7 +58,7 @@
                                 </td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if user|has_online_disclaimer %}
-                                        <a href="{% url 'studioadmin:user_disclaimer' user.id %}" target="_blank"><span class="has-disclaimer-pill">Yes</span></a>
+                                        <a href="{% url 'studioadmin:user_disclaimer' user.id|encode %}" target="_blank"><span class="has-disclaimer-pill">Yes</span></a>
                                     {% else %}No{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
                                     <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>

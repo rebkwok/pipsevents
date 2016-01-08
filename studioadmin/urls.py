@@ -89,7 +89,7 @@ urlpatterns = [
         r'^users/(?P<user_id>\d+)/blocks/$',
         user_blocks_view, name='user_blocks_list'
     ),
-    url(r'^users/(?P<user_id>\d+)/disclaimer/$', 'studioadmin.views.user_disclaimer',
+    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/$', 'studioadmin.views.user_disclaimer',
         name='user_disclaimer'),
     url(
         r'activitylog/$', ActivityLogListView.as_view(), name='activitylog'

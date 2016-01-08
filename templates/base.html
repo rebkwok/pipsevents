@@ -100,7 +100,7 @@
                             <li class="active-nav-login"><a href="{% url 'account_email' %}">Change E-mail</a></li>
                             <li class="active-nav-login"><a href="{% url 'profile:update_profile' %}">Change profile</a></li>
                             <li class="active-nav-login"><a href="{% url 'profile:profile' %}">Profile</a></li>
-                              {% if not perms.booking.has_signed_disclaimer %}
+                              {% if not request.user|has_disclaimer %}
                                 <li class="active-nav-login"><a href="{% url 'disclaimer_form' %}">Disclaimer Form</a></li>
                               {% endif %}
                             <li class="active-nav-login"><a href="{% url 'account_logout' %}">Sign Out</a></li>
