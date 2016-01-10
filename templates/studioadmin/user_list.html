@@ -51,10 +51,14 @@
                                     </form>
                                 </td>
                                 <td class="table-center studioadmin-tbl">
-                                    <form class="wl-table-form" method="get">
-                                                <button class="btn table-btn perm-btn {% if user|has_print_disclaimer %}btn-success{% else %}btn-default{% endif %}"
-                                                        type="submit" name="change_print_disclaimer" id="print_disclaimer_button" value="{{ user.id }}">{% if user|has_print_disclaimer %}Yes{% else %}No{% endif %}</button>
-                                    </form>
+                                    {% if user|has_online_disclaimer %}
+                                        N/A
+                                    {% else %}
+                                        <form class="wl-table-form" method="get">
+                                                    <button class="btn table-btn perm-btn {% if user|has_print_disclaimer %}btn-success{% else %}btn-default{% endif %}"
+                                                            type="submit" name="change_print_disclaimer" id="print_disclaimer_button" value="{{ user.id }}">{% if user|has_print_disclaimer %}Yes{% else %}No{% endif %}</button>
+                                        </form>
+                                    {% endif %}
                                 </td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if user|has_online_disclaimer %}

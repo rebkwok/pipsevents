@@ -7,10 +7,11 @@
 <div class="container-fluid row">
 <div class="row">
     <div class="col-xs-4 col-xs-offset-1">
-    <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
-</div>
+        <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
+    </div>
 </div>
 
+    <div class="disclaimer">
     <h1>Disclaimer for {{ disclaimer.user.first_name }} {{ disclaimer.user.last_name }} ({{ disclaimer.user.username }})</h1>
 
     <div class="divider"></div>
@@ -47,18 +48,19 @@
     <div class="divider"></div>
 
     <h4>EMERGENCY MEDICAL TREATMENT</h4>
-    {% if disclaimer.medical_treatment_permission %}<p><strong>{% get_verbose_field_name disclaimer "medical_treatment_permission" %}</strong>{% endif %}
+    {% if disclaimer.medical_treatment_permission %}<p><strong>{{ disclaimer.medical_treatment_terms }}</strong>{% endif %}
 
     <div class="divider"></div>
 
     <h4>DISCLAIMER</h4>
      {% if disclaimer.terms_accepted %}<p><strong>{{ disclaimer.disclaimer_terms }}</strong>{% endif %}
 
-     {% if disclaimer.age_over_18_confirmed %}<p><strong>{% get_verbose_field_name disclaimer "age_over_18_confirmed" %}</strong>{% endif %}
+     {% if disclaimer.age_over_18_confirmed %}<p><strong>{{ disclaimer.over_18_statement }}</strong>{% endif %}
 
     <div class="divider"></div>
     <h4>DISCLAIMER COMPLETED ONLINE: {{ disclaimer.date }}</h4>
 
+    </div>
 
 </div>
 {% endblock studioadmincontent %}

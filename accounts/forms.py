@@ -5,7 +5,8 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 
 from accounts import validators as account_validators
-from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS
+from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
+    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS
 
 
 class SignupForm(forms.Form):
@@ -26,8 +27,7 @@ class DisclaimerForm(forms.ModelForm):
         widget=forms.CheckboxInput(
             attrs={'class': 'regular-checkbox'}
         ),
-        label='I give permission for myself to receive medical treatment in '
-              'the event of an accident'
+        label='Please tick to confirm'
     )
 
     terms_accepted = forms.BooleanField(
@@ -36,7 +36,7 @@ class DisclaimerForm(forms.ModelForm):
         widget=forms.CheckboxInput(
             attrs={'class': 'regular-checkbox'}
         ),
-        label='I accept the terms of the disclaimer'
+        label='Please tick to accept terms'
     )
 
     age_over_18_confirmed = forms.BooleanField(
@@ -45,7 +45,7 @@ class DisclaimerForm(forms.ModelForm):
         widget=forms.CheckboxInput(
             attrs={'class': 'regular-checkbox'}
         ),
-        label='I confirm that I am over the age of 18'
+        label='Please tick to confirm'
     )
 
     medical_conditions_details = forms.CharField(
@@ -78,6 +78,8 @@ class DisclaimerForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.disclaimer_terms = DISCLAIMER_TERMS
+        self.over_18_terms = OVER_18_TERMS
+        self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
         super(DisclaimerForm, self).__init__(*args, **kwargs)
         
     class Meta:
@@ -161,20 +163,20 @@ class DisclaimerForm(forms.ModelForm):
                 'allergies_details',
                 'Please provide details of allergies'
             )
-
-        if self.errors.get('dob'):
-            del self.errors['dob']
-        try:
-            dob = datetime.strptime(self.data.get('dob'), '%d %b %Y').date()
-            self.cleaned_data['dob'] = dob
-        except ValueError:
-            self.add_error(
-                'dob', 'Invalid date format.  Select from '
-                                    'the date picker or enter date in the '
-                                    'format e.g. 08 Jun 1990')
-
-        yearsago = datetime.today().date() - relativedelta(years=18)
-        if dob > yearsago:
-            self.add_error(
-                'dob', 'You must be over 18 years in order to register.')
+        dob = self.data.get('dob', None)
+        if dob and self.errors.get('dob'):
+            try:
+                dob = datetime.strptime(dob, '%d %b %Y').date()
+                self.cleaned_data['dob'] = dob
+                del self.errors['dob']
+            except ValueError:
+                self.add_error(
+                    'dob', 'Invalid date format.  Select from '
+                                        'the date picker or enter date in the '
+                                        'format e.g. 08 Jun 1990')
+        if not self.errors.get('dob'):
+            yearsago = datetime.today().date() - relativedelta(years=18)
+            if dob > yearsago:
+                self.add_error(
+                    'dob', 'You must be over 18 years in order to register')
         return super(DisclaimerForm, self).clean()

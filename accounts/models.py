@@ -1,10 +1,39 @@
+import logging
 import pytz
 
 from django.db import models
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User
 from django.utils import timezone
-from django.db.models.signals import post_delete, post_save
-from django.dispatch import receiver
+
+from activitylog.models import ActivityLog
+
+
+logger = logging.getLogger(__name__)
+
+
+# Decorator for django models that contain readonly fields.
+def has_readonly_fields(original_class):
+    def store_read_only_fields(sender, instance, **kwargs):
+        if not instance.id:
+            return
+        for field_name in sender.read_only_fields:
+            val = getattr(instance, field_name)
+            setattr(instance, field_name + "_oldval", val)
+
+    def check_read_only_fields(sender, instance, **kwargs):
+        if not instance.id:
+            return
+        for field_name in sender.read_only_fields:
+            old_value = getattr(instance, field_name + "_oldval")
+            new_value = getattr(instance, field_name)
+            if old_value != new_value:
+                raise ValueError("Field %s is read only." % field_name)
+
+    models.signals.post_init.connect(store_read_only_fields, original_class, weak=False) # for load
+    models.signals.post_save.connect(store_read_only_fields, original_class, weak=False) # for save
+    models.signals.pre_save.connect(check_read_only_fields, original_class, weak=False)
+    return original_class
+
 
 
 DISCLAIMER_TERMS = '''
@@ -21,13 +50,26 @@ DISCLAIMER_TERMS = '''
     read and agree to the terms and conditions on the website.
 '''
 
+OVER_18_TERMS = "I confirm that I am over the age of 18"
+
+MEDICAL_TREATMENT_TERMS = "I give permission for myself to receive medical " \
+                          "treatment in the event of an accident"
+
 BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
 
+
+@has_readonly_fields
 class OnlineDisclaimer(models.Model):
+
+    read_only_fields = (
+        'disclaimer_terms', 'medical_treatment_terms', 'over_18_statement',
+        'date'
+    )
+
     user = models.OneToOneField(User, related_name='online_disclaimer')
     date = models.DateTimeField(default=timezone.now)
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name="full name")
     dob = models.DateField(verbose_name='date of birth')
     address = models.CharField(max_length=512)
     postcode = models.CharField(max_length=10)
@@ -64,16 +106,20 @@ class OnlineDisclaimer(models.Model):
         max_length=2048, null=True, blank=True
     )
 
-    medical_treatment_permission = models.BooleanField(
-        verbose_name='I give permission for myself to receive medical '
-                     'treatment in the event of an accident'
+    medical_treatment_terms = models.CharField(
+        max_length=2048, default=OVER_18_TERMS
     )
+    medical_treatment_permission = models.BooleanField()
 
-    disclaimer_terms = models.CharField(max_length=2048)
-    terms_accepted = models.BooleanField()
-    age_over_18_confirmed = models.BooleanField(
-        verbose_name='I confirm that I am over the age of 18'
+    disclaimer_terms = models.CharField(
+        max_length=2048, default=DISCLAIMER_TERMS
     )
+    terms_accepted = models.BooleanField()
+
+    over_18_statement = models.CharField(
+        max_length=2048, default=OVER_18_TERMS
+    )
+    age_over_18_confirmed = models.BooleanField()
 
     def __str__(self):
         return '{} - {}'.format(self.user.username, self.date.astimezone(
@@ -83,6 +129,12 @@ class OnlineDisclaimer(models.Model):
     def save(self):
         if not self.id:
             self.disclaimer_terms = DISCLAIMER_TERMS
+            self.over_18_statement = OVER_18_TERMS
+            self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
+
+            ActivityLog.objects.create(
+                log="Online disclaimer created: {}".format(self.__str__())
+            )
         super(OnlineDisclaimer, self).save()
 
 

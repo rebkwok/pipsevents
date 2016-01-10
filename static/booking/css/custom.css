@@ -942,3 +942,7 @@ label.control-label {
     padding-bottom: 2px;
     background-color: forestgreen;
 }
+
+.vspace {
+    padding-bottom: 15px;
+}

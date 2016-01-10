@@ -78,7 +78,7 @@
                        <div class="form-group">
                            <label class="control-label col-xs-2">{{ form.mobile_phone.label }}{% if form.mobile_phone.field.required %}*{% endif %}</label>
                            <div class="col-xs-10 {% if form.mobile_phone.errors %}ticket-error{% endif %}">{{ form.mobile_phone }}</div>
-                           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.mobile_phone.help_text }}</div>
+                           <div class="studioadmin-help vspace col-xs-10 col-xs-offset-2">{{ form.mobile_phone.help_text }}</div>
                             {% if form.mobile_phone.errors %}
                                 <div class="col-xs-10 col-xs-offset-2">
                                     {{ form.mobile_phone.errors }}
@@ -143,7 +143,7 @@
                        <div class="form-group">
                            <label class="control-label col-xs-2">{{ form.emergency_contact2_phone.label }}{% if form.emergency_contact2_phone.field.required %}*{% endif %}</label>
                            <div class="col-xs-10 {% if form.emergency_contact2_phone.errors %}ticket-error{% endif %}">{{ form.emergency_contact2_phone }}</div>
-                           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.emergency_contact2_phone.help_text }}</div>
+                           <div class="studioadmin-help vspace col-xs-10 col-xs-offset-2">{{ form.emergency_contact2_phone.help_text }}</div>
                             {% if form.emergency_contact2_phone.errors %}
                                 <div class="col-xs-10 col-xs-offset-2">
                                     {{ form.emergency_contact2_phone.errors }}
@@ -225,7 +225,7 @@
                        </div>
                        <div class="form-group">
                            <label class="control-label col-xs-12">{{ form.allergies_details.label }}{% if form.allergies_details.field.required %}*{% endif %}</label>
-                          <div class="col-xs-12 {% if form.allergies_details.errors %}ticket-error{% endif %}">
+                          <div class="col-xs-12 vspace {% if form.allergies_details.errors %}ticket-error{% endif %}">
                               {{ form.allergies_details }}
                            </div>
                            <div class="studioadmin-help col-xs-12">{{ form.allergies_details.help_text }}</div>
@@ -237,8 +237,9 @@
                        </div>
 
                        <h4>EMERGENCY MEDICAL TREATMENT</h4>
+                       <div class="col-xs-12">{{ form.medical_treatment_terms }}</div>
                        <div class="form-group">
-                           <div class="col-xs-12 {% if form.medical_treatment_permission.errors %}ticket-error{% endif %}">
+                           <div class="col-xs-12 vspace {% if form.medical_treatment_permission.errors %}ticket-error{% endif %}">
                                {{ form.medical_treatment_permission }}<label for='id_medical_treatment_permission'></label>
                                  <label class="control-label">{{ form.medical_treatment_permission.label }}{% if form.medical_treatment_permission.field.required %}*{% endif %}</label>
                            </div>
@@ -254,7 +255,7 @@
                        <h4>DISCLAIMER</h4>
                        <div class="col-xs-12">{{ form.disclaimer_terms }}</div>
                        <div class="form-group">
-                           <div class="col-xs-12 {% if form.terms_accepted.errors %}ticket-error{% endif %}">
+                           <div class="col-xs-12 vspace {% if form.terms_accepted.errors %}ticket-error{% endif %}">
                                {{ form.terms_accepted }}<label for='id_terms_accepted'></label>
                                  <label class="control-label">{{ form.terms_accepted.label }}{% if form.terms_accepted.field.required %}*{% endif %}</label>
                            </div>
@@ -267,7 +268,8 @@
                             {% endif %}
                        </div>
                        <div class="form-group">
-                           <div class="col-xs-12 {% if form.age_over_18_confirmed.errors %}ticket-error{% endif %}">
+                           <div class="col-xs-12">{{ form.over_18_terms }}</div>
+                           <div class="col-xs-12 vspace {% if form.age_over_18_confirmed.errors %}ticket-error{% endif %}">
                                {{ form.age_over_18_confirmed }}<label for='id_age_over_18_confirmed'></label>
                                  <label class="control-label">{{ form.age_over_18_confirmed.label }}{% if form.age_over_18_confirmed.field.required %}*{% endif %}</label>
                            </div>
@@ -281,7 +283,7 @@
                        </div>
 
                        <div class="form-group">
-                           <div class="col-xs-12 {% if form.password.errors %}ticket-error{% endif %}">
+                           <div class="col-xs-12 vspace {% if form.password.errors %}ticket-error{% endif %}">
                                {{ form.password }}
                                  <label class="control-label">{{ form.password.label }}{% if form.password.field.required %}*{% endif %}</label>
                            </div>

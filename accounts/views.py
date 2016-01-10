@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import render, HttpResponse, get_object_or_404
+from django.db.utils import IntegrityError
+from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView
 from django.contrib.auth.models import User, Permission
 from django.core.urlresolvers import reverse
@@ -58,6 +59,14 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
     form_class = DisclaimerForm
     template_name = 'account/disclaimer_form.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            try:
+                request.user.online_disclaimer
+                return HttpResponseRedirect(reverse('disclaimer_form'))
+            except ObjectDoesNotExist:
+                pass
+        return super(DisclaimerCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(DisclaimerCreateView, self).get_context_data(**kwargs)
@@ -67,7 +76,6 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
             context['disclaimer'] = True
         except ObjectDoesNotExist:
             pass
-
         try:
             self.request.user.print_disclaimer
             context['disclaimer'] = True
@@ -75,7 +83,6 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
             pass
 
         return context
-
 
     def form_valid(self, form):
         disclaimer = form.save(commit=False)
