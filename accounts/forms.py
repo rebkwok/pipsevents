@@ -165,10 +165,10 @@ class DisclaimerForm(forms.ModelForm):
             )
         dob = self.data.get('dob', None)
         if dob and self.errors.get('dob'):
+            del self.errors['dob']
             try:
                 dob = datetime.strptime(dob, '%d %b %Y').date()
                 self.cleaned_data['dob'] = dob
-                del self.errors['dob']
             except ValueError:
                 self.add_error(
                     'dob', 'Invalid date format.  Select from '

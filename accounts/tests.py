@@ -92,6 +92,52 @@ class DisclaimerFormTests(TestCase):
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
+    def test_invalid_date_format(self):
+        self.form_data['dob'] = '32 Jan 2015'
+        form = DisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'dob': [
+                'Invalid date format.  Select from the date picker or enter '
+                'date in the format e.g. 08 Jun 1990'
+            ]}
+        )
+
+    def test_medical_conditions_without_details(self):
+        self.form_data['medical_conditions'] = True
+        form = DisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'medical_conditions_details': [
+                'Please provide details of medical conditions'
+            ]}
+        )
+
+    def test_joint_problems_without_details(self):
+        self.form_data['joint_problems'] = True
+        form = DisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'joint_problems_details': [
+                'Please provide details of knee/back/shoulder/ankle/hip/neck '
+                'problems'
+            ]}
+        )
+
+    def test_allergies_without_details(self):
+        self.form_data['allergies'] = True
+        form = DisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'allergies_details': [
+                'Please provide details of allergies'
+            ]}
+        )
+
     def test_updating_user_data(self):
         """
         Test custom view to allow users to update their details
