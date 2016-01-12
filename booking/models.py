@@ -115,13 +115,7 @@ class Event(models.Model):
             return 100
 
     def bookable(self):
-        if self.payment_due_date:
-            return self.booking_open and \
-                   self.payment_due_date > timezone.now() \
-                   and self.spaces_left() > 0
-        else:
-            return self.booking_open \
-                   and self.spaces_left() > 0
+        return self.booking_open and self.spaces_left() > 0
 
     def can_cancel(self):
         time_until_event = self.date - timezone.now()
