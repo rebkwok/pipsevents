@@ -21,6 +21,9 @@
                                 <th>User</th>
                                 <th>Username</th>
                                 <th>Date joined</th>
+                                {% if request.user.is_staff %}
+                                    <th></th>
+                                {% endif %}
                             </tr>
 
                             {% for wluser in waiting_list_users %}
@@ -32,6 +35,15 @@
                                     </a>
                                 </td>
                                 <td class="studioadmin-tbl">{{ wluser.date_joined|formatted_uk_date }}</td>
+                                {% if request.user.is_staff %}
+                                <td class="table-center studioadmin-tbl">
+                                    <form class="wl-table-form" method="post">
+                                        {% csrf_token %}
+                                        <button class="btn table-btn perm-btn btn-success" type="submit" name="remove_user"
+                                                id="remove_user_button" value="{{ wluser.id }}">Remove</button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </table>

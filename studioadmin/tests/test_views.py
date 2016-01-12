@@ -3478,6 +3478,18 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         request._messages = messages
         return event_waiting_list_view(request, event_id=event.id)
 
+    def _post_response(self, user, event, form_data):
+        url = reverse(
+            'studioadmin:event_waiting_list', kwargs={"event_id": event.id}
+        )
+        session = _create_session()
+        request = self.factory.post(url, form_data)
+        request.session = session
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+        return event_waiting_list_view(request, event_id=event.id)
+
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
@@ -3535,6 +3547,25 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         waiting_list_users = resp.context_data['waiting_list_users']
         self.assertEqual(set(waiting_list_users), set(event_wl))
 
+    def test_remove_waiting_list_users(self):
+        """
+        Only show users on the waiting list for the relevant event
+        """
+        event = mommy.make_recipe('booking.future_PC')
+
+        event_wl = mommy.make_recipe(
+            'booking.waiting_list_user', event=event, _quantity=3
+        )
+        resp = self._get_response(self.staff_user, event)
+
+        waiting_list_users = resp.context_data['waiting_list_users']
+        self.assertEqual(len(waiting_list_users), 3)
+
+        resp = self._post_response(
+            self.staff_user, event, {'remove_user': [event_wl[0].id]}
+        )
+        waiting_list_users = resp.context_data['waiting_list_users']
+        self.assertEqual(len(waiting_list_users), 2)
 
 class RegisterByDateTests(TestPermissionMixin, TestCase):
 
