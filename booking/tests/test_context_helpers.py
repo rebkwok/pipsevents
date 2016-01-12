@@ -34,8 +34,10 @@ class EventDetailContextTests(TestCase):
                                             "event.",
             'booking_info_text_booked':     "You have booked for this event.",
             'booking_info_text_full':       "This event is now full.",
-            'booking_info_payment_date_past': "Bookings for this event are now "
-                                              "closed."
+            'booking_info_payment_date_past': "The payment due date has "
+                                              "passed for this event.  Please "
+                                              "make your payment as soon as "
+                                              "possible to secure your place."
         }
         self.CONTEXT_FLAGS = {
             'booked': True,
@@ -193,7 +195,7 @@ class EventDetailContextTests(TestCase):
         self.assertTrue(resp.context_data['bookable'])
 
     @patch('booking.models.timezone')
-    def test_event_with_past_payment_due_date(self, mock_tz):
+    def test_event_with_past_payment_due_date_is_still_bookable(self, mock_tz):
         """
         Test correct context returned for an event with payment due date
         """
@@ -207,7 +209,7 @@ class EventDetailContextTests(TestCase):
 
         self.assertEquals(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_payment_date_past'])
-        self.assertFalse(resp.context_data['bookable'])
+        self.assertTrue(resp.context_data['bookable'])
 
     def test_lesson_and_event_format(self):
         """

@@ -92,8 +92,10 @@ def get_event_context(context, event, user):
             booking_info_text = "This {} is now full.".format(event_type_str)
         if event.payment_due_date:
             if event.payment_due_date < timezone.now():
-                booking_info_text = "Bookings for this {} are now " \
-                                    "closed.".format(event_type_str)
+                booking_info_text = "The payment due date has passed for " \
+                                    "this {}.  Please make your payment as " \
+                                    "soon as possible to secure your " \
+                                    "place.".format(event_type_str)
 
     context['booking_info_text'] = booking_info_text
 
