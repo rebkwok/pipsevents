@@ -36,6 +36,7 @@
                                 <th class="table-center">Booking open</th>
                                 <th class="table-center">Payment open</th>
                                 <th class="table-center">Advance payment required</th>
+                                <th class="table-center">Cancellation allowed</th>
                                 <th class="table-center">Delete</th>
                             </tr>
 
@@ -68,6 +69,7 @@
                                 <td class="table-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED
@@ -82,7 +84,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                            <td class="studioadmin-tbl" colspan="10"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl" colspan="11"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>
