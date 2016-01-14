@@ -3,6 +3,8 @@ from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
 
+from allauth.account.models import EmailAddress
+
 from accounts.forms import SignupForm, DisclaimerForm
 from accounts.models import PrintDisclaimer, OnlineDisclaimer
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
@@ -281,3 +283,41 @@ class DisclaimerCreateViewTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         # no new disclaimer created
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+
+
+class CustomLoginViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+        self.user = User.objects.create(username='test_user', is_active=True)
+        self.user.set_password('password')
+        self.user.save()
+        EmailAddress.objects.create(user=self.user,
+                                    email='raymond.penners@gmail.com',
+                                    primary=True,
+                                    verified=True)
+
+    def test_get_login_view(self):
+        resp = self.client.get(reverse('login'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_login(self):
+        resp = self.client.post(
+            reverse('login'),
+            {'login': self.user.username, 'password': 'password'}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('profile:profile'), resp.url)
+
+
+class DataProtectionViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+
+    def test_get_data_protection_view(self):
+        # no need to be a logged in user to access
+        resp = self.client.get(reverse('data_protection'))
+        self.assertEqual(resp.status_code, 200)
