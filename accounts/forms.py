@@ -78,11 +78,25 @@ class DisclaimerForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        self.disclaimer_terms = DISCLAIMER_TERMS
-        self.over_18_terms = OVER_18_TERMS
-        self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
         super(DisclaimerForm, self).__init__(*args, **kwargs)
-        
+        # the agreed-to terms are read-only fields.  For a new disclaimer, we
+        # show the default terms from the model.  If we're updating an existing
+        # disclaimer, we show the terms that are already on the instance (i.e.
+        # the terms the user agreed to before.  THESE WILL NEVER CHANGE!  If the
+        # default terms are updated, existing disclaimers will continue to show
+        # the old terms that the user agreed to when they first completed the
+        # disclaimer
+
+        if self.instance.id:
+            # in the DisclaimerForm, these fields are autopoulated based
+            self.medical_treatment_terms = self.instance.medical_treatment_terms
+            self.disclaimer_terms = self.instance.disclaimer_terms
+            self.age_over_18_confirmed = self.instance.age_over_18_confirmed
+        else:
+            self.disclaimer_terms = DISCLAIMER_TERMS
+            self.over_18_terms = OVER_18_TERMS
+            self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
+
     class Meta:
         model = OnlineDisclaimer
         fields = (

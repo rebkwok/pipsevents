@@ -1,14 +1,22 @@
+from datetime import datetime, timedelta
+from mock import patch
+from model_mommy import mommy
+
+from django.core import management, mail
 from django.test import TestCase, RequestFactory, Client
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from allauth.account.models import EmailAddress
 
 from accounts.forms import SignupForm, DisclaimerForm
-from accounts.models import PrintDisclaimer, OnlineDisclaimer
+from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
+    DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
 from booking.tests.helpers import set_up_fb, _create_session, TestSetupMixin
+
 
 from model_mommy import mommy
 
@@ -166,15 +174,106 @@ class ProfileTest(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(ProfileTest, cls).setUpTestData()
         Group.objects.get_or_create(name='instructors')
+        mommy.make(PrintDisclaimer, user=cls.user)
+        cls.user_with_online_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=cls.user_with_online_disclaimer)
+        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
-    def test_profile_view(self):
-        user = mommy.make(User)
+    def _get_response(self, user):
         url = reverse('profile:profile')
         request = self.factory.get(url)
         request.user = user
-        resp = profile(request)
+        return profile(request)
 
+    def test_profile_view(self):
+        resp = self._get_response(self.user)
         self.assertEquals(resp.status_code, 200)
+
+    def test_profile_view_shows_disclaimer_info(self):
+        resp = self._get_response(self.user)
+        self.assertIn("Completed", str(resp.content))
+        self.assertNotIn("Not completed", str(resp.content))
+        self.assertNotIn("/accounts/disclaimer", str(resp.content))
+
+        resp = self._get_response(self.user_with_online_disclaimer)
+        self.assertIn("Completed", str(resp.content))
+        self.assertNotIn("Not completed", str(resp.content))
+        self.assertNotIn("/accounts/disclaimer", str(resp.content))
+
+        resp = self._get_response(self.user_no_disclaimer)
+        self.assertIn("Not completed", str(resp.content))
+        self.assertIn("/accounts/disclaimer", str(resp.content))
+
+class CustomLoginViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+        self.user = User.objects.create(username='test_user', is_active=True)
+        self.user.set_password('password')
+        self.user.save()
+        EmailAddress.objects.create(user=self.user,
+                                    email='test@gmail.com',
+                                    primary=True,
+                                    verified=True)
+
+    def test_get_login_view(self):
+        resp = self.client.get(reverse('login'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_login(self):
+        resp = self.client.post(
+            reverse('login'),
+            {'login': self.user.username, 'password': 'password'}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('profile:profile'), resp.url)
+
+
+class DisclaimerModelTests(TestCase):
+
+    def test_online_disclaimer_str(self,):
+        user = mommy.make_recipe('booking.user', username='testuser')
+        field = OnlineDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make(OnlineDisclaimer, user=user)
+            self.assertEqual(str(disclaimer), 'testuser - 10 Feb 2015, 19:00')
+
+    def test_print_disclaimer_str(self):
+        user = mommy.make_recipe('booking.user', username='testuser')
+        field = PrintDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make(PrintDisclaimer, user=user)
+            self.assertEqual(str(disclaimer), 'testuser - 10 Feb 2015, 19:00')
+
+    def test_default_terms_set_on_new_online_disclaimer(self):
+        disclaimer = mommy.make(
+            OnlineDisclaimer, disclaimer_terms="foo", over_18_statement="bar",
+            medical_treatment_terms="foobar"
+        )
+        self.assertEqual(disclaimer.disclaimer_terms, DISCLAIMER_TERMS)
+        self.assertEqual(disclaimer.medical_treatment_terms, MEDICAL_TREATMENT_TERMS)
+        self.assertEqual(disclaimer.over_18_statement, OVER_18_TERMS)
+
+    def test_cannot_update_terms_after_first_save(self):
+        disclaimer = mommy.make(OnlineDisclaimer)
+        self.assertEqual(disclaimer.disclaimer_terms, DISCLAIMER_TERMS)
+        self.assertEqual(disclaimer.medical_treatment_terms, MEDICAL_TREATMENT_TERMS)
+        self.assertEqual(disclaimer.over_18_statement, OVER_18_TERMS)
+
+        with self.assertRaises(ValueError):
+            disclaimer.disclaimer_terms = 'foo'
+            disclaimer.save()
+
+        with self.assertRaises(ValueError):
+            disclaimer.medical_treatment_terms = 'foo'
+            disclaimer.save()
+
+        with self.assertRaises(ValueError):
+            disclaimer.over_18_statement = 'foo'
+            disclaimer.save()
 
 
 class DisclaimerCreateViewTests(TestCase):
@@ -285,32 +384,6 @@ class DisclaimerCreateViewTests(TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
 
-class CustomLoginViewTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.user = User.objects.create(username='test_user', is_active=True)
-        self.user.set_password('password')
-        self.user.save()
-        EmailAddress.objects.create(user=self.user,
-                                    email='raymond.penners@gmail.com',
-                                    primary=True,
-                                    verified=True)
-
-    def test_get_login_view(self):
-        resp = self.client.get(reverse('login'))
-        self.assertEqual(resp.status_code, 200)
-
-    def test_post_login(self):
-        resp = self.client.post(
-            reverse('login'),
-            {'login': self.user.username, 'password': 'password'}
-        )
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn(reverse('profile:profile'), resp.url)
-
-
 class DataProtectionViewTests(TestCase):
 
     def setUp(self):
@@ -321,3 +394,137 @@ class DataProtectionViewTests(TestCase):
         # no need to be a logged in user to access
         resp = self.client.get(reverse('data_protection'))
         self.assertEqual(resp.status_code, 200)
+
+
+class DeleteExpiredDisclaimersTests(TestCase):
+
+    def setUp(self):
+        self.user_online_only = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=self.user_online_only)
+        self.user_print_only = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=self.user_print_only)
+        self.user_both = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=self.user_both)
+        mommy.make(PrintDisclaimer, user=self.user_both)
+
+    def test_disclaimers_deleted_if_no_paid_booking_in_past_year(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # make one paid booking for self.user_online_only in past 365 days; this
+        # user's disclaimer should not be deleted
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(360),
+            paid=True
+        )
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+        self.assertEqual(
+            OnlineDisclaimer.objects.first().user, self.user_online_only
+        )
+
+    def test_disclaimers_deleted_if_only_unpaid_booking_in_past_year(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # make one unpaid booking for self.user_online_only in past 365 days; this
+        # user's disclaimer should still be deleted because unpaid
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(360),
+            paid=False
+        )
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+
+    def test_both_print_and_online_disclaimers_deleted(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # make one paid booking for self.user_both in past 365 days; both
+        # disclaimers should be deleted because unpaid
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_both,
+            event__date=timezone.now()-timedelta(360),
+            paid=True
+        )
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        self.assertEqual(PrintDisclaimer.objects.count(), 1)
+
+    def test_disclaimer_with_multiple_bookings(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # make paid and unpaid bookings for self.user_online_only in past 365
+        # days and earlier; disclaimer not deleted
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(360),
+            paid=True
+        )
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(200),
+            paid=False
+        )
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(400),
+            paid=True
+        )
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(400),
+            paid=False
+        )
+
+        management.call_command('delete_expired_disclaimers')
+        # only disclaimer for self.user_online_only is not deleted
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+        self.assertEqual(
+            OnlineDisclaimer.objects.first().user, self.user_online_only
+        )
+        
+    def test_email_sent_to_studio(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # make one paid booking for self.user_online_only in past 365 days; this
+        # user's disclaimer should not be deleted
+        mommy.make_recipe(
+            'booking.booking',
+            user=self.user_online_only,
+            event__date=timezone.now()-timedelta(360),
+            paid=True
+        )
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_email_not_sent_to_studio_if_nothing_deleted(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        for user in User.objects.all():
+            mommy.make_recipe(
+            'booking.booking',
+            user=user,
+            event__date=timezone.now()-timedelta(10),
+            paid=True
+        )
+
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+        self.assertEqual(len(mail.outbox), 0)

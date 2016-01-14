@@ -57,6 +57,8 @@
         <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
     <li class="active-nav visible-xs"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
         <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
+    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
+        <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
 {% endif %}
   </ul>
 </li>
@@ -220,7 +222,8 @@
                         <span class="sidebar_active">Classes/Room Hire</span>{% else %}Classes/Room Hire{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
                         <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
-
+                    <li class="active-nav"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
+                        <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
                 {% endif %}
             </ul>
 

@@ -15,13 +15,20 @@
                     <div class="col-xs-12">
                         <p>You have already completed a disclaimer.</p>
                     </div>
+                   <div class="col-xs-12">
+                       <p>If you have any additional questions or concerns about the data you have provided, please contact
+                        <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
+                   </div>
                 {% else %}
                    {% include 'account/disclaimer_form_content.html' %}
+                   <div class="col-xs-12">
+                       <p>If you have any additional questions or concerns about this form, please contact
+                        <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
+                   </div>
+
                 {% endif %}
 
                <div class="col-xs-12">
-                   <p>If you have any additional questions or concerns about this form, please contact
-                    <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
                    <p>View our <a href="{% url 'data_protection' %}">data protection statement.</a></p>
                </div>
            </div>

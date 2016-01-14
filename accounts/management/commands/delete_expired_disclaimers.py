@@ -39,16 +39,26 @@ class Command(BaseCommand):
         expired_users = []
 
         for user in User.objects.all():
-            recent_bookings = [
-                True for booking in user.bookings.all()
-                if booking.event.date > expire_date and booking.paid
-                ]
-            if not recent_bookings:
+            if not user.bookings.exists():
                 expired_users.append(user)
+            else:
+                recent_bookings = [
+                    True for booking in user.bookings.all()
+                    if (booking.event.date > expire_date) and booking.paid
+                    ]
+                if not recent_bookings:
+                    expired_users.append(user)
 
-        print_dislaimer_users = PrintDisclaimer.objects.filter(user__in=expired_users)
-        online_disclaimer_users = OnlineDisclaimer.objects.filter(user__in=expired_users)
-
+        print_dislaimer_users = [
+            disclaimer.user for disclaimer in
+            PrintDisclaimer.objects.filter(user__in=expired_users)
+            ]
+        PrintDisclaimer.objects.filter(user__in=expired_users).delete()
+        online_disclaimer_users = [
+            disclaimer.user for disclaimer in
+            OnlineDisclaimer.objects.filter(user__in=expired_users)
+            ]
+        OnlineDisclaimer.objects.filter(user__in=expired_users).delete()
         if expired_users:
             # email studio
             ctx = Context({

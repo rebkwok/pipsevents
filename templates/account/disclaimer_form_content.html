@@ -225,14 +225,11 @@
            <div class="col-xs-12 vspace {% if form.medical_treatment_permission.errors %}ticket-error{% endif %}">
                {{ form.medical_treatment_permission }}<label for='id_medical_treatment_permission'></label>
                  <label class="control-label">{{ form.medical_treatment_permission.label }}{% if form.medical_treatment_permission.field.required %}*{% endif %}</label>
+               {% if form.medical_treatment_permission.errors %} {{ form.medical_treatment_permission.errors }}{% endif %}
            </div>
 
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.medical_treatment_permission.help_text }}</div>
-            {% if form.medical_treatment_permission.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
-                    {{ form.medical_treatment_permission.errors }}
-                </div>
-            {% endif %}
+
        </div>
 
        <h4>DISCLAIMER</h4>
@@ -241,28 +238,19 @@
            <div class="col-xs-12 vspace {% if form.terms_accepted.errors %}ticket-error{% endif %}">
                {{ form.terms_accepted }}<label for='id_terms_accepted'></label>
                  <label class="control-label">{{ form.terms_accepted.label }}{% if form.terms_accepted.field.required %}*{% endif %}</label>
+                {% if form.terms_accepted.errors %} {{ form.terms_accepted.errors }}{% endif %}
            </div>
 
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.terms_accepted.help_text }}</div>
-            {% if form.terms_accepted.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
-                    {{ form.terms_accepted.errors }}
-                </div>
-            {% endif %}
        </div>
        <div class="form-group">
            <div class="col-xs-12">{{ form.over_18_terms }}</div>
            <div class="col-xs-12 vspace {% if form.age_over_18_confirmed.errors %}ticket-error{% endif %}">
                {{ form.age_over_18_confirmed }}<label for='id_age_over_18_confirmed'></label>
                  <label class="control-label">{{ form.age_over_18_confirmed.label }}{% if form.age_over_18_confirmed.field.required %}*{% endif %}</label>
+                {% if form.age_over_18_confirmed.errors %} {{ form.age_over_18_confirmed.errors }}{% endif %}
            </div>
-
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.age_over_18_confirmed.help_text }}</div>
-            {% if form.age_over_18_confirmed.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
-                    {{ form.age_over_18_confirmed.errors }}
-                </div>
-            {% endif %}
        </div>
 
        <div class="form-group">
@@ -275,6 +263,6 @@
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.password.help_text }}</div>
        </div>
 
-        <div class="col-xs-12"><input class="btn btn-success" type="submit" value="Submit" /></div>
+        <div class="col-xs-12 vspace"><input class="btn btn-success" type="submit" value="Submit" /></div>
    </form>
 
