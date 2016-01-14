@@ -72,7 +72,8 @@ class DisclaimerForm(forms.ModelForm):
 
     password = forms.CharField(
         widget=forms.PasswordInput(),
-        label="Please re-enter your password to confirm submission of this form",
+        label="For security purposes, please re-enter your password to submit "
+              "your data",
         required=True
     )
 

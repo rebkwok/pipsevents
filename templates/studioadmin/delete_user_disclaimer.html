@@ -1,0 +1,30 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block sidebar %}{% endblock %}
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+       <div class="panel panel-success">
+
+            <div class="panel-heading">
+                <h1 class="panel-title">Deleting Disclaimer</h1>
+            </div>
+           <div class="panel-body">
+               <p class="form-error">
+                   Please confirm you wish to delete the disclaimer for {{ user.first_name }} {{ user.last_name }} ({{ user.username }}).
+                   This action cannot be reversed.  The user will be required to complete a new online
+                   disclaimer before booking any classes or workshops.
+               </p>
+               <form action="" method="post">{% csrf_token %}
+                <span class='hide'>{{ form }}</span>
+                <input class="btn btn-danger" type="submit" value="Confirm delete" />
+                <a href="{% url 'studioadmin:users' %}"><div class="btn btn-warning">Back</div></a>
+            </form>
+           </div>
+
+       </div>
+</div>
+
+{% endblock content %}

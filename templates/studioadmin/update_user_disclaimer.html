@@ -1,0 +1,30 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block sidebar %}{% endblock %}
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+       <div class="panel panel-success">
+
+            <div class="panel-heading">
+                <h1 class="panel-title">Updating Disclaimer for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h1>
+            </div>
+           <div class="panel-body">
+               <p class="form-error">Note: information provided in disclaimers must be updated/confirmed by
+                    the user they apply to.  {{ user.first_name }} {{ user.last_name }}'s password must be entered
+                    on this form to confirm approval and accpetance of the changes.</p>
+
+               {% include 'account/disclaimer_form_content.html' %}
+
+               <div class="col-xs-12 vspace">
+                   <a href="#">Data privacy statement</a>
+               </div>
+                <div class="col-xs-12"><a href="{% url 'studioadmin:users' %}" class='btn btn-warning'>Back to Student List</a></div>
+           </div>
+
+       </div>
+</div>
+
+{% endblock content %}

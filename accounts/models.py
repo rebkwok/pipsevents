@@ -68,6 +68,7 @@ class OnlineDisclaimer(models.Model):
 
     user = models.OneToOneField(User, related_name='online_disclaimer')
     date = models.DateTimeField(default=timezone.now)
+    date_updated = models.DateTimeField(null=True, blank=True)
 
     name = models.CharField(max_length=255, verbose_name="full name")
     dob = models.DateField(verbose_name='date of birth')
