@@ -12,7 +12,7 @@
            <div class="panel-body">
 
                {% if disclaimer %}
-                    <div>
+                    <div class="col-xs-12">
                         <p>You have already completed a disclaimer.</p>
                     </div>
                 {% else %}
@@ -20,7 +20,9 @@
                 {% endif %}
 
                <div class="col-xs-12">
-                   <a href="#">Data privacy statement</a>
+                   <p>If you have any additional questions or concerns about this form, please contact
+                    <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
+                   <p>View our <a href="{% url 'data_protection' %}">data protection statement.</a></p>
                </div>
            </div>
 

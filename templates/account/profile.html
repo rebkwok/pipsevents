@@ -62,6 +62,12 @@
                            This must be completed before attending any classes or workshops.</p>
                        <p><a href="{% url 'disclaimer_form' %}">Complete disclaimer form now</a></p>
                    </div>
+                   {% else %}
+                       <div class="col-xs-9 col-xs-offset-3">
+                           <p>If you have any additional questions or concerns about the information you have provided, please contact
+                            <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
+                           <p>View our <a href="{% url 'data_protection' %}">data protection statement.</a></p>
+                       </div>
                    {% endif %}
                </div>
 

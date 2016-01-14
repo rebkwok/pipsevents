@@ -11,6 +11,7 @@ urlpatterns = [
     url(r'^studioadmin/',
         include('studioadmin.urls', namespace='studioadmin')),
     url(r'^', include('booking.urls', namespace='booking')),
+    url(r'^data-protection-statement/$', 'accounts.views.data_protection', name='data_protection'),
     url(r'^accounts/profile/', include('accounts.urls', namespace='profile')),
     url(r'^accounts/login/$', CustomLoginView.as_view(), name='login'),
     url(r'^accounts/disclaimer/$', DisclaimerCreateView.as_view(), name='disclaimer_form'),

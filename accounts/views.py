@@ -101,3 +101,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse('profile:profile')
+
+
+def data_protection(request):
+    return render(request, 'account/data_protection_statement.html')
