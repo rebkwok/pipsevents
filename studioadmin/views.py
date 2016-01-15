@@ -1755,7 +1755,7 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
         ).order_by('-timestamp')
 
         reset = self.request.GET.get('reset')
-        search_submitted =  self.request.GET.get('search_submitted')
+        search_submitted = self.request.GET.get('search_submitted')
         search_text = self.request.GET.get('search')
         search_date = self.request.GET.get('search_date')
         hide_empty_cronjobs = self.request.GET.get('hide_empty_cronjobs')
@@ -1782,9 +1782,10 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
                 return queryset
 
         if search_text:
-            queryset = queryset.filter(
-                log__contains=search_text).order_by('-timestamp')
-
+            search_text = search_text.lower()
+            queryset = [
+                alog for alog in queryset if search_text in alog.log.lower() or search_text == alog.log.lower()
+            ]
         return queryset
 
     def get_context_data(self):
