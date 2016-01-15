@@ -14,7 +14,6 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template import Context
 from django.core.management.base import BaseCommand
 from django.core import management
 
@@ -61,10 +60,10 @@ class Command(BaseCommand):
         OnlineDisclaimer.objects.filter(user__in=expired_users).delete()
         if expired_users:
             # email studio
-            ctx = Context({
+            ctx = {
                 'print_disclaimer_users': print_dislaimer_users,
                 'online_disclaimer_users': online_disclaimer_users
-            })
+            }
 
             # send mail to studio
             try:
@@ -105,4 +104,3 @@ class Command(BaseCommand):
             ActivityLog.objects.create(
                 log='Delete disclaimers job run; no expired users'
             )
-

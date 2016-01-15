@@ -29,7 +29,8 @@ from studioadmin.views import (ConfirmRefundView,
                                email_users_view,
                                event_waiting_list_view,
                                cancel_ticketed_event_view,
-                               print_tickets_list
+                               print_tickets_list,
+                               user_disclaimer
                                )
 
 
@@ -92,7 +93,7 @@ urlpatterns = [
         user_blocks_view, name='user_blocks_list'
     ),
     url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/$',
-        'studioadmin.views.user_disclaimer',
+        user_disclaimer,
         name='user_disclaimer'),
     url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/update/$',
         DisclaimerUpdateView.as_view(),
