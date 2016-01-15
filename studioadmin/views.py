@@ -16,7 +16,6 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.template.loader import get_template
-from django.template import Context
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponseRedirect, HttpResponse, redirect, \
     render, get_object_or_404
@@ -131,11 +130,11 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                 self.success_message.format(payment_status, booking.user.username)
             )
 
-            ctx = Context({
+            ctx = {
                 'event': booking.event,
                 'host': 'http://{}'.format(self.request.META.get('HTTP_HOST')),
                 'payment_status': payment_status
-            })
+            }
             try:
                 send_mail(
                     '{} Payment status updated for {}'.format(
@@ -197,11 +196,10 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                                             booking.user.username)
             )
 
-            ctx = Context({
+            ctx = {
                 'event': booking.event,
                 'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-
-            })
+            }
 
             send_mail(
                 '{} Payment refund confirmed for {}'.format(
@@ -1321,9 +1319,10 @@ def email_users_view(request,
                         msg.attach_alternative(
                             get_template(
                                 'studioadmin/email/email_users.html').render(
-                                  Context({
+                                  {
                                       'subject': subject,
-                                      'message': message})
+                                      'message': message
+                                  }
                               ),
                             "text/html"
                         )
@@ -1461,14 +1460,14 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                             # send confirmation email
                                             host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                                             # send email to studio
-                                            ctx = Context({
+                                            ctx = {
                                                   'host': host,
                                                   'event': booking.event,
                                                   'user': booking.user,
                                                   'action': action,
                                                   'set_as_free': set_as_free,
                                                   'extra_msgs': extra_msgs
-                                            })
+                                            }
                                             send_mail('{} Your booking for {} has been {}'.format(
                                                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
                                                 ),
@@ -1894,14 +1893,14 @@ def cancel_event_view(request, slug):
                     # send notification email to user
                     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                     # send email to studio
-                    ctx = Context({
+                    ctx = {
                           'host': host,
                           'event_type': ev_type,
                           'block': block_paid,
                           'direct_paid': direct_paid,
                           'event': event,
                           'user': booking.user,
-                    })
+                    }
                     send_mail('{} {} has been cancelled'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ev_type.title(),
                         ),
@@ -1933,12 +1932,12 @@ def cancel_event_view(request, slug):
                     # send notification email to user
                     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                     # send email to studio
-                    ctx = Context({
+                    ctx = {
                           'host': host,
                           'event_type': ev_type,
                           'open_direct_paid_bookings': open_direct_paid_bookings,
                           'event': event,
-                    })
+                    }
                     send_mail('{} Refunds due for cancelled {}'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ev_type.title(),
                         ),
@@ -2394,11 +2393,11 @@ class TicketedEventBookingsListView(
             # send confirmation email
             host = 'http://{}'.format(request.META.get('HTTP_HOST'))
             # send email to studio
-            ctx = Context({
+            ctx = {
                   'host': host,
                   'ticketed_event': self.ticketed_event,
                   'action': action,
-            })
+            }
             send_mail('{} Your ticket booking ref {} for {} has been {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                 ticket_booking.booking_reference,
@@ -2467,11 +2466,11 @@ def cancel_ticketed_event_view(request, slug):
                 try:
                     # send notification email to user to all ticket booking,
                     # paid or unpaid
-                    ctx = Context({
+                    ctx = {
                           'host': host,
                           'ticketed_event': ticketed_event,
                           'ticket_booking': booking,
-                    })
+                    }
                     send_mail('{} {} has been cancelled'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                         ticketed_event.name,
@@ -2504,11 +2503,11 @@ def cancel_ticketed_event_view(request, slug):
 
                 try:
                     # send email to studio
-                    ctx = Context({
+                    ctx = {
                           'host': host,
                           'open_paid_ticket_bookings': open_paid_ticket_bookings,
                           'ticketed_event': ticketed_event,
-                    })
+                    }
                     send_mail('{} Refunds due for ticket bookings for '
                               'cancelled event {}'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
@@ -2601,12 +2600,11 @@ class ConfirmTicketBookingRefundView(
                                             ticket_booking.user.username)
             )
 
-            ctx = Context({
+            ctx = {
                 'ticketed_event': ticket_booking.ticketed_event,
                 'ticket_booking': ticket_booking,
                 'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-
-            })
+            }
 
             send_mail(
                 '{} Payment refund confirmed for ticket booking ref {}'.format(

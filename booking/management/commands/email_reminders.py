@@ -10,7 +10,6 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template import Context
 from django.core.management.base import BaseCommand
 from django.core import management
 from booking.templatetags.bookingtags import format_cancellation
@@ -35,7 +34,7 @@ class Command(BaseCommand):
             )
 
         for booking in upcoming_bookings:
-            ctx = Context({
+            ctx = {
                   'booking': booking,
                   'event': booking.event,
                   'date': booking.event.date.strftime('%A %d %B'),
@@ -48,7 +47,7 @@ class Command(BaseCommand):
                   'cancellation_period': format_cancellation(
                         booking.event.cancellation_period
                         )
-            })
+            }
             send_mail('{} Reminder: {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
                 get_template('booking/email/booking_reminder.txt').render(ctx),

@@ -1,8 +1,8 @@
 {% extends "account/base.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
+{% load socialaccount %}
 {% block head_title %}{% trans "Signup" %}{% endblock %}
 
 {% block content %}
@@ -10,7 +10,9 @@
 
 <p>Already have an account? Then please <a href="{{ login_url }}">sign in</a>.</p></br>
 
-{% if socialaccount.providers  %}
+{% get_providers as socialaccount_providers %}
+
+{% if socialaccount_providers  %}
 <div class="socialaccount_ballot">
     <strong>Sign up with</strong>
   <div class="socialaccount_providers btn btn-primary" style="list-style-type: none;">

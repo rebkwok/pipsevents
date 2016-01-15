@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.contrib import messages
 from django.template.loader import get_template
-from django.template import Context
 from django.shortcuts import HttpResponse, HttpResponseRedirect, render, \
     get_object_or_404
 from django.views.generic import (
@@ -231,13 +230,13 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                 )
 
                 host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-                ctx = Context({
+                ctx = {
                       'host': host,
                       'ticketed_event': self.ticketed_event,
                       'ticket_booking': self.ticket_booking,
                       'ticket_count': self.ticket_booking.tickets.count(),
                       'user': request.user,
-                })
+                }
 
                 try:
                     # send notification email to user
@@ -498,10 +497,10 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
                 # send email to user; no need to send to studio as cancelled
                 # before payment
-                ctx = Context({
+                ctx = {
                       'host': host,
                       'ticket_booking': ticket_booking,
-                })
+                }
                 send_mail('{} Ticket booking ref {} cancelled'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                         ticket_booking.booking_reference,

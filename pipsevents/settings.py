@@ -40,8 +40,6 @@ if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
 else:
     DEBUG = False
 
-TEMPLATE_DEBUG = DEBUG
-
 ALLOWED_HOSTS = []
 
 
@@ -87,17 +85,6 @@ MIDDLEWARE_CLASSES = (
     'responsive.middleware.DeviceInfoMiddleware',
 )
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    # Required by allauth template tags
-    "django.core.context_processors.request",
-    # allauth specific context processors
-    "allauth.account.context_processors.account",
-    "allauth.socialaccount.context_processors.socialaccount",
-    "django.contrib.messages.context_processors.messages",
-    'responsive.context_processors.device_info',
-)
-
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
     "django.contrib.auth.backends.ModelBackend",
@@ -125,7 +112,23 @@ ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.SignupForm'
 
 SOCIALACCOUNT_QUERY_EMAIL = True
 
-TEMPLATE_DIRS = (root('templates'),)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [root('templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': (
+                'django.contrib.auth.context_processors.auth',
+                # Required by allauth template tags
+                "django.template.context_processors.request",
+                "django.contrib.messages.context_processors.messages",
+                'responsive.context_processors.device_info',
+            ),
+            'debug': DEBUG,
+        },
+    },
+]
 
 ROOT_URLCONF = 'pipsevents.urls'
 
@@ -278,11 +281,6 @@ SUIT_CONFIG = {
         {
             'app': 'timetable',
             'label': 'Weekly timetable',
-            'icon': 'icon-calendar',
-        },
-        {
-            'label': 'Schedule classes from timetable',
-            'url': '/admin/booking/event/create-timetabled-classes/',
             'icon': 'icon-calendar',
         },
         {

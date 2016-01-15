@@ -4,24 +4,26 @@ from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockListView, TicketBookingListView, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
-    TicketBookingView, TicketBookingCancelView
+    TicketBookingView, TicketBookingCancelView, update_booking_cancelled, \
+    cancellation_period_past, duplicate_booking, fully_booked, \
+    has_active_block, permission_denied, ticket_purchase_expired
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
     url(r'^booking-history/$', BookingHistoryListView.as_view(),
         name='booking_history'),
     url(r'^booking/update/(?P<pk>\d+)/$', BookingUpdateView.as_view(),
         name='update_booking'),
     url(r'^booking/update/(?P<pk>\d+)/cancelled/$',
-        'booking.views.update_booking_cancelled',
+        update_booking_cancelled,
         name='update_booking_cancelled'),
     url(r'^booking/cancel/(?P<pk>\d+)/$', BookingDeleteView.as_view(),
         name='delete_booking'),
     url(r'^events/(?P<event_slug>[\w-]+)/cancellation-period-past/$',
-        'booking.views.cancellation_period_past', name='cancellation_period_past'),
+        cancellation_period_past, name='cancellation_period_past'),
     url(r'^events/(?P<event_slug>[\w-]+)/duplicate/$',
-        'booking.views.duplicate_booking', name='duplicate_booking'),
-    url(r'^events/(?P<event_slug>[\w-]+)/full/$', 'booking.views.fully_booked',
+        duplicate_booking, name='duplicate_booking'),
+    url(r'^events/(?P<event_slug>[\w-]+)/full/$', fully_booked,
         name='fully_booked'),
     url(r'^events/(?P<event_slug>[\w-]+)/book/$', BookingCreateView.as_view(),
         name='book_event'),
@@ -49,9 +51,9 @@ urlpatterns = patterns('',
     ),
     url(r'^blocks/$', BlockListView.as_view(), name='block_list'),
     url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
-    url(r'^blocks/existing/$', 'booking.views.has_active_block',
+    url(r'^blocks/existing/$', has_active_block,
         name='has_active_block'),
-    url(r'^not-available/$', 'booking.views.permission_denied',
+    url(r'^not-available/$', permission_denied,
         name='permission_denied'),
     url(
         r'^ticketed-events/$', TicketedEventListView.as_view(),
@@ -74,9 +76,9 @@ urlpatterns = patterns('',
     ),
     url(
         r'^ticket-bookings/(?P<slug>[\w-]+)/expired/$',
-        'booking.views.ticket_purchase_expired', name='ticket_purchase_expired'
+        ticket_purchase_expired, name='ticket_purchase_expired'
     ),
     url(r'^ticket-booking-history/$', TicketBookingHistoryListView.as_view(),
         name='ticket_booking_history'),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
-    )
+    ]

@@ -19,7 +19,6 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template import Context
 from django.core.management.base import BaseCommand
 from django.core import management
 
@@ -69,11 +68,11 @@ def send_warning_email(self, upcoming_bookings):
         due_datetime = ticket_booking.ticketed_event.payment_due_date
         due_datetime = due_datetime.astimezone(uk_tz)
 
-        ctx = Context({
+        ctx = {
               'ticket_booking': ticket_booking,
               'event': ticket_booking.ticketed_event,
               'due_datetime': due_datetime.strftime('%A %d %B %H:%M'),
-        })
+        }
 
         send_mail('{} Reminder: Ticket booking ref {} is not yet paid'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
