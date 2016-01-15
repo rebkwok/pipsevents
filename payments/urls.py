@@ -1,8 +1,9 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
+from payments.views import paypal_confirm_return, paypal_cancel_return
 
-urlpatterns = patterns('',
-    url(r'^confirm/$', 'payments.views.paypal_confirm_return',
+urlpatterns = [
+    url(r'^confirm/$', paypal_confirm_return,
         name='paypal_confirm'),
-    url(r'^cancel/$', 'payments.views.paypal_cancel_return',
+    url(r'^cancel/$', paypal_cancel_return,
         name='paypal_cancel'),
-    )
+    ]

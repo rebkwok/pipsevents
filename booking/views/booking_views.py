@@ -17,7 +17,6 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template import Context
 from braces.views import LoginRequiredMixin
 
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
@@ -302,12 +301,12 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 # send email and set messages
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
                 # send email to studio
-                ctx = Context({
+                ctx = {
                       'host': host,
                       'event': form.instance.event,
                       'user': self.request.user,
                       'booking_status': 'rebook' if previously_cancelled else 'create',
-                })
+                }
                 send_mail(
                     '{} Request to claim free class from {} {}'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
@@ -376,7 +375,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
-        ctx = Context({
+        ctx = {
               'host': host,
               'booking': booking,
               'event': booking.event,
@@ -388,7 +387,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
               previously_cancelled_and_direct_paid,
               'claim_free': True if "claim_free" in form.data else False,
               'ev_type': self.ev_type[:-1]
-        })
+        }
         try:
             send_mail('{} Booking for {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
@@ -424,7 +423,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                       get_template(
                         'booking/email/to_studio_booking.txt'
                         ).render(
-                          Context({
+                          {
                               'host': host,
                               'booking': booking,
                               'event': booking.event,
@@ -434,7 +433,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                               previously_cancelled_and_direct_paid,
                               'transaction_id': transaction_id,
                               'invoice_id': invoice_id
-                          })
+                          }
                       ),
                       settings.DEFAULT_FROM_EMAIL,
                       [settings.DEFAULT_STUDIO_EMAIL],
@@ -602,12 +601,12 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 # send email and set messages
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
                 # send email to studio
-                ctx = Context({
+                ctx = {
                       'host': host,
                       'event': form.instance.event,
                       'user': self.request.user,
                       'booking_status': 'update',
-                })
+                }
                 send_mail('{} Request to claim free class from {} {}'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                         self.request.user.first_name,
@@ -676,16 +675,16 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 else:
                     ev_type = 'room hire'
 
-                ctx = Context({
-                            'host': host,
-                            'booking': booking,
-                            'event': booking.event,
-                            'date': booking.event.date.strftime('%A %d %B'),
-                            'time': booking.event.date.strftime('%I:%M %p'),
-                            'blocks_used':  blocks_used,
-                            'total_blocks': total_blocks,
-                            'ev_type': ev_type
-                        })
+                ctx = {
+                    'host': host,
+                    'booking': booking,
+                    'event': booking.event,
+                    'date': booking.event.date.strftime('%A %d %B'),
+                    'time': booking.event.date.strftime('%I:%M %p'),
+                    'blocks_used':  blocks_used,
+                    'total_blocks': total_blocks,
+                    'ev_type': ev_type
+                }
                 send_mail('{} Block used for booking for {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
                     get_template('booking/email/booking_updated.txt').render(ctx),
@@ -770,13 +769,13 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
 
-        ctx = Context({
-                      'host': host,
-                      'booking': booking,
-                      'event': booking.event,
-                      'date': booking.event.date.strftime('%A %d %B'),
-                      'time': booking.event.date.strftime('%I:%M %p'),
-                      })
+        ctx = {
+                  'host': host,
+                  'booking': booking,
+                  'event': booking.event,
+                  'date': booking.event.date.strftime('%A %d %B'),
+                  'time': booking.event.date.strftime('%I:%M %p'),
+              }
         try:
             send_mail('{} Booking for {} cancelled'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
@@ -800,13 +799,13 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 booking.user.username,
                 booking.event.name),
                       get_template('booking/email/to_studio_booking_cancelled.txt').render(
-                          Context({
+                          {
                               'host': host,
                               'booking': booking,
                               'event': booking.event,
                               'date': booking.event.date.strftime('%A %d %B'),
                               'time': booking.event.date.strftime('%I:%M %p'),
-                          })
+                          }
                       ),
                 settings.DEFAULT_FROM_EMAIL,
                 [settings.DEFAULT_STUDIO_EMAIL],

@@ -19,7 +19,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
     EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket
-from booking.forms import CreateClassesForm, EmailUsersForm, BookingAdminForm, \
+from booking.forms import BookingAdminForm, \
     BlockAdminForm, TicketBookingAdminForm, WaitingListUserAdminForm
 from booking import utils
 from booking.widgets import DurationSelectorWidget
@@ -164,8 +164,6 @@ class EventForm(forms.ModelForm):
             }
 
 
-# TODO validation on event fields - e.g. payment due date can't be after event
-# TODO date, event date can't be in past, cost must be >= 0
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'location', 'get_spaces_left')
     list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
@@ -201,49 +199,10 @@ class EventAdmin(admin.ModelAdmin):
         return obj.spaces_left()
     get_spaces_left.short_description = '# Spaces left'
 
-    def get_urls(self):
-        urls = super(EventAdmin, self).get_urls()
-        extra_urls = patterns(
-            '',
-            (r'^create-timetabled-classes/$',
-             self.admin_site.admin_view(self.create_classes_view),)
-        )
-        return extra_urls + urls
-
-    def create_classes_view(self, request,
-                            template_name="admin/create_classes_form.html"):
-        # custom view which should return an HttpResponse
-
-        if request.method == 'POST':
-            form = CreateClassesForm(request.POST)
-            if form.is_valid():
-                date = form.cleaned_data['date']
-                created_classes, existing_classes = \
-                    utils.create_classes(week='this', input_date=date)
-                context = {'input_date': date,
-                           'created_classes': created_classes,
-                           'existing_classes': existing_classes}
-                return render(
-                    request, 'admin/create_classes_confirmation.html', context
-                )
-        else:
-            form = CreateClassesForm()
-        return render(request, template_name, {'form': form})
-
 
 class BookingAdmin(admin.ModelAdmin):
 
     form = BookingAdminForm
-
-    def get_urls(self):
-        urls = super(BookingAdmin, self).get_urls()
-        extra_urls = patterns(
-            '',
-            url(r'^email_users/$',
-                self.admin_site.admin_view(self.email_users_view),
-                name='email_users')
-        )
-        return extra_urls + urls
 
     list_display = ('event_name', 'get_date', 'get_user', 'get_cost', 'paid',
                     'space_confirmed', 'status')
@@ -256,8 +215,8 @@ class BookingAdmin(admin.ModelAdmin):
         'user__first_name', 'user__last_name', 'user__username', 'event__name'
     )
 
-    actions_on_top=True
-    actions_on_bottom=False
+    actions_on_top = True
+    actions_on_bottom = False
 
     def get_date(self, obj):
         return obj.event.date
@@ -276,7 +235,7 @@ class BookingAdmin(admin.ModelAdmin):
     get_user.short_description = 'User'
     get_user.admin_order_field = 'user__first_name'
 
-    actions = ['confirm_space', 'email_users_action']
+    actions = ['confirm_space']
 
     def get_cost(self, obj):
         return u"\u00A3{:.2f}".format(obj.event.cost)
@@ -300,59 +259,6 @@ class BookingAdmin(admin.ModelAdmin):
 
     confirm_space.short_description = \
         "Mark selected bookings as paid and confirmed"
-
-    def email_users_action(self, request, queryset):
-
-        bookings = [obj.id for obj in queryset]
-        if request.method == 'POST':
-            request.session['selected_bookings'] = bookings
-            return HttpResponseRedirect(reverse('admin:email_users'))
-
-    email_users_action.short_description = \
-        "Email users for selected bookings"
-
-    def email_users_view(self, request,
-                         template_name='admin/email_users_form.html'):
-        bookings = Booking.objects.filter(
-            id__in=request.session.get('selected_bookings')
-        )
-
-        if request.method == 'POST':
-            form = EmailUsersForm(request.POST)
-            if form.is_valid():
-                subject = '{} {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                    form.cleaned_data['subject'])
-                from_address = form.cleaned_data['from_address']
-                message = form.cleaned_data['message']
-                cc = form.cleaned_data['cc']
-
-                # do this per email address so recipients are not visible to
-                # each
-                email_addresses = [booking.user.email for booking in bookings]
-                if cc:
-                    email_addresses.append(from_address)
-                for email_address in email_addresses:
-                    send_mail(subject, message, from_address,
-                              [email_address],
-                              html_message=get_template(
-                                  'booking/email/email_users.html').render(
-                                  Context({
-                                      'subject': subject,
-                                      'message': message})
-                              ),
-                              fail_silently=False)
-
-                return render(
-                    request,
-                    'admin/email_users_confirmation.html',
-                    {'bookings': bookings}
-                )
-        else:
-            form = EmailUsersForm()
-        return render(
-            request, template_name, {'form': form, 'bookings': bookings}
-        )
 
 
 class BookingInLine(admin.TabularInline):

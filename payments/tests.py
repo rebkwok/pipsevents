@@ -1192,8 +1192,7 @@ class PaypalSignalsTests(TestCase):
         self.assertTrue(ppipn.flag)
         self.assertEqual(
             ppipn.flag_info,
-            'Invalid form. (<ul class="errorlist"><li>payment_date<ul class='
-            '"errorlist"><li>Enter a valid date/time.</li></ul></li></ul>)'
+            'Invalid form. (payment_date: Enter a valid date/time.)'
         )
 
         self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
@@ -1204,9 +1203,8 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(
             mail.outbox[0].body,
             'PayPal sent an invalid transaction notification while attempting '
-            'to process payment;.\n\nThe flag info was "Invalid form. (<ul '
-            'class="errorlist"><li>payment_date<ul class="errorlist"><li>Enter '
-            'a valid date/time.</li></ul></li></ul>)"\n\nAn additional error '
+            'to process payment;.\n\nThe flag info was "Invalid form. '
+            '(payment_date: Enter a valid date/time.)"\n\nAn additional error '
             'was raised: Unknown object type for payment'
         )
 

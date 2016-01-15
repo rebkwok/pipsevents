@@ -1,7 +1,7 @@
 from model_mommy import mommy
 from django.contrib.sites.models import Site
 from django.conf import settings
-from django.utils.importlib import import_module
+from importlib import import_module
 from django.test import RequestFactory
 from django.test.client import Client
 

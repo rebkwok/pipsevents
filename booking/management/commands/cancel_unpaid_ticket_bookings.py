@@ -26,7 +26,6 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template import Context
 from django.core.management.base import BaseCommand
 from django.core import management
 
@@ -79,10 +78,10 @@ class Command(BaseCommand):
 
         for ticket_booking in bookings_to_cancel:
 
-            ctx = Context({
+            ctx = {
                   'ticket_booking': ticket_booking,
                   'ticketed_event': ticket_booking.ticketed_event,
-            })
+            }
             # send mails to users
             try:
                 send_mail('{} Ticket Booking ref {} cancelled'.format(

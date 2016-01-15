@@ -5,7 +5,6 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
 from django.template.loader import get_template
-from django.template import Context
 
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
@@ -51,13 +50,13 @@ class PaypalTicketBookingTransaction(models.Model):
 
 def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 
-    ctx = Context({
+    ctx = {
         'user': " ".join([user.first_name, user.last_name]),
         'obj_type': obj_type.title().replace('_', ' '),
         'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
         'paypal_transaction_id': paypal_trans.transaction_id
-    })
+    }
     # send email to studio
     send_mail(
         '{} Payment processed for {} id {}'.format(
@@ -91,13 +90,13 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 
 def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
 
-    ctx = Context({
+    ctx = {
         'user': " ".join([user.first_name, user.last_name]),
         'obj_type': obj_type.title().replace('_', ' '),
         'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
         'paypal_transaction_id': paypal_trans.transaction_id
-    })
+    }
     # send email to studio only and to support for checking;
     # user will have received automated paypal payment
     send_mail(

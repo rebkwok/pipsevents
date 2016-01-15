@@ -12,7 +12,6 @@ from django.views.generic import (
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template import Context
 from braces.views import LoginRequiredMixin
 
 from payments.forms import PayPalPaymentsListForm
@@ -68,13 +67,13 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
-        ctx = Context({
+        ctx = {
                           'host': host,
                           'user': block.user,
                           'block_type': block.block_type,
                           'start_date': block.start_date,
                           'expiry_date': block.expiry_date,
-                      })
+                      }
         send_mail('{} Block booking confirmed'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
             get_template('booking/email/block_booked.txt').render(ctx),

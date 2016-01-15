@@ -44,33 +44,6 @@ class BlockCreateForm(forms.ModelForm):
         fields = ['block_type', ]
 
 
-class CreateClassesForm(forms.Form):
-    date = forms.DateField(
-        label="Date",
-        widget=DateSelectorWidget,
-        required=False, initial=date.today()
-    )
-
-    def clean_date(self):
-        if not self.cleaned_data['date']:
-            day = self.data.get('date_0')
-            month = MONTH_CHOICES.get(int(self.data.get('date_1')))
-            year = self.data.get('date_2')
-            raise forms.ValidationError(
-                _('Invalid date {} {} {}'.format(day, month, year))
-            )
-        return self.cleaned_data['date']
-
-
-class EmailUsersForm(forms.Form):
-    subject = forms.CharField(max_length=255, required=True)
-    from_address = forms.EmailField(max_length=255,
-                                    initial=settings.DEFAULT_FROM_EMAIL,
-                                    required=True)
-    cc = forms.BooleanField(label="Send a copy to this address", initial=True)
-    message = forms.CharField(widget=forms.Textarea, required=True)
-
-
 def get_event_names(event_type):
 
     def callable():
