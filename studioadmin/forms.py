@@ -425,18 +425,21 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                 block.active_block()
                 and block.block_type.event_type == event_type
             ]
-            form.available_block = form.instance.block or (
-                available_block[0] if available_block else None
-            )
-            available_block_ids = [block.id for block in available_block
-                                   ]
-            form.fields['block'] = UserBlockModelChoiceField(
-                queryset=Block.objects.filter(id__in=available_block_ids),
-                widget=forms.Select(
-                    attrs={'class': 'form-control input-xs studioadmin-list'}),
-                required=False,
-                empty_label="Active block not used"
-            )
+            if form.instance.block:
+                form.available_block = form.instance.block
+            else:
+                form.available_block = form.instance.block or (
+                    available_block[0] if available_block else None
+                )
+                available_block_ids = [block.id for block in available_block
+                                       ]
+                form.fields['block'] = UserBlockModelChoiceField(
+                    queryset=Block.objects.filter(id__in=available_block_ids),
+                    widget=forms.Select(
+                        attrs={'class': 'form-control input-xs studioadmin-list'}),
+                    required=False,
+                    empty_label="Active block not used"
+                )
 
             form.fields['user'] = forms.ModelChoiceField(
                 queryset=User.objects.all(),
