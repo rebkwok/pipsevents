@@ -221,8 +221,7 @@ class UserBookingFormSetTests(TestCase):
         self.assertEquals(
             block.empty_label,
             "--------None--------",
-             block.empty_label
-             )
+        )
 
         # assign this block to the user's booking
         self.booking.block = active_user_block
@@ -241,7 +240,6 @@ class UserBookingFormSetTests(TestCase):
         self.assertEquals(
             block.empty_label,
             "---REMOVE BLOCK (TO CHANGE BLOCK, REMOVE AND SAVE FIRST)---",
-            block.empty_label
         )
 
     def test_block_queryset_with_existing_booking_no_active_user_block(self):

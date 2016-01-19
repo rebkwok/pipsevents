@@ -1,31 +1,26 @@
 # -*- coding: utf-8 -*-
 
-import pytz
+from datetime import timedelta
 
-from datetime import datetime, timedelta
-from mock import Mock, patch
 from model_mommy import mommy
-
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
-from django.test import TestCase, RequestFactory
-from django.test.client import Client
-from django.contrib.auth.models import User, Permission
+from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
+
 from django.utils import timezone
 
-from activitylog.models import ActivityLog
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.tests.helpers import _create_session, format_content
+
 from studioadmin.views import (
     ConfirmTicketBookingRefundView,
     TicketedEventAdminCreateView, TicketedEventAdminListView,
     TicketedEventAdminUpdateView, TicketedEventBookingsListView,
     cancel_ticketed_event_view, print_tickets_list
 )
-
-from studioadmin.tests.test_views import TestPermissionMixin
+from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):

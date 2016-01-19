@@ -10,8 +10,10 @@ from django.contrib.auth.models import User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
+from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Booking, Block, EventType, WaitingListUser
 from booking.tests.helpers import _create_session, format_content
+from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
     UserListView,
     user_blocks_view,
@@ -51,14 +53,13 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
-    def test_instructor_group_cannot_access(self):
+    def test_instructor_group_can_access(self):
         """
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
         resp = self._get_response(self.instructor_user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEquals(resp.status_code, 200)
 
     def test_can_access_as_staff_user(self):
         """
@@ -94,6 +95,35 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             str(resp.content)
         )
 
+    def test_regular_student_button_not_shown_for_instructors(self):
+        not_reg_student = mommy.make_recipe('booking.user')
+        reg_student = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='is_regular_student')
+        reg_student.user_permissions.add(perm)
+        reg_student.save()
+
+        resp = self._get_response(self.staff_user)
+        resp.render()
+        self.assertIn(
+            'id="regular_student_button" value="{}">Yes'.format(reg_student.id),
+            str(resp.content)
+        )
+        self.assertIn(
+            'id="regular_student_button" value="{}">No'.format(not_reg_student.id),
+            str(resp.content)
+        )
+
+        resp = self._get_response(self.instructor_user)
+        resp.render()
+        self.assertNotIn(
+            'id="regular_student_button" value="{}">Yes'.format(reg_student.id),
+            str(resp.content)
+        )
+        self.assertNotIn(
+            'id="regular_student_button" value="{}">No'.format(not_reg_student.id),
+            str(resp.content)
+        )
+
     def test_change_regular_student(self):
         not_reg_student = mommy.make_recipe('booking.user')
         reg_student = mommy.make_recipe('booking.user')
@@ -122,6 +152,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
         superuser.is_superuser = True
         superuser.save()
+
         perm = Permission.objects.get(codename='is_regular_student')
         reg_student.user_permissions.add(perm)
         reg_student.save()
@@ -180,6 +211,111 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'reset': 'Reset'
         })
         self.assertEqual(len(resp.context_data['users']), 6)
+
+    def test_instructor_cannot_change_regular_student(self):
+        reg_student = mommy.make_recipe('booking.user')
+        resp = self._get_response(
+            self.instructor_user, {'change_user': [reg_student.id]}
+        )
+        self.assertIn('This action is not permitted', resp.rendered_content)
+        reg_student = User.objects.get(id=reg_student.id)
+        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
+
+    def test_display_disclaimers(self):
+        """
+        Test that users with online disclaimers do not display print disclaimer
+        button; users with print disclaimer or no disclaimer show print
+        disclaimer button
+        """
+        user_with_print_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        user_with_online_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=user_with_online_disclaimer)
+        user_with_no_disclaimer = mommy.make_recipe('booking.user')
+
+        resp = self._get_response(self.staff_user)
+        self.assertIn(
+            'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
+            str(resp.rendered_content)
+        )
+        self.assertIn(
+            'id="print_disclaimer_button" value="{}">No'.format(user_with_no_disclaimer.id),
+            str(resp.rendered_content)
+        )
+        self.assertIn(
+            'class="has-disclaimer-pill"', str(resp.rendered_content)
+        )
+        self.assertIn(
+            reverse(
+                'studioadmin:user_disclaimer',
+                args=[int_str(chaffify(user_with_online_disclaimer.id))]
+            ),
+            str(resp.rendered_content)
+        )
+
+    def test_print_disclaimer_button_not_shown_for_instructors(self):
+        user_with_print_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+
+        resp = self._get_response(self.staff_user)
+        self.assertIn(
+            'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
+            str(resp.rendered_content)
+        )
+        resp = self._get_response(self.instructor_user)
+        self.assertNotIn(
+            'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
+            str(resp.rendered_content)
+        )
+
+    def test_change_print_disclaimer(self):
+        user_with_print_disclaimer = mommy.make_recipe('booking.user')
+        print_disc = mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        self.assertEqual(
+            print_disc.id,
+            user_with_print_disclaimer.print_disclaimer.id
+        )
+
+        self.assertEqual(PrintDisclaimer.objects.count(), 1)
+        self._get_response(
+            self.staff_user, {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        )
+        # print disclaimer has been deleted
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+
+        self._get_response(
+            self.staff_user, {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        )
+        self.assertEqual(PrintDisclaimer.objects.count(), 1)
+        user = User.objects.get(id = user_with_print_disclaimer.id)
+        # a new print disclaimer has been created
+        self.assertNotEqual(
+            print_disc.id,
+            user.print_disclaimer.id
+        )
+
+    def test_instructor_cannot_change_print_disclaimer(self):
+        user_with_print_disclaimer = mommy.make_recipe('booking.user')
+        print_disc = mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        self.assertEqual(
+            print_disc.id,
+            user_with_print_disclaimer.print_disclaimer.id
+        )
+
+        self.assertEqual(PrintDisclaimer.objects.count(), 1)
+        self._get_response(
+            self.staff_user, {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        )
+        # print disclaimer has been deleted
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+
+        resp = self._get_response(
+            self.instructor_user,
+            {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        )
+        # not permitted - no print disclaimer created
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+        self.assertIn('This action is not permitted', resp.rendered_content)
 
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):

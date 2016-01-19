@@ -24,3 +24,4 @@ class TestPermissionMixin(object):
         group, _ = Group.objects.get_or_create(name="instructors")
         group.permissions.add(perm)
         self.instructor_user.groups.add(group)
+

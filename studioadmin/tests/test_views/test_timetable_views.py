@@ -414,7 +414,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
-    @patch('studioadmin.forms.timetable_forms.timezone')
+    @patch('studioadmin.forms.timetable_forms.timezone')s
     def test_events_are_created(self, mock_tz):
         mock_tz.now.return_value = datetime(
             2015, 6, 1, 0, 0, tzinfo=timezone.utc
