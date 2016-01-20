@@ -16,13 +16,15 @@ from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
+from accounts.models import PrintDisclaimer
+
 from booking.models import Booking, Block, WaitingListUser, BookingError
 from booking.email_helpers import send_support_email, send_waiting_list_email
 
 from studioadmin.forms import BookingStatusFilter, UserBookingFormSet, \
     UserBlockFormSet, UserListSearchForm
 
-from studioadmin.views.helpers import StaffUserMixin, \
+from studioadmin.views.helpers import InstructorOrStaffUserMixin, \
     staff_required
 from activitylog.models import ActivityLog
 
@@ -30,7 +32,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
+class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
 
     model = User
     template_name = 'studioadmin/user_list.html'
@@ -58,26 +60,81 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
     def get(self, request, *args, **kwargs):
         if 'change_user' in self.request.GET:
-            change_user_id = self.request.GET.getlist('change_user')[0]
-            user_to_change = User.objects.get(id=change_user_id)
-            is_regular_student = user_to_change.has_perm('booking.is_regular_student')
-            perm = Permission.objects.get(codename='is_regular_student')
-            if is_regular_student:
-                user_to_change.user_permissions.remove(perm)
-                if user_to_change.is_superuser:
-                    messages.error(
+            if not request.user.is_staff:
+                messages.error(request, "This action is not permitted")
+            else:
+                change_user_id = self.request.GET.getlist('change_user')[0]
+                user_to_change = User.objects.get(id=change_user_id)
+                is_regular_student = user_to_change.has_perm('booking.is_regular_student')
+                perm = Permission.objects.get(codename='is_regular_student')
+                if is_regular_student:
+                    user_to_change.user_permissions.remove(perm)
+                    if user_to_change.is_superuser:
+                        messages.error(
+                            request,
+                            "{} {} ({}) is a superuser; you cannot remove "
+                            "permissions".format(
+                                user_to_change.first_name,
+                                user_to_change.last_name,
+                                user_to_change.username
+                            )
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            "'Regular student' status has been removed for "
+                            "{} {} ({})".format(
+                                user_to_change.first_name,
+                                user_to_change.last_name,
+                                user_to_change.username
+                            )
+                        )
+                        ActivityLog.objects.create(
+                            log="'Regular student' status has been removed for "
+                            "{} {} ({}) by admin user {}".format(
+                                user_to_change.first_name,
+                                user_to_change.last_name,
+                                user_to_change.username,
+                                request.user.username
+                            )
+                        )
+
+                else:
+                    user_to_change.user_permissions.add(perm)
+                    messages.success(
                         request,
-                        "{} {} ({}) is a superuser; you cannot remove "
-                        "permissions".format(
+                        "{} {} ({}) has been given 'regular student' "
+                        "status".format(
                             user_to_change.first_name,
                             user_to_change.last_name,
                             user_to_change.username
                         )
                     )
-                else:
+                    ActivityLog.objects.create(
+                        log="{} {} ({}) has been given 'regular student' "
+                        "status by admin user {}".format(
+                            user_to_change.first_name,
+                                user_to_change.last_name,
+                                user_to_change.username,
+                                request.user.username
+                            )
+                    )
+                user_to_change.save()
+                return HttpResponseRedirect(reverse('studioadmin:users'))
+
+        if 'change_print_disclaimer' in self.request.GET:
+            if not request.user.is_staff:
+                messages.error(request, "This action is not permitted")
+            else:
+                change_user_id = self.request.GET.getlist('change_print_disclaimer')[0]
+                user_to_change = User.objects.get(id=change_user_id)
+
+                disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
+                if disclaimer:
+                    disclaimer.delete()
                     messages.success(
                         request,
-                        "'Regular student' status has been removed for "
+                        "Print disclaimer removed for "
                         "{} {} ({})".format(
                             user_to_change.first_name,
                             user_to_change.last_name,
@@ -85,7 +142,7 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
                         )
                     )
                     ActivityLog.objects.create(
-                        log="'Regular student' status has been removed for "
+                        log="Print disclaimer has been removed for "
                         "{} {} ({}) by admin user {}".format(
                             user_to_change.first_name,
                             user_to_change.last_name,
@@ -94,27 +151,28 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
                         )
                     )
 
-            else:
-                user_to_change.user_permissions.add(perm)
-                messages.success(
-                    request,
-                    "{} {} ({}) has been given 'regular student' "
-                    "status".format(
-                        user_to_change.first_name,
-                        user_to_change.last_name,
-                        user_to_change.username
-                    )
-                )
-                ActivityLog.objects.create(
-                    log="{} {} ({}) has been given 'regular student' "
-                    "status by admin user {}".format(
-                        user_to_change.first_name,
+                else:
+                    PrintDisclaimer.objects.create(user=user_to_change)
+                    messages.success(
+                        request,
+                        "Print disclaimer recorded for {} {} ({})".format(
+                            user_to_change.first_name,
                             user_to_change.last_name,
-                            user_to_change.username,
-                            request.user.username
+                            user_to_change.username
                         )
-                )
-            user_to_change.save()
+                    )
+                    ActivityLog.objects.create(
+                        log="Print disclaimer recorded for {} {} ({}) "
+                        "by admin user {}".format(
+                            user_to_change.first_name,
+                                user_to_change.last_name,
+                                user_to_change.username,
+                                request.user.username
+                            )
+                    )
+                user_to_change.save()
+                return HttpResponseRedirect(reverse('studioadmin:users'))
+
         return super(UserListView, self).get(request, *args, **kwargs)
 
     def get_context_data(self):

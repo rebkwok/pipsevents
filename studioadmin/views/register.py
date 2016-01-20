@@ -20,6 +20,7 @@ from studioadmin.forms import SimpleBookingRegisterFormSet, StatusFilter, \
     RegisterDayForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin
+
 from activitylog.models import ActivityLog
 
 
