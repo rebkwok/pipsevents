@@ -212,7 +212,7 @@ class SessionAdminForm(forms.ModelForm):
                     'id': 'email_studio_when_booked_id',
                     }
             ),
-            }
+        }
 
         help_texts = {
             'payment_open': _('Only applicable if the cost is greater than £0'),

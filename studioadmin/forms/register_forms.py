@@ -5,6 +5,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
+from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Block, Booking, Event
 from payments.models import PaypalBookingTransaction
 
@@ -70,6 +71,10 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
             )
             if pbts and pbts[0].transaction_id:
                 form.paid_by_paypal = True
+
+            if OnlineDisclaimer.objects.filter(user=user) or \
+                    PrintDisclaimer.objects.filter(user=user):
+                form.user_has_disclaimer = True
 
         else:
             booked_user_ids = [
