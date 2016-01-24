@@ -140,7 +140,7 @@ class BlockListView(LoginRequiredMixin, ListView):
         ).order_by('-start_date')
 
 
-class BlockDeleteView(LoginRequiredMixin, DeleteView):
+class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
 
     model = Block
     template_name = 'booking/delete_block.html'

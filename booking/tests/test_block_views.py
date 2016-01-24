@@ -258,6 +258,8 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(BlockDeleteViewTests, cls).setUpTestData()
         cls.block = mommy.make_recipe('booking.block', user=cls.user)
+        mommy.make(PrintDisclaimer, user=cls.user)
+        cls.block = mommy.make_recipe('booking.block', user=self.user)
 
     def _set_session(self, user, request):
         request.session = _create_session()
