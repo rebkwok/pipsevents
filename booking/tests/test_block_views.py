@@ -2,13 +2,13 @@ from datetime import timedelta
 from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
+from django.test import Client, TestCase, RequestFactory
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.forms import BlockCreateForm
 from booking.models import Block
-from booking.views import BlockCreateView, BlockListView
+from booking.views import BlockCreateView, BlockDeleteView, BlockListView
 from booking.tests.helpers import set_up_fb, _create_session, setup_view
 
 
@@ -241,3 +241,81 @@ class BlockListViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(Block.objects.all().count(), 4)
         self.assertEqual(resp.context_data['blocks'].count(), 1)
+
+
+class BlockDeleteViewTests(TestCase):
+    def setUp(self):
+        set_up_fb()
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = mommy.make_recipe('booking.user')
+        self.block = mommy.make_recipe('booking.block', user=self.user)
+
+    def _set_session(self, user, request):
+        request.session = _create_session()
+        request.user = user
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+    def _get_response(self, user, block_id):
+        url = reverse('booking:delete_block', args=[block_id])
+        request = self.factory.get(url)
+        self._set_session(user, request)
+        view = BlockDeleteView.as_view()
+        return view(request, pk=block_id)
+
+    def _post_response(self, user, block_id):
+        url = reverse('booking:delete_block', args=[block_id])
+        request = self.factory.post(url)
+        self._set_session(user, request)
+        view = BlockDeleteView.as_view()
+        return view(request, pk=block_id)
+
+    def test_cannot_get_delete_page_if_not_logged_in(self):
+        url = reverse('booking:delete_block', args=[self.block.id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url,
+            reverse('login') + '?next=/blocks/{}/delete/'.format(self.block.id)
+        )
+
+    def test_can_get_delete_block_page(self):
+        resp = self._get_response(self.user, self.block.id)
+        self.assertEqual(resp.context_data['block_to_delete'], self.block)
+
+    def test_cannot_get_delete_block_page_if_block_paid(self):
+        self.block.paid = True
+        self.block.save()
+        resp = self._get_response(self.user, self.block.id)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
+
+    def test_cannot_get_delete_block_page_if_block_has_bookings(self):
+        mommy.make_recipe('booking.booking', block=self.block)
+        resp = self._get_response(self.user, self.block.id)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
+
+    def test_cannot_post_delete_block_page_if_block_paid(self):
+        self.block.paid = True
+        self.block.save()
+        resp = self._post_response(self.user, self.block.id)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
+
+        self.assertEqual(Block.objects.first(), self.block)
+
+    def test_cannot_post_delete_block_page_if_block_has_bookings(self):
+        mommy.make_recipe('booking.booking', block=self.block)
+        resp = self._post_response(self.user, self.block.id)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
+
+        self.assertEqual(Block.objects.first(), self.block)
+
+    def test_can_delete_unpaid_and_unused_block(self):
+        self.assertFalse(self.block.paid)
+        self.assertFalse(self.block.bookings.exists())
+        self._post_response(self.user, self.block.id)
+        self.assertFalse(Block.objects.exists())

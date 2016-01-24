@@ -1,8 +1,9 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.views.generic import RedirectView
 from booking.views import EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
-    BookingDeleteView, BlockCreateView, BlockListView, TicketBookingListView, \
+    BookingDeleteView, BlockCreateView, BlockDeleteView, \
+    BlockListView, TicketBookingListView, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
     TicketBookingView, TicketBookingCancelView, update_booking_cancelled, \
     cancellation_period_past, duplicate_booking, fully_booked, \
@@ -51,6 +52,8 @@ urlpatterns = [
     ),
     url(r'^blocks/$', BlockListView.as_view(), name='block_list'),
     url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
+    url(r'^blocks/(?P<pk>\d+)/delete/$', BlockDeleteView.as_view(),
+        name='delete_block'),
     url(r'^blocks/existing/$', has_active_block,
         name='has_active_block'),
     url(r'^not-available/$', permission_denied,

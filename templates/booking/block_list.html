@@ -38,6 +38,7 @@
                                         {% else %}
                                             {% if not blockform.block.paid %}
                                             {% include 'payments/blocklistpayment.html' %}
+                                            <a href="{% url 'booking:delete_block' blockform.block.id%}"><span class="btn table-btn btn-danger">Delete</span></a>
                                             {% endif %}
                                         {% endif %}
                                     </td>
