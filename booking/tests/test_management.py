@@ -1995,6 +1995,30 @@ class BlockBookingsReportTests(TestCase):
         )
 
 
+class CreateSaleBlockTypesTests(TestCase):
+
+    def test_makes_existing_blocktypes_standard_and_creates_sale_copy(self):
+        pc_evtype = mommy.make(
+            EventType, event_type="CL", subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype5', event_type=pc_evtype)
+        mommy.make_recipe('booking.blocktype10', event_type=pc_evtype)
+
+        mommy.make_recipe(
+            'booking.blocktypePP10', event_type__subtype="Pole practice"
+        )
+        for bt in BlockType.objects.all():
+            self.assertIsNone(bt.identifier)
+        management.call_command('create_sale_blocktypes')
+        self.assertEqual(BlockType.objects.count(), 6)
+        self.assertEqual(
+            BlockType.objects.filter(identifier='standard').count(), 3
+        )
+        self.assertEqual(
+            BlockType.objects.filter(identifier='sale').count(), 3
+        )
+
+
 class ActivateBlockTypeTests(TestCase):
 
     def test_activate_blocktypes(self):
