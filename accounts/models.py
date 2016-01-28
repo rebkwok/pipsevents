@@ -74,7 +74,7 @@ class OnlineDisclaimer(models.Model):
     dob = models.DateField(verbose_name='date of birth')
     address = models.CharField(max_length=512)
     postcode = models.CharField(max_length=10)
-    home_phone = models.CharField(max_length=255)
+    home_phone = models.CharField(max_length=255, null=True, blank=True)
     mobile_phone = models.CharField(max_length=255)
     emergency_contact1_name = models.CharField(max_length=255, verbose_name='name')
     emergency_contact1_relationship = models.CharField(max_length=255, verbose_name='relationship')

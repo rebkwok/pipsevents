@@ -166,9 +166,6 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
 
         if self.event.event_type.subtype == "Pole practice" \
                 and not self.request.user.has_perm("booking.is_regular_student"):
-
-        if self.event.event_type.subtype == "Pole practice" and not \
-                self.request.user.has_perm("booking.is_regular_student"):
             return HttpResponseRedirect(reverse('booking:permission_denied'))
 
         return super(BookingCreateView, self).dispatch(*args, **kwargs)

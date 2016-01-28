@@ -97,6 +97,8 @@ class DisclaimerForm(forms.ModelForm):
             self.over_18_terms = OVER_18_TERMS
             self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
 
+        self.fields['home_phone'].required = False
+
     class Meta:
         model = OnlineDisclaimer
         fields = (
