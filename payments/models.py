@@ -58,16 +58,17 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
         'paypal_transaction_id': paypal_trans.transaction_id
     }
     # send email to studio
-    send_mail(
-        '{} Payment processed for {} id {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
-        get_template(
-            'payments/email/payment_processed_to_studio.txt').render(ctx),
-        settings.DEFAULT_FROM_EMAIL,
-        [settings.DEFAULT_STUDIO_EMAIL],
-        html_message=get_template(
-            'payments/email/payment_processed_to_studio.html').render(ctx),
-        fail_silently=False)
+    if settings.SEND_ALL_STUDIO_EMAILS:
+        send_mail(
+            '{} Payment processed for {} id {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
+            get_template(
+                'payments/email/payment_processed_to_studio.txt').render(ctx),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.DEFAULT_STUDIO_EMAIL],
+            html_message=get_template(
+                'payments/email/payment_processed_to_studio.html').render(ctx),
+            fail_silently=False)
 
     # send email to user
     send_mail(
@@ -254,9 +255,9 @@ def payment_received(sender, **kwargs):
                     ipn_obj.txn_id, paypal_trans.invoice_id
                     )
             )
-
-            send_processed_refund_emails(obj_type, obj.id, paypal_trans,
-                                          obj.user, obj)
+            if settings.SEND_ALL_STUDIO_EMAILS:
+                send_processed_refund_emails(obj_type, obj.id, paypal_trans,
+                                              obj.user, obj)
 
         if ipn_obj.payment_status == ST_PP_COMPLETED:
             # we only process if payment status is completed

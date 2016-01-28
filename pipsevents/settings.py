@@ -18,6 +18,7 @@ env = environ.Env(DEBUG=(bool, False),
                   USE_MAILCATCHER=(bool, False),
                   TRAVIS=(bool, False),
                   HEROKU=(bool, False),
+                  SEND_ALL_STUDIO_EMAILS=(bool, False)
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -182,6 +183,7 @@ EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
 DEFAULT_STUDIO_EMAIL = 'thewatermelonstudio@hotmail.com'
 SUPPORT_EMAIL = 'rebkwok@gmail.com'
+SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 # #####LOGGING######
 if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover

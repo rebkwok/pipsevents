@@ -6,7 +6,7 @@ from django.contrib.admin.sites import AdminSite
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.utils import timezone
 
 from booking.context_helpers import get_paypal_dict
@@ -660,6 +660,32 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(mail.outbox[0].to, [settings.DEFAULT_STUDIO_EMAIL])
         self.assertEqual(mail.outbox[1].to, [booking.user.email])
 
+    @override_settings(SEND_ALL_STUDIO_EMAILS=False)
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_sends_emails_to_user_only_if_studio_emails_off(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe('booking.booking')
+        invoice_id = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        ).invoice_id
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(invoice_id)
+            }
+        )
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+
+        # 1 email sent, to studio only
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [booking.user.email])
+
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_successful_paypal_payment_updates_booking(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
@@ -1173,6 +1199,46 @@ class PaypalSignalsTests(TestCase):
         booking.refresh_from_db()
         self.assertFalse(booking.payment_confirmed)
         self.assertFalse(booking.paid)
+
+        # emails sent to studio and support
+        self.assertEqual(
+            mail.outbox[0].to,
+            [settings.DEFAULT_STUDIO_EMAIL, settings.SUPPORT_EMAIL]
+        )
+
+    @override_settings(SEND_ALL_STUDIO_EMAILS=False)
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_refunded_emails_not_sent_if_studio_emails_off(self, mock_postback):
+        """
+        when a paypal payment is refunded, it looks like it posts back to the
+        notify url again (since the PayPalIPN is updated).  Test that we can
+        identify and process refunded payments.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe('booking.booking', payment_confirmed=True,
+                                    paid=True)
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        resp = self.paypal_post(params)
+        booking.refresh_from_db()
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.paid)
+
+        # emails not sent
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_paypal_notify_url_with_invalid_date(self):
         """
