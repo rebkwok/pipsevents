@@ -156,6 +156,14 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             self.ev_type = 'events'
         else:
             self.ev_type = 'room_hires'
+
+        if self.event.cancelled:
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+
+        if self.event.event_type.subtype == "Pole practice" \
+                and not self.request.user.has_perm("booking.is_regular_student"):
+            return HttpResponseRedirect(reverse('booking:permission_denied'))
+
         return super(BookingCreateView, self).dispatch(*args, **kwargs)
 
     def get_initial(self):
@@ -165,15 +173,8 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
     def get(self, request, *args, **kwargs):
 
-        if self.event.cancelled:
-            return HttpResponseRedirect(reverse('booking:permission_denied'))
-
-        if self.event.event_type.subtype == "Pole practice" \
-                and not request.user.has_perm("booking.is_regular_student"):
-            return HttpResponseRedirect(reverse('booking:permission_denied'))
-
         # redirect if fully booked or already booked
-        elif 'join waiting list' in request.GET:
+        if 'join waiting list' in request.GET:
             waitinglistuser, new = WaitingListUser.objects.get_or_create(
                     user=request.user, event=self.event
                 )

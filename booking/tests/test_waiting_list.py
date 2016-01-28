@@ -334,14 +334,61 @@ class WaitingListTests(TestCase):
 
         self.assertEqual(WaitingListUser.objects.count(), 0)
         resp = self._get_booking_create(
-            self.user, event, {'join waiting list': ['Join waiting list']}
+            self.user, event,
+            {
+                'join waiting list': ['Join waiting list'],
+                'bookings': ['bookings']
+            }
         )
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:lessons'))
+        self.assertEqual(resp.url, reverse('booking:bookings'))
 
         waiting_list = WaitingListUser.objects.filter(event=event)
         self.assertEqual(len(waiting_list), 1)
         self.assertEqual(waiting_list[0].user, self.user)
+
+    def test_leave_waiting_list(self):
+        """
+        Test that leaving waiting list removes WaitingListUser to event and
+        redirects to bookings list
+        """
+        event = mommy.make_recipe('booking.future_PC', max_participants=3)
+        mommy.make_recipe('booking.booking', event=event, _quantity=3)
+        mommy.make_recipe(
+            'booking.waiting_list_user', user=self.user, event=event
+        )
+        self.assertEqual(WaitingListUser.objects.count(), 1)
+        resp = self._get_booking_create(
+            self.user, event,
+            {
+                'leave waiting list': ['Leave waiting list'],
+                'bookings': ['bookings']
+            }
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:bookings'))
+
+        self.assertEqual(WaitingListUser.objects.count(), 0)
+
+    def test_try_to_leave_waiting_list_when_not_on_it(self):
+        """
+        Test that leaving waiting list when not on it just redirects to
+        bookings page
+        """
+        event = mommy.make_recipe('booking.future_PC', max_participants=3)
+        mommy.make_recipe('booking.booking', event=event, _quantity=3)
+        self.assertEqual(WaitingListUser.objects.count(), 0)
+        resp = self._get_booking_create(
+            self.user, event,
+            {
+                'leave waiting list': ['Leave waiting list'],
+                'bookings': ['bookings']
+            }
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:bookings'))
+
+        self.assertEqual(WaitingListUser.objects.count(), 0)
 
     def test_already_on_waiting_list(self):
         """
@@ -356,10 +403,13 @@ class WaitingListTests(TestCase):
         )
         self.assertEqual(WaitingListUser.objects.count(), 1)
         resp = self._get_booking_create(
-            self.user, event, {'join waiting list': ['Join waiting list']}
+            self.user, event, {
+                'join waiting list': ['Join waiting list'],
+                'bookings': ['bookings']
+            }
         )
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:lessons'))
+        self.assertEqual(resp.url, reverse('booking:bookings'))
         waiting_list = WaitingListUser.objects.filter(event=event)
         # still only one waiting list user
         self.assertEqual(len(waiting_list), 1)

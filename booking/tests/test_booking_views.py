@@ -8,7 +8,7 @@ from django.test import TestCase, RequestFactory
 from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, User
 
 from booking.models import Event, Booking, Block
 from booking.views import BookingListView, BookingHistoryListView, \
@@ -31,7 +31,7 @@ class BookingListViewTests(TestCase):
             mommy.make_recipe('booking.future_PC',  name="Scnd Event"),
             mommy.make_recipe('booking.future_RH',  name="Third Event")
         ]
-        future_bookings = [mommy.make_recipe(
+        [mommy.make_recipe(
             'booking.booking', user=self.user,
             event=event) for event in self.events]
         mommy.make_recipe('booking.past_booking', user=self.user)
@@ -114,6 +114,110 @@ class BookingListViewTests(TestCase):
         # including the cancelled one
         self.assertEquals(resp.context_data['bookings'].count(), 1)
         self.assertIn('EVENT CANCELLED', resp.rendered_content)
+
+    @patch('booking.views.booking_views.timezone')
+    def test_show_due_date_time_event_with_payment_due_date(self, mock_tz):
+        """
+        Test events with advance payment required.
+        Booking list shows date payment due.
+
+        1) Payment due date --> show due date
+        2) and 3) Payment time allowed --> show time after booking OR rebooking time
+        4) cancellation period --> show time before event datetime
+        """
+
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+
+        Event.objects.all().delete()
+        Booking.objects.all().delete()
+        event = mommy.make_recipe(
+            'booking.future_PC', advance_payment_required=True, cost=10,
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 12, 16, 0, tzinfo=timezone.utc),
+        )
+        mommy.make_recipe('booking.booking', user=self.user, event=event)
+        resp = self._get_response(self.user)
+
+        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        bookingform = resp.context_data['bookingformlist'][0]
+        self.assertEqual(bookingform['due_date_time'], event.payment_due_date)
+
+    @patch('booking.views.booking_views.timezone')
+    def test_show_due_date_time_event_with_payment_time_allowed(self, mock_tz):
+        """
+        Test events with advance payment required.
+        Booking list shows date payment due.
+
+        1) Payment due date --> show due date
+        2) and 3) Payment time allowed --> show time after booking OR rebooking time
+        4) cancellation period --> show time before event datetime
+        """
+
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+
+        Event.objects.all().delete()
+        Booking.objects.all().delete()
+        event = mommy.make_recipe(
+            'booking.future_PC', advance_payment_required=True,
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_time_allowed=6, cost=10
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        booking.date_booked = datetime(2015, 1, 18, tzinfo=timezone.utc)
+        booking.save()
+        resp = self._get_response(self.user)
+
+        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        bookingform = resp.context_data['bookingformlist'][0]
+        self.assertEqual(
+            bookingform['due_date_time'],
+            datetime(2015, 1, 18, 6, 0, tzinfo=timezone.utc)
+        )
+
+        booking.date_rebooked = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        booking.save()
+        resp = self._get_response(self.user)
+
+        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        bookingform = resp.context_data['bookingformlist'][0]
+        self.assertEqual(
+            bookingform['due_date_time'],
+            datetime(2015, 2, 1, 6, 0, tzinfo=timezone.utc)
+        )
+
+    @patch('booking.views.booking_views.timezone')
+    def test_show_due_date_time_event_with_cancellation_period(self, mock_tz):
+        """
+        Test events with advance payment required.
+        Booking list shows date payment due.
+
+        1) Payment due date --> show due date
+        2) and 3) Payment time allowed --> show time after booking OR rebooking time
+        4) cancellation period --> show time before event datetime
+        """
+
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+
+        Event.objects.all().delete()
+        Booking.objects.all().delete()
+        event = mommy.make_recipe(
+            'booking.future_PC', advance_payment_required=True,
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            cancellation_period=24, cost=10
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        resp = self._get_response(self.user)
+
+        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        bookingform = resp.context_data['bookingformlist'][0]
+        self.assertEqual(
+            bookingform['due_date_time'],
+            datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc)
+        )
 
 
 class BookingHistoryListViewTests(TestCase):
@@ -234,6 +338,15 @@ class BookingCreateViewTests(TestCase):
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
         self.assertEqual(Booking.objects.all().count(), 0)
         self._post_response(self.user, event)
+        self.assertEqual(Booking.objects.all().count(), 1)
+
+    def test_create_room_hire(self):
+        """
+        Test creating a room hire booking
+        """
+        room_hire = mommy.make_recipe('booking.future_RH', max_participants=3)
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self._post_response(self.user, room_hire)
         self.assertEqual(Booking.objects.all().count(), 1)
 
     def test_cannot_create_duplicate_booking(self):
@@ -493,6 +606,36 @@ class BookingCreateViewTests(TestCase):
                 'booking:permission_denied',
             )
         )
+
+    def test_cannot_book_for_pole_practice_if_not_regular_student(self):
+        """
+        Test trying to create a booking for pole practice if not regular
+         student redirects
+        """
+        Event.objects.all().delete()
+        event = mommy.make_recipe(
+            'booking.future_PP', event_type__subtype='Pole practice'
+        )
+        self.user.user_permissions.all().delete()
+        # try to get booking page
+        resp = self._get_response(self.user, event)
+        # test redirect to permission denied page
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:permission_denied',
+            )
+        )
+
+        perm = Permission.objects.get(codename='is_regular_student')
+        self.user.user_permissions.add(perm)
+        # this is necessary to get around django's caching of permissions
+        user = User.objects.get(id=self.user.id)
+
+        # try again
+        resp = self._get_response(user, event)
+        self.assertEqual(resp.status_code, 200)
 
 
 class BookingErrorRedirectPagesTests(TestCase):
