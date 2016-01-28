@@ -562,7 +562,7 @@ class BookingDeleteViewTests(TestCase):
         self.factory = RequestFactory()
         self.user = mommy.make_recipe('booking.user')
 
-    def _get_response(self, user, booking):
+    def _delete_response(self, user, booking):
         url = reverse('booking:delete_booking', args=[booking.id])
         session = _create_session()
         request = self.factory.delete(url)
@@ -600,7 +600,7 @@ class BookingDeleteViewTests(TestCase):
         booking = mommy.make_recipe('booking.booking', event=event,
                                     user=self.user)
         self.assertEqual(Booking.objects.all().count(), 1)
-        self._get_response(self.user, booking)
+        self._delete_response(self.user, booking)
         # after cancelling, the booking is still there, but status has changed
         self.assertEqual(Booking.objects.all().count(), 1)
         booking = Booking.objects.get(id=booking.id)
@@ -617,7 +617,7 @@ class BookingDeleteViewTests(TestCase):
 
         self.assertEqual(Booking.objects.all().count(), 3)
         booking = Booking.objects.all()[0]
-        self._get_response(self.user, booking)
+        self._delete_response(self.user, booking)
         self.assertEqual(Booking.objects.all().count(), 3)
         cancelled_bookings = Booking.objects.filter(status='CANCELLED')
         self.assertEqual([cancelled.id for cancelled in cancelled_bookings],
@@ -629,7 +629,7 @@ class BookingDeleteViewTests(TestCase):
                                     event=event_with_cost)
         booking.confirm_space()
         self.assertTrue(booking.payment_confirmed)
-        self._get_response(self.user, booking)
+        self._delete_response(self.user, booking)
 
         booking = Booking.objects.get(user=self.user,
                                       event=event_with_cost)
@@ -658,7 +658,7 @@ class BookingDeleteViewTests(TestCase):
         self.assertEqual(block.bookings_made(), 1)
 
         # cancel booking
-        self._get_response(self.user, booking)
+        self._delete_response(self.user, booking)
 
         booking = Booking.objects.get(user=self.user, event=event)
         self.assertEqual('CANCELLED', booking.status)
@@ -713,7 +713,7 @@ class BookingDeleteViewTests(TestCase):
         booking.confirm_space()
         self.assertTrue(booking.payment_confirmed)
         self.assertTrue(booking.free_class)
-        self._get_response(self.user, booking)
+        self._delete_response(self.user, booking)
 
         booking = Booking.objects.get(user=self.user,
                                       event=event_with_cost)
@@ -721,6 +721,36 @@ class BookingDeleteViewTests(TestCase):
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
         self.assertFalse(booking.free_class)
+
+    def test_cannot_cancel_twice(self):
+        event = mommy.make_recipe('booking.future_EV')
+        booking = mommy.make_recipe('booking.booking', event=event,
+                                    user=self.user)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self._delete_response(self.user, booking)
+        booking.refresh_from_db()
+        self.assertEqual('CANCELLED', booking.status)
+
+        # try deleting again, should redirect
+        resp = self._delete_response(self.user, booking)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url, reverse('booking:already_cancelled', args=[booking.id])
+        )
+
+    def test_redirects_if_cancellation_not_allowed(self):
+        event = mommy.make_recipe(
+            'booking.future_EV', allow_booking_cancellation=False
+        )
+        booking = mommy.make_recipe('booking.booking', event=event,
+                                    user=self.user)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        resp = self._delete_response(self.user, booking)
+        booking.refresh_from_db()
+        # still open
+        self.assertEqual('OPEN', booking.status)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
 
 
 class BookingUpdateViewTests(TestCase):

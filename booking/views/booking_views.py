@@ -739,7 +739,7 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'booking/delete_booking.html'
     success_message = 'Booking cancelled for {}'
 
-    def get(self, request, *args, **kwargs):
+    def dispatch(self, request, *args, **kwargs):
         # redirect if cancellation period past
         booking = get_object_or_404(Booking, pk=self.kwargs['pk'])
         if not booking.event.allow_booking_cancellation:
@@ -749,7 +749,13 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
                 reverse('booking:cancellation_period_past',
                         args=[booking.event.slug])
             )
-        return super(BookingDeleteView, self).get(request, *args, **kwargs)
+        elif booking.status == 'CANCELLED':
+            # redirect if already cancelled
+            return HttpResponseRedirect(
+                reverse('booking:already_cancelled',
+                        args=[booking.id])
+            )
+        return super(BookingDeleteView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -918,4 +924,10 @@ def cancellation_period_past(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
     context = {'event': event}
     return render(request, 'booking/cancellation_period_past.html', context)
+
+
+def already_cancelled(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    context = {'booking': booking}
+    return render(request, 'booking/already_cancelled.html', context)
 

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h2>Attempting to cancel for {{ booking.event.name }}</h2>
+        <h4>This booking has already been cancelled.</h4>
+        <h4><a href="{% url 'booking:bookings' %}">Your bookings</a></h2>
+
+</div>
+
+{% endblock content %}
