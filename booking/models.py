@@ -99,7 +99,9 @@ class Event(models.Model):
         help_text='Run by external instructor; booking and payment to be made '
                   'with instructor directly')
     email_studio_when_booked = models.BooleanField(default=False)
-    slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
+    slug = AutoSlugField(
+        populate_from=['name', 'date'], max_length=40, unique=True
+    )
     cancelled = models.BooleanField(default=False)
     allow_booking_cancellation = models.BooleanField(default=True)
 
