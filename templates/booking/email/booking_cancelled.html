@@ -16,7 +16,7 @@
     {% if not booking.free_class and booking.paid %}
         Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and
         will be in contact soon.
-    {% else %}
+    {% elif booking.free_class %}
         This booking was marked as a free class. If you decide to reopen this
         booking you will need to resubmit a free class request for approval.
     {% endif %}
