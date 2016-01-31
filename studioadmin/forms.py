@@ -1262,6 +1262,18 @@ UserBookingFormSet = inlineformset_factory(
 )
 
 
+class BlockTypeModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "{}{} - quantity {}".format(
+            obj.event_type.subtype,
+            " ({})".format(obj.identifier) if obj.identifier else '',
+            obj.size
+        )
+    def to_python(self, value):
+        if value:
+            return BlockType.objects.get(id=value)
+
+
 class UserBlockInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
@@ -1288,7 +1300,7 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
         form.can_buy_block = True if available_block_types else False
 
         if not form.instance.id:
-            form.fields['block_type'] = (forms.ModelChoiceField(
+            form.fields['block_type'] = (BlockTypeModelChoiceField(
                 queryset=available_block_types,
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
                 required=False,
