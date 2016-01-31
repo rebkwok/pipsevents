@@ -297,8 +297,8 @@ class BlockFilter(admin.SimpleListFilter):
 
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'formatted_cost', 'start_date', 'paid',
-              'formatted_expiry_date')
+    fields = ('user', 'block_type', 'parent', 'formatted_cost', 'start_date',
+              'paid', 'formatted_expiry_date')
     readonly_fields = ('formatted_cost',
                        'formatted_expiry_date')
     list_display = ('get_user', 'block_type', 'block_size', 'active_block',
@@ -392,6 +392,7 @@ class BlockAdmin(admin.ModelAdmin):
                     )),
                 )
 
+            
 class BlockTypeAdmin(admin.ModelAdmin):
     list_display = ('event_type', 'identifier', 'size', 'formatted_cost',
                     'formatted_duration', 'active')

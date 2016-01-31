@@ -47,8 +47,12 @@
                                     {% else %}
                                         UNPAID
                                     {% endif %}</td>
+<<<<<<< c8fe0555356ad3e2ee62fc0e231d3419c957dbd5
                                     <td class="studioadmin-tbl">{{ block.instance.block_type.event_type.subtype }}
                                         {% if block.instance.block_type.identifier %}({{ block.instance.block_type.identifier }}){% endif %}</td>
+=======
+                                    <td class="studioadmin-tbl">{{ block.instance.block_type.event_type }}{% if block.instance.block_type.identifier == 'free class' %} (free class){% endif %}</td>
+>>>>>>> Creating free class blocks automatically (wip)
                                     {% if block.instance.paid %}
                                         <span class="hide">{{ block.paid }}</span>
                                         <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>

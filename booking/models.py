@@ -182,7 +182,11 @@ class BlockType(models.Model):
     active = models.BooleanField(default=True)
 
     def __str__(self):
-        return '{} - quantity {}'.format(self.event_type.subtype, self.size)
+        return '{}{} - quantity {}'.format(
+            self.event_type.subtype,
+            ' (free class)' if self.identifier == 'free class' else '',
+            self.size
+        )
 
 
 class Block(models.Model):
@@ -198,14 +202,23 @@ class Block(models.Model):
         default=False,
         help_text='Payment has been made by user'
     )
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, related_name='children'
+    )
 
     class Meta:
         ordering = ['user__username']
 
     def __str__(self):
+
+        if self.block_type.identifier == 'free class':
+            block_name = self.block_type.identifier
+        else:
+            block_name = self.block_type.event_type.subtype
+
         return "{} -- {} -- size {} -- start {}".format(
             self.user.username,
-            self.block_type.event_type.subtype,
+            block_name,
             self.block_type.size,
             self.start_date.strftime('%d %b %Y')
         )
@@ -215,8 +228,14 @@ class Block(models.Model):
         # replace block expiry date with very end of day
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
+        # For a with a parent block with a parent (free class block),
+        # override blocktype duration to be same as parent's blocktype
+        duration = self.block_type.duration
+        if self.parent:
+            duration = self.parent.block_type.duration
+
         expiry_datetime = self.start_date + relativedelta(
-            months=self.block_type.duration)
+            months=duration)
         next_day = (expiry_datetime + timedelta(
             days=1)).replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -266,6 +285,14 @@ class Block(models.Model):
             )
         super(Block, self).delete(*args, **kwargs)
 
+    def save(self, *args, **kwargs):
+        # if block has parent, make start date same as parent
+        if self.parent:
+            self.start_date = self.parent.start_date
+        if self.block_type.cost == 0:
+            self.paid = True
+        super(Block, self).save(*args, **kwargs)
+        
 
 class Booking(models.Model):
     STATUS_CHOICES = (
@@ -361,7 +388,10 @@ class Booking(models.Model):
         if self.free_class:
             self.paid = True
             self.payment_confirmed = True
-            self.block = None
+            if self.block.block and self.block_type.identifier != 'free class':
+                self.block = None
+
+        # TODO check for free class blocks (currently in views)
         super(Booking, self).save(*args, **kwargs)
 
 

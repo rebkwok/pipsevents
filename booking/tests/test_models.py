@@ -7,8 +7,8 @@ from datetime import timedelta, datetime
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Booking, BookingError, TicketBooking, \
-    Ticket, TicketBookingError
+from booking.models import Event, EventType, Booking, BookingError, \
+    TicketBooking, Ticket, TicketBookingError
 
 now = timezone.now()
 
@@ -516,6 +516,74 @@ class BlockTests(TestCase):
 
         self.assertEqual(
             str(block), 'TestUser -- Pole level class -- size 4 -- start 01 Jan 2015'
+        )
+
+    def test_str_for_free_class_block(self):
+        blocktype = mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type__subtype="Pole level class", identifier='free class'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype,
+        )
+
+        self.assertEqual(
+            str(block), 'TestUser -- free class -- size 1 -- start 01 Jan 2015'
+        )
+
+    def test_create_free_class_block_with_parent(self):
+        """
+        Free block has duration 1; if it has a parent block, override
+        start date and duration with parent data
+        """
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0, duration=1,
+            event_type=ev_type, identifier='free class'
+        )
+        user = mommy.make_recipe('booking.user', username="TestUser")
+        block = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=user,
+            block_type=blocktype,
+        )
+        free_block = mommy.make_recipe(
+            'booking.block', parent=block,
+            user=user,
+            block_type=free_blocktype,
+        )
+        self.assertEqual(free_block.start_date, block.start_date)
+        self.assertEqual(free_block.expiry_date, block.expiry_date)
+
+    def test_create_free_class_block_without_parent(self):
+        """
+        Free block has duration 1; if no parent block keep start date and
+        duration from free block type
+        """
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type__subtype="Pole level class", identifier='free class',
+            duration=1
+        )
+        user = mommy.make_recipe('booking.user', username="TestUser")
+
+        free_block = mommy.make_recipe(
+            'booking.block', user=user, block_type=free_blocktype,
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+
+        self.assertEqual(
+            free_block.expiry_date,
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
         )
 
 

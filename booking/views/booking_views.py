@@ -22,7 +22,7 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from booking.models import Event, Booking, BlockType, WaitingListUser, \
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser, \
     BookingError
 from booking.forms import BookingCreateForm
 import booking.context_helpers as context_helpers
@@ -279,6 +279,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         if 'block_book' in form.data:
             blocks = self.request.user.blocks.all()
+            # if there are blocks in a free_class block and original block,
+            # this should return the original block (free class blocks are
+            # created later
             active_block = [
                 block for block in blocks if block.active_block()
                 and block.block_type.event_type == booking.event.event_type][0]
@@ -333,6 +336,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 send_support_email(e, __name__, "CreateBookingView - claim free class email")
                 messages.error(self.request, "An error occured, please contact "
                     "the studio for information")
+
         elif previously_cancelled and booking.paid:
             previously_cancelled_and_direct_paid = True
             pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
@@ -360,6 +364,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             return HttpResponseRedirect(reverse('booking:fully_booked',
                                                 args=[self.event.slug]))
 
+        free_class_created = False
         if booking.block:
             blocks_used = booking.block.bookings_made()
             total_blocks = booking.block.block_type.size
@@ -370,6 +375,26 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     booking.user.username
                 )
             )
+            if not booking.block.active_block() and \
+                            booking.block.block_type.event_type.\
+                                    subtype == "Pole level class" and \
+                            booking.block.block_type.size == 10:
+                # just used last block in 10 class pole level class block;
+                # check for free class block, add one if doesn't exist already
+                if not booking.block.children.exists():
+                    free_blocktype = BlockType.objects.get(identifier='free class')
+                    free_block = Block.objects.create(
+                        user=booking.user, parent=booking.block,
+                        block_type=free_blocktype
+                    )
+                    ActivityLog.objects.create(
+                        log='Free class block created. Block id {}, parent '
+                            'block id {}, user {}'.format(
+                            free_block.id, booking.block.id,
+                            booking.user.username
+                        )
+                    )
+                    free_class_created = True
         else:
             blocks_used = None
             total_blocks = None
@@ -480,25 +505,14 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 extra_msg = 'Please make your payment as soon as possible. ' \
                             '<strong>{}</strong>'.format(cancellation_warning)
         elif not booking.block.active_block():
-            extra_msg = 'You have just used the last space in your block. ' \
-                        'Go to <a href="/blocks">Your Blocks</a> to buy a ' \
-                        'new one.'
-            if booking.block.block_type.size == 10:
-                try:
-                    send_mail('{} {} has just used the last of 10 blocks'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                        booking.user.username),
-                              "{} {} ({}) has just used the last of a block of 10"
-                              " and is now eligible for a free class.".format(
-                                booking.user.first_name,
-                                booking.user.last_name, booking.user.username
-                              ),
-                              settings.DEFAULT_FROM_EMAIL,
-                              [settings.DEFAULT_STUDIO_EMAIL],
-                              fail_silently=False)
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
+            extra_msg = 'You have just used the last space in your block. '
+            if free_class_created:
+                extra_msg += 'You have qualified for a extra free ' \
+                             'class which has been added to ' \
+                             '<a href="/blocks">your blocks</a>!  '
+            else:
+                extra_msg += 'Go to <a href="/blocks">Your Blocks</a> to ' \
+                             'buy a new one.'
 
         messages.success(
             self.request,
@@ -663,7 +677,35 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                     )
                 )
 
+            free_class_created = False
             if booking.block:
+                free_blocktype = BlockType.objects.get(
+                            identifier='free class'
+                        )
+                # TODO MOVE THIS TO MODEL SAVE
+                if not booking.block.active_block() and \
+                            booking.block.block_type.event_type.\
+                                    subtype == "Pole level class" and \
+                            booking.block.block_type.size == 10:
+                    # just used last block in 10 class pole level class block;
+                    # check for free class block, add one if doesn't exist
+                    # already
+                    if not booking.block.children.exists():
+                        free_block = Block.objects.create(
+                            user=booking.user, parent=booking.block,
+                            block_type=free_blocktype
+                        )
+                        ActivityLog.objects.create(
+                            log='Free class block created. Block id {}, parent '
+                                'block id {}, user {}'.format(
+                                free_block.id, booking.block.id,
+                                booking.user.username
+                            )
+                        )
+                        free_class_created = True
+                if booking.block.block_type == free_blocktype:
+                    booking.free_class = True
+
                 blocks_used = booking.block.bookings_made()
                 total_blocks = booking.block.block_type.size
                 # send email to user if they used block to book (paypal payment
@@ -701,33 +743,21 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                         booking.block.id
                     )
                 )
-                if not booking.block.active_block():
-                    messages.info(self.request,
-                                  mark_safe(
-                                      'You have just used the last space in your block.  '
-                                      'Go to <a href="/blocks">'
-                                      'Your Blocks</a> to buy a new one.'
-                                  ))
-                    if booking.block.block_type.size == 10:
-                        try:
-                            send_mail('{} {} has just used the last of 10 blocks'.format(
-                                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                                booking.user.username),
-                                      "{} {} ({}) has just used the last of a block of 10"
-                                      " and is now eligible for a free class.".format(
-                                        booking.user.first_name,
-                                        booking.user.last_name, booking.user.username
-                                      ),
-                                      settings.DEFAULT_FROM_EMAIL,
-                                      [settings.DEFAULT_STUDIO_EMAIL],
-                                      fail_silently=False)
-                        except Exception as e:
-                            # send mail to tech support with Exception
-                            send_support_email(e, __name__, "CreateBookingView - notify studio of completed 10 block")
 
             messages.success(
                 self.request, self.success_message.format(booking.event)
             )
+
+            if booking.block and not booking.block.active_block():
+                msg = 'You have just used the last space in your block. '
+                if free_class_created:
+                    msg += 'You have qualified for a extra free ' \
+                                 'class which has been added to ' \
+                                 '<a href="/blocks">your blocks</a>!  '
+                else:
+                    msg += 'Go to <a href="/blocks">Your Blocks</a> to ' \
+                                 'buy a new one.'
+                messages.info(self.request, mark_safe(msg))
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -825,8 +855,20 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
         # if class was previously a free one, remove the "free class" flag; if
         # user reopens, they need to request as free again
         if booking.block:
+            # cancelling a booking from a block
+            # if block has a used free class, move the booking from the free
+            # class to this block, otherwise delete the free class block
+            free_class_block = booking.block.children.first()
+            if free_class_block:
+                if free_class_block.bookings.exists():
+                    free_booking = free_class_block.bookings.first()
+                    free_booking.block = booking.block
+                    free_booking.save()
+                else:
+                    free_class_block.delete()
             booking.block = None
             booking.paid = False
+
         if booking.free_class:
             booking.free_class = False
             booking.paid = False
