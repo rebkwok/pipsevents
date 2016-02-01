@@ -355,6 +355,10 @@ class DisclaimerCreateViewTests(TestCase):
 
     def test_submitting_form_without_valid_password(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        self.user_no_disclaimer.set_password('test_password')
+        self.user_no_disclaimer.save()
+
+        self.assertTrue(self.user_no_disclaimer.has_usable_password())
         resp = self._post_response(self.user_no_disclaimer, self.form_data)
         self.assertIn(
             "Password is incorrect",
@@ -381,6 +385,37 @@ class DisclaimerCreateViewTests(TestCase):
         resp = self._post_response(self.user_no_disclaimer, self.form_data)
         self.assertEqual(resp.status_code, 302)
         # no new disclaimer created
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+
+
+    def test_message_shown_if_no_usable_password(self):
+        user = mommy.make_recipe('booking.user')
+        user.set_unusable_password()
+        user.save()
+
+        resp = self._get_response(user)
+        self.assertIn(
+            "You need to set a password on your account in order to complete "
+            "the disclaimer.",
+            resp.rendered_content
+        )
+
+    def test_cannot_complete_disclaimer_without_usable_password(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        user = mommy.make_recipe('booking.user')
+        user.set_unusable_password()
+        user.save()
+
+        resp = self._post_response(user, self.form_data)
+        self.assertIn(
+            "No password set on account.",
+            str(resp.content)
+        )
+        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+
+        user.set_password('password')
+        user.save()
+        self._post_response(user, self.form_data)
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
 
