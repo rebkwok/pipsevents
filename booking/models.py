@@ -5,6 +5,8 @@ import shortuuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from django_extensions.db.fields import AutoSlugField
@@ -16,6 +18,10 @@ from activitylog.models import ActivityLog
 
 
 logger = logging.getLogger(__name__)
+
+
+class BlockTypeError(Exception):
+    pass
 
 
 class BookingError(Exception):
@@ -189,6 +195,16 @@ class BlockType(models.Model):
         )
 
 
+@receiver(pre_save)
+def check_duplicate_free_class_blocktype(sender, instance, **kwargs):
+    if sender == BlockType:
+        if not instance.id and instance.identifier == "free class":
+            if BlockType.objects.filter(identifier='free class').count() == 1:
+                raise BlockTypeError(
+                    'Block type with idenitifer "free class" already exists'
+                )
+
+
 class Block(models.Model):
     """
     Block booking
@@ -292,7 +308,7 @@ class Block(models.Model):
         if self.block_type.cost == 0:
             self.paid = True
         super(Block, self).save(*args, **kwargs)
-        
+
 
 class Booking(models.Model):
     STATUS_CHOICES = (
@@ -365,6 +381,7 @@ class Booking(models.Model):
     space_confirmed.boolean = True
 
     def save(self, *args, **kwargs):
+        rebooking = False
         if self.pk is not None:
             orig = Booking.objects.get(pk=self.pk)
             if orig.status == 'CANCELLED' and self.status == 'OPEN':
@@ -375,6 +392,25 @@ class Booking(models.Model):
                     )
                 else:
                     self.date_rebooked = timezone.now()
+                    rebooking = True
+
+            elif orig.status == 'OPEN' and self.status == 'CANCELLED' and orig.block:
+                # cancelling a booking from a block
+                # if block has a used free class, move the booking from the
+                #  free
+                # class to this block, otherwise delete the free class block
+                free_class_block = orig.block.children.first()
+                if free_class_block:
+                    if free_class_block.bookings.exists():
+                        free_booking = free_class_block.bookings.first()
+                        free_booking.block = orig.block
+                        free_booking.free_class = False
+                        free_booking.save()
+                    else:
+                        free_class_block.delete()
+                self.block = None
+                self.paid = False
+                self.payment_confirmed = False
         else:
             if self.status != "CANCELLED" and \
             self.event.spaces_left() == 0:
@@ -383,15 +419,58 @@ class Booking(models.Model):
                     'event %s' % self.event.id
                 )
 
+        # new booking or rebooking
+        if self.block and (self.status == 'OPEN' or rebooking):
+            try:
+                free_blocktype = BlockType.objects.get(identifier='free class')
+            except BlockType.DoesNotExist:
+                free_blocktype = None
+
+            # current booking isn't saved yet, so check if there is only one
+            # booking left on the block which this one will fill up
+            if free_blocktype \
+                    and self.block.paid \
+                    and self.block.bookings.count() == 9 \
+                    and self.block.block_type.event_type.subtype == "Pole level class" \
+                    and self.block.block_type.size == 10:
+                # just used last block in 10 class pole level class block;
+                # check for free class block, add one if doesn't exist
+                # already (unless block has already expired)
+                if not self.block.children.exists():
+                    if not self.block.expired:
+                        free_block = Block.objects.create(
+                            user=self.user, parent=self.block,
+                            block_type=free_blocktype
+                        )
+                        ActivityLog.objects.create(
+                            log='Free class block created. Block id {}, parent '
+                                'block id {}, user {}'.format(
+                                free_block.id, self.block.id,
+                                self.user.username
+                            )
+                        )
+                    else:
+                        ActivityLog.objects.create(
+                            log='Last booking created on expired block. Free '
+                                'class block not created.  Block id {}, '
+                                'user {}'.format(
+                                self.block.id,
+                                self.user.username
+                            )
+                        )
+
+        if self.block and self.block.block_type.identifier == 'free class':
+            self.free_class = True
+            self.paid = True
+            self.payment_confirmed = True
+
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
+
         if self.free_class:
             self.paid = True
             self.payment_confirmed = True
-            if self.block.block and self.block_type.identifier != 'free class':
-                self.block = None
 
-        # TODO check for free class blocks (currently in views)
         super(Booking, self).save(*args, **kwargs)
 
 

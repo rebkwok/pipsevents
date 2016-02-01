@@ -346,6 +346,12 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 invoice_id = pptrans[0].invoice_id
 
         booking.user = self.request.user
+
+        # check for existence of free child block on pre-saved booking
+        has_free_block_pre_save = False
+        if booking.block and booking.block.children.exists():
+            has_free_block_pre_save = True
+
         try:
             booking.save()
             ActivityLog.objects.create(
@@ -364,7 +370,6 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             return HttpResponseRedirect(reverse('booking:fully_booked',
                                                 args=[self.event.slug]))
 
-        free_class_created = False
         if booking.block:
             blocks_used = booking.block.bookings_made()
             total_blocks = booking.block.block_type.size
@@ -375,26 +380,16 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     booking.user.username
                 )
             )
-            if not booking.block.active_block() and \
-                            booking.block.block_type.event_type.\
-                                    subtype == "Pole level class" and \
-                            booking.block.block_type.size == 10:
+            if booking.block.children.exists() and not has_free_block_pre_save:
                 # just used last block in 10 class pole level class block;
                 # check for free class block, add one if doesn't exist already
-                if not booking.block.children.exists():
-                    free_blocktype = BlockType.objects.get(identifier='free class')
-                    free_block = Block.objects.create(
-                        user=booking.user, parent=booking.block,
-                        block_type=free_blocktype
+                ActivityLog.objects.create(
+                    log='Free class block created. Block id {}, parent '
+                        'block id {}, user {}'.format(
+                        booking.block.children.first().id, booking.block.id,
+                        booking.user.username
                     )
-                    ActivityLog.objects.create(
-                        log='Free class block created. Block id {}, parent '
-                            'block id {}, user {}'.format(
-                            free_block.id, booking.block.id,
-                            booking.user.username
-                        )
-                    )
-                    free_class_created = True
+                )
         else:
             blocks_used = None
             total_blocks = None
@@ -506,7 +501,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                             '<strong>{}</strong>'.format(cancellation_warning)
         elif not booking.block.active_block():
             extra_msg = 'You have just used the last space in your block. '
-            if free_class_created:
+            if booking.block.children.exists() and not has_free_block_pre_save:
                 extra_msg += 'You have qualified for a extra free ' \
                              'class which has been added to ' \
                              '<a href="/blocks">your blocks</a>!  '
@@ -651,8 +646,14 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                     "the studio for information")
 
         else:
+            has_free_block_pre_save = True
             # add to active block if ticked, don't require paid to be ticked
             booking = form.save(commit=False)
+            # check for existence of free child block on pre-saved booking
+            has_free_block_pre_save = False
+            if booking.block and booking.block.children.exists():
+                has_free_block_pre_save = True
+
             if 'block_book' in form.data:
                 blocks = self.request.user.blocks.all()
                 active_block = [block for block in blocks
@@ -663,6 +664,19 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 booking.payment_confirmed = True
                 booking.paid = True
                 booking.user = self.request.user
+
+                if booking.block:
+                    if booking.block.children.exists() and not has_free_block_pre_save:
+                        # just used last block in 10 class pole level class block;
+                        # check for free class block, add one if doesn't exist already
+                        ActivityLog.objects.create(
+                            log='Free class block created. Block id {}, parent '
+                                'block id {}, user {}'.format(
+                                booking.block.children.first().id, booking.block.id,
+                                booking.user.username
+                            )
+                        )
+
                 try:
                     booking.save()
                 except BookingError:
@@ -676,35 +690,6 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                         booking.id, booking.event, booking.user.username, booking.block.id
                     )
                 )
-
-            free_class_created = False
-            if booking.block:
-                free_blocktype = BlockType.objects.get(
-                            identifier='free class'
-                        )
-                # TODO MOVE THIS TO MODEL SAVE
-                if not booking.block.active_block() and \
-                            booking.block.block_type.event_type.\
-                                    subtype == "Pole level class" and \
-                            booking.block.block_type.size == 10:
-                    # just used last block in 10 class pole level class block;
-                    # check for free class block, add one if doesn't exist
-                    # already
-                    if not booking.block.children.exists():
-                        free_block = Block.objects.create(
-                            user=booking.user, parent=booking.block,
-                            block_type=free_blocktype
-                        )
-                        ActivityLog.objects.create(
-                            log='Free class block created. Block id {}, parent '
-                                'block id {}, user {}'.format(
-                                free_block.id, booking.block.id,
-                                booking.user.username
-                            )
-                        )
-                        free_class_created = True
-                if booking.block.block_type == free_blocktype:
-                    booking.free_class = True
 
                 blocks_used = booking.block.bookings_made()
                 total_blocks = booking.block.block_type.size
@@ -750,7 +735,8 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
 
             if booking.block and not booking.block.active_block():
                 msg = 'You have just used the last space in your block. '
-                if free_class_created:
+                if booking.block.children.exists() \
+                        and not has_free_block_pre_save:
                     msg += 'You have qualified for a extra free ' \
                                  'class which has been added to ' \
                                  '<a href="/blocks">your blocks</a>!  '
@@ -852,20 +838,8 @@ class BookingDeleteView(LoginRequiredMixin, DeleteView):
         # paid and payment_confirmed to False. If paid directly, we need to
         # deal with refunds manually, so leave paid as True but change
         # payment_confirmed to False
-        # if class was previously a free one, remove the "free class" flag; if
-        # user reopens, they need to request as free again
+        # reassigning free class blocks is done in model save
         if booking.block:
-            # cancelling a booking from a block
-            # if block has a used free class, move the booking from the free
-            # class to this block, otherwise delete the free class block
-            free_class_block = booking.block.children.first()
-            if free_class_block:
-                if free_class_block.bookings.exists():
-                    free_booking = free_class_block.bookings.first()
-                    free_booking.block = booking.block
-                    free_booking.save()
-                else:
-                    free_class_block.delete()
             booking.block = None
             booking.paid = False
 

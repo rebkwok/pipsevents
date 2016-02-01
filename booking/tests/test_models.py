@@ -7,8 +7,8 @@ from datetime import timedelta, datetime
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, EventType, Booking, BookingError, \
-    TicketBooking, Ticket, TicketBookingError
+from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
+    Booking, BookingError, TicketBooking, Ticket, TicketBookingError
 
 now = timezone.now()
 
@@ -586,6 +586,69 @@ class BlockTests(TestCase):
             datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
         )
 
+    def test_booking_last_in_10_class_block_creates_free_block(self):
+        """
+        Creating a new booking that uses the last of 10 pole level class
+        blocks automatically creates a free class block with the original
+        block as its parent
+        """
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=9
+        )
+        self.assertEqual(Booking.objects.count(), 9)
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertEqual(Block.objects.count(), 3)
+
+        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 4)
+        self.assertTrue(block.children.exists())
+
+    def test_booking_last_on_expired_10_class_block_does_not_create_free(self):
+        """
+        Test that if a booking is made on an expired block, no free class is
+        created.  This shouldn't happen because cancelling bookings removes
+        the block, and if you try to reopen after block has expired, you won't
+        have the option to use the expired block.  However, it could happen if
+        a superuser creates a booking on an expired block in the admin - don't
+        want this to automatically create free class blocks that can't be
+        used (expiry dates are set to same as parent block)
+        """
+        pass
+
+    def test_cancelling_booking_from_full_block_with_free_block(self):
+        """
+        Cancelling a booking on a block that has an associated free class
+        deletes the free class block if it's unused and moves the free class
+        to the original block if it has been used
+        """
+        pass
+
+    def test_reopening_booking_from_block_creates_free_block(self):
+        """
+        Test reopening a booking that uses the last in 10 blocks creates a
+        free class block
+        """
+        pass
+
 
 class EventTypeTests(TestCase):
 
@@ -605,6 +668,7 @@ class EventTypeTests(TestCase):
     def test_str_room_hire(self):
         evtype = mommy.make_recipe('booking.event_type_RH', subtype="event subtype")
         self.assertEqual(str(evtype), 'Room hire - event subtype')
+
 
 class TicketedEventTests(TestCase):
 
@@ -861,3 +925,13 @@ class TicketTests(TestCase):
         with self.assertRaises(TicketBookingError):
             Ticket.objects.create(ticket_booking=booking)
 
+
+class BlockTypeTests(TestCase):
+
+    def test_cannot_create_multiple_free_class_block_types(self):
+        mommy.make(BlockType, identifier='free class')
+        self.assertEqual(BlockType.objects.count(), 1)
+
+        with self.assertRaises(BlockTypeError):
+            mommy.make(BlockType, identifier='free class')
+        self.assertEqual(BlockType.objects.count(), 1)

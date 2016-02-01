@@ -2405,6 +2405,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to[0], 'test@test.com')
 
+
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
