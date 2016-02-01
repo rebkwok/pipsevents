@@ -46,9 +46,10 @@ class CustomLoginView(LoginView):
 
     def get_success_url(self):
         super(CustomLoginView, self).get_success_url()
-
         ret = self.request.POST.get('next') or self.request.GET.get('next')
-        if not ret or ret == '/accounts/password/change/':
+        if not ret or ret in [
+            '/accounts/password/change/', '/accounts/password/set/'
+        ]:
             ret = reverse('profile:profile')
 
         return ret
