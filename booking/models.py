@@ -380,57 +380,36 @@ class Booking(models.Model):
             or self.payment_confirmed
     space_confirmed.boolean = True
 
-    def save(self, *args, **kwargs):
-        rebooking = False
-        if self.pk is not None:
-            orig = Booking.objects.get(pk=self.pk)
-            if orig.status == 'CANCELLED' and self.status == 'OPEN':
-                if self.event.spaces_left() == 0:
-                    raise BookingError(
-                        'Attempting to reopen booking for full '
-                        'event %s' % self.event.id
-                    )
-                else:
-                    self.date_rebooked = timezone.now()
-                    rebooking = True
+    def _old_booking(self):
+        if self.pk:
+            return Booking.objects.get(pk=self.pk)
+        return None
 
-            elif orig.status == 'OPEN' and self.status == 'CANCELLED' and orig.block:
-                # cancelling a booking from a block
-                # if block has a used free class, move the booking from the
-                #  free
-                # class to this block, otherwise delete the free class block
-                free_class_block = orig.block.children.first()
-                if free_class_block:
-                    if free_class_block.bookings.exists():
-                        free_booking = free_class_block.bookings.first()
-                        free_booking.block = orig.block
-                        free_booking.free_class = False
-                        free_booking.save()
-                    else:
-                        free_class_block.delete()
-                self.block = None
-                self.paid = False
-                self.payment_confirmed = False
-        else:
-            if self.status != "CANCELLED" and \
-            self.event.spaces_left() == 0:
-                raise BookingError(
-                    'Attempting to create booking for full '
-                    'event %s' % self.event.id
-                )
+    def _is_new_booking(self):
+        if not self.pk:
+            return True
 
-        # new booking or rebooking
+    def _is_rebooking(self):
+        if not self.pk:
+            return False
+        return self._old_booking().status == 'CANCELLED' and self.status == 'OPEN'
+
+    def _is_cancellation(self):
+        if not self.pk:
+            return False
+        return self._old_booking().status == 'OPEN' and self.status == 'CANCELLED'
+
+    def _update_free_blocks(self, rebooking):
+        # for new bookings or rebooking with block
         if self.block and (self.status == 'OPEN' or rebooking):
             try:
                 free_blocktype = BlockType.objects.get(identifier='free class')
             except BlockType.DoesNotExist:
                 free_blocktype = None
 
-            # current booking isn't saved yet, so check if there is only one
-            # booking left on the block which this one will fill up
             if free_blocktype \
                     and self.block.paid \
-                    and self.block.bookings.count() == 9 \
+                    and not self.block.active_block() \
                     and self.block.block_type.event_type.subtype == "Pole level class" \
                     and self.block.block_type.size == 10:
                 # just used last block in 10 class pole level class block;
@@ -459,19 +438,60 @@ class Booking(models.Model):
                             )
                         )
 
+    def save(self, *args, **kwargs):
+        rebooking = self._is_rebooking()
+        new_booking = self._is_new_booking()
+        cancellation = self._is_cancellation()
+        orig = self._old_booking()
+
+        if rebooking:
+            if self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to reopen booking for full '
+                    'event %s' % self.event.id
+                )
+            else:
+                self.date_rebooked = timezone.now()
+
+        if cancellation and orig.block:
+            # cancelling a booking from a block
+                # if block has a used free class, move the booking from the
+                #  free
+                # class to this block, otherwise delete the free class block
+                free_class_block = orig.block.children.first()
+                if free_class_block:
+                    if free_class_block.bookings.exists():
+                        free_booking = free_class_block.bookings.first()
+                        free_booking.block = orig.block
+                        free_booking.free_class = False
+                        free_booking.save()
+                    else:
+                        free_class_block.delete()
+                self.block = None
+                self.paid = False
+                self.payment_confirmed = False
+
+        if new_booking and self.status != "CANCELLED" and \
+            self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to create booking for full '
+                    'event %s' % self.event.id
+                )
+
         if self.block and self.block.block_type.identifier == 'free class':
             self.free_class = True
+
+        if self.free_class:
             self.paid = True
             self.payment_confirmed = True
 
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
 
-        if self.free_class:
-            self.paid = True
-            self.payment_confirmed = True
-
+        # Done with changes to current booking; call super to save the
+        # booking so we can check block status
         super(Booking, self).save(*args, **kwargs)
+        self._update_free_blocks(rebooking)
 
 
 class WaitingListUser(models.Model):
