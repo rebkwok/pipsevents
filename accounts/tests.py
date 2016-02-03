@@ -1,9 +1,13 @@
+import csv
+import os
+
 from datetime import datetime, timedelta
 from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core import management, mail
-from django.test import TestCase, RequestFactory, Client
+from django.test import TestCase, RequestFactory, Client, override_settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
@@ -563,3 +567,34 @@ class DeleteExpiredDisclaimersTests(TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
         self.assertEqual(PrintDisclaimer.objects.count(), 2)
         self.assertEqual(len(mail.outbox), 0)
+
+
+@override_settings(LOG_FOLDER=os.path.dirname(__file__))
+class ExportDisclaimersTests(TestCase):
+
+    def setUp(self):
+        mommy.make(OnlineDisclaimer, _quantity=10)
+
+    def test_export_disclaimers_creates_default_bu_file(self):
+        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers_bu.csv')
+        self.assertFalse(os.path.exists(bu_file))
+        management.call_command('export_disclaimers')
+        self.assertTrue(os.path.exists(bu_file))
+        os.remove(bu_file)
+
+    def test_export_disclaimers_writes_correct_number_of_rows(self):
+        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers_bu.csv')
+        management.call_command('export_disclaimers')
+
+        with open(bu_file, 'r') as exported:
+            reader = csv.reader(exported)
+            rows = list(reader)
+        self.assertEqual(len(rows), 11)  # 10 records plus header row
+        os.remove(bu_file)
+
+    def test_export_disclaimers_with_filename_argument(self):
+        bu_file = os.path.join(settings.LOG_FOLDER, 'test_file.csv')
+        self.assertFalse(os.path.exists(bu_file))
+        management.call_command('export_disclaimers', file=bu_file)
+        self.assertTrue(os.path.exists(bu_file))
+        os.remove(bu_file)
