@@ -228,6 +228,43 @@ class EventDetailContextTests(TestCase):
         resp = view(request, slug=lesson.slug, ev_type='lesson')
         self.assertEquals(resp.context_data['type'], 'lesson')
 
+    def test_cancelled_booking(self):
+        """
+        Test correct context returned for a cancelled booking
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Pole', cost=10, booking_open=True,
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=event, status='CANCELLED'
+        )
+
+        resp = self._get_response(self.user, event, 'lesson')
+
+        self.assertTrue('cancelled' in resp.context_data.keys())
+        self.assertEquals(
+            resp.context_data['booking_info_text_cancelled'],
+            "You have previously booked for this class and your booking has "
+            "been cancelled."
+        )
+
+    def test_external_instructor_class(self):
+        """
+        Test correct context returned for a cancelled event
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Pole', cost=10, booking_open=True,
+            external_instructor=True,
+            event_type__subtype='External instructor class'
+
+        )
+
+        resp = self._get_response(self.user, event, 'lesson')
+
+        self.assertEquals(
+            resp.context_data['booking_info_text'],
+            "Please contact {} directly to book".format(event.contact_person)
+        )
 
 class BlockListContextTests(TestCase):
     """

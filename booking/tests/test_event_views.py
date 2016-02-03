@@ -1,9 +1,13 @@
+import os
+
+from mock import patch
+
 from model_mommy import mommy
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, override_settings
 from django.test.client import Client
 from django.contrib.auth.models import Permission
 from django.utils import timezone
@@ -162,6 +166,17 @@ class EventListViewTests(TestCase):
         response = self._get_response(self.user, 'lessons')
         self.assertEquals(Event.objects.count(), 1)
         self.assertEquals(response.context_data['events'].count(), 0)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    def test_sale_message_template_tag(self, mock_tz):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        os.environ['SALE_ON'] = '01-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+        resp = self.client.get(reverse('booking:events'))
+
+        self.assertIn('JANUARY SALE NOW ON', resp.rendered_content)
 
 
 class EventDetailViewTests(TestCase):

@@ -32,7 +32,7 @@ def format_cancellation(value):
     if value <= 24:
         return "{} hour{}".format(value, plural_format(value))
     elif weeks == 0 and hours == 0:
-        return "{} day{}".format(days, plural_format(days))
+        return "{} day".format(days)
     elif days == 0 and hours == 0:
         return "{} week{}".format(weeks, plural_format(weeks))
     else:
@@ -67,19 +67,8 @@ def get_index_open(event, extraline_index):
 
 
 @register.filter
-def get_index_all(event, extraline_index):
-    return event.bookings.count() + 1 + extraline_index
-
-
-@register.filter
 def bookings_count(event):
     return len(Booking.objects.filter(event=event, status='OPEN'))
-
-
-@register.filter
-def format_datetime(date):
-    date = date.value()
-    return date.strftime("%d %b %Y %H:%M")
 
 
 @register.filter

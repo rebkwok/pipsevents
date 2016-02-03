@@ -1370,6 +1370,16 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         event = Event.objects.first()
         self.assertEqual(event.name, 'test_event')
 
+    def test_submitting_form_with_errors_formats_field_names(self):
+        self.assertEqual(Event.objects.count(), 0)
+        form_data = self.form_data({'contact_email': 'test.com'})
+        resp = self._post_response(self.staff_user, 'event', form_data)
+
+        self.assertEqual(Event.objects.count(), 0)
+        self.assertIn(
+            'Contact Email: Enter a valid email', resp.rendered_content
+        )
+
 
 class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
 

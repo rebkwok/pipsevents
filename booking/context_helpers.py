@@ -83,8 +83,7 @@ def get_event_context(context, event, user):
 
         if event.event_type.subtype == "External instructor class":
             booking_info_text = "Please contact {} directly to book".format(event.contact_person)
-
-        if not event.booking_open:
+        elif not event.booking_open:
             booking_info_text = "Bookings are not open for this {}.".format(
                 event_type_str
             )
@@ -107,46 +106,6 @@ def get_event_context(context, event, user):
     )
     cancellation_due_date = cancellation_due_date.astimezone(uk_tz)
     context['cancellation_due_date'] = cancellation_due_date
-
-    return context
-
-
-def get_booking_context(context, booking):
-
-    if booking.event.event_type.event_type == 'CL':
-        context['type'] = "lesson"
-        event_type_str = "class"
-    elif booking.event.event_type.event_type == 'EV':
-        context['type'] = "event"
-        event_type_str = "event"
-    else:
-        context['type'] = "room_hire"
-        event_type_str = "room hire"
-    context['event_type_str'] = event_type_str
-
-    # past booking
-    if booking.event.date < timezone.now():
-        context['past'] = True
-
-    # payment info text to be displayed
-    if booking.event.cost == 0:
-        payment_text = "There is no cost associated with this {}.".format(
-            event_type_str
-        )
-    else:
-        if not booking.event.payment_open:
-            payment_text = "Online payments are not open. " + booking.event.payment_info
-        else:
-            payment_text = "Online payments are open. " + booking.event.payment_info
-    context['payment_text'] = payment_text
-
-    # confirm payment button
-    if booking.event.cost > 0 and not booking.paid \
-            and booking.event.payment_open:
-        context['include_payment_button'] = True
-
-    # delete button
-    context['can_cancel'] = (booking.event.can_cancel() and booking.status == 'OPEN')
 
     return context
 

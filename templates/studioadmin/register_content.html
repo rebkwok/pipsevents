@@ -36,9 +36,6 @@
                             <th class="table-center">Fully Paid</th>
                             {% if available_block_type %}
                             <th class="table-center">Block</th>
-                            <!--<th class="table-center">User's block</br>expiry date</th>-->
-                            <!--<th class="table-center">Block size</th>-->
-                            <!--<th class="table-center">Block bookings</br>used</th>-->
                             {% endif %}
                         </tr>
 
@@ -115,30 +112,7 @@
                                     {% endif %}
                             </tr>
                         {% endfor %}
-                        <!--{% for i in extra_lines|get_range %}-->
-                        <!--<tr>-->
-                            <!--{% if status_choice == 'CANCELLED' %}-->
-                            <!--<td></td>-->
-                            <!--<td></td>-->
-                            <!--{% elif status_choice == 'OPEN' %}-->
-                            <!--<td class="table-center register-index">{{ event|get_index_open:i }}.</td>-->
-                            <!--<td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>-->
-                            <!--{% else %}-->
-                            <!--<td class="table-center register-index">{{ event|get_index_all:i }}.</td>-->
-                            <!--<td class="table-center studioadmin-tbl"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>-->
-                            <!--{% endif %}-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                                <!--{% if available_block_type %}-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--<td class="table-center studioadmin-tbl"></td>-->
-                            <!--{% endif %}-->
-                        <!--</tr>-->
-                        <!--{% endfor %}-->
+
                         {% if print %}
                         <tr><td class="notes-row " {% if available_block_type %}colspan="10"{% else %}colspan="6"{% endif %}>Notes: </td></tr>
                         {% endif %}
