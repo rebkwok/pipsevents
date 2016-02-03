@@ -595,7 +595,10 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(pptrans.transaction_id, 'test_txn_id')
 
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status_unmatching_object(self, mock_postback):
@@ -656,7 +659,10 @@ class PaypalSignalsTests(TestCase):
         ppipn = PayPalIPN.objects.first()
 
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
         self.assertEqual(mail.outbox[0].to, [settings.DEFAULT_STUDIO_EMAIL])
         self.assertEqual(mail.outbox[1].to, [booking.user.email])
 
@@ -731,7 +737,10 @@ class PaypalSignalsTests(TestCase):
         self.assertTrue(booking.paid)
 
         # 3 emails sent - studio, user, support to notify about missing inv
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
         self.assertEqual(
             mail.outbox[2].subject,
             '{} No invoice number on paypal ipn for booking id {}'.format(
@@ -765,7 +774,10 @@ class PaypalSignalsTests(TestCase):
         block.refresh_from_db()
         self.assertTrue(block.paid)
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_ticket_booking(self, mock_postback):
@@ -793,7 +805,10 @@ class PaypalSignalsTests(TestCase):
         ticket_booking.refresh_from_db()
         self.assertTrue(ticket_booking.paid)
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_only_updates_relevant_booking(self, mock_postback):
@@ -823,7 +838,10 @@ class PaypalSignalsTests(TestCase):
         booking.refresh_from_db()
         self.assertTrue(booking.paid)
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
         for bkg in Booking.objects.all():
             if bkg.id == booking.id:
@@ -863,7 +881,10 @@ class PaypalSignalsTests(TestCase):
         booking.refresh_from_db()
         self.assertTrue(booking.paid)
         # 3 emails sent, to user and studio and support because there is no inv
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_more_than_one_booking_trans_object(
@@ -904,7 +925,10 @@ class PaypalSignalsTests(TestCase):
         booking.refresh_from_db()
         self.assertTrue(booking.paid)
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_more_than_one_booking_trans_object_no_invoice(
@@ -938,7 +962,10 @@ class PaypalSignalsTests(TestCase):
         booking.refresh_from_db()
         self.assertTrue(booking.paid)
         # 3 emails sent, to user and studio, and support b/c no invoice id
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_without_block_trans_object(self, mock_postback):
@@ -975,7 +1002,10 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(ppipn.invoice, pptrans.invoice_id)
 
         # 3 emails sent, to user and studio and support because there is no inv
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_more_than_one_block_trans_object(
@@ -1016,7 +1046,10 @@ class PaypalSignalsTests(TestCase):
         block.refresh_from_db()
         self.assertTrue(block.paid)
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_more_than_one_block_trans_object_no_invoice(
@@ -1050,7 +1083,10 @@ class PaypalSignalsTests(TestCase):
         block.refresh_from_db()
         self.assertTrue(block.paid)
         # 3 emails sent, to user and studio, and support b/c no invoice id
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_without_tck_bkg_trans_object(self, mock_postback):
@@ -1086,7 +1122,10 @@ class PaypalSignalsTests(TestCase):
         pptrans = PaypalTicketBookingTransaction.objects.first()
         self.assertEqual(ppipn.invoice, pptrans.invoice_id)
         # 3 emails sent, to user and studio and support because there is no inv
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_more_than_one_ticket_booking_trans_object(
@@ -1131,7 +1170,10 @@ class PaypalSignalsTests(TestCase):
         tbooking.refresh_from_db()
         self.assertTrue(tbooking.paid)
         # 2 emails sent, to user and studio
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_more_than_one_tbkng_trans_object_no_invoice(
@@ -1168,7 +1210,10 @@ class PaypalSignalsTests(TestCase):
         tbooking.refresh_from_db()
         self.assertTrue(tbooking.paid)
         # 3 emails sent, to user and studio, and support b/c no invoice id
-        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_refunded_status(self, mock_postback):
@@ -1200,10 +1245,15 @@ class PaypalSignalsTests(TestCase):
         self.assertFalse(booking.payment_confirmed)
         self.assertFalse(booking.paid)
 
+        self.assertEqual(
+            len(mail.outbox), 1,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
         # emails sent to studio and support
         self.assertEqual(
             mail.outbox[0].to,
-            [settings.DEFAULT_STUDIO_EMAIL, settings.SUPPORT_EMAIL]
+            [settings.DEFAULT_STUDIO_EMAIL, settings.SUPPORT_EMAIL],
         )
 
     @override_settings(SEND_ALL_STUDIO_EMAILS=False)
