@@ -327,7 +327,7 @@ class WaitingListTests(TestCase):
     def test_join_waiting_list(self):
         """
         Test that joining waiting list add WaitingListUser to event and
-        redirects to events list
+        redirects to bookings list
         """
         event = mommy.make_recipe('booking.future_PC', max_participants=3)
         mommy.make_recipe('booking.booking', event=event, _quantity=3)
@@ -342,6 +342,28 @@ class WaitingListTests(TestCase):
         )
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:bookings'))
+
+        waiting_list = WaitingListUser.objects.filter(event=event)
+        self.assertEqual(len(waiting_list), 1)
+        self.assertEqual(waiting_list[0].user, self.user)
+
+    def test_join_waiting_list_from_event_view(self):
+        """
+        Test that joining waiting list from event view ('bookings' not in GET)
+        adds WaitingListUser to event and redirects to events list
+        """
+        event = mommy.make_recipe('booking.future_PC', max_participants=3)
+        mommy.make_recipe('booking.booking', event=event, _quantity=3)
+
+        self.assertEqual(WaitingListUser.objects.count(), 0)
+        resp = self._get_booking_create(
+            self.user, event,
+            {
+                'join waiting list': ['Join waiting list'],
+            }
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:lessons'))
 
         waiting_list = WaitingListUser.objects.filter(event=event)
         self.assertEqual(len(waiting_list), 1)
@@ -367,6 +389,29 @@ class WaitingListTests(TestCase):
         )
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:bookings'))
+
+        self.assertEqual(WaitingListUser.objects.count(), 0)
+
+    def test_leave_waiting_list_from_event_view(self):
+        """
+        Test that leaving waiting list from event view ('bookings' not in GET)
+        removes WaitingListUser from event and
+        redirects to events list
+        """
+        event = mommy.make_recipe('booking.future_PC', max_participants=3)
+        mommy.make_recipe('booking.booking', event=event, _quantity=3)
+        mommy.make_recipe(
+            'booking.waiting_list_user', user=self.user, event=event
+        )
+        self.assertEqual(WaitingListUser.objects.count(), 1)
+        resp = self._get_booking_create(
+            self.user, event,
+            {
+                'leave waiting list': ['Leave waiting list'],
+            }
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:lessons'))
 
         self.assertEqual(WaitingListUser.objects.count(), 0)
 
