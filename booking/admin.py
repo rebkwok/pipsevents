@@ -248,10 +248,11 @@ class BookingAdmin(admin.ModelAdmin):
             send_mail('{} Space for {} confirmed'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj.event.name),
                 get_template('booking/email/space_confirmed.txt').render(
-                    Context({'event': obj.event.name,
-                             'date': obj.event.date.strftime('%A %d %B'),
-                             'time': obj.event.date.strftime('%I:%M %p')
-                    })
+                    {
+                        'event': obj.event.name,
+                        'date': obj.event.date.strftime('%A %d %B'),
+                        'time': obj.event.date.strftime('%I:%M %p')
+                    }
                 ),
                 settings.DEFAULT_FROM_EMAIL,
                 [obj.user.email],

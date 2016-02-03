@@ -3,6 +3,8 @@ import pytz
 
 from datetime import timedelta
 
+from operator import itemgetter
+
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -292,14 +294,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                 invoice_id = pptrans[0].invoice_id
 
         elif 'block_book' in form.data:
-            blocks = self.request.user.blocks.all()
-            active_block = [
-                block for block in blocks if block.active_block()
-                and block.block_type.event_type == booking.event.event_type
-                ][0]
-            # if there are blocks in a free_class block and original block,
-            # this should return the original block (free class blocks are
-            # created later
+            active_block = _get_active_user_block(self.request.user, booking)
             booking.block = active_block
             booking.paid = True
             booking.payment_confirmed = True
@@ -523,14 +518,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             _email_free_class_request(self.request, booking, 'update')
 
         elif 'block_book' in form.data:
-            blocks = self.request.user.blocks.all()
-            active_block = [
-                block for block in blocks if block.active_block()
-                and block.block_type.event_type == booking.event.event_type
-                ][0]
-            # if there are blocks in a free_class block and original block,
-            # this should return the original block (free class blocks are
-            # created later
+            active_block = _get_active_user_block(self.request.user, booking)
             booking.block = active_block
             booking.paid = True
             booking.payment_confirmed = True
@@ -609,6 +597,23 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('booking:bookings')
+
+
+def _get_active_user_block(user, booking):
+    """
+    return the active block for this booking with the soonest expiry date
+    """
+    blocks = user.blocks.all()
+    active_blocks = [
+        (block, block.expiry_date)
+        for block in blocks if block.active_block()
+        and block.block_type.event_type == booking.event.event_type
+    ]
+    if len(active_blocks) > 1:
+        # use the block with the soonest expiry date
+        return min(active_blocks, key=itemgetter(1))[0]
+    else:
+        return active_blocks[0][0]
 
 
 def _email_free_class_request(request, booking, booking_status):

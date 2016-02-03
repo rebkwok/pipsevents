@@ -716,30 +716,51 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
     def test_free_class_context(self):
         """
-        Test that only pole classes can be requested as free
+        Test that only pole classes and pole practice can be requested as
+        free by users with permission
         """
         pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
         pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        rh_event_type = mommy.make_recipe('booking.event_type_RH', subtype="Room hire")
 
         pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        room_hire = mommy.make_recipe('booking.future_RH', event_type=rh_event_type)
 
         perm = Permission.objects.get(codename='is_regular_student')
         self.user.user_permissions.add(perm)
 
         # get user from db to refresh permissions cache
         user = User.objects.get(pk=self.user.pk)
-        response = self._get_response(user, pole_class)
 
+        response = self._get_response(user, pole_class)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, pole_practice)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, room_hire)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+        # give user permission
+        perm1 = Permission.objects.get(codename='can_request_free_class')
+        self.user.user_permissions.add(perm1)
+        user = User.objects.get(id=self.user.id)
+
+        # now user can request free pole practice and class, but not room hire
+        response = self._get_response(user, pole_class)
         self.assertIn('can_be_free_class', response.context_data)
 
         response = self._get_response(user, pole_practice)
+        self.assertIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, room_hire)
         self.assertNotIn('can_be_free_class', response.context_data)
 
     def test_free_class_context_with_permission(self):
         """
         Test that pole classes and pole practice can be requested as free if
-        user has 'can_book_free_pole_practice' permission
+        user has 'can_request_free_class' permission
         """
         pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
         pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
@@ -748,7 +769,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='can_book_free_pole_practice')
+        perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.user_permissions.add(perm1)

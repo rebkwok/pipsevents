@@ -351,7 +351,7 @@ class Booking(models.Model):
     class Meta:
         unique_together = ('user', 'event')
         permissions = (
-            ("can_book_free_pole_practice", "Can book free pole practice"),
+            ("can_request_free_class", "Can request free class and pole practice"),
             ("is_regular_student", "Is regular student"),
             ("can_view_registers", "Can view registers")
         )

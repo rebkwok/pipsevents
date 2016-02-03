@@ -139,9 +139,8 @@ def get_booking_create_context(event, request, context):
 
     context['ev_type'] = ev_type
 
-    if event.event_type.subtype == "Pole level class" or \
-        (event.event_type.subtype == "Pole practice" and \
-        request.user.has_perm('booking.can_book_free_pole_practice')):
+    if event.event_type.subtype in ["Pole level class", "Pole practice"] \
+            and request.user.has_perm('booking.can_request_free_class'):
         context['can_be_free_class'] = True
 
     bookings_count = event.bookings.filter(status='OPEN').count()
