@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from mock import Mock, patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
@@ -9,6 +10,8 @@ from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 from django.contrib.auth.models import Permission, User
+
+from activitylog.models import ActivityLog
 
 from booking.models import Event, Booking, Block
 from booking.views import BookingListView, BookingHistoryListView, \
@@ -339,6 +342,74 @@ class BookingCreateViewTests(TestCase):
         self.assertEqual(Booking.objects.all().count(), 0)
         self._post_response(self.user, event)
         self.assertEqual(Booking.objects.all().count(), 1)
+
+    def test_create_booking_sends_email(self):
+        """
+        Test creating a booking sends email to user only by default
+        """
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self._post_response(self.user, event)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        # email to student only
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_create_booking_sends_email_to_studio_if_set(self):
+        """
+        Test creating a booking send email to user and studio if flag sent on
+        event
+        """
+        event = mommy.make_recipe(
+            'booking.future_EV', max_participants=3,
+            email_studio_when_booked=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self._post_response(self.user, event)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        # email to student and studio
+        self.assertEqual(len(mail.outbox), 2)
+
+    @patch('booking.views.booking_views.send_mail')
+    def test_create_booking_with_email_error(self, mock_send_emails):
+        """
+        Test creating a booking sends email to support if there is an email
+        error but still creates booking
+        """
+        mock_send_emails.side_effect = Exception('Error sending mail')
+
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self._post_response(self.user, event)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        # email to support only
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+
+    @patch('booking.views.booking_views.send_mail')
+    @patch('booking.email_helpers.send_mail')
+    def test_create_booking_with_email_error(
+            self, mock_send_emails, mock_send_emails1
+    ):
+        """
+        Test if all emails fail when creating a booking
+        """
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        mock_send_emails1.side_effect = Exception('Error sending mail')
+
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self._post_response(self.user, event)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        # no emails sent
+        self.assertEqual(len(mail.outbox), 0)
+
+        # exception is logged in activity log
+        log = ActivityLog.objects.last()
+        self.assertEqual(
+            log.log,
+            'Problem sending an email '
+            '(booking.views.booking_views: Error sending mail)'
+        )
 
     def test_create_room_hire(self):
         """
