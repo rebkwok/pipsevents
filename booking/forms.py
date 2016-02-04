@@ -78,23 +78,6 @@ class RoomHireFilter(forms.Form):
     )
 
 
-def get_user_blocks(user, event_type):
-    blocks = [block.id for block in Block.objects.filter(
-        block_type__event_type=event_type, user=user
-    ) if block.active_block()]
-    return Block.objects.filter(id__in=blocks).order_by('start_date')
-
-
-class BlockModelChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return "Start date: {}".format(obj.start_date.strftime('%d %b %y'))
-
-
-class UserModelChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
-
-
 def get_quantity_choices(ticketed_event, ticket_booking):
 
     current_tickets = ticket_booking.tickets.count()
@@ -229,6 +212,7 @@ class TicketBookingAdminForm(forms.ModelForm):
             queryset=User.objects.all().order_by('first_name')
         )
 
+
 class WaitingListUserAdminForm(forms.ModelForm):
 
     class Meta:
@@ -240,3 +224,4 @@ class WaitingListUserAdminForm(forms.ModelForm):
         self.fields['user'] = UserModelChoiceField(
             queryset=User.objects.all().order_by('first_name')
         )
+

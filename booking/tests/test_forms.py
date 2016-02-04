@@ -1,7 +1,9 @@
 from django.test import TestCase
 from model_mommy import mommy
 
-from booking.forms import BookingCreateForm, BlockCreateForm, TicketPurchaseForm
+from booking.forms import BookingCreateForm, BlockCreateForm, \
+    TicketPurchaseForm, BlockAdminForm, BookingAdminForm, \
+    TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.models import TicketBooking, Ticket
 from booking.context_helpers import get_blocktypes_available_to_book
 
@@ -203,3 +205,58 @@ class TicketPurchaseFormTests(TestCase):
         choices = [(i, i) for i in range(1, 11)]
         choices.insert(0, (0, '------'))
         self.assertEqual(quantity_widget.choices, choices)
+
+
+class AdminFormsTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make_recipe(
+            'booking.user', first_name="c", last_name='b', username='a'
+        )
+        cls.user1 =  mommy.make_recipe(
+           'booking.user', first_name="a", last_name='b', username='c'
+        )
+        cls.user2=  mommy.make_recipe(
+           'booking.user', first_name="b", last_name='a', username='b'
+        )
+
+    def test_booking_admin_form_user_display(self):
+       # check ordering of users - should be by first name (user1, user2, user)
+
+       form = BookingAdminForm()
+       userfield = form.fields['user']
+       self.assertEqual(
+           list(userfield.queryset.values_list('id', flat=True)),
+           [self.user1.id, self.user2.id, self.user.id]
+       )
+
+    def test_block_admin_form_user_display(self):
+       # check ordering of users - should be by first name (user1, user2, user)
+
+       form = BlockAdminForm()
+       userfield = form.fields['user']
+       self.assertEqual(
+           list(userfield.queryset.values_list('id', flat=True)),
+           [self.user1.id, self.user2.id, self.user.id]
+       )
+
+    def test_ticket_booking_admin_form_user_display(self):
+       # check ordering of users - should be by first name (user1, user2, user)
+
+       form = TicketBookingAdminForm()
+       userfield = form.fields['user']
+       self.assertEqual(
+           list(userfield.queryset.values_list('id', flat=True)),
+           [self.user1.id, self.user2.id, self.user.id]
+       )
+
+    def test_waiting_list_admin_form_user_display(self):
+       # check ordering of users - should be by first name (user1, user2, user)
+
+       form = WaitingListUserAdminForm()
+       userfield = form.fields['user']
+       self.assertEqual(
+           list(userfield.queryset.values_list('id', flat=True)),
+           [self.user1.id, self.user2.id, self.user.id]
+       )
