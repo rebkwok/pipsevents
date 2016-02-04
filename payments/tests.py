@@ -373,13 +373,14 @@ class TestHelpers(TestCase):
 # Parameters are all bytestrings, so we can construct a bytestring
 # request the same way that Paypal does.
 CHARSET = "windows-1252"
+TEST_RECEIVER_EMAIL = 'dummy-email@hotmail.com'
 IPN_POST_PARAMS = {
     "mc_gross": b"7.00",
     "invoice": b"user-PL1-2411152010-inv001",
     "protection_eligibility": b"Ineligible",
     "txn_id": b"51403485VH153354B",
     "last_name": b"User",
-    "receiver_email": b"test-paypal@watermelon.com",
+    "receiver_email": b(TEST_RECEIVER_EMAIL),
     "payer_id": b"BN5JZ2V7MLEV4",
     "tax": b"0.00",
     "payment_date": b"23:04:06 Feb 02, 2009 PST",
@@ -410,6 +411,7 @@ IPN_POST_PARAMS = {
 }
 
 
+@override_settings(PAYPAL_RECEIVER_EMAIL=TEST_RECEIVER_EMAIL)
 class PaypalSignalsTests(TestCase):
 
     def setUp(self):
