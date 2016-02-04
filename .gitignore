@@ -13,3 +13,4 @@ include/
 lib/
 local/
 .DS_Store
+htmlcov/

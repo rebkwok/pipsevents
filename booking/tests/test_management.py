@@ -2106,6 +2106,92 @@ class ActivateBlockTypeTests(TestCase):
         )
         self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
+    def test_activate_blocktypes_with_unknown_identifier(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=False, identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        management.call_command(
+            'activate_blocktypes', 'unknown', 'on'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Block types activation attempt failed'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+    def test_deactivate_blocktypes_with_unknown_identifier(self):
+        mommy.make_recipe(
+            'booking.blocktype5', active=True, identifier='test', _quantity=5
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+        management.call_command(
+            'activate_blocktypes', 'unknown', 'off'
+        )
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 5
+        )
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Block types deactivation attempt failed'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('booking.management.commands.activate_blocktypes.send_mail')
+    def test_activate_blocktypes_with_email_error(self, mock_send_emails):
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        mommy.make_recipe('booking.blocktype5', active=False, identifier='test')
+
+        self.assertEqual(BlockType.objects.filter(active=True).count(), 0)
+        management.call_command('activate_blocktypes', 'test', 'on')
+
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 1
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (Activate blocktypes - '
+            'support email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('booking.management.commands.activate_blocktypes.send_mail')
+    def test_fail_to_activate_blocktypes_with_email_error(self, mock_send_emails):
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        mommy.make_recipe('booking.blocktype5', active=False, identifier='test')
+
+        self.assertEqual(BlockType.objects.filter(active=True).count(), 0)
+        management.call_command('activate_blocktypes', 'unknown', 'on')
+
+        self.assertEqual(
+            BlockType.objects.filter(active=True).count(), 0
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (Activate blocktypes - '
+            'support email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
 
 class ActivateSaleTests(TestCase):
 
