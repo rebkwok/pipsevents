@@ -413,8 +413,8 @@ if env('TRAVIS') or env('HEROKU'):
 def show_toolbar(request):
     return True
 
-if DEBUG:
-    ENABLE_DEBUG_TOOLBAR = True
-    DEBUG_TOOLBAR_CONFIG = {
-        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
-    }
+# if DEBUG:
+#     ENABLE_DEBUG_TOOLBAR = True
+#     DEBUG_TOOLBAR_CONFIG = {
+#         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+#     }
