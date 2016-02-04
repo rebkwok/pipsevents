@@ -379,7 +379,7 @@ IPN_POST_PARAMS = {
     "protection_eligibility": b"Ineligible",
     "txn_id": b"51403485VH153354B",
     "last_name": b"User",
-    "receiver_email": b(settings.PAYPAL_RECEIVER_EMAIL),
+    "receiver_email": b"test-paypal@watermelon.com",
     "payer_id": b"BN5JZ2V7MLEV4",
     "tax": b"0.00",
     "payment_date": b"23:04:06 Feb 02, 2009 PST",

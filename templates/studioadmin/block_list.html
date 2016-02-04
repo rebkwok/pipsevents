@@ -50,7 +50,7 @@
                             {% if blocks %}
                                 {% for block in blocks %}
                                 <tr>
-                                    <td class="table-center studioadmin-tbl">{{ block.block_type.event_type }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.block_type.event_type.subtype }} {% if block.block_type.identifier %}({{ block.block_type.identifier }}){% endif %}</td>
                                     <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:user_blocks_list' block.user.id %}">{{ block.user.first_name }} {{ block.user.last_name }} ({{ block.user.username }})</a></td>
                                     <td class="table-center studioadmin-tbl">{{ block.block_type.size }}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.bookings_made }}</td>

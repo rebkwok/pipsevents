@@ -48,7 +48,7 @@
                                 <span class="hide">{{ booking.id }}</span>
                                 {% if booking.instance.id %}
                                     <span class="hide">{{ booking.event }}</span>
-                                    <span class="hide">{{ booking.block }}</span>
+
                                     <td class="studioadmin-tbl">{{ booking.instance.event.date }}</td>
                                     <td class="studioadmin-tbl">{{ booking.instance.event.name }} {% if booking.instance.event.cancelled %}(cancelled){% endif %}</td>
 
@@ -66,16 +66,20 @@
                                         {% endif %}
                                     </td>
                                     <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
-                                    <td class="table-center studioadmin-tbl">{% if booking.instance.block and booking.instance.paid %}
-                                        <div class="form-group form-group-sm">{{ booking.block }}</div>
+                                    <td class="table-center studioadmin-tbl">
+                                        {% if booking.instance.block and booking.instance.paid %}
+                                            <div class="form-group form-group-sm">{{ booking.block }}</div>
                                         {% elif booking.instance.free_class %}
+                                        <span class="hide">{{ booking.block }}</span>
                                         Free class
                                         {% elif booking.instance.paid %}
+                                        <span class="hide">{{ booking.block }}</span>
                                         Paid directly
                                         {% else %}
                                             {% if booking.instance.event.cost and booking.has_available_block %}
                                                 <div class="form-group form-group-sm">{{ booking.block }}</div>
                                             {% else %}
+                                                <span class="hide">{{ booking.block }}</span>
                                                 N/A
                                             {% endif %}
                                         {% endif %}</td>

@@ -1031,9 +1031,14 @@ class BlockStatusFilter(forms.Form):
 
 class UserBlockModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        return "Block type: {}; {} left".format(
-            obj.block_type.event_type, obj.block_type.size - obj.bookings_made()
+        return "{}{}; exp {}; {} left".format(
+            obj.block_type.event_type.subtype,
+            " ({})".format(obj.block_type.identifier)
+            if obj.block_type.identifier else '',
+            obj.expiry_date.strftime('%d/%m'),
+            obj.block_type.size - obj.bookings_made()
         )
+
     def to_python(self, value):
         if value:
             return Block.objects.get(id=value)
@@ -1072,25 +1077,27 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             cancelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
 
             if form.instance.block is None:
-                active_user_blocks = [
-                    block.id for block in Block.objects.filter(
-                        user=form.instance.user,
-                        block_type__event_type=form.instance.event.event_type)
-                    if block.active_block()
-                ]
-                form.has_available_block = True if active_user_blocks else False
-                form.fields['block'] = (UserBlockModelChoiceField(
-                    queryset=Block.objects.filter(id__in=active_user_blocks),
-                    widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
-                    required=False,
-                    empty_label="---Choose from user's available active blocks---"
-                ))
+                if form.instance.status == 'OPEN':
+                    active_user_blocks = [
+                        block.id for block in Block.objects.filter(
+                            user=form.instance.user,
+                            block_type__event_type=form.instance.event.event_type)
+                        if block.active_block()
+                    ]
+                    form.has_available_block = True if active_user_blocks else False
+                    form.fields['block'] = (UserBlockModelChoiceField(
+                        queryset=Block.objects.filter(id__in=active_user_blocks),
+                        widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
+                        required=False,
+                        empty_label="--------None--------"
+                    ))
             else:
                 form.fields['block'] = (UserBlockModelChoiceField(
                     queryset=Block.objects.filter(id=form.instance.block.id),
                     widget=forms.Select(attrs={'class': '{} form-control input-sm'.format(cancelled_class)}),
                     required=False,
-                    empty_label="---Unselect block (change booking to unpaid)---"
+                    empty_label="---REMOVE BLOCK (TO CHANGE BLOCK, REMOVE AND SAVE FIRST)---",
+                    initial=form.instance.block.id
                 ))
 
         else:
@@ -1183,6 +1190,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             block = form.cleaned_data.get('block')
             event = form.cleaned_data.get('event')
             free_class = form.cleaned_data.get('free_class')
+            status = form.cleaned_data.get('status')
 
 
             if form.instance.status == 'CANCELLED' and form.instance.block and \
@@ -1221,7 +1229,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                                     'event {} as deposit paid'.format(event)
                         form.add_error('deposit_paid', error_msg)
 
-            if block and event:
+            if block and event and status == 'OPEN':
                 if not block_tracker.get(block.id):
                     block_tracker[block.id] = 0
                 block_tracker[block.id] += 1

@@ -1062,10 +1062,10 @@ class UserBookingFormSetTests(TestCase):
         # queryset shows only the active blocks for this user and event type
         self.assertEquals(1, block.queryset.count())
 
-        # empty_label shows the "choose block" instruction
+        # empty_label shows the "None"
         self.assertEquals(
             block.empty_label,
-            "---Choose from user's available active blocks---",
+            "--------None--------",
              block.empty_label
              )
 
@@ -1082,10 +1082,10 @@ class UserBookingFormSetTests(TestCase):
         # queryset still only shows active blocks for this user and event type
         self.assertEquals(1, block.queryset.count())
 
-        # empty_label shows the "Unselect block" instruction
+        # empty_label shows the "Remove block" instruction
         self.assertEquals(
             block.empty_label,
-            "---Unselect block (change booking to unpaid)---",
+            "---REMOVE BLOCK (TO CHANGE BLOCK, REMOVE AND SAVE FIRST)---",
             block.empty_label
         )
 
@@ -1118,8 +1118,9 @@ class UserBookingFormSetTests(TestCase):
         # queryset shows only the active blocks for this user and event type
         self.assertEquals(1, block.queryset.count())
         self.assertEquals(
-                    "Block type: {}; {} left".format(
-                        active_user_block.block_type.event_type,
+                    "{}; exp {}; {} left".format(
+                        active_user_block.block_type.event_type.subtype,
+                        active_user_block.expiry_date.strftime('%d/%m'),
                         active_user_block.block_type.size - active_user_block.bookings_made()),
                     block.label_from_instance(active_user_block)
                     )

@@ -47,7 +47,8 @@
                                     {% else %}
                                         UNPAID
                                     {% endif %}</td>
-                                    <td class="studioadmin-tbl">{{ block.instance.block_type.event_type }}</td>
+                                    <td class="studioadmin-tbl">{{ block.instance.block_type.event_type.subtype }}
+                                        {% if block.instance.block_type.identifier %}({{ block.instance.block_type.identifier }}){% endif %}</td>
                                     {% if block.instance.paid %}
                                         <span class="hide">{{ block.paid }}</span>
                                         <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
