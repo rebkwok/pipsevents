@@ -17,6 +17,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super(EventDetailContextTests, cls).setUpTestData()
         cls.free_event = mommy.make_recipe('booking.future_EV')
         cls.past_event = mommy.make_recipe('booking.past_event')
         cls.paid_event = mommy.make_recipe('booking.future_EV', cost=10)
