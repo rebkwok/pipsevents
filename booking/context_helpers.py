@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from booking.models import BlockType, TicketBooking, WaitingListUser
+from booking.models import Block, BlockType, Booking, WaitingListUser
 
 def get_event_context(context, event, user):
 
@@ -40,13 +40,12 @@ def get_event_context(context, event, user):
     context['payment_text'] = payment_text
 
     # booked flag
-    user_bookings = user.bookings.all()
-    user_booked_events = [booking.event for booking in user_bookings
-                             if booking.status == 'OPEN']
-    user_cancelled_events = [booking.event for booking in user_bookings
-                             if booking.status == 'CANCELLED']
-    booked = event in user_booked_events
-    cancelled = event in user_cancelled_events
+    user_booked_events = Booking.objects.filter(user=user, status='OPEN')\
+        .values_list('event__id', flat=True)
+    user_cancelled_events = Booking.objects.filter(user=user, status='CANCELLED')\
+        .values_list('event__id', flat=True)
+    booked = event.id in user_booked_events
+    cancelled = event.id in user_cancelled_events
 
     # waiting_list flag
     try:
@@ -112,29 +111,21 @@ def get_event_context(context, event, user):
 
 def get_booking_create_context(event, request, context):
     # find if block booking is available for this type of event
-    blocktypes = [
-        blocktype.event_type for blocktype in BlockType.objects.all()
-        ]
-    blocktype_available = event.event_type in blocktypes
+    blocktypes = BlockType.objects.values_list('event_type__id', flat=True)
+    blocktype_available = event.event_type.id in blocktypes
     context['blocktype_available'] = blocktype_available
-
     # Add in the event name
     context['event'] = event
-    user_blocks = request.user.blocks.all()
-    active_user_block = [
-        block for block in user_blocks
-        if block.block_type.event_type == event.event_type
-        and block.active_block()
-        ]
+    user_blocks = Block.objects.filter(
+        user=request.user, block_type__event_type=event.event_type
+    )
+    active_user_block = [block for block in user_blocks if block.active_block()]
     if active_user_block:
         context['active_user_block'] = True
 
     active_user_block_unpaid = [
-        block for block in user_blocks
-        if block.block_type.event_type == event.event_type
-        and not block.expired
-        and not block.full
-        and not block.paid
+        block for block in user_blocks if not block.expired
+        and not block.full and not block.paid
          ]
     if active_user_block_unpaid:
         context['active_user_block_unpaid'] = True
