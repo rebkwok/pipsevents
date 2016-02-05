@@ -1,33 +1,21 @@
-from datetime import datetime, timedelta
-from mock import Mock, patch
 from model_mommy import mommy
 
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
-from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils import timezone
-from django.contrib.auth.models import Permission
 
-from booking.models import Event, Booking, Block, WaitingListUser
+from booking.models import Booking, WaitingListUser
 from booking.views import BookingListView, BookingCreateView, \
     BookingDeleteView, BookingUpdateView, update_booking_cancelled, \
-    EventListView, EventDetailView, \
-    duplicate_booking, fully_booked, cancellation_period_past
-from booking.tests.helpers import set_up_fb, _create_session
+    EventListView, EventDetailView
+from booking.tests.helpers import _create_session, TestSetupMixin
 
 from studioadmin.tests.test_views import TestPermissionMixin
 from studioadmin.views import user_bookings_view
 
 
-class WaitingListTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class WaitingListTests(TestSetupMixin, TestCase):
 
     def _get_event_list(self, user, ev_type):
         url = reverse('booking:events')
@@ -605,9 +593,7 @@ class WaitingListTests(TestCase):
 
 class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
 
-    def _post_response(
-        self, user, user_id, form_data, booking_status='future'
-        ):
+    def _post_response(self, user, user_id, form_data, booking_status='future'):
         url = reverse(
             'studioadmin:user_bookings_list',
             kwargs={'user_id': user_id, 'booking_status': booking_status}

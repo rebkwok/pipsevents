@@ -8,25 +8,22 @@ from bs4 import BeautifulSoup
 
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory, override_settings
-from django.test.client import Client
 from django.contrib.auth.models import Permission
 from django.utils import timezone
 
 from booking.models import Event, Booking
 from booking.views import EventListView, EventDetailView
-from booking.tests.helpers import set_up_fb
+from booking.tests.helpers import TestSetupMixin
 
 
-class EventListViewTests(TestCase):
+class EventListViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
+    @classmethod
+    def setUpTestData(cls):
+        super(EventListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-        self.user = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:events')
@@ -179,16 +176,16 @@ class EventListViewTests(TestCase):
         self.assertIn('JANUARY SALE NOW ON', resp.rendered_content)
 
 
-class EventDetailViewTests(TestCase):
+class EventDetailViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.event = mommy.make_recipe('booking.future_EV')
+    @classmethod
+    def setUpTestData(cls):
+        super(EventDetailViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-        self.user = mommy.make_recipe('booking.user')
+
+    def setUp(self):
+        self.event = mommy.make_recipe('booking.future_EV')
 
     def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])
@@ -422,20 +419,18 @@ class EventDetailViewTests(TestCase):
         )
 
 
-class LessonListViewTests(TestCase):
+class LessonListViewTests(TestSetupMixin, TestCase):
     """
     Test EventListView with lessons; reuses the event templates and context
     data helpers
     """
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
+    @classmethod
+    def setUpTestData(cls):
+        super(LessonListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_EV', _quantity=1)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
         mommy.make_recipe('booking.future_WS', _quantity=1)
-        self.user = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:lessons')
@@ -536,21 +531,19 @@ class LessonListViewTests(TestCase):
         self.assertTrue(event1 in booked_events)
 
 
-class RoomHireListViewTests(TestCase):
+class RoomHireListViewTests(TestSetupMixin, TestCase):
     """
     Test EventListView with room hires; reuses the event templates and context
     data helpers
     """
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
+    @classmethod
+    def setUpTestData(cls):
+        super(RoomHireListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_RH', _quantity=4)
         mommy.make_recipe('booking.future_EV', _quantity=1)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
         mommy.make_recipe('booking.future_WS', _quantity=1)
-        self.user = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:room_hires')
@@ -651,18 +644,17 @@ class RoomHireListViewTests(TestCase):
         self.assertTrue(event1 in booked_events)
 
 
-class LessonDetailViewTests(TestCase):
+class LessonDetailViewTests(TestSetupMixin, TestCase):
     """
     Test EventDetailView with lessons; reuses the event templates and
     context data helpers
     """
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.lesson = mommy.make_recipe('booking.future_PC')
+    @classmethod
+    def setUpTestData(cls):
+        super(LessonDetailViewTests, cls).setUpTestData()
+        cls.lesson = mommy.make_recipe('booking.future_PC')
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
-        set_up_fb()
-        self.user = mommy.make_recipe('booking.user')
 
     def test_with_logged_in_user(self):
         """
@@ -679,19 +671,18 @@ class LessonDetailViewTests(TestCase):
         self.assertEquals(resp.context_data['type'], 'lesson')
 
 
-class RoomHireDetailViewTests(TestCase):
+class RoomHireDetailViewTests(TestSetupMixin, TestCase):
     """
     Test EventDetailView with room hires; reuses the event templates and
     context data helpers
     """
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.room_hire = mommy.make_recipe('booking.future_RH')
+    @classmethod
+    def setUpTestData(cls):
+        super(RoomHireDetailViewTests, cls).setUpTestData()
+        cls.room_hire = mommy.make_recipe('booking.future_RH')
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_RH', _quantity=3)
-        set_up_fb()
-        self.user = mommy.make_recipe('booking.user')
 
     def test_with_logged_in_user(self):
         """

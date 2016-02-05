@@ -3,7 +3,6 @@ from django.contrib.sites.models import Site
 from django.conf import settings
 from importlib import import_module
 from django.test import RequestFactory
-from django.test.client import Client
 
 
 def set_up_fb():
@@ -34,8 +33,8 @@ def setup_view(view, request, *args, **kwargs):
 
 class TestSetupMixin(object):
 
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+        cls.factory = RequestFactory()
+        cls.user = mommy.make_recipe('booking.user')

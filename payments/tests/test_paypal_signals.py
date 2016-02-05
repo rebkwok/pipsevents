@@ -63,9 +63,6 @@ IPN_POST_PARAMS = {
 @override_settings(PAYPAL_RECEIVER_EMAIL=TEST_RECEIVER_EMAIL)
 class PaypalSignalsTests(TestCase):
 
-    def setUp(self):
-        self.client = Client()
-
     def paypal_post(self, params):
         """
         Does an HTTP POST the way that PayPal does, using the params given.

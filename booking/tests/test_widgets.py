@@ -5,8 +5,9 @@ from booking.widgets import DateSelectorWidget, DurationSelectorWidget
 
 class DateSelectorWidgetTest(TestCase):
 
-    def setUp(self):
-        self.widget = DateSelectorWidget()
+    @classmethod
+    def setUpTestData(cls):
+        cls.widget = DateSelectorWidget()
 
     def test_get_date_from_widget(self):
         data = {'date_0': '28', 'date_1': '3', 'date_2': '2015'}
@@ -24,10 +25,12 @@ class DateSelectorWidgetTest(TestCase):
         converted_duration = self.widget.decompress("")
         self.assertEqual([None, None, None], converted_duration)
 
+
 class DurationSelectorWidgetTest(TestCase):
 
-    def setUp(self):
-        self.widget = DurationSelectorWidget()
+    @classmethod
+    def setUpTestData(cls):
+        cls.widget = DurationSelectorWidget()
 
     def test_get_duration_hours_from_widget(self):
         weeks = 1

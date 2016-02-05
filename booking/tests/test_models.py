@@ -8,18 +8,16 @@ from mock import patch
 from model_mommy import mommy
 
 from booking.models import Event, Booking, BookingError, TicketBooking, \
-    Ticket, TicketedEvent, TicketBookingError
+    Ticket, TicketBookingError
 
 now = timezone.now()
 
 
 class EventTests(TestCase):
 
-    def setUp(self):
-        self.event = mommy.make_recipe('booking.future_EV')
-
-    def tearDown(self):
-        del self.event
+    @classmethod
+    def setUpTestData(cls):
+        cls.event = mommy.make_recipe('booking.future_EV')
 
     def test_bookable_booking_not_open(self):
         """
@@ -63,7 +61,6 @@ class EventTests(TestCase):
             payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
         )
         self.assertTrue(event1.bookable())
-
 
     def test_event_pre_save_event_with_no_cost(self):
         """
@@ -140,17 +137,16 @@ class EventTests(TestCase):
 
 class BookingTests(TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         mommy.make_recipe('booking.user', _quantity=15)
-        self.users = User.objects.all()
-        self.event = mommy.make_recipe('booking.future_EV', max_participants=20)
+        cls.users = User.objects.all()
+        cls.event = mommy.make_recipe('booking.future_EV', max_participants=20)
+
+    def setUp(self):
         self.event_with_cost = mommy.make_recipe('booking.future_EV',
                                                  advance_payment_required=True,
                                                  cost=10)
-
-    def tearDown(self):
-        del self.users
-        del self.event
 
     def test_event_spaces_left(self):
         """
@@ -196,10 +192,10 @@ class BookingTests(TestCase):
         Test space confirmed requires manual confirmation for events with
         advance payments required
         """
-        event = self.event_with_cost
+
         booking = mommy.make_recipe('booking.booking',
                                     user=self.users[0],
-                                    event=event)
+                                    event=self.event_with_cost)
         self.assertFalse(booking.space_confirmed())
 
         booking.confirm_space()
@@ -210,12 +206,12 @@ class BookingTests(TestCase):
         Test space confirmed automatically for events with advance payments
         not required
         """
-        event = self.event_with_cost
-        event.advance_payment_required = False
+        self.event_with_cost.advance_payment_required = False
+        self.event_with_cost.save()
 
         booking = mommy.make_recipe('booking.booking',
                                     user=self.users[0],
-                                    event=event)
+                                    event=self.event_with_cost)
         self.assertTrue(booking.space_confirmed())
 
     def test_date_payment_confirmed(self):
@@ -378,16 +374,14 @@ class BookingTests(TestCase):
 
 class BlockTests(TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        mommy.make_recipe('booking.future_PC', _quantity=10)
+
     def setUp(self):
         # note for purposes of testing, start_date is set to 1.1.15
         self.small_block = mommy.make_recipe('booking.block_5')
         self.large_block = mommy.make_recipe('booking.block_10')
-
-        mommy.make_recipe('booking.future_PC', _quantity=10)
-
-    def tearDown(self):
-        del self.small_block
-        del self.large_block
 
     def test_block_not_expiry_date(self):
         """

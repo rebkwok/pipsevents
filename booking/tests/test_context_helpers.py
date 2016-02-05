@@ -5,26 +5,24 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from model_mommy import mommy
 from datetime import datetime
 from mock import patch
-from booking.models import Event, Booking, Block
+from booking.models import Booking
 from booking.views import EventDetailView, BlockListView
-from booking.tests.helpers import set_up_fb, _create_session
+from booking.tests.helpers import _create_session, TestSetupMixin
 
 
-class EventDetailContextTests(TestCase):
+class EventDetailContextTests(TestSetupMixin, TestCase):
     """
     Test that context helpers are passing correct contexts
     """
 
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.free_event = mommy.make_recipe('booking.future_EV')
-        self.past_event = mommy.make_recipe('booking.past_event')
-        self.paid_event = mommy.make_recipe('booking.future_EV', cost=10)
+    @classmethod
+    def setUpTestData(cls):
+        super(EventDetailContextTests, cls).setUpTestData()
+        cls.free_event = mommy.make_recipe('booking.future_EV')
+        cls.past_event = mommy.make_recipe('booking.past_event')
+        cls.paid_event = mommy.make_recipe('booking.future_EV', cost=10)
 
-        self.user = mommy.make_recipe('booking.user')
-
-        self.CONTEXT_OPTIONS = {
+        cls.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
                                             "this event.",
             'payment_text_cost_not_open':   "Online payments are not open. ",
@@ -39,7 +37,7 @@ class EventDetailContextTests(TestCase):
                                               "make your payment as soon as "
                                               "possible to secure your place."
         }
-        self.CONTEXT_FLAGS = {
+        cls.CONTEXT_FLAGS = {
             'booked': True,
             'past': True
         }
@@ -266,14 +264,11 @@ class EventDetailContextTests(TestCase):
             "Please contact {} directly to book".format(event.contact_person)
         )
 
-class BlockListContextTests(TestCase):
+
+class BlockListContextTests(TestSetupMixin, TestCase):
     """
     Test correct block types returned in BlockListView
     """
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
 
     def _set_session(self, user, request):
         request.session = _create_session()

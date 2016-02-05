@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from mock import Mock, patch
 from model_mommy import mommy
 
@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
-from django.test.client import Client
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 from django.contrib.auth.models import Permission, User
@@ -18,30 +17,28 @@ from booking.views import BookingListView, BookingHistoryListView, \
     BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
-from booking.tests.helpers import set_up_fb, _create_session
+from booking.tests.helpers import _create_session, TestSetupMixin
 
 from payments.helpers import create_booking_paypal_transaction
 
 
-class BookingListViewTests(TestCase):
+class BookingListViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+    @classmethod
+    def setUpTestData(cls):
+        super(BookingListViewTests, cls).setUpTestData()
         # name events explicitly to avoid invoice id conflicts in tests
         # (should never happen in reality since the invoice id is built from
         # (event name initials and datetime)
-        self.events = [
+        cls.events = [
             mommy.make_recipe('booking.future_EV',  name="First Event"),
             mommy.make_recipe('booking.future_PC',  name="Scnd Event"),
             mommy.make_recipe('booking.future_RH',  name="Third Event")
         ]
         [mommy.make_recipe(
-            'booking.booking', user=self.user,
-            event=event) for event in self.events]
-        mommy.make_recipe('booking.past_booking', user=self.user)
+            'booking.booking', user=cls.user,
+            event=event) for event in cls.events]
+        mommy.make_recipe('booking.past_booking', user=cls.user)
 
     def _get_response(self, user):
         url = reverse('booking:bookings')
@@ -227,19 +224,17 @@ class BookingListViewTests(TestCase):
         )
 
 
-class BookingHistoryListViewTests(TestCase):
+class BookingHistoryListViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+    @classmethod
+    def setUpTestData(cls):
+        super(BookingHistoryListViewTests, cls).setUpTestData()
         event = mommy.make_recipe('booking.future_EV')
-        self.booking = mommy.make_recipe(
-            'booking.booking', user=self.user, event=event
+        cls.booking = mommy.make_recipe(
+            'booking.booking', user=cls.user, event=event
         )
-        self.past_booking = mommy.make_recipe(
-            'booking.past_booking', user=self.user
+        cls.past_booking = mommy.make_recipe(
+            'booking.past_booking', user=cls.user
         )
 
     def _get_response(self, user):
@@ -301,11 +296,7 @@ class BookingHistoryListViewTests(TestCase):
         self.assertEquals(resp.context_data['bookings'].count(), 2)
 
 
-class BookingCreateViewTests(TestCase):
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class BookingCreateViewTests(TestSetupMixin, TestCase):
 
     def _post_response(self, user, event, form_data={}):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
@@ -735,12 +726,14 @@ class BookingCreateViewTests(TestCase):
 
         perm = Permission.objects.get(codename='is_regular_student')
         self.user.user_permissions.add(perm)
-        self.user.save()
-        response = self._get_response(self.user, pole_class)
+
+        # get user from db to refresh permissions cache
+        user = User.objects.get(pk=self.user.pk)
+        response = self._get_response(user, pole_class)
 
         self.assertIn('can_be_free_class', response.context_data)
 
-        response = self._get_response(self.user, pole_practice)
+        response = self._get_response(user, pole_practice)
         self.assertNotIn('can_be_free_class', response.context_data)
 
     def test_free_class_context_with_permission(self):
@@ -814,12 +807,7 @@ class BookingCreateViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class BookingErrorRedirectPagesTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
     def _get_duplicate_booking(self, user, event):
         url = reverse(
@@ -938,8 +926,7 @@ class BookingErrorRedirectPagesTests(TestCase):
         for an event that's now full
         """
         booking = mommy.make_recipe('booking.booking', status='CANCELLED')
-        client = Client()
-        resp = client.get(
+        resp = self.client.get(
             reverse('booking:already_cancelled', args=[booking.id])
         )
         self.assertIn(booking.event.name, str(resp.content))
@@ -963,16 +950,11 @@ class BookingErrorRedirectPagesTests(TestCase):
         self.assertIn(event.name, str(resp.content))
 
     def test_has_active_block(self):
-        client = Client()
-        response = client.get(reverse('booking:has_active_block'))
+        response = self.client.get(reverse('booking:has_active_block'))
         self.assertEqual(response.status_code, 200)
 
-class BookingDeleteViewTests(TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
     def _delete_response(self, user, booking):
         url = reverse('booking:delete_booking', args=[booking.id])
@@ -1165,12 +1147,7 @@ class BookingDeleteViewTests(TestCase):
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
 
-class BookingUpdateViewTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
     def _get_response(self, user, booking):
         url = reverse('booking:update_booking', args=[booking.id])

@@ -1,5 +1,10 @@
 import sys
+
+from datetime import datetime, timedelta
 from io import StringIO
+from mock import patch
+from model_mommy import mommy
+
 
 from django.test import TestCase
 from django.conf import settings
@@ -8,10 +13,8 @@ from django.core import mail
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
-from datetime import datetime, timedelta
+
 from allauth.socialaccount.models import SocialApp
-from mock import patch
-from model_mommy import mommy
 
 from activitylog.models import ActivityLog
 from booking.models import Event, Booking, EventType, BlockType, \
@@ -20,15 +23,17 @@ from payments.models import PaypalBookingTransaction
 
 class ManagementCommandsTests(TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUp(cls):
         # redirect stdout so we can test it
-        self.output = StringIO()
-        self.saved_stdout = sys.stdout
-        sys.stdout = self.output
+        cls.output = StringIO()
+        cls.saved_stdout = sys.stdout
+        sys.stdout = cls.output
 
-    def tearDown(self):
-        self.output.close()
-        sys.stdout = self.saved_stdout
+    @classmethod
+    def tearDownTestData(cls):
+        cls.output.close()
+        sys.stdout = cls.saved_stdout
 
     def test_setup_fb(self):
         self.assertEquals(SocialApp.objects.all().count(), 0)
@@ -1840,6 +1845,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             ).count(),
             0
         )
+
 
 class BlockBookingsReportTests(TestCase):
 

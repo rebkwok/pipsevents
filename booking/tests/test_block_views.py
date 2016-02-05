@@ -9,14 +9,10 @@ from django.utils import timezone
 from booking.forms import BlockCreateForm
 from booking.models import Block
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
-from booking.tests.helpers import set_up_fb, _create_session, setup_view
+from booking.tests.helpers import _create_session, setup_view, TestSetupMixin
 
 
-class BlockCreateViewTests(TestCase):
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class BlockCreateViewTests(TestSetupMixin, TestCase):
 
     def _set_session(self, user, request):
         request.session = _create_session()
@@ -213,10 +209,7 @@ class BlockCreateViewTests(TestCase):
         self.assertEqual(resp.context_data['block_types'][0], active_block_type)
 
 
-class BlockListViewTests(TestCase):
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
+class BlockListViewTests(TestSetupMixin, TestCase):
 
     def _set_session(self, user, request):
         request.session = _create_session()
@@ -243,13 +236,12 @@ class BlockListViewTests(TestCase):
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
 
-class BlockDeleteViewTests(TestCase):
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
-        self.block = mommy.make_recipe('booking.block', user=self.user)
+class BlockDeleteViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super(BlockDeleteViewTests, cls).setUpTestData()
+        cls.block = mommy.make_recipe('booking.block', user=cls.user)
 
     def _set_session(self, user, request):
         request.session = _create_session()

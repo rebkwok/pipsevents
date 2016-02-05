@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.core import management
 from django.utils import timezone
 from datetime import datetime, timedelta
 from model_mommy import mommy
@@ -7,6 +6,7 @@ from model_mommy import mommy
 from booking.models import Event
 from booking.utils import create_classes, upload_timetable
 from timetable.models import Session
+
 
 class UtilsTests(TestCase):
 

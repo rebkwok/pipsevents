@@ -14,17 +14,18 @@ from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.views import TicketedEventListView, TicketCreateView, \
     TicketBookingListView, TicketBookingHistoryListView, TicketBookingView, \
     TicketBookingCancelView
-from booking.tests.helpers import set_up_fb, _create_session, TestSetupMixin
+from booking.tests.helpers import _create_session, TestSetupMixin
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        super(EventListViewTests, self).setUp()
+    @classmethod
+    def setUpTestData(cls):
+        super(EventListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.ticketed_event_max10', _quantity=3)
-        self.staff_user = mommy.make_recipe('booking.user')
-        self.staff_user.is_staff = True
-        self.staff_user.save()
+        cls.staff_user = mommy.make_recipe('booking.user')
+        cls.staff_user.is_staff = True
+        cls.staff_user.save()
 
     def _get_response(self, user):
         url = reverse('booking:ticketed_events')
@@ -207,9 +208,10 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
 class TicketCreateViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        super(TicketCreateViewTests, self).setUp()
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+    @classmethod
+    def setUpTestData(cls):
+        super(TicketCreateViewTests, cls).setUpTestData()
+        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
 
     def _post_response(self, user, ticketed_event, form_data={}):
         url = reverse(
@@ -627,9 +629,10 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
 
 class TicketBookingListViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        super(TicketBookingListViewTests, self).setUp()
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+    @classmethod
+    def setUpTestData(cls):
+        super(TicketBookingListViewTests, cls).setUpTestData()
+        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
 
     def _get_response(self, user):
         url = reverse('booking:ticket_bookings')
@@ -871,9 +874,10 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
 
 class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        super(TicketBookingHistoryListViewTests, self).setUp()
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+    @classmethod
+    def setUpTestData(cls):
+        super(TicketBookingHistoryListViewTests, cls).setUpTestData()
+        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
 
     def _get_response(self, user):
         url = reverse('booking:ticket_booking_history')
@@ -982,18 +986,20 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
             len(resp.context_data['ticketbookinglist']), 4
         )
 
+
 class TicketBookingViewTests(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        super(TicketBookingViewTests, self).setUp()
-        self.ticketed_event = mommy.make_recipe(
+    @classmethod
+    def setUpTestData(cls):
+        super(TicketBookingViewTests, cls).setUpTestData()
+        cls.ticketed_event = mommy.make_recipe(
             'booking.ticketed_event_max10',
             extra_ticket_info_label="Name",
         )
-        self.ticket_booking = mommy.make(
-            TicketBooking, user=self.user, purchase_confirmed=True
+        cls.ticket_booking = mommy.make(
+            TicketBooking, user=cls.user, purchase_confirmed=True
         )
-        mommy.make(Ticket, ticket_booking=self.ticket_booking)
+        mommy.make(Ticket, ticket_booking=cls.ticket_booking)
 
     def _get_response(self, user, ticket_booking):
         url = reverse(
@@ -1067,7 +1073,6 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
 class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
-        super(TicketBookingCancelViewTests, self).setUp()
         self.ticketed_event = mommy.make_recipe(
             'booking.ticketed_event_max10'
         )

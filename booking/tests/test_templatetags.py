@@ -1,18 +1,11 @@
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
-from django.test.client import Client
 from model_mommy import mommy
 from booking.views import EventDetailView
-from booking.tests.helpers import set_up_fb
+from booking.tests.helpers import TestSetupMixin
 
 
-class BookingtagTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
+class BookingtagTests(TestSetupMixin, TestCase):
 
     def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])

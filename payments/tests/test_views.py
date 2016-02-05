@@ -8,7 +8,8 @@ from booking.tests.helpers import set_up_fb
 
 class TestViews(TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         set_up_fb()
 
     def test_confirm_return(self):

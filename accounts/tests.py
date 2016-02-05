@@ -4,14 +4,10 @@ from django.core.urlresolvers import reverse
 
 from accounts.forms import SignupForm
 from accounts.views import ProfileUpdateView, profile
-from booking.tests.helpers import set_up_fb
+from booking.tests.helpers import set_up_fb, TestSetupMixin
 from model_mommy import mommy
 
-class SignUpFormTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
+class SignUpFormTests(TestSetupMixin, TestCase):
 
     def test_signup_form(self):
         form_data = {'first_name': 'Test',
@@ -40,11 +36,7 @@ class SignUpFormTests(TestCase):
         self.assertEquals('Name', user.last_name)
 
 
-class ProfileUpdateViewTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
+class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
     def test_updating_user_data(self):
         """
@@ -66,11 +58,11 @@ class ProfileUpdateViewTests(TestCase):
         self.assertEquals(updated_user.first_name, "Fred")
 
 
-class ProfileTest(TestCase):
+class ProfileTest(TestSetupMixin, TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
+    @classmethod
+    def setUpTestData(cls):
+        super(ProfileTest, cls).setUpTestData()
         Group.objects.get_or_create(name='instructors')
 
     def test_profile_view(self):

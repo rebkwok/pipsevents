@@ -5,15 +5,15 @@ from booking.forms import BookingCreateForm, BlockCreateForm, \
     TicketPurchaseForm, BlockAdminForm, BookingAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.models import TicketBooking, Ticket
-from booking.context_helpers import get_blocktypes_available_to_book
 
 
 class BookingCreateFormTests(TestCase):
 
-    def setUp(self):
-        self.user = mommy.make_recipe('booking.user')
-        self.event = mommy.make_recipe('booking.future_EV')
-        self.blocktype = mommy.make_recipe('booking.blocktype5')
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make_recipe('booking.user')
+        cls.event = mommy.make_recipe('booking.future_EV')
+        cls.blocktype = mommy.make_recipe('booking.blocktype5')
 
     def test_create_form(self):
         form_data = {'event': self.event.id}
@@ -28,8 +28,9 @@ class BookingCreateFormTests(TestCase):
 
 class BlockCreateFormTests(TestCase):
 
-    def setUp(self):
-        self.user = mommy.make_recipe('booking.user')
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make_recipe('booking.user')
 
     def test_create_form_with_available_block(self):
 
@@ -45,8 +46,11 @@ class BlockCreateFormTests(TestCase):
 
 class TicketPurchaseFormTests(TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make_recipe('booking.user')
+
     def setUp(self):
-        self.user = mommy.make_recipe('booking.user')
         self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
         self.ticket_booking = mommy.make(
             TicketBooking, ticketed_event=self.ticketed_event,

@@ -58,8 +58,9 @@ class EventAdminTests(TestCase):
 
 class BookingAdminTests(TestCase):
 
-    def setUp(self):
-        self.user = mommy.make_recipe(
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make_recipe(
             'booking.user', first_name="Test", last_name="User",
             username="testuser"
         )
