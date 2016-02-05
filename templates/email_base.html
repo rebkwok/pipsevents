@@ -3,7 +3,7 @@
 
 <div class="row">
     <div class="col-sm-12">
-    <div style="font-family: sans-serif; font-size: small;">{% include "account/email/do_not_reply.html" %}</div></br>
+    {%  block donotreply %}<div style="font-family: sans-serif; font-size: small;">{% include "account/email/do_not_reply.html" %}</div></br>{% endblock %}
     {% block messagecontent %}{% endblock %}
     </div>
     <div class="row" style="padding-top: 3em;">
