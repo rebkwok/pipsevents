@@ -17,6 +17,12 @@ from booking.tests.helpers import _create_session, setup_view, TestSetupMixin
 
 class BlockCreateViewTests(TestSetupMixin, TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        super(BlockCreateViewTests, cls).setUpTestData()
+        mommy.make(PrintDisclaimer, user=cls.user)
+        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
+
     def _set_session(self, user, request):
         request.session = _create_session()
         request.user = user
@@ -259,7 +265,6 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
         super(BlockDeleteViewTests, cls).setUpTestData()
         cls.block = mommy.make_recipe('booking.block', user=cls.user)
         mommy.make(PrintDisclaimer, user=cls.user)
-        cls.block = mommy.make_recipe('booking.block', user=self.user)
 
     def _set_session(self, user, request):
         request.session = _create_session()

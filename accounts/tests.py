@@ -54,12 +54,9 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         self.assertEquals('Name', user.last_name)
 
 
-class DisclaimerFormTests(TestCase):
+class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def setUp(self):
-        set_up_fb()
-        self.factory = RequestFactory()
-
         self.form_data = {
             'name': 'test', 'dob': '01 Jan 1990', 'address': '1 test st',
             'postcode': 'TEST1', 'home_phone': '123445', 'mobile_phone': '124566',
@@ -103,8 +100,6 @@ class DisclaimerFormTests(TestCase):
                 'You must be over 18 years in order to register'
             ]}
         )
-
-class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
     def test_invalid_date_format(self):
         self.form_data['dob'] = '32 Jan 2015'
@@ -151,6 +146,9 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                 'Please provide details of allergies'
             ]}
         )
+
+
+class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
     def test_updating_user_data(self):
         """
@@ -208,15 +206,16 @@ class ProfileTest(TestSetupMixin, TestCase):
         self.assertIn("Not completed", str(resp.content))
         self.assertIn("/accounts/disclaimer", str(resp.content))
 
-class CustomLoginViewTests(TestCase):
 
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.user = User.objects.create(username='test_user', is_active=True)
-        self.user.set_password('password')
-        self.user.save()
-        EmailAddress.objects.create(user=self.user,
+class CustomLoginViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super(CustomLoginViewTests, cls).setUpTestData()
+        cls.user = User.objects.create(username='test_user', is_active=True)
+        cls.user.set_password('password')
+        cls.user.save()
+        EmailAddress.objects.create(user=cls.user,
                                     email='test@gmail.com',
                                     primary=True,
                                     verified=True)
@@ -280,13 +279,9 @@ class DisclaimerModelTests(TestCase):
             disclaimer.save()
 
 
-class DisclaimerCreateViewTests(TestCase):
+class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
-        set_up_fb()
-        self.client = Client()
-        self.factory = RequestFactory()
-        self.user = mommy.make_recipe('booking.user')
         mommy.make(PrintDisclaimer, user=self.user)
         self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
@@ -423,11 +418,7 @@ class DisclaimerCreateViewTests(TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
 
-class DataProtectionViewTests(TestCase):
-
-    def setUp(self):
-        set_up_fb()
-        self.client = Client()
+class DataProtectionViewTests(TestSetupMixin, TestCase):
 
     def test_get_data_protection_view(self):
         # no need to be a logged in user to access
@@ -437,14 +428,15 @@ class DataProtectionViewTests(TestCase):
 
 class DeleteExpiredDisclaimersTests(TestCase):
 
-    def setUp(self):
-        self.user_online_only = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=self.user_online_only)
-        self.user_print_only = mommy.make_recipe('booking.user')
-        mommy.make(PrintDisclaimer, user=self.user_print_only)
-        self.user_both = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=self.user_both)
-        mommy.make(PrintDisclaimer, user=self.user_both)
+    @classmethod
+    def setUpTestData(cls):
+        cls.user_online_only = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=cls.user_online_only)
+        cls.user_print_only = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=cls.user_print_only)
+        cls.user_both = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=cls.user_both)
+        mommy.make(PrintDisclaimer, user=cls.user_both)
 
     def test_disclaimers_deleted_if_no_paid_booking_in_past_year(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
