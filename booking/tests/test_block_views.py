@@ -236,8 +236,6 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
 
-class BlockDeleteViewTests(TestSetupMixin, TestCase):
-
     @classmethod
     def setUpTestData(cls):
         super(BlockDeleteViewTests, cls).setUpTestData()
