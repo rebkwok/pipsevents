@@ -20,10 +20,19 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+<<<<<<< bc31d23c9e3d41e20dead1c7702f72779b552259
         super(EventListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
+=======
+        set_up_fb()
+        cls.factory = RequestFactory()
+        mommy.make_recipe('booking.future_EV', _quantity=3)
+        mommy.make_recipe('booking.future_PC', _quantity=3)
+        mommy.make_recipe('booking.future_CL', _quantity=3)
+        cls.user = mommy.make_recipe('booking.user')
+>>>>>>> Refactor tests to user setUpTestData where possible
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:events')
