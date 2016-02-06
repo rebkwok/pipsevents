@@ -110,6 +110,7 @@ class ModelTests(TestCase):
         """
         session = mommy.make(
             Session, cost=10, advance_payment_required=False,
+            payment_time_allowed=None
         )
         self.assertFalse(session.advance_payment_required)
 

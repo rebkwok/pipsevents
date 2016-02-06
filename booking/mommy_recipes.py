@@ -91,9 +91,18 @@ past_booking = Recipe(Booking,
 fb_app = Recipe(SocialApp,
                 provider='facebook')
 
-mon_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.MON)
-tue_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.TUE)
-wed_session = Recipe(Session, event_type=foreign_key(event_type_PC), day=Session.WED)
+mon_session = Recipe(
+    Session, event_type=foreign_key(event_type_PC), day=Session.MON,
+    payment_time_allowed=None
+)
+tue_session = Recipe(
+    Session, event_type=foreign_key(event_type_PC), day=Session.TUE,
+    payment_time_allowed=None
+)
+wed_session = Recipe(
+    Session, event_type=foreign_key(event_type_PC), day=Session.WED,
+    payment_time_allowed=None
+)
 
 waiting_list_user = Recipe(WaitingListUser)
 

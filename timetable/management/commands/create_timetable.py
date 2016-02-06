@@ -95,7 +95,8 @@ class Command(BaseCommand):
             contact_email="flexibeast@hotmail.com",
             payment_info="£36 per 6 week block.  For further information and "
                          "to book, please contact Alicia",
-            advance_payment_required=False
+            advance_payment_required=False,
+            payment_time_allowed=None
         )
         Session.objects.get_or_create(
             name="Flexibility (with Alicia)",
@@ -110,7 +111,8 @@ class Command(BaseCommand):
             contact_email="flexibeast@hotmail.com",
             payment_info="£36 per 6 week block.  For further information and "
                          "to book, please contact Alicia",
-            advance_payment_required=False
+            advance_payment_required=False,
+            payment_time_allowed=None
         )
         # Thursday classes
         Session.objects.get_or_create(
@@ -146,7 +148,8 @@ class Command(BaseCommand):
                          "<a "
                          "href='http://www.carouselfitness.co.uk/timetable/'>"
                          "http://www.carouselfitness.co.uk/timetable/</a></p>",
-            advance_payment_required=False
+            advance_payment_required=False,
+            payment_time_allowed=None
         )
 
         Session.objects.get_or_create(
@@ -224,5 +227,6 @@ class Command(BaseCommand):
             contact_email="flexibeast@hotmail.com",
             payment_info="£36 per 6 week block.  For further information and "
                          "to book, please contact Alicia",
-            advance_payment_required=False
+            advance_payment_required=False,
+            payment_time_allowed=None
         )
