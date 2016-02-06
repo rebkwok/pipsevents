@@ -72,11 +72,11 @@
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='ext_instructor_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "Email studio when booked"%}
+                            {% elif field.name == "email_studio_when_booked"%}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='email_studio_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='email_studio_when_booked_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.name == "allow_booking_cancellation" %}

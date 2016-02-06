@@ -666,7 +666,7 @@ class SessionAdminForm(forms.ModelForm):
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',
             'payment_info', 'payment_time_allowed', 'cancellation_period',
-            'allow_booking_cancellation'
+            'allow_booking_cancellation', 'email_studio_when_booked'
         )
         widgets = {
             'description': CKEditorWidget(
@@ -736,6 +736,12 @@ class SessionAdminForm(forms.ModelForm):
                 attrs={
                     'class': "form-control regular-checkbox",
                     'id': 'allow_booking_cancellation_id',
+                    }
+            ),
+            'email_studio_when_booked': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'email_studio_when_booked_id',
                     }
             ),
             }
