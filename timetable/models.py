@@ -40,7 +40,7 @@ class Session(models.Model):
     advance_payment_required = models.BooleanField(default=True)
     payment_info = models.TextField(blank=True)
     payment_time_allowed = models.PositiveIntegerField(
-        null=True, blank=True,
+        null=True, blank=True, default=12,
         help_text="Number of hours allowed for payment after booking (after "
                   "this bookings will be cancelled.  Note that the "
                   "automatic cancel job allows 6 hours after booking, so "
