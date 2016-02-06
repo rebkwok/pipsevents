@@ -115,27 +115,28 @@ class Command(BaseCommand):
             )
 
         if bookings_to_cancel:
-            # send single mail to Studio
-            send_mail('{} Ticket Booking{} been automatically cancelled'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                ' has' if len(bookings_to_cancel) == 1 else 's have'),
-                get_template(
-                    'booking/email/ticket_booking_auto_cancelled_studio_email.txt'
-                ).render({'bookings': bookings_to_cancel}),
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.DEFAULT_STUDIO_EMAIL],
-                html_message=get_template(
-                    'booking/email/ticket_booking_auto_cancelled_studio_email.html'
+            if settings.SEND_ALL_STUDIO_EMAILS:
+                # send single mail to Studio
+                send_mail('{} Ticket Booking{} been automatically cancelled'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    ' has' if len(bookings_to_cancel) == 1 else 's have'),
+                    get_template(
+                        'booking/email/ticket_booking_auto_cancelled_studio_email.txt'
                     ).render({'bookings': bookings_to_cancel}),
-                fail_silently=False)
-            self.stdout.write(
-                'Cancellation emails sent for ticket booking refs {}'.format(
-                    ', '.join(
-                        [str(booking.booking_reference)
-                         for booking in bookings_to_cancel]
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'booking/email/ticket_booking_auto_cancelled_studio_email.html'
+                        ).render({'bookings': bookings_to_cancel}),
+                    fail_silently=False)
+                self.stdout.write(
+                    'Cancellation emails sent for ticket booking refs {}'.format(
+                        ', '.join(
+                            [str(booking.booking_reference)
+                             for booking in bookings_to_cancel]
+                        )
                     )
                 )
-            )
         else:
             self.stdout.write('No ticket bookings to cancel')
             ActivityLog.objects.create(

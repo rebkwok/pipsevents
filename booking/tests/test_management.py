@@ -6,7 +6,7 @@ from mock import patch
 from model_mommy import mommy
 
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.conf import settings
 from django.core import management
 from django.core import mail
@@ -20,6 +20,7 @@ from activitylog.models import ActivityLog
 from booking.models import Event, Booking, EventType, BlockType, \
     TicketBooking, Ticket
 from payments.models import PaypalBookingTransaction
+
 
 class ManagementCommandsTests(TestCase):
 
@@ -796,6 +797,39 @@ class CancelUnpaidBookingsTests(TestCase):
         all_emails = cancelled_booking_emails + [[settings.DEFAULT_STUDIO_EMAIL]]
         self.assertEquals(
             all_emails, [email.to for email in mail.outbox]
+        )
+
+    @override_settings(SEND_ALL_STUDIO_EMAILS=False)
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_no_email_to_studio_if_setting_not_on(self, mock_tz):
+        """
+        users are emailed per booking, studio just receives one summary
+        email
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        for i in range(5):
+            bookings = mommy.make_recipe(
+                'booking.booking', event=self.event,
+                status='OPEN', paid=False,
+                payment_confirmed=False,
+                user__email="unpaid_user{}@test.com".format(i),
+                date_booked= datetime(
+                    2015, 2, 9, tzinfo=timezone.utc
+                ),
+                warning_sent=True
+            )
+
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking (6); none to studio
+        self.assertEquals(len(mail.outbox), 6)
+        cancelled_booking_emails = [
+            [booking.user.email] for booking
+            in Booking.objects.filter(status='CANCELLED')
+        ]
+        self.assertEquals(
+            cancelled_booking_emails, [email.to for email in mail.outbox]
         )
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
@@ -1801,6 +1835,41 @@ class CancelUnpaidTicketBookingsTests(TestCase):
 
         self.assertEquals(
             all_emails, [email.to[0] for email in mail.outbox]
+        )
+
+    @override_settings(SEND_ALL_STUDIO_EMAILS=False)
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_no_email_to_studio_if_setting_not_on(self, mock_tz):
+        """
+        users are emailed per booking, studio only receives summary
+        email if SEND_ALL_STUDIO_EMAILS setting is on
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+        for i in range(5):
+            mommy.make(
+                TicketBooking, ticketed_event=self.ticketed_event,
+                cancelled=False, paid=False,
+                user__email="unpaid_user{}@test.com".format(i),
+                date_booked= datetime(
+                    2015, 2, 9, tzinfo=timezone.utc
+                ),
+                warning_sent=True
+            )
+        for booking in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=booking)
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # emails are sent to user per cancelled booking (6) (these 5 plus
+        # self.unpaid); none to studio
+        self.assertEquals(len(mail.outbox), 6)
+        cancelled_booking_emails = [
+            booking.user.email for booking
+            in TicketBooking.objects.filter(cancelled=True)
+        ]
+        self.assertEquals(
+            cancelled_booking_emails, [email.to[0] for email in mail.outbox]
         )
 
     @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')

@@ -135,24 +135,25 @@ class Command(BaseCommand):
                     )
 
         if bookings:
-            # send single mail to Studio
-            send_mail('{} Booking{} been automatically cancelled'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                ' has' if len(bookings) == 1 else 's have'),
-                get_template(
-                    'booking/email/booking_auto_cancelled_studio_email.txt'
-                ).render({'bookings': bookings}),
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.DEFAULT_STUDIO_EMAIL],
-                html_message=get_template(
-                    'booking/email/booking_auto_cancelled_studio_email.html'
+            if settings.SEND_ALL_STUDIO_EMAILS:
+                # send single mail to Studio
+                send_mail('{} Booking{} been automatically cancelled'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    ' has' if len(bookings) == 1 else 's have'),
+                    get_template(
+                        'booking/email/booking_auto_cancelled_studio_email.txt'
                     ).render({'bookings': bookings}),
-                fail_silently=False)
-            self.stdout.write(
-                'Cancellation emails sent for booking ids {}'.format(
-                    ', '.join([str(booking.id) for booking in bookings])
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'booking/email/booking_auto_cancelled_studio_email.html'
+                        ).render({'bookings': bookings}),
+                    fail_silently=False)
+                self.stdout.write(
+                    'Cancellation emails sent for booking ids {}'.format(
+                        ', '.join([str(booking.id) for booking in bookings])
+                    )
                 )
-            )
         else:
             self.stdout.write('No bookings to cancel')
             ActivityLog.objects.create(
