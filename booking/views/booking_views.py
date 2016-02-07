@@ -295,9 +295,10 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         elif 'block_book' in form.data:
             active_block = _get_active_user_block(self.request.user, booking)
-            booking.block = active_block
-            booking.paid = True
-            booking.payment_confirmed = True
+            if active_block:
+                booking.block = active_block
+                booking.paid = True
+                booking.payment_confirmed = True
 
         # check for existence of free child block on pre-saved booking
         has_free_block_pre_save = False
@@ -519,9 +520,12 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
 
         elif 'block_book' in form.data:
             active_block = _get_active_user_block(self.request.user, booking)
-            booking.block = active_block
-            booking.paid = True
-            booking.payment_confirmed = True
+            if active_block:
+                booking.block = active_block
+                booking.paid = True
+                booking.payment_confirmed = True
+            else:
+                messages.error(self.request, 'Error: No available block')
 
         # check for existence of free child block on pre-saved booking
         has_free_block_pre_save = False
@@ -609,11 +613,11 @@ def _get_active_user_block(user, booking):
         for block in blocks if block.active_block()
         and block.block_type.event_type == booking.event.event_type
     ]
-    if len(active_blocks) > 1:
-        # use the block with the soonest expiry date
+    # use the block with the soonest expiry date
+    if active_blocks:
         return min(active_blocks, key=itemgetter(1))[0]
     else:
-        return active_blocks[0][0]
+        return None
 
 
 def _email_free_class_request(request, booking, booking_status):

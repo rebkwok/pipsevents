@@ -1080,7 +1080,8 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             ppbs_paypal =[True for ppb in ppbs if ppb.transaction_id]
             form.paypal = True if ppbs_paypal else False
 
-            cancelled_class = 'expired' if form.instance.status == 'CANCELLED' else 'none'
+            cancelled_class = 'expired' if \
+                form.instance.status == 'CANCELLED' else 'none'
 
             if form.instance.block is None:
                 if form.instance.status == 'OPEN':
@@ -1141,7 +1142,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                 'class': "regular-checkbox",
                 'id': 'paid_{}'.format(index)
             }),
-            required=False
+            required=False,
         )
         form.paid_id = 'paid_{}'.format(index)
 
@@ -1162,6 +1163,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             required=False
         )
         form.free_class_id = 'free_class_{}'.format(index)
+
         form.fields['send_confirmation'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
                 'class': "regular-checkbox",
@@ -1176,6 +1178,26 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
             initial='OPEN'
         )
+
+        if form.instance.id and \
+                (form.instance.status == 'CANCELLED' or form.instance.block):
+            # disable payment and free class fields for cancelled and
+            # block bookings
+            paid_widget = form.fields['paid'].widget
+            deposit_paid_widget = form.fields['deposit_paid'].widget
+            free_class_widget = form.fields['free_class'].widget
+            paid_widget.attrs.update({
+                'class': 'regular-checkbox regular-checkbox-disabled',
+                'OnClick': "javascript:return ReadOnlyCheckBox()"
+            })
+            deposit_paid_widget.attrs.update({
+                'class': 'regular-checkbox regular-checkbox-disabled',
+                'OnClick': "javascript:return ReadOnlyCheckBox()"
+            })
+            free_class_widget.attrs.update({
+                'class': 'regular-checkbox regular-checkbox-disabled',
+                'OnClick': "javascript:return ReadOnlyCheckBox()"
+            })
 
     def clean(self):
         """
@@ -1197,7 +1219,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             event = form.cleaned_data.get('event')
             free_class = form.cleaned_data.get('free_class')
             status = form.cleaned_data.get('status')
-
+            paid = form.cleaned_data.get('paid')
 
             if form.instance.status == 'CANCELLED' and form.instance.block and \
                 'block' in form.changed_data:
@@ -1235,7 +1257,14 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                                     'event {} as deposit paid'.format(event)
                         form.add_error('deposit_paid', error_msg)
 
-            if block and event and status == 'OPEN':
+            if block and 'paid' in form.changed_data \
+                    and not 'block' in form.changed_data:
+                error_msg = 'Cannot make block booking for {} ' \
+                            'unpaid'.format(event)
+                form.add_error('paid', error_msg)
+
+
+            elif block and event and status == 'OPEN':
                 if not block_tracker.get(block.id):
                     block_tracker[block.id] = 0
                 block_tracker[block.id] += 1
@@ -1308,14 +1337,16 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
             if block.active_block() or
             (not block.expired and not block.paid and not block.full)
         ]
-        available_block_types = BlockType.objects.exclude(
+        free_class_block = BlockType.objects.filter(identifier='free class')
+        available_block_types = BlockType.objects.filter(active=True).exclude(
             event_type__in=user_block_event_types
         )
         form.can_buy_block = True if available_block_types else False
+        queryset = available_block_types | free_class_block
 
         if not form.instance.id:
             form.fields['block_type'] = (BlockTypeModelChoiceField(
-                queryset=available_block_types,
+                queryset=queryset.order_by('event_type__subtype'),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
                 required=False,
                 empty_label="---Choose block type---"
@@ -1333,14 +1364,15 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
                 ),
                 required=False,
             )
+        else:
 
-        if form.instance:
             # only allow deleting blocks if not yet paid
-            if form.instance.paid:
+            if not form.instance.paid \
+                    or (form.instance.block_type.identifier == 'free class'
+                        and not form.instance.bookings.exists()):
                 form.fields['DELETE'] = forms.BooleanField(
                     widget=forms.CheckboxInput(attrs={
-                        'class': 'delete-checkbox-disabled studioadmin-list',
-                        'disabled': 'disabled',
+                        'class': 'delete-checkbox studioadmin-list',
                         'id': 'DELETE_{}'.format(index)
                     }),
                     required=False
@@ -1348,7 +1380,8 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
             else:
                 form.fields['DELETE'] = forms.BooleanField(
                     widget=forms.CheckboxInput(attrs={
-                        'class': 'delete-checkbox studioadmin-list',
+                        'class': 'delete-checkbox-disabled studioadmin-list',
+                        'disabled': 'disabled',
                         'id': 'DELETE_{}'.format(index)
                     }),
                     required=False
@@ -1363,8 +1396,6 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
             required=False
             )
         form.paid_id = 'paid_{}'.format(index)
-
-
 
 
 UserBlockFormSet = inlineformset_factory(

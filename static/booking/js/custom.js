@@ -6,6 +6,10 @@ Date.prototype.dateFormat = function( format ){
   return moment(this).format(format);
 };
 
+function ReadOnlyCheckBox() {
+    return false;
+};
+
 jQuery(document).ready(function () {
 
     jQuery('form').areYouSure();
@@ -121,4 +125,5 @@ jQuery(document).ready(function () {
                 .removeClass("fa-minus-square")
                 .addClass("fa-plus-square");
         });
+
 });

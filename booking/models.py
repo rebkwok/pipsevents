@@ -453,8 +453,9 @@ class Booking(models.Model):
             else:
                 self.date_rebooked = timezone.now()
 
-        if cancellation and orig.block:
-            # cancelling a booking from a block
+        if (cancellation and orig.block) or \
+                (orig and orig.block and not self.block ):
+            # cancelling a booking from a block or removing booking from block
                 # if block has a used free class, move the booking from the
                 #  free
                 # class to this block, otherwise delete the free class block
