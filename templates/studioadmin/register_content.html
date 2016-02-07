@@ -61,17 +61,9 @@
 
                                 {% if bookingform.instance.id %}
                                     <td class="table-center studioadmin-tbl">
+                                        <span class="hide">{{ bookingform.deposit_paid }}</span>
                                         {% if bookingform.instance.deposit_paid %}
-                                            {% if bookingform.paid_by_paypal %}
-                                                <span class="fa fa-check"></span>
-                                                <span class="hide">{{ bookingform.deposit_paid }}</span>
-                                            {% else %}
-                                                {{ bookingform.deposit_paid }}<label for={{ bookingform.checkbox_deposit_paid_id }}></label>
-                                            {% endif %}
-                                        {% else %}
-                                            {% if not print %}
-                                                {{ bookingform.deposit_paid }}<label for={{ bookingform.checkbox_deposit_paid_id }}></label>
-                                            {% endif %}
+                                            <span class="fa fa-check"></span>
                                         {% endif %}
                                     </td>
                                     <td class="table-center studioadmin-tbl {% if bookingform.instance.id and not bookingform.instance.paid and not print %}register-unpaid{% endif %}">
