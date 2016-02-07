@@ -1744,7 +1744,7 @@ def user_blocks_view(request, user_id):
             )
     else:
         queryset = Block.objects.filter(
-            user=user).order_by('start_date')
+            user=user).order_by('-start_date')
         userblockformset = UserBlockFormSet(
             instance=user,
             queryset=queryset,

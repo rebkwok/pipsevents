@@ -427,7 +427,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
                     cancellation_warning = "Note that if payment " \
                         "has not been received {}, " \
-                        "your booking will be automatically cancelled.".format(
+                        "your booking will be atically cancelled.".format(
                             cancel_str
                         )
                 extra_msg = 'Please make your payment as soon as possible. ' \
@@ -435,9 +435,9 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         elif not booking.block.active_block():
             extra_msg = 'You have just used the last space in your block. '
             if booking.block.children.exists() and not has_free_block_pre_save:
-                extra_msg += 'You have qualified for a extra free ' \
+                extra_msg += '</br><span style="color: #9A2EFE;"><strong>You have qualified for a extra free ' \
                              'class which has been added to ' \
-                             '<a href="/blocks">your blocks</a>!  '
+                             '<a href="/blocks">your blocks</a></strong><span>  '
             else:
                 extra_msg += 'Go to <a href="/blocks">Your Blocks</a> to ' \
                              'buy a new one.'
