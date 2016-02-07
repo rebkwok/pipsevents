@@ -7,8 +7,8 @@ from datetime import timedelta, datetime
 from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Booking, BookingError, TicketBooking, \
-    Ticket, TicketBookingError
+from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
+    Booking, BookingError, TicketBooking, Ticket, TicketBookingError
 
 now = timezone.now()
 
@@ -518,6 +518,426 @@ class BlockTests(TestCase):
             str(block), 'TestUser -- Pole level class -- size 4 -- start 01 Jan 2015'
         )
 
+    def test_str_for_free_class_block(self):
+        blocktype = mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type__subtype="Pole level class", identifier='free class'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype,
+        )
+
+        self.assertEqual(
+            str(block), 'TestUser -- free class -- size 1 -- start 01 Jan 2015'
+        )
+
+    def test_create_free_class_block_with_parent(self):
+        """
+        Free block has duration 1; if it has a parent block, override
+        start date and duration with parent data
+        """
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0, duration=1,
+            event_type=ev_type, identifier='free class'
+        )
+        user = mommy.make_recipe('booking.user', username="TestUser")
+        block = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=user,
+            block_type=blocktype,
+        )
+        free_block = mommy.make_recipe(
+            'booking.block', parent=block,
+            user=user,
+            block_type=free_blocktype,
+        )
+        self.assertEqual(free_block.start_date, block.start_date)
+        self.assertEqual(free_block.expiry_date, block.expiry_date)
+
+    def test_create_free_class_block_without_parent(self):
+        """
+        Free block has duration 1; if no parent block keep start date and
+        duration from free block type
+        """
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type__subtype="Pole level class", identifier='free class',
+            duration=1
+        )
+        user = mommy.make_recipe('booking.user', username="TestUser")
+
+        free_block = mommy.make_recipe(
+            'booking.block', user=user, block_type=free_blocktype,
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+
+        self.assertEqual(
+            free_block.expiry_date,
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
+
+    def test_booking_last_in_10_class_block_creates_free_block(self):
+        """
+        Creating a new booking that uses the last of 10 pole level class
+        blocks automatically creates a free class block with the original
+        block as its parent
+        """
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=9
+        )
+        self.assertEqual(Booking.objects.count(), 9)
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertEqual(Block.objects.count(), 3)
+
+        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 4)
+        self.assertTrue(block.children.exists())
+
+    def test_booking_last_on_expired_10_class_block_does_not_create_free(self):
+        """
+        Test that if a booking is made on an expired block, no free class is
+        created.  This shouldn't happen because cancelling bookings removes
+        the block, and if you try to reopen after block has expired, you won't
+        have the option to use the expired block.  However, it could happen if
+        a superuser creates a booking on an expired block in the admin - don't
+        want this to automatically create free class blocks that can't be
+        used (expiry dates are set to same as parent block)
+        """
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        # make an expired block
+        block = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.expired)
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=9
+        )
+        self.assertEqual(Booking.objects.count(), 9)
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertEqual(Block.objects.count(), 3)
+
+        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        # last space in block filled but no free class block created
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 3)
+        self.assertFalse(block.children.exists())
+
+    def test_cancelling_booking_from_full_block_with_free_block(self):
+        """
+        Cancelling a booking on a block that has an associated free class
+        deletes the free class block if it's unused and moves the free class
+        to the original block if it has been used
+        """
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        # fill block, which will create a free class block
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=10
+        )
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.count(), 1)
+
+        # cancel a booking from the block
+        booking = block.bookings.first()
+        booking.status = 'CANCELLED'
+        booking.save()
+
+        # free block class has been deleted
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertFalse(block.children.exists())
+
+        # fill block again
+        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.count(), 1)
+
+        # use free class block
+        free_booking = mommy.make_recipe(
+            'booking.booking', user=block.user, block=block.children.first()
+        )
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(block.children.first().bookings.count(), 1)
+
+        # cancel a booking from the original block again
+        booking = block.bookings.last()
+        booking.status = 'CANCELLED'
+        booking.save()
+
+        # free block class still exists, but free_booking has been moved to
+        # original block
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.first().bookings.count(), 0)
+        free_booking.refresh_from_db()
+        self.assertEqual(free_booking.block, block)
+
+    def test_reopening_booking_from_block_creates_free_block(self):
+        """
+        Test reopening a booking that uses the last in 10 blocks creates a
+        free class block
+        """
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        # fill block, which will create a free class block
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=10
+        )
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.count(), 1)
+
+        # cancel a booking from the block deletes free class block
+        booking = block.bookings.first()
+        booking.status = 'CANCELLED'
+        booking.save()
+
+        # free block class has been deleted
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertFalse(block.children.exists())
+
+        # reopening booking with the block creates a new free class block
+        booking.status = 'OPEN'
+        booking.block = block
+        booking.save()
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.count(), 1)
+
+
+    def test_cancelling_non_block_booking_doesnt_affect_free_block(self):
+
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        # fill block, which will create a free class block
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=10
+        )
+        unrelated_booking = mommy.make_recipe(
+            'booking.booking', user=block.user
+        )
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.count(), 1)
+
+        # cancelling unrelated booking deosn't delete free class block
+        unrelated_booking.status = 'CANCELLED'
+        unrelated_booking.save()
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertTrue(block.children.exists())
+        self.assertEqual(block.children.count(), 1)
+
+    def test_adding_block_to_booking_creates_free_class(self):
+        """
+        Adding a block to an existing booking that uses the last of 10 pole
+        level class blocks automatically creates a free class block with the original
+        block as its parent
+        """
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=9
+        )
+        non_block_booking = mommy.make_recipe('booking.booking', user=block.user)
+        self.assertEqual(Booking.objects.count(), 10)
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertEqual(Block.objects.count(), 3)
+
+        non_block_booking.block = block
+        non_block_booking.save()
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 4)
+        self.assertTrue(block.children.exists())
+
+    def test_removing_block_from_booking_deletes_unused_free_class(self):
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=9
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', block=block, user=block.user
+        )
+        self.assertEqual(Booking.objects.count(), 10)
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 4)
+
+        booking.block = None
+        booking.save()
+
+        self.assertEqual(block.bookings.count(), 9)
+        self.assertEqual(Block.objects.count(), 3)
+        self.assertFalse(block.children.exists())
+
+    def test_removing_block_from_booking_moves_existing_free_class_booking(self):
+        self.assertEqual(Block.objects.count(), 2)
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=9
+        )
+        block_booking = mommy.make_recipe(
+            'booking.booking', block=block, user=block.user
+        )
+        free_booking = mommy.make_recipe(
+            'booking.booking', block=block.children.first(), user=block.user
+        )
+
+        self.assertEqual(Booking.objects.count(), 11)
+        self.assertEqual(block.bookings.count(), 10)
+
+        block_booking.block = None
+        block_booking.save()
+        free_booking.refresh_from_db()
+        # previous free booking has been moved to empty space in block
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(free_booking.block, block)
+        # free block still exists but has no booking anymore
+        self.assertTrue(block.children.exists())
+        self.assertFalse(block.children.first().bookings.exists())
+
 
 class EventTypeTests(TestCase):
 
@@ -537,6 +957,7 @@ class EventTypeTests(TestCase):
     def test_str_room_hire(self):
         evtype = mommy.make_recipe('booking.event_type_RH', subtype="event subtype")
         self.assertEqual(str(evtype), 'Room hire - event subtype')
+
 
 class TicketedEventTests(TestCase):
 
@@ -793,3 +1214,13 @@ class TicketTests(TestCase):
         with self.assertRaises(TicketBookingError):
             Ticket.objects.create(ticket_booking=booking)
 
+
+class BlockTypeTests(TestCase):
+
+    def test_cannot_create_multiple_free_class_block_types(self):
+        mommy.make(BlockType, identifier='free class')
+        self.assertEqual(BlockType.objects.count(), 1)
+
+        with self.assertRaises(BlockTypeError):
+            mommy.make(BlockType, identifier='free class')
+        self.assertEqual(BlockType.objects.count(), 1)

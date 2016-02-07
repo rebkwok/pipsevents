@@ -5,6 +5,8 @@ import shortuuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from django_extensions.db.fields import AutoSlugField
@@ -16,6 +18,10 @@ from activitylog.models import ActivityLog
 
 
 logger = logging.getLogger(__name__)
+
+
+class BlockTypeError(Exception):
+    pass
 
 
 class BookingError(Exception):
@@ -182,7 +188,21 @@ class BlockType(models.Model):
     active = models.BooleanField(default=True)
 
     def __str__(self):
-        return '{} - quantity {}'.format(self.event_type.subtype, self.size)
+        return '{}{} - quantity {}'.format(
+            self.event_type.subtype,
+            ' (free class)' if self.identifier == 'free class' else '',
+            self.size
+        )
+
+
+@receiver(pre_save)
+def check_duplicate_free_class_blocktype(sender, instance, **kwargs):
+    if sender == BlockType:
+        if not instance.id and instance.identifier == "free class":
+            if BlockType.objects.filter(identifier='free class').count() == 1:
+                raise BlockTypeError(
+                    'Block type with idenitifer "free class" already exists'
+                )
 
 
 class Block(models.Model):
@@ -198,14 +218,23 @@ class Block(models.Model):
         default=False,
         help_text='Payment has been made by user'
     )
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, related_name='children'
+    )
 
     class Meta:
         ordering = ['user__username']
 
     def __str__(self):
+
+        if self.block_type.identifier == 'free class':
+            block_name = self.block_type.identifier
+        else:
+            block_name = self.block_type.event_type.subtype
+
         return "{} -- {} -- size {} -- start {}".format(
             self.user.username,
-            self.block_type.event_type.subtype,
+            block_name,
             self.block_type.size,
             self.start_date.strftime('%d %b %Y')
         )
@@ -215,8 +244,14 @@ class Block(models.Model):
         # replace block expiry date with very end of day
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
+        # For a with a parent block with a parent (free class block),
+        # override blocktype duration to be same as parent's blocktype
+        duration = self.block_type.duration
+        if self.parent:
+            duration = self.parent.block_type.duration
+
         expiry_datetime = self.start_date + relativedelta(
-            months=self.block_type.duration)
+            months=duration)
         next_day = (expiry_datetime + timedelta(
             days=1)).replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -266,6 +301,14 @@ class Block(models.Model):
             )
         super(Block, self).delete(*args, **kwargs)
 
+    def save(self, *args, **kwargs):
+        # if block has parent, make start date same as parent
+        if self.parent:
+            self.start_date = self.parent.start_date
+        if self.block_type.cost == 0:
+            self.paid = True
+        super(Block, self).save(*args, **kwargs)
+
 
 class Booking(models.Model):
     STATUS_CHOICES = (
@@ -308,7 +351,7 @@ class Booking(models.Model):
     class Meta:
         unique_together = ('user', 'event')
         permissions = (
-            ("can_book_free_pole_practice", "Can book free pole practice"),
+            ("can_request_free_class", "Can request free class and pole practice"),
             ("is_regular_student", "Is regular student"),
             ("can_view_registers", "Can view registers")
         )
@@ -337,32 +380,119 @@ class Booking(models.Model):
             or self.payment_confirmed
     space_confirmed.boolean = True
 
+    def _old_booking(self):
+        if self.pk:
+            return Booking.objects.get(pk=self.pk)
+        return None
+
+    def _is_new_booking(self):
+        if not self.pk:
+            return True
+
+    def _is_rebooking(self):
+        if not self.pk:
+            return False
+        return self._old_booking().status == 'CANCELLED' and self.status == 'OPEN'
+
+    def _is_cancellation(self):
+        if not self.pk:
+            return False
+        return self._old_booking().status == 'OPEN' and self.status == 'CANCELLED'
+
+    def _update_free_blocks(self, rebooking):
+        # for new bookings or rebooking with block
+        if self.block and (self.status == 'OPEN' or rebooking):
+            try:
+                free_blocktype = BlockType.objects.get(identifier='free class')
+            except BlockType.DoesNotExist:
+                free_blocktype = None
+
+            if free_blocktype \
+                    and self.block.paid \
+                    and not self.block.active_block() \
+                    and self.block.block_type.event_type.subtype == "Pole level class" \
+                    and self.block.block_type.size == 10:
+                # just used last block in 10 class pole level class block;
+                # check for free class block, add one if doesn't exist
+                # already (unless block has already expired)
+                if not self.block.children.exists():
+                    if not self.block.expired:
+                        free_block = Block.objects.create(
+                            user=self.user, parent=self.block,
+                            block_type=free_blocktype
+                        )
+                        ActivityLog.objects.create(
+                            log='Free class block created. Block id {}, parent '
+                                'block id {}, user {}'.format(
+                                free_block.id, self.block.id,
+                                self.user.username
+                            )
+                        )
+                    else:
+                        ActivityLog.objects.create(
+                            log='Last booking created on expired block. Free '
+                                'class block not created.  Block id {}, '
+                                'user {}'.format(
+                                self.block.id,
+                                self.user.username
+                            )
+                        )
+
     def save(self, *args, **kwargs):
-        if self.pk is not None:
-            orig = Booking.objects.get(pk=self.pk)
-            if orig.status == 'CANCELLED' and self.status == 'OPEN':
-                if self.event.spaces_left() == 0:
-                    raise BookingError(
-                        'Attempting to reopen booking for full '
-                        'event %s' % self.event.id
-                    )
-                else:
-                    self.date_rebooked = timezone.now()
-        else:
-            if self.status != "CANCELLED" and \
+        rebooking = self._is_rebooking()
+        new_booking = self._is_new_booking()
+        cancellation = self._is_cancellation()
+        orig = self._old_booking()
+
+        if rebooking:
+            if self.event.spaces_left() == 0:
+                raise BookingError(
+                    'Attempting to reopen booking for full '
+                    'event %s' % self.event.id
+                )
+            else:
+                self.date_rebooked = timezone.now()
+
+        if (cancellation and orig.block) or \
+                (orig and orig.block and not self.block ):
+            # cancelling a booking from a block or removing booking from block
+                # if block has a used free class, move the booking from the
+                #  free
+                # class to this block, otherwise delete the free class block
+                free_class_block = orig.block.children.first()
+                if free_class_block:
+                    if free_class_block.bookings.exists():
+                        free_booking = free_class_block.bookings.first()
+                        free_booking.block = orig.block
+                        free_booking.free_class = False
+                        free_booking.save()
+                    else:
+                        free_class_block.delete()
+                self.block = None
+                self.paid = False
+                self.payment_confirmed = False
+
+        if new_booking and self.status != "CANCELLED" and \
             self.event.spaces_left() == 0:
                 raise BookingError(
                     'Attempting to create booking for full '
                     'event %s' % self.event.id
                 )
 
-        if self.payment_confirmed and not self.date_payment_confirmed:
-            self.date_payment_confirmed = timezone.now()
+        if self.block and self.block.block_type.identifier == 'free class':
+            self.free_class = True
+
         if self.free_class:
             self.paid = True
             self.payment_confirmed = True
-            self.block = None
+
+        if self.payment_confirmed and not self.date_payment_confirmed:
+            self.date_payment_confirmed = timezone.now()
+
+        # Done with changes to current booking; call super to save the
+        # booking so we can check block status
         super(Booking, self).save(*args, **kwargs)
+        self._update_free_blocks(rebooking)
 
 
 class WaitingListUser(models.Model):

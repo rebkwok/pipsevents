@@ -56,8 +56,8 @@
                                     <td class="table-center studioadmin-tbl">{{ block.bookings_made }}</td>
                                     <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
                                     <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.expiry_date | date:"Ymd"}}</span>{{ block.expiry_date | date:"d M Y"}}</td>
-                                    <td class="table-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>                                                                             {% else %}<span class="not-confirmed fa fa-times " aria-label="No"></span>{% endif %}</td>
-
+                                    <td class="table-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
+                                    {% else %}<span class="not-confirmed fa fa-times " aria-label="No"></span>{% endif %}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}

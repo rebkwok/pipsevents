@@ -1403,6 +1403,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                 action = 'updated' if form.instance.id else 'created'
                                 if 'status' in form.changed_data and action == 'updated':
                                     if booking.status == 'CANCELLED':
+                                        booking.deposit_paid = False
                                         booking.paid = False
                                         booking.payment_confirmed = False
                                         booking.block = None
@@ -1421,6 +1422,11 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     booking.block = None
                                     booking.paid = False
                                     booking.payment_confirmed = False
+
+                                # check for existence of free child block on pre-saved booking
+                                has_free_block_pre_save = False
+                                if booking.block and booking.block.children.exists():
+                                    has_free_block_pre_save = True
 
                                 if 'deposit_paid' in form.changed_data:
                                     if booking.deposit_paid:
@@ -1509,6 +1515,16 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                         )
                                     )
 
+                                    if not booking.block \
+                                            and 'block' in form.changed_data:
+                                        messages.info(
+                                            request,
+                                            'Block removed for {}; booking is '
+                                            'now marked as unpaid'.format(
+                                                booking.event
+                                            ),
+                                        )
+
                                     if action == 'reopened':
                                         messages.info(
                                             request, mark_safe(
@@ -1574,6 +1590,16 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                             )
                                         except WaitingListUser.DoesNotExist:
                                             pass
+
+                                    if booking.block and not booking.block.active_block():
+                                        if booking.block.children.exists() \
+                                                and not has_free_block_pre_save:
+                                             messages.info(
+                                                 request,
+                                                'You have added the last booking '
+                                                'to a 10 class block; free class '
+                                                'block has been created.'
+                                             )
                     else:
                         for error in form.errors:
                             messages.error(request, mark_safe("{}".format(error)))
@@ -1718,7 +1744,7 @@ def user_blocks_view(request, user_id):
             )
     else:
         queryset = Block.objects.filter(
-            user=user).order_by('start_date')
+            user=user).order_by('-start_date')
         userblockformset = UserBlockFormSet(
             instance=user,
             queryset=queryset,

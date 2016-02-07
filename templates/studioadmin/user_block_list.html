@@ -29,7 +29,7 @@
                                 <th class="table-center">Start Date</th>
                                 <th class="table-center">Expiry Date</th>
                                 <th class="table-center">Delete</br>
-                                <span class="studioadmin-help">Only for unpaid blocks</span></th>
+                                <span class="studioadmin-help">Only for unpaid/<br/>unsed free blocks</span></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -37,7 +37,7 @@
                             <tr>
                                 <span class="hide">{{ block.id }}{{ block.block_type }}{{ block.start_date }}</span>
                                 {% if block.instance.id %}
-                                    <span class="hide">{{ block.block_event_type }}</span>
+                                    <span class="hide">{{ block.block.event_type }}</span>
                                     <span class="hide">{{ block.size }}</span>
                                     <td class="studioadmin-tbl">
                                     {% if block.instance.active_block %}
@@ -60,9 +60,8 @@
                                     <td class="table-center studioadmin-tbl">{{ block.instance.start_date | date:"d M Y"}}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.instance.expiry_date | date:"d M Y"}}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.DELETE }}<label for={{ block.DELETE_id }}></label></td>
-                                </tr>
+
                                 {% else %}
-                                    {% if block.can_buy_block %}
                                     <td><strong>Add new block</strong></td>
                                     <td class="studioadmin-tbl">
                                         <div class="form-group form-group-sm">{{ block.block_type }}</div></td>
@@ -72,12 +71,17 @@
                                     <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ block.start_date }}</div>
                                         <span class="studioadmin-help">Leave blank for today</span></td>
                                     <td></td>
-                                    {% else %}
-                                    <td colspan="7"><strong>User already has an active (or unpaid) block of each available type; no additional blocks can be purchased at this time</strong></td>
                                     <td></td>
-                                    {% endif %}
+                                {% if not block.can_buy_block %}
+                                    <tr>
+                                        <td colspan="8">
+                                            <strong>User already has an active (or unpaid) block of each available type;
+                                                no additional blocks can be purchased at this time (free class blocks can be added if required)</strong>
+                                        </td>
+                                    </tr>
                                 {% endif %}
-
+                                {% endif %}
+                            </tr>
                             {% endfor %}
                             </tbody>
                         </table>

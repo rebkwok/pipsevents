@@ -33,7 +33,7 @@
                             <p>(Note: block booking is not available.)</p>
                         {% endif %}
 
-                        {% if event.payment_open and event.payment_time_allowed %}
+                        {% if event.payment_open and event.payment_time_allowed and event.can_cancel %}
                             <p>Once booked, your space will be held for
                                 {{ event.payment_time_allowed }} hours pending payment.  If payment is not
                                 received within this time, your booking will be automatically cancelled.
@@ -43,7 +43,7 @@
                         {% if not event.can_cancel %}
                             <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.</p>
                             {% if event.cost %}
-                                If you continue with the booking, you will not have the option to cancel it yourself.
+                                <p>If you continue with the booking, you will not have the option to cancel.</p>
                                 {% if not event.advance_payment_required%}
                                     <p class="cancel-warning">Your payment will still be due even if you do not attend the {{ ev_type }}.</p>
                                 {% else %}

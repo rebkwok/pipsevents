@@ -12,7 +12,7 @@ from django.contrib.auth.models import Permission, User
 
 from activitylog.models import ActivityLog
 
-from booking.models import Event, Booking, Block
+from booking.models import Event, EventType, Booking, Block
 from booking.views import BookingListView, BookingHistoryListView, \
     BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
@@ -716,30 +716,51 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
     def test_free_class_context(self):
         """
-        Test that only pole classes can be requested as free
+        Test that only pole classes and pole practice can be requested as
+        free by users with permission
         """
         pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
         pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        rh_event_type = mommy.make_recipe('booking.event_type_RH', subtype="Room hire")
 
         pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        room_hire = mommy.make_recipe('booking.future_RH', event_type=rh_event_type)
 
         perm = Permission.objects.get(codename='is_regular_student')
         self.user.user_permissions.add(perm)
 
         # get user from db to refresh permissions cache
         user = User.objects.get(pk=self.user.pk)
-        response = self._get_response(user, pole_class)
 
+        response = self._get_response(user, pole_class)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, pole_practice)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, room_hire)
+        self.assertNotIn('can_be_free_class', response.context_data)
+
+        # give user permission
+        perm1 = Permission.objects.get(codename='can_request_free_class')
+        self.user.user_permissions.add(perm1)
+        user = User.objects.get(id=self.user.id)
+
+        # now user can request free pole practice and class, but not room hire
+        response = self._get_response(user, pole_class)
         self.assertIn('can_be_free_class', response.context_data)
 
         response = self._get_response(user, pole_practice)
+        self.assertIn('can_be_free_class', response.context_data)
+
+        response = self._get_response(user, room_hire)
         self.assertNotIn('can_be_free_class', response.context_data)
 
     def test_free_class_context_with_permission(self):
         """
         Test that pole classes and pole practice can be requested as free if
-        user has 'can_book_free_pole_practice' permission
+        user has 'can_request_free_class' permission
         """
         pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
         pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
@@ -748,7 +769,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='can_book_free_pole_practice')
+        perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.user_permissions.add(perm1)
@@ -805,6 +826,138 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         # try again
         resp = self._get_response(user, event)
         self.assertEqual(resp.status_code, 200)
+
+    @patch('booking.models.timezone')
+    def test_booking_with_block_if_multiple_blocks_available(self, mock_tz):
+        """
+        Usually there should be only one block of each type available, but in
+        case an admin has added additional blocks, ensure that the one with the
+        earlier expiry date is used
+        """
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        event_type = mommy.make_recipe('booking.event_type_PC')
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type, duration=2
+        )
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+        )
+        block2 = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+        # block1 was created first, but block2 has earlier expiry date so
+        # should be used first
+        self.assertGreater(block1.expiry_date, block2.expiry_date)
+
+        form_data = {'block_book': True}
+        self._post_response(self.user, event, form_data)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(bookings[0].block, block2)
+
+        # change start dates so block1 now has the earlier expiry date
+        bookings[0].delete()
+        block2.start_date = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        block2.save()
+        self._post_response(self.user, event, form_data)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(bookings[0].block, block1)
+
+    @patch('booking.models.timezone')
+    def test_booking_with_block_if_original_and_free_available(self, mock_tz):
+        """
+        Usually there will only be an open free block attached to another block
+        if the original is full, but in case an admin has changed this, ensure
+        that the original block is used first (free block with parent block
+        should always be created after the original block)
+        """
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Pole level class"
+        )
+
+        event = mommy.make_recipe('booking.future_PC', event_type=ev_type)
+
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+            event_type=ev_type, identifier='standard'
+        )
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=ev_type, identifier='free class'
+        )
+
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, block_type=blocktype, paid=True
+        )
+        free_block = mommy.make_recipe(
+            'booking.block', user=self.user, block_type=free_blocktype,
+            paid=True, parent=block
+        )
+
+        self.assertTrue(block.active_block())
+        self.assertTrue(free_block.active_block())
+        self.assertEqual(block.expiry_date, free_block.expiry_date)
+
+        blocks = self.user.blocks.all()
+        active_blocks = [
+            block for block in blocks if block.active_block()
+            and block.block_type.event_type == event.event_type
+        ]
+        # the original and free block are both available blocks for this event
+        self.assertEqual(set(active_blocks), set([block, free_block]))
+
+        form_data = {'block_book': True}
+        self._post_response(self.user, event, form_data)
+
+        # booking created using the original block
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(bookings[0].block, block)
+
+    @patch('booking.models.timezone')
+    def test_trying_to_block_book_with_no_available_block(self, mock_tz):
+        """
+        The template should prevent attempts to block book if no block is
+        available; however, if this is submitted, make the booking without
+        the block
+        """
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        event_type1 = mommy.make_recipe('booking.event_type_PC')
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        # make block with different event type to the event we're trying to
+        # book
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type1, duration=2
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+        )
+
+        self.assertTrue(block.active_block())
+        self.assertNotEqual(block.block_type.event_type, event.event_type)
+
+        self.assertEqual(Booking.objects.count(), 0)
+        # try to block book
+        form_data = {'block_book': True}
+        self._post_response(self.user, event, form_data)
+
+        # booking has been made, but no block assigned
+        self.assertEqual(Booking.objects.count(), 1)
+        booking = Booking.objects.first()
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
 
 
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
@@ -1261,3 +1414,92 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
                 'booking:permission_denied',
             )
         )
+
+    @patch('booking.models.timezone')
+    def test_update_with_block_if_multiple_blocks_available(self, mock_tz):
+        """
+        Usually there should be only one block of each type available, but in
+        case an admin has added additional blocks, ensure that the one with the
+        earlier expiry date is used
+        """
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        event_type = mommy.make_recipe('booking.event_type_PC')
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event, paid=False
+        )
+
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type, duration=2
+        )
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+        )
+        block2 = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+        )
+        # block1 was created first, but block2 has earlier expiry date so
+        # should be used first
+        self.assertGreater(block1.expiry_date, block2.expiry_date)
+
+        form_data = {'block_book': True}
+        self._post_response(self.user, booking, form_data)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.block, block2)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+        # change start dates so block1 now has the earlier expiry date
+        booking.paid = False
+        booking.payment_confirmed = False
+        booking.save()
+        block2.start_date = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        block2.save()
+        self._post_response(self.user, booking, form_data)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.block, block1)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+    @patch('booking.models.timezone')
+    def test_trying_to_update_block_with_no_available_block(self, mock_tz):
+        """
+        The template should prevent attempts to block book if no block is
+        available; however, if this is submitted, make the booking without
+        the block
+        """
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        event_type1 = mommy.make_recipe('booking.event_type_PC')
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event, paid=False
+        )
+        # make block with different event type to the event we're trying to
+        # book
+        blocktype = mommy.make_recipe(
+            'booking.blocktype5', event_type=event_type1, duration=2
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+        )
+
+        self.assertTrue(block.active_block())
+        self.assertNotEqual(block.block_type.event_type, event.event_type)
+
+        # try to block book
+        form_data = {'block_book': True}
+        self._post_response(self.user, booking, form_data)
+
+        # booking has not changed, no block assigned
+        booking.refresh_from_db()
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)

@@ -198,6 +198,10 @@ class BlockAdminForm(forms.ModelForm):
         self.fields['user'] = UserModelChoiceField(
             queryset=User.objects.all().order_by('first_name')
         )
+        if self.instance.id:
+            self.fields['parent'].queryset = Block.objects.filter(
+                user=self.instance.user
+            ).exclude(id=self.instance.id)
 
 
 class TicketBookingAdminForm(forms.ModelForm):

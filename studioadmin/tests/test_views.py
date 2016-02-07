@@ -2405,6 +2405,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to[0], 'test@test.com')
 
+
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
@@ -3278,6 +3279,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         # get all but last form (last form is the empty extra one)
         block_forms = resp.context_data['userblockformset'].forms[:-1]
         self.assertEqual(len(block_forms), 2)
+
+        new_blocks.reverse()  # blocks are shown in reverse order by start date
         self.assertEqual(
             [block.instance for block in block_forms],
             new_blocks

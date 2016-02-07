@@ -248,10 +248,11 @@ class BookingAdmin(admin.ModelAdmin):
             send_mail('{} Space for {} confirmed'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj.event.name),
                 get_template('booking/email/space_confirmed.txt').render(
-                    Context({'event': obj.event.name,
-                             'date': obj.event.date.strftime('%A %d %B'),
-                             'time': obj.event.date.strftime('%I:%M %p')
-                    })
+                    {
+                        'event': obj.event.name,
+                        'date': obj.event.date.strftime('%A %d %B'),
+                        'time': obj.event.date.strftime('%I:%M %p')
+                    }
                 ),
                 settings.DEFAULT_FROM_EMAIL,
                 [obj.user.email],
@@ -297,8 +298,8 @@ class BlockFilter(admin.SimpleListFilter):
 
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'formatted_cost', 'start_date', 'paid',
-              'formatted_expiry_date')
+    fields = ('user', 'block_type', 'parent', 'formatted_cost', 'start_date',
+              'paid', 'formatted_expiry_date')
     readonly_fields = ('formatted_cost',
                        'formatted_expiry_date')
     list_display = ('get_user', 'block_type', 'block_size', 'active_block',
@@ -392,6 +393,7 @@ class BlockAdmin(admin.ModelAdmin):
                     )),
                 )
 
+            
 class BlockTypeAdmin(admin.ModelAdmin):
     list_display = ('event_type', 'identifier', 'size', 'formatted_cost',
                     'formatted_duration', 'active')

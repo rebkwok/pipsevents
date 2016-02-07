@@ -53,26 +53,53 @@ class Command(BaseCommand):
         BlockType.objects.get_or_create(
             event_type=pc,
             size=5,
-            cost=32.00,
-            duration=2
+            cost=35.00,
+            duration=2,
+            identifier="standard"
         )
-
         BlockType.objects.get_or_create(
             event_type=pc,
             size=10,
-            cost=62.00,
-            duration=4
+            cost=68.00,
+            duration=4,
+            identifier="standard"
         )
-        BlockType.objects.get_or_create(
-            event_type=pp,
-            size=5,
-            cost=16.00,
-            duration=2
-        )
-
         BlockType.objects.get_or_create(
             event_type=pp,
             size=10,
-            cost=31.00,
-            duration=4
+            cost=36.00,
+            duration=4,
+            identifier="standard"
         )
+        BlockType.objects.get_or_create(
+            event_type=pc,
+            size=5,
+            cost=30.00,
+            duration=2,
+            identifier="sale"
+        )
+        BlockType.objects.get_or_create(
+            event_type=pc,
+            size=10,
+            cost=57.00,
+            duration=4,
+            identifier="sale"
+        )
+        BlockType.objects.get_or_create(
+            event_type=pp,
+            size=10,
+            cost=25.00,
+            duration=4,
+            identifier="sale"
+        )
+        # free class blocks should always be inactive so they don't come up in
+        # the options for users to purchase
+        free, _ = BlockType.objects.get_or_create(
+            event_type=pc,
+            size=1,
+            cost=0,
+            duration=1,
+            identifier="free class"
+        )
+        free.active = False
+        free.save()

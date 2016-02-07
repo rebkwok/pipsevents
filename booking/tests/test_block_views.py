@@ -237,7 +237,6 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 
 
 class BlockDeleteViewTests(TestSetupMixin, TestCase):
-
     @classmethod
     def setUpTestData(cls):
         super(BlockDeleteViewTests, cls).setUpTestData()
