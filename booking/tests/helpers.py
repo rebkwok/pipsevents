@@ -7,6 +7,8 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.utils.html import strip_tags
 
+from accounts.models import PrintDisclaimer
+
 
 def set_up_fb():
     fbapp = mommy.make_recipe('booking.fb_app')
@@ -43,6 +45,7 @@ class TestSetupMixin(object):
         cls.user = User.objects.create_user(
             username='test', email='test@test.com', password='test'
         )
+        mommy.make(PrintDisclaimer, user=cls.user)
 
 
 def format_content(content):
@@ -50,3 +53,4 @@ def format_content(content):
     return ' '.join(
         strip_tags(content).replace('\n', '').replace('\t', '').split()
     )
+

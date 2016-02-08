@@ -26,7 +26,6 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-        mommy.make(PrintDisclaimer, user=cls.user)
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:events')
@@ -188,7 +187,6 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         super(EventDetailViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
-        mommy.make(PrintDisclaimer, user=cls.user)
 
     def setUp(self):
         self.event = mommy.make_recipe('booking.future_EV')

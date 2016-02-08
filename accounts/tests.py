@@ -176,7 +176,6 @@ class ProfileTest(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(ProfileTest, cls).setUpTestData()
         Group.objects.get_or_create(name='instructors')
-        mommy.make(PrintDisclaimer, user=cls.user)
         cls.user_with_online_disclaimer = mommy.make_recipe('booking.user')
         mommy.make(OnlineDisclaimer, user=cls.user_with_online_disclaimer)
         cls.user_no_disclaimer = mommy.make_recipe('booking.user')
@@ -282,7 +281,6 @@ class DisclaimerModelTests(TestCase):
 class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
-        mommy.make(PrintDisclaimer, user=self.user)
         self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
         self.form_data = {

@@ -3,11 +3,8 @@ from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
 from django.test import Client, TestCase, RequestFactory
-from django.contrib.auth.models import Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
-
-from accounts.models import PrintDisclaimer
 
 from booking.forms import BlockCreateForm
 from booking.models import Block
@@ -20,7 +17,6 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(BlockCreateViewTests, cls).setUpTestData()
-        mommy.make(PrintDisclaimer, user=cls.user)
         cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _set_session(self, user, request):
@@ -264,7 +260,6 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(BlockDeleteViewTests, cls).setUpTestData()
         cls.block = mommy.make_recipe('booking.block', user=cls.user)
-        mommy.make(PrintDisclaimer, user=cls.user)
 
     def _set_session(self, user, request):
         request.session = _create_session()

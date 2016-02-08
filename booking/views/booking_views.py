@@ -664,7 +664,7 @@ def _get_block_status(booking):
     return blocks_used, total_blocks
 
 
-class BookingDeleteView(DisclaimerMixin, LoginRequiredMixin, DeleteView):
+class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView):
     model = Booking
     template_name = 'booking/delete_booking.html'
     success_message = 'Booking cancelled for {}'

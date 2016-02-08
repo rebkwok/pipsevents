@@ -27,7 +27,6 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         cls.free_event = mommy.make_recipe('booking.future_EV')
         cls.past_event = mommy.make_recipe('booking.past_event')
         cls.paid_event = mommy.make_recipe('booking.future_EV', cost=10)
-        mommy.make(PrintDisclaimer, user=cls.user)
 
         cls.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "

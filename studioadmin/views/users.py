@@ -341,14 +341,14 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     )
 
                                     if not booking.block \
-                                            and 'block' in form.changed_data:
-                                        messages.info(
-                                            request,
-                                            'Block removed for {}; booking is '
-                                            'now marked as unpaid'.format(
-                                                booking.event
-                                            ),
-                                        )
+                                             and 'block' in form.changed_data:
+                                         messages.info(
+                                             request,
+                                             'Block removed for {}; booking is '
+                                             'now marked as unpaid'.format(
+                                                 booking.event
+                                             ),
+                                         )
 
                                     if action == 'reopened':
                                         messages.info(

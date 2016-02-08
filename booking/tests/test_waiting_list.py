@@ -17,11 +17,6 @@ from studioadmin.views import user_bookings_view
 
 class WaitingListTests(TestSetupMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        super(WaitingListTests, cls).setUpTestData()
-        mommy.make(PrintDisclaimer, user=cls.user)
-
     def _get_event_list(self, user, ev_type):
         url = reverse('booking:events')
         request = self.factory.get(url)
