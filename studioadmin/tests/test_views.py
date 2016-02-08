@@ -39,8 +39,8 @@ from studioadmin.views import (
     register_print_day,
     user_blocks_view,
     user_bookings_view,
-    url_with_querystring
     )
+from studioadmin.views.helpers import url_with_querystring
 
 from timetable.models import Session
 
