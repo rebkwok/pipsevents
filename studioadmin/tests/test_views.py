@@ -1775,7 +1775,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
-    @patch('studioadmin.forms.timezone')
+    @patch('studioadmin.forms.timetable_forms.timezone')
     def test_events_are_created(self, mock_tz):
         mock_tz.now.return_value = datetime(
             2015, 6, 1, 0, 0, tzinfo=timezone.utc
@@ -1793,7 +1793,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         session_names =  [session.name for session in Session.objects.all()]
         self.assertEqual(sorted(event_names), sorted(session_names))
 
-    @patch('studioadmin.forms.timezone')
+    @patch('studioadmin.forms.timetable_forms.timezone')
     def test_does_not_create_duplicate_sessions(self, mock_tz):
         mock_tz.now.return_value = datetime(
             2015, 6, 1, 0, 0, tzinfo=timezone.utc
