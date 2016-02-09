@@ -364,7 +364,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
         if booking_status == 'past':
             queryset = all_bookings.filter(
                 event__date__lt=timezone.now()
-            ).order_by('event__date')
+            ).order_by('-event__date')
             userbookingformset = UserBookingFormSet(
                 queryset=queryset, instance=user, user=user,
             )

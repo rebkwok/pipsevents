@@ -275,8 +275,11 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         booking_forms = resp.context_data['userbookingformset'].forms[:-1]
         self.assertEqual(len(booking_forms), 4)
         self.assertEqual(
-            [booking.instance for booking in booking_forms],
-            self.past_user_bookings + self.past_cancelled_bookings
+            sorted([booking.instance.id for booking in booking_forms]),
+            sorted([
+                       bk.id for bk in
+                       self.past_user_bookings + self.past_cancelled_bookings
+                    ])
         )
 
     def test_can_update_booking(self):
