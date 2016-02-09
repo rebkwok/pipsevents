@@ -93,11 +93,7 @@ class PaymentsAdminTests(TestCase):
             user, ticket_booking
         )
 
-<<<<<<< aefff34f61283577c02d2676e106537c7d865c32
         pptbooking_admin = admin.PaypalTicketBookingTransactionAdmin(
-=======
-        pptbooking_admin = PaypalTicketBookingTransactionAdmin(
->>>>>>> More tests
             PaypalTicketBookingTransaction, AdminSite()
         )
         query = pptbooking_admin.get_queryset(None)[0]
@@ -118,7 +114,6 @@ class PaymentsAdminTests(TestCase):
             ticket_booking.tickets.count()
         )
         self.assertEqual(pptbooking_admin.total_cost(query), "£20.00")
-<<<<<<< aefff34f61283577c02d2676e106537c7d865c32
 
     def test_paypaladmin_display(self):
         mommy.make(PayPalIPN, first_name='Mickey', last_name='Mouse')
@@ -268,5 +263,3 @@ class PaymentsAdminFiltersTests(TestCase):
                 PaypalBlockTransaction.objects.filter(block__user=self.user)
             ]
         )
-=======
->>>>>>> More tests

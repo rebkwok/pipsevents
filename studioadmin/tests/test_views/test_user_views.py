@@ -55,8 +55,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
     def test_instructor_group_can_access(self):
         """
-        test that the page redirects if user is in the instructor group but is
-        not a staff user
+        test that the page can be accessed by a non-staff user who is in the
+        instructor group
         """
         resp = self._get_response(self.instructor_user)
         self.assertEquals(resp.status_code, 200)
@@ -457,8 +457,11 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
         self.assertEqual(
-            [booking.instance for booking in booking_forms],
-            self.future_user_bookings + self.future_cancelled_bookings
+            sorted([booking.instance.id for booking in booking_forms]),
+            sorted(
+                [bk.id for bk in
+                 self.future_user_bookings + self.future_cancelled_bookings]
+            )
         )
 
     def test_filter_bookings_by_booking_status(self):
