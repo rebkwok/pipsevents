@@ -567,7 +567,7 @@ def cancel_ticketed_event_view(request, slug):
                 messages.info(request, booking_cancelled_msg)
 
             ActivityLog.objects.create(
-                log="{} has been cancelled by admin user {}. {}".format(
+                log="{} cancelled by admin user {}. {}".format(
                     ticketed_event, request.user.username,
                     booking_cancelled_msg
                 )
@@ -639,7 +639,7 @@ class ConfirmTicketBookingRefundView(
 
             ActivityLog.objects.create(
                 log='Payment refund for ticket booking ref {} for event {}, '
-                    '(user {}) has been updated by admin user {}'.format(
+                    '(user {}) updated by admin user {}'.format(
                     ticket_booking.booking_reference,
                     ticket_booking.ticketed_event, ticket_booking.user.username,
                     self.request.user.username

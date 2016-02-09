@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
             ActivityLog.objects.create(
                 log='Aborted (purchase unconfirmed) ticket booking ref {} '
-                    'for event {}, user {} has been automatically deleted '
+                    'for event {}, user {} automatically deleted '
                     'after 1 hr'.format(
                     ticket_booking.booking_reference,
                     ticket_booking.ticketed_event,
@@ -64,7 +64,3 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write('No unconfirmed ticket bookings to delete')
-            ActivityLog.objects.create(
-                log='deleted_unconfirmed_bookings job run; no bookings to cancel'
-            )
-

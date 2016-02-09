@@ -455,7 +455,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             )
             waiting_list_user.delete()
             ActivityLog.objects.create(
-                log='User {} has been removed from the waiting list '
+                log='User {} removed from waiting list '
                 'for {}'.format(
                     booking.user.username, booking.event
                 )
@@ -573,13 +573,6 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                 html_message=get_template(
                     'booking/email/booking_updated.html').render(ctx),
                 fail_silently=False)
-            ActivityLog.objects.create(
-                log='Email sent to user ({}) re. payment for '
-                    'booking id {} (for {}) with block id {}'.format(
-                    booking.user.email, booking.id, booking.event,
-                    booking.block.id
-                )
-            )
 
         messages.success(
             self.request, self.success_message.format(booking.event)

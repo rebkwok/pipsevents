@@ -86,7 +86,7 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
             ActivityLog.objects.create(
                 log='Payment status for booking id {} for event {}, '
-                'user {} has been updated by admin user {}'.format(
+                'user {} updated by admin user {}'.format(
                 booking.id, booking.event, booking.user.username,
                 self.request.user.username
                 )
@@ -145,7 +145,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
             ActivityLog.objects.create(
                 log='Payment refund for booking id {} for event {}, '
-                    'user {} has been updated by admin user {}'.format(
+                    'user {} updated by admin user {}'.format(
                     booking.id, booking.event, booking.user.username,
                     self.request.user.username
                 )

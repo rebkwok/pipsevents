@@ -148,7 +148,7 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
 
     if created_classes:
         ActivityLog.objects.create(
-            log='Classes uploaded from timetable for {} to {} {}'.format(
+            log='Timetable uploaded for {} to {} {}'.format(
                 start_date.strftime('%a %d %B %Y'),
                 end_date.strftime('%a %d %B %Y'),
                 'by admin user {}'.format(user.username) if user else ''

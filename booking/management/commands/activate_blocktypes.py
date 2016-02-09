@@ -33,7 +33,7 @@ class Command(BaseCommand):
             blocktype.save()
 
         if blocktypes:
-            message = 'Blocktypes with the identifier(s) "{}" have been {} ' \
+            message = 'Blocktypes with the identifier(s) "{}" {} ' \
                       '(ids {})'.format(
                 ', '.join(identifiers),
                 'activated' if action == 'on' else 'deactivated',

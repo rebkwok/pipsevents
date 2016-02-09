@@ -72,7 +72,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 booking.save()
                                 ActivityLog.objects.create(
                                     log='(Register) Booking id {} for event '
-                                        '{}, user {} has been created by admin '
+                                        '{}, user {} created by admin '
                                         'user {} '.format(
                                         booking.id, booking.event,
                                         booking.user.username,
@@ -100,7 +100,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
 
                                 ActivityLog.objects.create(
                                     log='(Register) Cancelled booking id {} for event {}, '
-                                        'user {} has been  reopened by admin '
+                                        'user {} reopened by admin '
                                         'user {}'.format(
                                         new_booking.id, new_booking.event,
                                         new_booking.user.username,

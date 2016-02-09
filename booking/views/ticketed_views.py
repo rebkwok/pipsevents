@@ -182,7 +182,7 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
 
                 if old_ticket_count > 0:
                     ActivityLog.objects.create(
-                        log="Ticket number updated on booking ref {}".format(
+                        log="Ticket quantity updated on booking ref {}".format(
                             self.ticket_booking.booking_reference
                             )
                     )

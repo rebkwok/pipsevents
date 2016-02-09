@@ -76,6 +76,3 @@ class Command(BaseCommand):
 
         else:
             self.stdout.write('No reminders to send')
-            ActivityLog.objects.create(
-                log='email_reminders job run; no reminders to send'
-            )

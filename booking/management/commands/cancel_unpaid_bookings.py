@@ -156,6 +156,3 @@ class Command(BaseCommand):
                 )
         else:
             self.stdout.write('No bookings to cancel')
-            ActivityLog.objects.create(
-                log='cancel_unpaid_bookings job run; no bookings to cancel'
-            )

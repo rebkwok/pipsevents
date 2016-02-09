@@ -58,7 +58,7 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
         block.save()
 
         ActivityLog.objects.create(
-            log='Block {} has been created; Block type: {}; user: {}'.format(
+            log='Block {} created; Block type: {}; user: {}'.format(
                 block.id, block.block_type, block.user.username
             )
         )
@@ -80,18 +80,7 @@ class BlockCreateView(LoginRequiredMixin, CreateView):
             html_message=get_template(
                 'booking/email/block_booked.html').render(ctx),
             fail_silently=False)
-        # send email to studio
-        # send_mail('{} {} has just booked a block'.format(
-        #     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.user.username),
-        #     get_template('booking/email/to_studio_block_booked.txt').render(ctx),
-        #     settings.DEFAULT_FROM_EMAIL,
-        #     [settings.DEFAULT_STUDIO_EMAIL],
-        #     fail_silently=False)
-        ActivityLog.objects.create(
-            log='Email sent to user ({}) regarding new block id {}; type: {}'.format(
-                block.user.email, block.id, block.block_type
-            )
-        )
+
         messages.success(
             self.request, self.success_message.format(block.block_type)
             )
@@ -173,7 +162,7 @@ class BlockDeleteView(LoginRequiredMixin, DeleteView):
         block_type = self.block.block_type
 
         ActivityLog.objects.create(
-            log='User {} has deleted unpaid and unused block {} ({})'.format(
+            log='User {} deleted unpaid and unused block {} ({})'.format(
                 block_user, block_id, block_type
             )
         )

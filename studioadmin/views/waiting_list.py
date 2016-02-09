@@ -42,7 +42,7 @@ def event_waiting_list_view(request, event_id):
             )
         )
         ActivityLog.objects.create(
-            log="{} {} ({}) has been removed from the waiting list "
+            log="{} {} ({}) removed from the waiting list "
                 "by admin user {}".format(
                 user_to_remove.first_name,
                 user_to_remove.last_name,

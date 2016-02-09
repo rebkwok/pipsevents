@@ -350,7 +350,7 @@ def cancel_event_view(request, slug):
             )
 
             ActivityLog.objects.create(
-                log="{} {} has been cancelled by admin user {}; {}".format(
+                log="{} {} cancelled by admin user {}; {}".format(
                     ev_type.title(), event, request.user.username,
                     booking_cancelled_msg
                 )

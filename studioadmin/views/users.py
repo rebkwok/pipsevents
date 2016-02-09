@@ -447,7 +447,7 @@ def user_blocks_view(request, user_id):
                             )
                             block.save()
                             ActivityLog.objects.create(
-                                log='Block id {} ({}), user {}, has been {}'
+                                log='Block id {} ({}), user {}, {}'
                                         ' by admin user {}'.format(
                                     block.id, block.block_type,
                                     block.user.username, msg,
