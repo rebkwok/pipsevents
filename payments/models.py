@@ -82,12 +82,6 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
             'payments/email/payment_processed_to_user.html').render(ctx),
         fail_silently=False)
 
-    ActivityLog.objects.create(log='Payment-processed email for {} {} sent to '
-        'studio and user {} ({})'.format(
-            obj_type, obj_id, user.username, user.email
-        )
-    )
-
 
 def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
 
@@ -275,7 +269,7 @@ def payment_received(sender, **kwargs):
             obj.save()
 
             ActivityLog.objects.create(
-                log='{} id {} for user {} has been paid by PayPal; paypal '
+                log='{} id {} for user {} paid by PayPal; paypal '
                     '{} id {}'.format(
                     obj_type.title(), obj.id, obj.user.username, obj_type,
                     paypal_trans.id

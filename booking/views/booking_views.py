@@ -352,13 +352,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                     'booking/email/booking_received.html'
                     ).render(ctx),
                 fail_silently=False)
-            ActivityLog.objects.create(
-                log='Email sent to user {} regarding {}booking id {} '
-                '(for {})'.format(
-                    booking.user.username,
-                    're' if previously_cancelled else '', booking.id, booking.event
-                )
-            )
+
         except Exception as e:
             # send mail to tech support with Exception
             send_support_email(e, __name__, "BookingCreateView")
@@ -392,15 +386,6 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
                       settings.DEFAULT_FROM_EMAIL,
                       [settings.DEFAULT_STUDIO_EMAIL],
                       fail_silently=False)
-
-            ActivityLog.objects.create(
-                log= 'Email sent to studio ({}) regarding {}booking id {} '
-                '(for {})'.format(
-                    settings.DEFAULT_STUDIO_EMAIL,
-                    're' if previously_cancelled else '', booking.id,
-                    booking.event
-                )
-            )
 
         extra_msg = ''
         if 'claim_free' in form.data:
