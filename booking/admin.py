@@ -34,7 +34,7 @@ class UserFilter(admin.SimpleListFilter):
         qs = User.objects.all().order_by('first_name')
         return [
             (
-                user,
+                user.id,
                 "{} {} ({})".format(
                     user.first_name, user.last_name, user.username
                 )
@@ -43,7 +43,8 @@ class UserFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(user__username=self.value())
+            return queryset.filter(user__id=self.value())
+        return queryset
 
 
 class BookingDateListFilter(admin.SimpleListFilter):
@@ -79,6 +80,7 @@ class BookingDateListFilter(admin.SimpleListFilter):
             return queryset.filter(event__date__lte=timezone.now())
         if self.value() == 'upcoming':
             return queryset.filter(event__date__gte=timezone.now())
+        return queryset
 
 
 class EventDateListFilter(admin.SimpleListFilter):
@@ -114,6 +116,7 @@ class EventDateListFilter(admin.SimpleListFilter):
             return queryset.filter(date__lte=timezone.now())
         if self.value() == 'upcoming':
             return queryset.filter(date__gte=timezone.now())
+        return queryset
 
 
 class EventTypeListFilter(admin.SimpleListFilter):
@@ -150,6 +153,7 @@ class EventTypeListFilter(admin.SimpleListFilter):
             return queryset.filter(event_type__event_type='CL')
         if self.value() == 'event':
             return queryset.filter(event_type__event_type='EV')
+        return queryset
 
 
 class EventForm(forms.ModelForm):
@@ -295,6 +299,7 @@ class BlockFilter(admin.SimpleListFilter):
             unpaid_ids = [obj.id for obj in queryset if not obj.full
             and not obj.expired and not obj.paid]
             return queryset.filter(id__in=unpaid_ids)
+        return queryset
 
 
 class BlockAdmin(admin.ModelAdmin):

@@ -7,7 +7,7 @@ from paypal.standard.ipn.models import PayPalIPN
 from paypal.standard.ipn.admin import PayPalIPNAdmin
 
 
-class PaymentsUserFilter(admin.SimpleListFilter):
+class PaypalBookingUserFilter(admin.SimpleListFilter):
 
     title = 'User'
     parameter_name = 'user'
@@ -16,7 +16,7 @@ class PaymentsUserFilter(admin.SimpleListFilter):
         qs = User.objects.all().order_by('first_name')
         return [
             (
-                user,
+                user.id,
                 "{} {} ({})".format(
                     user.first_name, user.last_name, user.username
                 )
@@ -25,28 +25,24 @@ class PaymentsUserFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(user__username=self.value())
+            return queryset.filter(booking__user__id=self.value())
+        return queryset
 
 
-class PaypalBookingUserFilter(PaymentsUserFilter):
-
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(booking__user__username=self.value())
-
-
-class PaypalBlockUserFilter(PaymentsUserFilter):
+class PaypalBlockUserFilter(PaypalBookingUserFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(block__user__username=self.value())
+            return queryset.filter(block__user__id=self.value())
+        return queryset
 
 
-class PaypalTicketBookingUserFilter(PaymentsUserFilter):
+class PaypalTicketBookingUserFilter(PaypalBookingUserFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(ticket_booking__user__username=self.value())
+            return queryset.filter(ticket_booking__user__id=self.value())
+        return queryset
 
 
 class PaypalBookingTransactionAdmin(admin.ModelAdmin):

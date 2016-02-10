@@ -415,9 +415,9 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self._post_response(self.user, room_hire)
         self.assertEqual(Booking.objects.all().count(), 1)
 
-    def test_cannot_create_duplicate_booking(self):
+    def test_cannot_get_create_page_for_duplicate_booking(self):
         """
-        Test trying to create a duplicate booking redirects
+        Test trying to get the create page for exisiting redirects
         """
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
 
@@ -433,9 +433,27 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         # test redirect to duplicate booking url
         self.assertEqual(resp1.url, duplicate_url)
 
-    def test_cannot_book_for_full_event(self):
+    def test_cannot_create_duplicate_booking(self):
         """
         Test trying to create a duplicate booking redirects
+        """
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+
+        resp = self._post_response(self.user, event)
+        booking_id = Booking.objects.all()[0].id
+        booking_url = reverse('booking:bookings')
+        self.assertEqual(resp.url, booking_url)
+
+        resp1 = self._post_response(self.user, event)
+        duplicate_url = reverse('booking:duplicate_booking',
+                                kwargs={'event_slug': event.slug}
+                                )
+        # test redirect to duplicate booking url
+        self.assertEqual(resp1.url, duplicate_url)
+
+    def test_cannot_get_create_booking_page_for_full_event(self):
+        """
+        Test trying to get create booking page for a full event redirects
         """
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
         users = mommy.make_recipe('booking.user', _quantity=3)
@@ -446,6 +464,27 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         # try to book for event
         resp = self._get_response(self.user, event)
+        # test redirect to duplicate booking url
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'booking:fully_booked',
+                kwargs={'event_slug': event.slug}
+            )
+        )
+
+    def test_cannot_book_for_full_event(self):
+        """cannot create booking for a full event
+        """
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        users = mommy.make_recipe('booking.user', _quantity=3)
+        for user in users:
+            mommy.make_recipe('booking.booking', event=event, user=user)
+        # check event is full
+        self.assertEqual(event.spaces_left(), 0)
+
+        # try to book for event
+        resp = self._post_response(self.user, event)
         # test redirect to duplicate booking url
         self.assertEqual(
             resp.url,

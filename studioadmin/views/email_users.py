@@ -68,7 +68,6 @@ def choose_users_to_email(request,
         usersformset = ChooseUsersFormSet(request.POST)
 
         if usersformset.is_valid():
-
             event_ids = request.session.get('events', [])
             lesson_ids = request.session.get('lessons', [])
             users_to_email = []
@@ -89,24 +88,14 @@ def choose_users_to_email(request,
                 reverse('studioadmin:email_users_view'), events=event_ids, lessons=lesson_ids)
             )
 
-        else:
-            messages.error(
-                request,
-                mark_safe(
-                    "There were errors in the following fields:\n{}".format(
-                        '\n'.join(
-                            ["{}".format(error) for error in usersformset.errors]
-                        )
-                    )
-                )
-            )
-
     else:
         usersformset = ChooseUsersFormSet(
             queryset=User.objects.all().order_by('username'),
         )
 
-    userfilterform = UserFilterForm(prefix='filter', initial=initial_userfilterdata)
+    userfilterform = UserFilterForm(
+        prefix='filter', initial=initial_userfilterdata
+    )
 
     return TemplateResponse(
         request, template_name, {
@@ -159,9 +148,13 @@ def email_users_view(request,
                         msg.send(fail_silently=False)
                     except Exception as e:
                         # send mail to tech support with Exception
-                        send_support_email(e, __name__, "Bulk Email to students")
-                        ActivityLog.objects.create(log="Possible error with "
-                            "sending bulk email; notification sent to tech support")
+                        send_support_email(
+                            e, __name__, "Bulk Email to students"
+                        )
+                        ActivityLog.objects.create(
+                            log="Possible error with sending bulk email; "
+                                "notification sent to tech support"
+                        )
                 ActivityLog.objects.create(
                     log='Bulk email with subject "{}" sent to users {} by '
                         'admin user {}'.format(
@@ -179,8 +172,19 @@ def email_users_view(request,
                 lessons = Event.objects.filter(id__in=lesson_ids)
                 totaleventids = event_ids + lesson_ids
                 totalevents = Event.objects.filter(id__in=totaleventids)
-                messages.error(request, mark_safe("Please correct errors in form: {}".format(form.errors)))
-                form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
+                messages.error(
+                    request,
+                    mark_safe(
+                        "Please correct errors in form: {}".format(form.errors)
+                    )
+                )
+                form = EmailUsersForm(
+                    initial={
+                        'subject': "; ".join(
+                            (str(event) for event in totalevents)
+                        )
+                    }
+                )
 
         else:
             event_ids = ast.literal_eval(request.GET.get('events'))
@@ -189,7 +193,11 @@ def email_users_view(request,
             lessons = Event.objects.filter(id__in=lesson_ids)
             totaleventids = event_ids + lesson_ids
             totalevents = Event.objects.filter(id__in=totaleventids)
-            form = EmailUsersForm(initial={'subject': "; ".join((str(event) for event in totalevents))})
+            form = EmailUsersForm(
+                initial={
+                    'subject': "; ".join((str(event) for event in totalevents))
+                }
+            )
 
         return TemplateResponse(
             request, template_name, {

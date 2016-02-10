@@ -29,9 +29,12 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         request._messages = messages
         return choose_users_to_email(request)
 
-    def _post_response(self, user, form_data):
+    def _post_response(self, user, form_data, session_data=None):
         url = reverse('studioadmin:choose_email_users')
         session = _create_session()
+        if session_data:
+            for k, v in session_data.items():
+                session[k] = v
         request = self.factory.post(url, form_data)
         request.session = session
         request.user = user
@@ -165,7 +168,7 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(usersformset.forms), 2)
 
         users = [form.instance for form in usersformset.forms]
-        self.assertEqual(set(users), set([self.user, new_user1]))
+        self.assertEqual(set(users), {self.user, new_user1})
 
     def test_users_for_cancelled_bookings_not_shown(self):
         new_user = mommy.make_recipe('booking.user')
@@ -209,6 +212,77 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
         user = usersformset.forms[0].instance
         self.assertEqual(user, new_user)
+
+    def test_remove_previous_events_and_classes_data_from_session(self):
+        new_user1 = mommy.make_recipe('booking.user')
+        new_user2 = mommy.make_recipe('booking.user')
+        old_event = mommy.make_recipe('booking.future_EV')
+        old_pole_class = mommy.make_recipe('booking.future_PC')
+        event = mommy.make_recipe('booking.future_EV')
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+        mommy.make_recipe('booking.booking', user=new_user2, event=old_event)
+        mommy.make_recipe(
+            'booking.booking', user=new_user2, event=old_pole_class
+        )
+
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [pole_class.id],
+                'filter-events': [event.id]}
+        )
+        session_data = {
+            'events': [old_event.id],
+            'lessons': [old_pole_class.id]
+        }
+        resp = self._post_response(
+            self.staff_user, form_data, session_data=session_data
+        )
+
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 2)
+
+        users = [form.instance for form in usersformset.forms]
+        self.assertEqual(set(users), {self.user, new_user1})
+
+    def test_get_users_to_email(self):
+        new_user1 = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+
+        session_data = {
+            'events': [event.id],
+            'lessons': [pole_class.id]
+        }
+
+        form_data = self.formset_data(
+            {
+                'filter-lessons': [pole_class.id],
+                'filter-events': [event.id],
+                'form-TOTAL_FORMS': 2,
+                'form-INITIAL_FORMS': 2,
+                'form-0-id': self.user.id,
+                'form-0-email_user': True,
+                'form-1-id': new_user1.id,
+                'form-1-email_user': True,
+            }
+        )
+        resp = self._post_response(self.staff_user, form_data, session_data)
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            url_with_querystring(
+                reverse('studioadmin:email_users_view'),
+                events=[event.id], lessons=[pole_class.id]),
+            resp.url
+        )
 
 
 class EmailUsersTests(TestPermissionMixin, TestCase):
@@ -312,7 +386,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
     def test_emails_sent(self):
         event = mommy.make_recipe('booking.future_EV')
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, [self.user.id],
             event_ids=[event.id], lesson_ids=[],
             form_data={
@@ -326,7 +400,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(email.subject, '[watermelon studio bookings] Test email')
 
     def test_cc_email_sent(self):
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, [self.user.id],
             event_ids=[], lesson_ids=[],
             form_data={
@@ -339,7 +413,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(mail.outbox[0].cc[0], 'test@test.com')
 
     def test_reply_to_set_to_from_address(self):
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, [self.user.id],
             event_ids=[], lesson_ids=[],
             form_data={
@@ -350,3 +424,15 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to[0], 'test@test.com')
+
+    def test_with_form_errors(self):
+        resp = self._post_response(
+            self.staff_user, [self.user.id],
+            event_ids=[], lesson_ids=[],
+            form_data={
+                'subject': 'Test email',
+                'message': 'Test message',
+            }
+        )
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertIn('Please correct errors in form', resp.rendered_content)
