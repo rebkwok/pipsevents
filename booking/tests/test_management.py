@@ -796,7 +796,8 @@ class CancelUnpaidBookingsTests(TestCase):
         ]
         all_emails = cancelled_booking_emails + [[settings.DEFAULT_STUDIO_EMAIL]]
         self.assertEquals(
-            all_emails, [email.to for email in mail.outbox]
+            sorted(all_emails),
+            sorted([email.to for email in mail.outbox])
         )
 
     @override_settings(SEND_ALL_STUDIO_EMAILS=False)
@@ -829,7 +830,8 @@ class CancelUnpaidBookingsTests(TestCase):
             in Booking.objects.filter(status='CANCELLED')
         ]
         self.assertEquals(
-            cancelled_booking_emails, [email.to for email in mail.outbox]
+            sorted(cancelled_booking_emails),
+            sorted([email.to for email in mail.outbox])
         )
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')

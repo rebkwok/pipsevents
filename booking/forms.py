@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
-from datetime import date
 from django import forms
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 
 from django.forms.models import modelformset_factory, BaseModelFormSet, \
     inlineformset_factory, BaseInlineFormSet
 
-from booking.models import Booking, Event, Block, Ticket, TicketedEvent, \
-    TicketBooking
-from booking.widgets import DateSelectorWidget
+from booking.models import Booking, Event, Block, Ticket, TicketBooking
 
 
 MONTH_CHOICES = {
@@ -228,4 +223,3 @@ class WaitingListUserAdminForm(forms.ModelForm):
         self.fields['user'] = UserModelChoiceField(
             queryset=User.objects.all().order_by('first_name')
         )
-

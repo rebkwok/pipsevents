@@ -1,8 +1,10 @@
+from importlib import import_module
 from model_mommy import mommy
+
 from django.contrib.sites.models import Site
 from django.conf import settings
-from importlib import import_module
 from django.test import RequestFactory
+from django.utils.html import strip_tags
 
 
 def set_up_fb():
@@ -38,3 +40,10 @@ class TestSetupMixin(object):
         set_up_fb()
         cls.factory = RequestFactory()
         cls.user = mommy.make_recipe('booking.user')
+
+
+def format_content(content):
+    # strip tags, \n, \t and extra whitespace from content
+    return ' '.join(
+        strip_tags(content).replace('\n', '').replace('\t', '').split()
+    )

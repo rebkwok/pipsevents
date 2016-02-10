@@ -1,12 +1,16 @@
 from datetime import timedelta
 
-from django.test import TestCase
+from model_mommy import mommy
+
+from django.core.urlresolvers import reverse
 from django.contrib.admin.sites import AdminSite
+from django.contrib.auth.models import User
+from django.test import TestCase
 from django.utils import timezone
 
-from model_mommy import mommy
-from booking.models import Event, Booking, Block, BlockType
 import booking.admin as admin
+from booking.models import Event, Booking, Block, BlockType
+from booking.tests.helpers import format_content
 
 
 class EventAdminTests(TestCase):
@@ -183,6 +187,12 @@ class BookingAdminTests(TestCase):
 
 class BlockAdminTests(TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        cls.superuser = User.objects.create_superuser(
+            username='test', email='test@test.com', password='test'
+        )
+
     def test_block_admin_display(self):
         user = mommy.make_recipe(
             'booking.user', first_name='Donald', last_name='Duck',
@@ -261,6 +271,173 @@ class BlockAdminTests(TestCase):
         filter = admin.BlockFilter(None, {}, Block, admin.BlockAdmin)
         blocks = filter.queryset(None, Block.objects.all())
         self.assertEqual(blocks.count(), 4)
+
+    def test_adding_new_booking_to_block(self):
+        self.client.login(username=self.superuser.username, password='test')
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
+        event = mommy.make_recipe(
+            'booking.future_PC', event_type=block.block_type.event_type
+        )
+
+        url = reverse('admin:booking_block_change', args=[block.id])
+        data = {
+            'user': user.id,
+            'block_type': block.block_type.id,
+            'start_date_0': block.start_date.strftime('%d/%m/%Y'),
+            'start_date_1': block.start_date.strftime('%H:%M:%S'),
+            'paid': block.paid,
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 0,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'OPEN'
+        }
+
+        self.assertEqual(block.bookings.count(), 0)
+        resp = self.client.post(url, data, follow=True)
+        self.assertEqual(block.bookings.count(), 1)
+
+    def test_adding_existing_booking_to_block(self):
+        self.client.login(username=self.superuser.username, password='test')
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
+        event = mommy.make_recipe(
+            'booking.future_PC', event_type=block.block_type.event_type
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, paid=False
+        )
+
+        url = reverse('admin:booking_block_change', args=[block.id])
+        data = {
+            'user': user.id,
+            'block_type': block.block_type.id,
+            'start_date_0': block.start_date.strftime('%d/%m/%Y'),
+            'start_date_1': block.start_date.strftime('%H:%M:%S'),
+            'paid': block.paid,
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 0,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'OPEN'
+        }
+
+        self.assertEqual(block.bookings.count(), 0)
+        self.assertIsNone(booking.block)
+
+        resp = self.client.post(url, data, follow=True)
+        self.assertEqual(block.bookings.count(), 1)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.block, block)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+        content = format_content(resp.rendered_content)
+        self.assertIn(
+            'Booking {} with user {} and event {} already existed and has been '
+            'associated with block {}.'.format(
+                booking.id, user.username, event, block.id
+            ),
+            content
+        )
+
+    def test_adding_cancelled_booking_to_block(self):
+        self.client.login(username=self.superuser.username, password='test')
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
+        event = mommy.make_recipe(
+            'booking.future_PC', event_type=block.block_type.event_type
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, paid=False,
+            status='CANCELLED'
+        )
+
+        url = reverse('admin:booking_block_change', args=[block.id])
+        data = {
+            'user': user.id,
+            'block_type': block.block_type.id,
+            'start_date_0': block.start_date.strftime('%d/%m/%Y'),
+            'start_date_1': block.start_date.strftime('%H:%M:%S'),
+            'paid': block.paid,
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 0,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'OPEN'
+        }
+
+        self.assertEqual(block.bookings.count(), 0)
+        self.assertIsNone(booking.block)
+
+        resp = self.client.post(url, data, follow=True)
+        self.assertEqual(block.bookings.count(), 1)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.block, block)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        self.assertEqual(booking.status, 'OPEN')
+
+        content = format_content(resp.rendered_content)
+        self.assertIn(
+            'Booking {} with user {} and event {} has been reopened and has '
+            'been associated with block {}.'.format(
+                booking.id, user.username, event, block.id
+            ),
+            content
+        )
+
+    def test_cancelling_booking_on_block(self):
+        self.client.login(username=self.superuser.username, password='test')
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
+        event = mommy.make_recipe(
+            'booking.future_PC', event_type=block.block_type.event_type
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, block=block,
+            status='OPEN'
+        )
+
+        url = reverse('admin:booking_block_change', args=[block.id])
+        data = {
+            'user': user.id,
+            'block_type': block.block_type.id,
+            'start_date_0': block.start_date.strftime('%d/%m/%Y'),
+            'start_date_1': block.start_date.strftime('%H:%M:%S'),
+            'paid': block.paid,
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'CANCELLED'
+        }
+
+        self.assertEqual(block.bookings.count(), 1)
+        self.assertEqual(booking.block, block)
+        self.assertTrue(booking.paid)
+
+        resp = self.client.post(url, data, follow=True)
+        self.assertEqual(block.bookings.count(), 0)
+
+        booking.refresh_from_db()
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+        self.assertEqual(booking.status, 'CANCELLED')
+
+        content = format_content(resp.rendered_content)
+        self.assertIn(
+            'Booking {} with user {} and event {} has been cancelled, set to '
+            'unpaid and disassociated from block {}.'.format(
+                booking.id, user.username, event, block.id
+            ),
+            content
+        )
 
 
 class BlockTypeAdminTests(TestCase):

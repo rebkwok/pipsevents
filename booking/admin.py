@@ -1,15 +1,10 @@
-import json
+# -*- coding: utf-8 -*-
 from django.conf import settings
-from django.conf.urls import patterns, url
 from django.contrib import admin, messages
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
-from django.db.models import Q
-from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, redirect
 from django.template.loader import get_template
-from django.template import Context
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django import forms
@@ -19,9 +14,8 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
     EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket
-from booking.forms import BookingAdminForm, \
-    BlockAdminForm, TicketBookingAdminForm, WaitingListUserAdminForm
-from booking import utils
+from booking.forms import BookingAdminForm, BlockAdminForm, \
+    TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
 
 
@@ -272,6 +266,20 @@ class BookingInLine(admin.TabularInline):
     model = Booking
     extra = 0
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "event":
+            try:
+                parent_obj_id = request.resolver_match.args[0]
+                block = Block.objects.get(id=parent_obj_id)
+                kwargs["queryset"] = Event.objects.filter(
+                    event_type=block.block_type.event_type
+                )
+            except IndexError:
+                pass
+        return super(
+            BookingInLine, self
+        ).formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 class BlockFilter(admin.SimpleListFilter):
     """
@@ -361,9 +369,9 @@ class BlockAdmin(admin.ModelAdmin):
                     booking = Booking.objects.get(
                         user=block.user, event=booking.event
                     )
-                    repoened = False
-                    if booking.status=='CANCELLED':
-                        booking.status='OPEN'
+                    reopened = False
+                    if booking.status == 'CANCELLED':
+                        booking.status = 'OPEN'
                         reopened = True
                     messages.info(
                         request,
@@ -391,10 +399,10 @@ class BlockAdmin(admin.ModelAdmin):
                     request,
                     mark_safe('<a href={}>Booking {}</a> '
                               'with user {} and event {} has been cancelled, '
-                              'set to unpaid and disassociated from block. '.format(
+                              'set to unpaid and disassociated from block {}. '.format(
                         reverse('admin:booking_booking_change', args=[booking.id]),
                         booking.id,
-                        booking.user.username, booking.event
+                        booking.user.username, booking.event, block.id
                     )),
                 )
 
