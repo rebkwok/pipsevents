@@ -69,7 +69,16 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         if 'user' in form.changed_data:
 
                             try:
+                                new_booking = Booking.objects.get(
+                                        user=booking.user, event=booking.event,
+                                        status='CANCELLED'
+                                    )
+                                new = False
+                            except Booking.DoesNotExist:
+                                new = True
                                 booking.save()
+
+                            if new:
                                 ActivityLog.objects.create(
                                     log='(Register) Booking id {} for event '
                                         '{}, user {} created by admin '
@@ -85,15 +94,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                         booking.user.username
                                     )
                                 )
-                            except IntegrityError:
-                                try:
-                                    new_booking = Booking.objects.get(
-                                        user=booking.user, event=booking.event,
-                                        status='CANCELLED'
-                                    )
-                                except Booking.DoesNotExist:
-                                    continue
-
+                            else:
                                 new_booking.status = 'OPEN'
                                 new_booking.attended = booking.attended
                                 new_booking.save()
@@ -216,10 +217,6 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         )
                     )
 
-                    for error in form.errors:
-                        messages.error(request, mark_safe("{}".format(error)))
-                # formset.save()
-
             register_url = 'studioadmin:event_register'
             if event.event_type.event_type == 'CL':
                 register_url = 'studioadmin:class_register'
@@ -232,7 +229,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 'status_choice': status_choice}
                         )
             )
-        else:
+        else:  # pragma: no cover
             messages.error(
                 request,
                 mark_safe(
@@ -243,7 +240,6 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                     )
                 )
             )
-
 
     else:
         if status_choice == 'ALL':

@@ -8,7 +8,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Event, Booking, Block, BlockType
-from booking.tests.helpers import _create_session
+from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     EventRegisterListView,
     register_view,
@@ -171,7 +171,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
                 )
 
         session = _create_session()
-        request = self.factory.post(url, data=form_data)
+        request = self.factory.post(url, data=form_data, follow=True)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
@@ -295,6 +295,19 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking1.paid)
         booking2 = Booking.objects.get(id=self.booking2.id)
         self.assertTrue(booking2.attended)
+
+    def test_post_with_no_changes_booking(self):
+        formset_data = self.formset_data({
+            'formset_submitted': 'Save changes'
+        })
+
+        url = reverse(
+            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url, formset_data, follow=True)
+        content = format_content(resp.rendered_content)
+        self.assertIn('No changes were made', content)
 
     def test_can_update_booking_deposit_paid(self):
         self.assertFalse(self.booking1.paid)
@@ -553,6 +566,77 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(resp.context_data['extra_lines'], 2)
 
+    def test_adding_cancelled_booking(self):
+        self.booking2.status = "CANCELLED"
+        self.booking2.save()
+        formset_data = {
+            'bookings-TOTAL_FORMS': 2,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': self.booking1.id,
+            'bookings-0-user': self.booking1.user.id,
+            'bookings-0-paid': self.booking1.paid,
+            'bookings-0-deposit_paid': self.booking1.paid,
+            'bookings-0-attended': self.booking1.attended,
+            'bookings-1-user': self.booking2.user.id,
+            'bookings-1-deposit_paid': self.booking2.paid,
+            'bookings-1-paid': self.booking2.paid,
+            'bookings-1-attended': self.booking2.attended,
+            'status_choice': 'OPEN',
+            'formset_submitted': 'Save changes'
+            }
+
+        self.assertEqual(Booking.objects.all().count(), 2)
+
+        self.assertEqual(self.booking2.status, 'CANCELLED')
+        url = reverse(
+            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url, formset_data, follow=True)
+
+        self.booking2.refresh_from_db()
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(self.booking2.status, 'OPEN')
+
+        content = format_content(resp.rendered_content)
+
+        self.assertIn(
+            'Cancelled booking reopened for user {}'.format(
+                self.booking2.user.username
+            ), content
+        )
+
+    def test_can_update_booking_to_unattended(self):
+        self.booking1.attended = True
+        self.booking1.save()
+        self.booking2.attended = True
+        self.booking2.save()
+
+        formset_data = self.formset_data({
+            'bookings-0-attended': False,
+            'bookings-1-attended': False,
+            'formset_submitted': 'Save changes'
+        })
+
+        url = reverse(
+            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url, formset_data, follow=True)
+
+        self.booking1.refresh_from_db()
+        self.booking2.refresh_from_db()
+        self.assertFalse(self.booking1.attended)
+        self.assertFalse(self.booking2.attended)
+
+        content = format_content(resp.rendered_content)
+
+        self.assertIn(
+            'Booking changed to unattended for users {}, {}'.format(
+                self.booking1.user.username, self.booking2.user.username
+            ), content
+        )
+
 
 class RegisterByDateTests(TestPermissionMixin, TestCase):
 
@@ -601,6 +685,26 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
+    def test_events_excluded_from_form_for_instructors(self):
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=timezone.now(),
+            _quantity=3
+        )
+        pole_classes = mommy.make_recipe(
+            'booking.future_PC',
+            date=timezone.now(),
+            _quantity=3
+        )
+        resp = self._get_response(self.instructor_user)
+
+        form = resp.context_data['form']
+        self.assertEqual(len(form.events), 3)
+        self.assertEqual(
+            sorted([ev.id for ev in form.events]),
+            sorted([ev.id for ev in pole_classes])
+        )
+
     def test_show_events_by_selected_date(self):
 
         events = mommy.make_recipe(
@@ -636,6 +740,119 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             [ev[0] for ev in selected_events],
             [event.id for event in events]
+        )
+
+    def test_show_events_by_selected_date_for_instructor(self):
+
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+        pole_classes = mommy.make_recipe(
+            'booking.future_CL',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+        mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=6,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+        mommy.make_recipe(
+            'booking.future_CL',
+            date=datetime(
+                year=2015, month=9, day=6,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+
+        resp = self._post_response(
+            self.instructor_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'show': 'show'}
+        )
+        self.assertEqual(Event.objects.count(), 12)
+
+        form = resp.context_data['form']
+        self.assertIn('select_events', form.fields)
+        selected_events = form.fields['select_events'].choices
+
+        self.assertEqual(
+            [ev[0] for ev in selected_events],
+            [event.id for event in pole_classes]
+        )
+
+    def test_no_events_on_selected_date(self):
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+
+        url = reverse('studioadmin:register-day')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            url,
+            {
+                'register_date': 'Mon 06 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'show': 'show'
+            },
+            follow=True
+        )
+        self.assertEqual(Event.objects.count(), 3)
+
+        content = format_content(resp.rendered_content)
+        self.assertIn(
+            'There are no classes/workshops/events on the date selected',
+            content
+        )
+
+    def test_no_events_selected_to_print(self):
+        events = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            _quantity=3
+        )
+
+        url = reverse('studioadmin:register-day')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            url,
+            {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print'
+            },
+            follow=True
+        )
+        self.assertEqual(Event.objects.count(), 3)
+
+        content = format_content(resp.rendered_content)
+        self.assertIn(
+            'Please select at least one register to print',
+            content
         )
 
     def test_print_selected_events(self):
@@ -742,6 +959,74 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             for booking in event['bookings']:
                 self.assertTrue(booking['booking'] in event['event'].bookings.all())
 
+    def test_print_extra_lines(self):
+        event1 = mommy.make_recipe(
+            'booking.future_EV',
+            name="event1",
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+            max_participants=10,
+        )
+
+        ev1_bookings = mommy.make_recipe(
+            'booking.booking',
+            event=event1,
+            _quantity=2
+        )
+        ev1_cancelled_booking = mommy.make_recipe(
+            'booking.booking',
+            event=event1,
+            status='CANCELLED'
+        )
+
+        # event has max_participants; extra lines are max - open bookings
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+                'select_events': [event1.id]
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        self.assertEqual(resp.context_data['events'][0]['extra_lines'], 8)
+
+        event1.max_participants = None
+        event1.save()
+        # event has no max_participants and <15 bookings; extra lines are
+        # 15 - open bookings
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+                'select_events': [event1.id]
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        self.assertEqual(resp.context_data['events'][0]['extra_lines'], 13)
+
+        mommy.make_recipe('booking.booking', event=event1,  _quantity=14)
+        # event has no max_participants and >15 bookings; extra lines = 2
+        resp = self._post_response(
+            self.staff_user, {
+                'register_date': 'Mon 07 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print',
+                'select_events': [event1.id]
+            }
+        )
+
+        self.assertEqual(len(resp.context_data['events']), 1)
+        self.assertEqual(resp.context_data['events'][0]['extra_lines'], 2)
+
     def test_print_format_no_available_blocktype(self):
         event = mommy.make_recipe(
             'booking.future_EV',
@@ -846,3 +1131,30 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertNotIn('>User\'s block</br>expiry date<', resp.rendered_content)
         self.assertNotIn('>Block size<', resp.rendered_content)
         self.assertNotIn('>Bookings used<', resp.rendered_content)
+
+    def test_print_with_invalid_date_format(self):
+        mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
+        )
+        url = reverse('studioadmin:register-day')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            url,
+            {
+                'register_date': 'Mon 33 Sep 2015',
+                'exclude_ext_instructor': True,
+                'register_format': 'full',
+                'print': 'print'
+            },
+            follow=True
+        )
+
+        content = format_content(resp.rendered_content)
+        self.assertIn(
+            'Please correct the following errors: register_date',
+            content
+        )
