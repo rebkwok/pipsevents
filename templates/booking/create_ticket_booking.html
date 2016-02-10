@@ -30,7 +30,7 @@
                 {% endif %}
 
             {% if tickets %}
-                <form method="post" class="form-horizontal" action="">
+                <form method="post" class="form-horizontal dirty-check" action="">
                     {% csrf_token %}
                     {{ ticket_formset.management_form }}
                     <input type="hidden" name="ticket_booking_id" value="{{ ticket_booking.id }}" />

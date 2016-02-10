@@ -12,7 +12,7 @@
     <p>Tick/untick to change current payment status.  When you click 'confirm',
         {{ booking.user.username }} will be sent an email notifying them of the changes.</p>
 
-    <form action="" method="post">{% csrf_token %}
+    <form class="dirty-check" action="" method="post">{% csrf_token %}
         <p>{{ form.paid }} <strong>Paid</strong></p>
         <p>{{ form.payment_confirmed }} <strong>Confirm payment has been received</strong></p>
         <input class="btn btn-success" type="submit" value="Confirm" />

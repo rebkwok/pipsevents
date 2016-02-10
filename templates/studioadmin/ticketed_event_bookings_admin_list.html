@@ -9,7 +9,7 @@
         <h2>Ticket Bookings for {{ ticketed_event }}</h2>
         <div class="row">
             <div class="col-xs-12">
-                <form method="post" action="">
+                <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ ticket_booking_formset.management_form }}
 

@@ -10,7 +10,7 @@
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
         <div class="row">
-                <form method="post" action="">
+                <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
                     <div class="top-button-row">

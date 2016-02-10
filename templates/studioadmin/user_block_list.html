@@ -11,7 +11,7 @@
         <h2>Blocks for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
         <div class="row">
             <div class="col-sm-12">
-                <form method="post" action="">
+                <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ userblockformset.management_form }}
                     <div class="top-button-row"><input class="btn btn-success table-btn " name="formset_submitted" type="submit" value="Save changes" /></div>

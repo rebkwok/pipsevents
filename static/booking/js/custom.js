@@ -12,7 +12,7 @@ function ReadOnlyCheckBox() {
 
 jQuery(document).ready(function () {
 
-    jQuery('form').areYouSure();
+    jQuery('form.dirty-check').areYouSure();
 
     jQuery('#datetimepicker').datetimepicker({
         format:'DD MMM YYYY HH:mm',

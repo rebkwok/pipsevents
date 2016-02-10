@@ -10,7 +10,7 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-success">
-                <form method="post" action="">
+                <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ sessionformset.management_form }}
 
