@@ -422,8 +422,9 @@ class Booking(models.Model):
                             block_type=free_blocktype
                         )
                         ActivityLog.objects.create(
-                            log='Free class block created. Block id {}, parent '
-                                'block id {}, user {}'.format(
+                            log='Free class block created with booking {}. '
+                                'Block id {}, parent block id {}, user {}'.format(
+                                self.id,
                                 free_block.id, self.block.id,
                                 self.user.username
                             )
@@ -466,8 +467,21 @@ class Booking(models.Model):
                         free_booking.block = orig.block
                         free_booking.free_class = False
                         free_booking.save()
+                        ActivityLog.objects.create(
+                            log="Booking {} cancelled from block {} (user {}); "
+                                "free booking {} moved to parent block".format(
+                                self.id, orig.block.id, self.user.username,
+                                free_booking.id
+                            )
+                        )
                     else:
                         free_class_block.delete()
+                        ActivityLog.objects.create(
+                            log="Booking {} cancelled from block {} (user {}); unused "
+                                "free class block deleted".format(
+                                self.id, orig.block.id, self.user.username
+                            )
+                        )
                 self.block = None
                 self.paid = False
                 self.payment_confirmed = False
