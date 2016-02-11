@@ -5,7 +5,7 @@ import shortuuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -399,46 +399,6 @@ class Booking(models.Model):
             return False
         return self._old_booking().status == 'OPEN' and self.status == 'CANCELLED'
 
-    def _update_free_blocks(self, rebooking):
-        # for new bookings or rebooking with block
-        if self.block and (self.status == 'OPEN' or rebooking):
-            try:
-                free_blocktype = BlockType.objects.get(identifier='free class')
-            except BlockType.DoesNotExist:
-                free_blocktype = None
-
-            if free_blocktype \
-                    and self.block.paid \
-                    and not self.block.active_block() \
-                    and self.block.block_type.event_type.subtype == "Pole level class" \
-                    and self.block.block_type.size == 10:
-                # just used last block in 10 class pole level class block;
-                # check for free class block, add one if doesn't exist
-                # already (unless block has already expired)
-                if not self.block.children.exists():
-                    if not self.block.expired:
-                        free_block = Block.objects.create(
-                            user=self.user, parent=self.block,
-                            block_type=free_blocktype
-                        )
-                        ActivityLog.objects.create(
-                            log='Free class block created with booking {}. '
-                                'Block id {}, parent block id {}, user {}'.format(
-                                self.id,
-                                free_block.id, self.block.id,
-                                self.user.username
-                            )
-                        )
-                    else:
-                        ActivityLog.objects.create(
-                            log='Last booking created on expired block. Free '
-                                'class block not created.  Block id {}, '
-                                'user {}'.format(
-                                self.block.id,
-                                self.user.username
-                            )
-                        )
-
     def save(self, *args, **kwargs):
         rebooking = self._is_rebooking()
         new_booking = self._is_new_booking()
@@ -506,7 +466,50 @@ class Booking(models.Model):
         # Done with changes to current booking; call super to save the
         # booking so we can check block status
         super(Booking, self).save(*args, **kwargs)
-        self._update_free_blocks(rebooking)
+
+
+@receiver(post_save)
+def update_free_blocks(sender, instance, **kwargs):
+    if sender == Booking:
+        # for new bookings or rebooking with block
+        if instance.block and \
+                (instance.status == 'OPEN' or instance.date_rebooked):
+            try:
+                free_blocktype = BlockType.objects.get(identifier='free class')
+            except BlockType.DoesNotExist:
+                free_blocktype = None
+
+            if free_blocktype \
+                    and instance.block.paid \
+                    and not instance.block.active_block() \
+                    and instance.block.block_type.event_type.subtype == "Pole level class" \
+                    and instance.block.block_type.size == 10:
+                # just used last block in 10 class pole level class block;
+                # check for free class block, add one if doesn't exist
+                # already (unless block has already expired)
+                if not instance.block.children.exists():
+                    if not instance.block.expired:
+                        free_block = Block.objects.create(
+                            user=instance.user, parent=instance.block,
+                            block_type=free_blocktype
+                        )
+                        ActivityLog.objects.create(
+                            log='Free class block created with booking {}. '
+                                'Block id {}, parent block id {}, user {}'.format(
+                                instance.id,
+                                free_block.id, instance.block.id,
+                                instance.user.username
+                            )
+                        )
+                    else:
+                        ActivityLog.objects.create(
+                            log='Last booking created on expired block. Free '
+                                'class block not created.  Block id {}, '
+                                'user {}'.format(
+                                instance.block.id,
+                                instance.user.username
+                            )
+                        )
 
 
 class WaitingListUser(models.Model):

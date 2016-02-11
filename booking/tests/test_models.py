@@ -855,7 +855,6 @@ class BlockTests(TestCase):
 
         non_block_booking.block = block
         non_block_booking.save()
-
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 4)
         self.assertTrue(block.children.exists())

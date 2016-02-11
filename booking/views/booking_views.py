@@ -323,9 +323,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
             return HttpResponseRedirect(reverse('booking:fully_booked',
                                                 args=[self.event.slug]))
 
-        blocks_used, total_blocks = _get_block_status(
-            booking, has_free_block_pre_save
-        )
+        blocks_used, total_blocks = _get_block_status(booking)
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -531,9 +529,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
                     args=[booking.event.slug])
             )
 
-        blocks_used, total_blocks = _get_block_status(
-            booking, has_free_block_pre_save
-        )
+        blocks_used, total_blocks = _get_block_status(booking)
 
         if booking.block:
             # send email to user if they used block to book (paypal payment
@@ -654,7 +650,7 @@ def _email_free_class_request(request, booking, booking_status):
             "the studio for information")
 
 
-def _get_block_status(booking, has_free_block_pre_save):
+def _get_block_status(booking):
     blocks_used = None
     total_blocks = None
     if booking.block:
@@ -668,16 +664,6 @@ def _get_block_status(booking, has_free_block_pre_save):
             )
         )
 
-        if booking.block.children.exists() and not has_free_block_pre_save:
-            # just used last block in 10 class pole level class block;
-            # check for free class block, add one if doesn't exist already
-            ActivityLog.objects.create(
-                log='Free class block created. Block id {}, parent '
-                    'block id {}, user {}'.format(
-                    booking.block.children.first().id, booking.block.id,
-                    booking.user.username
-                )
-            )
     return blocks_used, total_blocks
 
 
