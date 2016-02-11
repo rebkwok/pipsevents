@@ -791,8 +791,8 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         selected_events = form.fields['select_events'].choices
 
         self.assertEqual(
-            [ev[0] for ev in selected_events],
-            [event.id for event in pole_classes]
+            sorted([ev[0] for ev in selected_events]),
+            sorted([event.id for event in pole_classes])
         )
 
     def test_no_events_on_selected_date(self):

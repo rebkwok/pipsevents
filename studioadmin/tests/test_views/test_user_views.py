@@ -9,7 +9,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Booking, Block
-from booking.tests.helpers import _create_session
+from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     UserListView,
     user_blocks_view,
@@ -112,6 +112,35 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
         changed_student = User.objects.get(id=not_reg_student.id)
         self.assertTrue(changed_student.has_perm('booking.is_regular_student'))
+
+    def test_cannot_remove_regular_student_for_superuser(self):
+        reg_student = mommy.make_recipe('booking.user')
+        superuser = mommy.make_recipe(
+            'booking.user', first_name='Donald', last_name='Duck', username='dd'
+        )
+        superuser.is_superuser = True
+        superuser.save()
+        perm = Permission.objects.get(codename='is_regular_student')
+        reg_student.user_permissions.add(perm)
+        reg_student.save()
+
+        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
+        self.assertTrue(superuser.has_perm('booking.is_regular_student'))
+        self._get_response(
+            self.staff_user, {'change_user': [reg_student.id]}
+        )
+        changed_student = User.objects.get(id=reg_student.id)
+        self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
+
+        resp = self._get_response(
+            self.staff_user, {'change_user': [superuser.id]}
+        )
+        # status hasn't changed
+        self.assertTrue(superuser.has_perm('booking.is_regular_student'))
+        self.assertIn(
+            'Donald Duck (dd) is a superuser; you cannot remove permissions',
+            format_content(resp.rendered_content)
+        )
 
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
@@ -607,7 +636,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
 
-    def test_cannot_assign_free_class_to_block(self):
+    def test_cannot_assign_free_class_to_normal_block(self):
         event1 = mommy.make_recipe(
             'booking.future_PC',
             event_type__subtype='Pole level class'
@@ -892,6 +921,47 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             },
             errors)
 
+    def test_can_assign_free_class_to_free_class_block(self):
+        # TODO
+        pass
+
+    def test_reopen_cancelled_booking(self):
+        # TODO
+        pass
+
+    def test_remove_block_from_booking(self):
+        # TODO
+        pass
+
+    def test_new_booking_uses_last_in_10_blocks_block(self):
+        """
+        Checking for and creating the free block is done at the model level;
+        check this is triggered from the studioadmin user bookings changes too
+        """
+        # TODO
+        pass
+
+    def test_using_last_in_10_blocks_block_free_block_already_exists(self):
+        """
+        Also done at the model level; if free class block already exists, a
+        new one is not created
+        Check correct messages shown in content
+        """
+        # TODO
+        pass
+
+    def test_email_errors_when_sending_confirmation(self):
+        # TODO
+        pass
+
+    def test_cancel_booking_for_full_event_emails_waiting_list(self):
+        # TODO
+        pass
+
+    def test_email_errors_when_sending_waiting_list_email(self):
+        # TODO
+        pass
+
 
 class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
@@ -1035,3 +1105,12 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
                 kwargs={'user_id': self.user.id}
             )
         )
+
+    def test_delete_block(self):
+        # TODO
+        pass
+
+    def test_submitting_with_form_errors_shows_messages(self):
+        # TODO (add new block with incorrect date format)
+        pass
+

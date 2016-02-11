@@ -32,7 +32,7 @@ def format_cancellation(value):
     if value <= 24:
         return "{} hour{}".format(value, plural_format(value))
     elif weeks == 0 and hours == 0:
-        return "{} day".format(days)
+        return "{} day{}".format(days, plural_format(days))
     elif days == 0 and hours == 0:
         return "{} week{}".format(weeks, plural_format(weeks))
     else:

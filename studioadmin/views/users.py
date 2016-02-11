@@ -304,7 +304,8 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                                 except Exception as e:
                                                     # send mail to tech support with Exception
                                                     send_support_email(
-                                                        e, __name__, "Automatic cancel job - waiting list email"
+                                                        e, __name__,
+                                                        "Studioadmin user booking list - waiting list email"
                                                     )
 
                                     if action == 'created' or action == 'reopened':
@@ -332,9 +333,6 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                                 'to a 10 class block; free class '
                                                 'block has been created.'
                                              )
-                    else:
-                        for error in form.errors:
-                            messages.error(request, mark_safe("{}".format(error)))
 
                     userbookingformset.save(commit=False)
 
@@ -353,7 +351,10 @@ def user_bookings_view(request, user_id, booking_status='future'):
                 mark_safe(
                     "There were errors in the following fields:\n{}".format(
                         '\n'.join(
-                            ["{}".format(error) for error in userbookingformset.errors]
+                            [
+                                "{}".format(error)
+                                for error in userbookingformset.errors
+                            ]
                         )
                     )
                 )
@@ -454,8 +455,7 @@ def user_blocks_view(request, user_id):
                                     request.user.username
                                 )
                             )
-                    for error in form.errors:
-                        messages.error(request, mark_safe("{}".format(error)))
+
                 userblockformset.save(commit=False)
 
             return HttpResponseRedirect(

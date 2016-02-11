@@ -1,6 +1,7 @@
 from importlib import import_module
 from model_mommy import mommy
 
+from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.test import RequestFactory
@@ -39,7 +40,9 @@ class TestSetupMixin(object):
     def setUpTestData(cls):
         set_up_fb()
         cls.factory = RequestFactory()
-        cls.user = mommy.make_recipe('booking.user')
+        cls.user = User.objects.create_user(
+            username='test', email='test@test.com', password='test'
+        )
 
 
 def format_content(content):
