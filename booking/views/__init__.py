@@ -1,8 +1,8 @@
 from django.shortcuts import render
 
 from booking.views.event_views import EventDetailView, EventListView
-from booking.views.booking_views import already_cancelled, BookingCreateView, \
-    BookingDeleteView, \
+from booking.views.booking_views import already_cancelled, already_paid, \
+    BookingCreateView, BookingDeleteView, \
     BookingHistoryListView, BookingListView, BookingUpdateView, \
     duplicate_booking, update_booking_cancelled, fully_booked, \
     has_active_block, cancellation_period_past
@@ -14,7 +14,7 @@ from booking.views.ticketed_views import TicketBookingListView, \
 
 
 __all__ = [
-    'already_cancelled',
+    'already_cancelled', 'already_paid',
     'EventListView', 'EventDetailView', 'BookingListView',
     'BookingHistoryListView', 'BookingCreateView', 'BookingUpdateView',
     'BookingDeleteView', 'duplicate_booking', 'update_booking_cancelled',

@@ -412,7 +412,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
                     cancellation_warning = "Note that if payment " \
                         "has not been received {}, " \
-                        "your booking will be atically cancelled.".format(
+                        "your booking will be automatically cancelled.".format(
                             cancel_str
                         )
                 extra_msg = 'Please make your payment as soon as possible. ' \
@@ -461,7 +461,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
     success_message = 'Booking updated for {}!'
     fields = ['paid']
 
-    def get(self, request, *args, **kwargs):
+    def dispatch(self, request, *args, **kwargs):
         # redirect if event cancelled
         booking = get_object_or_404(Booking, id=self.kwargs['pk'])
         if booking.event.cancelled:
@@ -472,7 +472,13 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
             return HttpResponseRedirect(reverse('booking:update_booking_cancelled',
                                         args=[booking.id]))
 
-        return super(BookingUpdateView, self).get(request, *args, **kwargs)
+        # redirect if booking already paid so we don't create duplicate
+        # paypal booking transactions and allow duplicate payment
+        if booking.paid:
+            return HttpResponseRedirect(reverse('booking:already_paid',
+                                        args=[booking.id]))
+
+        return super(BookingUpdateView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -872,3 +878,8 @@ def already_cancelled(request, pk):
     context = {'booking': booking}
     return render(request, 'booking/already_cancelled.html', context)
 
+
+def already_paid(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    context = {'booking': booking}
+    return render(request, 'booking/already_paid.html', context)

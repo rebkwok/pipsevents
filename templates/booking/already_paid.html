@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+    <h2>Payment options for {{ booking.event }}</h2>
+        <h4>This booking has already been paid.</h4>
+        <h4><a href="{% url 'booking:bookings' %}">Your bookings</a></h4>
+</div>
+
+{% endblock content %}

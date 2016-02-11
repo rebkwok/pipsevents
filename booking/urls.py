@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
-from booking.views import already_cancelled, EventListView, EventDetailView, \
-    BookingListView, \
+from booking.views import already_cancelled, already_paid, \
+    EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockDeleteView, \
     BlockListView, TicketBookingListView, \
@@ -19,6 +19,8 @@ urlpatterns = [
     url(r'^booking/update/(?P<pk>\d+)/cancelled/$',
         update_booking_cancelled,
         name='update_booking_cancelled'),
+    url(r'^booking/update/(?P<pk>\d+)/paid/$',
+        already_paid, name='already_paid'),
     url(r'^booking/cancel/(?P<pk>\d+)/$', BookingDeleteView.as_view(),
         name='delete_booking'),
     url(r'^booking/cancel/(?P<pk>\d+)/already_cancelled/$',

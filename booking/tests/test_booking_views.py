@@ -338,6 +338,34 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self._post_response(self.user, event)
         self.assertEqual(Booking.objects.all().count(), 1)
 
+    def test_cancellation_messages(self):
+        """
+        Test creating a booking creates correct cancellation messages
+
+        event with cost and advance_payment_required and allow_booking_cancellation:
+         - by payment due date
+         - within payment allowed time
+         - by cancellation period
+
+         if cost but not adv payment require or not cancellation allowed
+         - just show "pay asap" message
+
+        """
+        event = mommy.make_recipe(
+            'booking.future_EV', max_participants=3, cost=10
+        )
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self.assertTrue(
+            self.client.login(username=self.user.username, password='test')
+        )
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        resp = self.client.post(
+            url, {'book_one_off': 'book_one_off', 'event': event.id},
+            follow=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 1)
+        # TODO
+
     def test_create_booking_sends_email(self):
         """
         Test creating a booking sends email to user only by default
@@ -998,6 +1026,18 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
 
+    def test_create_booking_uses_last_of_10_class_blocks(self):
+        # TODO
+        pass
+
+    def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
+        # TODO
+        pass
+
+    def test_booking_uses_last_of_10_blocks_free_block_already_exists(self):
+        # TODO
+        pass
+
 
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
@@ -1338,6 +1378,24 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
+    def test_cancelling_sends_email_to_user_and_studio_if_applicable(self):
+        """ emails are always sent to user; only sent to studio if previously
+        direct paid
+        """
+        # TODO
+        pass
+
+    def test_errors_sending_emails(self):
+        # TODO
+        pass
+
+    def test_cancelling_full_event_sends_waiting_list_emails(self):
+        # TODO
+        pass
+
+    def test_errors_sending_waiting_list_emails(self):
+        # TODO
+        pass
 
 class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
@@ -1364,6 +1422,51 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
         view = BookingUpdateView.as_view()
         return view(request, pk=booking.id)
+
+    def test_can_get_page_for_open_booking(self):
+        event = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=False
+        )
+        resp = self._get_response(self.user, booking)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_cannot_get_page_for_paid_booking(self):
+        event = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=True
+        )
+        resp = self._get_response(self.user, booking)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url, reverse('booking:already_paid', args=[booking.pk])
+        )
+
+    def test_cannot_post_for_paid_booking(self):
+        """
+        Make sure we can't post to a paid booking to change it to block paid
+        when already direct paid
+        """
+        event = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=True
+        )
+        resp = self._post_response(self.user, booking, {'block_book': 'yes'})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url, reverse('booking:already_paid', args=[booking.pk])
+        )
+
+    def test_pay_with_block_uses_last_of_10(self):
+        # TODO
+        pass
+
+    def test_pay_with_block_uses_last_of_10_free_block_already_exists(self):
+        # TODO
+        pass
 
     def test_update_event_booking_to_paid(self):
         """
@@ -1493,13 +1596,14 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertTrue(booking.payment_confirmed)
 
         # change start dates so block1 now has the earlier expiry date
+        booking.block = None
         booking.paid = False
         booking.payment_confirmed = False
         booking.save()
         block2.start_date = datetime(2015, 1, 3, tzinfo=timezone.utc)
         block2.save()
-        self._post_response(self.user, booking, form_data)
 
+        self._post_response(self.user, booking, form_data)
         booking.refresh_from_db()
         self.assertEqual(booking.block, block1)
         self.assertTrue(booking.paid)
