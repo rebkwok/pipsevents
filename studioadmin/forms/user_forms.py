@@ -264,7 +264,9 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                                     'Add another block for this user or confirm ' \
                                     'payment was made directly.'.format(event)
                         form.add_error('block', error_msg)
-            if block and free_class:
+
+            if block and free_class and \
+                            block.block_type.identifier != 'free class':
                 error_msg = '"Free class" cannot be assigned to a block.'
                 form.add_error('free_class', error_msg)
 

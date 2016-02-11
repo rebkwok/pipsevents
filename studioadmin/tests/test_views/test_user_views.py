@@ -1,6 +1,8 @@
 from datetime import timedelta
+from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase
@@ -8,7 +10,7 @@ from django.contrib.auth.models import User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from booking.models import Booking, Block
+from booking.models import Booking, Block, EventType, WaitingListUser
 from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     UserListView,
@@ -922,24 +924,132 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_can_assign_free_class_to_free_class_block(self):
-        # TODO
-        pass
+        event1 = mommy.make_recipe(
+            'booking.future_PC',
+            event_type__subtype='Pole level class'
+        )
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=event1.event_type, identifier='free class'
+        )
+        free_block = mommy.make_recipe(
+            'booking.block', block_type=free_blocktype,
+            user=self.user
+        )
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event1.id,
+                'bookings-2-status': 'OPEN',
+                'bookings-2-block': free_block.id,
+                'bookings-2-free_class': True
+            }
+        )
+        self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        bookings = Booking.objects.filter(event=event1)
+        self.assertEqual(len(bookings), 1)
 
     def test_reopen_cancelled_booking(self):
-        # TODO
-        pass
+        booking = self.future_user_bookings[0]
+        booking.status = 'CANCELLED'
+        booking.paid = False
+        booking.payment_confirmed = False
+        booking.save()
+        self.assertEqual(booking.status, 'CANCELLED')
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+        form_data = self.formset_data(
+            {
+                'bookings-0-status': 'OPEN'
+            }
+        )
+        self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'OPEN')
+        # payment status not changed unless specifically updated in form
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
 
     def test_remove_block_from_booking(self):
-        # TODO
-        pass
+        booking = self.future_user_bookings[0]
+        block = mommy.make_recipe(
+            'booking.block_5', user=booking.user,
+            block_type__event_type=booking.event.event_type
+        )
+        booking.block = block
+        booking.save()
+        self.assertEqual(booking.block, block)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        form_data = self.formset_data(
+            {
+                'bookings-0-block': ''
+            }
+        )
+        self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.block, None)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
 
     def test_new_booking_uses_last_in_10_blocks_block(self):
         """
         Checking for and creating the free block is done at the model level;
         check this is triggered from the studioadmin user bookings changes too
         """
-        # TODO
-        pass
+        event_type = mommy.make(
+            EventType, event_type='CL', subtype='Pole level class'
+        )
+        mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=event_type, identifier='free class'
+        )
+
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=event_type, paid=True,
+            start_date=timezone.now()
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block, _quantity=9
+        )
+
+        self.assertEqual(Block.objects.count(), 1)
+
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event.id,
+                'bookings-2-status': 'OPEN',
+                'bookings-2-block': block.id,
+                'booking_status': 'OPEN'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:user_bookings_list',
+            kwargs={'user_id': self.user.id, 'booking_status': 'OPEN'}
+        )
+        resp = self.client.post(url, form_data, follow=True)
+
+        booking = Booking.objects.last()
+        self.assertEqual(booking.block, block)
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertTrue(block.children.exists())
+        self.assertIn(
+            'You have added the last booking to a 10 class block; '
+            'free class block has been created.',
+            format_content(resp.rendered_content)
+        )
 
     def test_using_last_in_10_blocks_block_free_block_already_exists(self):
         """
@@ -947,20 +1057,226 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         new one is not created
         Check correct messages shown in content
         """
-        # TODO
-        pass
+        event_type = mommy.make(
+            EventType, event_type='CL', subtype='Pole level class'
+        )
+        free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=event_type, identifier='free class'
+        )
 
-    def test_email_errors_when_sending_confirmation(self):
-        # TODO
-        pass
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=event_type, paid=True,
+            start_date=timezone.now()
+        )
+        # make free block on this block
+        mommy.make(
+            Block, user=self.user, block_type=free_blocktype, parent=block
+        )
+
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block, _quantity=9
+        )
+
+        self.assertEqual(Block.objects.count(), 2)
+
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-2-event': event.id,
+                'bookings-2-status': 'OPEN',
+                'bookings-2-block': block.id,
+                'booking_status': 'OPEN'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:user_bookings_list',
+            kwargs={'user_id': self.user.id, 'booking_status': 'OPEN'}
+        )
+        resp = self.client.post(url, form_data, follow=True)
+
+        booking = Booking.objects.last()
+        self.assertEqual(booking.block, block)
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertTrue(block.children.exists())
+        self.assertNotIn(
+            'You have added the last booking to a 10 class block; '
+            'free class block has been created.',
+            format_content(resp.rendered_content)
+        )
+
+    @patch('studioadmin.views.users.send_mail')
+    def test_email_errors_when_sending_confirmation(self, mock_send_emails):
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        form_data = self.formset_data(
+            {
+                'bookings-0-status': 'CANCELLED',
+                'bookings-0-send_confirmation': 'on',
+            }
+        )
+        booking = self.future_user_bookings[0]
+        self.assertEqual(booking.status, 'OPEN')
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+
+        # email to support only
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        # email failed but changes still made
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
+
+    @patch('studioadmin.views.users.send_mail')
+    @patch('booking.email_helpers.send_mail')
+    def test_email_errors_when_sending_confirmation_and_support_mail(
+            self, mock_send_emails, mock_send_emails1
+    ):
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        mock_send_emails1.side_effect = Exception('Error sending mail')
+        form_data = self.formset_data(
+            {
+                'bookings-0-status': 'CANCELLED',
+                'bookings-0-send_confirmation': 'on',
+            }
+        )
+        booking = self.future_user_bookings[0]
+        self.assertEqual(booking.status, 'OPEN')
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+
+        # no email
+        self.assertEqual(len(mail.outbox), 0)
+        # email failed but changes still made
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
 
     def test_cancel_booking_for_full_event_emails_waiting_list(self):
-        # TODO
-        pass
+        event = mommy.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
+        )
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, status='OPEN')
 
-    def test_email_errors_when_sending_waiting_list_email(self):
-        # TODO
-        pass
+        # fill event and make a waiting list
+        mommy.make_recipe('booking.booking', event=event)
+        user1 = mommy.make_recipe('booking.user', email='test@test.com')
+        mommy.make(WaitingListUser, event=event, user=user1)
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'CANCELLED',
+            'bookings-0-paid': booking.paid,
+            }
+
+        resp = self._post_response(
+            self.staff_user, user.id, form_data=data
+        )
+
+        booking.refresh_from_db()
+        # booking now cancelled
+        self.assertEqual(booking.status, 'CANCELLED')
+
+        # waiting list emailed
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].bcc, ['test@test.com'])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event)
+        )
+        self.assertIn(
+            'A space has become available for {}'.format(event),
+            mail.outbox[0].body
+        )
+
+    @patch('studioadmin.views.users.send_waiting_list_email')
+    def test_email_errors_when_sending_waiting_list_email(self, mock_send):
+        mock_send.side_effect = Exception('Error sending mail')
+        event = mommy.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
+        )
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, status='OPEN')
+
+        # fill event and make a waiting list
+        mommy.make_recipe('booking.booking', event=event)
+        user1 = mommy.make_recipe('booking.user', email='test@test.com')
+        mommy.make(WaitingListUser, event=event, user=user1)
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'CANCELLED',
+            'bookings-0-paid': booking.paid,
+            }
+
+        resp = self._post_response(
+            self.staff_user, user.id, form_data=data
+        )
+
+        booking.refresh_from_db()
+        # booking now cancelled
+        self.assertEqual(booking.status, 'CANCELLED')
+
+        # email only sent to support
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (Studioadmin user booking list - waiting '
+            'list email)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
+        )
+
+    @patch('booking.email_helpers.send_mail')
+    @patch('studioadmin.views.users.send_waiting_list_email')
+    def test_email_errors_when_sending_waiting_list_email_and_support(
+            self, mock_send, mock_send_mail
+    ):
+        mock_send.side_effect = Exception('Error sending mail')
+        mock_send_mail.side_effect = Exception('Error sending mail')
+        event = mommy.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
+        )
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, status='OPEN')
+
+        # fill event and make a waiting list
+        mommy.make_recipe('booking.booking', event=event)
+        user1 = mommy.make_recipe('booking.user', email='test@test.com')
+        mommy.make(WaitingListUser, event=event, user=user1)
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'CANCELLED',
+            'bookings-0-paid': booking.paid,
+            }
+
+        resp = self._post_response(
+            self.staff_user, user.id, form_data=data
+        )
+
+        # no email sent
+        self.assertEqual(len(mail.outbox), 0)
+
+        booking.refresh_from_db()
+        # but changes still make
+        self.assertEqual(booking.status, 'CANCELLED')
 
 
 class UserBlocksViewTests(TestPermissionMixin, TestCase):
@@ -988,7 +1304,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             kwargs={'user_id': user_id}
         )
         session = _create_session()
-        request = self.factory.post(url, form_data)
+        request = self.factory.post(url, form_data, follow=True)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
@@ -1000,9 +1316,15 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         data = {
             'blocks-TOTAL_FORMS': 1,
             'blocks-INITIAL_FORMS': 1,
-            'blocks-0-id': self.block.id,
-            'blocks-0-block_type': self.block.block_type.id,
-            'blocks-0-start_date': self.block.start_date.strftime('%d/%m/%y')
+            'blocks-0-id': str(self.block.id),
+            'blocks-0-block_type': str(self.block.block_type.id),
+            'blocks-0-start_date': self.block.start_date.strftime(
+                '%Y-%m-%d %H:%M:%S'
+            ),
+            'initial-blocks-0-start_date': self.block.start_date.strftime(
+                '%Y-%m-%d %H:%M:%S'
+            ),
+            'blocks-0-paid': self.block.paid
             }
 
         for key, value in extra_data.items():
@@ -1095,7 +1417,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         test formset submitted unchanged redirects back to user block list
         """
         resp = self._post_response(
-            self.staff_user, self.user.id, form_data=self.formset_data()
+            self.staff_user, self.user.id, self.formset_data()
         )
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(
@@ -1107,10 +1429,33 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_delete_block(self):
-        # TODO
-        pass
+        self.assertFalse(self.block.paid)
+        self._post_response(
+            self.staff_user, self.user.id,
+            self.formset_data({'blocks-0-DELETE': True})
+        )
+        with self.assertRaises(Block.DoesNotExist):
+            Block.objects.get(id=self.block.id)
 
     def test_submitting_with_form_errors_shows_messages(self):
-        # TODO (add new block with incorrect date format)
-        pass
+        block_type = mommy.make_recipe('booking.blocktype')
+        self.assertEqual(Block.objects.count(), 1)
+        data = self.formset_data(
+            {
+                'blocks-TOTAL_FORMS': 2,
+                'blocks-1-block_type': block_type.id,
+                'blocks-1-start_date': '34 Jan 2023'
+            }
+        )
+        url = reverse(
+            'studioadmin:user_blocks_list',
+            kwargs={'user_id': self.user.id}
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url, data)
 
+        self.assertIn(
+            'There were errors in the following fields:start_date',
+            format_content(resp.rendered_content)
+        )
+        self.assertEqual(Block.objects.count(), 1)
