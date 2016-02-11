@@ -259,14 +259,27 @@ def payment_received(sender, **kwargs):
             # duplicate trans id, correct receiver email, valid secret (if using
             # encrypted), mc_gross, mc_currency, item_name and item_number are all
             # correct
-            paypal_trans.transaction_id = ipn_obj.txn_id
-            paypal_trans.save()
-
             if obj_type == 'booking':
                 obj.payment_confirmed = True
                 obj.date_payment_confirmed = timezone.now()
             obj.paid = True
             obj.save()
+
+            # do this AFTER saving the booking as paid; in the edge case that a
+            # user re-requests the page with the paypal button on it in between
+            # booking and the paypal transaction being saved, this prevents a
+            # second invoice number being generated
+            # SCENARIO 1 (how we did it before): paypal trans id saved first;
+            # user requests page when booking still marked as unpaid -->
+            # renders paypal button and generates new invoice # because
+            # retrieved paypal trans already has a txn_id stored against it.
+            # Paypal will allow the booking to be paid twice because the
+            # invoice number is different
+            # SCENARIO: booking saved first; user requests page when paypal
+            # trans not updated yet --> booking is marked as paid so doesn't
+            # render the paypal button at all
+            paypal_trans.transaction_id = ipn_obj.txn_id
+            paypal_trans.save()
 
             ActivityLog.objects.create(
                 log='{} id {} for user {} paid by PayPal; paypal '
