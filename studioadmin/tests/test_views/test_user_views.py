@@ -159,15 +159,22 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
         self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
         self.assertTrue(superuser.has_perm('booking.is_regular_student'))
-        self._get_response(
-            self.staff_user, {'change_user': [reg_student.id]}
+
+        self.client.login(
+            username=self.staff_user.username, password='test'
         )
+        self.client.get(
+            reverse('studioadmin:users'), {'change_user': [reg_student.id]}
+        )
+
         changed_student = User.objects.get(id=reg_student.id)
         self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
 
-        resp = self._get_response(
-            self.staff_user, {'change_user': [superuser.id]}
+        resp = self.client.get(
+            reverse('studioadmin:users'), {'change_user': [superuser.id]},
+            follow=True
         )
+
         # status hasn't changed
         self.assertTrue(superuser.has_perm('booking.is_regular_student'))
         self.assertIn(
@@ -214,6 +221,10 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
     def test_instructor_cannot_change_regular_student(self):
         reg_student = mommy.make_recipe('booking.user')
+        perm = Permission.objects.get(codename='is_regular_student')
+        reg_student.user_permissions.add(perm)
+        reg_student.save()
+
         resp = self._get_response(
             self.instructor_user, {'change_user': [reg_student.id]}
         )
