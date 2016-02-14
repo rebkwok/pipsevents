@@ -3,9 +3,9 @@ import logging
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Permission
-
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponseRedirect, get_object_or_404
@@ -20,7 +20,7 @@ from booking.models import Booking, Block, WaitingListUser, BookingError
 from booking.email_helpers import send_support_email, send_waiting_list_email
 
 from studioadmin.forms import BookingStatusFilter, UserBookingFormSet, \
-    UserBlockFormSet
+    UserBlockFormSet, UserListSearchForm
 
 from studioadmin.views.helpers import StaffUserMixin, \
     staff_required
@@ -35,7 +35,26 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = User
     template_name = 'studioadmin/user_list.html'
     context_object_name = 'users'
-    queryset = User.objects.all().order_by('first_name')
+
+    def get_queryset(self):
+
+        queryset = User.objects.all().order_by('first_name')
+
+        reset = self.request.GET.get('reset')
+        search_submitted = self.request.GET.get('search_submitted')
+        search_text = self.request.GET.get('search')
+
+        if reset or not search_text or (not reset and not search_submitted):
+            return queryset
+
+        if search_text:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_text) |
+                Q(last_name__icontains=search_text) |
+                Q(username__icontains=search_text)
+            )
+
+        return queryset
 
     def get(self, request, *args, **kwargs):
         if 'change_user' in self.request.GET:
@@ -101,6 +120,19 @@ class UserListView(LoginRequiredMixin, StaffUserMixin, ListView):
     def get_context_data(self):
         context = super(UserListView, self).get_context_data()
         context['sidenav_selection'] = 'users'
+
+        search_submitted =  self.request.GET.get('search_submitted')
+
+        search_text = self.request.GET.get('search', '')
+        reset = self.request.GET.get('reset')
+
+        if reset:
+            search_text = ''
+        form = UserListSearchForm(
+            initial={
+                'search': search_text})
+        context['form'] = form
+
         return context
 
 

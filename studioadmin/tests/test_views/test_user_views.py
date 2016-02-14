@@ -144,6 +144,36 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
+    def test_user_search(self):
+
+        mommy.make_recipe(
+            'booking.user', username='FooBar', first_name='Foo',
+            last_name='Bar'
+        )
+        mommy.make_recipe(
+            'booking.user', username='Testing1', first_name='Foo',
+            last_name='Bar'
+        )
+        mommy.make_recipe(
+            'booking.user', username='Testing2', first_name='Boo',
+            last_name='Bar'
+        )
+
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'Foo'})
+        self.assertEqual(len(resp.context_data['users']), 2)
+
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'FooBar'})
+        self.assertEqual(len(resp.context_data['users']), 1)
+
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'testing'})
+        self.assertEqual(len(resp.context_data['users']), 2)
+
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
 

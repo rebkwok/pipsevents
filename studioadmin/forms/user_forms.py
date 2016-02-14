@@ -382,3 +382,13 @@ UserBlockFormSet = inlineformset_factory(
     formset=UserBlockInlineFormSet,
     extra=1,
 )
+
+
+class UserListSearchForm(forms.Form):
+    search = forms.CharField(
+        widget=forms.TextInput(
+            attrs={
+                'placeholder': 'Single search term'
+            }
+        )
+    )
