@@ -32,8 +32,8 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
             log='cancel_unpaid_bookings job run; no bookings to cancel'
         )
         mommy.make(ActivityLog, log='Test log message')
-        mommy.make(ActivityLog, log='Test log message1')
-        mommy.make(ActivityLog, log='Test log message2')
+        mommy.make(ActivityLog, log='Test log message1 One')
+        mommy.make(ActivityLog, log='Test log message2 Two')
         mommy.make(
             ActivityLog,
             timestamp=datetime(2015, 1, 1, 16, 0, tzinfo=timezone.utc),
@@ -111,6 +111,12 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
             'search': 'message'})
         self.assertEqual(len(resp.context_data['logs']), 3)
 
+    def test_search_is_case_insensitive(self):
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'Message'})
+        self.assertEqual(len(resp.context_data['logs']), 3)
+
     def test_search_date(self):
         resp = self._get_response(
             self.staff_user, {
@@ -138,6 +144,25 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
                 'search_date': '01-Jan-2015',
                 'search': 'test date for search'}
         )
+        self.assertEqual(len(resp.context_data['logs']), 1)
+
+    def test_search_multiple_terms(self):
+        """
+        Search with multiple terms returns only logs that contain all terms
+        """
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'Message'})
+        self.assertEqual(len(resp.context_data['logs']), 3)
+
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'Message One'})
+        self.assertEqual(len(resp.context_data['logs']), 1)
+
+        resp = self._get_response(self.staff_user, {
+            'search_submitted': 'Search',
+            'search': 'test one'})
         self.assertEqual(len(resp.context_data['logs']), 1)
 
     def test_reset(self):
