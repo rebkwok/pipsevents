@@ -55,7 +55,15 @@
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
                             </tr>
                             {% endfor %}
+
                             </tbody>
+                            <tfoot>
+                            <tr class="success">
+                                <td {% if request.user.is_staff %}colspan="7"{% else %}colspan="6"{% endif %}>
+                                Showing {{ num_results }} of {{ total_users }} users
+                                </td>
+                            </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
