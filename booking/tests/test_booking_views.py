@@ -310,7 +310,6 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
-        mommy.make(PrintDisclaimer, user=cls.user)
         cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _post_response(self, user, event, form_data={}):
@@ -1720,7 +1719,6 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
-        mommy.make(PrintDisclaimer, user=cls.user)
         cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, booking):
