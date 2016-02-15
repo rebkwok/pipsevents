@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 
 from django.conf import settings
@@ -122,16 +124,14 @@ class TicketedEventAdminListView(
                                     )
                             form.save()
 
-                        for error in form.errors:
-                            messages.error(
-                                request, mark_safe("{}".format(error))
-                            )
                     ticketed_event_formset.save()
                 return HttpResponseRedirect(
                     reverse('studioadmin:ticketed_events')
                 )
 
-            else:
+            else:  # pragma: no cover
+                # only boolean fields on form, won't get any form errors, but
+                # leave this in in case we have different fields later
                 messages.error(
                     request,
                     mark_safe(
@@ -380,10 +380,6 @@ class TicketedEventBookingsListView(
                                         ))
                                     )
 
-                        for error in form.errors:
-                            messages.error(
-                                request, mark_safe("{}".format(error))
-                            )
                 return HttpResponseRedirect(
                     reverse(
                         'studioadmin:ticketed_event_bookings',
@@ -391,7 +387,9 @@ class TicketedEventBookingsListView(
                     )
                 )
 
-            else:
+            else:  # pragma: no cover
+                # only boolean fields on form, won't get any form errors, but
+                # leave this in in case we have different fields later
                 messages.error(
                     request,
                     mark_safe(

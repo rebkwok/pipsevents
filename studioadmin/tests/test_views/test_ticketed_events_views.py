@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import pytz
 
 from datetime import datetime, timedelta
@@ -15,9 +17,7 @@ from django.utils import timezone
 
 from activitylog.models import ActivityLog
 from booking.models import TicketedEvent, TicketBooking, Ticket
-from booking.tests.helpers import set_up_fb, _create_session, setup_view
-
-from studioadmin.forms import SimpleBookingRegisterFormSet
+from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     ConfirmTicketBookingRefundView,
     TicketedEventAdminCreateView, TicketedEventAdminListView,
@@ -186,11 +186,33 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             'form-0-advance_payment_required': False,
             'formset_submitted': 'Save changes'
             })
-        resp = self._post_response(self.staff_user, formset_data)
+        self._post_response(self.staff_user, formset_data)
         self.ticketed_event.refresh_from_db()
         self.assertFalse(self.ticketed_event.show_on_site)
         self.assertFalse(self.ticketed_event.payment_open)
         self.assertFalse(self.ticketed_event.advance_payment_required)
+
+    def test_save_with_no_changes(self):
+        formset_data = self.formset_data(
+            {
+                'form-0-payment_open': self.ticketed_event.payment_open,
+                'form-0-advance_payment_required':
+                    self.ticketed_event.advance_payment_required,
+                'form-0-show_on_site': self.ticketed_event.show_on_site,
+                'formset_submitted': 'Save changes'
+            }
+        )
+        self.assertTrue(self.client.login(
+            username=self.staff_user.username, password='test')
+        )
+        resp = self.client.post(
+            reverse('studioadmin:ticketed_events'),
+            formset_data,
+            follow=True
+        )
+        self.assertIn(
+            'No changes were made', format_content(resp.rendered_content)
+        )
 
 
 class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
@@ -199,7 +221,9 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         super(TicketedEventAdminUpdateViewTests, self).setUp()
         self.ticketed_event = mommy.make_recipe(
             'booking.ticketed_event_max10',
-            date=timezone.now() + timedelta(2)
+            date=timezone.now().replace(
+                second=0, microsecond=0
+            ) + timedelta(2)
         )
         self.past_ticketed_event = mommy.make_recipe(
             'booking.ticketed_event_max10',
@@ -289,6 +313,41 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(
             self.ticketed_event.contact_email, "test@test.com"
+        )
+
+    def test_submit_form_without_changes(self):
+        self.ticketed_event.payment_time_allowed = 8
+        self.ticketed_event.save()
+        url = reverse(
+            'studioadmin:edit_ticketed_event',
+            kwargs={'slug': self.ticketed_event.slug}
+        )
+
+        form_data = self.form_data(
+            {
+                'id': self.ticketed_event.id,
+                'description': self.ticketed_event.description,
+                'max_tickets': self.ticketed_event.max_tickets,
+                'payment_open': self.ticketed_event.payment_open,
+                'advance_payment_required':
+                    self.ticketed_event.advance_payment_required,
+                'payment_info': self.ticketed_event.payment_info,
+                'payment_time_allowed':
+                    self.ticketed_event.payment_time_allowed,
+                'email_studio_when_purchased':
+                    self.ticketed_event.email_studio_when_purchased,
+                'show_on_site': self.ticketed_event.show_on_site,
+                'cancelled': self.ticketed_event.cancelled
+            }
+        )
+        self.assertTrue(self.client.login(
+            username=self.staff_user.username, password='test')
+        )
+        resp = self.client.post(
+            url, form_data, follow=True
+        )
+        self.assertIn(
+            'No changes made', format_content(resp.rendered_content)
         )
 
     def test_side_nav_selection_in_context(self):
@@ -534,6 +593,57 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         )
         self.ticket_booking.refresh_from_db()
         self.assertTrue(self.ticket_booking.paid)
+
+    def test_submit_form_without_changes(self):
+
+        url = reverse(
+            'studioadmin:ticketed_event_bookings',
+            kwargs={'slug': self.ticketed_event.slug}
+        )
+        data = self.formset_data(
+            {
+                'ticket_bookings-0-paid': self.ticket_booking.paid,
+                'formset_submitted': 'Save changes'
+            }
+        )
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.post(url, data, follow=True)
+
+        self.assertIn(
+            'No changes were made', format_content(resp.rendered_content)
+        )
+
+
+    def test_submit_form_without_changes_send_confirmation_ticked(self):
+
+        url = reverse(
+            'studioadmin:ticketed_event_bookings',
+            kwargs={'slug': self.ticketed_event.slug}
+        )
+        data = self.formset_data(
+            {
+                'ticket_bookings-0-paid': self.ticket_booking.paid,
+                'ticket_bookings-0-send_confirmation': True,
+                'formset_submitted': 'Save changes'
+            }
+        )
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.post(url, data, follow=True)
+
+        self.assertIn(
+            "&#39;Send confirmation&#39; checked for &#39;{}&#39; but no "
+            "changes were made; email has not been sent to user.".format(
+                self.ticket_booking.booking_reference),
+            format_content(resp.rendered_content)
+        )
 
     def test_cancel_booking(self):
         self.assertFalse(self.ticket_booking.cancelled)

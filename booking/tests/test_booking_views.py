@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from mock import Mock, patch
 from model_mommy import mommy
 
@@ -12,12 +12,13 @@ from django.contrib.auth.models import Permission, User
 
 from activitylog.models import ActivityLog
 
-from booking.models import Event, EventType, Booking, Block
+from booking.models import Event, EventType, Booking, Block, WaitingListUser
 from booking.views import BookingListView, BookingHistoryListView, \
     BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
-from booking.tests.helpers import _create_session, TestSetupMixin
+from booking.tests.helpers import _create_session, TestSetupMixin, \
+    format_content
 
 from payments.helpers import create_booking_paypal_transaction
 
@@ -298,6 +299,17 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
 
 class BookingCreateViewTests(TestSetupMixin, TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        super(BookingCreateViewTests, cls).setUpTestData()
+        cls.pole_class_event_type = mommy.make(
+            EventType, event_type='CL', subtype='Pole level class'
+        )
+        cls.free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=cls.pole_class_event_type, identifier='free class'
+        )
+
     def _post_response(self, user, event, form_data={}):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
         store = _create_session()
@@ -352,7 +364,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         """
         event = mommy.make_recipe(
-            'booking.future_EV', max_participants=3, cost=10
+            'booking.future_EV', max_participants=3, cost=10,
         )
         self.assertEqual(Booking.objects.all().count(), 0)
         self.assertTrue(
@@ -364,7 +376,101 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             follow=True
         )
         self.assertEqual(Booking.objects.all().count(), 1)
-        # TODO
+        # event has cancellation period
+        self.assertIn(
+            'Please make your payment as soon as possible. Note that if '
+            'payment has not been received by the cancellation period, your '
+            'booking will be automatically cancelled.',
+            format_content(resp.rendered_content)
+        )
+
+        Booking.objects.all().delete()
+        # add event payment due date
+        event.payment_due_date = timezone.now() + timedelta(3)
+        event.save()
+        resp = self.client.post(
+            url, {'book_one_off': 'book_one_off', 'event': event.id},
+            follow=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertIn(
+            'Please make your payment as soon as possible. Note that if '
+            'payment has not been received by the payment due date, your '
+            'booking will be automatically cancelled.',
+            format_content(resp.rendered_content)
+        )
+
+        Booking.objects.all().delete()
+        # if there are both payment due date and payment time allowed, payment
+        # due date takes precedence
+        event.payment_time_allowed = 8
+        event.save()
+        resp = self.client.post(
+            url, {'book_one_off': 'book_one_off', 'event': event.id},
+            follow=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertIn(
+            'Please make your payment as soon as possible. Note that if '
+            'payment has not been received by the payment due date, your '
+            'booking will be automatically cancelled.',
+            format_content(resp.rendered_content)
+        )
+
+        Booking.objects.all().delete()
+        event.payment_due_date = None
+        event.save()
+        resp = self.client.post(
+            url, {'book_one_off': 'book_one_off', 'event': event.id},
+            follow=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertIn(
+            'Please make your payment as soon as possible. Note that if '
+            'payment has not been received within 8 hours, your '
+            'booking will be automatically cancelled.',
+            format_content(resp.rendered_content)
+        )
+
+        Booking.objects.all().delete()
+        # make advance payment not required
+        event.advance_payment_required = False
+        # payment due date automatically sets advance payment required to True
+        event.payment_time_allowed = None
+        event.save()
+        self.assertFalse(event.advance_payment_required)
+        resp = self.client.post(
+            url, {'book_one_off': 'book_one_off', 'event': event.id},
+            follow=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertIn(
+            'Please make your payment as soon as possible.',
+            format_content(resp.rendered_content)
+        )
+        self.assertNotIn(
+            'Note that if payment has not been received',
+            format_content(resp.rendered_content)
+        )
+
+        Booking.objects.all().delete()
+        # make cancellation not allowed
+        event.advance_payment_required = True
+        event.allow_booking_cancellation = False
+        event.save()
+        resp = self.client.post(
+            url, {'book_one_off': 'book_one_off', 'event': event.id},
+            follow=True
+        )
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertIn(
+            'Please make your payment as soon as possible.',
+            format_content(resp.rendered_content)
+        )
+        self.assertNotIn(
+            'Note that if payment has not been received',
+            format_content(resp.rendered_content)
+        )
 
     def test_create_booking_sends_email(self):
         """
@@ -786,13 +892,22 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         Test that only pole classes and pole practice can be requested as
         free by users with permission
         """
-        pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
-        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        rh_event_type = mommy.make_recipe('booking.event_type_RH', subtype="Room hire")
+        pp_event_type = mommy.make_recipe(
+            'booking.event_type_OC', subtype="Pole practice"
+        )
+        rh_event_type = mommy.make_recipe(
+            'booking.event_type_RH', subtype="Room hire"
+        )
 
-        pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
-        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
-        room_hire = mommy.make_recipe('booking.future_RH', event_type=rh_event_type)
+        pole_class = mommy.make_recipe(
+            'booking.future_PC', event_type=self.pole_class_event_type
+        )
+        pole_practice = mommy.make_recipe(
+            'booking.future_CL', event_type=pp_event_type
+        )
+        room_hire = mommy.make_recipe(
+            'booking.future_RH', event_type=rh_event_type
+        )
 
         perm = Permission.objects.get(codename='is_regular_student')
         self.user.user_permissions.add(perm)
@@ -829,11 +944,16 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         Test that pole classes and pole practice can be requested as free if
         user has 'can_request_free_class' permission
         """
-        pc_event_type = mommy.make_recipe('booking.event_type_PC', subtype="Pole level class")
-        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pp_event_type = mommy.make_recipe(
+            'booking.event_type_OC', subtype="Pole practice"
+        )
 
-        pole_class = mommy.make_recipe('booking.future_PC', event_type=pc_event_type)
-        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        pole_class = mommy.make_recipe(
+            'booking.future_PC', event_type=self.pole_class_event_type
+                                       )
+        pole_practice = mommy.make_recipe(
+            'booking.future_CL', event_type=pp_event_type
+        )
 
         user = mommy.make_recipe('booking.user')
         perm = Permission.objects.get(codename='can_request_free_class')
@@ -946,26 +1066,21 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         should always be created after the original block)
         """
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
-        ev_type = mommy.make(
-            EventType, event_type='CL', subtype="Pole level class"
-        )
 
-        event = mommy.make_recipe('booking.future_PC', event_type=ev_type)
+        event = mommy.make_recipe(
+            'booking.future_PC', event_type=self.pole_class_event_type
+        )
 
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
-        )
-        free_blocktype = mommy.make_recipe(
-            'booking.blocktype', size=1, cost=0,
-            event_type=ev_type, identifier='free class'
+            event_type=self.pole_class_event_type, identifier='standard'
         )
 
         block = mommy.make_recipe(
             'booking.block', user=self.user, block_type=blocktype, paid=True
         )
         free_block = mommy.make_recipe(
-            'booking.block', user=self.user, block_type=free_blocktype,
+            'booking.block', user=self.user, block_type=self.free_blocktype,
             paid=True, parent=block
         )
 
@@ -1027,16 +1142,72 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertFalse(booking.payment_confirmed)
 
     def test_create_booking_uses_last_of_10_class_blocks(self):
-        # TODO
-        pass
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        event = mommy.make_recipe(
+            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
+        )
 
-    def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
-        # TODO
-        pass
+        mommy.make_recipe(
+            'booking.booking', block=block, user=self.user, _quantity=9
+        )
+
+        self.assertEqual(Block.objects.count(), 1)
+        self._post_response(self.user, event, {'block_book': 'yes'})
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertEqual(Block.objects.last().block_type, self.free_blocktype)
 
     def test_booking_uses_last_of_10_blocks_free_block_already_exists(self):
-        # TODO
-        pass
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        event = mommy.make_recipe(
+            'booking.future_EV', cost=10, event_type=self.pole_class_event_type
+        )
+
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=self.free_blocktype,
+            paid=True, parent=block
+        )
+
+        mommy.make_recipe(
+            'booking.booking', block=block, user=self.user, _quantity=9
+        )
+        self.assertEqual(Block.objects.count(), 2)
+        self._post_response(self.user, event, {'block_book': 'yes'})
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 2)
+
+    def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
+        block = mommy.make_recipe(
+            'booking.block_5', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        event = mommy.make_recipe(
+            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
+        )
+
+        mommy.make_recipe(
+            'booking.booking', block=block, user=self.user, _quantity=4
+        )
+
+        self.assertEqual(Block.objects.count(), 1)
+        self._post_response(self.user, event, {'block_book': 'yes'})
+
+        self.assertEqual(block.bookings.count(), 5)
+        self.assertTrue(block.full)
+        # 5 class blocks do not qualify for free classes, no free class block
+        # created
+        self.assertEqual(Block.objects.count(), 1)
 
 
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
@@ -1382,22 +1553,156 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         """ emails are always sent to user; only sent to studio if previously
         direct paid
         """
-        # TODO
-        pass
+        event_with_cost = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event_with_cost,
+        )
+        self._delete_response(self.user, booking)
+        # only 1 email sent for cancelled unpaid booking
+        self.assertEqual(len(mail.outbox), 1)
+        user_mail = mail.outbox[0]
+        self.assertEqual(user_mail.to, [self.user.email])
 
-    def test_errors_sending_emails(self):
-        # TODO
-        pass
+        booking.status = 'OPEN'
+        booking.block = mommy.make_recipe('booking.block_5')
+        booking.save()
+        self._delete_response(self.user, booking)
+        # only 1 email sent for cancelled booking paid with block
+        self.assertEqual(len(mail.outbox), 2)
+        user_mail = mail.outbox[1]
+        self.assertEqual(user_mail.to, [self.user.email])
+
+        booking.refresh_from_db()
+        booking.status = 'OPEN'
+        booking.confirm_space()
+        booking.save()
+        self._delete_response(self.user, booking)
+        # 2 emails sent this time for direct paid booking
+        self.assertEqual(len(mail.outbox), 4)
+        user_mail = mail.outbox[2]
+        studio_mail = mail.outbox[3]
+        self.assertEqual(user_mail.to, [self.user.email])
+        self.assertEqual(studio_mail.to, [settings.DEFAULT_STUDIO_EMAIL])
+
+    @patch('booking.views.booking_views.send_mail')
+    def test_errors_sending_emails(self, mock_send_emails):
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        event = mommy.make_recipe(
+            'booking.future_EV', cost=10, max_participants=3
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event,
+        )
+
+        self._delete_response(self.user, booking)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! '
+            '(DeleteBookingView - cancelled email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
 
     def test_cancelling_full_event_sends_waiting_list_emails(self):
-        # TODO
-        pass
+        event = mommy.make_recipe(
+            'booking.future_EV', cost=10, max_participants=3
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event,
+        )
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        wluser = mommy.make(
+            WaitingListUser, event=event, user__email='wl@test.com'
+        )
 
-    def test_errors_sending_waiting_list_emails(self):
-        # TODO
-        pass
+        self._delete_response(self.user, booking)
+        self.assertEqual(len(mail.outbox), 2)
+        user_mail = mail.outbox[0]
+        waiting_list_mail = mail.outbox[1]
+        self.assertEqual(user_mail.to, [self.user.email])
+        self.assertEqual(waiting_list_mail.bcc, [wluser.user.email])
+
+    @patch('booking.views.booking_views.send_mail')
+    @patch('booking.views.booking_views.send_waiting_list_email')
+    def test_errors_sending_waiting_list_emails(
+            self, mock_send_wl_emails, mock_send_emails):
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        mock_send_wl_emails.side_effect = Exception('Error sending mail')
+        event = mommy.make_recipe(
+            'booking.future_EV', cost=10, max_participants=3
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event,
+        )
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        mommy.make(
+            WaitingListUser, event=event, user__email='wl@test.com'
+        )
+
+        self._delete_response(self.user, booking)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! '
+            '(DeleteBookingView - cancelled email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        self.assertEqual(mail.outbox[1].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[1].subject,
+            '{} An error occurred! '
+            '(DeleteBookingView - waiting list email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
+
+    @patch('booking.views.booking_views.send_mail')
+    @patch('booking.views.booking_views.send_waiting_list_email')
+    @patch('booking.email_helpers.send_mail')
+    def test_errors_sending_all_emails(
+            self, mock_send, mock_send_wl_emails, mock_send_emails):
+        mock_send.side_effect = Exception('Error sending mail')
+        mock_send_emails.side_effect = Exception('Error sending mail')
+        mock_send_wl_emails.side_effect = Exception('Error sending mail')
+        event = mommy.make_recipe(
+            'booking.future_EV', cost=10, max_participants=3
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event,
+        )
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        mommy.make(
+            WaitingListUser, event=event, user__email='wl@test.com'
+        )
+
+        self._delete_response(self.user, booking)
+        self.assertEqual(len(mail.outbox), 0)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
+
 
 class BookingUpdateViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super(BookingUpdateViewTests, cls).setUpTestData()
+        cls.pole_class_event_type = mommy.make(
+            EventType, event_type='CL', subtype='Pole level class'
+        )
+        cls.free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=cls.pole_class_event_type, identifier='free class'
+        )
 
     def _get_response(self, user, booking):
         url = reverse('booking:update_booking', args=[booking.id])
@@ -1461,12 +1766,59 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_pay_with_block_uses_last_of_10(self):
-        # TODO
-        pass
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        event = mommy.make_recipe(
+            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
+        )
+
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=False
+        )
+
+        mommy.make_recipe(
+            'booking.booking', block=block, user=self.user, _quantity=9
+        )
+
+        self.assertEqual(Block.objects.count(), 1)
+        resp = self._post_response(self.user, booking, {'block_book': 'yes'})
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertEqual(Block.objects.last().block_type, self.free_blocktype)
 
     def test_pay_with_block_uses_last_of_10_free_block_already_exists(self):
-        # TODO
-        pass
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        event = mommy.make_recipe(
+            'booking.future_EV', cost=10, event_type=self.pole_class_event_type
+        )
+
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=False
+        )
+
+        mommy.make_recipe(
+            'booking.block', user=self.user, block_type=self.free_blocktype,
+            paid=True, parent=block
+        )
+
+        mommy.make_recipe(
+            'booking.booking', block=block, user=self.user, _quantity=9
+        )
+        self.assertEqual(Block.objects.count(), 2)
+        self._post_response(self.user, booking, {'block_book': 'yes'})
+
+        self.assertEqual(block.bookings.count(), 10)
+        self.assertEqual(Block.objects.count(), 2)
 
     def test_update_event_booking_to_paid(self):
         """
@@ -1475,11 +1827,11 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         event = mommy.make_recipe('booking.future_EV', cost=10)
         booking = mommy.make_recipe(
             'booking.booking', user=self.user, event=event, paid=False)
-        block = mommy.make_recipe('booking.block',
+        mommy.make_recipe('booking.block',
                                   block_type__event_type=event.event_type,
                                   user=self.user, paid=True)
         form_data = {'block_book': 'yes'}
-        resp = self._post_response(self.user, booking, form_data)
+        self._post_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)
 
@@ -1490,11 +1842,11 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         poleclass = mommy.make_recipe('booking.future_PC', cost=10)
         booking = mommy.make_recipe(
             'booking.booking', user=self.user, event=poleclass, paid=False)
-        block = mommy.make_recipe('booking.block',
+        mommy.make_recipe('booking.block',
                                   block_type__event_type=poleclass.event_type,
                                   user=self.user, paid=True)
         form_data = {'block_book': 'yes'}
-        resp = self._post_response(self.user, booking, form_data)
+        self._post_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)
 
@@ -1505,11 +1857,11 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         roomhire = mommy.make_recipe('booking.future_RH', cost=10)
         booking = mommy.make_recipe(
             'booking.booking', user=self.user, event=roomhire, paid=False)
-        block = mommy.make_recipe('booking.block',
+        mommy.make_recipe('booking.block',
                                   block_type__event_type=roomhire.event_type,
                                   user=self.user, paid=True)
         form_data = {'block_book': 'yes'}
-        resp = self._post_response(self.user, booking, form_data)
+        self._post_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)
 
@@ -1526,7 +1878,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings.count(), 1)
 
         form_data = {'claim_free': True}
-        resp = self._post_response(self.user, booking, form_data)
+        self._post_response(self.user, booking, form_data)
         bookings = Booking.objects.filter(user=self.user)
         self.assertEqual(bookings.count(), 1)
 

@@ -177,10 +177,14 @@ class TicketedEventAdminForm(forms.ModelForm):
                 date = datetime.strptime(self.data['date'], '%d %b %Y %H:%M')
                 uk = pytz.timezone('Europe/London')
                 cleaned_data['date'] = uk.localize(date).astimezone(pytz.utc)
+                if cleaned_data['date'] == self.initial.get('date') and \
+                            'date' in self.changed_data:
+                    self.changed_data.remove('date')
             except ValueError:
                 self.add_error('date', 'Invalid date format.  Select from the '
                                        'date picker or enter date and time in the '
                                        'format dd Mmm YYYY HH:MM')
+
 
         payment_due_date = self.data.get('payment_due_date')
         if payment_due_date:

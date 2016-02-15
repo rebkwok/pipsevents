@@ -174,6 +174,13 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'search': 'testing'})
         self.assertEqual(len(resp.context_data['users']), 2)
 
+        self.assertEqual(User.objects.count(), 6)
+        resp = self._get_response(self.staff_user, {
+            'search': 'Foo',
+            'reset': 'Reset'
+        })
+        self.assertEqual(len(resp.context_data['users']), 6)
+
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
 

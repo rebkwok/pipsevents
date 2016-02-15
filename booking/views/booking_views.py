@@ -418,7 +418,8 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         elif not booking.block.active_block():
             extra_msg = 'You have just used the last space in your block. '
             if booking.block.children.exists() and not has_free_block_pre_save:
-                extra_msg += '</br><span style="color: #9A2EFE;"><strong>You have qualified for a extra free ' \
+                extra_msg += '</br><span style="color: #9A2EFE;">' \
+                             '<strong>You have qualified for a extra free ' \
                              'class which has been added to ' \
                              '<a href="/blocks">your blocks</a></strong><span>  '
             else:
@@ -448,7 +449,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
 
         if "book_one_off" in form.data and booking.event.cost:
             return HttpResponseRedirect(
-                reverse( 'booking:update_booking', args=[booking.id])
+                reverse('booking:update_booking', args=[booking.id])
             )
         return HttpResponseRedirect(reverse('booking:bookings'))
 
@@ -521,13 +522,7 @@ class BookingUpdateView(LoginRequiredMixin, UpdateView):
         if booking.block and booking.block.children.exists():
             has_free_block_pre_save = True
 
-        try:
-            booking.save()
-        except BookingError:
-            return HttpResponseRedirect(
-                reverse('booking:fully_booked',
-                    args=[booking.event.slug])
-            )
+        booking.save()
 
         blocks_used, total_blocks = _get_block_status(booking)
 
