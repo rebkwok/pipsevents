@@ -208,6 +208,19 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.disclaimer.refresh_from_db()
         self.assertIsNotNone(self.disclaimer.date_updated)
 
+    def test_update_dislaimer(self):
+        self.assertIsNone(self.disclaimer.home_phone)  # null by default
+        encoded_user_id = int_str(chaffify(self.user.id))
+        update_url = reverse(
+            'studioadmin:update_user_disclaimer', args=[encoded_user_id]
+        )
+        resp = self._post_response(
+            update_url, DisclaimerUpdateView, self.staff_user, encoded_user_id,
+            self.post_data
+        )
+        self.disclaimer.refresh_from_db()
+        self.assertEqual(self.disclaimer.home_phone, '123445')
+
     def test_delete_disclaimer(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         encoded_user_id = int_str(chaffify(self.user.id))
