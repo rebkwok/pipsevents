@@ -54,18 +54,15 @@ class DisclaimerUpdateView(StaffUserMixin, UpdateView):
     def form_valid(self, form):
         changed = form.changed_data
         if 'dob' in form.changed_data:
-            old_disc = OnlineDisclaimer.objects.get(id=form.instance.id)
-            if old_disc.dob == form.instance.dob:
+            if self.object.dob == form.instance.dob:
                 changed.remove('dob')
         if 'password' in form.changed_data:
              changed.remove('password')
 
         if changed:
             disclaimer = form.save(commit=False)
-
             password = form.cleaned_data['password']
             if disclaimer.user.check_password(password):
-                disclaimer.user = self.request.user
                 disclaimer.date_updated = timezone.now()
                 disclaimer.save()
                 messages.success(
