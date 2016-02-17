@@ -139,7 +139,10 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
         bookingformlist = []
         for booking in self.object_list:
-            bookingform = {'booking': booking}
+            bookingform = {
+                'booking': booking,
+                'ev_type': booking.event.event_type.event_type
+            }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
         return context
