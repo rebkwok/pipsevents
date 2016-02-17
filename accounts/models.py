@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import pytz
 
@@ -36,24 +38,27 @@ def has_readonly_fields(original_class):
 
 
 
-DISCLAIMER_TERMS = '''
-    I recognise that I may be asked to participate in some strenuous exercise
-    during the course and that such participation may present a heightened
-    risk of injury or ill health. All risks will be fully explained and I do
-    NOT hold The Watermelon Studio and any of their staff
-    responsible for any harm that may come to me should I decide to participate
-    in such tasks. I knowingly assume all risks associated with participation,
-    even if arising from negligence of the participants or others and assume
-    full responsibility for my participation. I certify that I am in good
-    physical condition can participate in the courses offered by The
-    Watermelon Studio. I will not participate if pregnant and will update my
-    teacher on any new medical condition/injury throughout my time at The
-    Watermelon Studio.  I will not participate under the influence of drugs
-    or alcohol. Other teachers/instructors may use the information submitted
-    in this form to help keep the chances of any injury to a minimum. I also
-    hereby agree to follow all rules set out by The Watermelon Studio.  I
-    have read and agree to the terms and conditions on the website.
-'''
+DISCLAIMER_TERMS = "I recognise that I may be asked to participate in some " \
+                   "strenuous exercise during the course and that such " \
+                   "participation may present a heightened risk of injury or " \
+                   "ill health. All risks will be fully explained and I do " \
+                   "NOT hold The Watermelon Studio and any of their staff " \
+                   "responsible for any harm that may come to me should I " \
+                   "decide to participate in such tasks. I knowingly assume " \
+                   "all risks associated with participation, even if arising " \
+                   "from negligence of the participants or others and assume " \
+                   "full responsibility for my participation. I certify that " \
+                   "I am in good physical condition can participate in the " \
+                   "courses offered by The Watermelon Studio. I will not " \
+                   "participate if pregnant and will update my teacher on " \
+                   "any new medical condition/injury throughout my time at " \
+                   "The Watermelon Studio.  I will not participate under the " \
+                   "influence of drugs or alcohol. Other teachers/instructors " \
+                   "may use the information submitted in this form to help " \
+                   "keep the chances of any injury to a minimum. I also " \
+                   "hereby agree to follow all rules set out by The " \
+                   "Watermelon Studio.  I have read and agree to the terms " \
+                   "and conditions on the website."
 
 OVER_18_TERMS = "I confirm that I am aged 18 or over"
 

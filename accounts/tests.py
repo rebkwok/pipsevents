@@ -570,7 +570,7 @@ class ExportDisclaimersTests(TestCase):
         self.assertFalse(os.path.exists(bu_file))
         management.call_command('export_disclaimers')
         self.assertTrue(os.path.exists(bu_file))
-        os.remove(bu_file)
+        os.unlink(bu_file)
 
     def test_export_disclaimers_writes_correct_number_of_rows(self):
         bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers_bu.csv')
@@ -580,11 +580,42 @@ class ExportDisclaimersTests(TestCase):
             reader = csv.reader(exported)
             rows = list(reader)
         self.assertEqual(len(rows), 11)  # 10 records plus header row
-        os.remove(bu_file)
+        os.unlink(bu_file)
 
     def test_export_disclaimers_with_filename_argument(self):
         bu_file = os.path.join(settings.LOG_FOLDER, 'test_file.csv')
         self.assertFalse(os.path.exists(bu_file))
         management.call_command('export_disclaimers', file=bu_file)
         self.assertTrue(os.path.exists(bu_file))
-        os.remove(bu_file)
+        os.unlink(bu_file)
+
+
+@override_settings(LOG_FOLDER=os.path.dirname(__file__))
+class ExportEncryptedDisclaimersTests(TestCase):
+
+    def setUp(self):
+        mommy.make(OnlineDisclaimer, _quantity=10)
+
+    def test_export_disclaimers_creates_default_bu_file(self):
+        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
+        self.assertFalse(os.path.exists(bu_file))
+        management.call_command('export_encrypted_disclaimers')
+        self.assertTrue(os.path.exists(bu_file))
+        os.unlink(bu_file)
+
+    def test_export_disclaimers_sends_email(self):
+        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
+        management.call_command('export_encrypted_disclaimers')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+        os.unlink(bu_file)
+
+    def test_export_disclaimers_with_filename_argument(self):
+        bu_file = os.path.join(settings.LOG_FOLDER, 'test_file.txt')
+        self.assertFalse(os.path.exists(bu_file))
+        management.call_command('export_encrypted_disclaimers', file=bu_file)
+        self.assertTrue(os.path.exists(bu_file))
+        os.unlink(bu_file)
