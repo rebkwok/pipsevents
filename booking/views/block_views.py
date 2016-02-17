@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 
 from django.db.models import Q
@@ -97,6 +98,18 @@ class BlockListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
+
+        try:
+            self.request.user.online_disclaimer
+            context['disclaimer'] = True
+        except ObjectDoesNotExist:
+            pass
+
+        try:
+            self.request.user.print_disclaimer
+            context['disclaimer'] = True
+        except ObjectDoesNotExist:
+            pass
 
         types_available_to_book = context_helpers.\
             get_blocktypes_available_to_book(self.request.user)

@@ -22,5 +22,5 @@ class DisclaimerRequiredMixin(object):
             pass
 
         if not disclaimer:
-            return HttpResponseRedirect(reverse('booking:permission_denied'))
+            return HttpResponseRedirect(reverse('booking:disclaimer_required'))
         return super(DisclaimerRequiredMixin, self).dispatch(request, *args, **kwargs)

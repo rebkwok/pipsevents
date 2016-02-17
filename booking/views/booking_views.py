@@ -871,3 +871,7 @@ def already_paid(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
     context = {'booking': booking}
     return render(request, 'booking/already_paid.html', context)
+
+
+def disclaimer_required(request):
+    return render(request, 'booking/disclaimer_required.html')

@@ -339,11 +339,11 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
         resp = self._get_response(self.user_no_disclaimer, event)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
         resp = self._post_response(self.user_no_disclaimer, event)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
         resp = self._get_response(self.user, event)
         self.assertEqual(resp.status_code, 200)
@@ -1176,7 +1176,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.last().block_type, self.free_blocktype)
+        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
 
     def test_booking_uses_last_of_10_blocks_free_block_already_exists(self):
         block = mommy.make_recipe(
@@ -1806,7 +1806,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.last().block_type, self.free_blocktype)
+        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
 
     def test_pay_with_block_uses_last_of_10_free_block_already_exists(self):
         block = mommy.make_recipe(
@@ -1843,12 +1843,12 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=self.user_no_disclaimer, event=event, paid=False)
         resp = self._get_response(self.user_no_disclaimer, booking)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
         form_data = {'block_book': 'yes'}
         resp = self._post_response(self.user_no_disclaimer, booking, form_data)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
     def test_update_event_booking_to_paid(self):
         """
