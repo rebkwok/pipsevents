@@ -66,9 +66,9 @@ class Command(BaseCommand):
                 wr.writerow([
                     smart_str(obj.pk),
                     smart_str(obj.user),
-                    smart_str(obj.date.strftime('%Y-%m-%d %H:%M:%S %z')),
+                    smart_str(obj.date.strftime('%Y-%m-%d %H:%M:%S:%f %z')),
                     smart_str(obj.date_updated.strftime(
-                        '%Y-%m-%d %H:%M:%S %z') if obj.date_updated else ''
+                        '%Y-%m-%d %H:%M:%S:%f %z') if obj.date_updated else ''
                     ),
                     smart_str(obj.name),
                     smart_str(obj.dob.strftime('%Y-%m-%d')),
