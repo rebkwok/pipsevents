@@ -732,7 +732,7 @@ background-color: lightgrey;
 }
 
 .custom-input {
-    width: 80;
+    width: 80px;
 }
 
 tr > td.table-center.register-index {
@@ -758,30 +758,30 @@ a > span.fa.fa-print {
 }
 
 .form-group {
-    margin-bottom: 5;
+    margin-bottom: 5px;
 }
 
 .form-group.cbox {
-    margin-top: 10;
-    margin-bottom: 10;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .input-group > .studioadmin-list {
-    height: 25 !important;
-    border-radius: 45 !important;
+    height: 25px; !important;
+    border-radius: 45px; !important;
 }
 
 .input-group-addon {
-    height: 25 !important;
-    padding: 2 5 0 5 !important;
+    height: 25px; !important;
+    padding: 2px 5px 0px 5px; !important;
 }
 
 .studioadmin-tbl {
-    padding-top: 5 !important;
-    padding-bottom: 5 !important;
+    padding-top: 5px; !important;
+    padding-bottom: 5px; !important;
     white-space: nowrap;
     font-size: small;
-	vertical-align: middle !important;
+	vertical-align: middle; !important;
 
 }
 
