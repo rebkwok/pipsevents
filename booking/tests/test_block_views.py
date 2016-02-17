@@ -43,7 +43,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         block_type = mommy.make_recipe('booking.blocktype5')
         resp = self._get_response(self.user_no_disclaimer)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
         resp = self._get_response(self.user)
         self.assertEqual(resp.status_code, 200)
@@ -51,7 +51,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         form_data={'block_type': block_type}
         resp = self._post_response(self.user_no_disclaimer, form_data)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
     def test_create_block(self):
         """
