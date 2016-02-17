@@ -9,7 +9,7 @@ django-debug-toolbar==1.4
 django-environ==0.3.0
 django-extensions==1.6.1
 django-paypal==0.2.7
-django-suit==0.2.15
+django-suit==0.2.16
 dj-static==0.0.6
 psycopg2==2.5.4
 python-dateutil==2.4.0
