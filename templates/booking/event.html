@@ -90,7 +90,9 @@
                         {% else %}
                             <h5>{{ booking_info_text_cancelled }}</br>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
-                                    <a href="{% url 'booking:book_event' event.slug %}">
+                                    <a {% if not disclaimer %}class='disabled'{% endif %}
+                                       {% if not event.booking_open and not unbookable_pole_practice %}class='disabled'{% endif %}
+                                       href="{% url 'booking:book_event' event.slug %}">
                                         <div id='book_button' class="btn btn-success table-btn {% if not disclaimer %}disabled{% endif %}">
                                         {% if cancelled %}Rebook{% else %}Book{% endif %}</div></a>
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
