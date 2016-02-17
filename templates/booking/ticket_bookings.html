@@ -9,10 +9,10 @@
         <h1>Your past ticket bookings</h1>
     {% else %}
         <h1>Your ticket bookings</h1>
-        <p>Please note that ticket bookings are final once paid.</p>
     {% endif %}
 
     {% if ticketbookinglist %}
+    <p>Please note that ticket bookings are final once paid.</p>
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-success">
@@ -64,9 +64,9 @@
     </div>
     {% else %}
         {% if history %}
-            <p>You do not have any past class or event bookings.</p>
+            <p>You do not have any past ticket bookings.</p>
         {% else %}
-            <p>You are not booked into any upcoming classes or events.</p>
+            <p>You do not have any ticket bookings.</p>
         {% endif %}
     {% endif %}
 
