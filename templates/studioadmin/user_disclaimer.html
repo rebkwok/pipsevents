@@ -51,14 +51,14 @@
     <div class="divider"></div>
 
     <h4>EMERGENCY MEDICAL TREATMENT</h4>
-    {% if disclaimer.medical_treatment_permission %}<p><strong>{{ disclaimer.medical_treatment_terms }}</strong>{% endif %}
+    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer.medical_treatment_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
     <div class="divider"></div>
 
     <h4>DISCLAIMER</h4>
-     {% if disclaimer.terms_accepted %}<p><strong>{{ disclaimer.disclaimer_terms }}</strong>{% endif %}
+     {% if disclaimer.terms_accepted %}<p>{{ disclaimer.disclaimer_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
-     {% if disclaimer.age_over_18_confirmed %}<p><strong>{{ disclaimer.over_18_statement }}</strong>{% endif %}
+     {% if disclaimer.age_over_18_confirmed %}<p>{{ disclaimer.over_18_statement }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
     <div class="divider"></div>
     <h4>DISCLAIMER COMPLETED ONLINE: {{ disclaimer.date }}</h4>

@@ -137,7 +137,7 @@ class OnlineDisclaimer(models.Model):
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M'))
 
-    def save(self):
+    def save(self, **kwargs):
         if not self.id:
             self.disclaimer_terms = DISCLAIMER_TERMS
             self.over_18_statement = OVER_18_TERMS
