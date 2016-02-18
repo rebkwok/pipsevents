@@ -1,9 +1,8 @@
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.utils import IntegrityError
 from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
