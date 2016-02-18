@@ -256,7 +256,7 @@
 
        <div class="form-group">
            <div class="col-xs-12 vspace {% if form.password.errors %}ticket-error{% endif %}">
-                <label class="control-label">{{ form.password.label }}{% if form.password.field.required %}*{% endif %}</label>
+                <label class="control-label">{{ form.password.label|safe }}{% if form.password.field.required %}*{% endif %}</label>
                 <div class="col-xs-12 {% if form.password.errors %}ticket-error{% endif %}">
                     {{ form.password }} {% if form.password.errors %}{{ form.password.errors }}{% endif %}
                 </div>
