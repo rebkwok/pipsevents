@@ -184,6 +184,7 @@ class DisclaimerForm(forms.ModelForm):
         dob = self.data.get('dob', None)
         if dob and self.errors.get('dob'):
             del self.errors['dob']
+        if dob:
             try:
                 dob = datetime.strptime(dob, '%d %b %Y').date()
                 self.cleaned_data['dob'] = dob

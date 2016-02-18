@@ -54,7 +54,8 @@ class DisclaimerUpdateView(StaffUserMixin, UpdateView):
     def form_valid(self, form):
         changed = form.changed_data
         if 'dob' in form.changed_data:
-            if self.object.dob == form.instance.dob:
+            old = OnlineDisclaimer.objects.get(id=self.object.id)
+            if old.dob == form.instance.dob:
                 changed.remove('dob')
         if 'password' in form.changed_data:
              changed.remove('password')
