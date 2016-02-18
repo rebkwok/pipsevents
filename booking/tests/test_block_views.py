@@ -14,6 +14,11 @@ from booking.tests.helpers import _create_session, setup_view, TestSetupMixin
 
 class BlockCreateViewTests(TestSetupMixin, TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        super(BlockCreateViewTests, cls).setUpTestData()
+        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
+
     def _set_session(self, user, request):
         request.session = _create_session()
         request.user = user
@@ -33,6 +38,20 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         self._set_session(user, request)
         view = BlockCreateView.as_view()
         return view(request)
+
+    def test_cannot_create_block_if_no_disclaimer(self):
+        block_type = mommy.make_recipe('booking.blocktype5')
+        resp = self._get_response(self.user_no_disclaimer)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
+
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 200)
+
+        form_data={'block_type': block_type}
+        resp = self._post_response(self.user_no_disclaimer, form_data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
     def test_create_block(self):
         """

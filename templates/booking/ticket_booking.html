@@ -16,7 +16,7 @@
                 <h4>Booking reference: {{ ticket_booking.booking_reference }}</h4>
 
             {% if tickets %}
-                <form method="post" class="form-horizontal dirty-check" action="">
+                <form class="dirty-check" method="post" class="form-horizontal" action="">
                     {% csrf_token %}
                     {{ ticket_formset.management_form }}
                         <div>

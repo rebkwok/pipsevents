@@ -4,15 +4,24 @@ from django.contrib import admin
 from django.views.generic import RedirectView
 from django.conf.urls.static import static
 
-from accounts.views import CustomLoginView
+from accounts.views import CustomLoginView, DisclaimerCreateView, \
+    data_protection
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^studioadmin/',
         include('studioadmin.urls', namespace='studioadmin')),
     url(r'^', include('booking.urls', namespace='booking')),
+    url(
+        r'^data-protection-statement/$', data_protection,
+        name='data_protection'
+    ),
     url(r'^accounts/profile/', include('accounts.urls', namespace='profile')),
     url(r'^accounts/login/$', CustomLoginView.as_view(), name='login'),
+    url(
+        r'^accounts/disclaimer/$', DisclaimerCreateView.as_view(),
+        name='disclaimer_form'
+    ),
     url(r'^accounts/', include('allauth.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),

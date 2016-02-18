@@ -1,0 +1,28 @@
+{% load socialaccount %}
+{% load accounttags %}
+
+{% get_providers as socialaccount_providers %}
+{% modify_redirect_field_value redirect_field_value as modified_redirect_value %}
+
+{% for provider in socialaccount_providers %}
+{% if provider.id == "openid" %}
+{% for brand in provider.get_brands %}
+<div class="socialaccount_providers" style="list-style-type: none;">
+<li>
+  <a title="{{brand.name}}" 
+     class="socialaccount_provider {{provider.id}} {{brand.id}} btn btn-primary"
+     href="{% provider_login_url provider.id openid=brand.openid_url process=process next=modified_redirect_value %}"
+     >{{brand.name}}</a>
+</li>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="socialaccount_providers" style="list-style-type: none;">
+<li>
+  <a title="{{provider.name}}" class="socialaccount_provider {{provider.id}} btn btn-primary"
+     href="{% provider_login_url provider.id process=process scope=scope auth_params=auth_params next=modified_redirect_value %}">{{provider.name}}</a>
+</li>
+</div>
+{% endfor %}
+

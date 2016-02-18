@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h2>Permission Denied</h2>
+        <h4>I'm sorry, you must have a completed online disclaimer in order
+            to perform the requested action.</h4>
+
+        <h4>Please <a href="{% url 'disclaimer_form' %}">submit a disclaimer form</a> and try again.</h4>
+
+</div>
+
+{% endblock content %}

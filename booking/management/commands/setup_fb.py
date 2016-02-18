@@ -13,9 +13,9 @@ class Command(BaseCommand):
         site.name = "pipsevents"
         site.save()
 
-        sapp, _ = SocialApp.objects.get_or_create(name="pipsevents - ngrok",
+        sapp, _ = SocialApp.objects.get_or_create(name="pipsevents",
                                         provider="facebook",
-                                        client_id="1560403877546152",
-                                        secret="4fb3cdeae13dbc705f38f6db2e80da83")
+                                        client_id="1533696243550249",
+                                        secret="996856479afb90aa366265c7e7c9858f")
         sapp.save()
         sapp.sites.add(1)

@@ -91,6 +91,17 @@ jQuery(document).ready(function () {
         scrollInput: false,
     });
 
+    jQuery('#dobdatepicker').datetimepicker({
+        format:'DD MMM YYYY',
+        formatTime:'HH:mm',
+        timepicker: false,
+        defaultDate: '1990/01/01',
+        closeOnDateSelect: true,
+        scrollMonth: false,
+        scrollTime: false,
+        scrollInput: false,
+    });
+
     //http://digitalbush.com/projects/masked-input-plugin/
     jQuery('#timemask').mask("99:99", {placeholder: "HH:MM"});
 

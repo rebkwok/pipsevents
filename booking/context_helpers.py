@@ -5,12 +5,28 @@ import pytz
 
 from datetime import timedelta
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from booking.models import Block, BlockType, Booking, WaitingListUser
 
 def get_event_context(context, event, user):
+
+    disclaimer = False
+    try:
+        user.online_disclaimer
+        disclaimer = True
+    except ObjectDoesNotExist:
+        pass
+
+    try:
+        user.print_disclaimer
+        disclaimer = True
+    except ObjectDoesNotExist:
+        pass
+
+    context['disclaimer'] = disclaimer
 
     if event.event_type.event_type == 'CL':
         context['type'] = "lesson"
@@ -61,6 +77,12 @@ def get_event_context(context, event, user):
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
         context['booked'] = True
+    elif not disclaimer:
+        booking_info_text = "<strong>Please complete a <a href='{}' " \
+                            "target=_blank>disclaimer form</a> before " \
+                            "booking.</strong>".format(
+                                reverse('disclaimer_form')
+                            )
     elif event.event_type.subtype == "Pole practice" \
         and not user.has_perm("booking.is_regular_student"):
         context['bookable'] = False

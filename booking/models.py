@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import pytz
 import shortuuid
@@ -353,7 +355,7 @@ class Booking(models.Model):
         permissions = (
             ("can_request_free_class", "Can request free class and pole practice"),
             ("is_regular_student", "Is regular student"),
-            ("can_view_registers", "Can view registers")
+            ("can_view_registers", "Can view registers"),
         )
 
     def __str__(self):
@@ -688,3 +690,4 @@ class Ticket(models.Model):
                     )
                 )
         super(Ticket, self).save(*args, **kwargs)
+

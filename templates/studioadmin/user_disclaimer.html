@@ -1,0 +1,70 @@
+{% extends "studioadmin/print_base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+    <div>
+        <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
+        {% if request.user.is_staff %}
+            <a class='no-print' href="{% url 'studioadmin:update_user_disclaimer' encoded_user_id %}"><div class="btn btn-info">Update</div></a>
+            <a class='no-print' href="{% url 'studioadmin:delete_user_disclaimer' encoded_user_id %}"><div class="btn btn-danger">Delete</div></a>
+        {% endif %}
+    </div>
+
+
+    <div class="disclaimer">
+    <h1>Disclaimer for {{ disclaimer.user.first_name }} {{ disclaimer.user.last_name }} ({{ disclaimer.user.username }})</h1>
+
+    <div class="divider"></div>
+
+    <h4>Personal Details</h4>
+    <strong>Full name as provided on disclaimer form: </strong>{{ disclaimer.name }}<br/>
+    <strong>DOB: </strong>{{ disclaimer.dob }}<br/>
+    <strong>Address: </strong>{{ disclaimer.address }}<br/>
+    <strong>Home phone: </strong>{{ disclaimer.home_phone }}<br/>
+    <strong>Mobile: </strong>{{ disclaimer.mobile_phone }}<br/>
+
+    <div class="divider"></div>
+
+    <h4>Emergency Contact 1</h4>
+    <strong>Name: </strong>{{ disclaimer.emergency_contact1_name }}<br/>
+    <strong>Relationship: </strong>{{ disclaimer.emergency_contact1_relationship }}<br/>
+    <strong>Contact number: </strong>{{ disclaimer.emergency_contact1_phone }}<br/>
+
+    <h4>Emergency Contact 2</h4>
+    <strong>Name: </strong>{{ disclaimer.emergency_contact2_name }}<br/>
+    <strong>Relationship: </strong>{{ disclaimer.emergency_contact2_relationship }}<br/>
+    <strong>Contact number: </strong>{{ disclaimer.emergency_contact2_phone }}<br/>
+
+    <div class="divider"></div>
+
+    <h4>Medical Information</h4>
+    <strong>{% get_verbose_field_name disclaimer "medical_conditions" %} </strong>{{ disclaimer.medical_conditions|yesno|title }}<br/>
+    {% if disclaimer.medical_conditions %}<strong>Details: </strong>{{ disclaimer.medical_conditions_details }}<br/>{% endif %}
+    <strong>{% get_verbose_field_name disclaimer "allergies" %} </strong>{{ disclaimer.allergies|yesno|title }}<br/>
+    {% if disclaimer.allergies %}<strong>Details: </strong>{{ disclaimer.allergies_details }}<br/>{% endif %}
+    <strong>{% get_verbose_field_name disclaimer "joint_problems" %} </strong>{{ disclaimer.joint_problems|yesno|title }}<br/>
+    {% if disclaimer.joint_problems %}<strong>Details: </strong>{{ disclaimer.joint_problems_details }}<br/>{% endif %}
+
+    <div class="divider"></div>
+
+    <h4>EMERGENCY MEDICAL TREATMENT</h4>
+    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer.medical_treatment_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+
+    <div class="divider"></div>
+
+    <h4>DISCLAIMER</h4>
+     {% if disclaimer.terms_accepted %}<p>{{ disclaimer.disclaimer_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+
+     {% if disclaimer.age_over_18_confirmed %}<p>{{ disclaimer.over_18_statement }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+
+    <div class="divider"></div>
+    <h4>DISCLAIMER COMPLETED ONLINE: {{ disclaimer.date }}</h4>
+    <h4>LAST UPDATED: {% if disclaimer.date_updated %}{{ disclaimer.date_updated }}{% else %}N/A{% endif %}</h4>
+
+    </div>
+
+</div>
+{% endblock studioadmincontent %}

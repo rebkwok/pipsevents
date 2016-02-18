@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.contrib.auth.models import Permission, User
 
 from activitylog.models import ActivityLog
+from accounts.models import PrintDisclaimer
 
 from booking.models import Event, EventType, Booking, Block, WaitingListUser
 from booking.views import BookingListView, BookingHistoryListView, \
@@ -309,6 +310,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
+        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _post_response(self, user, event, form_data={}):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
@@ -332,6 +334,19 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         request._messages = messages
         view = BookingCreateView.as_view()
         return view(request, event_slug=event.slug)
+
+    def test_cannot_access_if_no_disclaimer(self):
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        resp = self._get_response(self.user_no_disclaimer, event)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
+
+        resp = self._post_response(self.user_no_disclaimer, event)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
+
+        resp = self._get_response(self.user, event)
+        self.assertEqual(resp.status_code, 200)
 
     def test_get_create_booking_page(self):
         """
@@ -956,6 +971,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
 
         user = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user)
         perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
@@ -1160,7 +1176,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.last().block_type, self.free_blocktype)
+        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
 
     def test_booking_uses_last_of_10_blocks_free_block_already_exists(self):
         block = mommy.make_recipe(
@@ -1703,6 +1719,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
+        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, booking):
         url = reverse('booking:update_booking', args=[booking.id])
@@ -1789,7 +1806,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.last().block_type, self.free_blocktype)
+        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
 
     def test_pay_with_block_uses_last_of_10_free_block_already_exists(self):
         block = mommy.make_recipe(
@@ -1819,6 +1836,19 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
+
+    def test_cannot_access_if_no_disclaimer(self):
+        event = mommy.make_recipe('booking.future_EV', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user_no_disclaimer, event=event, paid=False)
+        resp = self._get_response(self.user_no_disclaimer, booking)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
+
+        form_data = {'block_book': 'yes'}
+        resp = self._post_response(self.user_no_disclaimer, booking, form_data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
     def test_update_event_booking_to_paid(self):
         """

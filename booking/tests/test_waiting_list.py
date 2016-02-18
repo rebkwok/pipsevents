@@ -1,16 +1,16 @@
 from model_mommy import mommy
-
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.contrib.messages.storage.fallback import FallbackStorage
+
+from accounts.models import PrintDisclaimer
 
 from booking.models import Booking, WaitingListUser
 from booking.views import BookingListView, BookingCreateView, \
     BookingDeleteView, BookingUpdateView, update_booking_cancelled, \
     EventListView, EventDetailView
 from booking.tests.helpers import _create_session, TestSetupMixin
-
 from studioadmin.tests.test_views import TestPermissionMixin
 from studioadmin.views import user_bookings_view
 

@@ -139,11 +139,11 @@ class BookingTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        mommy.make_recipe('booking.user', _quantity=15)
-        cls.users = User.objects.all()
         cls.event = mommy.make_recipe('booking.future_EV', max_participants=20)
 
     def setUp(self):
+        mommy.make_recipe('booking.user', _quantity=15)
+        self.users = User.objects.all()
         self.event_with_cost = mommy.make_recipe('booking.future_EV',
                                                  advance_payment_required=True,
                                                  cost=10)

@@ -12,7 +12,7 @@
             <div class="panel-body">
                 {% if booking.event.cost != 0 %}
                     {% if booking.event.payment_open %}
-                        <h4>Buy with PayPal</h4>
+                        <h4>Pay with PayPal</h4>
                         <p>Click below to be transferred to paypal to make your payment.</p>
                         {% include 'payments/payment.html' %}
 
@@ -35,12 +35,11 @@
                         <span class="hide">{{ form.paid  }}</span>
                         <div>
                         {% if active_user_block %}
-                        <h4>Book with Block</h4>
-                            <p>You have an active block; would you like to use your block for this booking?</p>
-                            <p>If you choose to use your active block booking, your booking will be confirmed immediately.</p>
+                        <h4>Pay with Block</h4>
+                            <p>You have an active block; would you like to use your block to pay for this booking?</p>
                             <input class="btn btn-success update-btn" type="submit" name="block_book" value="Use my block" />
                         {% elif blocktype_available %}
-                         <h4>Book with Block</h4>
+                         <h4>Pay with Block</h4>
                             <p>Block booking is available for this class.  Click below to buy a new block.
                                 Once your block is paid, you can return to this page and use your block to pay for this booking.</p>
                             <a class="btn btn-success update-btn" href="{% url 'booking:add_block' %}">Buy a block</a>

@@ -3,6 +3,8 @@ from django.views.generic import RedirectView
 from studioadmin.views import (ConfirmRefundView,
                                ConfirmTicketBookingRefundView,
                                ConfirmPaymentView,
+                               DisclaimerDeleteView,
+                               DisclaimerUpdateView,
                                EventAdminUpdateView,
                                EventAdminCreateView,
                                EventRegisterListView,
@@ -27,7 +29,8 @@ from studioadmin.views import (ConfirmRefundView,
                                email_users_view,
                                event_waiting_list_view,
                                cancel_ticketed_event_view,
-                               print_tickets_list
+                               print_tickets_list,
+                               user_disclaimer
                                )
 
 
@@ -89,6 +92,15 @@ urlpatterns = [
         r'^users/(?P<user_id>\d+)/blocks/$',
         user_blocks_view, name='user_blocks_list'
     ),
+    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/$',
+        user_disclaimer,
+        name='user_disclaimer'),
+    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/update/$',
+        DisclaimerUpdateView.as_view(),
+        name='update_user_disclaimer'),
+    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/delete/$',
+        DisclaimerDeleteView.as_view(),
+        name='delete_user_disclaimer'),
     url(
         r'activitylog/$', ActivityLogListView.as_view(), name='activitylog'
     ),

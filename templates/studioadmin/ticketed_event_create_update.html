@@ -32,7 +32,7 @@
                 <form class="form-horizontal dirty-check" method="post" action="">
                     {% csrf_token %}
 
-                    <div class="form-group-sm col-sm-11">
+                    <div class="form-group-sm col-sm-12">
 
                         <div class="form-group">
                             <label class="control-label col-sm-3">{% if form.name.field.required %}*{% endif %}{{ form.name.label }}</label>
@@ -181,8 +181,9 @@
                             <button type="submit" class="btn btn-success">Save</button>
                         </div>
                     </div>
+                </div>
                 </form>
-            </div>
+
 
         </div>
     </div>

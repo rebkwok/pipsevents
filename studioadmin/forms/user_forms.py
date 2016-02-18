@@ -237,7 +237,6 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                             'unpaid'.format(event)
                 form.add_error('paid', error_msg)
 
-
             elif block and event and status == 'OPEN':
                 if not block_tracker.get(block.id):
                     block_tracker[block.id] = 0

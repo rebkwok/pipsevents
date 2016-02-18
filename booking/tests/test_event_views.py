@@ -11,6 +11,8 @@ from django.test import TestCase, RequestFactory, override_settings
 from django.contrib.auth.models import Permission
 from django.utils import timezone
 
+from accounts.models import PrintDisclaimer
+
 from booking.models import Event, Booking
 from booking.views import EventListView, EventDetailView
 from booking.tests.helpers import TestSetupMixin
@@ -133,6 +135,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, 'lessons')
         response.render()
@@ -150,7 +153,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
-
+        mommy.make(PrintDisclaimer, user=user)
+        
         response = self._get_response(user, 'lessons')
         response.render()
         self.assertIn('book_button', str(response.content))
@@ -239,6 +243,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
@@ -258,6 +263,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
+        mommy.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()

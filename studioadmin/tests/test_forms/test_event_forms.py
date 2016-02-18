@@ -354,7 +354,7 @@ class EventAdminFormTests(TestCase):
             str(form.errors['cost'])
         )
 
-        form = TicketedEventAdminForm(
+        form = EventAdminForm(
             data=self.form_data(
                 {
                     'payment_due_date': 4,

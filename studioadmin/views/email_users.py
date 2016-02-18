@@ -19,6 +19,7 @@ from booking.email_helpers import send_support_email
 from studioadmin.forms import EmailUsersForm, ChooseUsersFormSet, \
     UserFilterForm
 from studioadmin.views.helpers import staff_required, url_with_querystring
+
 from activitylog.models import ActivityLog
 
 
@@ -208,3 +209,4 @@ def email_users_view(request,
                 'lessons': lessons
             }
         )
+

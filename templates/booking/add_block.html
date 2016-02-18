@@ -25,7 +25,7 @@
                     </ul>
                 {% endfor %}
 
-                <form action="" method="post" class="dirty-check">{% csrf_token %}
+                <form class="dirty-check" action="" method="post">{% csrf_token %}
                     <div class="form-group">
                         <div class="dropdown">
                             <strong>Choose a block type:</strong> {{ form.block_type  }}

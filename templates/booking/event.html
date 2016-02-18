@@ -21,6 +21,10 @@
                     <h3>This {{ event_type_str }} has been cancelled.</h3>
                 {% endif %}
 
+                {% if not disclaimer %}
+                    <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before booking</p>
+                {% endif %}
+
                 <ul class="list-group">
                     {% if event.description %}
                         <li class="list-group-item"><p><strong>Description</strong></p>
@@ -86,8 +90,10 @@
                         {% else %}
                             <h5>{{ booking_info_text_cancelled }}</br>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
-                                    <a href="{% url 'booking:book_event' event.slug %}">
-                                        <div id='book_button' class="btn btn-success table-btn">
+                                    <a {% if not disclaimer %}class='disabled'{% endif %}
+                                       {% if not event.booking_open and not unbookable_pole_practice %}class='disabled'{% endif %}
+                                       href="{% url 'booking:book_event' event.slug %}">
+                                        <div id='book_button' class="btn btn-success table-btn {% if not disclaimer %}disabled{% endif %}">
                                         {% if cancelled %}Rebook{% else %}Book{% endif %}</div></a>
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
                                     <div id='book_button_disabled' class="disabled btn btn-success table-btn">
