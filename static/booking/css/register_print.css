@@ -96,3 +96,7 @@ th, td {
     min-width: 80px;
     max-width: 300px
 }
+
+.disclaimer {
+    margin-left: 0;
+}

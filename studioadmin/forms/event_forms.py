@@ -116,7 +116,7 @@ class EventAdminForm(forms.ModelForm):
             ev_type_str = 'class' if ev_type == 'CL' else 'event'
 
             if not self.instance.cancelled:
-                self.fields['cancelled'].label = "Cancelled: No"
+                self.not_cancelled_text = 'No'
                 self.fields['cancelled'].\
                     help_text = 'To cancel, use the Cancel button on the {} ' \
                                 'list page'.format(ev_type_str)

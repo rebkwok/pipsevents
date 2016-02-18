@@ -28,10 +28,11 @@
                         </ul>
                     </div>
                     {% endif %}
+
                 <form class="form-horizontal dirty-check" method="post" action="">
                     {% csrf_token %}
 
-                    <div class="form-group-sm col-sm-11">
+                    <div class="form-group-sm col-sm-12">
 
                         {% for field in form %}
                             {% if field.label == "Cost" %}
@@ -48,17 +49,21 @@
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='cancelled_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">
+                                            {{ field }}{{ form.not_cancelled_text }}<label for='cancelled_id'></label></div>
+                                    <div class="col-sm-8 studioadmincbox-help">{{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "Booking open"%}
+                            {% elif field.name == "booking_open"%}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='booking_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">
+                                            {{ field }}<label for='booking_open_id'></label></div>
+                                        <div class="col-sm-7 studioadmincbox-help">{{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "Payment open"%}
+                            {% elif field.name == "payment_open" %}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
@@ -69,10 +74,10 @@
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">{{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "External instructor"%}
+                            {% elif field.name == "external_instructor" %}
                             <div class="form-group cbox">
                                 <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
@@ -106,11 +111,14 @@
                             <button type="submit" class="btn btn-success">Save</button>
                         </div>
                     </div>
+
+                    </div>
                 </form>
-            </div>
+
 
         </div>
     </div>
  </div>
+</div>
 
 {% endblock studioadmincontent %}

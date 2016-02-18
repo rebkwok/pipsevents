@@ -4,7 +4,7 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
+    <div class="container-fluid">
 
         <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}

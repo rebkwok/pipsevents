@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
 from booking.views import already_cancelled, already_paid, \
+    disclaimer_required, \
     EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockDeleteView, \
@@ -89,5 +90,9 @@ urlpatterns = [
     ),
     url(r'^ticket-booking-history/$', TicketBookingHistoryListView.as_view(),
         name='ticket_booking_history'),
+    url(
+        r'^disclaimer-required/$', disclaimer_required,
+        name='disclaimer_required'
+    ),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

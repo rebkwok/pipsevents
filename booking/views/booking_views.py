@@ -29,6 +29,8 @@ from booking.models import Event, Booking, Block, BlockType, WaitingListUser, \
 from booking.forms import BookingCreateForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.views.views_utils import DisclaimerRequiredMixin
+
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
 
@@ -137,13 +139,16 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
         bookingformlist = []
         for booking in self.object_list:
-            bookingform = {'booking': booking}
+            bookingform = {
+                'booking': booking,
+                'ev_type': booking.event.event_type.event_type
+            }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
         return context
 
 
-class BookingCreateView(LoginRequiredMixin, CreateView):
+class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
 
     model = Booking
     template_name = 'booking/create_booking.html'
@@ -454,7 +459,7 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         return HttpResponseRedirect(reverse('booking:bookings'))
 
 
-class BookingUpdateView(LoginRequiredMixin, UpdateView):
+class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView):
     model = Booking
     template_name = 'booking/update_booking.html'
     success_message = 'Booking updated for {}!'
@@ -662,7 +667,7 @@ def _get_block_status(booking):
     return blocks_used, total_blocks
 
 
-class BookingDeleteView(LoginRequiredMixin, DeleteView):
+class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView):
     model = Booking
     template_name = 'booking/delete_booking.html'
     success_message = 'Booking cancelled for {}'
@@ -818,6 +823,7 @@ def duplicate_booking(request, event_slug):
 
     return render(request, 'booking/duplicate_booking.html', context)
 
+
 def update_booking_cancelled(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
     if booking.event.event_type.event_type == 'EV':
@@ -830,6 +836,7 @@ def update_booking_cancelled(request, pk):
     if booking.event.spaces_left() == 0:
         context['full'] = True
     return render(request, 'booking/update_booking_cancelled.html', context)
+
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
@@ -864,3 +871,7 @@ def already_paid(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
     context = {'booking': booking}
     return render(request, 'booking/already_paid.html', context)
+
+
+def disclaimer_required(request):
+    return render(request, 'booking/disclaimer_required.html')

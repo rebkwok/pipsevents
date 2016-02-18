@@ -1,0 +1,47 @@
+{% extends 'account/base.html' %}
+{% load bookingtags %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+       <div class="panel panel-success">
+
+            <div class="panel-heading">
+                <h1 class="panel-title">Health & Safety Registration and Disclaimer Form</h1>
+            </div>
+           <div class="panel-body">
+
+               {% if disclaimer %}
+                    <div class="col-xs-12">
+                        <p>You have already completed a disclaimer.</p>
+                    </div>
+                   <div class="col-xs-12">
+                       <p>If you have any additional questions or concerns about the data you have provided, please contact
+                        <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
+                   </div>
+                {% else %}
+                    {% if not request.user.has_usable_password %}
+                        <div class="message alert alert-danger vspace">
+                            <div>You need to set a password on your account in order to complete the disclaimer.</div>
+                            <div>If you usually log in with facebook, this does NOT need to be the same as your facebook password,
+                                and you can continue to log in with facebook.</div>
+                            <a href="{% url 'account_set_password' %}?disclaimer=" class="btn btn-success"><div>Set password now</div></a>
+                        </div>
+                        <br/>
+                    {% endif %}
+                   {% include 'account/disclaimer_form_content.html' %}
+                   <div class="col-xs-12">
+                       <p>If you have any additional questions or concerns, please contact
+                        <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a>.</p>
+                   </div>
+
+                {% endif %}
+
+               <div class="col-xs-12">
+                   <p>View our <a href="{% url 'data_protection' %}">data protection statement.</a></p>
+               </div>
+           </div>
+
+       </div>
+</div>
+{% endblock content %}

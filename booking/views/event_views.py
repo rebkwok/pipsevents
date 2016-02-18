@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -12,8 +13,8 @@ from booking.models import Event, WaitingListUser
 from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 
 class EventListView(ListView):
@@ -69,6 +70,20 @@ class EventListView(ListView):
         else:
             form = RoomHireFilter(initial={'name': event_name})
         context['form'] = form
+
+        if not self.request.user.is_anonymous():
+            try:
+                self.request.user.online_disclaimer
+                context['disclaimer'] = True
+            except ObjectDoesNotExist:
+                pass
+
+            try:
+                self.request.user.print_disclaimer
+                context['disclaimer'] = True
+            except ObjectDoesNotExist:
+                pass
+
         return context
 
 

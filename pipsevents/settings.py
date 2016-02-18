@@ -221,25 +221,30 @@ if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
                 'level': 'WARNING',
                 'propagate': True,
             },
+            'accounts': {
+                'handlers': ['console', 'file_app'],
+                'level': 'INFO',
+                'propagate': False,
+            },
             'booking': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propagate': True,
+                'propagate': False,
             },
             'payments': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propagate': True,
+                'propagate': False,
             },
             'studioadmin': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propagate': True,
+                'propagate': False,
             },
             'timetable': {
                 'handlers': ['console', 'file_app'],
                 'level': 'INFO',
-                'propagate': True,
+                'propagate': False,
             },
         },
     }
@@ -286,9 +291,13 @@ SUIT_CONFIG = {
             'icon': 'icon-calendar',
         },
         {
-            'app': 'auth',
-            'label': 'Users',
-            'models': ('user',),
+            'label': 'Accounts',
+            'models': (
+                'auth.user',
+                'account.emailaddress',
+                'account.emailconfirmation',
+                'accounts.onlinedisclaimer',
+                'accounts.printdisclaimer'),
             'icon': 'icon-user',
         },
         {

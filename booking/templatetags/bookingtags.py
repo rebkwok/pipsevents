@@ -8,7 +8,11 @@ from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from accounts.models import OnlineDisclaimer, PrintDisclaimer
+
 from booking.models import Booking
+
+from studioadmin.utils import int_str, chaffify
 
 
 register = template.Library()
@@ -135,3 +139,28 @@ def format_block(block):
             block.block_type.size,
             block.expiry_date.strftime('%d %b %y')
         )
+
+
+@register.filter
+def has_print_disclaimer(user):
+    disclaimer = PrintDisclaimer.objects.filter(user=user)
+    return bool(disclaimer)
+
+
+@register.filter
+def has_online_disclaimer(user):
+    disclaimer = OnlineDisclaimer.objects.filter(user=user)
+    return bool(disclaimer)
+
+@register.filter
+def has_disclaimer(user):
+    return has_online_disclaimer(user) or has_print_disclaimer(user)
+
+@register.simple_tag
+def get_verbose_field_name(instance, field_name):
+    return instance._meta.get_field(field_name).verbose_name.title()
+
+
+@register.filter
+def encode(val):
+    return int_str(chaffify(val))

@@ -30,9 +30,15 @@
                                 <th class="table-center">Username <span class="fa fa-sort"></span></th>
                                 <th class="table-center">First Name <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Regular student</th>
-                                <th class="table-center">Bookings</th>
-                                <th class="table-center">Blocks</th>
+                                {% if request.user.is_staff %}
+                                    <th class="table-center">Regular student</th>
+                                    <th class="table-center">Paper Disclaimer</th>
+                                {% endif %}
+                                <th class="table-center">Online Disclaimer</br><span class="studioadmin-help">Click to view/print disclaimer</span></th>
+                                {% if request.user.is_staff %}
+                                    <th class="table-center">Bookings</th>
+                                    <th class="table-center">Blocks</th>
+                                {% endif %}
                                 <th class="table-center">Email</th>
                             </tr>
                             </thead>
@@ -42,16 +48,35 @@
                                 <td class="table-center studioadmin-tbl">{{ user.username }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.first_name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.last_name }}</td>
+                                {% if request.user.is_staff %}
+                                    <td class="table-center studioadmin-tbl">
+                                        <form class="wl-table-form" method="get">
+                                                    <button class="btn table-btn perm-btn {% if user|is_regular_student %}btn-success{% else %}btn-default{% endif %}"
+                                                            type="submit" name="change_user" id="regular_student_button" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
+                                        </form>
+                                    </td>
+                                    <td class="table-center studioadmin-tbl">
+                                        {% if user|has_online_disclaimer %}
+                                            N/A
+                                        {% else %}
+                                            <form class="wl-table-form" method="get">
+                                                        <button class="btn table-btn perm-btn {% if user|has_print_disclaimer %}btn-success{% else %}btn-default{% endif %}"
+                                                                type="submit" name="change_print_disclaimer" id="print_disclaimer_button" value="{{ user.id }}">{% if user|has_print_disclaimer %}Yes{% else %}No{% endif %}</button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
                                 <td class="table-center studioadmin-tbl">
-                                    <form class="wl-table-form" method="get">
-                                                <button class="btn table-btn perm-btn {% if user|is_regular_student %}btn-success{% else %}btn-default{% endif %}"
-                                                        type="submit" name="change_user" id="regular_student_button" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
-                                    </form>
+                                    {% if user|has_online_disclaimer %}
+                                        <a href="{% url 'studioadmin:user_disclaimer' user.id|encode %}" target="_blank"><span class="has-disclaimer-pill">Yes</span></a>
+                                    {% else %}No{% endif %}
                                 </td>
-                                <td class="table-center studioadmin-tbl">
-                                    <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
-                                <td class="table-center studioadmin-tbl">
-                                    <a href="{% url 'studioadmin:user_blocks_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
+                                {% if request.user.is_staff %}
+                                    <td class="table-center studioadmin-tbl">
+                                        <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
+                                    <td class="table-center studioadmin-tbl">
+                                        <a href="{% url 'studioadmin:user_blocks_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
+                                {% endif %}
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
                             </tr>
                             {% endfor %}
@@ -59,7 +84,7 @@
                             </tbody>
                             <tfoot>
                             <tr class="success">
-                                <td {% if request.user.is_staff %}colspan="7"{% else %}colspan="6"{% endif %}>
+                                <td {% if request.user.is_staff %}colspan="9"{% else %}colspan="5"{% endif %}>
                                 Showing {{ num_results }} of {{ total_users }} users
                                 </td>
                             </tr>

@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 
 from django.db.models import Q
@@ -16,6 +17,7 @@ from payments.forms import PayPalPaymentsListForm
 from booking.models import Booking, Block
 from booking.forms import BlockCreateForm
 import booking.context_helpers as context_helpers
+from booking.views.views_utils import DisclaimerRequiredMixin
 from payments.helpers import create_block_paypal_transaction
 
 from activitylog.models import ActivityLog
@@ -23,7 +25,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class BlockCreateView(LoginRequiredMixin, CreateView):
+class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
 
     model = Block
     template_name = 'booking/add_block.html'
@@ -97,6 +99,18 @@ class BlockListView(LoginRequiredMixin, ListView):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
 
+        try:
+            self.request.user.online_disclaimer
+            context['disclaimer'] = True
+        except ObjectDoesNotExist:
+            pass
+
+        try:
+            self.request.user.print_disclaimer
+            context['disclaimer'] = True
+        except ObjectDoesNotExist:
+            pass
+
         types_available_to_book = context_helpers.\
             get_blocktypes_available_to_book(self.request.user)
         if types_available_to_book:
@@ -139,7 +153,7 @@ class BlockListView(LoginRequiredMixin, ListView):
         ).order_by('-start_date')
 
 
-class BlockDeleteView(LoginRequiredMixin, DeleteView):
+class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
 
     model = Block
     template_name = 'booking/delete_block.html'
