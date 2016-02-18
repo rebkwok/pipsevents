@@ -104,6 +104,28 @@ def total_ticket_cost(ticket_booking):
 def abbr_ref(ref):
     return "{}...".format(ref[:5])
 
+@register.filter
+def abbr_username(user):
+    if len(user) > 15:
+        return mark_safe("{}-</br>{}".format(user[:15], user[15:]))
+    return user
+
+@register.filter
+def abbr_name(name):
+    if '-' in name:
+        split_name = name.split('-')
+        return mark_safe(
+            "{}-</br>{}".format(split_name[0], '-'.join(split_name[1:]))
+        )
+    if len(name) > 12:
+        return mark_safe("{}-</br>{}".format(name[:8], name[8:]))
+    return name
+
+@register.filter
+def abbr_email(email):
+    if len(email) > 18:
+        return "{}...".format(email[:15])
+    return email
 
 @register.inclusion_tag('booking/sale.html')
 def sale_text():
