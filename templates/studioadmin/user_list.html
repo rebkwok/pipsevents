@@ -45,9 +45,9 @@
                             <tbody>
                             {% for user in users %}
                             <tr>
-                                <td class="table-center studioadmin-tbl">{{ user.username }}</td>
-                                <td class="table-center studioadmin-tbl">{{ user.first_name }}</td>
-                                <td class="table-center studioadmin-tbl">{{ user.last_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
                                 {% if request.user.is_staff %}
                                     <td class="table-center studioadmin-tbl">
                                         <form class="wl-table-form" method="get">
@@ -77,7 +77,7 @@
                                     <td class="table-center studioadmin-tbl">
                                         <a href="{% url 'studioadmin:user_blocks_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
                                 {% endif %}
-                                <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email }}</a></td>
+                                <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email|abbr_email }}</a></td>
                             </tr>
                             {% endfor %}
 
