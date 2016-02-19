@@ -10,7 +10,7 @@
  completed disclaimers offline.  Please destroy any copies of disclaimers.</p>
     <ul>
         {% for user in print_disclaimer_users %}
-            <li>{{ user.first_name }} {{ user.last_name }}</li>
+            <li>{{ user }}</li>
         {% endfor %}
     </ul>
 {% endif %}
@@ -20,7 +20,7 @@
     Please also check for and destroy any paper copies of disclaimers for these users.</p>
     <ul>
         {% for user in online_disclaimer_users %}
-            <li>{{ user.first_name }} {{ user.last_name }}</li>
+            <li>{{ user }}</li>
         {% endfor %}
     </ul>
 

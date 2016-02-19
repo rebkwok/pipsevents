@@ -429,12 +429,32 @@ class DeleteExpiredDisclaimersTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user_online_only = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=cls.user_online_only)
+        mommy.make(
+            OnlineDisclaimer, user=cls.user_online_only,
+            date=timezone.now()-timedelta(370)
+        )
         cls.user_print_only = mommy.make_recipe('booking.user')
-        mommy.make(PrintDisclaimer, user=cls.user_print_only)
+        mommy.make(
+            PrintDisclaimer, user=cls.user_print_only,
+            date=timezone.now()-timedelta(370)
+        )
         cls.user_both = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=cls.user_both)
-        mommy.make(PrintDisclaimer, user=cls.user_both)
+        mommy.make(
+            OnlineDisclaimer, user=cls.user_both,
+            date=timezone.now()-timedelta(370)
+        )
+        mommy.make(
+            PrintDisclaimer, user=cls.user_both,
+            date=timezone.now()-timedelta(370)
+        )
+
+    def test_disclaimers_deleted_if_no_bookings_in_past_year(self):
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
     def test_disclaimers_deleted_if_no_paid_booking_in_past_year(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
@@ -475,7 +495,7 @@ class DeleteExpiredDisclaimersTests(TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
         self.assertEqual(PrintDisclaimer.objects.count(), 2)
 
-        # make one paid booking for self.user_both in past 365 days; both
+        # make one paid booking for self.user_both in past 365 days; both other
         # disclaimers should be deleted because unpaid
         mommy.make_recipe(
             'booking.booking',
@@ -486,6 +506,38 @@ class DeleteExpiredDisclaimersTests(TestCase):
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         self.assertEqual(PrintDisclaimer.objects.count(), 1)
+
+    def test_disclaimers_not_deleted_if_created_in_past_year(self):
+        # make a user with a disclaimer created today
+        user = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=user)
+
+        self.assertEqual(OnlineDisclaimer.objects.count(), 3)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # user has no bookings in past 365 days, but disclaimer should not be
+        # deleted because it was created < 365 days ago.  All others will be.
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+
+    def test_disclaimers_not_deleted_if_updated_in_past_year(self):
+        # make a user with a disclaimer created > yr ago but updated in past yr
+        user = mommy.make_recipe('booking.user')
+        mommy.make(
+            OnlineDisclaimer, user=user, date=timezone.now() - timedelta(370),
+            date_updated=timezone.now() - timedelta(360),
+        )
+        self.assertEqual(OnlineDisclaimer.objects.count(), 3)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        # user has no bookings in past 365 days, but disclaimer should not be
+        # deleted because it was created < 365 days ago.  The other 3 will be
+        # deleted
+
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
     def test_disclaimer_with_multiple_bookings(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)

@@ -15,7 +15,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.core.management.base import BaseCommand
-from django.core import management
+from django.db.models import Q
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.email_helpers import send_support_email
@@ -48,20 +48,36 @@ class Command(BaseCommand):
                 if not recent_bookings:
                     expired_users.append(user)
 
-        print_dislaimer_users = [
-            disclaimer.user for disclaimer in
-            PrintDisclaimer.objects.filter(user__in=expired_users)
+        old_print_disclaimers = PrintDisclaimer.objects.filter(
+            date__lt=expire_date
+        )
+        old_online_disclaimers = OnlineDisclaimer.objects.filter(
+            Q(date__lt=expire_date) &
+            (Q(date_updated__isnull=True) | Q(date_updated__lt=expire_date))
+        )
+        print_disclaimer_users_to_delete = old_print_disclaimers.filter(
+            user__in=expired_users
+        )
+        print_disclaimer_users = [
+            '{} {}'.format(disc.user.first_name, disc.user.last_name)
+            for disc in print_disclaimer_users_to_delete
             ]
-        PrintDisclaimer.objects.filter(user__in=expired_users).delete()
+
+        online_disclaimer_users_to_delete = old_online_disclaimers.filter(
+            user__in=expired_users
+        )
         online_disclaimer_users = [
-            disclaimer.user for disclaimer in
-            OnlineDisclaimer.objects.filter(user__in=expired_users)
+            '{} {}'.format(disc.user.first_name, disc.user.last_name)
+            for disc in online_disclaimer_users_to_delete
             ]
-        OnlineDisclaimer.objects.filter(user__in=expired_users).delete()
-        if expired_users:
+
+        print_disclaimer_users_to_delete.delete()
+        online_disclaimer_users_to_delete.delete()
+
+        if print_disclaimer_users or online_disclaimer_users:
             # email studio
             ctx = {
-                'print_disclaimer_users': print_dislaimer_users,
+                'print_disclaimer_users': print_disclaimer_users,
                 'online_disclaimer_users': online_disclaimer_users
             }
 
@@ -86,21 +102,17 @@ class Command(BaseCommand):
                 )
 
             ActivityLog.objects.create(
-                log='Print diclaimers deleted for expired users: {}'.format(
-                    ', '.format(
-                        [user.username for user in print_dislaimer_users]
-                    )
+                log='Print disclaimers deleted for expired users: {}'.format(
+                    ', '.format(print_disclaimer_users)
                 )
             )
             ActivityLog.objects.create(
-                log='Online diclaimers deleted for expired users: {}'.format(
-                    ', '.format(
-                        [user.username for user in online_disclaimer_users]
-                    )
+                log='Online disclaimers deleted for expired users: {}'.format(
+                    ', '.format(online_disclaimer_users)
                 )
             )
         else:
-            self.stdout.write('No ticket bookings to cancel')
+            self.stdout.write('No disclaimers to delete')
             ActivityLog.objects.create(
                 log='Delete disclaimers job run; no expired users'
             )
