@@ -9,6 +9,7 @@ from django.utils.encoding import smart_str
 
 from simplecrypt import encrypt
 
+from activitylog.models import ActivityLog
 from accounts.models import OnlineDisclaimer
 
 logger = logging.getLogger(__name__)
@@ -110,14 +111,17 @@ class Command(BaseCommand):
             out.write(encrypt(PASSWORD, output_str))
 
         with open(outputfile, 'rb') as file:
+            filename = os.path.split(outputfile)[1]
             try:
                 msg = EmailMessage(
                     '{} disclaimer backup'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
-                    'Encrypted disclaimer back up file attached',
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                    ),
+                    'Encrypted disclaimer back up file attached. '
+                    '{} records.'.format(OnlineDisclaimer.objects.count()),
                     settings.DEFAULT_FROM_EMAIL,
                     to=[settings.SUPPORT_EMAIL],
-                    attachments=[(outputfile, file.read(), 'bytes/bytes')]
+                    attachments=[(filename, file.read(), 'bytes/bytes')]
                 )
                 msg.send(fail_silently=False)
             except:
@@ -131,6 +135,11 @@ class Command(BaseCommand):
 
         logger.info(
             '{} disclaimer records encrypted and backed up'.format(
+                OnlineDisclaimer.objects.count()
+            )
+        )
+        ActivityLog.objects.create(
+            log='{} disclaimer records encrypted and backed up'.format(
                 OnlineDisclaimer.objects.count()
             )
         )
