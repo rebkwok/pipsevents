@@ -43,8 +43,9 @@ class Command(BaseCommand):
                             "Unknown user {} in backup data; data on "
                             "row {} not imported".format(row[1], i)
                         )
-                        logger.info("Unknown user {} in backup data; data on "
+                        logger.warning("Unknown user {} in backup data; data on "
                             "row {} not imported".format(row[1], i))
+                        continue
 
                     bu_date_updated = datetime.strptime(
                         row[3], '%Y-%m-%d %H:%M:%S:%f %z'
@@ -69,7 +70,7 @@ class Command(BaseCommand):
                                         'DO NOT ' if not dates_match else ''
                                     )
                         self.stdout.write(log_msg)
-                        logger.info(log_msg)
+                        logger.warning(log_msg)
 
                     else:
                         OnlineDisclaimer.objects.create(

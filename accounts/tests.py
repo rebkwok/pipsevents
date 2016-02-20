@@ -1,8 +1,8 @@
 import csv
 import os
 
-from datetime import datetime, timedelta
-from mock import patch
+from datetime import date, datetime, timedelta
+from mock import Mock, patch
 from model_mommy import mommy
 
 from django.conf import settings
@@ -15,7 +15,10 @@ from django.utils import timezone
 
 from allauth.account.models import EmailAddress
 
+from activitylog.models import ActivityLog
 from accounts.forms import SignupForm, DisclaimerForm
+from accounts.management.commands.import_disclaimer_data import logger as \
+    import_disclaimer_data_logger
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
     DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
@@ -593,6 +596,26 @@ class DeleteExpiredDisclaimersTests(TestCase):
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(len(mail.outbox), 1)
 
+    @patch('accounts.management.commands.delete_expired_disclaimers.send_mail')
+    def test_email_errors_sending_to_studio(self, mock_send_mail):
+        mock_send_mail.side_effect = Exception('Error sending mail')
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+
+    @patch('accounts.management.commands.delete_expired_disclaimers.send_mail')
+    @patch('booking.email_helpers.send_mail')
+    def test_email_errors(self, mock_send_mail, mock_send_mail1):
+        mock_send_mail.side_effect = Exception('Error sending mail')
+        mock_send_mail1.side_effect = Exception('Error sending mail')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 2)
+
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+
     def test_email_not_sent_to_studio_if_nothing_deleted(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
         self.assertEqual(PrintDisclaimer.objects.count(), 2)
@@ -671,3 +694,161 @@ class ExportEncryptedDisclaimersTests(TestCase):
         management.call_command('export_encrypted_disclaimers', file=bu_file)
         self.assertTrue(os.path.exists(bu_file))
         os.unlink(bu_file)
+
+
+class ImportDisclaimersTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.bu_file = os.path.join(
+            os.path.dirname(__file__), 'test_data/test_disclaimers_backup.csv'
+        )
+
+    def test_import_disclaimers_no_matching_users(self):
+        import_disclaimer_data_logger.warning = Mock()
+        self.assertFalse(OnlineDisclaimer.objects.exists())
+        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+
+        self.assertEqual(import_disclaimer_data_logger.warning.call_count, 3)
+        self.assertIn(
+            "Unknown user test_1 in backup data; data on row 1 not imported",
+            str(import_disclaimer_data_logger.warning.call_args_list[0])
+        )
+        self.assertIn(
+            "Unknown user test_2 in backup data; data on row 2 not imported",
+            str(import_disclaimer_data_logger.warning.call_args_list[1])
+        )
+        self.assertIn(
+            "Unknown user test_3 in backup data; data on row 3 not imported",
+            str(import_disclaimer_data_logger.warning.call_args_list[2])
+        )
+
+    def test_import_disclaimers(self):
+        for username in ['test_1', 'test_2', 'test_3']:
+            mommy.make_recipe('booking.user', username=username)
+        self.assertFalse(OnlineDisclaimer.objects.exists())
+        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.assertEqual(OnlineDisclaimer.objects.count(), 3)
+
+    def test_import_disclaimers_existing_data(self):
+        import_disclaimer_data_logger.warning = Mock()
+        import_disclaimer_data_logger.info = Mock()
+
+        # if disclaimer already exists for a user, it isn't imported
+        for username in ['test_1', 'test_2']:
+            mommy.make_recipe('booking.user', username=username)
+        test_3 = mommy.make_recipe('booking.user', username='test_3')
+        mommy.make(
+            OnlineDisclaimer, user=test_3, name='Donald Duck')
+
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.assertEqual(OnlineDisclaimer.objects.count(), 3)
+
+        # data has not been overwritten
+        disclaimer = OnlineDisclaimer.objects.get(user=test_3)
+        self.assertEqual(disclaimer.name, 'Donald Duck')
+
+        self.assertEqual(import_disclaimer_data_logger.warning.call_count, 1)
+        self.assertEqual(import_disclaimer_data_logger.info.call_count, 2)
+
+        self.assertIn(
+            "Disclaimer for test_1 imported from backup.",
+            str(import_disclaimer_data_logger.info.call_args_list[0])
+        )
+        self.assertIn(
+            "Disclaimer for test_2 imported from backup.",
+            str(import_disclaimer_data_logger.info.call_args_list[1])
+        )
+        self.assertIn(
+            "Disclaimer for test_3 already exists and has not been "
+            "overwritten with backup data. Dates in db and back up DO NOT "
+            "match",
+            str(import_disclaimer_data_logger.warning.call_args_list[0])
+        )
+
+    def test_import_disclaimers_existing_data_matching_dates(self):
+        import_disclaimer_data_logger.warning = Mock()
+        import_disclaimer_data_logger.info = Mock()
+
+        test_1 = mommy.make_recipe('booking.user', username='test_1')
+        test_2 = mommy.make_recipe('booking.user', username='test_2')
+        test_3 = mommy.make_recipe('booking.user', username='test_3')
+        mommy.make(
+            OnlineDisclaimer, user=test_2,
+            date=datetime(2015, 1, 15, 15, 43, 19, 747445, tzinfo=timezone.utc),
+            date_updated=datetime(
+                2016, 1, 6, 15, 9, 16, 920219, tzinfo=timezone.utc
+            )
+        ),
+        mommy.make(
+            OnlineDisclaimer, user=test_3,
+            date=datetime(2016, 2, 18, 16, 9, 16, 920219, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.assertEqual(OnlineDisclaimer.objects.count(), 3)
+
+        self.assertEqual(import_disclaimer_data_logger.warning.call_count, 2)
+        self.assertEqual(import_disclaimer_data_logger.info.call_count, 1)
+
+        self.assertIn(
+            "Disclaimer for test_1 imported from backup.",
+            str(import_disclaimer_data_logger.info.call_args_list[0])
+        )
+        self.assertIn(
+            "Disclaimer for test_2 already exists and has not been "
+            "overwritten with backup data. Dates in db and back up "
+            "match",
+            str(import_disclaimer_data_logger.warning.call_args_list[0])
+        )
+        self.assertIn(
+            "Disclaimer for test_3 already exists and has not been "
+            "overwritten with backup data. Dates in db and back up "
+            "match",
+            str(import_disclaimer_data_logger.warning.call_args_list[1])
+        )
+
+    def test_imported_data_is_correct(self):
+        test_1 = mommy.make_recipe('booking.user', username='test_1')
+        management.call_command('import_disclaimer_data', file=self.bu_file)
+        test_1_disclaimer = OnlineDisclaimer.objects.get(user=test_1)
+
+        self.assertEqual(test_1_disclaimer.name, 'Test User1')
+        self.assertEqual(
+            test_1_disclaimer.date,
+            datetime(2015, 12, 18, 15, 32, 7, 191781, tzinfo=timezone.utc)
+        )
+        self.assertEqual(test_1_disclaimer.dob, date(1991, 11, 21))
+        self.assertEqual(test_1_disclaimer.address, '11 Test Road')
+        self.assertEqual(test_1_disclaimer.postcode, 'TS6 8JT')
+        self.assertEqual(test_1_disclaimer.home_phone, '12345667')
+        self.assertEqual(test_1_disclaimer.mobile_phone, '2423223423')
+        self.assertEqual(test_1_disclaimer.emergency_contact1_name, 'Test1 Contact1')
+        self.assertEqual(
+            test_1_disclaimer.emergency_contact1_relationship, 'Partner'
+        )
+        self.assertEqual(
+            test_1_disclaimer.emergency_contact1_phone, '8782347239'
+        )
+        self.assertEqual(test_1_disclaimer.emergency_contact2_name, 'Test2 Contact1')
+        self.assertEqual(
+            test_1_disclaimer.emergency_contact2_relationship, 'Father'
+        )
+        self.assertEqual(
+            test_1_disclaimer.emergency_contact2_phone, '71684362378'
+        )
+        self.assertFalse(test_1_disclaimer.medical_conditions)
+        self.assertEqual(test_1_disclaimer.medical_conditions_details, '')
+        self.assertTrue(test_1_disclaimer.joint_problems)
+        self.assertEqual(test_1_disclaimer.joint_problems_details, 'knee problems')
+        self.assertFalse(test_1_disclaimer.allergies)
+        self.assertEqual(test_1_disclaimer.allergies_details, '')
+        self.assertIsNotNone(test_1_disclaimer.medical_treatment_terms)
+        self.assertTrue(test_1_disclaimer.medical_treatment_permission)
+        self.assertIsNotNone(test_1_disclaimer.disclaimer_terms)
+        self.assertTrue(test_1_disclaimer.terms_accepted)
+        self.assertIsNotNone(test_1_disclaimer.over_18_statement)
+        self.assertTrue(test_1_disclaimer.age_over_18_confirmed)
