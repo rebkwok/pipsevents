@@ -19,6 +19,7 @@ from activitylog.models import ActivityLog
 from accounts.forms import SignupForm, DisclaimerForm
 from accounts.management.commands.import_disclaimer_data import logger as \
     import_disclaimer_data_logger
+from accounts.management.commands.export_encrypted_disclaimers import EmailMessage
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
     DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
@@ -686,6 +687,18 @@ class ExportEncryptedDisclaimersTests(TestCase):
         email = mail.outbox[0]
         self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
+        os.unlink(bu_file)
+
+    @patch.object(EmailMessage, 'send')
+    def test_email_errors(self, mock_send):
+        mock_send.side_effect = Exception('Error sending mail')
+        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
+
+        self.assertFalse(os.path.exists(bu_file))
+        management.call_command('export_encrypted_disclaimers')
+        # mail not sent, but back up still created
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertTrue(os.path.exists(bu_file))
         os.unlink(bu_file)
 
     def test_export_disclaimers_with_filename_argument(self):
