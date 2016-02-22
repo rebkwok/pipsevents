@@ -83,7 +83,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
         form = DisclaimerForm(data=self.form_data)
         self.assertTrue(form.is_valid())
 
-    def test_form_invalid(self):
+    def test_custom_validators(self):
         self.form_data['terms_accepted'] = False
         form = DisclaimerForm(data=self.form_data)
         self.assertFalse(form.is_valid())
@@ -91,6 +91,30 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
             form.errors,
             {'terms_accepted': [
                 'You must confirm that you accept the disclaimer terms'
+            ]}
+        )
+
+        self.form_data['terms_accepted'] = True
+        self.form_data['age_over_18_confirmed'] = False
+
+        form = DisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'age_over_18_confirmed': [
+                'You must confirm that you are over 18'
+            ]}
+        )
+
+        self.form_data['age_over_18_confirmed'] = True
+        self.form_data['medical_treatment_permission'] = False
+        form = DisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'medical_treatment_permission': [
+                'You must confirm that you give permission for medical '
+                'treatment in the event of an accident'
             ]}
         )
 
@@ -174,11 +198,11 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEquals(updated_user.first_name, "Fred")
 
 
-class ProfileTest(TestSetupMixin, TestCase):
+class ProfileTests(TestSetupMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        super(ProfileTest, cls).setUpTestData()
+        super(ProfileTests, cls).setUpTestData()
         Group.objects.get_or_create(name='instructors')
         cls.user_with_online_disclaimer = mommy.make_recipe('booking.user')
         mommy.make(OnlineDisclaimer, user=cls.user_with_online_disclaimer)
@@ -232,6 +256,50 @@ class CustomLoginViewTests(TestSetupMixin, TestCase):
             reverse('login'),
             {'login': self.user.username, 'password': 'password'}
         )
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('profile:profile'), resp.url)
+
+    def test_login_from_password_change(self):
+        # facebook url is modified to return to the profile page
+        resp = self.client.get(
+            reverse('login') + '?next=/accounts/password/change/'
+        )
+
+        # url is weirdly formatted one way if we run only this test and the
+        # other if we run all. Not sure why yet, but it would behave correctly
+        # either way
+        self.assertTrue(
+            'href="/accounts/facebook/login/?process=login'
+            '&next=%2Faccounts%2Fprofile"' in resp.rendered_content or
+            'href="/accounts/facebook/login/?next=%2Faccounts%2Fprofile'
+            '&process=login"' in resp.rendered_content
+        )
+
+        resp = self.client.get(
+            reverse('login') + '?next=/accounts/password/set/'
+        )
+        self.assertTrue(
+            'href="/accounts/facebook/login/?process=login'
+            '&next=%2Faccounts%2Fprofile"' in resp.rendered_content or
+            'href="/accounts/facebook/login/?next=%2Faccounts%2Fprofile'
+            '&process=login"' in resp.rendered_content
+        )
+
+        # post with login username and password overrides next in request
+        # params to return to profile
+        resp = self.client.post(
+            reverse('login') + '?next=/accounts/password/change/',
+            {'login': self.user.username, 'password': 'password'}
+        )
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('profile:profile'), resp.url)
+
+        resp = self.client.post(
+            reverse('login') + '?next=/accounts/password/set/',
+            {'login': self.user.username, 'password': 'password'}
+        )
+
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('profile:profile'), resp.url)
 

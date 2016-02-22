@@ -1,3 +1,5 @@
+import datetime
+
 from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
@@ -5,7 +7,7 @@ from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 
 from accounts.models import OnlineDisclaimer
-from booking.tests.helpers import _create_session
+from booking.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
     user_disclaimer,
@@ -22,7 +24,10 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.user.set_password('password')
         self.user.save()
         self.disclaimer = mommy.make(
-            OnlineDisclaimer, user=self.user
+            OnlineDisclaimer, user=self.user,
+            medical_conditions=False, allergies=False, joint_problems=False,
+            medical_treatment_permission=True, terms_accepted=True,
+            age_over_18_confirmed=True, dob=datetime.date(1990, 1, 1)
         )
         self.post_data = {
             'id': self.disclaimer.id,
@@ -195,6 +200,21 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.disclaimer.refresh_from_db()
         self.assertEqual(self.disclaimer.address, '1 test st')
 
+    def test_user_password_incorrect(self):
+        encoded_user_id = int_str(chaffify(self.user.id))
+        update_url = reverse(
+            'studioadmin:update_user_disclaimer', args=[encoded_user_id]
+        )
+        self.post_data['password'] = 'password1'
+
+        self.assertTrue(
+            self.client.login(username=self.staff_user.username, password='test')
+        )
+        resp = self.client.post(update_url, self.post_data, follow=True)
+        self.assertIn(
+            'Password is incorrect', format_content(resp.rendered_content)
+        )
+
     def test_update_dislaimer_sets_date_updated(self):
         self.assertIsNone(self.disclaimer.date_updated)
         encoded_user_id = int_str(chaffify(self.user.id))
@@ -221,6 +241,16 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.disclaimer.refresh_from_db()
         self.assertEqual(self.disclaimer.home_phone, '123445')
 
+    def test_get_delete_disclaimer_view(self):
+        encoded_user_id = int_str(chaffify(self.user.id))
+        delete_url = reverse(
+            'studioadmin:delete_user_disclaimer', args=[encoded_user_id]
+        )
+        resp = self._get_response(
+            delete_url, DisclaimerDeleteView, self.staff_user, encoded_user_id,
+        )
+        self.assertEqual(resp.context_data['user'], self.user)
+
     def test_delete_disclaimer(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         encoded_user_id = int_str(chaffify(self.user.id))
@@ -232,3 +262,41 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
             self.post_data
         )
         self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+
+    def test_no_changes_made(self):
+        post_data = {
+            'id': self.disclaimer.id,
+            'name': self.disclaimer.name,
+            'dob': self.disclaimer.dob.strftime('%d %b %Y'),
+            'address': self.disclaimer.address,
+            'postcode': self.disclaimer.postcode,
+            'mobile_phone': self.disclaimer.mobile_phone,
+            'emergency_contact1_name': self.disclaimer.emergency_contact1_name,
+            'emergency_contact1_relationship': self.disclaimer.emergency_contact1_relationship,
+            'emergency_contact1_phone': self.disclaimer.emergency_contact1_phone,
+            'emergency_contact2_name': self.disclaimer.emergency_contact2_name,
+            'emergency_contact2_relationship': self.disclaimer.emergency_contact2_relationship,
+            'emergency_contact2_phone': self.disclaimer.emergency_contact2_phone,
+            'medical_conditions': False,
+            'medical_conditions_details': '',
+            'joint_problems': False,
+            'joint_problems_details': '',
+            'allergies': False, 'allergies_details': '',
+            'medical_treatment_permission': True,
+            'terms_accepted': True,
+            'age_over_18_confirmed': True,
+            'password': 'password'
+        }
+
+        encoded_user_id = int_str(chaffify(self.user.id))
+        update_url = reverse(
+            'studioadmin:update_user_disclaimer', args=[encoded_user_id]
+        )
+
+        self.assertTrue(
+            self.client.login(username=self.staff_user.username, password='test')
+        )
+        resp = self.client.post(update_url, post_data, follow=True)
+        self.assertIn(
+            'No changes made', format_content(resp.rendered_content)
+        )
