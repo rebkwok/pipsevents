@@ -3,10 +3,12 @@ from model_mommy import mommy
 from mock import patch
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core import management
 from django.core.urlresolvers import reverse
+from django.http.response import Http404
 from django.test import TestCase, RequestFactory
 from django.utils import timezone
 
@@ -14,7 +16,8 @@ from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.views import TicketedEventListView, TicketCreateView, \
     TicketBookingListView, TicketBookingHistoryListView, TicketBookingView, \
     TicketBookingCancelView
-from booking.tests.helpers import _create_session, TestSetupMixin
+from booking.tests.helpers import _create_session, format_content, \
+    TestSetupMixin
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -211,7 +214,14 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(TicketCreateViewTests, cls).setUpTestData()
-        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        cls.staff_user = User.objects.create_user(
+            username='staff', password='test'
+        )
+        cls.staff_user.is_staff = True
+        cls.staff_user.save()
+
+    def setUp(self):
+        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
 
     def _post_response(self, user, ticketed_event, form_data={}):
         url = reverse(
@@ -256,6 +266,18 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
 
         resp = self._get_response(self.user, self.ticketed_event)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_404s_if_show_on_site_false(self):
+        self.ticketed_event.show_on_site = False
+        self.ticketed_event.save()
+
+        with self.assertRaises(Http404):
+            resp = self._get_response(self.user, self.ticketed_event)
+            self.assertEqual(resp.status_code, 404)
+
+        # staff user can see non show-on-site events
+        resp = self._get_response(self.staff_user, self.ticketed_event)
         self.assertEqual(resp.status_code, 200)
 
     def test_create_ticket_booking_on_get(self):
@@ -353,6 +375,24 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
             )
         )
 
+    def test_expired_ticket_booking_view(self):
+        self.assertTrue(
+            self.client.login(username=self.user.username, password='test')
+        )
+        url = reverse(
+                'booking:ticket_purchase_expired',
+                kwargs={'slug': self.ticketed_event.slug}
+            )
+        resp = self.client.get(url)
+        self.assertEqual(
+            resp.context['ticketed_event'], self.ticketed_event
+        )
+        self.assertIn(
+            'This ticket booking appears to have expired',
+            format_content(str(resp.content))
+        )
+
+
     @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
     def test_automatically_cancelled_ticket_booking(self, delete_job_mock_tz):
         delete_job_mock_tz.now.return_value = datetime(
@@ -417,6 +457,35 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         tb.refresh_from_db()
         self.assertTrue(tb.purchase_confirmed)
 
+    def test_create_booking_already_confirmed_purchase(self):
+        self.ticketed_event.max_tickets = 4
+        self.ticketed_event.save()
+        tb = mommy.make(
+            TicketBooking, user=self.user, ticketed_event=self.ticketed_event
+        )
+        tb1 = mommy.make(
+            TicketBooking, user=self.user, ticketed_event=self.ticketed_event
+        )
+
+        # add tickets to the booking
+        self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 2, 'ticket_booking_id': tb.id}
+        )
+        tb.refresh_from_db()
+        tb.purchase_confirmed = True
+        tb.save()
+
+        # can change this quantity to 4 b/c tickets in current booking are not
+        # counted against max
+        resp = self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 4, 'ticket_booking_id': tb.id}
+
+        )
+        tb.refresh_from_db()
+        self.assertEqual(tb.tickets.count(), 4)
+
     def test_cannot_book_more_tickets_than_available(self):
 
         self.assertEqual(self.ticketed_event.tickets_left(), 10)
@@ -474,6 +543,12 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         )
         tb.refresh_from_db()
         self.assertEqual(tb.tickets.count(), 8)
+
+        self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 4, 'ticket_booking_id': tb.id}
+        )
+        self.assertEqual(tb.tickets.count(), 4)
 
     def test_paypal_form_only_displayed_if_ticket_cost_and_payment_open(self):
         tb = mommy.make(
@@ -581,6 +656,33 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(user_email.to, [tb.user.email])
 
+    @patch('booking.views.ticketed_views.send_mail')
+    def test_error_sending_user_email(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        tb = mommy.make(
+            TicketBooking, user=self.user, ticketed_event=self.ticketed_event
+        )
+        # add tickets to the booking
+        self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 1, 'ticket_booking_id': tb.id}
+        )
+
+        form_data = {
+                'ticket_booking_id': tb.id,
+                'ticket_formset-MIN_NUM_FORMS': 0,
+                'ticket_formset-TOTAL_FORMS': 1,
+                'ticket_formset-INITIAL_FORMS': 1,
+                'ticket_formset-0-id': tb.tickets.all()[0].id,
+                'ticket_formset-submit': 'Confirm purchase',
+            }
+
+        self._post_response(self.user, self.ticketed_event, form_data)
+
+        self.assertEqual(len(mail.outbox), 1)
+
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+
     def test_email_sent_studio_when_booked_only_if_flag_set(self):
         self.ticketed_event.email_studio_when_purchased = True
         self.ticketed_event.save()
@@ -625,6 +727,69 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
             )
         )
         self.assertEqual(studio_email.to, [settings.DEFAULT_STUDIO_EMAIL])
+
+    @patch('booking.views.ticketed_views.send_mail')
+    def test_error_sending_user__and_studio_email(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        self.ticketed_event.email_studio_when_purchased = True
+        self.ticketed_event.save()
+        tb = mommy.make(
+            TicketBooking, user=self.user, ticketed_event=self.ticketed_event
+        )
+        # add tickets to the booking
+        self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 1, 'ticket_booking_id': tb.id}
+        )
+
+        form_data = {
+                'ticket_booking_id': tb.id,
+                'ticket_formset-MIN_NUM_FORMS': 0,
+                'ticket_formset-TOTAL_FORMS': 1,
+                'ticket_formset-INITIAL_FORMS': 1,
+                'ticket_formset-0-id': tb.tickets.all()[0].id,
+                'ticket_formset-submit': 'Confirm purchase',
+            }
+
+        self._post_response(self.user, self.ticketed_event, form_data)
+
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(mail.outbox[1].to, [settings.SUPPORT_EMAIL])
+
+    def test_submit_with_form_errors(self):
+        self.ticketed_event.extra_ticket_info_label = "Extra info"
+        self.ticketed_event.extra_ticket_info_required = True
+        self.ticketed_event.save()
+
+        tb = mommy.make(
+            TicketBooking, user=self.user, ticketed_event=self.ticketed_event
+        )
+        # add tickets to the booking
+        self._post_response(
+            self.user, self.ticketed_event,
+            {'ticket_purchase_form-quantity': 1, 'ticket_booking_id': tb.id}
+        )
+
+        form_data = {
+                'ticket_booking_id': tb.id,
+                'ticket_formset-MIN_NUM_FORMS': 0,
+                'ticket_formset-TOTAL_FORMS': 1,
+                'ticket_formset-INITIAL_FORMS': 1,
+                'ticket_formset-0-id': tb.tickets.all()[0].id,
+                'ticket_formset-submit': 'Confirm purchase',
+            }
+
+        resp = self._post_response(self.user, self.ticketed_event, form_data)
+
+        self.assertIn(
+            'Please correct errors in the form below',
+            format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Extra info * This field is required',
+            format_content(resp.rendered_content)
+        )
 
 
 class TicketBookingListViewTests(TestSetupMixin, TestCase):
@@ -997,7 +1162,8 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
             extra_ticket_info_label="Name",
         )
         cls.ticket_booking = mommy.make(
-            TicketBooking, user=cls.user, purchase_confirmed=True
+            TicketBooking, user=cls.user, purchase_confirmed=True,
+            ticketed_event=cls.ticketed_event
         )
         mommy.make(Ticket, ticket_booking=cls.ticket_booking)
 
@@ -1068,6 +1234,55 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
         self._post_response(self.user, self.ticket_booking, form_data)
         ticket.refresh_from_db()
         self.assertEqual(ticket.extra_ticket_info, 'test name')
+
+    def test_submit_without_changes(self):
+        ticket = self.ticket_booking.tickets.first()
+        form_data = {
+            'ticket_formset-MIN_NUM_FORMS': 0,
+            'ticket_formset-TOTAL_FORMS': 1,
+            'ticket_formset-INITIAL_FORMS': 1,
+            'ticket_formset-0-id': ticket.id,
+            'ticket_formset-submit': 'Save',
+        }
+        url = reverse(
+            'booking:ticket_booking',
+            kwargs={'ref': self.ticket_booking.booking_reference}
+        )
+        self.assertTrue(
+            self.client.login(username=self.user.username, password='test')
+        )
+        resp = self.client.post(url, form_data, follow=True)
+        self.assertIn('No changes made', format_content(resp.rendered_content))
+
+    def test_submit_with_form_errors(self):
+        self.ticketed_event.extra_ticket_info_required = True
+        self.ticketed_event.save()
+        ticket = self.ticket_booking.tickets.first()
+        form_data = {
+            'ticket_formset-MIN_NUM_FORMS': 0,
+            'ticket_formset-TOTAL_FORMS': 1,
+            'ticket_formset-INITIAL_FORMS': 1,
+            'ticket_formset-0-id': ticket.id,
+            'ticket_formset-0-extra_ticket_info': '',
+            'ticket_formset-submit': 'Save',
+        }
+        url = reverse(
+            'booking:ticket_booking',
+            kwargs={'ref': self.ticket_booking.booking_reference}
+        )
+        self.assertTrue(
+            self.client.login(username=self.user.username, password='test')
+        )
+        resp = self.client.post(url, form_data, follow=True)
+        self.assertIn(
+            'Please correct errors in the form below',
+            format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Additional ticket information '
+            'Ticket # 1 Name * This field is required',
+            format_content(resp.rendered_content)
+        )
 
 
 class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
@@ -1178,6 +1393,30 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
             '{} Ticket booking ref {} cancelled'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                 self.ticket_booking.booking_reference
+            )
+        )
+
+    @patch('booking.views.ticketed_views.send_mail')
+    def test_errors_sending_cancel_email(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        self.assertFalse(self.ticket_booking.cancelled)
+        self._post_response(
+            self.user, self.ticket_booking,
+            {
+                'id': self.ticket_booking.id,
+                'confirm_cancel': 'Yes, cancel my ticket booking'
+            }
+        )
+        self.ticket_booking.refresh_from_db()
+        self.assertTrue(self.ticket_booking.cancelled)
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} An error occurred! '
+            '(TicketBookingCancelView - user email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
             )
         )
 

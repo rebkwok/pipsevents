@@ -542,6 +542,6 @@ def ticket_purchase_expired(request, slug):
         TicketedEvent, slug=slug
     )
     return render(
-        request, 'booking/ticket_purchase_expired.html',
+        request, 'booking/ticket_booking_expired.html',
         {'ticketed_event': ticketed_event}
     )

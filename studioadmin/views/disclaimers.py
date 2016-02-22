@@ -110,8 +110,7 @@ class DisclaimerDeleteView(StaffUserMixin, DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super(DisclaimerDeleteView, self).get_context_data(**kwargs)
-        user = self.get_object().user
-        context['user'] = user
+        context['user'] = self.user
         return context
 
     def get_success_url(self):
