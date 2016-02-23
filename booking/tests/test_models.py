@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
 from django.core.urlresolvers import reverse
@@ -8,7 +9,7 @@ from mock import patch
 from model_mommy import mommy
 
 from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
-    Booking, BookingError, TicketBooking, Ticket, TicketBookingError
+    Booking, TicketBooking, Ticket, TicketBookingError
 
 now = timezone.now()
 
@@ -161,6 +162,27 @@ class BookingTests(TestCase):
 
         self.assertEqual(self.event.spaces_left(), 5)
 
+    def test_event_spaces_left_does_not_count_cancelled_or_no_shows(self):
+        """
+        Test that spaces left is calculated correctly
+        """
+
+        self.assertEqual(self.event.max_participants, 20)
+        self.assertEqual(self.event.spaces_left(), 20)
+
+        for user in self.users:
+            mommy.make_recipe('booking.booking', user=user, event=self.event)
+        mommy.make_recipe(
+            'booking.booking', event=self.event, no_show=True
+        )
+        mommy.make_recipe(
+            'booking.booking', event=self.event, status='CANCELLED'
+        )
+        # 20 total spaces, 15 open bookings, 1 cancelled, 1 no-show; still 5
+        # spaces left
+        self.assertEqual(self.event.bookings.count(), 17)
+        self.assertEqual(self.event.spaces_left(), 5)
+
     def test_space_confirmed_no_cost(self):
         """
         Test that a booking for an event with no cost is automatically confirmed
@@ -259,14 +281,14 @@ class BookingTests(TestCase):
     def test_booking_full_event(self):
         """
         Test that attempting to create new booking for full event raises
-        BookingError
+        ValidationError
         """
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
-        with self.assertRaises(BookingError):
+        with self.assertRaises(ValidationError):
             Booking.objects.create(
                 event=self.event_with_cost, user=self.users[0]
             )
@@ -274,7 +296,7 @@ class BookingTests(TestCase):
     def test_reopening_booking_full_event(self):
         """
         Test that attempting to reopen a cancelled booking for now full event
-        raises BookingError
+        raises ValidationError
         """
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
@@ -286,7 +308,7 @@ class BookingTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
-        with self.assertRaises(BookingError):
+        with self.assertRaises(ValidationError):
             booking.status = 'OPEN'
             booking.save()
 
@@ -352,7 +374,7 @@ class BookingTests(TestCase):
     def test_reopening_booking_full_event_does_not_set_date_reopened(self):
         """
         Test that attempting to reopen a cancelled booking for now full event
-        raises BookingError and does not set date_reopened
+        raises ValidationError and does not set date_reopened
         """
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
@@ -364,7 +386,7 @@ class BookingTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
-        with self.assertRaises(BookingError):
+        with self.assertRaises(ValidationError):
             booking.status = 'OPEN'
             booking.save()
 
@@ -936,6 +958,10 @@ class BlockTests(TestCase):
         # free block still exists but has no booking anymore
         self.assertTrue(block.children.exists())
         self.assertFalse(block.children.first().bookings.exists())
+
+    def test_booking_cannot_be_attended_and_no_show(self):
+        with self.assertRaises(ValidationError):
+            mommy.make(Booking, attended=True, no_show=True)
 
 
 class EventTypeTests(TestCase):
