@@ -30,6 +30,7 @@
                         <tr {% if not print %}class="success"{% endif %}>
                             <th class="table-center"></th>
                             <th class="table-center">Attended</th>
+                            <th class="table-center">No-show</th>
                             <th class="table-center" >Status</th>
                             <th class="table-center">User</th>
                             <th class="table-center">Disclaimer</th>
@@ -41,7 +42,7 @@
                         </tr>
 
                         {% for bookingform in formset %}
-                            <tr>
+                            <tr {% if bookingform.instance.no_show or bookingform.instance.status == 'CANCELLED' %}class="expired"{% endif %}>
                                 <span class="hide">{{ bookingform.id }}</span>
                                 {% if status_choice == 'CANCELLED' %}
                                 <td></td>
@@ -49,6 +50,7 @@
                                 <td class="table-center register-index studioadmin-tbl">{{ bookingform.index }}.</td>
                                 {% endif %}
                                 <td class="table-center studioadmin-tbl">{{ bookingform.attended }}<label for={{ bookingform.checkbox_attended_id }}></label></td>
+                                <td class="table-center studioadmin-tbl">{{ bookingform.no_show }}<label for={{ bookingform.checkbox_no_show_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{% if bookingform.instance.id %}{{ bookingform.instance.status }}{% else %}NEW{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
                                 {% if bookingform.instance.id %}

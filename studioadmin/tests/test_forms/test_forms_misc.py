@@ -18,5 +18,6 @@ class ConfirmPaymentFormTests(TestCase):
     def test_form_valid(self):
         user = mommy.make_recipe('booking.user')
         event = mommy.make_recipe('booking.future_PC')
-        form = ConfirmPaymentForm(data={'paid': 'true'})
+        booking = mommy.make_recipe('booking.booking', user=user, event=event)
+        form = ConfirmPaymentForm(data={'paid': 'true'}, instance=booking)
         self.assertTrue(form.is_valid())

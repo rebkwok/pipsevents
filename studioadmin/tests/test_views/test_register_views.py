@@ -117,6 +117,19 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, 'lessons', url=url)
         self.assertEquals(len(resp.context_data['events']), 10)
 
+    def test_event_register_list_shows_correct_booking_count(self):
+        event = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        mommy.make_recipe('booking.booking', event=event, status='CANCELLED')
+        mommy.make_recipe('booking.booking', event=event, no_show=True)
+        resp = self._get_response(self.staff_user, 'events')
+        self.assertIn(
+            '{} {} 2'.format(
+                event.date.strftime('%a %d %b, %H:%M'), event.name
+            ),
+            format_content(resp.rendered_content)
+        )
+
 
 class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
@@ -192,11 +205,13 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             'bookings-0-paid': self.booking1.paid,
             'bookings-0-deposit_paid': self.booking1.paid,
             'bookings-0-attended': self.booking1.attended,
+            'bookings-0-no_show': self.booking1.no_show,
             'bookings-1-id': self.booking2.id,
             'bookings-1-user': self.booking2.user.id,
             'bookings-1-deposit_paid': self.booking2.paid,
             'bookings-1-paid': self.booking2.paid,
             'bookings-1-attended': self.booking2.attended,
+            'bookings-1-no_show': self.booking2.no_show,
             'status_choice': status_choice
             }
 
@@ -326,6 +341,35 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.booking1.refresh_from_db()
         self.assertTrue(self.booking1.deposit_paid)
         self.assertFalse(self.booking1.paid)
+
+    def test_can_update_booking_no_show(self):
+        self.assertFalse(self.booking1.no_show)
+
+        formset_data = self.formset_data({
+            'bookings-0-no_show': True,
+            'formset_submitted': 'Save changes'
+        })
+
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+
+        self.booking1.refresh_from_db()
+        self.assertTrue(self.booking1.no_show)
+
+        formset_data = self.formset_data({
+            'bookings-0-no_show': False,
+            'formset_submitted': 'Save changes'
+        })
+
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+
+        self.booking1.refresh_from_db()
+        self.assertFalse(self.booking1.no_show)
 
     def test_can_select_block_for_existing_booking(self):
         self.assertFalse(self.booking1.block)
@@ -514,6 +558,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         # if there is a max_participants, and filter is 'OPEN',
         # show extra lines to this number
         mommy.make('booking.booking', event=self.event, status='CANCELLED')
+        mommy.make(
+            'booking.booking', event=self.event, status='OPEN', no_show=True
+        )
         self.event.max_participants = 10
         self.event.save()
         self.assertEqual(self.event.spaces_left(), 8)
@@ -550,7 +597,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             booking for booking in self.event.bookings.all()
             if booking.status == 'OPEN'
         ]
-        self.assertEqual(len(open_bookings), 2)
+        self.assertEqual(len(open_bookings), 3)
         cancelled_bookings = [
             booking for booking in self.event.bookings.all()
             if booking.status == 'CANCELLED'
@@ -635,6 +682,32 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             'Booking changed to unattended for users {}, {}'.format(
                 self.booking1.user.username, self.booking2.user.username
             ), content
+        )
+
+    def test_cannot_update_booking_to_attended_and_no_show(self):
+
+        formset_data = self.formset_data({
+            'bookings-0-attended': True,
+            'bookings-0-no_show': True,
+            'formset_submitted': 'Save changes'
+        })
+
+        url = reverse(
+            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url, formset_data, follow=True)
+
+        self.booking1.refresh_from_db()
+        self.assertFalse(self.booking1.attended)
+        self.assertFalse(self.booking2.attended)
+
+        content = format_content(resp.rendered_content)
+
+        self.assertIn(
+            'Please correct the following errors:__all__Booking cannot be '
+            'both attended and no-show',
+            content
         )
 
 

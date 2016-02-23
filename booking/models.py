@@ -6,10 +6,12 @@ import shortuuid
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from django_extensions.db.fields import AutoSlugField
 
@@ -23,10 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class BlockTypeError(Exception):
-    pass
-
-
-class BookingError(Exception):
     pass
 
 
@@ -119,7 +117,7 @@ class Event(models.Model):
     def spaces_left(self):
         if self.max_participants:
             booked_number = Booking.objects.filter(
-                event__id=self.id, status='OPEN').count()
+                event__id=self.id, status='OPEN', no_show=False).count()
             return self.max_participants - booked_number
         else:
             return 100
@@ -344,6 +342,9 @@ class Booking(models.Model):
     )
     attended = models.BooleanField(
         default=False, help_text='Student has attended this event')
+    no_show = models.BooleanField(
+        default=False, help_text='Student paid but did not attend')
+
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
@@ -401,20 +402,35 @@ class Booking(models.Model):
             return False
         return self._old_booking().status == 'OPEN' and self.status == 'CANCELLED'
 
+    def clean(self):
+        if self._is_rebooking():
+            if self.event.spaces_left() == 0:
+                raise ValidationError(
+                    _('Attempting to reopen booking for full '
+                    'event %s' % self.event.id)
+                )
+
+        if self._is_new_booking() and self.status != "CANCELLED" and \
+            self.event.spaces_left() == 0:
+                raise ValidationError(
+                    _('Attempting to create booking for full '
+                    'event %s' % self.event.id)
+                )
+
+        if self.attended and self.no_show:
+            raise ValidationError(
+                _('Booking cannot be both attended and no-show')
+            )
+
     def save(self, *args, **kwargs):
+        self.full_clean()
         rebooking = self._is_rebooking()
         new_booking = self._is_new_booking()
         cancellation = self._is_cancellation()
         orig = self._old_booking()
 
         if rebooking:
-            if self.event.spaces_left() == 0:
-                raise BookingError(
-                    'Attempting to reopen booking for full '
-                    'event %s' % self.event.id
-                )
-            else:
-                self.date_rebooked = timezone.now()
+            self.date_rebooked = timezone.now()
 
         if (cancellation and orig.block) or \
                 (orig and orig.block and not self.block ):
@@ -447,13 +463,6 @@ class Booking(models.Model):
                 self.block = None
                 self.paid = False
                 self.payment_confirmed = False
-
-        if new_booking and self.status != "CANCELLED" and \
-            self.event.spaces_left() == 0:
-                raise BookingError(
-                    'Attempting to create booking for full '
-                    'event %s' % self.event.id
-                )
 
         if self.block and self.block.block_type.identifier == 'free class':
             self.free_class = True
