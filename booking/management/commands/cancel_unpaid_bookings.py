@@ -137,22 +137,28 @@ class Command(BaseCommand):
         if bookings:
             if settings.SEND_ALL_STUDIO_EMAILS:
                 # send single mail to Studio
-                send_mail('{} Booking{} been automatically cancelled'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                    ' has' if len(bookings) == 1 else 's have'),
-                    get_template(
-                        'booking/email/booking_auto_cancelled_studio_email.txt'
-                    ).render({'bookings': bookings}),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.DEFAULT_STUDIO_EMAIL],
-                    html_message=get_template(
-                        'booking/email/booking_auto_cancelled_studio_email.html'
+                try:
+                    send_mail('{} Booking{} been automatically cancelled'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                        ' has' if len(bookings) == 1 else 's have'),
+                        get_template(
+                            'booking/email/booking_auto_cancelled_studio_email.txt'
                         ).render({'bookings': bookings}),
-                    fail_silently=False)
-                self.stdout.write(
-                    'Cancellation emails sent for booking ids {}'.format(
-                        ', '.join([str(booking.id) for booking in bookings])
+                        settings.DEFAULT_FROM_EMAIL,
+                        [settings.DEFAULT_STUDIO_EMAIL],
+                        html_message=get_template(
+                            'booking/email/booking_auto_cancelled_studio_email.html'
+                            ).render({'bookings': bookings}),
+                        fail_silently=False)
+                    self.stdout.write(
+                        'Cancellation emails sent for booking ids {}'.format(
+                            ', '.join([str(booking.id) for booking in bookings])
+                        )
                     )
-                )
+                except Exception as e:
+                    # send mail to tech support with Exception
+                    send_support_email(
+                        e, __name__, "Automatic cancel job - studio email"
+                    )
         else:
             self.stdout.write('No bookings to cancel')

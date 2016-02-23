@@ -24,17 +24,15 @@ from payments.models import PaypalBookingTransaction
 
 class ManagementCommandsTests(TestCase):
 
-    @classmethod
-    def setUp(cls):
+    def setUp(self):
         # redirect stdout so we can test it
-        cls.output = StringIO()
-        cls.saved_stdout = sys.stdout
-        sys.stdout = cls.output
+        self.output = StringIO()
+        self.saved_stdout = sys.stdout
+        sys.stdout = self.output
 
-    @classmethod
-    def tearDownTestData(cls):
-        cls.output.close()
-        sys.stdout = cls.saved_stdout
+    def tearDown(self):
+        self.output.close()
+        sys.stdout = self.saved_stdout
 
     def test_setup_fb(self):
         self.assertEquals(SocialApp.objects.all().count(), 0)
@@ -833,6 +831,29 @@ class CancelUnpaidBookingsTests(TestCase):
             sorted(cancelled_booking_emails),
             sorted([email.to for email in mail.outbox])
         )
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.send_mail')
+    @patch('booking.management.commands.cancel_unpaid_bookings.'
+           'send_waiting_list_email')
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_email_errors(self, mock_tz, mock_send, mock_send_waiting_list):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, tzinfo=timezone.utc
+        )
+        mock_send.side_effect = Exception('Error sending email')
+        mock_send_waiting_list.side_effect = Exception('Error sending email')
+        # make full event (setup has one paid and one unpaid)
+        # cancellation period =1, date = 2015, 2, 13, 18, 0
+        self.event.max_participants = 2
+        self.event.save()
+        mommy.make_recipe('booking.waiting_list_user', event=self.event)
+
+        management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking, studio and waiting
+        # list user; 3 failure emails sent to support
+        self.assertEquals(len(mail.outbox), 3)
+        for email in mail.outbox:
+            self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_cancelling_for_full_event_emails_waiting_list(self, mock_tz):
@@ -2272,36 +2293,48 @@ class ActivateBlockTypeTests(TestCase):
 
 class ActivateSaleTests(TestCase):
 
-    def test_activate_sale_prices(self):
-
-        pc_ev_type, _ = EventType.objects.get_or_create(
+    @classmethod
+    def setUpTestData(cls):
+        cls.pc_ev_type, _ = EventType.objects.get_or_create(
             event_type='CL', subtype='Pole level class'
         )
-        oc_ev_type, _ = EventType.objects.get_or_create(
+        cls.oc_ev_type, _ = EventType.objects.get_or_create(
             event_type='CL', subtype='Other class'
         )
-        pp_ev_type, _ = EventType.objects.get_or_create(
+        cls.pp_ev_type, _ = EventType.objects.get_or_create(
             event_type='CL', subtype='Pole practice'
         )
 
+    def setUp(self):
+        # redirect stdout so we can test it
+        self.output = StringIO()
+        self.saved_stdout = sys.stdout
+        sys.stdout = self.output
+
         mommy.make(
-            Event, date=timezone.now() + timedelta(1),
-            cost=7.50, booking_open=False,
-            payment_open=False, event_type=pc_ev_type,
-            _quantity=5
+           Event, date=timezone.now() + timedelta(1),
+           cost=7.50, booking_open=False,
+           payment_open=False, event_type=self.pc_ev_type,
+           _quantity=5
         )
         mommy.make(
             Event, date=timezone.now() + timedelta(1),
             cost=7.50, booking_open=False,
-            payment_open=False, event_type=oc_ev_type,
+            payment_open=False, event_type=self.oc_ev_type,
             _quantity=5
         )
         mommy.make(
             Event, date=timezone.now() + timedelta(1),
             cost=4, booking_open=False,
-            payment_open=False, event_type=pp_ev_type,
+            payment_open=False, event_type=self.pp_ev_type,
             _quantity=5
         )
+
+    def tearDown(self):
+        self.output.close()
+        sys.stdout = self.saved_stdout
+
+    def test_activate_sale_prices(self):
 
         management.call_command('sale', 'on')
 
@@ -2354,3 +2387,58 @@ class ActivateSaleTests(TestCase):
             self.assertEqual(oc.cost, 7.50)
             self.assertFalse(oc.booking_open)
             self.assertFalse(oc.payment_open)
+
+    @patch('booking.management.commands.sale.send_mail')
+    def test_email_errors(self, mock_send):
+        mock_send.side_effect = Exception("Error sending email")
+        management.call_command('sale', 'on')
+
+        classes = Event.objects.filter(event_type__subtype='Pole level class')
+        other_classes = Event.objects.filter(event_type__subtype='Other class')
+        practices = Event.objects.filter(event_type__subtype='Pole practice')
+
+        self.assertEqual(classes.count(), 5)
+        for pc in classes:
+            self.assertEqual(pc.cost, 6)
+            self.assertTrue(pc.booking_open)
+            self.assertTrue(pc.payment_open)
+
+        self.assertEqual(practices.count(), 5)
+        for pp in practices:
+            self.assertEqual(pp.cost, 2.75)
+            self.assertTrue(pp.booking_open)
+            self.assertTrue(pp.payment_open)
+
+        self.assertEqual(other_classes.count(), 5)
+        for oc in other_classes:
+            self.assertEqual(oc.cost, 7.50)
+            self.assertFalse(oc.booking_open)
+            self.assertFalse(oc.payment_open)
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} An error occurred! '
+            '(Activate class/practice sale - support email)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    def test_no_classes_to_change(self):
+        Event.objects.all().delete()
+        management.call_command('sale', 'on')
+        self.assertEqual(
+            'No classes/practices to activate\n',
+            self.output.getvalue()
+        )
+        management.call_command('sale', 'off')
+        self.assertEqual(
+            'No classes/practices to activate\n'
+            'No classes/practices to deactivate\n',
+            self.output.getvalue()
+        )
+
+
+

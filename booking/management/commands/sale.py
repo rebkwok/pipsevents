@@ -58,7 +58,7 @@ class Command(BaseCommand):
             ActivityLog.objects.create(log=message)
             self.stdout.write(message)
 
-        if pole_classes:
+        if pole_practices:
             message = 'Pole practices have been updated with {} prices ' \
                       '(ids {})'.format(
                 'sale' if action == 'on' else 'non-sale',
