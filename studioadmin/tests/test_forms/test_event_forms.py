@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytz
 
 from model_mommy import mommy
 
@@ -116,6 +117,52 @@ class EventAdminFormTests(TestCase):
     def test_form_valid(self):
         form = EventAdminForm(data=self.form_data(), ev_type='CL')
         self.assertTrue(form.is_valid())
+
+    def test_form_for_cancelled_events(self):
+        event = mommy.make_recipe('booking.future_PC', event_type=self.event_type)
+        data = {
+            'id': event.id,
+            'name': event.name,
+            'event_type': self.event_type.id,
+            'date': event.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y %H:%M'),
+            'contact_email': event.contact_email,
+            'contact_person': event.contact_person,
+            'cancellation_period': event.cancellation_period,
+            'location': event.location,
+            'allow_booking_cancellation': True
+        }
+        form = EventAdminForm(data=data, instance=event, ev_type='CL')
+        self.assertTrue(form.is_valid())
+        # event is not cancelled, so cancelled checkbox is hidden
+        cancelled_field = form.fields['cancelled']
+        self.assertEqual(
+            cancelled_field.widget.attrs,
+            {'disabled': 'disabled', 'id': 'cancelled_id', 'class': 'hide'}
+        )
+        self.assertEquals(
+            cancelled_field.help_text,
+            'To cancel, use the Cancel button on the class list page'
+        )
+
+        event.cancelled = True
+        event.save()
+        data.update({'cancelled': True})
+        form = EventAdminForm(data=data, instance=event, ev_type='CL')
+        cancelled_field = form.fields['cancelled']
+        self.assertTrue(form.is_valid())
+        self.assertEqual(
+            cancelled_field.widget.attrs,
+            {'class': 'form-control regular-checkbox', 'id': 'cancelled_id'}
+        )
+        self.assertEquals(
+            cancelled_field.help_text,
+            'Untick to reopen class; note that this does not change any other '
+            'attributes and does not reopen previously cancelled bookings.  '
+            'Class will be reopened with both booking and payment CLOSED'
+        )
+
 
     def test_form_with_invalid_contact_person(self):
         form = EventAdminForm(
@@ -337,7 +384,7 @@ class EventAdminFormTests(TestCase):
             str(form.errors['payment_time_allowed'])
         )
 
-    def adv_payment_due_date_and_time_allowed_require_ticket_cost(self):
+    def test_adv_payment_due_date_and_time_allowed_require_ticket_cost(self):
         form = EventAdminForm(
             data=self.form_data(
                 {
@@ -357,23 +404,9 @@ class EventAdminFormTests(TestCase):
         form = EventAdminForm(
             data=self.form_data(
                 {
-                    'payment_due_date': 4,
-                },
-            ),
-            ev_type='CL'
-        )
-        self.assertFalse(form.is_valid())
-        self.assertIn(
-            'The following fields require a cost greater than £0: '
-            'payment due date',
-            str(form.errors['cost'])
-        )
-
-        form = EventAdminForm(
-            data=self.form_data(
-                {
-                    'payment_due_date': 4,
+                    'payment_due_date': '01 Jun 2015',
                     'advance_payment_required': True,
+                    'cost': ''
                 },
             ),
             ev_type='CL'
@@ -388,15 +421,17 @@ class EventAdminFormTests(TestCase):
         form = EventAdminForm(
             data=self.form_data(
                 {
-                    'payment_due_date': 4,
+                    'payment_time_allowed': 4,
                     'advance_payment_required': True,
+                    'cost': ''
                 },
-            )
+            ),
+            ev_type='CL'
         )
         self.assertFalse(form.is_valid())
         self.assertIn(
             'The following fields require a cost greater than £0: '
-            'advance payment required, payment due date, payment time allowed',
+            'advance payment required, payment time allowed',
             str(form.errors['cost'])
         )
 

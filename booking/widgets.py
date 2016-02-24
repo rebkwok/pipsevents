@@ -39,9 +39,6 @@ class DateSelectorWidget(widgets.MultiWidget):
             return [value.day, value.month, value.year]
         return [None, None, None]
 
-    def format_output(self, rendered_widgets):
-        return u''.join(rendered_widgets)
-
     def value_from_datadict(self, data, files, name):
         datelist = [
             widget.value_from_datadict(data, files, name + '_%s' % i)
@@ -59,6 +56,7 @@ HOURS_CONVERSION = {
         'weeks': 7 * 24,
         'days': 24,
     }
+
 
 class DurationSelectorWidget(widgets.MultiWidget):
 
@@ -86,12 +84,16 @@ class DurationSelectorWidget(widgets.MultiWidget):
         return [None, None, None]
 
     def format_output(self, rendered_widgets):
-        return ("<div>Weeks:</div> {}"
-                "</br>"
-                "<div>Days:</div>{}"
-                "</br>"
-                "<div>Hours:</div>{}"
-                .format(rendered_widgets[0], rendered_widgets[1], rendered_widgets[2]))
+        return (
+            "<div>Weeks:</div> {}"
+            "</br>"
+            "<div>Days:</div>{}"
+            "</br>"
+            "<div>Hours:</div>{}"
+            .format(
+                rendered_widgets[0], rendered_widgets[1], rendered_widgets[2]
+            )
+        )
 
     def value_from_datadict(self, data, files, name):
         weeks_days_hours = [

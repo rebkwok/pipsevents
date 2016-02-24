@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from booking.models import Block, Booking
+from booking.models import Block, Booking, TicketBooking
 
 """
 def view_that_asks_for_money(request):
@@ -29,7 +29,9 @@ def view_that_asks_for_money(request):
 
 @csrf_exempt
 def paypal_confirm_return(request):
+    obj = 'unknown'
     custom = request.POST.get('custom', '').split()
+
     if custom:
         obj_type = custom[0]
         obj_id = int(custom[-1])
@@ -38,6 +40,8 @@ def paypal_confirm_return(request):
             obj = Booking.objects.get(id=obj_id)
         elif obj_type == "block":
             obj = Block.objects.get(id=obj_id)
+        elif obj_type == "ticket_booking":
+            obj = TicketBooking.objects.get(id=obj_id)
         else:
             obj = 'unknown'
 
@@ -50,12 +54,13 @@ def paypal_confirm_return(request):
         # paypal has been successfully processed
         context = {'obj': obj,
                    'obj_type': obj_type,
-                   'payment_status': request.POST['payment_status'],
-                   'purchase': request.POST['item_name'],
+                   'payment_status': request.POST.get('payment_status'),
+                   'purchase': request.POST.get('item_name'),
                    'sender_email': settings.DEFAULT_FROM_EMAIL,
                    'organiser_email': settings.DEFAULT_STUDIO_EMAIL
                    }
-    else:
+
+    if not custom or obj == 'unknown':
         context = {
             'obj_unknown': True,
             'organiser_email': settings.DEFAULT_STUDIO_EMAIL

@@ -77,6 +77,45 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             list(resp.context_data['users']), list(User.objects.all())
         )
 
+    def test_abbreviations_for_long_username(self):
+        """
+        Usernames > 15 characters are split to 2 lines
+        """
+        mommy.make_recipe(
+            'booking.user',
+            username='test123456789101112'
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn('test12345678910-</br>1112', resp.rendered_content)
+
+    def test_abbreviations_for_long_names(self):
+        """
+        Names > 12 characters are split to 2 lines; names with hyphens are
+        split on the first hyphen
+        """
+        mommy.make_recipe(
+            'booking.user',
+            first_name='namewithmorethan12characters',
+            last_name='name-with-three-hyphens'
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn(
+            'namewith-</br>morethan12characters', resp.rendered_content
+        )
+        self.assertIn('name-</br>with-three-hyphens', resp.rendered_content)
+
+    def test_abbreviations_for_long_email(self):
+        """
+        Email > 18 characters is truncated
+        """
+        mommy.make_recipe(
+            'booking.user',
+            email='test1@longemail.com'
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn('test1@longemail...', resp.rendered_content)
+
+
     def test_display_regular_students(self):
         not_reg_student = mommy.make_recipe('booking.user')
         reg_student = mommy.make_recipe('booking.user')
