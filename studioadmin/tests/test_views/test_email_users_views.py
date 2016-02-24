@@ -1,11 +1,14 @@
+from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
 
+from activitylog.models import ActivityLog
 from booking.models import Booking
 from booking.tests.helpers import _create_session
 from studioadmin.views import (
@@ -124,6 +127,33 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
         user = usersformset.forms[0]
         self.assertEqual(user.instance, self.user)
+
+    def test_filter_users_without_events_removes_previous_selections(self):
+        user = mommy.make_recipe('booking.user')
+        user1 = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        event1 = mommy.make_recipe('booking.future_EV')
+        lesson = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', event=event, user=user)
+        mommy.make_recipe('booking.booking', event=event1, user=user1)
+        mommy.make_recipe('booking.booking', event=lesson, user=user1)
+
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [''],
+                'filter-events': ['']}
+        )
+        resp = self._post_response(
+            self.staff_user, form_data,
+            session_data={'events': [event1.id], 'lessons': [lesson.id]}
+        )
+
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 5)
 
     def test_filter_with_no_events_selected(self):
         mommy.make_recipe('booking.user', _quantity=2)
@@ -398,6 +428,30 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         email = mail.outbox[0]
         self.assertEqual(email.body, 'Test message')
         self.assertEqual(email.subject, '[watermelon studio bookings] Test email')
+
+    @patch('studioadmin.views.email_users.EmailMultiAlternatives.send')
+    def test_email_errors(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        event = mommy.make_recipe('booking.future_EV')
+        self._post_response(
+            self.staff_user, [self.user.id],
+            event_ids=[event.id], lesson_ids=[],
+            form_data={
+                'subject': 'Test email',
+                'message': 'Test message',
+                'from_address': 'test@test.com'}
+        )
+        self.assertEqual(len(mail.outbox), 0)
+        log = ActivityLog.objects.latest('id')
+        self.assertEqual(
+            log.log,
+            'Bulk email error for users test_user@test.com '
+            '(email subject "{} Test email"), '
+            'sent by by admin user {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                self.staff_user.username
+            )
+        )
 
     def test_cc_email_sent(self):
         self._post_response(

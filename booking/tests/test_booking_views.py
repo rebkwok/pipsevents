@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.contrib.auth.models import Permission, User
 
 from activitylog.models import ActivityLog
-from accounts.models import PrintDisclaimer
+from accounts.models import OnlineDisclaimer
 
 from booking.models import Event, EventType, Booking, Block, WaitingListUser
 from booking.views import BookingListView, BookingHistoryListView, \
@@ -972,7 +972,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
 
         user = mommy.make_recipe('booking.user')
-        mommy.make(PrintDisclaimer, user=user)
+        mommy.make(OnlineDisclaimer, user=user)
         perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
@@ -1372,6 +1372,20 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
     def test_has_active_block(self):
         response = self.client.get(reverse('booking:has_active_block'))
         self.assertEqual(response.status_code, 200)
+
+    def test_already_paid(self):
+        booking = mommy.make_recipe('booking.booking', paid=True)
+        resp = self.client.get(
+            reverse('booking:already_paid', args=[booking.id])
+        )
+        self.assertIn(booking.event.name, str(resp.content))
+
+    def test_disclaimer_required(self):
+        resp = self.client.get(reverse('booking:disclaimer_required'))
+        self.assertIn(
+            'Please submit a disclaimer form and try again',
+            format_content(str(resp.content))
+        )
 
 
 class BookingDeleteViewTests(TestSetupMixin, TestCase):

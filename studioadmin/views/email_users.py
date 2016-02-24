@@ -79,9 +79,6 @@ def choose_users_to_email(request,
                 if form.is_valid():
                     if form.cleaned_data.get('email_user'):
                         users_to_email.append(form.instance.id)
-                else:
-                    for error in form.errors:
-                        messages.error(request, mark_safe("{}".format(error)))
 
             request.session['users_to_email'] = users_to_email
 
@@ -129,7 +126,8 @@ def email_users_view(request,
                 # do this per email address so recipients are not visible to
                 # each
                 email_addresses = [user.email for user in users_to_email]
-
+                success = []
+                fail = []
                 for email_address in email_addresses:
                     try:
                         msg = EmailMultiAlternatives(
@@ -156,13 +154,27 @@ def email_users_view(request,
                             log="Possible error with sending bulk email; "
                                 "notification sent to tech support"
                         )
-                ActivityLog.objects.create(
-                    log='Bulk email with subject "{}" sent to users {} by '
-                        'admin user {}'.format(
-                        subject, email_addresses, request.user.username
+                        fail.append(email_address)
+                    success.append(email_address)
+                if success:
+                    ActivityLog.objects.create(
+                        log='Bulk email with subject "{}" sent to users {} by '
+                            'admin user {}'.format(
+                            subject, ', '.join(success), request.user.username
+                        )
                     )
-                )
+                if fail:
+                    ActivityLog.objects.create(
+                        log='Bulk email error for users {} (email subject "{}"), sent by '
+                            'by admin user {}'.format(
+                             ', '.join(fail), subject, request.user.username
+                            )
+                    )
 
+                    messages.error(
+                        request, 'There may have been a problem with sending to '
+                                 'the following emails: {}'.format(', '.join(fail))
+                    )
                 return render(request,
                     'studioadmin/email_users_confirmation.html')
 

@@ -273,7 +273,6 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                                 'booking:fully_booked', args=[self.event.slug]
                             )
                         )
-        return super(BookingCreateView, self).form_invalid(form)
 
     def form_valid(self, form):
         booking = form.save(commit=False)

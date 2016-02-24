@@ -35,7 +35,7 @@ def chaffify(val, chaff_val=87953):
 def dechaffify(chaffied_val, chaff_val=87953):
     """
     Dechaffs the given chaffed value. chaff_val must be the same as given to
-    chaffify2(). If the value does not seem to be correctly chaffed, raises a
+    chaffify(). If the value does not seem to be correctly chaffed, raises a
     ValueError. """
     val, chaff = divmod(chaffied_val, chaff_val)
     if chaff != 0:

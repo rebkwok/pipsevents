@@ -25,6 +25,11 @@ class DateSelectorWidgetTest(TestCase):
         converted_duration = self.widget.decompress("")
         self.assertEqual([None, None, None], converted_duration)
 
+    def test_error_input(self):
+        data = {'date_0': 'foo', 'date_1': '3', 'date_2': '2015'}
+        converted_date = self.widget.value_from_datadict(data, {}, 'date')
+        self.assertEqual(converted_date, '')
+
 
 class DurationSelectorWidgetTest(TestCase):
 
