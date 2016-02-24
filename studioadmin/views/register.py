@@ -50,6 +50,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
             else:
                 attended_checked = []
                 attended_unchecked = []
+                no_show_checked = []
+                no_show_unchecked = []
                 deposit_updates = {}
                 paid_updates = {}
                 # for messages; show separate message if booking created or
@@ -65,7 +67,10 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                             attended_checked.append(booking.user.username) \
                                 if booking.attended \
                                 else attended_unchecked.append(booking.user.username)
-
+                        if 'no_show' in form.changed_data:
+                            no_show_checked.append(booking.user.username) \
+                                if booking.no_show \
+                                else no_show_unchecked.append(booking.user.username)
                         # new booking
                         if 'user' in form.changed_data:
 
@@ -217,6 +222,39 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                             booking.event, request.user.username
                         )
                     )
+                if no_show_checked:
+                    messages.success(
+                        request,
+                        "Booking changed to 'no-show' for user{} {}".format(
+                            's' if len(no_show_checked) > 1 else '',
+                            ', '.join(no_show_checked)
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="(Register) User{} {} marked as no-show for event {} by "
+                            "admin user {}".format(
+                            's' if len(no_show_checked) > 1 else '',
+                            ', '.join(no_show_checked),
+                            booking.event, request.user.username
+                        )
+                    )
+
+                if no_show_unchecked:
+                    messages.success(
+                        request,
+                        "Booking changed to not no-show for user{} {}".format(
+                            's' if len(no_show_unchecked) > 1 else '',
+                            ', '.join(no_show_unchecked)
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="(Register) User{} {} unmarked as no-show for event {} by "
+                            "admin user {}".format(
+                            's' if len(no_show_unchecked) > 1 else '',
+                            ', '.join(no_show_unchecked),
+                            booking.event, request.user.username
+                        )
+                    )
 
             register_url = 'studioadmin:event_register'
             if event.event_type.event_type == 'CL':
@@ -230,14 +268,18 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 'status_choice': status_choice}
                         )
             )
-        else:  # pragma: no cover
+        else:
             messages.error(
                 request,
                 mark_safe(
-                    "There were errors in the following fields:\n{}".format(
-                        '\n'.join(
+                    "Please correct the following errors:{}{}".format(
+                        '</br>'.join(
                             ["{}".format(error) for error in formset.errors]
-                        )
+                        ) if formset.errors else '',
+                        '</br>'.join(
+                            ["{}".format(error) for error
+                             in formset.non_form_errors()]
+                        ) if formset.non_form_errors() else ''
                     )
                 )
             )
@@ -260,10 +302,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     elif event.max_participants:
         extra_lines = event.spaces_left()
     elif event.bookings.count() < 15:
-        open_bookings = [
-            event for event in event.bookings.all() if event.status == 'OPEN'
-        ]
-        extra_lines = 15 - len(open_bookings)
+        open_bookings = Booking.objects.filter(event=event, status='OPEN', no_show=False)
+        extra_lines = 15 - open_bookings.count()
     else:
         extra_lines = 2
 

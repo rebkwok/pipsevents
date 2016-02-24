@@ -775,8 +775,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.user.id, form_data=form_data
         )
-        # redirects and doesn't make booking
-        self.assertEqual(resp.status_code, 302)
+
+        self.assertIn(
+            'Please correct the following errors:__all__Attempting to create '
+            'booking for full event',
+            format_content(resp.rendered_content)
+        )
         # new booking has not been made
         bookings = Booking.objects.filter(event=event)
         self.assertEqual(len(bookings), 2)

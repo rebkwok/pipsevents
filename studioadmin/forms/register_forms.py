@@ -3,7 +3,9 @@ from datetime import datetime, date
 
 from django import forms
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
+from django.utils.translation import ugettext_lazy as _
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Block, Booking, Event
@@ -87,9 +89,13 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                 widget=forms.Select(attrs={'class': 'form-control input-xs studioadmin-list'})
             )
 
+        checkbox_class = 'regular-checkbox'
+        if form.instance.no_show or form.instance.status == 'CANCELLED':
+            checkbox_class = 'regular-checkbox regular-checkbox-disabled'
+
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': checkbox_class,
                 'id': 'checkbox_paid_{}'.format(index)
             }),
             required=False
@@ -98,7 +104,7 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
         form.fields['deposit_paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': checkbox_class,
                 'id': 'checkbox_deposit_paid_{}'.format(index)
             }),
             required=False
@@ -107,13 +113,23 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
         form.fields['attended'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': checkbox_class,
                 'id': 'checkbox_attended_{}'.format(index)
             }),
             initial=False,
             required=False
         )
         form.checkbox_attended_id = 'checkbox_attended_{}'.format(index)
+
+        form.fields['no_show'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': checkbox_class,
+                'id': 'checkbox_no_show_{}'.format(index)
+            }),
+            initial=False,
+            required=False
+        )
+        form.checkbox_no_show_id = 'checkbox_no_show_{}'.format(index)
 
     def clean(self):
         if not self.is_valid():
@@ -125,12 +141,30 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                         ]
                     }:
                         del form.errors['__all__']
+        if self.instance.max_participants:
+            # check the number of forms (excluding empty ones) not marked as
+            # no_show does not exceed the event's max_participants
+            new_forms = [fm for fm in self.forms if fm.cleaned_data]
+            if len(new_forms) > self.instance.max_participants:
+                no_shows = 0
+                for form in new_forms:
+                    if form.instance.no_show:
+                        no_shows += 1
+                if (len(new_forms) - no_shows) > self.instance.max_participants:
+                    raise ValidationError(
+                        _(
+                            'Too many bookings; a maximum of %d booking%s is '
+                            'allowed (excluding no-shows)' %
+                            (self.instance.max_participants,
+                             's' if self.instance.max_participants > 1 else '')
+                        )
+                    )
 
 
 SimpleBookingRegisterFormSet = inlineformset_factory(
     Event,
     Booking,
-    fields=('attended', 'user', 'deposit_paid', 'paid', 'block'),
+    fields=('attended', 'no_show', 'user', 'deposit_paid', 'paid', 'block'),
     can_delete=False,
     formset=BookingRegisterInlineFormSet,
 )

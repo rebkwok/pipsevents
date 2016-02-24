@@ -634,6 +634,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         # try to book for event
         resp = self._post_response(self.user, event)
+
         # test redirect to duplicate booking url
         self.assertEqual(
             resp.url,
