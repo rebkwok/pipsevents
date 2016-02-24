@@ -57,6 +57,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         self.assertEquals(form.checkbox_deposit_paid_id, 'checkbox_deposit_paid_0')
         self.assertEquals(form.checkbox_paid_id, 'checkbox_paid_0')
         self.assertEquals(form.checkbox_attended_id, 'checkbox_attended_0')
+        self.assertEquals(form.checkbox_no_show_id, 'checkbox_no_show_0')
 
     def test_block_queryset_with_other_event_types(self):
         """
@@ -122,6 +123,57 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         self.assertEquals(Block.objects.filter(user=self.user).count(), 2)
         block_field = form.fields['block']
         self.assertEquals(set(block_field.queryset), {self.active_block})
+
+    def test_adding_more_bookings_than_max_participants(self):
+        self.event.max_participants = 2
+        self.event.save()
+        user = mommy.make_recipe('booking.user')
+        user1 = mommy.make_recipe('booking.user')
+        data = self.formset_data({
+            'bookings-TOTAL_FORMS': 3,
+            'bookings-1-user': user.id,
+            'bookings-2-user': user1.id,
+        })
+        formset = SimpleBookingRegisterFormSet(data=data, instance=self.event)
+        self.assertFalse(formset.is_valid())
+        self.assertEqual(
+            formset.non_form_errors(),
+            [
+                'Too many bookings; a maximum of 2 bookings is allowed '
+                '(excluding no-shows)'
+            ]
+        )
+
+        self.event.max_participants = 1
+        self.event.save()
+        data = self.formset_data({
+            'bookings-TOTAL_FORMS': 2,
+            'bookings-1-user': user.id
+        })
+        formset = SimpleBookingRegisterFormSet(data=data, instance=self.event)
+        self.assertFalse(formset.is_valid())
+        self.assertEqual(
+            formset.non_form_errors(),
+            [
+                'Too many bookings; a maximum of 1 booking is allowed '
+                '(excluding no-shows)'
+            ]
+        )
+
+        self.booking.no_show = True
+        self.booking.save()
+        data = self.formset_data({
+            'bookings-TOTAL_FORMS': 2,
+            'bookings-0-no_show': True,
+            'bookings-0-attended': False,
+            'bookings-1-user': user.id,
+        })
+        formset = SimpleBookingRegisterFormSet(data=data, instance=self.event)
+        self.assertTrue(formset.is_valid())
+        self.assertEqual(
+            formset.non_form_errors(),
+            []
+        )
 
 
 class RegisterDayFormTests(TestCase):
