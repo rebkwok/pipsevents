@@ -34,11 +34,11 @@
                         {% for field in form %}
 
                         <div class="form-group">
-                                <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-2" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-10">
                                     {% if field.name == 'sessions' %}
                                         {% for radio in field %}
-                                            {{ radio.tag }} {{ radio.choice_label }}</br>
+                                            {{ radio.tag }} <label class='header-not-bold' for="id_{{ field.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
                                         {% endfor %}
                                     {% else %}
                                         <div class="col-sm-11">
@@ -53,7 +53,7 @@
                     <div class="form-group">
                         <div class="col-sm-10">
                             <input checked="checked" id="select-all" type="checkbox">
-                            <span class="header-not-bold">Select/deselect all</span>
+                            <label for="select-all"><span class="header-not-bold">Select/deselect all</span></label>
                         </div>
 
                     </div>

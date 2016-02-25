@@ -35,42 +35,42 @@
                     <div class="form-group-sm col-sm-12">
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.name.field.required %}*{% endif %}{{ form.name.label }}</label>
+                            <label class="control-label col-sm-3" for="name_id">{% if form.name.field.required %}*{% endif %}{{ form.name.label }}</label>
                             <div class="col-sm-9 {% if form.name.errors %}ticket-error{% endif %}">{{ form.name }}<p class="studioadmin-help">{{ form.name.help_text }}</p></div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.date.field.required %}*{% endif %}{{ form.date.label }}</label>
+                            <label class="control-label col-sm-3" for="date_id">{% if form.date.field.required %}*{% endif %}{{ form.date.label }}</label>
                             <div class="col-sm-9 {% if form.date.errors %}ticket-error{% endif %}">{{ form.date }}<p class="studioadmin-help">{{ form.date.help_text }}</p></div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.description.field.required %}*{% endif %}{{ form.description.label }}</label>
+                            <label class="control-label col-sm-3" for="description_id">{% if form.description.field.required %}*{% endif %}{{ form.description.label }}</label>
                             <div class="col-sm-9 {% if form.description.errors %}ticket-error{% endif %}">{{ form.description }}<p class="studioadmin-help">{{ form.description.help_text }}</p></div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.location.field.required %}*{% endif %}{{ form.location.label }}</label>
+                            <label class="control-label col-sm-3" for="location_id">{% if form.location.field.required %}*{% endif %}{{ form.location.label }}</label>
                             <div class="col-sm-9 {% if form.location.errors %}ticket-error{% endif %}">{{ form.location }}<p class="studioadmin-help">{{ form.location.help_text }}</p></div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.contact_person.field.required %}*{% endif %}{{ form.contact_person.label }}</label>
+                            <label class="control-label col-sm-3" for="contact_person_id">{% if form.contact_person.field.required %}*{% endif %}{{ form.contact_person.label }}</label>
                             <div class="col-sm-9 {% if form.contact_person.errors %}ticket-error{% endif %}">{{ form.contact_person }}<p class="studioadmin-help">{{ form.contact_person.help_text }}</p></div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.contact_email.field.required %}*{% endif %}{{ form.contact_email.label }}</label>
+                            <label class="control-label col-sm-3" for="contact_email_id">{% if form.contact_email.field.required %}*{% endif %}{{ form.contact_email.label }}</label>
                             <div class="col-sm-9 {% if form.contact_email.errors %}ticket-error{% endif %}">{{ form.contact_email }}<p class="studioadmin-help">{{ form.contact_email.help_text }}</p></div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.max_tickets.field.required %}*{% endif %}{{ form.max_tickets.label }}</label>
+                            <label class="control-label col-sm-3" for="max_tickets_id">{% if form.max_tickets.field.required %}*{% endif %}{{ form.max_tickets.label }}</label>
                             <div class="col-sm-9 {% if form.max_tickets.errors %}ticket-error{% endif %}">{{ form.max_tickets }}<p class="studioadmin-help">{{ form.max_tickets.help_text }}</p></div>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.email_studio_when_purchased.field.required %}*{% endif %}{{ form.email_studio_when_purchased.label }}</label>
+                            <label class="control-label col-sm-3" for="email_studio_id">{% if form.email_studio_when_purchased.field.required %}*{% endif %}{{ form.email_studio_when_purchased.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.email_studio_when_purchased.errors %}ticket-error{% endif %}">{{ form.email_studio_when_purchased }}<label for='email_studio_id'></label></div><div class="col-sm-9 studioadmincbox-help">  {{ form.email_studio_when_purchased.help_text }}</div>
                             </div>
@@ -78,7 +78,7 @@
                         <span class="divider"></span>
                         <h4>Payment information</h4>
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.ticket_cost.field.required %}*{% endif %}{{ form.ticket_cost.label }}</label>
+                            <label class="control-label col-sm-3" for="ticket_cost_id">{% if form.ticket_cost.field.required %}*{% endif %}{{ form.ticket_cost.label }}</label>
                             <div class="col-sm-9">
                                 <div class="input-group {% if form.ticket_cost.errors %}ticket-error{% endif %}">
                                     <span class="input-group-addon" id="sizing-addon2">£</span>
@@ -87,44 +87,44 @@
                             </div>
                         </div>
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.payment_open.field.required %}*{% endif %}{{ form.payment_open.label }}</label>
+                            <label class="control-label col-sm-3" for="payment_open_id">{% if form.payment_open.field.required %}*{% endif %}{{ form.payment_open.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.payment_open.errors %}ticket-error{% endif %}">{{ form.payment_open }}<label for='payment_open_id'></label></div><div class="col-sm-9 studioadmincbox-help">  {{ form.payment_open.help_text }}</div>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.max_ticket_purchase.field.required %}*{% endif %}{{ form.max_ticket_purchase.label }}</label>
+                            <label class="control-label col-sm-3" for="max_ticket_purchase_id">{% if form.max_ticket_purchase.field.required %}*{% endif %}{{ form.max_ticket_purchase.label }}</label>
                             <div class="col-sm-9 {% if form.max_ticket_purchase.errors %}ticket-error{% endif %}">{{ form.max_ticket_purchase }}<p class="studioadmin-help">{{ form.max_ticket_purchase.help_text }}</p></div>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.advance_payment_required.field.required %}*{% endif %}{{ form.advance_payment_required.label }}</label>
+                            <label class="control-label col-sm-3" for="advance_payment_required_id">{% if form.advance_payment_required.field.required %}*{% endif %}{{ form.advance_payment_required.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.advance_payment_required.errors %}ticket-error{% endif %}">{{ form.advance_payment_required }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ form.advance_payment_required.help_text }}</div>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.payment_due_date.field.required %}*{% endif %}{{ form.payment_due_date.label }}</label>
+                            <label class="control-label col-sm-3" for="payment_due_date_id">{% if form.payment_due_date.field.required %}*{% endif %}{{ form.payment_due_date.label }}</label>
                             <div class="col-sm-9 {% if form.payment_due_date.errors %}ticket-error{% endif %}">{{ form.payment_due_date }}<p class="studioadmin-help">{{ form.payment_due_date.help_text }}</p></div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.payment_time_allowed.field.required %}*{% endif %}{{ form.payment_time_allowed.label }}</label>
+                            <label class="control-label col-sm-3" for="payment_time_allowed_id">{% if form.payment_time_allowed.field.required %}*{% endif %}{{ form.payment_time_allowed.label }}</label>
                             <div class="col-sm-9 {% if form.payment_time_allowed.errors %}ticket-error{% endif %}">{{ form.payment_time_allowed }}<p class="studioadmin-help">{{ form.payment_time_allowed.help_text }}</p></div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.payment_info.field.required %}*{% endif %}{{ form.payment_info.label }}</label>
+                            <label class="control-label col-sm-3" for="payment_info_id">{% if form.payment_info.field.required %}*{% endif %}{{ form.payment_info.label }}</label>
                             <div class="col-sm-9 {% if form.payment_info.errors %}ticket-error{% endif %}">{{ form.payment_info }}<p class="studioadmin-help">{{ form.payment_info.help_text }}</p></div>
                         </div>
                         <span class="divider"></span>
                         <h4>Extra ticket information #1</h4>
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.extra_ticket_info_label.field.required %}*{% endif %}{{ form.extra_ticket_info_label.label }}</label>
+                            <label class="control-label col-sm-3" for="extra_ticket_info_label_id">{% if form.extra_ticket_info_label.field.required %}*{% endif %}{{ form.extra_ticket_info_label.label }}</label>
                             <div class="col-sm-9 {% if form.extra_ticket_info_label.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info_label }}<p class="studioadmin-help">{{ form.extra_ticket_info_label.help_text }}</p></div>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.extra_ticket_info_required.field.required %}*{% endif %}{{ form.extra_ticket_info_required.label }}</label>
+                            <label class="control-label col-sm-3" for="extra_ticket_info_required_id">{% if form.extra_ticket_info_required.field.required %}*{% endif %}{{ form.extra_ticket_info_required.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.extra_ticket_info_required.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info_required }}<label for='extra_ticket_info_required_id'></label></div>
                                 <div class="col-sm-9 studioadmincbox-help">  {{ form.extra_ticket_info_required.help_text }}</div>
@@ -132,19 +132,19 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.extra_ticket_info_help.field.required %}*{% endif %}{{ form.extra_ticket_info_help.label }}</label>
+                            <label class="control-label col-sm-3" for="extra_ticket_info_help_id">{% if form.extra_ticket_info_help.field.required %}*{% endif %}{{ form.extra_ticket_info_help.label }}</label>
                             <div class="col-sm-9 {% if form.extra_ticket_info_help.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info_help }}<p class="studioadmin-help">{{ form.extra_ticket_info_help.help_text }}</p></div>
                         </div>
 
                         <span class="divider"></span>
                         <h4>Extra ticket information #2</h4>
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.extra_ticket_info1_label.field.required %}*{% endif %}{{ form.extra_ticket_info1_label.label }}</label>
+                            <label class="control-label col-sm-3" for="extra_ticket_info1_label_id">{% if form.extra_ticket_info1_label.field.required %}*{% endif %}{{ form.extra_ticket_info1_label.label }}</label>
                             <div class="col-sm-9 {% if form.extra_ticket_info1_label.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info1_label }}<p class="studioadmin-help">{{ form.extra_ticket_info1_label.help_text }}</p></div>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.extra_ticket_info1_required.field.required %}*{% endif %}{{ form.extra_ticket_info1_required.label }}</label>
+                            <label class="control-label col-sm-3" for="extra_ticket_info1_required_id">{% if form.extra_ticket_info1_required.field.required %}*{% endif %}{{ form.extra_ticket_info1_required.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.extra_ticket_info1_required.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info1_required }}<label for='extra_ticket_info1_required_id'></label></div>
                                 <div class="col-sm-9 studioadmincbox-help">  {{ form.extra_ticket_info1_required.help_text }}</div>
@@ -152,13 +152,13 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="control-label col-sm-3">{% if form.extra_ticket_info1_help.field.required %}*{% endif %}{{ form.extra_ticket_info1_help.label }}</label>
+                            <label class="control-label col-sm-3" for="extra_ticket_info1_help_id">{% if form.extra_ticket_info1_help.field.required %}*{% endif %}{{ form.extra_ticket_info1_help.label }}</label>
                             <div class="col-sm-9 {% if form.extra_ticket_info1_help.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info1_help }}<p class="studioadmin-help">{{ form.extra_ticket_info1_help.help_text }}</p></div>
                         </div>
 
                         <span class="divider"></span>
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.show_on_site.field.required %}*{% endif %}{{ form.show_on_site.label }}</label>
+                            <label class="control-label col-sm-3" for="show_on_site_id">{% if form.show_on_site.field.required %}*{% endif %}{{ form.show_on_site.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.show_on_site.errors %}ticket-error{% endif %}">{{ form.show_on_site }}<label for='show_on_site_id'></label></div>
                                 <div class="col-sm-9 studioadmincbox-help">  {{ form.show_on_site.help_text }}</div>
@@ -166,7 +166,7 @@
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="control-label col-sm-3">{% if form.cancelled.field.required %}*{% endif %}{{ form.cancelled.label }}</label>
+                            <label class="control-label col-sm-3" for="cancelled_id">{% if form.cancelled.field.required %}*{% endif %}{{ form.cancelled.label }}</label>
                             <div class="col-sm-9">
                                     <div class="col-sm-1 pull-left {% if form.cancelled.errors %}ticket-error{% endif %}">{{ form.cancelled }}<label for='cancelled_id'></label></div>
                                 <div class="col-sm-9 studioadmincbox-help">  {{ form.cancelled.help_text }}</div>

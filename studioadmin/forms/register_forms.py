@@ -197,7 +197,7 @@ class RegisterDayForm(forms.Form):
             widget=forms.CheckboxInput(
                 attrs={
                     'class': 'regular-checkbox select-checkbox',
-                    'id': 'ext_instructor_cbox',
+                    'id': 'exclude_ext_instructor_id',
                     'style': 'align-text: top;',
                     'onchange': "this.form.submit()"
                 }

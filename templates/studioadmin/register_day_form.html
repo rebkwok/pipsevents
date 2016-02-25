@@ -33,17 +33,17 @@
 
                         {% for field in form %}
                                 <div class="form-group register-form-group">
-                                    <label class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <label class="control-label register-form-control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                     <div class="col-sm-9">
-                                        {% if field.label == 'Exclude classes by external instructors:'%}
-                                        {{ field }}<label for='ext_instructor_cbox'></label>
+                                        {% if field.name == 'exclude_ext_instructor'%}
+                                        {{ field }}<label for='exclude_ext_instructor_id'></label>
                                         {% elif field.label == 'Register format' %}
                                             {% for radio in field %}
-                                                {{ radio.tag }} {{ radio.choice_label }}</br>
+                                                {{ radio.tag }} <label for="id_{{ field.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
                                             {% endfor %}
-                                        {% elif field.label = "Select registers to print:" %}
+                                        {% elif field.name == "select_events" %}
                                             {% for choice in field %}
-                                                {{ choice.tag }} {{ choice.choice_label }}</br>
+                                                {{ choice.tag }} <label for="id_{{ field.name }}_{{ forloop.counter0 }}">{{ choice.choice_label }}</label></br>
                                             {% endfor %}
                                         {% else %}{{ field }}{% endif %}
                                         <p class="studioadmin-help">{{ field.help_text }}</p>
