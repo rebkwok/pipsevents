@@ -23,21 +23,22 @@
 
                         {% for field in form %}
                             <div class="form-group register-form-group">
-                                <label class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label register-form-control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-5 {% if field.errors %}class=ticket-error{% endif %}">
                                     {% if field.name == 'show_paid'%}
+
                                     {{ field }}<label for='id_show_paid'></label>
                                     {% elif field.name == 'order_field' %}
                                         {% for radio in field %}
-                                            {{ radio.tag }} {{ radio.choice_label }}</br>
+                                            {{ radio.tag }} <label class='header-not-bold' for="id_order_field_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
                                         {% endfor %}
                                     {% elif field.name == 'show_extra_ticket_info'%}
                                         {{ field }}<label for='id_show_extra_ticket_info'></label>
                                     {% elif field.name == 'show_extra_ticket_info1'%}
                                         {{ field }}<label for='id_show_extra_ticket_info1'></label>
-                                    {% elif field.name = "show_fields" %}
+                                    {% elif field.name == "show_fields" %}
                                             {% for choice in field %}
-                                                {{ choice.tag }} {{ choice.choice_label }}</br>
+                                                {{ choice.tag }} <label class='header-not-bold' for="id_show_fields_{{ forloop.counter0 }}">{{ choice.choice_label }}</label></br>
                                             {% endfor %}
                                     {% else %}{{ field }}{% endif %}
                                     <p class="studioadmin-help">{{ field.help_text }}</p>

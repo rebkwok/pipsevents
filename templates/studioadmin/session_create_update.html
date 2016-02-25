@@ -33,9 +33,9 @@
                     <div class="form-group-sm col-sm-11">
 
                         {% for field in form %}
-                            {% if field.label == "Cost" %}
+                            {% if field.name == "cost" %}
                                 <div class="form-group">
-                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                     <div class="col-sm-9">
                                         <div class="input-group {% if field.errors %}ticket-error{% endif %}">
                                             <span class="input-group-addon" id="sizing-addon2">£</span>
@@ -44,51 +44,51 @@
                                     </div>
                                 </div>
 
-                            {% elif field.label == "Booking open"%}
+                            {% elif field.name == "booking_open"%}
                             <div class="form-group cbox">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='booking_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "Payment open"%}
+                            {% elif field.name == "payment_open"%}
                             <div class="form-group cbox">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='payment_open_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "Advance payment required" %}
+                            {% elif field.name == "advance_payment_required" %}
                             <div class="form-group cbox">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
-                            {% elif field.label == "External instructor"%}
+                            {% elif field.name == "external_instructor"%}
                             <div class="form-group cbox">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-3" for="ext_instructor_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='ext_instructor_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.name == "email_studio_when_booked"%}
                             <div class="form-group cbox">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='email_studio_when_booked_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                             {% elif field.name == "allow_booking_cancellation" %}
                             <div class="form-group cbox">
-                                <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                 <div class="col-sm-9">
                                         <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='allow_booking_cancellation_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                 </div>
                             </div>
                              {% else %}
                                 <div class="form-group">
-                                    <label class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <label class="control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                     <div class="col-sm-9 {% if field.errors %}ticket-error{% endif %}">
                                         {{ field }}<p class="studioadmin-help">{{ field.help_text }}</p>
                                     </div>
