@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from datetime import timedelta
-
+from mock import patch
 from model_mommy import mommy
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
@@ -679,6 +679,58 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         cancelled_tb.refresh_from_db()
         self.assertFalse(cancelled_tb.cancelled)
 
+    def test_reopen_booking_not_enough_tickets_left(self):
+        ticketed_event = mommy.make_recipe(
+            'booking.ticketed_event_max10',
+            date=timezone.now() + timedelta(2)
+        )
+        cancelled_tb = mommy.make(
+            TicketBooking, ticketed_event=ticketed_event,
+            purchase_confirmed=True, cancelled=True,
+            user=self.user
+        )
+        mommy.make(Ticket, ticket_booking=cancelled_tb, _quantity=2)
+        tb = mommy.make(
+            TicketBooking, ticketed_event=ticketed_event,
+            purchase_confirmed=True
+        )
+        # make tickets for the event so there is only 1 left
+        mommy.make(
+            Ticket, ticket_booking=tb, _quantity=9
+        )
+        self.assertEqual(ticketed_event.tickets_left(), 1)
+
+        url = reverse(
+            'studioadmin:ticketed_event_bookings',
+            kwargs={'slug': ticketed_event.slug}
+        )
+        data = {
+            'ticket_bookings-TOTAL_FORMS': 2,
+            'ticket_bookings-INITIAL_FORMS': 2,
+            'ticket_bookings-0-id': tb.id,
+            'ticket_bookings-1-id': cancelled_tb.id,
+            'ticket_bookings-1-reopen': True,
+            'show_cancelled': True,
+            'formset_submitted': 'Save changes',
+        }
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.post(url, data, follow=True)
+        content = format_content(resp.rendered_content)
+
+        cancelled_tb.refresh_from_db()
+        # still cancelled
+        self.assertTrue(cancelled_tb.cancelled)
+
+        self.assertIn(
+            'Cannot reopen ticket booking {}; not enough tickets left for '
+            'event (2 requested, 1 left)'.format(cancelled_tb.booking_reference),
+            content
+        )
+
     def test_send_confirmation_to_user_on_update(self):
         self.assertFalse(self.ticket_booking.paid)
         resp = self._post_response(
@@ -704,6 +756,34 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
                 self.ticketed_event,
             )
         )
+
+    @patch('studioadmin.views.ticketed_events.send_mail')
+    def test_send_confirmation_email_errors(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        self.assertFalse(self.ticket_booking.paid)
+        self._post_response(
+            self.staff_user, self.ticketed_event,
+            self.formset_data(
+                {
+
+                    'formset_submitted': 'Save changes',
+                    'ticket_bookings-0-send_confirmation': True,
+                    'ticket_bookings-0-paid': True
+                }
+            )
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (ticketed_event_booking_list - send '
+            'confirmation email)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
+        )
+
+        # no email but updates still made
+        self.ticket_booking.refresh_from_db()
+        self.assertTrue(self.ticket_booking.paid)
 
     def test_send_confirmation_to_user_on_cancel(self):
         self.assertFalse(self.ticket_booking.cancelled)
@@ -1036,6 +1116,40 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         # send 1 email per booking, plus 1 to studio if there are open paid bkgs
         self.assertEqual(len(mail.outbox), 3)
 
+    @patch('studioadmin.views.ticketed_events.send_mail')
+    def test_send_email_errors(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        mommy.make(
+            TicketBooking,
+            ticketed_event=self.ticketed_event_with_booking,
+            purchase_confirmed=True,
+            paid=True
+        )
+        for tb in TicketBooking.objects.all():
+            mommy.make(Ticket, ticket_booking=tb)
+
+        self._post_response(
+            self.staff_user, self.ticketed_event_with_booking,
+            {'confirm': 'Yes, cancel this event'}
+        )
+
+        # send 1 email per booking, plus 1 to studio if there are open paid bkgs
+        # 3 error emails
+        self.assertEqual(len(mail.outbox), 3)
+        for email in mail.outbox:
+            self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (cancel ticketed event - send notification '
+            'email to user)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
+        )
+        self.assertEqual(
+            mail.outbox[2].subject,
+            '{} An error occurred! (cancel ticketed event - send refund '
+            'notification email to studio)'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
 
     def test_emails_not_sent_to_users_for_cancelled_bookings(self):
         # 1 paid, 1 unpaid booking
@@ -1341,6 +1455,49 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             sorted([tkt.id for tkt in post_resp.context_data['tickets']]),
             sorted([tkt.id for tkt in Ticket.objects.all()])
+        )
+
+    def test_print_event_ticket_list_with_no_open_bookings(self):
+        for i, tb in enumerate(TicketBooking.objects.all()):
+            if i in range(3):
+                tb.cancelled = True
+                tb.save()
+            else:
+                tb.purchase_confirmed = False
+                tb.save()
+
+        post_resp = self._post_response(
+            self.staff_user, {
+                'ticketed_event': self.ticketed_event.id,
+                'show_fields': ['show_booking_user', 'show_date_booked',
+                'show_booking_reference'],
+                'order_field': 'ticket_booking__user__first_name',
+                'print': 'View and Print Ticket List'
+            }
+        )
+        self.assertEqual(post_resp.status_code, 200)
+        # tickets are in context
+        self.assertIn(
+            'There are no open ticket bookings for the event selected',
+            format_content(post_resp.rendered_content)
+        )
+
+    def test_print_event_ticket_list_with_form_errors(self):
+        post_resp = self._post_response(
+            self.staff_user, {
+                'ticketed_event': self.ticketed_event.id,
+                'show_fields': ['user'],
+                'order_field': 'ticket_booking__user__first_name',
+                'print': 'View and Print Ticket List'
+            }
+        )
+
+        self.assertEqual(post_resp.status_code, 200)
+        self.assertIn(
+            'Please correct the following errors: show_fieldsSelect a valid '
+            'choice. user is not one of the available choices',
+            format_content(post_resp.rendered_content),
+            format_content(post_resp.rendered_content)
         )
 
     def test_print_list_only_shows_confirmed_and_open_tickets(self):

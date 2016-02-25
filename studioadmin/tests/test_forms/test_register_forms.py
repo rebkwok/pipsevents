@@ -6,8 +6,10 @@ from model_mommy import mommy
 from django.test import TestCase
 from django.utils import timezone
 
+from accounts.models import OnlineDisclaimer
 from booking.models import Block
-from studioadmin.forms import RegisterDayForm,SimpleBookingRegisterFormSet
+from payments.models import PaypalBookingTransaction
+from studioadmin.forms import RegisterDayForm, SimpleBookingRegisterFormSet
 
 
 class SimpleBookingRegisterFormSetTests(TestCase):
@@ -49,6 +51,13 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         self.assertTrue(formset.is_valid(), formset.errors)
 
     def test_additional_data_in_form(self):
+        mommy.make(OnlineDisclaimer, user=self.user)
+        self.booking.paid = True
+        mommy.make(
+            PaypalBookingTransaction,
+            booking=self.booking, transaction_id='12334'
+        )
+
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
         form = formset.forms[0]
@@ -58,6 +67,8 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         self.assertEquals(form.checkbox_paid_id, 'checkbox_paid_0')
         self.assertEquals(form.checkbox_attended_id, 'checkbox_attended_0')
         self.assertEquals(form.checkbox_no_show_id, 'checkbox_no_show_0')
+        self.assertEquals(form.user_has_disclaimer, True)
+        self.assertEquals(form.paid_by_paypal, True)
 
     def test_block_queryset_with_other_event_types(self):
         """

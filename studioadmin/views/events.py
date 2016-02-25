@@ -106,20 +106,22 @@ def event_admin_list(request, ev_type):
                                     )
 
                             form.save()
-
-                        for error in form.errors:
-                            messages.error(request, mark_safe("{}".format(error)))
                     eventformset.save()
                 return HttpResponseRedirect(
                     reverse('studioadmin:{}'.format(ev_type),)
                 )
-            else:
+            else:  # pragma: no cover
+                # currently only boolean fields, this is left here in case of
+                # future additional fields
                 messages.error(
                     request,
                     mark_safe(
                         "There were errors in the following fields:\n{}".format(
                             '\n'.join(
-                                ["{}".format(error) for error in eventformset.errors]
+                                [
+                                    "{}".format(error)
+                                    for error in eventformset.errors
+                                    ]
                             )
                         )
                     )
@@ -166,12 +168,14 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+
         if form.has_changed():
             event = form.save()
             msg_ev_type = 'Event' if self.kwargs["ev_type"] == 'event' else 'Class'
             msg = '<strong>{} {}</strong> has been updated!'.format(
                 msg_ev_type, event.name
             )
+            messages.success(self.request, mark_safe(msg))
             ActivityLog.objects.create(
                 log='{} {} (id {}) updated by admin user {}'.format(
                     msg_ev_type, event, event.id,
@@ -179,8 +183,7 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                 )
             )
         else:
-            msg = 'No changes made'
-        messages.success(self.request, mark_safe(msg))
+            messages.info(self.request, 'No changes made')
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -324,7 +327,7 @@ def cancel_event_view(request, slug):
                     # send mail to tech support with Exception
                     send_support_email(
                         e, __name__, "cancel event - "
-                        "send refund notification email to tudio"
+                        "send refund notification email to studio"
                     )
 
             if open_bookings:
@@ -346,7 +349,9 @@ def cancel_event_view(request, slug):
                 )
             messages.info(
                 request,
-                '{} has been cancelled; '.format(ev_type.title()) + booking_cancelled_msg
+                '{} has been cancelled; '.format(
+                    ev_type.title()
+                ) + booking_cancelled_msg
             )
 
             ActivityLog.objects.create(

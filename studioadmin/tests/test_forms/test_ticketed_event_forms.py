@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytz
 
 from model_mommy import mommy
 
@@ -89,7 +90,7 @@ class TicketedEventAdminFormTests(TestCase):
             ))
         self.assertTrue(form.is_valid())
 
-    def test_extra_ticket_info(self):
+    def test_extra_ticket_info_required(self):
         """
         If extra ticket info required or help text specified, label must be
         provided
@@ -138,7 +139,7 @@ class TicketedEventAdminFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
 
-    def test_extra_ticket_info(self):
+    def test_extra_ticket_info1_required(self):
         """
         If extra ticket info required or help text specified, label must be
         provided
@@ -276,40 +277,13 @@ class TicketedEventAdminFormTests(TestCase):
             str(form.errors['payment_time_allowed'])
         )
 
-    def adv_payment_due_date_and_time_allowed_require_ticket_cost(self):
-        form = TicketedEventAdminForm(
-            data=self.form_data(
-                {
-                    'advance_payment_required': True,
-                },
-            )
-        )
-        self.assertFalse(form.is_valid())
-        self.assertIn(
-            'The following fields require a ticket cost greater than £0: '
-            'advance payment required',
-            str(form.errors['ticket_cost'])
-        )
+    def test_adv_payment_due_date_and_time_allowed_require_ticket_cost(self):
 
         form = TicketedEventAdminForm(
             data=self.form_data(
                 {
-                    'payment_due_date': 4,
-                },
-            )
-        )
-        self.assertFalse(form.is_valid())
-        self.assertIn(
-            'The following fields require a ticket cost greater than £0: '
-            'payment due date',
-            str(form.errors['ticket_cost'])
-        )
-
-        form = TicketedEventAdminForm(
-            data=self.form_data(
-                {
-                    'payment_due_date': 4,
                     'advance_payment_required': True,
+                    'payment_due_date': '30 Jun 2015',
                 },
             )
         )
@@ -323,7 +297,7 @@ class TicketedEventAdminFormTests(TestCase):
         form = TicketedEventAdminForm(
             data=self.form_data(
                 {
-                    'payment_due_date': 4,
+                    'payment_time_allowed': 4,
                     'advance_payment_required': True,
                 },
             )
@@ -331,8 +305,52 @@ class TicketedEventAdminFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn(
             'The following fields require a ticket cost greater than £0: '
-            'advance payment required, payment due date, payment time allowed',
+            'advance payment required, payment time allowed',
             str(form.errors['ticket_cost'])
+        )
+
+    def test_form_for_cancelled_events(self):
+        ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+
+        data = {
+            'id': ticketed_event.id,
+            'name': ticketed_event.name,
+            'date': ticketed_event.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y %H:%M'),
+            'contact_email': ticketed_event.contact_email,
+            'contact_person': ticketed_event.contact_person,
+            'location': ticketed_event.location,
+            'ticket_cost': ticketed_event.ticket_cost
+        }
+        form = TicketedEventAdminForm(data=data, instance=ticketed_event)
+        self.assertTrue(form.is_valid())
+        # event is not cancelled, so cancelled checkbox is hidden
+        cancelled_field = form.fields['cancelled']
+        self.assertEqual(
+            cancelled_field.widget.attrs,
+            {'disabled': 'disabled', 'id': 'cancelled_id', 'class': 'hide'}
+        )
+        self.assertEquals(
+            cancelled_field.help_text,
+            'To cancel, use the Cancel button on the event list page'
+        )
+
+        ticketed_event.cancelled = True
+        ticketed_event.save()
+        data.update({'cancelled': True})
+        form = TicketedEventAdminForm(data=data, instance=ticketed_event)
+        cancelled_field = form.fields['cancelled']
+        self.assertTrue(form.is_valid())
+        self.assertEqual(
+            cancelled_field.widget.attrs,
+            {'class': 'form-control regular-checkbox', 'id': 'cancelled_id'}
+        )
+        self.assertEquals(
+            cancelled_field.help_text,
+            'Untick to reopen event; note that this does not change any other '
+            'event attributes and does not reopen previously cancelled ticket '
+            'bookings.'
         )
 
 
