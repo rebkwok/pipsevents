@@ -384,7 +384,7 @@ class EventAdminFormTests(TestCase):
             str(form.errors['payment_time_allowed'])
         )
 
-    def test_adv_payment_due_date_and_time_allowed_require_ticket_cost(self):
+    def test_adv_payment_due_date_and_time_allowed_require_event_cost(self):
         form = EventAdminForm(
             data=self.form_data(
                 {

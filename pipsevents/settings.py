@@ -419,7 +419,7 @@ if env('TRAVIS') or env('HEROKU'):
     }
 
 
-def show_toolbar(request):
+def show_toolbar(request):  # pragma: no cover
     return True
 
 # if DEBUG:

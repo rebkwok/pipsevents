@@ -1,4 +1,9 @@
+# -*- coding: utf-8 -*-
 import pytz
+
+from datetime import timedelta
+
+from mock import patch
 
 from model_mommy import mommy
 
@@ -7,8 +12,10 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.utils import timezone
+
 from booking.models import Event, Booking
-from booking.tests.helpers import _create_session
+from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     cancel_event_view,
     event_admin_list,
@@ -155,6 +162,24 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('Past Events', resp.rendered_content)
         self.assertNotIn('Scheduled Events',resp.rendered_content)
 
+    def test_classes_past_filter(self):
+        past_classes = mommy.make_recipe('booking.past_class', _quantity=5)
+        resp = self._post_response(
+            self.staff_user, 'lessons', {'past': 'Show past'}
+        )
+
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            sorted([ev.id for ev in past_classes])
+        )
+        self.assertEqual(Event.objects.count(), 6)
+        self.assertEqual(eventsformset.queryset.count(), 5)
+
+        self.assertIn(
+            'Past Classes', format_content(resp.rendered_content)
+        )
+
     def test_upcoming_filter(self):
         past_evs = mommy.make_recipe('booking.past_event', _quantity=5)
         resp = self._post_response(
@@ -198,7 +223,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         formset_data = self.formset_data({
             'form-0-DELETE': 'on'
             })
-        resp = self._post_response(self.staff_user, 'events', formset_data)
+        self._post_response(self.staff_user, 'events', formset_data)
         self.assertEquals(Event.objects.all().count(), 0)
 
     def test_can_update_existing_event(self):
@@ -206,7 +231,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         formset_data = self.formset_data({
             'form-0-booking_open': 'false'
             })
-        resp = self._post_response(self.staff_user, 'events', formset_data)
+        self._post_response(self.staff_user, 'events', formset_data)
         self.event.refresh_from_db()
         self.assertFalse(self.event.booking_open)
 
@@ -229,7 +254,10 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(EventAdminUpdateViewTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_EV')
+        self.event = mommy.make_recipe(
+            'booking.future_EV',
+            date=timezone.now().replace(second=0, microsecond=0) + timedelta(2)
+        )
 
     def _get_response(self, user, event_slug, ev_type, url=None):
         if url is None:
@@ -356,6 +384,24 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('studioadmin:lessons'))
+
+    def test_no_changes(self):
+        form_data = self.form_data(
+            event=self.event, extra_data={
+                'cost': self.event.cost,
+                'booking_open': self.event.booking_open
+            }
+        )
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        url = reverse(
+                'studioadmin:edit_event', kwargs={'slug': self.event.slug}
+            )
+        resp = self.client.post(url, form_data, follow=True)
+        self.assertIn('No changes made', format_content(resp.rendered_content))
 
     def test_can_edit_event_data(self):
         self.assertTrue(self.event.booking_open)
@@ -978,7 +1024,6 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         # studio as no direct paid bookings
         self.assertEquals(len(mail.outbox), 9)
 
-
     def test_email_to_studio_for_direct_paid_bookings_content(self):
         # cancelled
         for i in range(2):
@@ -1064,3 +1109,35 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.assertIn(
                 '/studioadmin/confirm-refunded/{}'.format(id), studio_email.body
             )
+
+    @patch('studioadmin.views.events.send_mail')
+    def test_email_errors(self, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        # direct paid
+        mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN",
+            paid=True, free_class=False,
+        )
+
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 1)
+
+        self._post_response(
+            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
+        )
+        # sends one error email per open booking and one to studio
+        self.assertEquals(len(mail.outbox), 2)
+        for email in mail.outbox:
+            self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (cancel event - send notification email '
+            'to user)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
+        )
+        self.assertEqual(
+            mail.outbox[1].subject,
+            '{} An error occurred! (cancel event - send refund notification '
+            'email to studio)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
+        )
+
+        self.event.refresh_from_db()
+        self.assertTrue(self.event.cancelled)

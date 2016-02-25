@@ -11,11 +11,11 @@ from django.test import TestCase, RequestFactory, override_settings
 from django.contrib.auth.models import Permission
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer
+from accounts.models import PrintDisclaimer, OnlineDisclaimer
 
 from booking.models import Event, Booking
 from booking.views import EventListView, EventDetailView
-from booking.tests.helpers import TestSetupMixin
+from booking.tests.helpers import TestSetupMixin, format_content
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -178,6 +178,37 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(reverse('booking:events'))
 
         self.assertIn('JANUARY SALE NOW ON', resp.rendered_content)
+
+    def test_users_disclaimer_status_in_context(self):
+        user = mommy.make_recipe('booking.user')
+
+        resp = self._get_response(user, 'events')
+        # user has no disclaimer
+        self.assertIsNone(resp.context_data.get('disclaimer'))
+        self.assertIn(
+            'Please note that you will need to complete a disclaimer form '
+            'before booking',
+            format_content(resp.rendered_content)
+        )
+
+        mommy.make_recipe('booking.online_disclaimer', user=user)
+        resp = self._get_response(user, 'events')
+        self.assertTrue(resp.context_data.get('disclaimer'))
+        self.assertNotIn(
+            'Please note that you will need to complete a disclaimer form '
+            'before booking',
+            format_content(resp.rendered_content)
+        )
+
+        OnlineDisclaimer.objects.all().delete()
+        mommy.make(PrintDisclaimer, user=user)
+        resp = self._get_response(user, 'events')
+        self.assertTrue(resp.context_data.get('disclaimer'))
+        self.assertNotIn(
+            'Please note that you will need to complete a disclaimer form '
+            'before booking',
+            format_content(resp.rendered_content)
+        )
 
 
 class EventDetailViewTests(TestSetupMixin, TestCase):

@@ -1,19 +1,19 @@
 from model_mommy import mommy
-from datetime import datetime
+from datetime import datetime, timedelta
 from mock import patch
 
 
-from django.contrib.auth.models import Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
 from django.test import TestCase, RequestFactory
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer
+from accounts.models import OnlineDisclaimer, PrintDisclaimer
 
 from booking.models import Event, Booking, Block
 from booking.views import EventDetailView, BlockListView
-from booking.tests.helpers import _create_session, TestSetupMixin
+from booking.tests.helpers import _create_session, format_content, \
+    TestSetupMixin
 
 
 class EventDetailContextTests(TestSetupMixin, TestCase):
@@ -268,6 +268,51 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         self.assertEquals(
             resp.context_data['booking_info_text'],
             "Please contact {} directly to book".format(event.contact_person)
+        )
+
+    def test_disclaimer_in_context(self):
+        """
+        Test correct context returned for user disclaimer
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Pole', cost=10, booking_open=True,
+        )
+        user_no_disclaimer = mommy.make_recipe('booking.user')
+        user_print_disclaimer = mommy.make_recipe('booking.user')
+        user_online_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make_recipe(
+            'booking.online_disclaimer', user=user_online_disclaimer
+        )
+        PrintDisclaimer.objects.create(user=user_print_disclaimer)
+
+        resp = self._get_response(user_no_disclaimer, event, 'lesson')
+        self.assertFalse(resp.context_data['disclaimer'])
+        self.assertIn(
+            'Please note that you will need to complete a disclaimer form '
+            'before booking',
+            format_content(resp.rendered_content)
+        )
+        self.assertEqual(
+            "<strong>Please complete a <a href='{}' "
+            "target=_blank>disclaimer form</a> before "
+            "booking.</strong>".format(reverse('disclaimer_form')),
+            resp.context_data['booking_info_text'],
+        )
+
+        resp = self._get_response(user_online_disclaimer, event, 'lesson')
+        self.assertTrue(resp.context_data['disclaimer'])
+        self.assertNotIn(
+            'Please note that you will need to complete a disclaimer form '
+            'before booking',
+            format_content(resp.rendered_content)
+        )
+
+        resp = self._get_response(user_print_disclaimer, event, 'lesson')
+        self.assertTrue(resp.context_data['disclaimer'])
+        self.assertNotIn(
+            'Please note that you will need to complete a disclaimer form '
+            'before booking',
+            format_content(resp.rendered_content)
         )
 
 

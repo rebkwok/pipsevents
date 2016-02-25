@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+import pytz
 from datetime import datetime
 
 from model_mommy import mommy
@@ -125,7 +127,9 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, 'events')
         self.assertIn(
             '{} {} 2'.format(
-                event.date.strftime('%a %d %b, %H:%M'), event.name
+                event.date.astimezone(
+                    pytz.timezone('Europe/London')
+                ).strftime('%a %d %b, %H:%M'), event.name
             ),
             format_content(resp.rendered_content)
         )

@@ -6,6 +6,8 @@ from django.utils import timezone
 from model_mommy.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
+
+from accounts.models import OnlineDisclaimer
 from booking.models import Event, EventType, Block, Booking, \
     BlockType, WaitingListUser, Ticket, TicketBooking, TicketedEvent
 from timetable.models import Session
@@ -55,6 +57,15 @@ future_RH = Recipe(Event,
 past_event = Recipe(Event,
                     date=past,
                     event_type=foreign_key(event_type_WS),
+                    advance_payment_required=True,
+                    cost=10,
+                    payment_due_date=past-timedelta(10)
+                    )
+
+# past_class
+past_class = Recipe(Event,
+                    date=past,
+                    event_type=foreign_key(event_type_PC),
                     advance_payment_required=True,
                     cost=10,
                     payment_due_date=past-timedelta(10)
@@ -112,3 +123,9 @@ ticketed_event_max10 = Recipe(
 ticketed_event_past_max10 = Recipe(TicketedEvent, max_tickets=10,
                                    ticket_cost=10, date=past)
 ticket_booking = Recipe(TicketBooking)
+
+online_disclaimer = Recipe(
+    OnlineDisclaimer, dob=now - timedelta(20*365),
+    medical_treatment_permission=True, terms_accepted=True,
+    age_over_18_confirmed=True
+)

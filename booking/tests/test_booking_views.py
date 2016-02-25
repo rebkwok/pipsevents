@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 from mock import Mock, patch
 from model_mommy import mommy

@@ -1,10 +1,9 @@
+# -*- coding: utf-8 -*-
 import logging
 
 from datetime import datetime, time, timedelta
 
-from django.db.utils import IntegrityError
 from django.contrib.auth.decorators import login_required
-
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.template.response import TemplateResponse

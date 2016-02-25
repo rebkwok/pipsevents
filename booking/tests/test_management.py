@@ -1497,16 +1497,25 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             TicketBooking,  ticketed_event=self.ticketed_event, paid=True,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             warning_sent=True,
-            user__email='paid@test.com'
+            user__email='paid@test.com', purchase_confirmed=True
             )
         self.unpaid = mommy.make(
             TicketBooking,  ticketed_event=self.ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             warning_sent=True,
-            user__email='unpaid@test.com'
+            user__email='unpaid@test.com', purchase_confirmed=True
             )
         for booking in [self.paid, self.unpaid]:
             mommy.make(Ticket, ticket_booking=booking)
+
+        # redirect stdout so we can test it
+        self.output = StringIO()
+        self.saved_stdout = sys.stdout
+        sys.stdout = self.output
+
+    def tearDown(self):
+        self.output.close()
+        sys.stdout = self.saved_stdout
 
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
     def test_cancel_unpaid_bookings(self, mock_tz):
@@ -1857,7 +1866,38 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         all_emails = cancelled_booking_emails + [settings.DEFAULT_STUDIO_EMAIL]
 
         self.assertEquals(
-            all_emails, [email.to[0] for email in mail.outbox]
+            sorted(all_emails),
+            sorted([email.to[0] for email in mail.outbox])
+        )
+
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.send_mail')
+    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
+    def test_email_errors(self, mock_tz, mock_send):
+        mock_send.side_effect = Exception('Error sending email')
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, tzinfo=timezone.utc
+        )
+
+        management.call_command('cancel_unpaid_ticket_bookings')
+        # error emails are sent to user per cancelled booking (self.unpaid)
+        # and studio
+        self.unpaid.refresh_from_db()
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertTrue(self.unpaid.cancelled)
+
+        for email in mail.outbox:
+            self.assertEquals(email.to, [settings.SUPPORT_EMAIL])
+
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} An error occurred! (Automatic cancel ticket booking job - '
+            'cancelled email)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX )
+        )
+
+        self.assertEqual(
+            mail.outbox[1].subject,
+            '{} An error occurred! (Automatic cancel ticket booking job - '
+            'studio email)'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
         )
 
     @override_settings(SEND_ALL_STUDIO_EMAILS=False)
@@ -1902,12 +1942,12 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         )
         unconfirmed_ticket_booking = mommy.make(
             TicketBooking, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 2, 10, 10, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 10, 0, tzinfo=timezone.utc),
             purchase_confirmed=False
         )
         unconfirmed_ticket_booking1 = mommy.make(
             TicketBooking, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 2, 10, 11, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=timezone.utc),
             purchase_confirmed=False
         )
         for booking in TicketBooking.objects.all():
@@ -1935,7 +1975,40 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             Ticket.objects.filter(
                 ticket_booking__id=unconfirmed_ticket_booking1.id
             ).count(),
-            0
+            1
+        )
+
+    @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
+    def test_no_ticket_bookings_to_delete(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 2, 11, 12, 0, tzinfo=timezone.utc
+        )
+        self.unpaid.paid = True
+        self.unpaid.save()
+
+        unconfirmed_ticket_booking = mommy.make(
+            TicketBooking, ticketed_event=self.ticketed_event,
+            date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=timezone.utc),
+            purchase_confirmed=False
+        )
+        mommy.make(Ticket, ticket_booking=unconfirmed_ticket_booking)
+
+        # all ticket bookings are paid or booked within pasr hr
+
+        management.call_command('delete_unconfirmed_ticket_bookings')
+
+        # unconfirmed_ticket_booking still has its ticket
+        self.assertEqual(
+            Ticket.objects.filter(
+                ticket_booking__id=unconfirmed_ticket_booking.id
+            ).count(),
+            1
+        )
+
+        self.assertEqual(
+            self.output.getvalue(),
+            'No unconfirmed ticket bookings to delete\n',
+            self.output.getvalue()
         )
 
 

@@ -145,6 +145,10 @@ class EventAdminForm(forms.ModelForm):
                 date = datetime.strptime(self.data['date'], '%d %b %Y %H:%M')
                 uk = pytz.timezone('Europe/London')
                 cleaned_data['date'] = uk.localize(date).astimezone(pytz.utc)
+                if self.instance.id:
+                    old_event = Event.objects.get(id=self.instance.id)
+                    if old_event.date == cleaned_data['date']:
+                        self.changed_data.remove('date')
             except ValueError:
                 self.add_error('date', 'Invalid date format.  Select from the '
                                        'date picker or enter date and time in the '
