@@ -18,6 +18,10 @@ class Command(BaseCommand):
             event_type='CL',
             subtype='Pole level class'
         )
+        pc_ext, _ = EventType.objects.get_or_create(
+            event_type='CL',
+            subtype='Pole level class - extended'
+        )
         pp, _ = EventType.objects.get_or_create(
             event_type='CL',
             subtype='Pole practice'
@@ -35,9 +39,13 @@ class Command(BaseCommand):
             subtype='External instructor class'
         )
 
-        ws = EventType.objects.get_or_create(
+        ws_int = EventType.objects.get_or_create(
             event_type='EV',
-            subtype='Workshop'
+            subtype='Workshop - in-house'
+        )
+        ws_ext = EventType.objects.get_or_create(
+            event_type='EV',
+            subtype='Workshop - external'
         )
         ev = EventType.objects.get_or_create(
             event_type='EV',

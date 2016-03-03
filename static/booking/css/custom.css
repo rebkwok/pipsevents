@@ -929,6 +929,10 @@ label.control-label {
     margin-left: 5%;
     }
 
+.input-xs.voucher {
+     margin-left: 0
+}
+
 .form-group.space-below {
     padding-bottom: 10px;
 }

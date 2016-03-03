@@ -30,7 +30,10 @@ from studioadmin.views import (ConfirmRefundView,
                                event_waiting_list_view,
                                cancel_ticketed_event_view,
                                print_tickets_list,
-                               user_disclaimer
+                               user_disclaimer,
+                               VoucherCreateView,
+                               VoucherListView,
+                               VoucherUpdateView
                                )
 
 
@@ -126,5 +129,8 @@ urlpatterns = [
         name='confirm_ticket_booking_refund'),
     url(r'^ticketed-events/print-tickets-list/$', print_tickets_list,
         name='print_tickets_list'),
+    url(r'^vouchers/$', VoucherListView.as_view(), name='vouchers'),
+    url(r'^vouchers/new/$', VoucherCreateView.as_view(), name='add_voucher'),
+    url(r'^vouchers/(?P<pk>\d+)/edit/$', VoucherUpdateView.as_view(), name='edit_voucher'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     ]
