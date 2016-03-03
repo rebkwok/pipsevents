@@ -1,17 +1,38 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
        <div class="panel panel-success">
             <div class="panel-heading">
-                <h1 class="panel-title">Your booking for {{ booking.event.name }}</h1>
+                <h1 class="panel-title">Your booking for {{ booking.event }}</h1>
             </div>
 
+            {% if booking.event.cost != 0 %}
             <div class="panel-body">
-                {% if booking.event.cost != 0 %}
+                <h4>Cost: £ {{ paypal_cost|floatformat:2 }}</h4>
                     {% if booking.event.payment_open %}
+                        {% if not valid_voucher %}
+                            <form name="voucher_form" class="form-inline" method="post" action="">
+                                {% csrf_token %}
+                                    <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
+                                    <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
+                                    {% if voucher_error %}
+                                        <p class="errorlist">{{ voucher_error }}</p>
+                                    {% endif %}
+                            </form>
+                        {% else %}
+                            <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
+                                <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}" />Remove</a></p>
+                        {% endif %}
+                     {% endif %}
+            </div>
+            <div class="panel-body">
+
+                    {% if booking.event.payment_open %}
+                        <span class="divider"></span>
                         <h4>Pay with PayPal</h4>
                         <p>Click below to be transferred to paypal to make your payment.</p>
                         {% include 'payments/payment.html' %}

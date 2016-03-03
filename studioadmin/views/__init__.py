@@ -18,6 +18,8 @@ from studioadmin.views.timetable import timetable_admin_list, \
     upload_timetable_view
 from studioadmin.views.users import user_bookings_view, user_blocks_view, \
     UserListView
+from studioadmin.views.vouchers import VoucherCreateView, VoucherListView, \
+    VoucherUpdateView
 from studioadmin.views.waiting_list import event_waiting_list_view
 
 
@@ -35,6 +37,6 @@ __all__ = [
     'timetable_admin_list', 'TimetableSessionCreateView',
     'TimetableSessionUpdateView', 'upload_timetable_view',
     'user_bookings_view', 'user_blocks_view', 'user_disclaimer',
-    'UserListView',
+    'UserListView', 'VoucherCreateView', 'VoucherListView', 'VoucherUpdateView'
 ]
 

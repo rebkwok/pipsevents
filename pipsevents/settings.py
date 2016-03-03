@@ -55,6 +55,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.humanize',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -307,6 +308,11 @@ SUIT_CONFIG = {
                        'payments.paypalticketbookingtransaction',
                        'ipn.paypalipn'),
             'icon': 'icon-asterisk',
+        },
+        {
+            'label': 'Vouchers',
+            'icon': 'icon-asterisk',
+            'models': ('booking.voucher')
         },
         {
             'label': 'Activity Log',
