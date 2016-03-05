@@ -19,6 +19,11 @@ def validate_greater_than_0(value):
                               'maximum')
 
 
+def validate_code(code):
+    if len(code.split()) > 1:
+        raise ValidationError('Code must not contain spaces')
+
+
 class VoucherStudioadminForm(forms.ModelForm):
     class Meta:
         model = Voucher
@@ -52,6 +57,9 @@ class VoucherStudioadminForm(forms.ModelForm):
             ),
             'event_types': forms.CheckboxSelectMultiple(),
         }
+        labels = {
+            'discount': 'Discount (%)'
+        }
 
         help_texts = {
             'max_vouchers': 'Optional: set a limit on the number of times this '
@@ -66,6 +74,7 @@ class VoucherStudioadminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(VoucherStudioadminForm, self).__init__(*args, **kwargs)
+        self.fields['code'].validators = [validate_code]
         self.fields['discount'].validators = [validate_discount]
         self.fields['max_vouchers'].validators = [validate_greater_than_0]
 
