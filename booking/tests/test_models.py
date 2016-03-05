@@ -10,7 +10,7 @@ from mock import patch
 from model_mommy import mommy
 
 from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
-    Booking, TicketBooking, Ticket, TicketBookingError
+    Booking, TicketBooking, Ticket, TicketBookingError, Voucher
 
 now = timezone.now()
 
@@ -1250,3 +1250,99 @@ class BlockTypeTests(TestCase):
         with self.assertRaises(BlockTypeError):
             mommy.make(BlockType, identifier='free class')
         self.assertEqual(BlockType.objects.count(), 1)
+
+
+class VoucherTests(TestCase):
+
+    @patch('booking.models.timezone')
+    def test_voucher_dates(self, mock_tz):
+        mock_now = datetime(
+            2016, 1, 5, 16, 30, 30, 30, tzinfo=timezone.utc
+        )
+        mock_tz.now.return_value = mock_now
+        voucher = mommy.make(Voucher, start_date=mock_now)
+        self.assertEqual(
+            voucher.start_date,
+            datetime(2016, 1, 5, 0, 0, 0, 0, tzinfo=timezone.utc)
+        )
+
+        voucher.expiry_date = datetime(
+            2016, 1, 6, 18, 30, 30, 30, tzinfo=timezone.utc
+        )
+        voucher.save()
+        self.assertEqual(
+            voucher.expiry_date,
+            datetime(2016, 1, 6, 23, 59, 59, 0, tzinfo=timezone.utc)
+        )
+
+    @patch('booking.models.timezone')
+    def test_has_expired(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2016, 1, 5, 12, 30, tzinfo=timezone.utc
+        )
+
+        voucher = mommy.make(
+            Voucher,
+            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2016, 1, 4, tzinfo=timezone.utc)
+        )
+        self.assertTrue(voucher.has_expired)
+
+        mock_tz.now.return_value = datetime(
+            2016, 1, 3, 12, 30, tzinfo=timezone.utc
+        )
+        self.assertFalse(voucher.has_expired)
+
+    @patch('booking.models.timezone')
+    def test_has_started(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2016, 1, 5, 12, 30, tzinfo=timezone.utc
+        )
+
+        voucher = mommy.make(
+            Voucher,
+            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+        )
+        self.assertTrue(voucher.has_started)
+
+        voucher.start_date = datetime(2016, 1, 6, tzinfo=timezone.utc)
+        self.assertFalse(voucher.has_started)
+
+    def test_used_max_times(self):
+        voucher = mommy.make(
+            Voucher,
+            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+            max_vouchers=2
+        )
+        self.assertFalse(voucher.used_max_times)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            voucher.users.add(user)
+        self.assertTrue(voucher.used_max_times)
+
+    def test_check_event_type(self):
+        voucher = mommy.make(Voucher)
+        pc_event_type = mommy.make_recipe('booking.event_type_PC')
+        pp_event_type = mommy.make_recipe('booking.event_type_PP')
+        ws_event_type = mommy.make_recipe('booking.event_type_WS')
+        voucher.event_types.add(pp_event_type)
+        voucher.event_types.add(pc_event_type)
+
+        self.assertFalse(voucher.check_event_type(ws_event_type))
+        self.assertTrue(voucher.check_event_type(pc_event_type))
+        self.assertTrue(voucher.check_event_type(pp_event_type))
+
+    def test_used(self):
+        voucher = mommy.make(Voucher)
+        user1 = mommy.make_recipe('booking.user')
+        user2 = mommy.make_recipe('booking.user')
+
+        self.assertFalse(voucher.used(user1))
+        self.assertFalse(voucher.used(user2))
+
+        voucher.users.add(user1)
+        self.assertTrue(voucher.used(user1))
+
+    def test_str(self):
+        voucher = mommy.make(Voucher, code="testcode")
+        self.assertEqual(str(voucher), 'testcode')

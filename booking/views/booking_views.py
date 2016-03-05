@@ -2,6 +2,8 @@
 import logging
 import pytz
 
+from decimal import Decimal, ROUND_UP
+
 from datetime import timedelta
 
 from operator import itemgetter
@@ -19,13 +21,14 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
 from django.template.loader import get_template
+from django.template.response import TemplateResponse
 from braces.views import LoginRequiredMixin
 
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from booking.models import Event, Booking, WaitingListUser
-from booking.forms import BookingCreateForm
+from booking.models import Event, Booking, Voucher, WaitingListUser
+from booking.forms import BookingCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.views_utils import DisclaimerRequiredMixin
@@ -500,22 +503,74 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
             self.request.user, self.object
         ).invoice_id
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+
+        paypal_cost = self.object.event.cost
+        voucher = kwargs.get('voucher', None)
+        voucher_error = kwargs.get('voucher_error', None)
+        code = kwargs.get('code', None)
+        context['voucher_form'] = VoucherForm(initial={'code': code})
+
+        if voucher:
+            valid = not bool(voucher_error)
+            context['valid_voucher'] = valid
+            if valid:
+                paypal_cost = Decimal(
+                    float(paypal_cost) * ((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.01'), rounding=ROUND_UP)
+                messages.info(self.request, 'Voucher has been applied')
+
         paypal_form = PayPalPaymentsUpdateForm(
             initial=context_helpers.get_paypal_dict(
                 host,
-                self.object.event.cost,
-                self.object.event,
+                paypal_cost,
+                '{}'.format(self.object.event),
                 invoice_id,
-                '{} {}'.format('booking', self.object.id)
+                '{} {}{}'.format(
+                    'booking', self.object.id,
+                    ' {}'.format(voucher.code) if voucher else ''
+                )
             )
         )
         context["paypalform"] = paypal_form
+        context["paypal_cost"] = paypal_cost
 
         return context_helpers.get_booking_create_context(
             self.object.event, self.request, context
         )
 
+    def validate_voucher_code(self, voucher, user, event):
+        if not voucher.check_event_type(event.event_type):
+            return 'Voucher code is not valid for this event/class type'
+        elif voucher.used(user):
+            return 'Voucher code has already been used'
+        elif voucher.has_expired:
+            return 'Voucher code has expired'
+        elif voucher.used_max_times:
+            return 'Voucher code has a limited number of uses and has now expired'
+        elif not voucher.has_started:
+            return 'Voucher code is not valid until {}'.format(
+                voucher.start_date.strftime("%d %b %y")
+            )
+
     def form_valid(self, form):
+
+        if "apply_voucher" in form.data:
+            code = form.data['code'].strip()
+            try:
+                voucher = Voucher.objects.get(code=code)
+            except Voucher.DoesNotExist:
+                voucher = None
+                voucher_error = 'Invalid code' if code else 'No code provided'
+
+            if voucher:
+                voucher_error = self.validate_voucher_code(
+                    voucher, self.request.user, self.object.event
+                )
+            context = self.get_context_data(
+                voucher=voucher, voucher_error=voucher_error, code=code
+            )
+            return TemplateResponse(self.request, self.template_name, context)
+
         booking = form.save(commit=False)
 
         if "claim_free"in form.data:

@@ -176,9 +176,11 @@ def has_online_disclaimer(user):
     disclaimer = OnlineDisclaimer.objects.filter(user=user)
     return bool(disclaimer)
 
+
 @register.filter
 def has_disclaimer(user):
     return has_online_disclaimer(user) or has_print_disclaimer(user)
+
 
 @register.simple_tag
 def get_verbose_field_name(instance, field_name):
@@ -188,3 +190,8 @@ def get_verbose_field_name(instance, field_name):
 @register.filter
 def encode(val):
     return int_str(chaffify(val))
+
+
+@register.filter
+def format_event_types(ev_types):
+    return ', '.join([ev_type.subtype for ev_type in ev_types])

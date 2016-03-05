@@ -14,7 +14,8 @@ from django.contrib.auth.models import Permission, User
 from activitylog.models import ActivityLog
 from accounts.models import OnlineDisclaimer
 
-from booking.models import Event, EventType, Booking, Block, WaitingListUser
+from booking.models import Event, EventType, Booking, Block, Voucher, \
+    WaitingListUser
 from booking.views import BookingListView, BookingHistoryListView, \
     BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
@@ -2044,3 +2045,158 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertIsNone(booking.block)
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
+
+    def test_submitting_voucher_code(self):
+        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher.event_types.add(self.pole_class_event_type)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        resp = self._get_response(self.user, booking)
+        self.assertIn('Cost: £ 10.00', resp.rendered_content)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 10.00)
+        self.assertEqual(
+            paypal_form.initial['custom'], 'booking {}'.format(booking.id)
+        )
+        self.assertNotIn('voucher', resp.context_data)
+
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertIn('Cost: £ 9.00', resp.rendered_content)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 9.00)
+        self.assertEqual(
+            paypal_form.initial['custom'], 'booking {} {}'.format(
+                booking.id, voucher.code
+            )
+        )
+        self.assertEqual(resp.context_data['voucher'], voucher)
+
+    def test_no_voucher_code(self):
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': ''}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(resp.context_data['voucher_error'], 'No code provided')
+
+    def test_invalid_voucher_code(self):
+        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher.event_types.add(self.pole_class_event_type)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'foo'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(resp.context_data['voucher_error'], 'Invalid code')
+
+    def test_voucher_code_not_started_yet(self):
+        voucher = mommy.make(
+            Voucher, code='test', discount=10,
+            start_date=timezone.now() + timedelta(2)
+        )
+        voucher.event_types.add(self.pole_class_event_type)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher code is not valid until {}'.format(
+                voucher.start_date.strftime("%d %b %y")
+            )
+        )
+
+    def test_expired_voucher(self):
+        voucher = mommy.make(
+            Voucher, code='test', discount=10,
+            start_date=timezone.now() - timedelta(4),
+            expiry_date=timezone.now() - timedelta(2)
+        )
+        voucher.event_types.add(self.pole_class_event_type)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'], 'Voucher code has expired'
+        )
+
+    def test_voucher_used_max_times(self):
+        voucher = mommy.make(
+            Voucher, code='test', discount=10,
+            max_vouchers=2
+        )
+        voucher.event_types.add(self.pole_class_event_type)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            voucher.users.add(user)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher code has a limited number of uses and has now expired'
+        )
+
+    def test_cannot_use_voucher_twice(self):
+        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher.event_types.add(self.pole_class_event_type)
+        voucher.users.add(self.user)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher code has already been used'
+        )
+
+    def test_voucher_for_wrong_event_type(self):
+        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher.event_types.add(self.pole_class_event_type)
+        booking = mommy.make(
+            'booking.booking', event__cost=10, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher code is not valid for this event/class type'
+        )
+
+    def test_remove_extra_spaces_from_voucher_code(self):
+        """
+        Test that extra leading and/or trailing spaces in code are ignored
+        :return:
+        """
+        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher.event_types.add(self.pole_class_event_type)
+        booking = mommy.make(
+            'booking.booking', event__event_type=self.pole_class_event_type,
+            event__cost=10, user=self.user
+        )
+
+        form_data = {'apply_voucher': 'Apply', 'code': '  test '}
+        resp = self._post_response(self.user, booking, form_data)
+        self.assertIn('Cost: £ 9.00', resp.rendered_content)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 9.00)
+        self.assertEqual(
+            paypal_form.initial['custom'], 'booking {} {}'.format(
+                booking.id, voucher.code
+            )
+        )

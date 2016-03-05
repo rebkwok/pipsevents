@@ -34,7 +34,7 @@ def paypal_confirm_return(request):
 
     if custom:
         obj_type = custom[0]
-        obj_id = int(custom[-1])
+        obj_id = int(custom[1])
 
         if obj_type == "booking":
             obj = Booking.objects.get(id=obj_id)

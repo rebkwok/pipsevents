@@ -129,7 +129,7 @@ class ManagementCommandsTests(TestCase):
         self.assertEquals(BlockType.objects.all().count(), 0)
 
         management.call_command('create_event_and_blocktypes')
-        self.assertEquals(EventType.objects.all().count(), 8)
+        self.assertEquals(EventType.objects.all().count(), 10)
         self.assertEquals(BlockType.objects.all().count(), 7)
 
     def test_create_events_and_blocktypes_twice(self):
@@ -140,11 +140,11 @@ class ManagementCommandsTests(TestCase):
         self.assertEquals(BlockType.objects.all().count(), 0)
 
         management.call_command('create_event_and_blocktypes')
-        self.assertEquals(EventType.objects.all().count(), 8)
+        self.assertEquals(EventType.objects.all().count(), 10)
         self.assertEquals(BlockType.objects.all().count(), 7)
 
         management.call_command('create_event_and_blocktypes')
-        self.assertEquals(EventType.objects.all().count(), 8)
+        self.assertEquals(EventType.objects.all().count(), 10)
         self.assertEquals(BlockType.objects.all().count(), 7)
 
 

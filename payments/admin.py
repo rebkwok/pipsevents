@@ -50,7 +50,7 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_user', 'get_event', 'invoice_id',
                     'transaction_id', 'get_booking_id')
     readonly_fields = ('id', 'booking', 'get_user', 'get_event', 'invoice_id',
-                    'transaction_id', 'get_booking_id', 'cost')
+                    'transaction_id', 'get_booking_id', 'cost', 'voucher_code')
     list_filter = (PaypalBookingUserFilter, 'booking__event')
 
     def get_booking_id(self, obj):

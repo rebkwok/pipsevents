@@ -13,7 +13,7 @@ from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
-    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket
+    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, Voucher
 from booking.forms import BookingAdminForm, BlockAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
@@ -481,6 +481,20 @@ class TicketAdmin(admin.ModelAdmin):
         )
     user.admin_order_field = 'ticket_booking__user__first_name'
 
+
+class VoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
+        'ev_types', 'times_used'
+    )
+    def ev_types(self, obj):
+        return ', '.join(et.subtype for et in obj.event_types.all())
+    ev_types.short_description = 'Event types'
+
+    def times_used(self, obj):
+        return obj.users.count()
+
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
@@ -490,3 +504,4 @@ admin.site.register(WaitingListUser, WaitingListUserAdmin)
 admin.site.register(TicketBooking, TicketBookingAdmin)
 admin.site.register(Ticket, TicketAdmin)
 admin.site.register(TicketedEvent, TicketedEventAdmin)
+admin.site.register(Voucher, VoucherAdmin)
