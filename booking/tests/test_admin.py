@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 import booking.admin as admin
-from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block, BlockType, Voucher
 from booking.tests.helpers import format_content
 
 
@@ -454,4 +454,38 @@ class BlockTypeAdminTests(TestCase):
         self.assertEqual(
             block_type_admin.formatted_duration(block_type_query),
             '2 months'
+        )
+
+
+class VoucherAdminTest(TestCase):
+
+    def test_event_types_display(self):
+        voucher = mommy.make(Voucher)
+        event_typepp = mommy.make_recipe(
+            'booking.event_type_PP', subtype='Pole class')
+        event_typepc = mommy.make_recipe(
+            'booking.event_type_PC', subtype='Pole practice'
+        )
+        voucher.event_types.add(event_typepc)
+        voucher.event_types.add(event_typepp)
+
+        voucher_admin = admin.VoucherAdmin(Voucher, AdminSite())
+        voucher_query = voucher_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            voucher_admin.ev_types(voucher_query),
+            'Pole class, Pole practice'
+        )
+
+    def test_times_used_display(self):
+        voucher = mommy.make(Voucher)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            voucher.users.add(user)
+
+        voucher_admin = admin.VoucherAdmin(Voucher, AdminSite())
+        voucher_query = voucher_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            voucher_admin.times_used(voucher_query), 2
         )

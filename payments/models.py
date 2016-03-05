@@ -9,7 +9,7 @@ from django.template.loader import get_template
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
-from booking.models import Booking, Block, TicketBooking
+from booking.models import Booking, Block, TicketBooking, Voucher
 
 from activitylog.models import ActivityLog
 
@@ -25,6 +25,7 @@ class PaypalBookingTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
     booking = models.ForeignKey(Booking, null=True)
     transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.invoice_id
@@ -114,7 +115,8 @@ def get_obj(ipn_obj):
     try:
         custom = ipn_obj.custom.split()
         obj_type = custom[0]
-        obj_id = int(custom[-1])
+        obj_id = int(custom[1])
+        voucher_code = custom[2] if len(custom) == 3 else None
     except IndexError:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')
 
@@ -205,7 +207,8 @@ def get_obj(ipn_obj):
     return {
         'obj_type': obj_type,
         'obj': obj,
-        'paypal_trans': paypal_trans
+        'paypal_trans': paypal_trans,
+        'voucher_code': voucher_code
     }
 
 
@@ -234,6 +237,7 @@ def payment_received(sender, **kwargs):
     obj = obj_dict['obj']
     obj_type = obj_dict['obj_type']
     paypal_trans = obj_dict['paypal_trans']
+    voucher_code = obj_dict.get('voucher_code')
 
     try:
         if ipn_obj.payment_status == ST_PP_REFUNDED:
@@ -291,6 +295,18 @@ def payment_received(sender, **kwargs):
 
             send_processed_payment_emails(obj_type, obj.id, paypal_trans,
                                           obj.user, obj)
+
+            if voucher_code:
+                voucher = Voucher.objects.get(code=voucher_code)
+                voucher.users.add(obj.user)
+                paypal_trans.voucher_code = voucher_code
+                paypal_trans.save()
+
+                ActivityLog.objects.create(
+                    log='Voucher code {} used for {} id {} by user {}'.format(
+                        voucher_code, obj_type, obj.id, obj.user.username
+                    )
+                )
 
             if not ipn_obj.invoice:
                 # sometimes paypal doesn't send back the invoice id -

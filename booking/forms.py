@@ -2,9 +2,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
-
-from django.forms.models import modelformset_factory, BaseModelFormSet, \
-    inlineformset_factory, BaseInlineFormSet
+from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import Booking, Event, Block, Ticket, TicketBooking
 
@@ -223,3 +221,13 @@ class WaitingListUserAdminForm(forms.ModelForm):
         self.fields['user'] = UserModelChoiceField(
             queryset=User.objects.all().order_by('first_name')
         )
+
+
+class VoucherForm(forms.Form):
+
+    code = forms.CharField(
+        label='Got a voucher code?',
+        widget=forms.TextInput(
+            attrs={"class": "form-control input-xs voucher"}
+        ),
+    )

@@ -690,7 +690,8 @@ class Ticket(models.Model):
     ticket_booking = models.ForeignKey(TicketBooking, related_name="tickets")
 
     def save(self, *args, **kwargs):
-        # raise error for each ticket creation also if we try to book for a_        # full event
+        # raise error for each ticket creation also if we try to book for a
+        #  full event
         if self.pk is None:
             if self.ticket_booking.ticketed_event.tickets_left() <= 0:
                 raise TicketBookingError(
@@ -700,3 +701,56 @@ class Ticket(models.Model):
                 )
         super(Ticket, self).save(*args, **kwargs)
 
+
+class Voucher(models.Model):
+    code = models.CharField(max_length=255, unique=True)
+    discount = models.PositiveIntegerField(
+        help_text="Enter a number between 1 and 99"
+    )
+    start_date = models.DateTimeField(default=timezone.now)
+    expiry_date = models.DateTimeField(null=True, blank=True)
+    max_vouchers = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name='Maximum uses')
+    event_types = models.ManyToManyField(EventType)
+    users = models.ManyToManyField(User, blank=True)
+
+    def __str__(self):
+        return self.code
+
+    @property
+    def has_expired(self):
+        if self.expiry_date and self.expiry_date < timezone.now():
+            return True
+        return False
+
+    @property
+    def has_started(self):
+        return bool(self.start_date < timezone.now())
+
+    @property
+    def used_max_times(self):
+        if self.max_vouchers and self.users.count() >= self.max_vouchers:
+            return True
+        return False
+
+    def check_event_type(self, ev_type):
+        return bool(ev_type in self.event_types.all())
+
+    def used(self, user):
+        return bool(user in self.users.all())
+
+    def save(self, *args, **kwargs):
+        # replace start time with very start of day
+        self.start_date = self.start_date.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+        if self.expiry_date:
+            # replace time with very end of day
+            # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
+            # back 1 sec
+            next_day = (self.expiry_date + timedelta(
+                days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            self.expiry_date = next_day - timedelta(seconds=1)
+        super(Voucher, self).save(*args, **kwargs)

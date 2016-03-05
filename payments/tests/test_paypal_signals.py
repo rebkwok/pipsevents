@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase, Client, override_settings
 from django.utils import timezone
 
-from booking.models import Booking
+from booking.models import Booking, Voucher
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
@@ -1098,3 +1098,93 @@ class PaypalSignalsTests(TestCase):
 
         self.assertTrue(ppipn.flag)
         self.assertEqual(ppipn.flag_info, 'Invalid postback. (INVALID)')
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_voucher_code(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher.event_types.add(ev_type)
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {} {}'.format(booking.id, voucher.code)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        booking.refresh_from_db()
+        self.assertTrue(booking.paid)
+
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, voucher.code)
+        self.assertEqual(voucher.users.count(), 1)
+        self.assertEqual(voucher.users.first(), user)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_invalid_voucher_code(self, mock_postback):
+        """
+        Test that paypal is processed properly and marked as paid if an
+        invalid voucher code is included. Warning mail sent to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {} invalid_code'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        booking.refresh_from_db()
+        self.assertTrue(booking.paid)
+
+        # email to user, studio, and support email
+        self.assertEqual(len(mail.outbox), 3)
+        support_email = mail.outbox[2]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was "Voucher matching query does not exist.',
+            support_email.body
+        )

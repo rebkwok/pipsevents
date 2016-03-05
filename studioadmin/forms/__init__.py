@@ -14,7 +14,7 @@ from studioadmin.forms.timetable_forms import SessionAdminForm, \
 from studioadmin.forms.user_forms import UserBlockFormSet, \
     UserBookingFormSet, UserListSearchForm
 from studioadmin.forms.utils import BookingStatusFilter, StatusFilter
-
+from studioadmin.forms.voucher_forms import VoucherStudioadminForm
 
 __all__ = [
     'ActivityLogSearchForm', 'BookingStatusFilter',
@@ -25,5 +25,6 @@ __all__ = [
     'StudioadminDisclaimerForm', 'TicketedEventAdminForm',
     'TicketedEventFormSet', 'TicketBookingInlineFormSet',
     'TimetableSessionFormSet', 'UploadTimetableForm', 'UserBlockFormSet',
-    'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm'
+    'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',
+    'VoucherStudioadminForm'
 ]
