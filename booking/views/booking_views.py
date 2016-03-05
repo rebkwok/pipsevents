@@ -523,10 +523,11 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
             initial=context_helpers.get_paypal_dict(
                 host,
                 paypal_cost,
-                self.object.event,
+                '{}'.format(self.object.event),
                 invoice_id,
-                '{} {} {}'.format(
-                    'booking', self.object.id, voucher.code if voucher else ''
+                '{} {}{}'.format(
+                    'booking', self.object.id,
+                    ' {}'.format(voucher.code) if voucher else ''
                 )
             )
         )
@@ -545,7 +546,7 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         elif voucher.has_expired:
             return 'Voucher code has expired'
         elif voucher.used_max_times:
-            return 'Voucher code has reached maximum uses'
+            return 'Voucher code has a limited number of uses and has now expired'
         elif not voucher.has_started:
             return 'Voucher code is not valid until {}'.format(
                 voucher.start_date.strftime("%d %b %y")
@@ -554,7 +555,7 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
     def form_valid(self, form):
 
         if "apply_voucher" in form.data:
-            code = form.data['code']
+            code = form.data['code'].strip()
             try:
                 voucher = Voucher.objects.get(code=code)
             except Voucher.DoesNotExist:

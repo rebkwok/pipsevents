@@ -283,10 +283,6 @@ def payment_received(sender, **kwargs):
             # trans not updated yet --> booking is marked as paid so doesn't
             # render the paypal button at all
             paypal_trans.transaction_id = ipn_obj.txn_id
-            if voucher_code:
-                voucher = Voucher.objects.get(code=voucher_code)
-                voucher.users.add(obj.user)
-                paypal_trans.voucher_code = voucher_code
             paypal_trans.save()
 
             ActivityLog.objects.create(
@@ -296,14 +292,21 @@ def payment_received(sender, **kwargs):
                     paypal_trans.id
                     )
             )
-            ActivityLog.objects.create(
-                log='Voucher code {} used for {} id {} by user {}'.format(
-                    voucher_code, obj_type, obj.id, obj.user.username
-                )
-            )
 
             send_processed_payment_emails(obj_type, obj.id, paypal_trans,
                                           obj.user, obj)
+
+            if voucher_code:
+                voucher = Voucher.objects.get(code=voucher_code)
+                voucher.users.add(obj.user)
+                paypal_trans.voucher_code = voucher_code
+                paypal_trans.save()
+
+                ActivityLog.objects.create(
+                    log='Voucher code {} used for {} id {} by user {}'.format(
+                        voucher_code, obj_type, obj.id, obj.user.username
+                    )
+                )
 
             if not ipn_obj.invoice:
                 # sometimes paypal doesn't send back the invoice id -
