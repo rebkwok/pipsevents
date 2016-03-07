@@ -4,7 +4,6 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
 
         <h2>Scheduled {% if type == 'events' %}Workshops/Events{% elif type == 'lessons' %}Classes{% endif %}: Registers & Waiting Lists</h2>
         {% if events %}
@@ -12,8 +11,8 @@
             <div class="col-sm-12">
                 <div class="panel panel-success">
                     <div class="table-responsive">
-                        <table class="table">
-                            <tr class="success">
+                        <table class="table compress">
+                            <tr class="success compress">
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}</th>
                                 <th class="table-center">Bookings</th>
@@ -22,7 +21,7 @@
                             </tr>
 
                             {% for event in events %}
-                            <tr>
+                            <tr class="compress">
                                 <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl">{{ event.name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
@@ -52,6 +51,5 @@
             <p>There are currently no {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} scheduled.</p>
         {% endif %}
 
-    </div>
 
 {% endblock studioadmincontent %}
