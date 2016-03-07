@@ -55,8 +55,8 @@
                                 <td class="table-center studioadmin-tbl">
                                 {% if bookingform.instance.id %}
                                     <span class="hide">{{ bookingform.user }}</span>
-                                    {{ bookingform.instance.user.first_name }}
-                                    {{ bookingform.instance.user.last_name }}{% if not print %} ({{ bookingform.instance.user.username }}){% endif %}
+                                    {{ bookingform.instance.user.first_name|abbr_name }}
+                                    {{ bookingform.instance.user.last_name|abbr_name }}
                                 {% elif not print %}
                                     {{ bookingform.user }}
                                 {% endif %}
@@ -99,11 +99,11 @@
                                                     {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}</td>
                                             {% else %}
                                                 <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center no-block-comment studioadmin-tbl">User has no active block</td>
+                                                <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
                                             {% endif %}</td>
                                         {% endif %}
                                     {% elif not print %}
-                                        <td class="no-block-comment table-center" colspan="3">Click <strong>Save</strong> button to see block/payment options for selected user</td>
+                                        <td class="no-block-comment table-center" colspan="3">Click <strong>Save</strong> to see block/payment options</td>
                                     {% else %}
                                         <td></td>
                                         <td></td>
