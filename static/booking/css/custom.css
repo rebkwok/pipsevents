@@ -993,7 +993,14 @@ label.control-label {
 .vspace {
     padding-bottom: 15px;
 }
-.dropdown-menu, .dropdown, a.dropdown-toggle {
-    margin: 0;
-    padding: 0;
+li>a.dropdown-toggle, .navbar-nav>li>a.adminmenu {
+    /*margin-bottom: 0;*/
+    /*margin-top: 0;*/
+    padding-bottom: 1px;
+    padding-top: 1px;
+}
+
+.adminmenu-title {
+    padding-left: 12px;
+    font-weight: bold;
 }

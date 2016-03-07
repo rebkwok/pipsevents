@@ -8,12 +8,11 @@
 {% block left-nav-items %}
 <li class="active-nav"><a href="{% url 'booking:lessons' %}" target="_blank">Main booking site</a></li>
 <!---add to menu at small sizes where side nav disappears-->
-<li class="divider"></li>
+<span class="divider"></span>
+    <li class="adminmenu-title">Studio Admin</li>
 {% if request.user.is_staff %}
-    <li class="dropdown">
-      <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false">Studio Admin<span class="caret"></span></a>
+    <span class="divider"></span>
 
-          <ul class="dropdown-menu">
              <li class="dropdown">
               <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Classes </strong></strong><span class="fa fa-caret-down"></span></a>
               <ul class="dropdown-menu" role="menu">
@@ -27,9 +26,7 @@
                 <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
               </ul>
             </li>
-          </ul>
 
-             <ul class="dropdown-menu">
                  <li class="dropdown">
                   <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Timetable </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
@@ -41,9 +38,7 @@
                             <span class="sidebar_active">Upload timetable</span>{% else %}Upload timetable{% endif %}</a></li>
                 </ul>
             </li>
-          </ul>
 
-              <ul class="dropdown-menu">
                  <li class="dropdown">
                   <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Workshops/Events </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
@@ -57,9 +52,7 @@
                     <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
                 </ul>
             </li>
-          </ul>
 
-              <ul class="dropdown-menu">
                  <li class="dropdown">
                   <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Ticketed Events </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
@@ -71,9 +64,7 @@
                         <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
                 </ul>
             </li>
-          </ul>
 
-            <ul class="dropdown-menu">
                  <li class="dropdown">
                   <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Students </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
@@ -85,10 +76,8 @@
                         <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
                 </ul>
             </li>
-          </ul>
 
-            <ul class="dropdown-menu">
-                 <li class="dropdown">
+            <li class="dropdown">
                   <a href="#" class="dropdown-toggle active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Vouchers </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
@@ -97,24 +86,20 @@
                         <span class="sidebar_active">Add a new voucher</span>{% else %}Add a new voucher{% endif %}</a></li>
                 </ul>
             </li>
-          </ul>
 
-        <ul class="dropdown-menu">
              <li class="dropdown">
-                 <li class="active-nav"><a href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
+                 <li class="active-nav"><a class='adminmenu' href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
                     <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
             </li>
-        </ul>
 
 {% else %}
-    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
         <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
         <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
+    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
 {% endif %}
-</li>
 {% endblock %}
 
 {% block admin-nav %}{% endblock admin-nav %}
