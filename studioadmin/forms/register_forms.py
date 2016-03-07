@@ -86,7 +86,12 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
             form.fields['user'] = UserModelChoiceField(
                 queryset=User.objects.exclude(id__in=booked_user_ids).order_by('first_name'),
-                widget=forms.Select(attrs={'class': 'form-control input-xs studioadmin-list'})
+                widget=forms.Select(
+                    attrs={
+                        'class': 'form-control input-xs studioadmin-list',
+                        'style': 'max-width: 150px'
+                    }
+                )
             )
 
         checkbox_class = 'regular-checkbox'

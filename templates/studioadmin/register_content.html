@@ -27,7 +27,7 @@
                 <div class="table-responsive">
                     <table class="table">
                         <caption><h2>Register for {{ event }}</h2></caption>
-                        <tr {% if not print %}class="success"{% endif %}>
+                        <tr class="compress{% if not print %} success{% endif %}">
                             <th class="table-center"></th>
                             <th class="table-center">Attended</th>
                             <th class="table-center">No-show</th>
@@ -42,7 +42,7 @@
                         </tr>
 
                         {% for bookingform in formset %}
-                            <tr {% if bookingform.instance.no_show or bookingform.instance.status == 'CANCELLED' %}class="expired"{% endif %}>
+                            <tr class="compress{% if bookingform.instance.no_show or bookingform.instance.status == 'CANCELLED' %} expired{% endif %}">
                                 <span class="hide">{{ bookingform.id }}</span>
                                 {% if status_choice == 'CANCELLED' %}
                                 <td></td>
@@ -113,7 +113,7 @@
                         {% endfor %}
 
                         {% if print %}
-                        <tr><td class="notes-row " {% if available_block_type %}colspan="11"{% else %}colspan="7"{% endif %}>Notes: </td></tr>
+                        <tr><td class="notes-row compress" {% if available_block_type %}colspan="11"{% else %}colspan="7"{% endif %}>Notes: </td></tr>
                         {% endif %}
                         {% if not print %}
                             <tr no-print>

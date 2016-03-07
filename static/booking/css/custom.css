@@ -841,12 +841,12 @@ a > span.fa.fa-print {
 		word-wrap: normal !important;
 		white-space: normal !important;
     }
-	tr>th.table-center {
+	tr.compress>th {
 		font-size: 0.8em;
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
-    tr>td.table-center {
+    tr.compress>td {
 		font-size: 0.8em;
 		word-wrap: normal !important;
 		white-space: normal !important;
@@ -873,12 +873,12 @@ a > span.fa.fa-print {
 		white-space: normal !important;
     }
 
-    tr>th.table-center {
+    tr.compress >th {
 		font-size: 0.7em;
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
-    tr>td.table-center {
+    tr.compress >td {
 		font-size: 0.7em;
 		word-wrap: normal !important;
 		white-space: normal !important;
@@ -994,8 +994,6 @@ label.control-label {
     padding-bottom: 15px;
 }
 li>a.adminmenu {
-    /*margin-bottom: 0;*/
-    /*margin-top: 0;*/
     padding-bottom: 1px;
     padding-top: 1px;
 }
