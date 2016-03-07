@@ -33,7 +33,7 @@
 
                         {% for field in form %}
                                 <div class="form-group register-form-group">
-                                    <label class="control-label register-form-control-label col-sm-3" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                    <label class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}
                                     <div class="col-sm-9">
                                         {% if field.name == 'exclude_ext_instructor'%}
                                         {{ field }}<label for='exclude_ext_instructor_id'></label>
@@ -48,6 +48,7 @@
                                         {% else %}{{ field }}{% endif %}
                                         <p class="studioadmin-help">{{ field.help_text }}</p>
                                     </div>
+                                    </label>
                                 </div>
                         {% endfor %}
                     </div>
