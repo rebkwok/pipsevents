@@ -635,6 +635,7 @@ label {
 }
 .regular-checkbox {
     display: none;
+
 }
 .regular-checkbox + label {
     background-color: #fafafa;
@@ -835,13 +836,55 @@ a > span.fa.fa-print {
 		font-size: medium;
 		font-weight: bold;
 	}
-	th {
-		font-size: 0.9em;
+    #id_filter-lessons > option, #id_filter-events > option {
+        font-size: 0.8em;
+		word-wrap: normal !important;
+		white-space: normal !important;
+    }
+	tr>th.table-center {
+		font-size: 0.8em;
+		word-wrap: normal !important;
+		white-space: normal !important;
+	}
+    tr>td.table-center {
+		font-size: 0.8em;
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
 }
 
+@media (max-width: 675px) {
+    h1 {
+		font-size: large;
+		font-weight: bold;
+	}
+    h2 {
+		font-size: medium;
+		font-weight: bold;
+	}
+    h4 {
+		font-size: larger;
+		font-weight: bold;
+	}
+
+	#id_filter-lessons > option, #id_filter-events > option {
+        font-size: 0.7em;
+		word-wrap: normal !important;
+		white-space: normal !important;
+    }
+
+    tr>th.table-center {
+		font-size: 0.7em;
+		word-wrap: normal !important;
+		white-space: normal !important;
+	}
+    tr>td.table-center {
+		font-size: 0.7em;
+		word-wrap: normal !important;
+		white-space: normal !important;
+	}
+
+}
 .wl-table-form {
 	margin: 0;
 }
@@ -949,4 +992,8 @@ label.control-label {
 
 .vspace {
     padding-bottom: 15px;
+}
+.dropdown-menu, .dropdown, a.dropdown-toggle {
+    margin: 0;
+    padding: 0;
 }
