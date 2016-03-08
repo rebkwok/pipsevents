@@ -14,7 +14,7 @@ from studioadmin.views.helpers import StaffUserMixin
 from activitylog.models import ActivityLog
 
 
-class VoucherListView(StaffUserMixin, LoginRequiredMixin, ListView):
+class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = Voucher
     template_name = 'studioadmin/vouchers.html'
     context_object_name = 'vouchers'
@@ -40,8 +40,8 @@ class VoucherUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
     def form_valid(self, form):
         if form.has_changed():
             voucher = form.save()
-            msg = 'Voucher code <strong>{} {}</strong> has been updated!'.format(
-                voucher.code, voucher.id
+            msg = 'Voucher with code <strong>{}</strong> has been updated!'.format(
+                voucher.code
             )
             messages.success(self.request, mark_safe(msg))
             ActivityLog.objects.create(
