@@ -34,7 +34,7 @@
 
                         {% for field in form %}
                             <div class="form-group">
-                                <label class="control-label col-sm-2">{% if field.field.required %}*{% endif %}{{ field.label }}
+                                <label class="col-sm-12"><div class="col-sm-2 control-label ">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                 <div class="col-sm-10 {% if field.errors %}ticket-error{% endif %}">
                                     {% if field.name == "event_types" %}
                                         {% for choice in field %}
@@ -43,7 +43,7 @@
                                     {% else %}
                                         {{ field }}
                                     {% endif %}
-                                    {% if field.errors %}<span class="ticket-error">{{ field.errors}}</span>{% endif %}</span><p class="studioadmin-help">{{ field.help_text }}</p></div>
+                                    {% if field.errors %}<span class="ticket-error">{{ field.errors}}</span>{% endif %}<p class="studioadmin-help">{{ field.help_text }}</p></div>
                                 </label>
                             </div>
                         {% endfor %}

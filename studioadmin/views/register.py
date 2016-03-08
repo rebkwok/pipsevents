@@ -149,7 +149,12 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 deposit_updates[booking.user.username] = change
 
                             if 'paid' in form.changed_data:
-                                change = 'yes' if booking.paid else 'no'
+                                if booking.paid:
+                                    change = 'yes'
+                                    booking.payment_confirmed = True
+                                    booking.save()
+                                else:
+                                    change = 'no'
                                 paid_updates[booking.user.username] = change
 
                 if deposit_updates:

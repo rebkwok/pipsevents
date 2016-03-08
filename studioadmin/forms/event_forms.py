@@ -92,6 +92,10 @@ class EventAdminForm(forms.ModelForm):
         ev_type = kwargs.pop('ev_type')
         super(EventAdminForm, self).__init__(*args, **kwargs)
 
+        self.fields['payment_time_allowed'].widget.attrs = {
+            'class': 'form-control'
+        }
+        
         if ev_type == 'EV':
             ev_type_qset = EventType.objects.filter(event_type='EV')
         else:
@@ -284,9 +288,6 @@ class EventAdminForm(forms.ModelForm):
                     'id': "datepicker",
                 },
                 format='%d %b %Y'
-            ),
-            'payment_time_allowed': forms.TextInput(
-                attrs={'class': "form-control"}
             ),
             'date': forms.DateTimeInput(
                 attrs={

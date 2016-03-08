@@ -93,6 +93,9 @@ class SessionAdminForm(forms.ModelForm):
             widget=forms.Select(attrs={'class': "form-control"}),
             queryset=EventType.objects.exclude(event_type="EV"),
         )
+        self.fields['payment_time_allowed'].widget.attrs = {
+            'class': 'form-control'
+        }
 
     def clean(self):
         super(SessionAdminForm, self).clean()

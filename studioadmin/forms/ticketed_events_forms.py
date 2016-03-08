@@ -164,6 +164,10 @@ class TicketedEventAdminForm(forms.ModelForm):
                                 'does not reopen previously cancelled ticket ' \
                                 'bookings.'
 
+        self.fields['payment_time_allowed'].widget.attrs = {
+            'class': 'form-control'
+        }
+
     def clean(self):
         super(TicketedEventAdminForm, self).clean()
         cleaned_data = self.cleaned_data
@@ -322,9 +326,6 @@ class TicketedEventAdminForm(forms.ModelForm):
                 attrs={'class': "form-control"}
             ),
             'contact_email': forms.EmailInput(
-                attrs={'class': "form-control"}
-            ),
-            'payment_time_allowed': forms.TextInput(
                 attrs={'class': "form-control"}
             ),
             'payment_due_date': forms.DateInput(

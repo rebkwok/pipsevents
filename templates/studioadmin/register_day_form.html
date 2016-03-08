@@ -33,7 +33,7 @@
 
                         {% for field in form %}
                                 <div class="form-group register-form-group">
-                                    <label class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}
+                                    <label class="col-sm-12"><div class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
                                         {% if field.name == 'exclude_ext_instructor'%}
                                         {{ field }}<label for='exclude_ext_instructor_id'></label>
