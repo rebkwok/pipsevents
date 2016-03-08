@@ -445,9 +445,10 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         log = ActivityLog.objects.latest('id')
         self.assertEqual(
             log.log,
-            'Bulk email error for users test_user@test.com '
+            'Bulk email error for users {} '
             '(email subject "{} Test email"), '
             'sent by by admin user {}'.format(
+                self.user.email,
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                 self.staff_user.username
             )

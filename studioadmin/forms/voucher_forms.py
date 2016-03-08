@@ -16,7 +16,7 @@ def validate_discount(value):
 def validate_greater_than_0(value):
     if value == 0:
         raise ValidationError('Must be greater than 0 (leave blank if no '
-                              'maximum')
+                              'maximum)')
 
 
 def validate_code(code):
@@ -112,6 +112,7 @@ class VoucherStudioadminForm(forms.ModelForm):
             try:
                 expiry_date = datetime.strptime(expiry_date, '%d %b %Y')
                 expiry_date = uk.localize(expiry_date).astimezone(pytz.utc)
+                expiry_date = expiry_date.replace(hour=23, minute=59, second=59)
                 cleaned_data['expiry_date'] = expiry_date
                 if old and old.expiry_date == cleaned_data['expiry_date']:
                     self.changed_data.remove('expiry_date')
@@ -133,8 +134,8 @@ class VoucherStudioadminForm(forms.ModelForm):
             if uses > max_uses:
                 self.add_error(
                     'max_vouchers', 'Voucher code has already been used by '
-                                    '{times_used} user{pl}; set max uses to '
+                                    '{times_used} users; set max uses to '
                                     '{times_used} or greater'.format(
-                        times_used=uses, pl='s' if uses > 1 else ''
+                        times_used=uses,
                     )
                 )
