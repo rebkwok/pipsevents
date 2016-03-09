@@ -310,10 +310,25 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             formset_data, status_choice='OPEN'
         )
 
-        booking1 = Booking.objects.get(id=self.booking1.id)
-        self.assertTrue(booking1.paid)
-        booking2 = Booking.objects.get(id=self.booking2.id)
-        self.assertTrue(booking2.attended)
+        self.booking1.refresh_from_db()
+        self.assertTrue(self.booking1.paid)
+        self.booking2.refresh_from_db()
+        self.assertTrue(self.booking2.attended)
+
+        formset_data = self.formset_data({
+            'bookings-0-paid': False,
+            'bookings-1-attended': False,
+            'formset_submitted': 'Save changes'
+        })
+        self._post_response(
+            self.staff_user, self.event.slug,
+            formset_data, status_choice='OPEN'
+        )
+
+        self.booking1.refresh_from_db()
+        self.assertFalse(self.booking1.paid)
+        self.booking2.refresh_from_db()
+        self.assertFalse(self.booking2.attended)
 
     def test_post_with_no_changes_booking(self):
         formset_data = self.formset_data({
