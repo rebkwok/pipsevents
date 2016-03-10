@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from studioadmin.views.activity_log import ActivityLogListView
 from studioadmin.views.blocks import BlockListView
 from studioadmin.views.disclaimers import DisclaimerUpdateView, \
@@ -6,7 +8,8 @@ from studioadmin.views.email_users import choose_users_to_email, \
     email_users_view
 from studioadmin.views.events import cancel_event_view, event_admin_list, \
     EventAdminCreateView, EventAdminUpdateView
-from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView
+from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
+    test_paypal_view
 from studioadmin.views.register import EventRegisterListView, \
     register_print_day, register_view
 from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
@@ -34,6 +37,7 @@ __all__ = [
     'register_print_day', 'register_view', 'TicketedEventBookingsListView',
     'TicketedEventAdminUpdateView', 'TicketedEventAdminListView',
     'TicketedEventAdminCreateView', 'ConfirmTicketBookingRefundView',
+    'test_paypal_view',
     'timetable_admin_list', 'TimetableSessionCreateView',
     'TimetableSessionUpdateView', 'upload_timetable_view',
     'user_bookings_view', 'user_blocks_view', 'user_disclaimer',
