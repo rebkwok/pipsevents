@@ -3,6 +3,7 @@ import pytz
 
 from model_mommy import mommy
 
+from django.conf import settings
 from django.test import TestCase
 
 from booking.models import TicketBooking, TicketedEvent
@@ -24,6 +25,7 @@ class TicketedEventAdminFormTests(TestCase):
             'contact_person': 'test',
             'location': 'Watermelon Studio',
             'ticket_cost': 0,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -321,7 +323,8 @@ class TicketedEventAdminFormTests(TestCase):
             'contact_email': ticketed_event.contact_email,
             'contact_person': ticketed_event.contact_person,
             'location': ticketed_event.location,
-            'ticket_cost': ticketed_event.ticket_cost
+            'ticket_cost': ticketed_event.ticket_cost,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
         form = TicketedEventAdminForm(data=data, instance=ticketed_event)
         self.assertTrue(form.is_valid())
@@ -352,6 +355,46 @@ class TicketedEventAdminFormTests(TestCase):
             'event attributes and does not reopen previously cancelled ticket '
             'bookings.'
         )
+
+    def test_paypal_email_check_required_if_paypal_email_changed(self):
+        form = TicketedEventAdminForm(
+            data=self.form_data(
+                {'paypal_email': 'newpaypal@test.com'}),
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Please reenter paypal email to confirm changes',
+            str(form.errors['paypal_email_check'])
+        )
+
+    def test_paypal_email_and_check_must_match(self):
+        form = TicketedEventAdminForm(
+            data=self.form_data(
+                {
+                    'paypal_email': 'newpaypal@test.com',
+                    'paypal_email_check': 'newpaypal1@test.com'
+                },
+            ),
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Email addresses do not match',
+            str(form.errors['paypal_email_check'])
+        )
+        self.assertIn(
+            'Email addresses do not match',
+            str(form.errors['paypal_email'])
+        )
+
+        form = TicketedEventAdminForm(
+            data=self.form_data(
+                {
+                    'paypal_email': 'newpaypal@test.com',
+                    'paypal_email_check': 'newpaypal@test.com'
+                },
+            ),
+        )
+        self.assertTrue(form.is_valid())
 
 
 class TicketedEventFormsetTests(TestCase):

@@ -301,7 +301,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_person': event.contact_person,
             'cancellation_period': event.cancellation_period,
             'location': event.location,
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -478,7 +479,8 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'contact_person': 'test',
             'cancellation_period': 24,
             'location': 'Watermelon Studio',
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
         for key, value in extra_data.items():
             data[key] = value
@@ -568,10 +570,9 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Event.objects.count(), 0)
         form_data = self.form_data({'contact_email': 'test.com'})
         resp = self._post_response(self.staff_user, 'event', form_data)
-
         self.assertEqual(Event.objects.count(), 0)
         self.assertIn(
-            'Contact Email: Enter a valid email', resp.rendered_content
+            'Enter a valid email address.', resp.rendered_content
         )
 
 

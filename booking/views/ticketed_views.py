@@ -212,6 +212,7 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                             self.ticketed_event,
                             invoice_id,
                             '{} {}'.format('ticket_booking', self.ticket_booking.id),
+                            paypal_email=self.ticketed_event.paypal_email,
                             quantity=self.ticket_booking.tickets.count()
                         )
                     )
@@ -332,6 +333,7 @@ class TicketBookingListView(LoginRequiredMixin, ListView):
                         ticket_booking.ticketed_event,
                         invoice_id,
                         '{} {}'.format('ticket_booking', ticket_booking.id),
+                        paypal_email=ticket_booking.ticketed_event.paypal_email,
                         quantity=ticket_booking.tickets.count()
                     )
                 )

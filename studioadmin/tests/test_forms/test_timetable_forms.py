@@ -4,6 +4,7 @@ from datetime import datetime
 from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
@@ -84,7 +85,8 @@ class SessionAdminFormTests(TestCase):
             'contact_person': 'test',
             'cancellation_period': 24,
             'location': 'Watermelon Studio',
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -187,6 +189,105 @@ class SessionAdminFormTests(TestCase):
             'Booking cancellation should be allowed for events/classes with '
             'no associated cost',
             str(form.errors['allow_booking_cancellation'])
+        )
+
+    def test_paypal_email_check_required_if_paypal_email_changed(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {'paypal_email': 'newpaypal@test.com'}),
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Please reenter paypal email to confirm changes',
+            str(form.errors['paypal_email_check'])
+        )
+
+    def test_paypal_email_and_check_must_match(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {
+                    'paypal_email': 'newpaypal@test.com',
+                    'paypal_email_check': 'newpaypal1@test.com'
+                },
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Email addresses do not match',
+            str(form.errors['paypal_email_check'])
+        )
+        self.assertIn(
+            'Email addresses do not match',
+            str(form.errors['paypal_email'])
+        )
+
+        form = SessionAdminForm(
+            data=self.form_data(
+                {
+                    'paypal_email': 'newpaypal@test.com',
+                    'paypal_email_check': 'newpaypal@test.com'
+                },
+            )
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_fields_requiring_cost(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {
+                    'cost': 0,
+                    'advance_payment_required': True,
+                    'payment_time_allowed': '',
+                },
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'The following fields require a cost greater than £0: '
+            'advance payment required',
+            str(form.errors['cost'])
+        )
+
+        form = SessionAdminForm(
+            data=self.form_data(
+                {
+                    'cost': 0,
+                    'payment_time_allowed': 6,
+                    'advance_payment_required': True,
+                },
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'The following fields require a cost greater than £0: '
+            'advance payment required, payment time allowed',
+            str(form.errors['cost'])
+        )
+
+    def test_payment_time_allowed_required_advance_payment_required(self):
+        form = SessionAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': False,
+                    'payment_time_allowed': '',
+                },
+            )
+        )
+        self.assertTrue(form.is_valid())
+
+        form = SessionAdminForm(
+            data=self.form_data(
+                {
+                    'advance_payment_required': False,
+                    'payment_time_allowed': 6,
+                },
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'To specify payment time allowed, please also tick &quot;advance '
+            'payment required&quot;',
+            str(form.errors['payment_time_allowed'])
         )
 
 
