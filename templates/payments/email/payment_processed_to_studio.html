@@ -7,6 +7,6 @@
 <p><strong>Purchased:</strong> {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
 <p><strong>Invoice number:</strong> {{ invoice_id }}</p>
 <p><strong>Paypal Transaction id:</strong> {{ paypal_transaction_id }}</p>
-
+<p><strong>Paypal Email:</strong> {{ paypal_email }}</p>
 </div>
 {% endblock %}

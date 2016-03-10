@@ -258,7 +258,8 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_email': self.ticketed_event.contact_email,
             'contact_person': self.ticketed_event.contact_person,
             'location': self.ticketed_event.location,
-            'ticket_cost': self.ticketed_event.ticket_cost
+            'ticket_cost': self.ticketed_event.ticket_cost,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -332,7 +333,8 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
                 'email_studio_when_purchased':
                     self.ticketed_event.email_studio_when_purchased,
                 'show_on_site': self.ticketed_event.show_on_site,
-                'cancelled': self.ticketed_event.cancelled
+                'cancelled': self.ticketed_event.cancelled,
+                'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
             }
         )
         self.assertTrue(self.client.login(
@@ -405,7 +407,8 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test person',
             'location': 'Watermelon Studio',
-            'ticket_cost': 5
+            'ticket_cost': 5,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
         self._post_response(self.staff_user, data)
         self.assertEqual(TicketedEvent.objects.count(), 1)

@@ -5,7 +5,7 @@
 
 <p>Dear {{ user }},</p>
 
-<p>Your payment has now been processed.</p>
+<p>Your payment to <strong>{{ paypal_email }}</strong> has now been processed.</p>
 
 <p><strong>{{ obj_type }}:</strong> {% if obj_type == "Booking" %}{{ obj.event }}
     {% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}

@@ -2,6 +2,7 @@ from datetime import datetime
 from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -177,7 +178,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_person': ttsession.contact_person,
             'cancellation_period': ttsession.cancellation_period,
             'location': ttsession.location,
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -300,7 +302,8 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
             'contact_person': 'test',
             'cancellation_period': 24,
             'location': 'Watermelon Studio',
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
         for key, value in extra_data.items():
             data[key] = value

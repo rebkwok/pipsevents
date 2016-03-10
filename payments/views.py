@@ -10,7 +10,7 @@ def view_that_asks_for_money(request):
 
     # What you want the button to do.
     paypal_dict = {
-        "business": settings.PAYPAL_RECEIVER_EMAIL,
+        "business": settings.DEFAULT_PAYPAL_EMAIL,
         "amount": "10.00",
         "item_name": "Watermeloon Class",
         "invoice": "unique-invoice-id",

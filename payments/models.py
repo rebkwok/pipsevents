@@ -49,15 +49,24 @@ class PaypalTicketBookingTransaction(models.Model):
         return self.invoice_id
 
 
-def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
+def get_paypal_email(obj, obj_type):
+    if obj_type == 'booking':
+        return obj.event.paypal_email
+    elif obj_type == 'ticket_booking':
+        return obj.ticketed_event.paypal_email
+    elif obj_type == 'block':
+        return obj.block_type.paypal_email
 
+def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
     ctx = {
         'user': " ".join([user.first_name, user.last_name]),
         'obj_type': obj_type.title().replace('_', ' '),
         'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
-        'paypal_transaction_id': paypal_trans.transaction_id
+        'paypal_transaction_id': paypal_trans.transaction_id,
+        'paypal_email': get_paypal_email(obj, obj_type)
     }
+
     # send email to studio
     if settings.SEND_ALL_STUDIO_EMAILS:
         send_mail(
@@ -85,13 +94,13 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
 
 
 def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
-
     ctx = {
         'user': " ".join([user.first_name, user.last_name]),
         'obj_type': obj_type.title().replace('_', ' '),
         'obj': obj,
         'invoice_id': paypal_trans.invoice_id,
-        'paypal_transaction_id': paypal_trans.transaction_id
+        'paypal_transaction_id': paypal_trans.transaction_id,
+        'paypal_email': get_paypal_email(obj, obj_type)
     }
     # send email to studio only and to support for checking;
     # user will have received automated paypal payment
@@ -289,8 +298,11 @@ def payment_received(sender, **kwargs):
                 log='{} id {} for user {} paid by PayPal; paypal '
                     '{} id {}'.format(
                     obj_type.title(), obj.id, obj.user.username, obj_type,
-                    paypal_trans.id
+                    paypal_trans.id,
+                    '(paypal email {})'.format(
+                        get_paypal_email(obj, obj_type)
                     )
+                )
             )
 
             send_processed_payment_emails(obj_type, obj.id, paypal_trans,

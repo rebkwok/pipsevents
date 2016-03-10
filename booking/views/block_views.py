@@ -140,7 +140,8 @@ class BlockListView(LoginRequiredMixin, ListView):
                         block.block_type.cost,
                         block.block_type,
                         invoice_id,
-                        '{} {}'.format('block', block.id)
+                        '{} {}'.format('block', block.id),
+                        paypal_email=block.block_type.paypal_email
                     )
                 )
             else:

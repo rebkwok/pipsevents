@@ -5,6 +5,7 @@ import pytz
 import shortuuid
 
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -110,6 +111,11 @@ class Event(models.Model):
     )
     cancelled = models.BooleanField(default=False)
     allow_booking_cancellation = models.BooleanField(default=True)
+    paypal_email = models.EmailField(
+        default=settings.DEFAULT_PAYPAL_EMAIL,
+        help_text='Email for the paypal account to be used for payment.  '
+                  'Check this carefully!'
+    )
 
     class Meta:
         ordering = ['-date']
@@ -186,6 +192,11 @@ class BlockType(models.Model):
     duration = models.PositiveIntegerField(
         help_text="Number of months until block expires")
     active = models.BooleanField(default=True)
+    paypal_email = models.EmailField(
+        default=settings.DEFAULT_PAYPAL_EMAIL,
+        help_text='Email for the paypal account to be used for payment.  '
+                  'Check this carefully!'
+    )
 
     def __str__(self):
         return '{}{} - quantity {}'.format(
@@ -596,6 +607,11 @@ class TicketedEvent(models.Model):
     )
     cancelled = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
+    paypal_email = models.EmailField(
+        default=settings.DEFAULT_PAYPAL_EMAIL,
+        help_text='Email for the paypal account to be used for payment.  '
+                  'Check this carefully!'
+    )
 
     class Meta:
         ordering = ['-date']

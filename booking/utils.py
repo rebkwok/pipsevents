@@ -72,7 +72,8 @@ def create_classes(week='this', input_date=None):
             external_instructor=session.external_instructor,
             email_studio_when_booked=session.email_studio_when_booked,
             allow_booking_cancellation=session.allow_booking_cancellation,
-            payment_time_allowed=session.payment_time_allowed
+            payment_time_allowed=session.payment_time_allowed,
+            paypal_email=session.paypal_email
 
             )
         if created:
@@ -139,6 +140,7 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
                 cl.email_studio_when_booked = session.email_studio_when_booked
                 cl.payment_time_allowed = session.payment_time_allowed
                 cl.allow_booking_cancellation = session.allow_booking_cancellation
+                cl.paypal_email = session.paypal_email
                 cl.save()
 
                 created_classes.append(cl)
