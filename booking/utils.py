@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import pytz
-import time
 
-from django.utils import timezone
 from datetime import timedelta, datetime, date
 from booking.models import Event
 from timetable.models import Session
