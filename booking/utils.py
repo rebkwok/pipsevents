@@ -138,7 +138,7 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
                 cl.external_instructor = session.external_instructor
                 cl.email_studio_when_booked = session.email_studio_when_booked
                 cl.payment_time_allowed = session.payment_time_allowed
-                cl.allow_booking_cancellatin = session.allow_booking_cancellation
+                cl.allow_booking_cancellation = session.allow_booking_cancellation
                 cl.save()
 
                 created_classes.append(cl)
