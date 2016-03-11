@@ -8,7 +8,8 @@ django-datetime-widget==0.9.3
 django-debug-toolbar==1.4
 django-environ==0.3.0
 django-extensions==1.6.1
-django-paypal==0.3
+#django-paypal==0.3
+git+git://github.com/rebkwok/django-paypal.git@d53e1014e09c29390b7111eaba13804ad4c31182
 django-suit==0.2.16
 dj-static==0.0.6
 psycopg2==2.5.4
