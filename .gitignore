@@ -14,3 +14,5 @@ lib/
 local/
 .DS_Store
 htmlcov/
+accounts/disclaimers.bu
+accounts/test_file.txt
