@@ -938,39 +938,39 @@ class PaypalSignalsTests(TestCase):
         # emails not sent
         self.assertEqual(len(mail.outbox), 0)
 
-    # def test_paypal_notify_url_with_invalid_date(self):
-    #     """
-    #     There has been one instance of a returned payment which has no info
-    #     except a flag invalid date in the paypal form.  Check that this will
-    #     send a support email
-    #     """
-    #     self.assertFalse(PayPalIPN.objects.exists())
-    #     resp = self.paypal_post(
-    #         {
-    #             "payment_date": b"2015-10-25 01:21:32",
-    #             'charset': b(CHARSET),
-    #             'txn_id': 'test'
-    #         }
-    #     )
-    #     ppipn = PayPalIPN.objects.first()
-    #     self.assertTrue(ppipn.flag)
-    #     self.assertEqual(
-    #         ppipn.flag_info,
-    #         'Invalid form. (payment_date: Enter a valid date/time.)'
-    #     )
-    #
-    #     self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
-    #     self.assertEqual(
-    #         mail.outbox[0].subject,
-    #         'WARNING! Error processing Invalid Payment Notification from PayPal'
-    #     )
-    #     self.assertEqual(
-    #         mail.outbox[0].body,
-    #         'PayPal sent an invalid transaction notification while attempting '
-    #         'to process payment;.\n\nThe flag info was "Invalid form. '
-    #         '(payment_date: Enter a valid date/time.)"\n\nAn additional error '
-    #         'was raised: Unknown object type for payment'
-    #     )
+    def test_paypal_notify_url_with_invalid_date(self):
+        """
+        There has been one instance of a returned payment which has no info
+        except a flag invalid date in the paypal form.  Check that this will
+        send a support email
+        """
+        self.assertFalse(PayPalIPN.objects.exists())
+        resp = self.paypal_post(
+            {
+                "payment_date": b"2015-10-25 01:21:32",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.first()
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            'Invalid form. (payment_date: Invalid date format)'
+        )
+
+        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            'WARNING! Error processing Invalid Payment Notification from PayPal'
+        )
+        self.assertEqual(
+            mail.outbox[0].body,
+            'PayPal sent an invalid transaction notification while attempting '
+            'to process payment;.\n\nThe flag info was "Invalid form. '
+            '(payment_date: Invalid date format)"\n\nAn additional error '
+            'was raised: Unknown object type for payment'
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_payment_received_with_duplicate_txn_flag(self, mock_postback):
