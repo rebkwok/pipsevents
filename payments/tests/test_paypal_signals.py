@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from model_mommy import mommy
 from mock import Mock, patch
 
@@ -938,6 +940,28 @@ class PaypalSignalsTests(TestCase):
         # emails not sent
         self.assertEqual(len(mail.outbox), 0)
 
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_date_format_with_extra_spaces(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe('booking.booking', payment_confirmed=True,
+                                    paid=True)
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        # Check extra spaces
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:21:32  Jan   25  2015 PDT",
+                'invoice': b(pptrans.invoice_id),
+                'custom': b('booking {}'.format(booking.id))
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertFalse(ppipn.flag)
+
     def test_paypal_notify_url_with_invalid_date(self):
         """
         There has been one instance of a returned payment which has no info
@@ -945,18 +969,19 @@ class PaypalSignalsTests(TestCase):
         send a support email
         """
         self.assertFalse(PayPalIPN.objects.exists())
-        resp = self.paypal_post(
+        self.paypal_post(
             {
                 "payment_date": b"2015-10-25 01:21:32",
                 'charset': b(CHARSET),
-                'txn_id': 'test'
+                'txn_id': 'test',
             }
         )
         ppipn = PayPalIPN.objects.first()
         self.assertTrue(ppipn.flag)
         self.assertEqual(
             ppipn.flag_info,
-            'Invalid form. (payment_date: Invalid date format)'
+            'Invalid form. (payment_date: Invalid date format '
+            '2015-10-25 01:21:32: need more than 2 values to unpack)'
         )
 
         self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
@@ -968,8 +993,115 @@ class PaypalSignalsTests(TestCase):
             mail.outbox[0].body,
             'PayPal sent an invalid transaction notification while attempting '
             'to process payment;.\n\nThe flag info was "Invalid form. '
-            '(payment_date: Invalid date format)"\n\nAn additional error '
-            'was raised: Unknown object type for payment'
+            '(payment_date: Invalid date format '
+            '2015-10-25 01:21:32: need more than 2 values to unpack)"'
+            '\n\nAn additional error was raised: Unknown object type for '
+            'payment'
+        )
+
+    def test_paypal_notify_url_with_invalid_date_formats(self):
+        """
+        Check other invalid date formats
+        %H:%M:%S %b. %d, %Y PDT is the expected format
+
+        """
+        # Fails because 25th cannot be convered to int
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:21:32 Jan 25th 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 Jan 25th 2015 PDT: invalid literal for int() with "
+            "base 10: '25th')"
+        )
+
+        # Fails because month is not in Mmm format
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:21:32 01 25 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 01 25 2015 PDT: '01' is not in list)"
+        )
+
+        # Fails because month is not in Mmm format
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:21:32 January 25 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 January 25 2015 PDT: 'January' is not in list)"
+        )
+
+        # Fails because year part cannot be convered to int
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:21:32 Jan 25 2015a PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 Jan 25 2015a PDT: invalid literal for int() with "
+            "base 10: '2015a')"
+        )
+
+        # No seconds part; fails on splitting the time
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:28 Jan 25 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:28 Jan 25 2015 PDT: need more than 2 values to unpack)"
+        )
+
+        # Can be split and day/month/year parts converted but invalid date so
+        #  conversion to datetime sails
+        resp = self.paypal_post(
+            {
+                "payment_date": b"01:21:32 Jan 49 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 Jan 49 2015 PDT: day is out of range for month)"
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')

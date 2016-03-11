@@ -73,7 +73,8 @@ def paypal_confirm_return(request):
                    'sender_email': settings.DEFAULT_FROM_EMAIL,
                    'organiser_email': settings.DEFAULT_STUDIO_EMAIL,
                    'test_ipn_complete': test_ipn_complete,
-                   'test_paypal_email': custom[3] if obj == 'test' else ''
+                   'test_paypal_email': custom[3] if obj == 'paypal_test'
+                   else ''
                    }
 
     if not custom or obj == 'unknown':

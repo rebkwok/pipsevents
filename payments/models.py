@@ -8,7 +8,8 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from django.template.loader import get_template
 
-from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED
+from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED, \
+    ST_PP_PENDING
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block, TicketBooking, Voucher
@@ -121,7 +122,7 @@ def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
 
 
 def send_processed_test_confirmation_emails(additional_data):
-    invoice_id = additional_data['test_invoice'],
+    invoice_id = additional_data['test_invoice']
     paypal_email =  additional_data['test_paypal_email']
     user_email = additional_data['user_email']
     # send email to user email only and to support for checking;
@@ -146,8 +147,29 @@ def send_processed_test_confirmation_emails(additional_data):
         fail_silently=False)
 
 
+def send_processed_test_pending_emails(additional_data):
+    invoice_id = additional_data['test_invoice']
+    paypal_email = additional_data['test_paypal_email']
+    user_email = additional_data['user_email']
+    # send email to user email only and to support for checking;
+    send_mail(
+        '{} Payment status PENDING for test payment to PayPal email {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, paypal_email
+        ),
+        'Test payment to PayPal email {paypal_email}, invoice # {invoice_id} '
+        'was returned with status PENDING.\n\n'
+        'This usually happens when a payment attempt is made to a '
+        'non-existent or unverified paypal email address.  Please check the '
+        'email address was typed correctly and confirm with the recipient '
+        'that their email is verified with PayPal.'.format(
+            paypal_email=paypal_email, invoice_id=invoice_id
+        ),
+        settings.DEFAULT_FROM_EMAIL, [user_email, settings.SUPPORT_EMAIL],
+        fail_silently=False)
+
+
 def send_processed_test_refund_emails(additional_data):
-    invoice_id = additional_data['test_invoice'],
+    invoice_id = additional_data['test_invoice']
     paypal_email =  additional_data['test_paypal_email']
     user_email = additional_data['user_email']
     # send email to user email only and to support for checking;
@@ -184,7 +206,7 @@ def get_obj(ipn_obj):
         additional_data['test_paypal_email'] = custom[3]
         additional_data['user_email'] = custom[4]
 
-    if obj_type == 'booking':
+    elif obj_type == 'booking':
         try:
             obj = Booking.objects.get(id=obj_id)
         except Booking.DoesNotExist:
@@ -306,6 +328,10 @@ def payment_received(sender, **kwargs):
     voucher_code = obj_dict.get('voucher_code')
     additional_data = obj_dict.get('additional_data')
 
+    logger.info('obj_dict: obj {}; obj_type: {}; paypal_trans: {}; voucher_code: {}; additional_data: {}'.format(
+        obj, obj_type, paypal_trans, voucher_code, additional_data
+    ))
+    logger.info('payment_status: {}'.format(ipn_obj.payment_status))
     try:
         if ipn_obj.payment_status == ST_PP_REFUNDED:
             if obj_type == 'paypal_test':
@@ -337,7 +363,22 @@ def payment_received(sender, **kwargs):
                     send_processed_refund_emails(obj_type, obj.id, paypal_trans,
                                                   obj.user, obj)
 
-        if ipn_obj.payment_status == ST_PP_COMPLETED:
+        elif ipn_obj.payment_status == ST_PP_PENDING:
+            if obj_type == 'paypal_test':
+                ActivityLog.objects.create(
+                    log='Test payment (invoice {} for paypal email {} has '
+                        '"pending" status; email address may not be '
+                        'verified. PayPal transaction id {}'.format(
+                            additional_data['test_invoice'],
+                            additional_data['test_paypal_email'],
+                            ipn_obj.txn_id
+                        )
+                )
+                send_processed_test_pending_emails(additional_data)
+            else:
+                raise PayPalTransactionError('Transaction status pending')
+
+        elif ipn_obj.payment_status == ST_PP_COMPLETED:
             # we only process if payment status is completed
             # check for django-paypal flags (checks for valid payment status,
             # duplicate trans id, correct receiver email, valid secret (if using
@@ -354,7 +395,6 @@ def payment_received(sender, **kwargs):
                         )
                 )
                 send_processed_test_confirmation_emails(additional_data)
-
             else:
                 if obj_type == 'booking':
                     obj.payment_confirmed = True

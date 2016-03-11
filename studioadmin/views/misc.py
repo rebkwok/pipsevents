@@ -174,7 +174,7 @@ def test_paypal_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         ramdomnum = shortuuid.ShortUUID().random(length=6)
-        invoice_id = 'paypal_test_{}_{}'.format(email, ramdomnum)
+        invoice_id = '{}_{}'.format(email, ramdomnum)
         host = 'http://{}'.format(request.META.get('HTTP_HOST'))
         paypal_form = PayPalPaymentsUpdateForm(
             initial=get_paypal_dict(
