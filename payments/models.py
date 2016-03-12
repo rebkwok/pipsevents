@@ -184,6 +184,24 @@ def send_processed_test_refund_emails(additional_data):
         fail_silently=False)
 
 
+def send_processed_test_unexpected_status_emails(additional_data, status):
+    invoice_id = additional_data['test_invoice']
+    paypal_email = additional_data['test_paypal_email']
+    user_email = additional_data['user_email']
+    # send email to user email only and to support for checking;
+    send_mail(
+        '{} Payment status {} for test payment to PayPal email {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, status, paypal_email
+        ),
+        'Test payment to PayPal email {paypal_email}, invoice # {invoice_id} '
+        'was returned with unexpected status {payment_status}.\n\n'.format(
+            paypal_email=paypal_email, invoice_id=invoice_id,
+            payment_status=status
+        ),
+        settings.DEFAULT_FROM_EMAIL, [user_email, settings.SUPPORT_EMAIL],
+        fail_silently=False)
+
+
 def get_obj(ipn_obj):
     from payments import helpers
     additional_data = {}
@@ -376,7 +394,19 @@ def payment_received(sender, **kwargs):
                 )
                 send_processed_test_pending_emails(additional_data)
             else:
-                raise PayPalTransactionError('Transaction status pending')
+                ActivityLog.objects.create(
+                    log='PayPal payment returned with status PENDING for {} {}; '
+                        'ipn obj id {} (txn id {})'.format(
+                         obj_type, obj.id, ipn_obj.id, ipn_obj.txn_id
+                        )
+                )
+                raise PayPalTransactionError(
+                    'PayPal payment returned with status PENDING for {} {}; '
+                    'ipn obj id {} (txn id {}).  This is usually due to an '
+                    'unrecognised or unverified paypal email address.'.format(
+                        obj_type, obj.id, ipn_obj.id, ipn_obj.txn_id
+                    )
+                )
 
         elif ipn_obj.payment_status == ST_PP_COMPLETED:
             # we only process if payment status is completed
@@ -464,6 +494,38 @@ def payment_received(sender, **kwargs):
                         [settings.SUPPORT_EMAIL],
                         fail_silently=False
                     )
+
+        else:  # any other status
+            if obj_type == 'paypal_test':
+                ActivityLog.objects.create(
+                    log='Test payment (invoice {} for paypal email {} '
+                        'processed with unexpected payment status {}; PayPal '
+                        'transaction id {}'.format(
+                            additional_data['test_invoice'],
+                            additional_data['test_paypal_email'],
+                            ipn_obj.payment_status,
+                            ipn_obj.txn_id
+                        )
+                )
+                send_processed_test_unexpected_status_emails(
+                    additional_data, ipn_obj.payment_status
+                )
+
+            else:
+                ActivityLog.objects.create(
+                    log='Unexpected payment status {} for {} {}; '
+                        'ipn obj id {} (txn id {})'.format(
+                         obj_type, obj.id,
+                         ipn_obj.payment_status, ipn_obj.id, ipn_obj.txn_id
+                        )
+                )
+                raise PayPalTransactionError(
+                    'Unexpected payment status {} for {} {}; ipn obj id {} '
+                    '(txn id {})'.format(
+                        obj_type, obj.id,
+                        ipn_obj.payment_status, ipn_obj.id, ipn_obj.txn_id
+                    )
+                )
 
     except Exception as e:
         # if anything else goes wrong, send a warning email
