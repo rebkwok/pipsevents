@@ -346,10 +346,13 @@ def payment_received(sender, **kwargs):
     voucher_code = obj_dict.get('voucher_code')
     additional_data = obj_dict.get('additional_data')
 
-    logger.info('obj_dict: obj {}; obj_type: {}; paypal_trans: {}; voucher_code: {}; additional_data: {}'.format(
-        obj, obj_type, paypal_trans, voucher_code, additional_data
-    ))
-    logger.info('payment_status: {}'.format(ipn_obj.payment_status))
+    if obj_type != 'paypal_test' \
+            and get_paypal_email(obj, obj_type) != ipn_obj.receiver_email:
+        ipn_obj.set_flag(
+            "Invalid receiver_email. (%s)" % ipn_obj.receiver_email
+        )
+        raise PayPalTransactionError(ipn_obj.flag_info)
+
     try:
         if ipn_obj.payment_status == ST_PP_REFUNDED:
             if obj_type == 'paypal_test':

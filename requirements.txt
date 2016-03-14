@@ -9,7 +9,7 @@ django-debug-toolbar==1.4
 django-environ==0.3.0
 django-extensions==1.6.1
 #django-paypal==0.3
-git+git://github.com/rebkwok/django-paypal.git@49981806b7459a266a2e75616c606d692323e986
+git+git://github.com/rebkwok/django-paypal.git@143fa1d8eed382c9684a1a406bd8200d1ef42350
 django-suit==0.2.16
 dj-static==0.0.6
 psycopg2==2.5.4
