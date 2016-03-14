@@ -2,7 +2,7 @@
 import logging
 import pytz
 
-from decimal import Decimal, ROUND_UP
+from decimal import Decimal, ROUND_UP, ROUND_DOWN
 
 from datetime import timedelta
 
@@ -516,7 +516,7 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
             if valid:
                 paypal_cost = Decimal(
                     float(paypal_cost) * ((100 - voucher.discount) / 100)
-                ).quantize(Decimal('.01'), rounding=ROUND_UP)
+                ).quantize(Decimal('.01'), rounding=ROUND_DOWN)
                 messages.info(self.request, 'Voucher has been applied')
 
         paypal_form = PayPalPaymentsUpdateForm(
