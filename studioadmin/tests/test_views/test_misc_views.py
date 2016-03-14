@@ -1,5 +1,7 @@
+from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase
@@ -157,7 +159,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'false',
             'payment_confirmed': 'true'
         }
-        resp = self._post_response(self.staff_user, self.booking, form_data)
+        self._post_response(self.staff_user, self.booking, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
@@ -167,7 +169,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'true',
             'payment_confirmed': 'false'
         }
-        resp = self._post_response(self.staff_user, self.booking, form_data)
+        self._post_response(self.staff_user, self.booking, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertFalse(booking.payment_confirmed)
@@ -184,6 +186,25 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(self.staff_user, self.booking, form_data)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('studioadmin:users'))
+
+    @patch('studioadmin.views.misc.send_mail')
+    def test_confirm_payment_with_email_errors(self, mock_send_mail):
+        """
+        Test booking is processed and support email sent
+        """
+        mock_send_mail.side_effect = Exception('Error sending email')
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+
+        form_data = {
+            'payment_confirmed': 'true'
+        }
+        self._post_response(self.staff_user, self.booking, form_data)
+        booking = Booking.objects.get(id=self.booking.id)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+        self.assertEquals(len(mail.outbox), 0)
 
 
 class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
