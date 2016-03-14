@@ -60,6 +60,7 @@ def get_paypal_email(obj, obj_type):
     elif obj_type == 'block':
         return obj.block_type.paypal_email
 
+
 def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
     ctx = {
         'user': " ".join([user.first_name, user.last_name]),
@@ -190,13 +191,14 @@ def send_processed_test_unexpected_status_emails(additional_data, status):
     user_email = additional_data['user_email']
     # send email to user email only and to support for checking;
     send_mail(
-        '{} Payment status {} for test payment to PayPal email {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, status, paypal_email
+        '{} Unexpected payment status {} for test payment to PayPal '
+        'email {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, status.upper(), paypal_email
         ),
         'Test payment to PayPal email {paypal_email}, invoice # {invoice_id} '
         'was returned with unexpected status {payment_status}.\n\n'.format(
             paypal_email=paypal_email, invoice_id=invoice_id,
-            payment_status=status
+            payment_status=status.upper()
         ),
         settings.DEFAULT_FROM_EMAIL, [user_email, settings.SUPPORT_EMAIL],
         fail_silently=False)
@@ -346,14 +348,15 @@ def payment_received(sender, **kwargs):
     voucher_code = obj_dict.get('voucher_code')
     additional_data = obj_dict.get('additional_data')
 
-    if obj_type != 'paypal_test' \
-            and get_paypal_email(obj, obj_type) != ipn_obj.receiver_email:
-        ipn_obj.set_flag(
-            "Invalid receiver_email. (%s)" % ipn_obj.receiver_email
-        )
-        raise PayPalTransactionError(ipn_obj.flag_info)
-
     try:
+        if obj_type != 'paypal_test' \
+                and get_paypal_email(obj, obj_type) != ipn_obj.receiver_email:
+            ipn_obj.set_flag(
+                "Invalid receiver_email (%s)" % ipn_obj.receiver_email
+            )
+            ipn_obj.save()
+            raise PayPalTransactionError(ipn_obj.flag_info)
+
         if ipn_obj.payment_status == ST_PP_REFUNDED:
             if obj_type == 'paypal_test':
                 ActivityLog.objects.create(
@@ -519,14 +522,14 @@ def payment_received(sender, **kwargs):
                     log='Unexpected payment status {} for {} {}; '
                         'ipn obj id {} (txn id {})'.format(
                          obj_type, obj.id,
-                         ipn_obj.payment_status, ipn_obj.id, ipn_obj.txn_id
+                         ipn_obj.payment_status.upper(), ipn_obj.id, ipn_obj.txn_id
                         )
                 )
                 raise PayPalTransactionError(
                     'Unexpected payment status {} for {} {}; ipn obj id {} '
                     '(txn id {})'.format(
-                        obj_type, obj.id,
-                        ipn_obj.payment_status, ipn_obj.id, ipn_obj.txn_id
+                        ipn_obj.payment_status.upper(), obj_type, obj.id,
+                        ipn_obj.id, ipn_obj.txn_id
                     )
                 )
 

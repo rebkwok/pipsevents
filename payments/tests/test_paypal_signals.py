@@ -1387,3 +1387,345 @@ class PaypalSignalsTests(TestCase):
             'The exception raised was "Voucher matching query does not exist.',
             support_email.body
         )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_mismatched_receiver_email(self, mock_postback):
+        """
+        Test that error is raised if receiver email doesn't match object's
+        paypal_email. Warning mail sent to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email='test@test.com'
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            'Invalid receiver_email ({})'.format(TEST_RECEIVER_EMAIL)
+        )
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.paid)
+
+        # email to user, studio, and support email
+        self.assertEqual(len(mail.outbox), 1)
+        support_email = mail.outbox[0]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was '
+            '"Invalid receiver_email ({})'.format(TEST_RECEIVER_EMAIL),
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_pending_payment_status(self, mock_postback):
+        """
+        Test that error is raised and warning mail sent to support for a
+        payment status that is not Completed or Refunded.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+                'payment_status': 'Pending'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.paid)
+
+        # email to support email
+        self.assertEqual(len(mail.outbox), 1)
+        support_email = mail.outbox[0]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was "PayPal payment returned with '
+            'status PENDING for booking {}; '
+            'ipn obj id {} (txn id {}).  This is usually due to an '
+            'unrecognised or unverified paypal email address.'.format(
+                booking.id, ppipn.id, ppipn.txn_id
+            ),
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_pending_payment_status(self, mock_postback):
+        """
+        Test that error is raised and warning mail sent to support for a
+        payment status that is not Completed or Refunded.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+                'payment_status': 'Voided'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.paid)
+
+        # email to support email
+        self.assertEqual(len(mail.outbox), 1)
+        support_email = mail.outbox[0]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was "Unexpected payment status VOIDED for '
+            'booking {}; ipn obj id {} (txn id {})'.format(
+                booking.id, ppipn.id, ppipn.txn_id
+            ),
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check(self, mock_postback):
+        """
+        Test that a paypal test payment is processed properly and
+        email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com'
+            }
+        )
+        self.assertNotEqual(
+            settings.DEFAULT_PAYPAL_EMAIL, params['receiver_email']
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Completed')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment processed for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_refunded_status(self, mock_postback):
+        """
+        Test that a refunded paypal test payment is processed properly
+        and email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Refunded'
+            }
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Refunded')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment refund processed for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_pending_status(self, mock_postback):
+        """
+        Test that a paypal test payment with pending status is processed
+        properly and email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Pending',
+            }
+        )
+        self.assertNotEqual(
+            settings.DEFAULT_PAYPAL_EMAIL, params['receiver_email']
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Pending')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment status PENDING for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_unexpected_status(self, mock_postback):
+        """
+        Test that a paypal test payment with unexpected status is processed
+        properly and email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Voided',
+            }
+        )
+        self.assertNotEqual(
+            settings.DEFAULT_PAYPAL_EMAIL, params['receiver_email']
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Voided')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+
+        self.assertEqual(
+            email.subject,
+            '{} Unexpected payment status VOIDED '
+            'for test payment to PayPal email test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            ),
+        )
+
+    @patch('payments.models.send_processed_test_confirmation_emails')
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_unexpected_error(
+            self, mock_postback, mock_send_confirmation
+    ):
+        """
+        Test that a paypal test payment that fails in some unexpected way
+        sends email to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        mock_send_confirmation.side_effect = Exception('Error')
+        params = dict(IPN_POST_PARAMS)
+
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+            }
+        )
+        self.paypal_post(params)
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+        self.assertEqual(
+            email.subject,
+            '{} There was some problem processing payment for paypal_test '
+            'payment to paypal email test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        self.assertIn('The exception raised was "Error"', email.body)
