@@ -1501,7 +1501,7 @@ class PaypalSignalsTests(TestCase):
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
-    def test_paypal_notify_with_pending_payment_status(self, mock_postback):
+    def test_paypal_notify_with_unexpected_payment_status(self, mock_postback):
         """
         Test that error is raised and warning mail sent to support for a
         payment status that is not Completed or Refunded.

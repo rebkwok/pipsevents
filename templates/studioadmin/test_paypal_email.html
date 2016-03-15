@@ -7,13 +7,17 @@
 
     <h2>Check paypal email</h2>
     <p>Use this to check payments to an alternative paypal email.  Enter the email address
-    you want to check below and click 'Submit'.  A paypal button will appear.  When you click the paypal
-    button it will take you to a paypal payment page to make a payment of £0.01 to the
-    requested email.  Make the payment using any valid payment method.  Depending on how quickly the
-        paypal notification is returned, you may receive confirmation details by the time you return to
-    the site.  If paypal is being slow and the notification hasn't been received yet, you'll just see a
-    message that payment is being processed.  Either way, you'll receive an email with the results of the payment.
-    Note that you'll receive an email from paypal directly as well; you need to ALSO receive the email from the
+    you want to check below and click 'Submit'.</p>
+
+        <p>A paypal button will appear.  When you click the paypal
+    button it will take you to a PayPal payment page to make a payment of £0.01 to the
+    requested email.</p>
+
+    <p>Make the payment using any valid PayPal payment method.  You'll
+        receive an email with the results of the payment.</p>
+
+    <p>
+    Note that you'll receive an email from PayPal directly as well; you need to ALSO receive the email from the
         booking site to confirm that the system has been able to process the payment to the requested
         email address properly.
     </p>
@@ -21,8 +25,9 @@
     {% if not paypalform %}
         <form class="dirty-check" action="" method="post">{% csrf_token %}
             <label for="email_id">Email to test: </label>
-            <input id="email_id" type="email" name="email"/>
+            <span {% if email_errors %}class='ticket-error'{% endif %}><input id="email_id" type="email" name="email" value="{{ email }}"/></span>
             <input class="btn btn-success" type="submit" value="Submit" />
+            {% if email_errors %}<p class="errorlist">{{ email_errors }}</p>{% endif %}
         </form>
     {% else %}
     <p><strong>Email to test: </strong>{{ email }}</p>

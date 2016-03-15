@@ -71,13 +71,13 @@ def timetable_admin_list(request):
                                 )
                         form.save()
 
-                    for error in form.errors:
-                        messages.error(request, mark_safe("{}".format(error)))
                 sessionformset.save()
             return HttpResponseRedirect(
                 reverse('studioadmin:timetable')
             )
-        else:
+        else:  # pragma: no cover
+            # all fields are booleans; no errors will be thrown, but keep this
+            # code in case we change the fields in future
             messages.error(
                 request,
                 mark_safe(
