@@ -5,6 +5,7 @@ import shortuuid
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
@@ -18,7 +19,7 @@ from braces.views import LoginRequiredMixin
 from booking.context_helpers import get_paypal_dict
 from booking.models import Booking
 from studioadmin.forms import ConfirmPaymentForm
-from studioadmin.views.helpers import StaffUserMixin
+from studioadmin.views.helpers import StaffUserMixin, staff_required
 from activitylog.models import ActivityLog
 from payments.forms import PayPalPaymentsUpdateForm
 
@@ -168,24 +169,32 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return reverse('studioadmin:users')
 
 
+@login_required
+@staff_required
 def test_paypal_view(request):
-
     ctx = {}
     if request.method == 'POST':
         email = request.POST.get('email')
-        ramdomnum = shortuuid.ShortUUID().random(length=6)
-        invoice_id = '{}_{}'.format(email, ramdomnum)
-        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-        paypal_form = PayPalPaymentsUpdateForm(
-            initial=get_paypal_dict(
-                host,
-                0.01,
-                'paypal_test',
-                invoice_id,
-                'paypal_test 0 {} {} {}'.format(invoice_id, email, request.user.email),
-                paypal_email=email,
+        if not email:
+            ctx.update(
+                {'email_errors': 'Please enter an email address to test'}
             )
-        )
-        ctx.update({'paypalform': paypal_form, 'email': email})
+        else:
+            ramdomnum = shortuuid.ShortUUID().random(length=6)
+            invoice_id = '{}_{}'.format(email, ramdomnum)
+            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+            paypal_form = PayPalPaymentsUpdateForm(
+                initial=get_paypal_dict(
+                    host,
+                    0.01,
+                    'paypal_test',
+                    invoice_id,
+                    'paypal_test 0 {} {} {}'.format(
+                        invoice_id, email, request.user.email
+                    ),
+                    paypal_email=email,
+                )
+            )
+            ctx.update({'paypalform': paypal_form, 'email': email})
 
     return TemplateResponse(request, 'studioadmin/test_paypal_email.html', ctx)

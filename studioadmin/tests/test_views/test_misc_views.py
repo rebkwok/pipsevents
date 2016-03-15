@@ -7,11 +7,12 @@ from django.core import mail
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 
-from booking.models import Event, Booking, Block, BlockType
+from booking.models import Booking
 from booking.tests.helpers import _create_session
 from studioadmin.views import (
     ConfirmPaymentView,
-    ConfirmRefundView
+    ConfirmRefundView,
+    test_paypal_view,
 )
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -305,3 +306,58 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
         self.assertEqual(len(mail.outbox), 0)
+
+
+class TestPaypalViewTests(TestPermissionMixin, TestCase):
+
+    def test_staff_login_required(self):
+        url = reverse('studioadmin:test_paypal_email')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+        self.client.login(
+            username=self.instructor_user.username, password='test'
+        )
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_created_paypal_form(self):
+        url = reverse('studioadmin:test_paypal_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url, {'email': 'testpp@test.com'})
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertIn('paypalform', resp.context_data)
+        paypal_data = resp.context_data['paypalform'].initial
+
+        self.assertTrue(paypal_data['invoice'].startswith('testpp@test.com'))
+        # invoice is email plus '_' and 6 char uuid
+        self.assertEqual(len(paypal_data['invoice']), len('testpp@test.com') + 7)
+        self.assertEqual(paypal_data['amount'], 0.01)
+        self.assertEqual(
+            paypal_data['custom'],
+            'paypal_test 0 {} testpp@test.com test@test.com'.format(
+                paypal_data['invoice']
+            )
+        )
+
+    def test_post_with_no_email_address(self):
+        url = reverse('studioadmin:test_paypal_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertNotIn('paypalform', resp.context_data)
+        self.assertIn('email_errors', resp.context_data)
+        self.assertEqual(
+            resp.context_data['email_errors'],
+            'Please enter an email address to test'
+        )
