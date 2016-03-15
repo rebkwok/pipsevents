@@ -172,7 +172,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 @login_required
 @staff_required
 def test_paypal_view(request):
-    ctx = {}
+    ctx = {'sidenav_selection': 'test_paypal'}
     if request.method == 'POST':
         email = request.POST.get('email')
         if not email:
