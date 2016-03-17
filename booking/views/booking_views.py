@@ -159,6 +159,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
 
     def dispatch(self, *args, **kwargs):
         self.event = get_object_or_404(Event, slug=kwargs['event_slug'])
+
         if self.event.event_type.event_type == 'CL':
             self.ev_type = 'lessons'
         elif self.event.event_type.event_type == 'EV':
@@ -173,7 +174,46 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                 and not self.request.user.has_perm("booking.is_regular_student"):
             return HttpResponseRedirect(reverse('booking:permission_denied'))
 
-        return super(BookingCreateView, self).dispatch(*args, **kwargs)
+        # don't redirect fully/already booked if trying to join/leave waiting
+        # list
+        if self.request.method == 'GET' and \
+                ('join waiting list' in self.request.GET or
+                    'leave waiting list' in self.request.GET):
+            return super(BookingCreateView, self).dispatch(*args, **kwargs)
+
+        # redirect if fully booked
+        if self.event.spaces_left() <= 0 and self.request.user not in \
+            [
+                booking.user for booking in self.event.bookings.all()
+                if booking.status == 'OPEN'
+                ]:
+            return HttpResponseRedirect(
+                reverse('booking:fully_booked', args=[self.event.slug])
+            )
+
+        try:
+            # redirect if already booked
+            booking = Booking.objects.get(
+                user=self.request.user, event=self.event
+            )
+            if booking.status == 'CANCELLED':
+                return super(
+                    BookingCreateView, self
+                    ).dispatch(*args, **kwargs)
+            # redirect if arriving back here from booking update page
+            elif self.request.session.get(
+                    'booking_created_{}'.format(booking.id)
+            ):
+                del self.request.session[
+                    'booking_created_{}'.format(booking.id)
+                ]
+                return HttpResponseRedirect(
+                    reverse('booking:{}'.format(self.ev_type))
+                )
+            return HttpResponseRedirect(reverse('booking:duplicate_booking',
+                                        args=[self.event.slug]))
+        except Booking.DoesNotExist:
+            return super(BookingCreateView, self).dispatch(*args, **kwargs)
 
     def get_initial(self):
         return {
@@ -181,8 +221,6 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         }
 
     def get(self, request, *args, **kwargs):
-
-        # redirect if fully booked or already booked
         if 'join waiting list' in request.GET:
             waitinglistuser, new = WaitingListUser.objects.get_or_create(
                     user=request.user, event=self.event
@@ -237,27 +275,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             return HttpResponseRedirect(
                 reverse('booking:{}'.format(self.ev_type))
             )
-        elif self.event.spaces_left() <= 0 and self.request.user not in \
-            [
-                booking.user for booking in self.event.bookings.all()
-                if booking.status == 'OPEN'
-                ]:
-            return HttpResponseRedirect(
-                reverse('booking:fully_booked', args=[self.event.slug])
-            )
-
-        try:
-            booking = Booking.objects.get(
-                user=self.request.user, event=self.event
-            )
-            if booking.status == 'CANCELLED':
-                return super(
-                    BookingCreateView, self
-                    ).get(request, *args, **kwargs)
-            return HttpResponseRedirect(reverse('booking:duplicate_booking',
-                                        args=[self.event.slug]))
-        except Booking.DoesNotExist:
-            return super(BookingCreateView, self).get(request, *args, **kwargs)
+        return super(BookingCreateView, self).get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -339,6 +357,10 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                                 args=[self.event.slug]))
 
+        # set flag on session so if user clicks "back" after posting the form,
+        # we can redirect
+        self.request.session['booking_created_{}'.format(booking.id)] = True
+
         blocks_used, total_blocks = _get_block_status(booking)
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
@@ -379,27 +401,31 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             additional_subject = ""
             if previously_cancelled_and_direct_paid:
                 additional_subject = "ACTION REQUIRED!"
-            send_mail('{} {} {} {} has just booked for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-                booking.user.first_name, booking.user.last_name, booking.event.name),
-                      get_template(
-                        'booking/email/to_studio_booking.txt'
-                        ).render(
-                          {
-                              'host': host,
-                              'booking': booking,
-                              'event': booking.event,
-                              'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%H:%M'),
-                              'prev_cancelled_and_direct_paid':
-                              previously_cancelled_and_direct_paid,
-                              'transaction_id': transaction_id,
-                              'invoice_id': invoice_id
-                          }
-                      ),
-                      settings.DEFAULT_FROM_EMAIL,
-                      [settings.DEFAULT_STUDIO_EMAIL],
-                      fail_silently=False)
+            try:
+                send_mail('{} {} {} {} has just booked for {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
+                    booking.user.first_name, booking.user.last_name, booking.event.name),
+                          get_template(
+                            'booking/email/to_studio_booking.txt'
+                            ).render(
+                              {
+                                  'host': host,
+                                  'booking': booking,
+                                  'event': booking.event,
+                                  'date': booking.event.date.strftime('%A %d %B'),
+                                  'time': booking.event.date.strftime('%H:%M'),
+                                  'prev_cancelled_and_direct_paid':
+                                  previously_cancelled_and_direct_paid,
+                                  'transaction_id': transaction_id,
+                                  'invoice_id': invoice_id
+                              }
+                          ),
+                          settings.DEFAULT_FROM_EMAIL,
+                          [settings.DEFAULT_STUDIO_EMAIL],
+                          fail_silently=False)
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(e, __name__, "BookingCreateView")
 
         extra_msg = ''
         if 'claim_free' in form.data:
@@ -492,6 +518,10 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         if booking.paid:
             return HttpResponseRedirect(reverse('booking:already_paid',
                                         args=[booking.id]))
+
+        # set flag on session so if user came here from the booking create
+        # page and clicks "back", we can redirect
+        request.session['booking_created_{}'.format(booking.id)] = True
 
         return super(BookingUpdateView, self).dispatch(request, *args, **kwargs)
 

@@ -32,13 +32,17 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
     form_class = BlockCreateForm
     success_message = 'New block booking created: {}'
 
-    def get(self, request, *args, **kwargs):
+    def dispatch(self, request, *args, **kwargs):
         # redirect if user already has active (paid or unpaid) blocks for all
         # blocktypes
+        if self.request.session.get('no_available_block'):
+            # if clicked Back after buying block
+            del self.request.session['no_available_block']
+            return HttpResponseRedirect(reverse('booking:block_list'))
         if not context_helpers.get_blocktypes_available_to_book(
                 self.request.user):
             return HttpResponseRedirect(reverse('booking:has_active_block'))
-        return super(BlockCreateView, self).get(request, *args, **kwargs)
+        return super(BlockCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(BlockCreateView, self).get_context_data(**kwargs)
@@ -58,6 +62,11 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
         block = form.save(commit=False)
         block.user = self.request.user
         block.save()
+
+        if not context_helpers.get_blocktypes_available_to_book(
+            self.request.user
+        ):
+            self.request.session['no_available_block'] = True
 
         ActivityLog.objects.create(
             log='Block {} created; Block type: {}; user: {}'.format(
