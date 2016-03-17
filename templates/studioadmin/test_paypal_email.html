@@ -14,19 +14,24 @@
     requested email.</p>
 
     <p>Make the payment using any valid PayPal payment method.  You'll
-        receive an email with the results of the payment.</p>
+        receive an email from the booking system confirming if the payment was processed successfully.</p>
 
     <p>
-    Note that you'll receive an email from PayPal directly as well; you need to ALSO receive the email from the
-        booking site to confirm that the system has been able to process the payment to the requested
+    Note that you'll receive an email from PayPal directly as well; <strong>you need to ALSO receive the email from the
+        booking system</strong> to confirm that the system has been able to process the payment to the requested
         email address properly.
     </p>
 
     {% if not paypalform %}
-        <form class="dirty-check" action="" method="post">{% csrf_token %}
-            <label for="email_id">Email to test: </label>
-            <span {% if email_errors %}class='ticket-error'{% endif %}><input id="email_id" type="email" name="email" value="{{ email }}"/></span>
-            <input class="btn btn-success" type="submit" value="Submit" />
+        <form class="dirty-check form-inline" action="" method="post">{% csrf_token %}
+            <div class="form-group col-sm-12">
+                <label for="email_id">Email to test: </label>
+                <span {% if email_errors %}class='ticket-error'{% endif %}>
+                    <input class="form-control email-input" id="email_id" type="email" name="email" value="{{ email }}"/>
+                </span>
+                <div><input class="btn btn-success" type="submit" value="Submit" /></div>
+            </div>
+
             {% if email_errors %}<p class="errorlist">{{ email_errors }}</p>{% endif %}
         </form>
     {% else %}

@@ -202,6 +202,21 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                     self.request.user.username
                 )
             )
+
+            if 'paypal_email' in form.changed_data and \
+                event.paypal_email != settings.DEFAULT_PAYPAL_EMAIL:
+                messages.warning(
+                    self.request,
+                    mark_safe(
+                        "You have changed the paypal receiver email. If you "
+                        "haven't used this email before, "
+                        "it is strongly recommended that you test the email "
+                        "address "
+                        "<a href='/studioadmin/test-paypal-email?email={}'>"
+                        "here</a>".format(event.paypal_email)
+                    )
+                )
+
         else:
             messages.info(self.request, 'No changes made')
         return HttpResponseRedirect(self.get_success_url())
@@ -241,6 +256,19 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
                 msg_ev_type, event, event.id, self.request.user.username
             )
         )
+        if event.paypal_email != settings.DEFAULT_PAYPAL_EMAIL:
+            messages.warning(
+                self.request,
+                mark_safe(
+                    "You have changed the paypal receiver email from the "
+                    "default value. If you haven't used this email before, "
+                    "it is strongly recommended that you test the email "
+                    "address "
+                    "<a href='/studioadmin/test-paypal-email?email={}'>"
+                    "here</a>".format(event.paypal_email)
+                )
+            )
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
