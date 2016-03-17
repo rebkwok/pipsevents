@@ -1003,6 +1003,9 @@ li>a.adminmenu {
     font-weight: bold;
 }
 
+.form-control.email-input {
+    width: 70%;
+}
 .btn.btn-alph-filter {
     padding-left: 4px;
     padding-right: 4px;
