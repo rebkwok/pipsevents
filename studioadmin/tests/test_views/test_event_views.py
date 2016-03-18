@@ -436,6 +436,49 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(self.event.location, event.location)
 
+    def test_update_paypal_email_to_non_default(self):
+        form_data = self.form_data(
+            self.event,
+            {
+                'paypal_email': 'testpaypal@test.com',
+                'paypal_email_check': 'testpaypal@test.com'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:edit_event', kwargs={'slug': self.event.slug}),
+            form_data, follow=True
+        )
+
+        self.assertIn(
+            "You have changed the paypal receiver email. If you haven't used "
+            "this email before, it is strongly recommended that you test the "
+            "email address <a href='/studioadmin/test-paypal-email?"
+            "email=testpaypal@test.com'>here</a>",
+            resp.rendered_content
+        )
+
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.paypal_email, 'testpaypal@test.com')
+
+        form_data = self.form_data(
+            self.event,
+            {
+                'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+                'paypal_email_check': settings.DEFAULT_PAYPAL_EMAIL
+            }
+        )
+        resp = self.client.post(
+            reverse('studioadmin:edit_event', kwargs={'slug': self.event.slug}),
+            form_data, follow=True
+        )
+        self.assertNotIn(
+            "You have changed the paypal receiver email.",
+            resp.rendered_content
+        )
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.paypal_email, settings.DEFAULT_PAYPAL_EMAIL)
+
 
 class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
 
@@ -574,6 +617,43 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         self.assertIn(
             'Enter a valid email address.', resp.rendered_content
         )
+
+    def test_create_event_with_non_default_paypal_email(self):
+        form_data = self.form_data(
+            {
+                'paypal_email': 'testpaypal@test.com',
+                'paypal_email_check': 'testpaypal@test.com'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:add_event'),
+            form_data, follow=True
+        )
+
+        self.assertIn(
+            "You have changed the paypal receiver email from the default value. "
+            "If you haven't used "
+            "this email before, it is strongly recommended that you test the "
+            "email address <a href='/studioadmin/test-paypal-email?"
+            "email=testpaypal@test.com'>here</a>",
+            resp.rendered_content
+        )
+
+        event = Event.objects.latest('id')
+        self.assertEqual(event.paypal_email, 'testpaypal@test.com')
+
+        form_data = self.form_data()
+        resp = self.client.post(
+            reverse('studioadmin:add_event'),
+            form_data, follow=True
+        )
+        self.assertNotIn(
+            "You have changed the paypal receiver email from the default value.",
+            resp.rendered_content
+        )
+        event1 = Event.objects.latest('id')
+        self.assertEqual(event1.paypal_email, settings.DEFAULT_PAYPAL_EMAIL)
 
 
 class CancelEventTests(TestPermissionMixin, TestCase):
