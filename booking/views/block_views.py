@@ -56,7 +56,8 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
         block_type = form.cleaned_data['block_type']
         types_available = context_helpers.get_blocktypes_available_to_book(
             self.request.user)
-        if block_type.event_type in types_available:
+
+        if block_type not in types_available:
             return HttpResponseRedirect(reverse('booking:has_active_block'))
 
         block = form.save(commit=False)
@@ -83,7 +84,7 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
                           'start_date': block.start_date,
                           'expiry_date': block.expiry_date,
                       }
-        send_mail('{} Block booking confirmed'.format(
+        send_mail('{} Block created'.format(
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
             get_template('booking/email/block_booked.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
@@ -127,7 +128,9 @@ class BlockListView(LoginRequiredMixin, ListView):
 
         blockformlist = []
         for block in self.object_list:
-            if not block.paid:
+            expired = block.expiry_date < timezone.now()
+
+            if not block.paid and not expired:
                 invoice_id = create_block_paypal_transaction(
                     self.request.user, block).invoice_id
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
@@ -143,7 +146,6 @@ class BlockListView(LoginRequiredMixin, ListView):
             else:
                 paypal_form = None
 
-            expired = block.expiry_date < timezone.now()
             full = Booking.objects.filter(
                 block__id=block.id).count() >= block.block_type.size
             blockform = {
@@ -190,7 +192,15 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
             )
         )
         messages.success(self.request, 'Block has been deleted')
-        return super(BlockDeleteView, self).delete(request, *args, **kwargs)
+
+        response = super(BlockDeleteView, self).delete(request, *args, **kwargs)
+        # remove session flag if necessary
+        if request.session.get('no_available_block') and \
+                context_helpers.get_blocktypes_available_to_book(
+            request.user
+        ):
+            del request.session['no_available_block']
+        return response
 
     def get_success_url(self):
         return reverse('booking:block_list')

@@ -1,6 +1,6 @@
 {% include "account/email/do_not_reply.txt" %}
 
-Your block booking has been received!  Please note that you will not be able to use your blocks until payment has been received.
+Your block has been created!  Please note that you will not be able to use your block until payment has been received.
 
 Block type: {{ block_type }}
 Block start date: {{ start_date|date:"d M Y" }}
