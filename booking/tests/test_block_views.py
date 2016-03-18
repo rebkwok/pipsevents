@@ -1,15 +1,20 @@
 from datetime import timedelta
 from model_mommy import mommy
 
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import Client, TestCase, RequestFactory
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
+from accounts.models import OnlineDisclaimer
 from booking.forms import BlockCreateForm
 from booking.models import Block
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
-from booking.tests.helpers import _create_session, setup_view, TestSetupMixin
+from booking.tests.helpers import _create_session, format_content, \
+    setup_view, TestSetupMixin
 
 
 class BlockCreateViewTests(TestSetupMixin, TestCase):
@@ -19,23 +24,25 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         super(BlockCreateViewTests, cls).setUpTestData()
         cls.user_no_disclaimer = mommy.make_recipe('booking.user')
 
-    def _set_session(self, user, request):
+    def _set_session(self, user, request, session_data=None):
         request.session = _create_session()
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
+        if session_data:
+            request.session.update(session_data)
 
-    def _get_response(self, user):
+    def _get_response(self, user, session_data=None):
         url = reverse('booking:add_block')
         request = self.factory.get(url)
-        self._set_session(user, request)
+        self._set_session(user, request, session_data)
         view = BlockCreateView.as_view()
         return view(request)
 
-    def _post_response(self, user, form_data):
+    def _post_response(self, user, form_data, session_data=None):
         url = reverse('booking:add_block')
         request = self.factory.post(url, form_data)
-        self._set_session(user, request)
+        self._set_session(user, request, session_data)
         view = BlockCreateView.as_view()
         return view(request)
 
@@ -58,9 +65,41 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test creating a block
         """
         block_type = mommy.make_recipe('booking.blocktype5')
-        form_data={'block_type': block_type}
+        form_data={'block_type': block_type.id}
+        self.assertEqual(Block.objects.count(), 0)
         resp = self._post_response(self.user, form_data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:block_list'))
+        self.assertEqual(Block.objects.count(), 1)
+
+        # email sent to user only
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [self.user.email])
+        self.assertEqual(
+            email.subject, '{} Block created'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    def test_create_block_with_last_available_blocktype_sets_flag(self):
+        """
+        Test creating a block
+        """
+        block_type = mommy.make_recipe('booking.blocktype5')
+        block_type1 = mommy.make_recipe('booking.blocktype5')
+        self.assertEqual(Block.objects.count(), 0)
+
+        self.client.login(username=self.user.username, password='test')
+        form_data={'block_type': block_type.id}
+        self.client.post(reverse('booking:add_block'), form_data)
+        self.assertEqual(Block.objects.count(), 1)
+        self.assertNotIn('no_available_block', self.client.session.keys())
+
+        form_data={'block_type': block_type1.id}
+        self.client.post(reverse('booking:add_block'), form_data)
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertIn('no_available_block', self.client.session.keys())
 
     def test_create_block_if_no_blocktypes_available(self):
         """
@@ -191,7 +230,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         )
         other_block_type = mommy.make_recipe('booking.blocktype_other')
         # this user has a block of this blocktype
-        block = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5,
             paid=False
         )
@@ -210,7 +249,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context_data['block_types']), 1)
         self.assertEqual(resp.context_data['block_types'][0], block_type)
 
-    def test_only_active_and_unbooked_blocktypes_vailable(self):
+    def test_only_active_and_unbooked_blocktypes_available(self):
         """
         Test that only user does not have the option to book a blocktype
         for which they already have an active block
@@ -226,6 +265,42 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user)
         self.assertEqual(len(resp.context_data['block_types']), 1)
         self.assertEqual(resp.context_data['block_types'][0], active_block_type)
+
+    def test_create_block_redirects_if_no_available_block_flag_on_session(self):
+        """
+        when a block is created, and there are no more possible blocks to book,
+        "no_available_block" flag is set on the session so that if the user
+        clicks the back button they get returned to the block list page
+        instead of the create block page
+        """
+        mommy.make_recipe('booking.blocktype5')
+        resp = self._get_response(
+            self.user, session_data={'no_available_block': True}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:block_list'))
+
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_try_to_create_block_with_unavailable_blocktype(self):
+        """
+        when a block is created, and there are no more possible blocks to book,
+        "no_available_block" flag is set on the session so that if the user
+        clicks the back button they get returned to the block list page
+        instead of the create block page
+        """
+        block_type1 = mommy.make_recipe('booking.blocktype5')
+        block_type2 = mommy.make_recipe('booking.blocktype5')
+
+        mommy.make_recipe(
+            'booking.block', block_type=block_type1, user=self.user
+        )
+        # blocktypes are available, but the one we post with is not
+        data = {'block_type': block_type1.id}
+        resp = self._post_response(self.user, data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:has_active_block'))
 
 
 class BlockListViewTests(TestSetupMixin, TestCase):
@@ -254,12 +329,79 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.all().count(), 4)
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
+    def test_paid_and_expired_blocks_do_not_show_paypal_form(self):
+        mommy.make_recipe(
+            'booking.block_5', user=self.user,
+            start_date=timezone.now() - timedelta(365)
+        )
+        mommy.make_recipe(
+            'booking.block_5', user=self.user,
+            start_date=timezone.now() - timedelta(10)
+        )
+        mommy.make_recipe(
+            'booking.block_5', user=self.user, paid=True,
+            start_date=timezone.now() - timedelta(1)
+        )
+
+        resp = self._get_response(self.user)
+        self.assertEqual(resp.status_code, 200)
+        blocklist = resp.context_data['blockformlist']
+
+        # blocks are ordered in reverse by start date
+        paid_fm = blocklist[0]
+        unpaid_fm = blocklist[1]
+        expired_fm = blocklist[2]
+        self.assertIsNone(expired_fm['paypalform'])
+        self.assertIsNone(paid_fm['paypalform'])
+        self.assertIsNotNone(unpaid_fm['paypalform'])
+
+    def test_disclaimer_messages(self):
+        mommy.make_recipe('booking.blocktype5')
+        user = User.objects.create_user(
+            username='test_no_disc', email='test@test.com', password='test'
+        )
+        self.client.login(username=user.username, password='test')
+        resp = self.client.get(reverse('booking:block_list'))
+        self.assertNotIn(
+            'Get a new block!', format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Please complete a disclaimer form before buying a block.',
+            format_content(resp.rendered_content)
+        )
+
+        # self.user has a PrintDisclaimer
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(reverse('booking:block_list'))
+        self.assertIn(
+            'Get a new block!', format_content(resp.rendered_content)
+        )
+        self.assertNotIn(
+            'Please complete a disclaimer form before buying a block.',
+            format_content(resp.rendered_content)
+        )
+
+        user_online_disclaimer = User.objects.create_user(
+            username='test_online', email='test@test.com', password='test'
+        )
+        mommy.make(OnlineDisclaimer, user=user_online_disclaimer)
+        self.client.login(
+            username=user_online_disclaimer.username, password='test'
+        )
+        resp = self.client.get(reverse('booking:block_list'))
+        self.assertIn(
+            'Get a new block!', format_content(resp.rendered_content)
+        )
+        self.assertNotIn(
+            'Please complete a disclaimer form before buying a block.',
+            format_content(resp.rendered_content)
+        )
+
 
 class BlockDeleteViewTests(TestSetupMixin, TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        super(BlockDeleteViewTests, cls).setUpTestData()
-        cls.block = mommy.make_recipe('booking.block', user=cls.user)
+
+    def setUp(self):
+        self.block = mommy.make_recipe('booking.block', user=self.user)
 
     def _set_session(self, user, request):
         request.session = _create_session()
@@ -324,8 +466,25 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(Block.objects.first(), self.block)
 
-    def test_can_delete_unpaid_and_unused_block(self):
-        self.assertFalse(self.block.paid)
-        self.assertFalse(self.block.bookings.exists())
-        self._post_response(self.user, self.block.id)
-        self.assertFalse(Block.objects.exists())
+    def test_delete_block_with_no_available_block_flag_set(self):
+        """
+        If a user created a block and has no more available blocktypes, the
+        flag is set on the session.  If the block is then deleted, it needs
+        to be removed otherwise they'll won't be able to re-create one
+        """
+        block_type = mommy.make_recipe('booking.blocktype5')
+        self.assertEqual(Block.objects.count(), 1)
+
+        self.client.login(username=self.user.username, password='test')
+        form_data = {'block_type': block_type.id}
+        self.client.post(reverse('booking:add_block'), form_data)
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertIn('no_available_block', self.client.session.keys())
+
+        block = Block.objects.latest('id')
+        form_data = {'block_type': block_type.id}
+        self.client.post(
+            reverse('booking:delete_block', args=[block.id]), form_data
+        )
+        self.assertEqual(Block.objects.count(), 1)
+        self.assertNotIn('no_available_block', self.client.session.keys())

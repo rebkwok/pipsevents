@@ -196,6 +196,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             booking = Booking.objects.get(
                 user=self.request.user, event=self.event
             )
+            # all getting page to rebook if cancelled
             if booking.status == 'CANCELLED':
                 return super(
                     BookingCreateView, self
@@ -285,17 +286,6 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         )
         return updated_context
 
-    def form_invalid(self, form):
-        for k, v in form.errors.items():
-            if k == '__all__':
-                for error in v:
-                    if 'Attempting to create booking for full event' in error:
-                        return HttpResponseRedirect(
-                            reverse(
-                                'booking:fully_booked', args=[self.event.slug]
-                            )
-                        )
-
     def form_valid(self, form):
         booking = form.save(commit=False)
         try:
@@ -349,7 +339,9 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                     'created' if not previously_cancelled else 'rebooked',
                     booking.event, booking.user.username)
             )
-        except ValidationError:
+        except ValidationError:  # pragma: no cover
+            # we shouldn't ever get here, because the dispatch should deal
+            # with it
             logger.warning(
                 'Validation error, most likely due to duplicate booking '
                 'attempt; redirected to duplicate booking page'
@@ -518,10 +510,6 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         if booking.paid:
             return HttpResponseRedirect(reverse('booking:already_paid',
                                         args=[booking.id]))
-
-        # set flag on session so if user came here from the booking create
-        # page and clicks "back", we can redirect
-        request.session['booking_created_{}'.format(booking.id)] = True
 
         return super(BookingUpdateView, self).dispatch(request, *args, **kwargs)
 

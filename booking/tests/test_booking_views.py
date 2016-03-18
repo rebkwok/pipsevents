@@ -1228,6 +1228,116 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         # created
         self.assertEqual(Block.objects.count(), 1)
 
+    def test_create_booking_sets_flag_on_session(self):
+        self.client.login(username=self.user.username, password='test')
+        event = mommy.make_recipe('booking.future_EV')
+        self.client.post(
+            reverse('booking:book_event', kwargs={'event_slug': event.slug}),
+            {'event': event.id}
+        )
+        booking = Booking.objects.latest('id')
+        self.assertIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+
+    def test_create_booking_redirects_to_events_if_flag_on_session(self):
+        """
+        When a booking is created, "booking_created" flag is set on the
+        session so that if the user clicks the back button they get returned
+        to the events list page instead of the create booking page again
+        """
+        event = mommy.make_recipe('booking.future_EV')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user
+        )
+
+        # with no flag, redirects to duplicate booking page
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url,
+            reverse(
+                'booking:duplicate_booking', kwargs={'event_slug': event.slug}
+            )
+        )
+
+        # with flag, redirects to events page
+        booking.delete()
+        self.client.post(
+            reverse('booking:book_event', kwargs={'event_slug': event.slug}),
+            {'event': event.id}
+        )
+        booking = Booking.objects.latest('id')
+        self.assertIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:events'))
+        # flag has been removed
+        self.assertNotIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+
+    def test_create_booking_redirects_to_classes_if_flag_on_session(self):
+        event = mommy.make_recipe('booking.future_PC')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+
+        self.client.post(url, {'event': event.id})
+        booking = Booking.objects.latest('id')
+        self.assertIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:lessons'))
+        self.assertNotIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+
+    def test_create_booking_redirects_to_classes_if_flag_on_session(self):
+        event = mommy.make_recipe('booking.future_RH')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+
+        self.client.post(url, {'event': event.id})
+        booking = Booking.objects.latest('id')
+        self.assertIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(resp.url, reverse('booking:room_hires'))
+        self.assertNotIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+
+    def test_reopen_booking_does_not_redirect_if_flag_on_session(self):
+        """
+        A user might create a booking, cancel it, and immediately try to
+        rebook while the booking_created flag is still on the session.  In this
+        case, allow the booking page to be retrieved
+        """
+        event = mommy.make_recipe('booking.future_EV')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+
+        self.client.post(url, {'event': event.id})
+        booking = Booking.objects.latest('id')
+        self.assertIn(
+            'booking_created_{}'.format(booking.id), self.client.session.keys()
+        )
+
+        booking.status = 'CANCELLED'
+        booking.save()
+        # with flag, still gets the create booking page
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
 
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
