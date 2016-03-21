@@ -387,7 +387,8 @@ class UserListSearchForm(forms.Form):
     search = forms.CharField(
         widget=forms.TextInput(
             attrs={
-                'placeholder': 'Single search term'
+                'placeholder': 'Search first, last and username',
+                'style': 'width: 250px;'
             }
         )
     )

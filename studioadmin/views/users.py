@@ -32,6 +32,30 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
+NAME_FILTERS = ('All', 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z')
+
+
+def _get_name_filter_available(search_text):
+    queryset = User.objects.filter(
+        Q(first_name__icontains=search_text) |
+        Q(last_name__icontains=search_text) |
+        Q(username__icontains=search_text)
+    )
+    name_filter_options = []
+    for option in NAME_FILTERS:
+        if option == "All":
+            name_filter_options.append({'value': 'All', 'available': True})
+        else:
+            name_filter_options.append(
+                {
+                    'value': option,
+                    'available': queryset.filter(first_name__istartswith=option)
+                    .exists()
+                }
+            )
+    return name_filter_options
+
+
 class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
 
     model = User
@@ -44,17 +68,21 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
         reset = self.request.GET.get('reset')
         search_submitted = self.request.GET.get('search_submitted')
         search_text = self.request.GET.get('search')
+        filter = self.request.GET.get('filter')
 
-        if reset or not search_text or (not reset and not search_submitted):
-            return queryset
-
-        if search_text:
+        if reset or (search_submitted and not search_text) or \
+                (not reset and not search_submitted and not filter):
+            queryset = queryset
+        elif search_text:
             queryset = queryset.filter(
                 Q(first_name__icontains=search_text) |
                 Q(last_name__icontains=search_text) |
                 Q(username__icontains=search_text)
             )
 
+        if filter:
+            if filter != 'All':
+                queryset = queryset.filter(first_name__istartswith=filter)
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -178,8 +206,12 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
         context = super(UserListView, self).get_context_data()
         context['sidenav_selection'] = 'users'
         context['search_submitted'] = self.request.GET.get('search_submitted')
+        context['active_filter'] = self.request.GET.get('filter', 'All')
         search_text = self.request.GET.get('search', '')
         reset = self.request.GET.get('reset')
+        context['filter_options'] = _get_name_filter_available(
+            '' if reset else search_text
+        )
 
         num_results = self.get_queryset().count()
         total_users = User.objects.count()

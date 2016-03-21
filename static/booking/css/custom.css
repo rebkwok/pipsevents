@@ -1002,3 +1002,14 @@ li>a.adminmenu {
     padding-left: 12px;
     font-weight: bold;
 }
+
+.btn.btn-alph-filter {
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+.btn.btn-alph-filter.btn-unselected {
+    background-color:dimgrey;
+    color: white;
+}
