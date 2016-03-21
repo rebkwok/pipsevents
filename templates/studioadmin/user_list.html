@@ -13,9 +13,22 @@
             <form action="" method="get">
                 {{ form.search }}
                 <input class="btn btn-info table-btn" type="submit" name='search_submitted' value="Search" />
-                <input class="btn btn-info table-btn" type="submit" name='reset' value="Reset" />
+                <input class="btn btn-info table-btn" type="submit" name='reset' value="Reset" /><br/>
+                And/or filter by first name<br/>
+                {% for opt in filter_options %}
+                    <input
+                            class="btn btn-alph-filter {% if not opt.available %}btn-disabled{% elif active_filter == opt.value %}btn-primary{% else %}btn-unselected{% endif %} "
+                            {% if not opt.available %}disabled{% endif %}
+                            type="submit"
+                            name="filter"
+                            value="{{ opt.value }}"
+                    />
+                {% endfor %}
             </form>
         </div>
+
+
+
         </div>
 
         <div class="row">
@@ -107,7 +120,7 @@
                             <tfoot>
                             <tr class="success">
                                 <td {% if request.user.is_staff %}colspan="9"{% else %}colspan="5"{% endif %}>
-                                    {% if search_submitted %}
+                                    {% if search_submitted or active_filter %}
                                         Search results: returned {{ num_results }} of {{ total_users }} users
                                     {% else %}
                                         Total {{ total_users }} users
