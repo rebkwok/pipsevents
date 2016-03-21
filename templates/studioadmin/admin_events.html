@@ -83,6 +83,28 @@
                                 </td>
                             </tr>
                         {% endfor %}
+                        {% if show_past %}
+                            <tr>
+                                <td class="studioadmin-tbl" colspan="10">
+
+                                        <div class="pagination">
+                                            {% if events.has_previous %}
+                                                <a href="?{{ request.GET.urlencode }}&page={{ events.previous_page_number }}">Previous</a>
+                                            {% else %}
+                                                <a class="disabled" disabled=disabled href="#">Previous</a>
+                                            {% endif %}
+                                            <span class="page-current">
+                                                --  Page {{ events.number }} of {{ events.paginator.num_pages }} --
+                                            </span>
+                                            {% if events.has_next %}
+                                                <a href="?{{ request.GET.urlencode }}&page={{ events.next_page_number }}">Next</a>
+                                            {% else %}
+                                                <a class="disabled" href="#">Next</a>
+                                            {% endif %}
+                                        </div>
+                                </td>
+                            </tr>
+                        {% endif %}
                         <tr>
                             <td class="studioadmin-tbl" colspan="11"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
@@ -94,7 +116,6 @@
                     {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} to display.</p>
             {% endif %}
             </form>
-
 
         </div>
  </div>
