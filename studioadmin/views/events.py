@@ -47,21 +47,20 @@ def event_admin_list(request, ev_type):
 
     if request.method == 'POST':
         if "past" in request.POST:
-
             if ev_type == 'events':
                 queryset = Event.objects.filter(
                     event_type__event_type='EV',
                     date__lte=timezone.now()
-                ).order_by('date')
+                ).order_by('-date')
             else:
                 queryset = Event.objects.filter(
                     date__lte=timezone.now()
-                ).exclude(event_type__event_type='EV').order_by('date')
+                ).exclude(event_type__event_type='EV').order_by('-date')
             events = True if queryset.count() > 0 else False
             show_past = True
             eventformset = EventFormSet(queryset=queryset)
         elif "upcoming" in request.POST:
-            queryset = queryset
+            queryset = queryset.order_by('date')
             show_past = False
             eventformset = EventFormSet(queryset=queryset)
         else:
