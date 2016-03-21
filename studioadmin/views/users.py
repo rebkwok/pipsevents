@@ -37,11 +37,10 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
     model = User
     template_name = 'studioadmin/user_list.html'
     context_object_name = 'users'
+    paginate_by = 30
 
     def get_queryset(self):
-
         queryset = User.objects.all().order_by('first_name')
-
         reset = self.request.GET.get('reset')
         search_submitted = self.request.GET.get('search_submitted')
         search_text = self.request.GET.get('search')
@@ -59,11 +58,11 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
         return queryset
 
     def get(self, request, *args, **kwargs):
-        if 'change_user' in self.request.GET:
+        if 'change_user' in request.GET:
             if not request.user.is_staff:
                 messages.error(request, "This action is not permitted")
             else:
-                change_user_id = self.request.GET.getlist('change_user')[0]
+                change_user_id = request.GET.getlist('change_user')[0]
                 user_to_change = User.objects.get(id=change_user_id)
                 is_regular_student = user_to_change.has_perm('booking.is_regular_student')
                 perm = Permission.objects.get(codename='is_regular_student')
@@ -122,11 +121,11 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
                 user_to_change.save()
                 return HttpResponseRedirect(reverse('studioadmin:users'))
 
-        if 'change_print_disclaimer' in self.request.GET:
+        if 'change_print_disclaimer' in request.GET:
             if not request.user.is_staff:
                 messages.error(request, "This action is not permitted")
             else:
-                change_user_id = self.request.GET.getlist('change_print_disclaimer')[0]
+                change_user_id = request.GET.getlist('change_print_disclaimer')[0]
                 user_to_change = User.objects.get(id=change_user_id)
 
                 disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
@@ -178,7 +177,7 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
     def get_context_data(self):
         context = super(UserListView, self).get_context_data()
         context['sidenav_selection'] = 'users'
-        search_submitted =  self.request.GET.get('search_submitted')
+        context['search_submitted'] = self.request.GET.get('search_submitted')
         search_text = self.request.GET.get('search', '')
         reset = self.request.GET.get('reset')
 

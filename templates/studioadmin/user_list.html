@@ -18,7 +18,6 @@
         </div>
         </div>
 
-
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-success">
@@ -81,11 +80,38 @@
                             </tr>
                             {% endfor %}
 
+                            {% if is_paginated %}
+                                <tr>
+                                    <td class="studioadmin-tbl" {% if request.user.is_staff %}colspan="9"{% else %}colspan="5"{% endif %}>
+
+                                            <div class="pagination">
+                                                {% if page_obj.has_previous %}
+                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                                                {% else %}
+                                                    <a class="disabled" disabled=disabled href="#">Previous</a>
+                                                {% endif %}
+                                                <span class="page-current">
+                                                    --  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} --
+                                                </span>
+                                                {% if page_obj.has_next %}
+                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                                                {% else %}
+                                                    <a class="disabled" href="#">Next</a>
+                                                {% endif %}
+                                            </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+
                             </tbody>
                             <tfoot>
                             <tr class="success">
                                 <td {% if request.user.is_staff %}colspan="9"{% else %}colspan="5"{% endif %}>
-                                Showing {{ num_results }} of {{ total_users }} users
+                                    {% if search_submitted %}
+                                        Search results: returned {{ num_results }} of {{ total_users }} users
+                                    {% else %}
+                                        Total {{ total_users }} users
+                                    {% endif %}
                                 </td>
                             </tr>
                             </tfoot>
