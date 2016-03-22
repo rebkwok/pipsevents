@@ -5,6 +5,7 @@ from model_mommy import mommy
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
+from django.db.models import Q
 from django.test import TestCase
 from django.contrib.auth.models import User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -19,6 +20,7 @@ from studioadmin.views import (
     user_blocks_view,
     user_bookings_view,
 )
+from studioadmin.views.users import NAME_FILTERS
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -257,6 +259,85 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'reset': 'Reset'
         })
         self.assertEqual(len(resp.context_data['users']), 6)
+
+    def test_user_filter(self):
+        mommy.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        mommy.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        mommy.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+        resp = self._get_response(self.staff_user, {
+            'filter': 'A'})
+        self.assertEqual(len(resp.context_data['users']), 2)
+        for user in resp.context_data['users']:
+            self.assertTrue(user.first_name.upper().startswith('A'))
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user
+        self.assertEqual(User.objects.count(), 6)
+        resp = self._get_response(self.staff_user, {
+            'filter': 'All'})
+        self.assertEqual(len(resp.context_data['users']), 6)
+
+    def test_user_filter_and_search(self):
+        mommy.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        mommy.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        mommy.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+        resp = self._get_response(self.staff_user, {
+            'filter': 'A', 'search': 'Test'})
+        self.assertEqual(len(resp.context_data['users']), 1)
+        found_user = resp.context_data['users'][0]
+        self.assertEqual(found_user.first_name, "aUser")
+
+    def test_filter_options(self):
+        # make a user with first name starting with all options
+        for option in NAME_FILTERS:
+            mommy.make_recipe('booking.user', first_name='{}Usr'.format(option))
+        # delete any starting with Z
+        User.objects.filter(first_name__istartswith='Z').delete()
+        resp = self._get_response(self.staff_user)
+        filter_options = resp.context_data['filter_options']
+        for opt in filter_options:
+            if opt['value'] == 'Z':
+                self.assertFalse(opt['available'])
+            else:
+                self.assertTrue(opt['available'])
+
+        users = User.objects.filter(
+            Q(first_name__istartswith='A') |
+            Q(first_name__istartswith='B') |
+            Q(first_name__istartswith='C')
+        )
+        for user in users:
+            user.username = "{}_testfoo".format(user.first_name)
+            user.save()
+
+        resp = self._get_response(
+            self.staff_user, {'search': 'testfoo', 'search_submitted': 'Search'}
+        )
+        filter_options = resp.context_data['filter_options']
+        for opt in filter_options:
+            if opt['value'] in ['All', 'A', 'B', 'C']:
+                self.assertTrue(opt['available'])
+            else:
+                self.assertFalse(opt['available'])
 
     def test_instructor_cannot_change_regular_student(self):
         reg_student = mommy.make_recipe('booking.user')
