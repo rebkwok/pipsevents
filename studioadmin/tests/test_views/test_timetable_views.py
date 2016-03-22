@@ -2,13 +2,14 @@ from datetime import datetime
 from mock import patch
 from model_mommy import mommy
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Event
-from booking.tests.helpers import _create_session
+from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     timetable_admin_list,
     TimetableSessionUpdateView,
@@ -177,7 +178,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_person': ttsession.contact_person,
             'cancellation_period': ttsession.cancellation_period,
             'location': ttsession.location,
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -262,6 +264,74 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(self.session.location, ttsession.location)
 
+    def test_update_paypal_email_to_non_default(self):
+        form_data = self.form_data(
+            self.session,
+            {
+                'paypal_email': 'testpaypal@test.com',
+                'paypal_email_check': 'testpaypal@test.com'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:edit_session', args=[self.session.id]),
+            form_data, follow=True
+        )
+
+        self.assertIn(
+            "You have changed the paypal receiver email. If you haven't used "
+            "this email before, it is strongly recommended that you test the "
+            "email address here",
+            format_content(str(resp.content)).replace('\\', '')
+        )
+        self.assertIn(
+            "/studioadmin/test-paypal-email?email=testpaypal@test.com",
+            str(resp.content)
+        )
+
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.paypal_email, 'testpaypal@test.com')
+
+    def test_update_paypal_email_to_default(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        self.session.paypal_email = 'testpp@pp.com'
+        self.session.save()
+        form_data = self.form_data(
+            self.session,
+            {
+                'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+                'paypal_email_check': settings.DEFAULT_PAYPAL_EMAIL
+            }
+        )
+        resp = self.client.post(
+            reverse('studioadmin:edit_session', args=[self.session.id]),
+            form_data, follow=True
+        )
+        self.assertNotIn(
+            "You have changed the paypal receiver email.",
+            format_content(str(resp.content)).replace('\\', '')
+        )
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.paypal_email, settings.DEFAULT_PAYPAL_EMAIL)
+
+    def test_update_no_changes(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        form_data = self.form_data(
+            self.session,
+            {
+                'max_participants': self.session.max_participants,
+                'cost': self.session.cost,
+                'booking_open': self.session.booking_open,
+                'payment_open': self.session.payment_open,
+                'advance_payment_required': self.session.advance_payment_required,
+            }
+        )
+        resp = self.client.post(
+            reverse('studioadmin:edit_session', args=[self.session.id]),
+            form_data, follow=True
+        )
+        self.assertIn('No changes made', format_content(str(resp.content)))
+
 
 class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
 
@@ -300,7 +370,8 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
             'contact_person': 'test',
             'cancellation_period': 24,
             'location': 'Watermelon Studio',
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
         for key, value in extra_data.items():
             data[key] = value
@@ -356,6 +427,46 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Session.objects.count(), 1)
         ttsession = Session.objects.first()
         self.assertEqual(ttsession.name, 'test_event')
+
+    def test_create_event_with_non_default_paypal_email(self):
+        form_data = self.form_data(
+            {
+                'paypal_email': 'testpaypal@test.com',
+                'paypal_email_check': 'testpaypal@test.com'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:add_session'),
+            form_data, follow=True
+        )
+
+        self.assertIn(
+            "You have changed the paypal receiver email from the default value. "
+            "If you haven't used "
+            "this email before, it is strongly recommended that you test the "
+            "email address here",
+            format_content(str(resp.content)).replace('\\', '')
+        )
+        self.assertIn(
+            "/studioadmin/test-paypal-email?email=testpaypal@test.com",
+            str(resp.content)
+        )
+
+        session = Session.objects.latest('id')
+        self.assertEqual(session.paypal_email, 'testpaypal@test.com')
+
+        form_data = self.form_data()
+        resp = self.client.post(
+            reverse('studioadmin:add_session'),
+            form_data, follow=True
+        )
+        self.assertNotIn(
+            "You have changed the paypal receiver email from the default value.",
+            format_content(str(resp.content)).replace('\\', '')
+        )
+        session1 = Session.objects.latest('id')
+        self.assertEqual(session1.paypal_email, settings.DEFAULT_PAYPAL_EMAIL)
 
 
 class UploadTimetableTests(TestPermissionMixin, TestCase):

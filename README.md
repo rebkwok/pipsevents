@@ -8,7 +8,7 @@
 - SECRET_KEY: app secret key
 - DATABASE_URL: database settings
 - EMAIL_HOST_PASSWORD: password for emails sent from the app
-- PAYPAL_RECEIVER_EMAIL: the email address paypal payments made through the app will be sent to
+- DEFAULT_PAYPAL_EMAIL: the email address paypal payments made through the app will be sent to
 - LOG_FOLDER: path to folder containing the app's log files
 
 # Optional for dev

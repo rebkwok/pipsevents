@@ -6,7 +6,7 @@ python:
 addons:
   postgresql: "9.3"
 
-env: SECRET_KEY='dummy_secret' EMAIL_HOST_PASSWORD='dummy_password' DATABASE_URL=postgres://postgres@localhost/travis_ci_test PAYPAL_RECEIVER_EMAIL=dummy-email@hotmail.com PAYPAL_TEST=True DEFAULT_STUDIO_EMAIL=watermelonstudiotest@gmail.com LOG_FOLDER=log_folder TRAVIS=True HEROKU=False SEND_ALL_STUDIO_EMAILS=True SIMPLECRYPT_PASSWORD=secret
+env: SECRET_KEY='dummy_secret' EMAIL_HOST_PASSWORD='dummy_password' DATABASE_URL=postgres://postgres@localhost/travis_ci_test DEFAULT_PAYPAL_EMAIL=dummy-email@hotmail.com PAYPAL_TEST=True DEFAULT_STUDIO_EMAIL=watermelonstudiotest@gmail.com LOG_FOLDER=log_folder TRAVIS=True HEROKU=False SEND_ALL_STUDIO_EMAILS=True SIMPLECRYPT_PASSWORD=secret
 
 install:
   - pip install -r requirements.txt

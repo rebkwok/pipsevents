@@ -3,6 +3,7 @@ import pytz
 
 from model_mommy import mommy
 
+from django.conf import settings
 from django.test import TestCase
 
 from booking.models import EventType
@@ -107,6 +108,7 @@ class EventAdminFormTests(TestCase):
             'cancellation_period': 24,
             'location': 'Watermelon Studio',
             'allow_booking_cancellation': True,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -131,7 +133,8 @@ class EventAdminFormTests(TestCase):
             'contact_person': event.contact_person,
             'cancellation_period': event.cancellation_period,
             'location': event.location,
-            'allow_booking_cancellation': True
+            'allow_booking_cancellation': True,
+            'paypal_email': event.paypal_email,
         }
         form = EventAdminForm(data=data, instance=event, ev_type='CL')
         self.assertTrue(form.is_valid())
@@ -461,3 +464,46 @@ class EventAdminFormTests(TestCase):
             'no associated cost',
             str(form.errors['allow_booking_cancellation'])
         )
+
+    def test_paypal_email_check_required_if_paypal_email_changed(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {'paypal_email': 'newpaypal@test.com'}),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Please reenter paypal email to confirm changes',
+            str(form.errors['paypal_email_check'])
+        )
+
+    def test_paypal_email_and_check_must_match(self):
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'paypal_email': 'newpaypal@test.com',
+                    'paypal_email_check': 'newpaypal1@test.com'
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Email addresses do not match',
+            str(form.errors['paypal_email_check'])
+        )
+        self.assertIn(
+            'Email addresses do not match',
+            str(form.errors['paypal_email'])
+        )
+
+        form = EventAdminForm(
+            data=self.form_data(
+                {
+                    'paypal_email': 'newpaypal@test.com',
+                    'paypal_email_check': 'newpaypal@test.com'
+                },
+            ),
+            ev_type='CL'
+        )
+        self.assertTrue(form.is_valid())

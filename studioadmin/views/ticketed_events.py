@@ -178,6 +178,19 @@ class TicketedEventAdminUpdateView(
                     self.request.user.username
                 )
             )
+            if 'paypal_email' in form.changed_data and \
+                ticketed_event.paypal_email != settings.DEFAULT_PAYPAL_EMAIL:
+                messages.warning(
+                    self.request,
+                    mark_safe(
+                        "You have changed the paypal receiver email. If you "
+                        "haven't used this email before, "
+                        "it is strongly recommended that you test the email "
+                        "address "
+                        "<a href='/studioadmin/test-paypal-email?email={}'>"
+                        "here</a>".format(ticketed_event.paypal_email)
+                    )
+                )
         else:
             msg = 'No changes made'
         messages.success(self.request, mark_safe(msg))
@@ -214,6 +227,20 @@ class TicketedEventAdminCreateView(
                 ticketed_event, ticketed_event.id, self.request.user.username
             )
         )
+
+        if ticketed_event.paypal_email != settings.DEFAULT_PAYPAL_EMAIL:
+            messages.warning(
+                self.request,
+                mark_safe(
+                    "You have changed the paypal receiver email from the "
+                    "default value. If you haven't used this email before, "
+                    "it is strongly recommended that you test the email "
+                    "address "
+                    "<a href='/studioadmin/test-paypal-email?email={}'>"
+                    "here</a>".format(ticketed_event.paypal_email)
+                )
+            )
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):

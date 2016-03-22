@@ -258,7 +258,8 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'contact_email': self.ticketed_event.contact_email,
             'contact_person': self.ticketed_event.contact_person,
             'location': self.ticketed_event.location,
-            'ticket_cost': self.ticketed_event.ticket_cost
+            'ticket_cost': self.ticketed_event.ticket_cost,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
 
         for key, value in extra_data.items():
@@ -332,7 +333,8 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
                 'email_studio_when_purchased':
                     self.ticketed_event.email_studio_when_purchased,
                 'show_on_site': self.ticketed_event.show_on_site,
-                'cancelled': self.ticketed_event.cancelled
+                'cancelled': self.ticketed_event.cancelled,
+                'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
             }
         )
         self.assertTrue(self.client.login(
@@ -349,6 +351,56 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, self.ticketed_event)
         self.assertEquals(
             resp.context_data['sidenav_selection'], 'ticketed_events'
+        )
+
+    def test_update_paypal_email_to_non_default(self):
+        form_data = self.form_data(
+            {
+                'id': self.ticketed_event.id,
+                'paypal_email': 'testpaypal@test.com',
+                'paypal_email_check': 'testpaypal@test.com'
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse(
+                'studioadmin:edit_ticketed_event',
+                kwargs={'slug': self.ticketed_event.slug}),
+            form_data, follow=True
+        )
+
+        self.assertIn(
+            "You have changed the paypal receiver email. If you haven't used "
+            "this email before, it is strongly recommended that you test the "
+            "email address <a href='/studioadmin/test-paypal-email?"
+            "email=testpaypal@test.com'>here</a>",
+            resp.rendered_content
+        )
+
+        self.ticketed_event.refresh_from_db()
+        self.assertEqual(self.ticketed_event.paypal_email, 'testpaypal@test.com')
+
+        form_data = self.form_data(
+            {
+                'id': self.ticketed_event.id,
+                'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+                'paypal_email_check': settings.DEFAULT_PAYPAL_EMAIL
+            }
+        )
+        resp = self.client.post(
+            reverse(
+                'studioadmin:edit_ticketed_event',
+                kwargs={'slug': self.ticketed_event.slug}
+            ),
+            form_data, follow=True
+        )
+        self.assertNotIn(
+            "You have changed the paypal receiver email.",
+            resp.rendered_content
+        )
+        self.ticketed_event.refresh_from_db()
+        self.assertEqual(
+            self.ticketed_event.paypal_email, settings.DEFAULT_PAYPAL_EMAIL
         )
 
 
@@ -405,10 +457,59 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test person',
             'location': 'Watermelon Studio',
-            'ticket_cost': 5
+            'ticket_cost': 5,
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
         self._post_response(self.staff_user, data)
         self.assertEqual(TicketedEvent.objects.count(), 1)
+
+    def test_create_ticketed_event_with_non_default_paypal_email(self):
+        form_data = {
+            'name': "Test event",
+            'date': (timezone.now() + timedelta(3)).strftime('%d %b %Y %H:%M'),
+            'contact_email': 'test@test.com',
+            'contact_person': 'test person',
+            'location': 'Watermelon Studio',
+            'ticket_cost': 5,
+            'paypal_email': 'testpaypal@test.com',
+            'paypal_email_check': 'testpaypal@test.com'
+            }
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:add_ticketed_event'),
+            form_data, follow=True
+        )
+
+        self.assertIn(
+            "You have changed the paypal receiver email from the default value. "
+            "If you haven't used "
+            "this email before, it is strongly recommended that you test the "
+            "email address <a href='/studioadmin/test-paypal-email?"
+            "email=testpaypal@test.com'>here</a>",
+            resp.rendered_content
+        )
+
+        ticketed_event = TicketedEvent.objects.latest('id')
+        self.assertEqual(ticketed_event.paypal_email, 'testpaypal@test.com')
+
+        form_data.update(
+            {
+                'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+                'paypal_email_check': ''
+            }
+        )
+        resp = self.client.post(
+            reverse('studioadmin:add_ticketed_event'),
+            form_data, follow=True
+        )
+        self.assertNotIn(
+            "You have changed the paypal receiver email from the default value.",
+            resp.rendered_content
+        )
+        ticketed_event1 = TicketedEvent.objects.latest('id')
+        self.assertEqual(
+            ticketed_event1.paypal_email, settings.DEFAULT_PAYPAL_EMAIL
+        )
 
 
 class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
