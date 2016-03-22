@@ -70,8 +70,8 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
             self.request.session['no_available_block'] = True
 
         ActivityLog.objects.create(
-            log='Block {} created; Block type: {}; user: {}'.format(
-                block.id, block.block_type, block.user.username
+            log='Block {} created; Block type: {}; by user: {}'.format(
+                block.id, block.block_type, self.request.user.username
             )
         )
 
