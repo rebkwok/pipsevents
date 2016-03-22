@@ -174,7 +174,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 def test_paypal_view(request):
     ctx = {'sidenav_selection': 'test_paypal'}
     if request.method == 'GET':
-        email = request.GET.get('email')
+        email = request.GET.get('email', '')
         ctx.update({'email': email})
     elif request.method == 'POST':
         email = request.POST.get('email')
