@@ -232,7 +232,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                     ' We will email you if a space becomes ' \
                     'available.'.format(self.event)
                 ActivityLog.objects.create(
-                    log='User {} has been added to the waiting list '
+                    log='User {} has joined the waiting list '
                     'for {}'.format(
                         request.user.username, self.event
                     )
@@ -354,7 +354,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         # we can redirect
         self.request.session['booking_created_{}'.format(booking.id)] = True
 
-        blocks_used, total_blocks = _get_block_status(booking)
+        blocks_used, total_blocks = _get_block_status(booking, self.request)
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -612,7 +612,7 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
 
         booking.save()
 
-        blocks_used, total_blocks = _get_block_status(booking)
+        blocks_used, total_blocks = _get_block_status(booking, self.request)
 
         if booking.block:
             # send email to user if they used block to book (paypal payment
@@ -733,7 +733,7 @@ def _email_free_class_request(request, booking, booking_status):
             "the studio for information")
 
 
-def _get_block_status(booking):
+def _get_block_status(booking, request):
     blocks_used = None
     total_blocks = None
     if booking.block:
@@ -741,9 +741,9 @@ def _get_block_status(booking):
         total_blocks = booking.block.block_type.size
         ActivityLog.objects.create(
             log='Block used for booking id {} (for {}). Block id {}, '
-            'user {}'.format(
+            'by user {}'.format(
                 booking.id, booking.event, booking.block.id,
-                booking.user.username
+                request.user.username
             )
         )
 
@@ -854,9 +854,11 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
             self.success_message.format(booking.event)
         )
         ActivityLog.objects.create(
-            log='Booking id {} for event {}, user {}, was cancelled'.format(
-                booking.id, booking.event, booking.user.username
-            )
+            log='Booking id {} for event {}, user {}, was cancelled by user '
+                '{}'.format(
+                    booking.id, booking.event, booking.user.username,
+                    self.request.user.username
+                )
         )
 
         # if applicable, email users on waiting list
