@@ -87,6 +87,16 @@ class TicketedEventAdminForm(forms.ModelForm):
         initial=0,
     )
 
+    paypal_email_check = forms.CharField(
+        widget=forms.EmailInput(
+            attrs={'class': "form-control"}
+        ),
+        help_text=_(
+            'If you are changing the paypal email, please re-enter as confirmation'
+        ),
+        required=False
+    )
+
     extra_ticket_info_label = forms.CharField(
         widget=forms.TextInput(
             attrs={'class': "form-control"}
@@ -196,7 +206,7 @@ class TicketedEventAdminForm(forms.ModelForm):
                 del self.errors['payment_due_date']
             try:
                 payment_due_date = datetime.strptime(payment_due_date, '%d %b %Y')
-                if payment_due_date < date:
+                if cleaned_data.get('date') and payment_due_date < date:
                     cleaned_data['payment_due_date'] = payment_due_date
                 else:
                     self.add_error(
@@ -282,6 +292,22 @@ class TicketedEventAdminForm(forms.ModelForm):
                     '£0: {}'.format(', '.join(ticket_cost_errors))
                 )
 
+        if 'paypal_email' in self.changed_data:
+            if 'paypal_email_check' not in self.changed_data:
+                self.add_error(
+                    'paypal_email_check',
+                    'Please reenter paypal email to confirm changes'
+                )
+            elif self.cleaned_data['paypal_email'] != self.cleaned_data['paypal_email_check']:
+                self.add_error(
+                    'paypal_email',
+                    'Email addresses do not match'
+                )
+                self.add_error(
+                    'paypal_email_check',
+                    'Email addresses do not match'
+                )
+
         return cleaned_data
 
     class Meta:
@@ -290,6 +316,7 @@ class TicketedEventAdminForm(forms.ModelForm):
             'name', 'date', 'description', 'location',
             'max_tickets', 'contact_person', 'contact_email', 'ticket_cost',
             'payment_open', 'advance_payment_required', 'payment_info',
+            'paypal_email', 'paypal_email_check',
             'payment_due_date', 'payment_time_allowed',
             'email_studio_when_purchased', 'max_ticket_purchase',
             'extra_ticket_info_label', 'extra_ticket_info_required',
@@ -374,6 +401,9 @@ class TicketedEventAdminForm(forms.ModelForm):
                     'class': "form-control regular-checkbox",
                     'id': 'cancelled_id',
                     }
+            ),
+            'paypal_email': forms.EmailInput(
+                attrs={'class': "form-control"}
             ),
             }
         help_texts = {

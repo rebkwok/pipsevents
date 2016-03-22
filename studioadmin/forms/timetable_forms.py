@@ -87,6 +87,16 @@ class SessionAdminForm(forms.ModelForm):
         required=False
     )
 
+    paypal_email_check = forms.CharField(
+        widget=forms.EmailInput(
+            attrs={'class': "form-control"}
+        ),
+        help_text=_(
+            'If you are changing the paypal email, please re-enter as confirmation'
+        ),
+        required=False
+    )
+
     def __init__(self, *args, **kwargs):
         super(SessionAdminForm, self).__init__(*args, **kwargs)
         self.fields['event_type'] = forms.ModelChoiceField(
@@ -108,6 +118,10 @@ class SessionAdminForm(forms.ModelForm):
             try:
                 time = datetime.strptime(self.data['time'], '%H:%M').time()
                 cleaned_data['time'] = time
+                if self.instance.id and \
+                                self.instance.time.strftime('%H:%M') == \
+                                self.data['time']:
+                    self.changed_data.remove('time')
             except ValueError:
                 self.add_error('time', 'Invalid time format.  Select from the '
                                        'time picker or enter date and time in the '
@@ -127,6 +141,57 @@ class SessionAdminForm(forms.ModelForm):
                     'booking cancellation disallowed (i.e. non-refundable)'
                 )
 
+        if not cleaned_data.get('advance_payment_required') and \
+                cleaned_data.get('payment_time_allowed'):
+            self.add_error(
+                'payment_time_allowed',
+                'To specify payment time allowed, please also '
+                'tick "advance payment required"'
+                )
+
+        if not cleaned_data.get('cost'):
+            cost_errors = []
+            if cleaned_data.get('advance_payment_required'):
+                cost_errors.append('advance payment required')
+            if cleaned_data.get('payment_time_allowed'):
+                cost_errors.append('payment time allowed')
+            if cost_errors:
+                self.add_error(
+                    'cost',
+                    'The following fields require a cost greater than '
+                    '£0: {}'.format(', '.join(cost_errors))
+                )
+
+        if not cleaned_data.get('allow_booking_cancellation'):
+            if not cleaned_data.get('cost'):
+                self.add_error(
+                    'allow_booking_cancellation',
+                    'Booking cancellation should be allowed for events/classes '
+                    'with no associated cost'
+                )
+            elif not cleaned_data.get('advance_payment_required'):
+                self.add_error(
+                    'allow_booking_cancellation',
+                    'Advance payment must be required in order to make '
+                    'booking cancellation disallowed (i.e. non-refundable)'
+                )
+
+        if 'paypal_email' in self.changed_data:
+            if 'paypal_email_check' not in self.changed_data:
+                self.add_error(
+                    'paypal_email_check',
+                    'Please reenter paypal email to confirm changes'
+                )
+            elif self.cleaned_data['paypal_email'] != self.cleaned_data['paypal_email_check']:
+                self.add_error(
+                    'paypal_email',
+                    'Email addresses do not match'
+                )
+                self.add_error(
+                    'paypal_email_check',
+                    'Email addresses do not match'
+                )
+
         return cleaned_data
 
     class Meta:
@@ -136,7 +201,8 @@ class SessionAdminForm(forms.ModelForm):
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',
-            'payment_info', 'payment_time_allowed', 'cancellation_period',
+            'payment_info', 'paypal_email', 'paypal_email_check',
+            'payment_time_allowed', 'cancellation_period',
             'allow_booking_cancellation', 'email_studio_when_booked'
         )
         widgets = {
@@ -214,6 +280,9 @@ class SessionAdminForm(forms.ModelForm):
                     'class': "form-control regular-checkbox",
                     'id': 'email_studio_when_booked_id',
                     }
+            ),
+            'paypal_email': forms.EmailInput(
+                attrs={'class': "form-control"}
             ),
         }
 

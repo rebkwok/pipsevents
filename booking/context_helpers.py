@@ -174,10 +174,12 @@ def get_booking_create_context(event, request, context):
     return context
 
 
-def get_paypal_dict(host, cost, item_name, invoice_id, custom, quantity=1):
+def get_paypal_dict(
+        host, cost, item_name, invoice_id, custom,
+        paypal_email=settings.DEFAULT_PAYPAL_EMAIL, quantity=1):
 
     paypal_dict = {
-        "business": settings.PAYPAL_RECEIVER_EMAIL,
+        "business": paypal_email,
         "amount": cost,
         "item_name": item_name,
         "custom": custom,

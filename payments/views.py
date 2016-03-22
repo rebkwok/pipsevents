@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
+
 from django.conf import settings
 from django.shortcuts import render
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import csrf_exempt
+
+from paypal.standard.ipn.models import PayPalIPN
 
 from booking.models import Block, Booking, TicketBooking
 
@@ -10,7 +14,7 @@ def view_that_asks_for_money(request):
 
     # What you want the button to do.
     paypal_dict = {
-        "business": settings.PAYPAL_RECEIVER_EMAIL,
+        "business": settings.DEFAULT_PAYPAL_EMAIL,
         "amount": "10.00",
         "item_name": "Watermeloon Class",
         "invoice": "unique-invoice-id",
@@ -30,6 +34,7 @@ def view_that_asks_for_money(request):
 @csrf_exempt
 def paypal_confirm_return(request):
     obj = 'unknown'
+    test_ipn_complete = False
     custom = request.POST.get('custom', '').split()
 
     if custom:
@@ -42,6 +47,15 @@ def paypal_confirm_return(request):
             obj = Block.objects.get(id=obj_id)
         elif obj_type == "ticket_booking":
             obj = TicketBooking.objects.get(id=obj_id)
+        elif obj_type == "paypal_test":
+            obj = "paypal_test"
+            # custom in a test payment is in form
+            # 'test 0 <invoice_id> <paypal email being tested> <user's email>'
+            test_ipn_complete = bool(
+                PayPalIPN.objects.filter(
+                    invoice=custom[2], payment_status='Completed'
+                )
+            )
         else:
             obj = 'unknown'
 
@@ -57,7 +71,10 @@ def paypal_confirm_return(request):
                    'payment_status': request.POST.get('payment_status'),
                    'purchase': request.POST.get('item_name'),
                    'sender_email': settings.DEFAULT_FROM_EMAIL,
-                   'organiser_email': settings.DEFAULT_STUDIO_EMAIL
+                   'organiser_email': settings.DEFAULT_STUDIO_EMAIL,
+                   'test_ipn_complete': test_ipn_complete,
+                   'test_paypal_email': custom[3] if obj == 'paypal_test'
+                   else ''
                    }
 
     if not custom or obj == 'unknown':
@@ -71,3 +88,4 @@ def paypal_confirm_return(request):
 @csrf_exempt
 def paypal_cancel_return(request):
     return render(request, 'payments/cancelled_payment.html')
+

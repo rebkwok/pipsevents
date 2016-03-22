@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -52,6 +53,11 @@ class Session(models.Model):
     allow_booking_cancellation = models.BooleanField(default=True)
     external_instructor = models.BooleanField(default=False)
     email_studio_when_booked = models.BooleanField(default=False)
+    paypal_email = models.EmailField(
+        default=settings.DEFAULT_PAYPAL_EMAIL,
+        help_text='Email for the paypal account to be used for payment.  '
+                  'Check this carefully!'
+    )
 
     def __str__(self):
         return "{} - {} - {}".format(

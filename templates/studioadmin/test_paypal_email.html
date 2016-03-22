@@ -1,0 +1,45 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+
+    <h2>PayPal Email Check</h2>
+    <p>Use this to check payments to an alternative paypal email.  Enter the email address
+    you want to check below and click 'Submit'.</p>
+
+        <p>A paypal button will appear.  When you click the paypal
+    button it will take you to a PayPal payment page to make a payment of £0.01 to the
+    requested email.</p>
+
+    <p>Make the payment using any valid PayPal payment method.  You'll
+        receive an email from the booking system confirming if the payment was processed successfully.</p>
+
+    <p>
+    Note that you'll receive an email from PayPal directly as well; <strong>you need to ALSO receive the email from the
+        booking system</strong> to confirm that the system has been able to process the payment to the requested
+        email address properly.
+    </p>
+
+    {% if not paypalform %}
+        <form class="dirty-check form-inline" action="" method="post">{% csrf_token %}
+            <div class="form-group col-sm-12">
+                <label for="email_id">Email to test: </label>
+                <span {% if email_errors %}class='ticket-error'{% endif %}>
+                    <input class="form-control email-input" id="email_id" type="email" name="email" value="{{ email }}"/>
+                </span>
+                <div><input class="btn btn-success" type="submit" value="Submit" /></div>
+            </div>
+
+            {% if email_errors %}<p class="errorlist">{{ email_errors }}</p>{% endif %}
+        </form>
+    {% else %}
+    <p><strong>Email to test: </strong>{{ email }}</p>
+    {% include 'payments/payment.html' %}
+    {% endif %}
+
+
+</div>
+
+{% endblock studioadmincontent %}

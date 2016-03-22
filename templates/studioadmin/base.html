@@ -87,6 +87,14 @@
                 </ul>
             </li>
 
+            <li class="dropdown">
+                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>PayPal Email Check </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <ul class="dropdown-menu" role="menu">
+                    <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
+                        <span class="sidebar_active">Test PayPal</span>{% else %}Tets PayPal{% endif %}</a></li>
+                </ul>
+            </li>
+
              <li class="dropdown">
                  <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
                     <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
@@ -252,6 +260,23 @@
                         <span class="sidebar_active">View and edit vouchers</span>{% else %}View and edit vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_voucher' %}">{% if sidenav_selection == 'add_voucher' %}
                         <span class="sidebar_active">Add a new voucher</span>{% else %}Add a new voucher{% endif %}</a></li>
+                    </span>
+
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#test_paypal">
+                            <span class="fa log
+                                {% if sidenav_selection == 'test_paypal' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            PayPal Email Check
+                        </a>
+                    </li>
+                    <span id="test_paypal" class="collapse {% if sidenav_selection == 'test_paypal' %} in{% endif %}">
+                        <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
+                        <span class="sidebar_active">Test PayPal Email</span>{% else %}Test PayPal Email{% endif %}</a></li>
                     </span>
 
                     <li class="sidebar-title">

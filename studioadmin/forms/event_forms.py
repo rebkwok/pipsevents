@@ -88,6 +88,16 @@ class EventAdminForm(forms.ModelForm):
         required=False
     )
 
+    paypal_email_check = forms.CharField(
+        widget=forms.EmailInput(
+            attrs={'class': "form-control"}
+        ),
+        help_text=_(
+            'If you are changing the paypal email, please re-enter as confirmation'
+        ),
+        required=False
+    )
+
     def __init__(self, *args, **kwargs):
         ev_type = kwargs.pop('ev_type')
         super(EventAdminForm, self).__init__(*args, **kwargs)
@@ -247,6 +257,22 @@ class EventAdminForm(forms.ModelForm):
                     'booking cancellation disallowed (i.e. non-refundable)'
                 )
 
+        if 'paypal_email' in self.changed_data:
+            if 'paypal_email_check' not in self.changed_data:
+                self.add_error(
+                    'paypal_email_check',
+                    'Please reenter paypal email to confirm changes'
+                )
+            elif self.cleaned_data['paypal_email'] != self.cleaned_data['paypal_email_check']:
+                self.add_error(
+                    'paypal_email',
+                    'Email addresses do not match'
+                )
+                self.add_error(
+                    'paypal_email_check',
+                    'Email addresses do not match'
+                )
+
         return cleaned_data
 
     class Meta:
@@ -256,6 +282,7 @@ class EventAdminForm(forms.ModelForm):
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',
+            'paypal_email', 'paypal_email_check',
             'payment_info',
             'payment_due_date', 'payment_time_allowed', 'cancellation_period',
             'allow_booking_cancellation',
@@ -344,6 +371,9 @@ class EventAdminForm(forms.ModelForm):
                     'id': 'allow_booking_cancellation_id',
                     }
             ),
+            'paypal_email': forms.EmailInput(
+                attrs={'class': "form-control"}
+            ),
             }
         help_texts = {
             'payment_open': _('Only applicable if the cost is greater than £0'),
@@ -371,5 +401,10 @@ class EventAdminForm(forms.ModelForm):
             'allow_booking_cancellation': _(
                 'Untick to make class/event non-cancellable by user (and '
                 'payment non-refundable'
-            )
+            ),
+            'paypal_email': _(
+                'Email for the paypal account to be used for payment. '
+                'Check this carefully!  If you enter an incorrect email, '
+                'payments will fail or could be paid to the wrong account!'
+            ),
         }

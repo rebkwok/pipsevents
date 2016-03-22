@@ -1,7 +1,7 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
-
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -71,13 +71,13 @@ def timetable_admin_list(request):
                                 )
                         form.save()
 
-                    for error in form.errors:
-                        messages.error(request, mark_safe("{}".format(error)))
                 sessionformset.save()
             return HttpResponseRedirect(
                 reverse('studioadmin:timetable')
             )
-        else:
+        else:  # pragma: no cover
+            # all fields are booleans; no errors will be thrown, but keep this
+            # code in case we change the fields in future
             messages.error(
                 request,
                 mark_safe(
@@ -136,6 +136,21 @@ class TimetableSessionUpdateView(
                     session, session.id, self.request.user.username
                 )
             )
+
+            if 'paypal_email' in form.changed_data and \
+                session.paypal_email != settings.DEFAULT_PAYPAL_EMAIL:
+                messages.warning(
+                    self.request,
+                    mark_safe(
+                        "You have changed the paypal receiver email. If you "
+                        "haven't used this email before, "
+                        "it is strongly recommended that you test the email "
+                        "address "
+                        "<a href='/studioadmin/test-paypal-email?email={}'>"
+                        "here</a>".format(session.paypal_email)
+                    )
+                )
+
         else:
             msg = 'No changes made'
         messages.success(self.request, mark_safe(msg))
@@ -173,6 +188,20 @@ class TimetableSessionCreateView(
             )
         )
         messages.success(self.request, mark_safe(msg))
+
+        if session.paypal_email != settings.DEFAULT_PAYPAL_EMAIL:
+            messages.warning(
+                self.request,
+                mark_safe(
+                    "You have changed the paypal receiver email from the "
+                    "default value. If you haven't used this email before, "
+                    "it is strongly recommended that you test the email "
+                    "address "
+                    "<a href='/studioadmin/test-paypal-email?email={}'>"
+                    "here</a>".format(session.paypal_email)
+                )
+            )
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):

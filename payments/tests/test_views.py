@@ -3,6 +3,7 @@ from model_mommy import mommy
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
+from paypal.standard.ipn.models import PayPalIPN
 from booking.tests.helpers import set_up_fb
 
 
@@ -75,6 +76,51 @@ class TestViews(TestCase):
             resp.rendered_content
         )
 
+    def test_confirm_return_with_paypal_test(self):
+        url = reverse('payments:paypal_confirm')
+        resp = self.client.post(
+            url,
+            {
+                'custom': 'paypal_test 0 testpp@test.com_123456 '
+                          'testpp@test.com testpp@test.com '
+                          'user@test.com',
+                'payment_status': 'paid',
+                'item_name': 'paypal_test'
+            }
+        )
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(
+            resp.context_data['test_paypal_email'], 'testpp@test.com'
+        )
+        self.assertIn(
+            'The test payment is being processed',
+            resp.rendered_content
+        )
+
+    def test_confirm_return_with_paypal_test_and_valid_ipn(self):
+        url = reverse('payments:paypal_confirm')
+        mommy.make(
+            PayPalIPN, invoice='testpp@test.com_123456',
+            payment_status='Completed'
+        )
+        resp = self.client.post(
+            url,
+            {
+                'custom': 'paypal_test 0 testpp@test.com_123456 '
+                          'testpp@test.com user@test.com',
+                'payment_status': 'paid',
+                'item_name': 'paypal_test'
+            }
+        )
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(
+            resp.context_data['test_paypal_email'], 'testpp@test.com'
+        )
+        self.assertIn(
+            'The test payment has completed successfully',
+            resp.rendered_content
+        )
+
     def test_confirm_return_with_no_custom_field(self):
         booking = mommy.make_recipe('booking.booking')
 
@@ -91,7 +137,6 @@ class TestViews(TestCase):
             'Everything is probably fine...',
             resp.rendered_content
         )
-
 
     def test_cancel_return(self):
         url = reverse('payments:paypal_cancel')

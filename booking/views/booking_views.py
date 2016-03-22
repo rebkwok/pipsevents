@@ -74,7 +74,8 @@ class BookingListView(LoginRequiredMixin, ListView):
                         booking.event.cost,
                         booking.event,
                         invoice_id,
-                        '{} {}'.format('booking', booking.id)
+                        '{} {}'.format('booking', booking.id),
+                        paypal_email=booking.event.paypal_email,
                     )
                 )
             else:
@@ -546,7 +547,8 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
                 '{} {}{}'.format(
                     'booking', self.object.id,
                     ' {}'.format(voucher.code) if voucher else ''
-                )
+                ),
+                paypal_email=self.object.event.paypal_email,
             )
         )
         context["paypalform"] = paypal_form

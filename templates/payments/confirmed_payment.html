@@ -16,7 +16,13 @@
             few hours, please check your spam folder and contact
         <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
             {{ organiser_email }}</a> if you need any further information.</p>
-
+    {% elif obj == 'paypal_test' %}
+        <h3>Test Payment {% if test_ipn_complete %}for {{ test_paypal_email }}{% endif %}</h3>
+        {% if test_ipn_complete %}
+            <p>The test payment has completed successfully.</p>
+        {% else %}
+            <p>The test payment is being processed.  You should receive an email notification of status shortly.</p>
+        {% endif %}
     {% else %}
         <h3>Payment for {{ purchase }}</h3>
 

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from model_mommy import mommy
 from mock import Mock, patch
 
@@ -60,7 +62,7 @@ IPN_POST_PARAMS = {
 }
 
 
-@override_settings(PAYPAL_RECEIVER_EMAIL=TEST_RECEIVER_EMAIL)
+@override_settings(DEFAULT_PAYPAL_EMAIL=TEST_RECEIVER_EMAIL)
 class PaypalSignalsTests(TestCase):
 
     def paypal_post(self, params):
@@ -216,7 +218,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking')
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -288,7 +293,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_successful_paypal_payment_sends_emails(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking')
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         invoice_id = helpers.create_booking_paypal_transaction(
             booking.user, booking
         ).invoice_id
@@ -304,7 +312,6 @@ class PaypalSignalsTests(TestCase):
         resp = self.paypal_post(params)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
-        ppipn = PayPalIPN.objects.first()
 
         # 2 emails sent, to user and studio
         self.assertEqual(
@@ -318,7 +325,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_sends_emails_to_user_only_if_studio_emails_off(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking')
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         invoice_id = helpers.create_booking_paypal_transaction(
             booking.user, booking
         ).invoice_id
@@ -334,7 +344,6 @@ class PaypalSignalsTests(TestCase):
         resp = self.paypal_post(params)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
-        ppipn = PayPalIPN.objects.first()
 
         # 1 email sent, to studio only
         self.assertEqual(len(mail.outbox), 1)
@@ -343,8 +352,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_successful_paypal_payment_updates_booking(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', payment_confirmed=False,
-                                    paid=False)
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=False, paid=False,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         invoice_id = helpers.create_booking_paypal_transaction(
             booking.user, booking
         ).invoice_id
@@ -357,7 +368,7 @@ class PaypalSignalsTests(TestCase):
                 'invoice': b(invoice_id)
             }
         )
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         booking.refresh_from_db()
         self.assertTrue(booking.payment_confirmed)
         self.assertTrue(booking.paid)
@@ -365,8 +376,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status_no_invoice_number(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', payment_confirmed=False,
-                                    paid=False)
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=False, paid=False,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         invoice_id = helpers.create_booking_paypal_transaction(
             booking.user, booking
         ).invoice_id
@@ -379,7 +392,7 @@ class PaypalSignalsTests(TestCase):
                 'invoice': b''
             }
         )
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         booking.refresh_from_db()
         self.assertTrue(booking.payment_confirmed)
         self.assertTrue(booking.paid)
@@ -399,7 +412,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_block(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        block = mommy.make_recipe('booking.block_10', paid=False)
+        block = mommy.make_recipe(
+            'booking.block_10', paid=False,
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         invoice_id = helpers.create_block_paypal_transaction(
             block.user, block
         ).invoice_id
@@ -430,7 +446,10 @@ class PaypalSignalsTests(TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_ticket_booking(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        ticket_booking = mommy.make_recipe('booking.ticket_booking', paid=False)
+        ticket_booking = mommy.make_recipe(
+            'booking.ticket_booking', paid=False,
+            ticketed_event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         invoice_id = helpers.create_ticket_booking_paypal_transaction(
             ticket_booking.user, ticket_booking
         ).invoice_id
@@ -462,7 +481,10 @@ class PaypalSignalsTests(TestCase):
     def test_paypal_notify_only_updates_relevant_booking(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
         user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe('booking.booking', paid=False)
+        booking = mommy.make_recipe(
+            'booking.booking', paid=False,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         mommy.make_recipe('booking.booking', paid=False, _quantity=5)
         invoice_id = helpers.create_booking_paypal_transaction(
             booking.user, booking
@@ -506,7 +528,10 @@ class PaypalSignalsTests(TestCase):
         we create one when processing the payment
         """
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', paid=False)
+        booking = mommy.make_recipe(
+            'booking.booking', paid=False,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalBookingTransaction.objects.exists())
@@ -547,7 +572,10 @@ class PaypalSignalsTests(TestCase):
         no invoice associated, we use the latest one.
         """
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', paid=False)
+        booking = mommy.make_recipe(
+            'booking.booking', paid=False,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalBookingTransaction.objects.exists())
@@ -583,7 +611,10 @@ class PaypalSignalsTests(TestCase):
             self, mock_postback
     ):
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', paid=False)
+        booking = mommy.make_recipe(
+            'booking.booking', paid=False,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalBookingTransaction.objects.exists())
@@ -624,7 +655,10 @@ class PaypalSignalsTests(TestCase):
         we create one when processing the payment
         """
         mock_postback.return_value = b"VERIFIED"
-        block = mommy.make_recipe('booking.block_5', paid=False)
+        block = mommy.make_recipe(
+            'booking.block_5', paid=False,
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalBlockTransaction.objects.exists())
@@ -668,7 +702,10 @@ class PaypalSignalsTests(TestCase):
         no invoice associated, we use the latest one.
         """
         mock_postback.return_value = b"VERIFIED"
-        block = mommy.make_recipe('booking.block_5', paid=False)
+        block = mommy.make_recipe(
+            'booking.block_5', paid=False,
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalBlockTransaction.objects.exists())
@@ -704,7 +741,10 @@ class PaypalSignalsTests(TestCase):
             self, mock_postback
     ):
         mock_postback.return_value = b"VERIFIED"
-        block = mommy.make_recipe('booking.block_5', paid=False)
+        block = mommy.make_recipe(
+            'booking.block_5', paid=False,
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalBlockTransaction.objects.exists())
@@ -745,7 +785,10 @@ class PaypalSignalsTests(TestCase):
         we create one when processing the payment
         """
         mock_postback.return_value = b"VERIFIED"
-        tbooking = mommy.make_recipe('booking.ticket_booking', paid=False)
+        tbooking = mommy.make_recipe(
+            'booking.ticket_booking', paid=False,
+            ticketed_event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalTicketBookingTransaction.objects.exists())
@@ -788,7 +831,10 @@ class PaypalSignalsTests(TestCase):
         no invoice associated, we use the latest one.
         """
         mock_postback.return_value = b"VERIFIED"
-        tbooking = mommy.make_recipe('booking.ticket_booking', paid=False)
+        tbooking = mommy.make_recipe(
+            'booking.ticket_booking', paid=False,
+            ticketed_event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalTicketBookingTransaction.objects.exists())
@@ -828,7 +874,10 @@ class PaypalSignalsTests(TestCase):
             self, mock_postback
     ):
         mock_postback.return_value = b"VERIFIED"
-        tbooking = mommy.make_recipe('booking.ticket_booking', paid=False)
+        tbooking = mommy.make_recipe(
+            'booking.ticket_booking', paid=False,
+            ticketed_event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         self.assertFalse(PayPalIPN.objects.exists())
         self.assertFalse(PaypalTicketBookingTransaction.objects.exists())
 
@@ -871,8 +920,10 @@ class PaypalSignalsTests(TestCase):
         identify and process refunded payments.
         """
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', payment_confirmed=True,
-                                    paid=True)
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -888,7 +939,7 @@ class PaypalSignalsTests(TestCase):
                 'payment_status': b'Refunded'
             }
         )
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         booking.refresh_from_db()
         self.assertFalse(booking.payment_confirmed)
         self.assertFalse(booking.paid)
@@ -913,8 +964,10 @@ class PaypalSignalsTests(TestCase):
         identify and process refunded payments.
         """
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking', payment_confirmed=True,
-                                    paid=True)
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -930,13 +983,40 @@ class PaypalSignalsTests(TestCase):
                 'payment_status': b'Refunded'
             }
         )
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         booking.refresh_from_db()
         self.assertFalse(booking.payment_confirmed)
         self.assertFalse(booking.paid)
 
         # emails not sent
         self.assertEqual(len(mail.outbox), 0)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_date_format_with_extra_spaces(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                "payment_date": b"01:21:32  Jan   25  2015 PDT",
+                'invoice': b(pptrans.invoice_id),
+                'custom': b('booking {}'.format(booking.id))
+            }
+        )
+
+        # Check extra spaces
+        self.paypal_post(params)
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertFalse(ppipn.flag)
 
     def test_paypal_notify_url_with_invalid_date(self):
         """
@@ -945,18 +1025,19 @@ class PaypalSignalsTests(TestCase):
         send a support email
         """
         self.assertFalse(PayPalIPN.objects.exists())
-        resp = self.paypal_post(
+        self.paypal_post(
             {
                 "payment_date": b"2015-10-25 01:21:32",
                 'charset': b(CHARSET),
-                'txn_id': 'test'
+                'txn_id': 'test',
             }
         )
         ppipn = PayPalIPN.objects.first()
         self.assertTrue(ppipn.flag)
         self.assertEqual(
             ppipn.flag_info,
-            'Invalid form. (payment_date: Enter a valid date/time.)'
+            'Invalid form. (payment_date: Invalid date format '
+            '2015-10-25 01:21:32: need more than 2 values to unpack)'
         )
 
         self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
@@ -968,8 +1049,115 @@ class PaypalSignalsTests(TestCase):
             mail.outbox[0].body,
             'PayPal sent an invalid transaction notification while attempting '
             'to process payment;.\n\nThe flag info was "Invalid form. '
-            '(payment_date: Enter a valid date/time.)"\n\nAn additional error '
-            'was raised: Unknown object type for payment'
+            '(payment_date: Invalid date format '
+            '2015-10-25 01:21:32: need more than 2 values to unpack)"'
+            '\n\nAn additional error was raised: Unknown object type for '
+            'payment'
+        )
+
+    def test_paypal_notify_url_with_invalid_date_formats(self):
+        """
+        Check other invalid date formats
+        %H:%M:%S %b. %d, %Y PDT is the expected format
+
+        """
+        # Fails because 25th cannot be convered to int
+        self.paypal_post(
+            {
+                "payment_date": b"01:21:32 Jan 25th 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 Jan 25th 2015 PDT: invalid literal for int() with "
+            "base 10: '25th')"
+        )
+
+        # Fails because month is not in Mmm format
+        self.paypal_post(
+            {
+                "payment_date": b"01:21:32 01 25 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 01 25 2015 PDT: '01' is not in list)"
+        )
+
+        # Fails because month is not in Mmm format
+        self.paypal_post(
+            {
+                "payment_date": b"01:21:32 January 25 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 January 25 2015 PDT: 'January' is not in list)"
+        )
+
+        # Fails because year part cannot be convered to int
+        self.paypal_post(
+            {
+                "payment_date": b"01:21:32 Jan 25 2015a PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 Jan 25 2015a PDT: invalid literal for int() with "
+            "base 10: '2015a')"
+        )
+
+        # No seconds part; fails on splitting the time
+        self.paypal_post(
+            {
+                "payment_date": b"01:28 Jan 25 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:28 Jan 25 2015 PDT: need more than 2 values to unpack)"
+        )
+
+        # Can be split and day/month/year parts converted but invalid date so
+        #  conversion to datetime sails
+        self.paypal_post(
+            {
+                "payment_date": b"01:21:32 Jan 49 2015 PDT",
+                'charset': b(CHARSET),
+                'txn_id': 'test'
+            }
+        )
+        ppipn = PayPalIPN.objects.latest('id')
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            "Invalid form. (payment_date: Invalid date format "
+            "01:21:32 Jan 49 2015 PDT: day is out of range for month)"
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
@@ -979,7 +1167,10 @@ class PaypalSignalsTests(TestCase):
         likely to happen with a duplicate transaction id
         """
         mock_postback.return_value = b"VERIFIED"
-        booking = mommy.make_recipe('booking.booking')
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -995,7 +1186,7 @@ class PaypalSignalsTests(TestCase):
                 'txn_id': 'test_txn_id'
             }
         )
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         booking.refresh_from_db()
         ppipn = PayPalIPN.objects.all()[0]
         ppipn1 = PayPalIPN.objects.all()[1]
@@ -1025,7 +1216,10 @@ class PaypalSignalsTests(TestCase):
         mock_send_emails.side_effect = Exception('Error sending mail')
         mock_postback.return_value = b"VERIFIED"
 
-        booking = mommy.make_recipe('booking.booking')
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -1038,7 +1232,7 @@ class PaypalSignalsTests(TestCase):
                 'txn_id': 'test_txn_id'
             }
         )
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         booking.refresh_from_db()
 
         ppipn = PayPalIPN.objects.first()
@@ -1071,7 +1265,10 @@ class PaypalSignalsTests(TestCase):
         mock_send_emails.side_effect = Exception('Error sending mail')
         payment_models_logger.warning = Mock()
 
-        booking = mommy.make_recipe('booking.booking')
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -1086,7 +1283,7 @@ class PaypalSignalsTests(TestCase):
         )
 
         with self.assertRaises(Exception):
-            resp = self.paypal_post(params)
+            self.paypal_post(params)
             payment_models_logger.warning.assert_called_with(
                 'Problem processing payment_not_received for Booking {}; '
                 'invoice_id {}, transaction id: test_txn_id. Exception: '
@@ -1108,7 +1305,8 @@ class PaypalSignalsTests(TestCase):
         user = mommy.make_recipe('booking.user')
         booking = mommy.make_recipe(
             'booking.booking', event__event_type=ev_type,
-            event__name='pole level 1', user=user
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
         )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
@@ -1124,7 +1322,7 @@ class PaypalSignalsTests(TestCase):
             }
         )
         self.assertIsNone(pptrans.transaction_id)
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         self.assertEqual(PayPalIPN.objects.count(), 1)
         ppipn = PayPalIPN.objects.first()
         self.assertFalse(ppipn.flag)
@@ -1150,7 +1348,8 @@ class PaypalSignalsTests(TestCase):
         user = mommy.make_recipe('booking.user')
         booking = mommy.make_recipe(
             'booking.booking', event__event_type=ev_type,
-            event__name='pole level 1', user=user
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
         )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
@@ -1166,7 +1365,7 @@ class PaypalSignalsTests(TestCase):
             }
         )
         self.assertIsNone(pptrans.transaction_id)
-        resp = self.paypal_post(params)
+        self.paypal_post(params)
         self.assertEqual(PayPalIPN.objects.count(), 1)
         ppipn = PayPalIPN.objects.first()
         self.assertFalse(ppipn.flag)
@@ -1188,3 +1387,345 @@ class PaypalSignalsTests(TestCase):
             'The exception raised was "Voucher matching query does not exist.',
             support_email.body
         )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_mismatched_receiver_email(self, mock_postback):
+        """
+        Test that error is raised if receiver email doesn't match object's
+        paypal_email. Warning mail sent to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email='test@test.com'
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(
+            ppipn.flag_info,
+            'Invalid receiver_email ({})'.format(TEST_RECEIVER_EMAIL)
+        )
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.paid)
+
+        # email to user, studio, and support email
+        self.assertEqual(len(mail.outbox), 1)
+        support_email = mail.outbox[0]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was '
+            '"Invalid receiver_email ({})'.format(TEST_RECEIVER_EMAIL),
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_pending_payment_status(self, mock_postback):
+        """
+        Test that error is raised and warning mail sent to support for a
+        payment status that is not Completed or Refunded.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+                'payment_status': 'Pending'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.paid)
+
+        # email to support email
+        self.assertEqual(len(mail.outbox), 1)
+        support_email = mail.outbox[0]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was "PayPal payment returned with '
+            'status PENDING for booking {}; '
+            'ipn obj id {} (txn id {}).  This is usually due to an '
+            'unrecognised or unverified paypal email address.'.format(
+                booking.id, ppipn.id, ppipn.txn_id
+            ),
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_unexpected_payment_status(self, mock_postback):
+        """
+        Test that error is raised and warning mail sent to support for a
+        payment status that is not Completed or Refunded.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+                'payment_status': 'Voided'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.paid)
+
+        # email to support email
+        self.assertEqual(len(mail.outbox), 1)
+        support_email = mail.outbox[0]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for booking '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was "Unexpected payment status VOIDED for '
+            'booking {}; ipn obj id {} (txn id {})'.format(
+                booking.id, ppipn.id, ppipn.txn_id
+            ),
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check(self, mock_postback):
+        """
+        Test that a paypal test payment is processed properly and
+        email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com'
+            }
+        )
+        self.assertNotEqual(
+            settings.DEFAULT_PAYPAL_EMAIL, params['receiver_email']
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Completed')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment processed for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_refunded_status(self, mock_postback):
+        """
+        Test that a refunded paypal test payment is processed properly
+        and email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Refunded'
+            }
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Refunded')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment refund processed for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_pending_status(self, mock_postback):
+        """
+        Test that a paypal test payment with pending status is processed
+        properly and email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Pending',
+            }
+        )
+        self.assertNotEqual(
+            settings.DEFAULT_PAYPAL_EMAIL, params['receiver_email']
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Pending')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment status PENDING for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_unexpected_status(self, mock_postback):
+        """
+        Test that a paypal test payment with unexpected status is processed
+        properly and email is sent to the user and to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Voided',
+            }
+        )
+        self.assertNotEqual(
+            settings.DEFAULT_PAYPAL_EMAIL, params['receiver_email']
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Voided')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+
+        self.assertEqual(
+            email.subject,
+            '{} Unexpected payment status VOIDED '
+            'for test payment to PayPal email test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            ),
+        )
+
+    @patch('payments.models.send_processed_test_confirmation_emails')
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_unexpected_error(
+            self, mock_postback, mock_send_confirmation
+    ):
+        """
+        Test that a paypal test payment that fails in some unexpected way
+        sends email to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        mock_send_confirmation.side_effect = Exception('Error')
+        params = dict(IPN_POST_PARAMS)
+
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
+                'receiver_email': 'test@test.com',
+            }
+        )
+        self.paypal_post(params)
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+
+        self.assertEqual(
+            email.subject,
+            '{} There was some problem processing payment for paypal_test '
+            'payment to paypal email test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+        self.assertIn('The exception raised was "Error"', email.body)
