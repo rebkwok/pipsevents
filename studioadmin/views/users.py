@@ -2,13 +2,13 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User,  Permission
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect, get_object_or_404
+from django.shortcuts import HttpResponseRedirect,  get_object_or_404
 from django.views.generic import ListView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -18,13 +18,13 @@ from braces.views import LoginRequiredMixin
 
 from accounts.models import PrintDisclaimer
 
-from booking.models import Booking, Block, WaitingListUser
-from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.models import Booking,  Block,  WaitingListUser
+from booking.email_helpers import send_support_email,  send_waiting_list_email
 
-from studioadmin.forms import BookingStatusFilter, UserBookingFormSet, \
-    UserBlockFormSet, UserListSearchForm
+from studioadmin.forms import BookingStatusFilter,  UserBookingFormSet,  \
+    UserBlockFormSet,  UserListSearchForm
 
-from studioadmin.views.helpers import InstructorOrStaffUserMixin, \
+from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
     staff_required
 from activitylog.models import ActivityLog
 
@@ -32,7 +32,10 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-NAME_FILTERS = ('All', 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z')
+NAME_FILTERS = (
+    'All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+)
 
 
 def _get_name_filter_available(search_text):
@@ -44,11 +47,11 @@ def _get_name_filter_available(search_text):
     name_filter_options = []
     for option in NAME_FILTERS:
         if option == "All":
-            name_filter_options.append({'value': 'All', 'available': True})
+            name_filter_options.append({'value': 'All',  'available': True})
         else:
             name_filter_options.append(
                 {
-                    'value': option,
+                    'value': option, 
                     'available': queryset.filter(first_name__istartswith=option)
                     .exists()
                 }
@@ -56,7 +59,7 @@ def _get_name_filter_available(search_text):
     return name_filter_options
 
 
-class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
+class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
 
     model = User
     template_name = 'studioadmin/user_list.html'
@@ -80,15 +83,15 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
                 Q(username__icontains=search_text)
             )
 
-        if filter:
-            if filter != 'All':
-                queryset = queryset.filter(first_name__istartswith=filter)
+        if filter and filter != 'All':
+            queryset = queryset.filter(first_name__istartswith=filter)
+
         return queryset
 
-    def get(self, request, *args, **kwargs):
+    def get(self,  request,  *args,  **kwargs):
         if 'change_user' in request.GET:
             if not request.user.is_staff:
-                messages.error(request, "This action is not permitted")
+                messages.error(request,  "This action is not permitted")
             else:
                 change_user_id = request.GET.getlist('change_user')[0]
                 user_to_change = User.objects.get(id=change_user_id)
@@ -98,30 +101,30 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
                     user_to_change.user_permissions.remove(perm)
                     if user_to_change.is_superuser:
                         messages.error(
-                            request,
+                            request, 
                             "{} {} ({}) is a superuser; you cannot remove "
                             "permissions".format(
-                                user_to_change.first_name,
-                                user_to_change.last_name,
+                                user_to_change.first_name, 
+                                user_to_change.last_name, 
                                 user_to_change.username
                             )
                         )
                     else:
                         messages.success(
-                            request,
+                            request, 
                             "'Regular student' status has been removed for "
                             "{} {} ({})".format(
-                                user_to_change.first_name,
-                                user_to_change.last_name,
+                                user_to_change.first_name, 
+                                user_to_change.last_name, 
                                 user_to_change.username
                             )
                         )
                         ActivityLog.objects.create(
                             log="'Regular student' status has been removed for "
                             "{} {} ({}) by admin user {}".format(
-                                user_to_change.first_name,
-                                user_to_change.last_name,
-                                user_to_change.username,
+                                user_to_change.first_name, 
+                                user_to_change.last_name, 
+                                user_to_change.username, 
                                 request.user.username
                             )
                         )
@@ -129,20 +132,20 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
                 else:
                     user_to_change.user_permissions.add(perm)
                     messages.success(
-                        request,
+                        request, 
                         "{} {} ({}) has been given 'regular student' "
                         "status".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
+                            user_to_change.first_name, 
+                            user_to_change.last_name, 
                             user_to_change.username
                         )
                     )
                     ActivityLog.objects.create(
                         log="{} {} ({}) has been given 'regular student' "
                         "status by admin user {}".format(
-                            user_to_change.first_name,
-                                user_to_change.last_name,
-                                user_to_change.username,
+                            user_to_change.first_name, 
+                                user_to_change.last_name, 
+                                user_to_change.username, 
                                 request.user.username
                             )
                     )
@@ -151,7 +154,7 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
 
         if 'change_print_disclaimer' in request.GET:
             if not request.user.is_staff:
-                messages.error(request, "This action is not permitted")
+                messages.error(request,  "This action is not permitted")
             else:
                 change_user_id = request.GET.getlist('change_print_disclaimer')[0]
                 user_to_change = User.objects.get(id=change_user_id)
@@ -160,20 +163,20 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
                 if disclaimer:
                     disclaimer.delete()
                     messages.success(
-                        request,
+                        request, 
                         "Print disclaimer removed for "
                         "{} {} ({})".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
+                            user_to_change.first_name, 
+                            user_to_change.last_name, 
                             user_to_change.username
                         )
                     )
                     ActivityLog.objects.create(
                         log="Print disclaimer has been removed for "
                         "{} {} ({}) by admin user {}".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
-                            user_to_change.username,
+                            user_to_change.first_name, 
+                            user_to_change.last_name, 
+                            user_to_change.username, 
                             request.user.username
                         )
                     )
@@ -181,33 +184,33 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
                 else:
                     PrintDisclaimer.objects.create(user=user_to_change)
                     messages.success(
-                        request,
+                        request, 
                         "Print disclaimer recorded for {} {} ({})".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
+                            user_to_change.first_name, 
+                            user_to_change.last_name, 
                             user_to_change.username
                         )
                     )
                     ActivityLog.objects.create(
                         log="Print disclaimer recorded for {} {} ({}) "
                         "by admin user {}".format(
-                            user_to_change.first_name,
-                                user_to_change.last_name,
-                                user_to_change.username,
+                            user_to_change.first_name, 
+                                user_to_change.last_name, 
+                                user_to_change.username, 
                                 request.user.username
                             )
                     )
                 user_to_change.save()
                 return HttpResponseRedirect(reverse('studioadmin:users'))
 
-        return super(UserListView, self).get(request, *args, **kwargs)
+        return super(UserListView,  self).get(request,  *args,  **kwargs)
 
     def get_context_data(self):
-        context = super(UserListView, self).get_context_data()
+        context = super(UserListView,  self).get_context_data()
         context['sidenav_selection'] = 'users'
         context['search_submitted'] = self.request.GET.get('search_submitted')
-        context['active_filter'] = self.request.GET.get('filter', 'All')
-        search_text = self.request.GET.get('search', '')
+        context['active_filter'] = self.request.GET.get('filter',  'All')
+        search_text = self.request.GET.get('search',  '')
         reset = self.request.GET.get('reset')
         context['filter_options'] = _get_name_filter_available(
             '' if reset else search_text
@@ -230,25 +233,25 @@ class UserListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
 
 @login_required
 @staff_required
-def user_bookings_view(request, user_id, booking_status='future'):
-    user = get_object_or_404(User, id=user_id)
+def user_bookings_view(request,  user_id,  booking_status='future'):
+    user = get_object_or_404(User,  id=user_id)
 
     if request.method == 'POST':
         booking_status = request.POST.getlist('booking_status')[0]
         userbookingformset = UserBookingFormSet(
-            request.POST.copy(), instance=user, user=user,
+            request.POST.copy(),  instance=user,  user=user, 
         )
         if userbookingformset.is_valid():
             if not userbookingformset.has_changed() and \
                     request.POST.get('formset_submitted'):
-                messages.info(request, "No changes were made")
+                messages.info(request,  "No changes were made")
             else:
                 for form in userbookingformset:
                     if form.is_valid():
                         if form.has_changed():
                             if form.changed_data == ['send_confirmation']:
                                 messages.info(
-                                    request, "'Send confirmation' checked for '{}' "
+                                    request,  "'Send confirmation' checked for '{}' "
                                     "but no changes were made; email has not been "
                                     "sent to user.".format(form.instance.event))
                             else:
@@ -294,7 +297,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                 if 'paid' in form.changed_data:
                                     if booking.paid:
                                         # assume that if booking is being done via
-                                        # studioadmin, marking paid also means payment
+                                        # studioadmin,  marking paid also means payment
                                         # is confirmed
                                         booking.payment_confirmed = True
                                         extra_msgs.append(
@@ -315,31 +318,31 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                         host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                                         # send email to studio
                                         ctx = {
-                                              'host': host,
-                                              'event': booking.event,
-                                              'user': booking.user,
-                                              'action': action,
-                                              'set_as_free': set_as_free,
+                                              'host': host, 
+                                              'event': booking.event, 
+                                              'user': booking.user, 
+                                              'action': action, 
+                                              'set_as_free': set_as_free, 
                                               'extra_msgs': extra_msgs
                                         }
                                         send_mail('{} Your booking for {} has been {}'.format(
-                                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
-                                            ),
+                                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,  booking.event,  action
+                                            ), 
                                             get_template(
                                                 'studioadmin/email/booking_change_confirmation.txt'
-                                            ).render(ctx),
-                                            settings.DEFAULT_FROM_EMAIL,
-                                            [booking.user.email],
+                                            ).render(ctx), 
+                                            settings.DEFAULT_FROM_EMAIL, 
+                                            [booking.user.email], 
                                             html_message=get_template(
                                                 'studioadmin/email/booking_change_confirmation.html'
-                                                ).render(ctx),
+                                                ).render(ctx), 
                                             fail_silently=False)
                                         send_confirmation_msg = "and confirmation " \
                                         "email sent to user"
                                     except Exception as e:
                                         # send mail to tech support with Exception
                                         send_support_email(
-                                            e, __name__, "user_booking_list - "
+                                            e,  __name__,  "user_booking_list - "
                                             "send confirmation email"
                                         )
                                         send_confirmation_msg = ". There was a " \
@@ -349,16 +352,16 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     send_confirmation_msg = ""
 
                                 messages.success(
-                                    request,
+                                    request, 
                                     'Booking for {} has been {} {}'.format(
-                                        booking.event, action, send_confirmation_msg
+                                        booking.event,  action,  send_confirmation_msg
                                     )
                                 )
                                 ActivityLog.objects.create(
                                     log='Booking id {} (user {}) for "{}" {} '
                                             'by admin user {} {}'.format(
-                                        booking.id, booking.user.username, booking.event,
-                                        action, request.user.username,
+                                        booking.id,  booking.user.username,  booking.event, 
+                                        action,  request.user.username, 
                                         "and marked as free class" if set_as_free else ""
                                     )
                                 )
@@ -366,16 +369,16 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                 if not booking.block \
                                          and 'block' in form.changed_data:
                                      messages.info(
-                                         request,
+                                         request, 
                                          'Block removed for {}; booking is '
                                          'now marked as unpaid'.format(
                                              booking.event
-                                         ),
+                                         ), 
                                      )
 
                                 if action == 'reopened':
                                     messages.info(
-                                        request, mark_safe(
+                                        request,  mark_safe(
                                             'Note: this booking was previously '
                                             'cancelled and has now been reopened. '
                                             '<span class="cancel-warning">Payment '
@@ -387,10 +390,10 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     )
                                 elif action == 'cancelled':
                                     messages.info(
-                                        request, 'Note: this booking has been '
+                                        request,  'Note: this booking has been '
                                         'cancelled.  The booking has automatically '
-                                        'been marked as unpaid (refunded) and, if '
-                                        'applicable, the block used has been updated.')
+                                        'been marked as unpaid (refunded) and,  if '
+                                        'applicable,  the block used has been updated.')
 
                                     if event_was_full:
                                         waiting_list_users = WaitingListUser.objects.filter(
@@ -399,9 +402,9 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                         if waiting_list_users:
                                             try:
                                                 send_waiting_list_email(
-                                                    booking.event,
+                                                    booking.event, 
                                                     [wluser.user for \
-                                                        wluser in waiting_list_users],
+                                                        wluser in waiting_list_users], 
                                                     host='http://{}'.format(
                                                         request.META.get('HTTP_HOST')
                                                     )
@@ -409,31 +412,31 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                                 ActivityLog.objects.create(
                                                     log='Waiting list email sent to '
                                                     'user(s) {} for event {}'.format(
-                                                        ', '.join(
+                                                        ',  '.join(
                                                             [wluser.user.username \
                                                                 for wluser in \
                                                                 waiting_list_users]
-                                                        ),
+                                                        ), 
                                                         booking.event
                                                     )
                                                 )
                                             except Exception as e:
                                                 # send mail to tech support with Exception
                                                 send_support_email(
-                                                    e, __name__,
+                                                    e,  __name__, 
                                                     "Studioadmin user booking list - waiting list email"
                                                 )
 
                                 if action == 'created' or action == 'reopened':
                                     try:
                                         waiting_list_user = WaitingListUser.objects.get(
-                                            user=booking.user, event=booking.event
+                                            user=booking.user,  event=booking.event
                                         )
                                         waiting_list_user.delete()
                                         ActivityLog.objects.create(
                                             log='User {} has been removed from the '
                                             'waiting list for {}'.format(
-                                                booking.user.username,
+                                                booking.user.username, 
                                                 booking.event
                                             )
                                         )
@@ -444,7 +447,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                                     if booking.block.children.exists() \
                                             and not has_free_block_pre_save:
                                          messages.info(
-                                             request,
+                                             request, 
                                             'You have added the last booking '
                                             'to a 10 class block; free class '
                                             'block has been created.'
@@ -454,16 +457,16 @@ def user_bookings_view(request, user_id, booking_status='future'):
 
             return HttpResponseRedirect(
                 reverse(
-                    'studioadmin:user_bookings_list',
+                    'studioadmin:user_bookings_list', 
                     kwargs={
-                        'user_id': user.id,
+                        'user_id': user.id, 
                         'booking_status': booking_status
                     }
                 )
             )
         else:
             messages.error(
-                request,
+                request, 
                 mark_safe(
                     "Please correct the following errors:\n{}".format(
                         '\n'.join(
@@ -483,7 +486,7 @@ def user_bookings_view(request, user_id, booking_status='future'):
                 event__date__lt=timezone.now()
             ).order_by('-event__date')
             userbookingformset = UserBookingFormSet(
-                queryset=queryset, instance=user, user=user,
+                queryset=queryset,  instance=user,  user=user, 
             )
         else:
             # 'future' by default
@@ -491,12 +494,12 @@ def user_bookings_view(request, user_id, booking_status='future'):
                 event__date__gte=timezone.now()
             ).order_by('event__date')
             userbookingformset = UserBookingFormSet(
-                queryset=queryset, instance=user, user=user,
+                queryset=queryset,  instance=user,  user=user, 
             )
 
         userbookingformset = UserBookingFormSet(
-            instance=user,
-            queryset=queryset,
+            instance=user, 
+            queryset=queryset, 
             user=user
         )
 
@@ -506,10 +509,10 @@ def user_bookings_view(request, user_id, booking_status='future'):
 
     template = 'studioadmin/user_booking_list.html'
     return TemplateResponse(
-        request, template, {
-            'userbookingformset': userbookingformset, 'user': user,
-            'sidenav_selection': 'users',
-            'booking_status_filter': booking_status_filter,
+        request,  template,  {
+            'userbookingformset': userbookingformset,  'user': user, 
+            'sidenav_selection': 'users', 
+            'booking_status_filter': booking_status_filter, 
             'booking_status': booking_status
         }
     )
@@ -517,18 +520,18 @@ def user_bookings_view(request, user_id, booking_status='future'):
 
 @login_required
 @staff_required
-def user_blocks_view(request, user_id):
+def user_blocks_view(request,  user_id):
 
-    user = get_object_or_404(User, id=user_id)
+    user = get_object_or_404(User,  id=user_id)
     if request.method == 'POST':
         userblockformset = UserBlockFormSet(
-            request.POST,
-            instance=user,
+            request.POST, 
+            instance=user, 
             user=user
         )
         if userblockformset.is_valid():
             if not userblockformset.has_changed():
-                messages.info(request, "No changes were made")
+                messages.info(request,  "No changes were made")
             else:
                 for form in userblockformset:
                     if form.has_changed():
@@ -537,19 +540,19 @@ def user_blocks_view(request, user_id):
 
                         if 'DELETE' in form.changed_data:
                             messages.success(
-                                request, mark_safe(
+                                request,  mark_safe(
                                     'Block <strong>{}</strong> has been '
                                     'deleted!  Any bookings made with this '
                                     'block have been changed to unpaid.  '
                                     'Please inform user {} ({})'.format(
-                                        block, block.user.username,
+                                        block,  block.user.username, 
                                         block.user.email
                                     )
                                 )
                             )
                             ActivityLog.objects.create(
                                 log='Block {} (id {}) deleted by admin user {}'.format(
-                                form.instance, form.instance.id, request.user.username)
+                                form.instance,  form.instance.id,  request.user.username)
                             )
                             block.delete()
                         else:
@@ -557,17 +560,17 @@ def user_blocks_view(request, user_id):
                             msg = 'created' if new else 'updated'
 
                             messages.success(
-                                request,
+                                request, 
                                 'Block for {} has been {}'.format(
-                                    block.block_type.event_type, msg
+                                    block.block_type.event_type,  msg
                                 )
                             )
                             block.save()
                             ActivityLog.objects.create(
-                                log='Block id {} ({}), user {}, {}'
+                                log='Block id {} ({}),  user {},  {}'
                                         ' by admin user {}'.format(
-                                    block.id, block.block_type,
-                                    block.user.username, msg,
+                                    block.id,  block.block_type, 
+                                    block.user.username,  msg, 
                                     request.user.username
                                 )
                             )
@@ -575,13 +578,13 @@ def user_blocks_view(request, user_id):
                 userblockformset.save(commit=False)
 
             return HttpResponseRedirect(
-                reverse('studioadmin:user_blocks_list',
+                reverse('studioadmin:user_blocks_list', 
                         kwargs={'user_id': user.id}
                         )
             )
         else:
             messages.error(
-                request,
+                request, 
                 mark_safe(
                     "There were errors in the following fields:\n{}".format(
                         '\n'.join(
@@ -594,15 +597,15 @@ def user_blocks_view(request, user_id):
         queryset = Block.objects.filter(
             user=user).order_by('-start_date')
         userblockformset = UserBlockFormSet(
-            instance=user,
-            queryset=queryset,
+            instance=user, 
+            queryset=queryset, 
             user=user
         )
 
     template = 'studioadmin/user_block_list.html'
     return TemplateResponse(
-        request, template, {
-            'userblockformset': userblockformset, 'user': user,
+        request,  template,  {
+            'userblockformset': userblockformset,  'user': user, 
             'sidenav_selection': 'users'
         }
     )
