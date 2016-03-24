@@ -50,7 +50,7 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_user', 'get_event', 'invoice_id',
                     'transaction_id', 'get_booking_id')
     readonly_fields = ('id', 'booking', 'get_user', 'get_event', 'invoice_id',
-                    'transaction_id', 'get_booking_id', 'cost', 'voucher_code')
+                       'get_booking_id', 'cost', 'voucher_code')
     list_filter = (PaypalBookingUserFilter, 'booking__event')
 
     def get_booking_id(self, obj):
@@ -76,10 +76,9 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
     list_display = ('id', 'get_user', 'get_blocktype', 'invoice_id',
                     'transaction_id', 'get_block_id')
     readonly_fields = ('block', 'id', 'get_user', 'get_blocktype', 'invoice_id',
-                    'transaction_id', 'get_block_id', 'cost', 'block_start',
+                    'get_block_id', 'cost', 'block_start',
                     'block_expiry')
     list_filter = (PaypalBlockUserFilter,)
-
 
     def get_block_id(self, obj):
         return obj.block.id
@@ -110,7 +109,7 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
 class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'get_user', 'get_ticketed_event', 'invoice_id',
-                    'transaction_id', 'get_ticket_booking_id', 'ticket_cost',
+                    'get_ticket_booking_id', 'ticket_cost',
                        'number_of_tickets', 'total_cost')
     readonly_fields = ('id', 'ticket_booking', 'get_user', 'get_ticketed_event',
                        'invoice_id', 'transaction_id', 'get_ticket_booking_id',
