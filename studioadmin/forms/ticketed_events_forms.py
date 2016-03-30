@@ -191,8 +191,8 @@ class TicketedEventAdminForm(forms.ModelForm):
                 date = datetime.strptime(self.data['date'], '%d %b %Y %H:%M')
                 uk = pytz.timezone('Europe/London')
                 cleaned_data['date'] = uk.localize(date).astimezone(pytz.utc)
-                if cleaned_data['date'] == self.initial.get('date') and \
-                            'date' in self.changed_data:
+                if self.instance.id and cleaned_data['date'] == \
+                        self.instance.date and 'date' in self.changed_data:
                     self.changed_data.remove('date')
             except ValueError:
                 self.add_error('date', 'Invalid date format.  Select from the '

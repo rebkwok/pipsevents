@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytz
 from datetime import timedelta
 from mock import patch
 from model_mommy import mommy
@@ -252,9 +253,12 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         return view(request, slug=ticketed_event.slug)
 
     def form_data(self, extra_data={}):
+        # make the date uk time before stringifying for form input
+        uk = pytz.timezone('Europe/London')
+        date = self.ticketed_event.date.astimezone(uk)
         data = {
             'name': self.ticketed_event.name,
-            'date': self.ticketed_event.date.strftime('%d %b %Y %H:%M'),
+            'date': date.strftime('%d %b %Y %H:%M'),
             'contact_email': self.ticketed_event.contact_email,
             'contact_person': self.ticketed_event.contact_person,
             'location': self.ticketed_event.location,
