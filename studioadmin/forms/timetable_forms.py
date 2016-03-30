@@ -118,9 +118,9 @@ class SessionAdminForm(forms.ModelForm):
             try:
                 time = datetime.strptime(self.data['time'], '%H:%M').time()
                 cleaned_data['time'] = time
-                if self.instance.id and \
-                                self.instance.time.strftime('%H:%M') == \
-                                self.data['time']:
+                if 'time' in self.changed_data and self.instance.id \
+                        and self.instance.time.strftime('%H:%M') \
+                        == self.data['time']:
                     self.changed_data.remove('time')
             except ValueError:
                 self.add_error('time', 'Invalid time format.  Select from the '
