@@ -36,10 +36,8 @@
                                         {% elif blockform.expired %}
                                             <span class="fa fa-times" aria-label="No"></span>
                                         {% else %}
-                                            {% if not blockform.block.paid %}
                                             {% include 'payments/blocklistpayment.html' %}
                                             <a href="{% url 'booking:delete_block' blockform.block.id%}"><span class="btn table-btn btn-danger">Delete</span></a>
-                                            {% endif %}
                                         {% endif %}
                                     </td>
                                     <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
