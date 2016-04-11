@@ -1,0 +1,18 @@
+Dear {{ first_name }},
+
+It looks like you have {{ email_count }} accounts on the Watermelon Studio booking system.  This may be because you have logged in with facebook but also manually created an account with an email address not linked to your facebook account.
+
+Could you please reply to this message to confirm you own {% if email_count == 2 %}both{% else %}all of{% endif %} the following email addresses?
+{% if more_than_1_used %}As more than one of these accounts has been used for booking, please confirm which one you would like to keep.  I will merge your accounts to the one you specify.
+You can change the primary email address (i.e. the email where you'll receive any notifications from the site) at any time by going to Your Account > Change Email.
+{% elif email_used %}I will merge your accounts to the one that you have previously used for booking ({{ email_used }}).
+{% else %}I will merge your email addresses to one account.  Please let me know if you have a preference as to which one is primary (i.e. the email where you'll receive any notifications from the site) at any time by going to Your Account > Change Email.
+{% endif %}
+* {{ email1 }} {% if email1_is_fb %}(account created by facebook login){% else %}(username: {{ username1 }}){% endif %}
+* {{ email2 }} {% if email2_is_fb %}(account created by facebook login){% else %}(username: {{ username2 }}){% endif %}
+{% if email3 %}* {{ email3 }} {% if email3_is_fb %}(account created by facebook login){% else %}(username: {{ username3 }}){% endif %}{% endif %}
+
+Thanks,
+Becky (booking system developer)
+
+(Please note that replying to this message will reply to my email - rebkwok@gmail.com)
