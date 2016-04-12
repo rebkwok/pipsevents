@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bookingtags %}
 
 {% block content %}
 
@@ -41,7 +42,7 @@
                                         {% endif %}
                                     </td>
                                     <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
-                                    <td>{{ blockform.block.block_type.event_type.subtype }}{% if blockform.block.block_type.identifier == 'free class' %} (free class){% endif %}</td>
+                                    <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
                                     <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                     <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
                                     <td class="table-center">{{ blockform.block.block_type.size }}</td>

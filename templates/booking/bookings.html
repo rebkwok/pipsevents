@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load bookingtags %}
 
 {% block content %}
 
@@ -91,9 +92,7 @@
                                     </td>
                                 <td>{{ bookingform.booking.status }}</td>
                                 <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
-                                <td class="table-center">{% if bookingform.booking.free_class %}<span class="confirmed">Free class</span>{% elif bookingform.booking.event.cost and bookingform.booking.paid %}<span class="confirmed fa fa-check"></span>
-                                    {% elif bookingform.booking.event.cost and not bookingform.booking.paid %}<span class="not-confirmed fa fa-close"></span>
-                                    {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td class="table-center">{{ bookingform.booking|format_paid_status }}</td>
                                 <td class="table-center">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
                                 <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>

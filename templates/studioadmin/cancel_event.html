@@ -20,8 +20,9 @@
         </ul>
 
         {% if open_direct_paid_bookings %}
-          <p>The following users paid for this {{ event_type }} directly and
-              will need to be refunded:</p>
+          <p>The following users paid for this {{ event_type }}
+              directly (i.e. in cash or by paypal){% if event.event_type.event_type == 'EV' %}
+                  and will need to be refunded{% endif %}:</p>
             <ul>
                 {% for booking in open_direct_paid_bookings %}
                     <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
@@ -32,9 +33,13 @@
         <p>There are no open bookings on this {{ event_type }}.</p>
     {% endif %}
 
-    <p><strong>Please confirm you want to cancel this {{ event_type }}.</strong></p>
-
     <form action="" method="post">{% csrf_token %}
+        {% if open_direct_paid_bookings and event.event_type.event_type != 'EV' %}
+            <p><strong>How do you want to deal with bookings paid directly?</strong><br>
+            <input type="radio" name="direct_paid_action" value="transfer" checked="checked"> Create transfer blocks<br>
+            <input type="radio" name="direct_paid_action" value="refund"> Refund manually</p>
+        {% endif %}
+        <p><strong>Please confirm you want to cancel this {{ event_type }}.</strong></p>
         <input class="btn btn-success" type="submit" name="confirm" value="Yes, cancel this {{ event_type }}" />
         <input class="btn btn-danger" type="submit" name="cancel" value="No, take me back" />
     </form>

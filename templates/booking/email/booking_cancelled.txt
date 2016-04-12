@@ -4,8 +4,10 @@ Your booking for {{ event }} has been cancelled.
 {% if booking.block %}
 You used a block to make this booking; your block has been updated.
 {% endif %}
-{% if not booking.block %}{% if not booking.free_class %}
-Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and will be in contact soon.{% else %}
-This booking was marked as a free class. If you decide to reopen this booking you will need to resubmit a free class request for approval.
+{% if not booking.block %}{% if not booking.free_class %}{% if event.event_type.event_type == 'CL' %}
+This booking is not refundable; a transfer block has been created for you and can be used for your next booking for the same class type.
+{% elif event.event_type.event_type == 'RH' %}This booking is not refundable; a transfer block has been created for you and can be used for your next room hire booking.
+{% else %}Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and will be in contact soon.{% endif %}
+{% else %}This booking was marked as a free class. If you decide to reopen this booking you will need to resubmit a free class request for approval.
 {% endif %}{% endif %}
 For further information please contact {{ booking.event.contact_person }} at {{ booking.event.contact_email }}

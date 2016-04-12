@@ -26,18 +26,19 @@
                             <tr class="success">
                                 <th>Block status</th>
                                 <th>Block type</th>
+                                <th>Transferred from</th>
                                 <th class="table-center">Paid</th>
                                 <th class="table-center">Block Size</th>
                                 <th class="table-center">Used</th>
                                 <th class="table-center">Start Date</th>
                                 <th class="table-center">Expiry Date</th>
                                 <th class="table-center">Delete</br>
-                                <span class="studioadmin-help">Only for unpaid/<br/>unsed free blocks</span></th>
+                                <span class="studioadmin-help">Only for unpaid or<br/>unsed free/transfer blocks</span></th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for block in userblockformset %}
-                            <tr>
+                            <tr {% if block.instance.expired or block.instance.full %}class="expired"{% endif %}>
                                 <span class="hide">{{ block.id }}{{ block.block_type }}{{ block.start_date }}</span>
                                 {% if block.instance.id %}
                                     <span class="hide">{{ block.block.event_type }}</span>
@@ -51,7 +52,8 @@
                                         UNPAID
                                     {% endif %}</td>
                                     <td class="studioadmin-tbl">{{ block.instance.block_type.event_type.subtype }}
-                                        {% if block.instance.block_type.identifier %}({{ block.instance.block_type.identifier }}){% endif %}</td>
+                                        {{ block.instance.block_type.identifier|format_block_type_identifier }}</td>
+                                    <td class="studioadmin-tbl">{{ block.instance|transferred_from }}</td>
                                     {% if block.instance.paid %}
                                         <span class="hide">{{ block.paid }}</span>
                                         <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
@@ -68,6 +70,7 @@
                                     <td><strong>Add new block</strong></td>
                                     <td class="studioadmin-tbl">
                                         <div class="form-group form-group-sm">{{ block.block_type }}</div></td>
+                                    <td></td>
                                     <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
                                     <td></td>
                                     <td></td>
