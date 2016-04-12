@@ -1,3 +1,5 @@
+import random
+
 from datetime import timedelta
 from mock import patch
 from model_mommy import mommy
@@ -556,35 +558,43 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(UserBookingsViewTests, self).setUp()
-        self.future_user_bookings = mommy.make_recipe(
-            'booking.booking', user=self.user, paid=True,
-            payment_confirmed=True, event__date=timezone.now()+timedelta(3),
-            status='OPEN',
-            _quantity=2
-        )
-        self.past_user_bookings = mommy.make_recipe(
-            'booking.booking', user=self.user, paid=True,
-            payment_confirmed=True, event__date=timezone.now()-timedelta(3),
-            status='OPEN',
-            _quantity=2
-        )
-        self.future_cancelled_bookings = mommy.make_recipe(
-            'booking.booking', user=self.user, paid=True,
-            payment_confirmed=True, event__date=timezone.now()+timedelta(3),
-            status='CANCELLED',
-            _quantity=2
-        )
-        self.past_cancelled_bookings = mommy.make_recipe(
-            'booking.booking', user=self.user, paid=True,
-            payment_confirmed=True, event__date=timezone.now()-timedelta(3),
-            status='CANCELLED',
-            _quantity=2
-        )
-        mommy.make_recipe(
-            'booking.booking', paid=True,
-            payment_confirmed=True, event__date=timezone.now()+timedelta(3),
-            _quantity=2
-        )
+
+        past_classes1 = mommy.make_recipe('booking.past_class', _quantity=2)
+        past_classes2 = mommy.make_recipe('booking.past_class', _quantity=2)
+        future_classes1 = mommy.make_recipe('booking.future_PC', _quantity=2)
+        future_classes2 = mommy.make_recipe('booking.future_PC', _quantity=2)
+        future_classes3 = mommy.make_recipe('booking.future_PC', _quantity=2)
+
+        self.future_user_bookings = [
+                mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='OPEN',
+            ) for event in future_classes1
+        ]
+        self.past_user_bookings = [
+            mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='OPEN'
+            ) for event in past_classes1
+        ]
+        self.future_cancelled_bookings = [
+                mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='CANCELLED'
+            ) for event in future_classes2
+        ]
+        self.past_cancelled_bookings = [
+            mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='CANCELLED'
+            ) for event in past_classes2
+        ]
+        [
+            mommy.make_recipe(
+                'booking.booking', paid=True,
+                payment_confirmed=True, event=event,
+            ) for event in future_classes3
+        ]
 
     def formset_data(self, extra_data={}):
         data = {

@@ -17,7 +17,7 @@ from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
-from booking.models import Event
+from booking.models import Block, BlockType, Event
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventFormSet,  EventAdminForm
 from studioadmin.views.helpers import staff_required, StaffUserMixin
@@ -300,12 +300,30 @@ def cancel_event_view(request, slug):
 
                 if booking.block:
                     booking.block = None
+                    booking.deposit_paid = False
                     booking.paid = False
                     booking.payment_confirmed = False
                 elif booking.free_class:
                     booking.free_class = False
+                    booking.deposit_paid = False
                     booking.paid = False
                     booking.payment_confirmed = False
+                elif direct_paid and request.POST.get('direct_paid_action') == 'transfer':
+                    # create transfer block and make this booking unpaid
+                    if booking.event.event_type.event_type != 'EV':
+                        booking.deposit_paid = False
+                        booking.paid = False
+                        booking.payment_confirmed = False
+                        block_type, _ = BlockType.objects.get_or_create(
+                            event_type=booking.event.event_type,
+                            size=1, cost=0, duration=1,
+                            identifier='transferred',
+                            active=False
+                        )
+                        Block.objects.create(
+                            block_type=block_type, user=booking.user,
+                            transferred_booking_id=booking.id
+                        )
 
                 booking.status = "CANCELLED"
                 booking.save()
@@ -319,6 +337,8 @@ def cancel_event_view(request, slug):
                           'event_type': ev_type,
                           'block': block_paid,
                           'direct_paid': direct_paid,
+                          'transfer_block_created':
+                              request.POST['direct_paid_action'] == 'transfer',
                           'event': event,
                           'user': booking.user,
                     }
@@ -346,7 +366,8 @@ def cancel_event_view(request, slug):
             event.payment_open = False
             event.save()
 
-            if open_direct_paid_bookings:
+            if open_direct_paid_bookings \
+                    and not request.POST.get('direct_paid_action') == 'transfer':
                 # email studio with links for confirming refunds
 
                 try:
@@ -380,10 +401,12 @@ def cancel_event_view(request, slug):
 
             if open_bookings:
                 booking_cancelled_msg = 'open ' \
-                                        'booking(s) for {} have been cancelled ' \
-                                        'and notification emails have been ' \
+                                        'booking(s) have been cancelled{} ' \
+                                        'Notification emails have been ' \
                                         'sent to {}.'.format(
-                    ev_type,
+                    ' and transfer blocks created for direct paid bookings.'
+                    if request.POST.get('direct_paid_action') == 'transfer'
+                    else '.',
                     ', '.join(
                         ['{} {}'.format(booking.user.first_name,
                                         booking.user.last_name)
@@ -425,7 +448,7 @@ def cancel_event_view(request, slug):
         'event': event,
         'event_type': ev_type,
         'open_bookings': open_bookings,
-        'open_direct_paid_bookings': open_direct_paid_bookings
+        'open_direct_paid_bookings': open_direct_paid_bookings,
     }
 
     return TemplateResponse(

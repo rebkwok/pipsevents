@@ -16,6 +16,10 @@
                 <h4>Are you sure?</h4>
                 {% if booked_with_block %}
                 <p>You used a block for this booking; your block will be updated automatically.</p>
+                {% elif event.event_type.event_type != 'EV' %}
+                    <p>Please note that this booking is transferable but not refundable.
+                        If you cancel you will be assigned a transfer block which can be used to book for another
+                        {% if event.event_type.event_type == 'CL' %}class{% else %}room hire{% endif %} of the same type.</p>
                 {% else %}
                 <p>Please note that any payments already made will not be automatically
                 refunded.</p>

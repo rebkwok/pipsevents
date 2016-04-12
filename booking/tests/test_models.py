@@ -1273,12 +1273,32 @@ class TicketTests(TestCase):
 class BlockTypeTests(TestCase):
 
     def test_cannot_create_multiple_free_class_block_types(self):
-        mommy.make(BlockType, identifier='free class')
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+        mommy.make(BlockType, event_type=ev_type, identifier='free class')
         self.assertEqual(BlockType.objects.count(), 1)
 
         with self.assertRaises(BlockTypeError):
-            mommy.make(BlockType, identifier='free class')
+            mommy.make(BlockType, event_type=ev_type, identifier='free class')
         self.assertEqual(BlockType.objects.count(), 1)
+
+    def test_cannot_create_multiple_transfer_block_types(self):
+        ev_type = mommy.make_recipe('booking.event_type_PC')
+        mommy.make(BlockType, event_type=ev_type, identifier='transferred')
+        self.assertEqual(BlockType.objects.count(), 1)
+
+        with self.assertRaises(BlockTypeError):
+            mommy.make(BlockType, event_type=ev_type, identifier='transferred')
+        self.assertEqual(BlockType.objects.count(), 1)
+
+    def test_cann_create_transfer_block_types_for_different_events(self):
+        pc_ev_type = mommy.make_recipe('booking.event_type_PC')
+        pp_ev_type = mommy.make_recipe('booking.event_type_PP')
+
+        mommy.make(BlockType, event_type=pc_ev_type, identifier='transferred')
+        self.assertEqual(BlockType.objects.count(), 1)
+
+        mommy.make(BlockType, event_type=pp_ev_type, identifier='transferred')
+        self.assertEqual(BlockType.objects.count(), 2)
 
 
 class VoucherTests(TestCase):
