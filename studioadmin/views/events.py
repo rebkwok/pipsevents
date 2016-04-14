@@ -283,17 +283,17 @@ def cancel_event_view(request, slug):
     ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
 
     open_bookings = Booking.objects.filter(event=event, status='OPEN')
-    open_block_bookings = open_bookings.filter(
-        block__isnull=False, free_class=False
-    )
-    open_unpaid_bookings = open_bookings.filter(deposit_paid=False, paid=False)
-    open_free_class = open_bookings.filter(free_class=True)
-    open_direct_paid_deposit_only = open_bookings.filter(
-        block__isnull=True, free_class=False, deposit_paid=True, paid=False
-    )
-    open_direct_paid = open_bookings.filter(
-        block__isnull=True, free_class=False, paid=True
-    )
+    open_block_bookings = [bk for bk in open_bookings if bk.block and not bk.free_class]
+    open_unpaid_bookings = [bk for bk in open_bookings if not bk.deposit_paid and not bk.paid]
+    open_free_class = [bk for bk in open_bookings if bk.free_class]
+    open_direct_paid_deposit_only = [
+        bk for bk in open_bookings if not bk.block
+        and not bk.free_class and bk.deposit_paid and not bk.paid
+    ]
+    open_direct_paid = [
+        bk for bk in open_bookings if not bk.block
+        and not bk.free_class and bk.paid
+    ]
 
     if request.method == 'POST':
         if 'confirm' in request.POST:
@@ -309,6 +309,7 @@ def cancel_event_view(request, slug):
                     booking.deposit_paid = False
                     booking.paid = False
                     booking.payment_confirmed = False
+                    booking.free_class = False  # in case this was paid with a free class block
                 elif booking.free_class:
                     booking.free_class = False
                     booking.deposit_paid = False
@@ -377,11 +378,11 @@ def cancel_event_view(request, slug):
             # transfer blocks for deposit-only
             bookings_to_refund = []
             if not transfer_direct_paid:
-                [bookings_to_refund.append(bk) for bk in open_direct_paid]
-                [bookings_to_refund.append(bk)
-                 for bk in open_direct_paid_deposit_only]
-
-            elif open_direct_paid:
+                bookings_to_refund = [
+                    bk for bk in open_bookings if not bk.block
+                    and not bk.free_class and (bk.deposit_paid or bk.paid)
+                ]
+            else:
                 bookings_to_refund = open_direct_paid_deposit_only
 
             if bookings_to_refund:

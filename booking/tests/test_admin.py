@@ -9,7 +9,8 @@ from django.test import TestCase
 from django.utils import timezone
 
 import booking.admin as admin
-from booking.models import Event, Booking, Block, BlockType, Voucher
+from booking.models import Event, Booking, Block, BlockType, TicketBooking, \
+    Ticket, Voucher
 from booking.tests.helpers import format_content
 
 
@@ -457,7 +458,7 @@ class BlockTypeAdminTests(TestCase):
         )
 
 
-class VoucherAdminTest(TestCase):
+class VoucherAdminTests(TestCase):
 
     def test_event_types_display(self):
         voucher = mommy.make(Voucher)
@@ -489,3 +490,51 @@ class VoucherAdminTest(TestCase):
         self.assertEqual(
             voucher_admin.times_used(voucher_query), 2
         )
+
+
+class TicketBookingAdminTests(TestCase):
+
+    def test_ticket_number_display(self):
+        ticket_booking = mommy.make_recipe('booking.ticket_booking')
+        mommy.make(Ticket, ticket_booking=ticket_booking, _quantity=3)
+        tb_admin = admin.TicketBookingAdmin(TicketBooking, AdminSite())
+        tb_query = tb_admin.get_queryset(None)[0]
+        self.assertEqual(tb_admin.number_of_tickets(tb_query), 3)
+
+
+class TicketAdmin(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        cls.ticket_booking = mommy.make_recipe(
+            'booking.ticket_booking', ticketed_event=cls.ticketed_event,
+            user=mommy.make_recipe(
+                'booking.user', first_name='Donald', last_name='Duck',
+                username='dd'
+            )
+        )
+        mommy.make(Ticket, ticket_booking=cls.ticket_booking)
+
+    def test_ticketed_event_display(self):
+        ticket_admin = admin.TicketAdmin(Ticket, AdminSite())
+        ticket_query = ticket_admin.get_queryset(None)[0]
+        self.assertEqual(
+            ticket_admin.ticketed_event(ticket_query), self.ticketed_event
+        )
+
+    def test_ticket_booking_ref_display(self):
+        ticket_admin = admin.TicketAdmin(Ticket, AdminSite())
+        ticket_query = ticket_admin.get_queryset(None)[0]
+        self.assertEqual(
+            ticket_admin.ticket_booking_ref(ticket_query),
+            self.ticket_booking.booking_reference
+        )
+
+    def test_user_display(self):
+        ticket_admin = admin.TicketAdmin(Ticket, AdminSite())
+        ticket_query = ticket_admin.get_queryset(None)[0]
+        self.assertEqual(
+            ticket_admin.user(ticket_query), 'Donald Duck (dd)'
+        )
+

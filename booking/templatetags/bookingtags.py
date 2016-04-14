@@ -155,6 +155,7 @@ def in_group(user, group_name):
     group = Group.objects.get(name=group_name)
     return True if group in user.groups.all() else False
 
+
 @register.filter
 def format_block(block):
     return "{} ({}/{} left); expires {}".format(
@@ -202,11 +203,13 @@ def subscribed(user):
     group, _ = Group.objects.get_or_create(name='subscribed')
     return group in user.groups.all()
 
+
 @register.filter
 def has_booked_class(user):
     return Booking.objects.filter(
         user=user, event__event_type__event_type='CL'
     ).exists()
+
 
 @register.filter
 def format_block_type_id_user(block):
@@ -223,6 +226,7 @@ def format_block_type_id_user(block):
         except Booking.DoesNotExist:
             return '(transferred)'
     return ''
+
 
 @register.filter
 def format_block_type_identifier(value):
@@ -251,9 +255,12 @@ def format_paid_status(booking):
 @register.filter
 def transferred_from(block):
     if block.transferred_booking_id:
-        bk = Booking.objects.get(id=block.transferred_booking_id)
-        return '{} {} ({})'.format(
-            bk.event.name, bk.event.date.strftime('%d%b%y'),
-            block.transferred_booking_id
-        )
+        try:
+            bk = Booking.objects.get(id=block.transferred_booking_id)
+            return '{} {} ({})'.format(
+                bk.event.name, bk.event.date.strftime('%d%b%y'),
+                block.transferred_booking_id
+            )
+        except Booking.DoesNotExist:
+            return '({})'.format(block.transferred_booking_id)
     return ''

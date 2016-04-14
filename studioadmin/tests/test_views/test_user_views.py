@@ -813,6 +813,38 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
 
+    def test_changing_booking_status_to_cancelled_removed_block(self):
+        block = mommy.make_recipe(
+            'booking.block', user=self.user
+        )
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type=block.block_type.event_type, block=block,
+            user=self.user, paid=True, payment_confirmed=True
+        )
+
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-INITIAL_FORMS': 3,
+                'bookings-2-id': booking.id,
+                'bookings-2-event': booking.event.id,
+                'bookings-2-status': 'CANCELLED',
+                'bookings-2-block': block.id,
+                'bookings-2-paid': booking.paid
+            }
+        )
+
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+
     def test_can_assign_booking_to_available_block(self):
         booking = mommy.make_recipe(
             'booking.booking',
@@ -865,7 +897,6 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
         booking = Booking.objects.get(event=event1)
         self.assertEqual(booking.block, block1)
-
 
     def test_cannot_create_new_block_booking_with_wrong_blocktype(self):
         event1 = mommy.make_recipe('booking.future_EV')
@@ -1017,6 +1048,40 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         # new booking has not been made
         bookings = Booking.objects.filter(event=event)
         self.assertEqual(len(bookings), 2)
+
+    def test_cannot_make_block_booking_unpaid(self):
+        event1 = mommy.make_recipe('booking.future_EV')
+        block1 = mommy.make_recipe(
+            'booking.block', block_type__event_type=event1.event_type,
+            user=self.user
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, block=block1, event=event1,
+        )
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-INITIAL_FORMS': 3,
+                'bookings-2-id': booking.id,
+                'bookings-2-event': event1.id,
+                'bookings-2-status': booking.status,
+                'bookings-2-paid': False,
+                'bookings-2-block': block1.id,
+            }
+        )
+
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+        errors = resp.context_data['userbookingformset'].errors
+        self.assertIn(
+            {
+                'paid': [
+                    'Cannot make block booking for {} unpaid'.format(event1)
+                ]
+            },
+            errors
+        )
 
     def test_formset_unchanged(self):
         """
