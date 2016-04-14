@@ -2,6 +2,7 @@ import logging
 
 from datetime import timedelta
 
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -17,7 +18,7 @@ from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
-from booking.models import Block, BlockType, Event
+from booking.models import Block, BlockType, Booking, Event
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventFormSet,  EventAdminForm
 from studioadmin.views.helpers import staff_required, StaffUserMixin
@@ -281,22 +282,27 @@ def cancel_event_view(request, slug):
     event = get_object_or_404(Event, slug=slug)
     ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
 
-    open_bookings = [
-        booking for booking in event.bookings.all() if booking.status == 'OPEN'
-        ]
-
-    open_direct_paid_bookings = [
-        booking for booking in open_bookings if
-        (booking.paid or booking.deposit_paid) and
-        not booking.block and not booking.free_class
-    ]
+    open_bookings = Booking.objects.filter(event=event, status='OPEN')
+    open_block_bookings = open_bookings.filter(
+        block__isnull=False, free_class=False
+    )
+    open_unpaid_bookings = open_bookings.filter(deposit_paid=False, paid=False)
+    open_free_class = open_bookings.filter(free_class=True)
+    open_direct_paid_deposit_only = open_bookings.filter(
+        block__isnull=True, free_class=False, deposit_paid=True, paid=False
+    )
+    open_direct_paid = open_bookings.filter(
+        block__isnull=True, free_class=False, paid=True
+    )
 
     if request.method == 'POST':
         if 'confirm' in request.POST:
+            transfer_direct_paid = request.POST.get('direct_paid_action') == 'transfer'
+            transfer_block_created = False
             for booking in open_bookings:
 
                 block_paid = bool(booking.block)
-                direct_paid = booking in open_direct_paid_bookings
+                direct_paid = booking in open_direct_paid
 
                 if booking.block:
                     booking.block = None
@@ -308,7 +314,7 @@ def cancel_event_view(request, slug):
                     booking.deposit_paid = False
                     booking.paid = False
                     booking.payment_confirmed = False
-                elif direct_paid and request.POST.get('direct_paid_action') == 'transfer':
+                elif direct_paid and transfer_direct_paid:
                     # create transfer block and make this booking unpaid
                     if booking.event.event_type.event_type != 'EV':
                         booking.deposit_paid = False
@@ -324,6 +330,7 @@ def cancel_event_view(request, slug):
                             block_type=block_type, user=booking.user,
                             transferred_booking_id=booking.id
                         )
+                        transfer_block_created = True
 
                 booking.status = "CANCELLED"
                 booking.save()
@@ -331,14 +338,12 @@ def cancel_event_view(request, slug):
                 try:
                     # send notification email to user
                     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-                    # send email to studio
                     ctx = {
                           'host': host,
                           'event_type': ev_type,
                           'block': block_paid,
                           'direct_paid': direct_paid,
-                          'transfer_block_created':
-                              request.POST['direct_paid_action'] == 'transfer',
+                          'transfer_block_created': transfer_block_created,
                           'event': event,
                           'user': booking.user,
                     }
@@ -366,18 +371,28 @@ def cancel_event_view(request, slug):
             event.payment_open = False
             event.save()
 
-            if open_direct_paid_bookings \
-                    and not request.POST.get('direct_paid_action') == 'transfer':
-                # email studio with links for confirming refunds
+            # email studio with links for confirming refunds
+            # direct paid (full and deposit only) if action selected is not
+            # transfer, otherwise just email for deposits as we don't create
+            # transfer blocks for deposit-only
+            bookings_to_refund = []
+            if not transfer_direct_paid:
+                [bookings_to_refund.append(bk) for bk in open_direct_paid]
+                [bookings_to_refund.append(bk)
+                 for bk in open_direct_paid_deposit_only]
 
+            elif open_direct_paid:
+                bookings_to_refund = open_direct_paid_deposit_only
+
+            if bookings_to_refund:
                 try:
-                    # send notification email to user
                     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                     # send email to studio
                     ctx = {
                           'host': host,
                           'event_type': ev_type,
-                          'open_direct_paid_bookings': open_direct_paid_bookings,
+                          'transfer_direct_paid': transfer_direct_paid,
+                          'bookings_to_refund': bookings_to_refund,
                           'event': event,
                     }
                     send_mail('{} Refunds due for cancelled {}'.format(
@@ -447,8 +462,12 @@ def cancel_event_view(request, slug):
     context = {
         'event': event,
         'event_type': ev_type,
-        'open_bookings': open_bookings,
-        'open_direct_paid_bookings': open_direct_paid_bookings,
+        'open_bookings': bool(open_bookings),
+        'open_direct_paid_bookings': open_direct_paid,
+        'open_block_bookings': open_block_bookings,
+        'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
+        'open_unpaid_bookings': open_unpaid_bookings,
+        'open_free_class': open_free_class,
     }
 
     return TemplateResponse(

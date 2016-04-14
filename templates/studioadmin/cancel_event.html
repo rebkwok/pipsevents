@@ -13,22 +13,45 @@
         <p>Bookings for the following users are open and will be cancelled.
             Blocks will be updated for any bookings made with blocks.
         </p>
+
         <ul>
-            {% for booking in open_bookings %}
-            <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
+        {% if open_block_bookings %}
+            {% for booking in open_block_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid by block)</li>
             {% endfor %}
-        </ul>
+        {% endif %}
+
+        {% if open_free_class %}
+            {% for booking in open_free_class %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (free_class)</li>
+            {% endfor %}
+        {% endif %}
 
         {% if open_direct_paid_bookings %}
-          <p>The following users paid for this {{ event_type }}
-              directly (i.e. in cash or by paypal){% if event.event_type.event_type == 'EV' %}
-                  and will need to be refunded{% endif %}:</p>
-            <ul>
-                {% for booking in open_direct_paid_bookings %}
-                    <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
-                {% endfor %}
-            </ul>
+            {% for booking in open_direct_paid_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid directly)</li>
+            {% endfor %}
         {% endif %}
+
+        {% if open_deposit_only_paid_bookings %}
+            {% for booking in open_deposit_only_paid_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (deposit only paid)</li>
+            {% endfor %}
+        {% endif %}
+
+        {% if open_unpaid_bookings %}
+            {% for booking in open_unpaid_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (unpaid)</li>
+            {% endfor %}
+        {% endif %}
+        </ul>
+
+        {% if event.event_type.event_type == 'EV' %}
+            {% if open_direct_paid_bookings or open_deposit_only_paid_bookings %}
+                Users who paid directly for this {{ event_type }} will need to be refunded
+            {% endif %}
+        {% endif %}
+
     {% else %}
         <p>There are no open bookings on this {{ event_type }}.</p>
     {% endif %}

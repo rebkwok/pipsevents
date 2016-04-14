@@ -717,7 +717,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
     def test_get_cancel_page_with_no_bookings(self):
         # no open bookings displayed on page
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(resp.context_data['open_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], False)
 
     def test_get_cancel_page_with_cancelled_bookings_only(self):
         # no open bookings displayed on page
@@ -726,7 +726,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
 
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(resp.context_data['open_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], False)
 
     def test_get_cancel_page_open_unpaid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
@@ -737,10 +737,19 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
+            sorted([bk.id for bk in resp.context_data['open_unpaid_bookings']]),
             sorted([bk.id for bk in bookings])
         )
-        self.assertEqual(resp.context_data['open_direct_paid_bookings'], [])
+
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(list(resp.context_data['open_free_class']), [])
+        self.assertEqual(
+            list(resp.context_data['open_direct_paid_bookings']), []
+        )
 
     def test_get_cancel_page_open_block_paid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
@@ -759,10 +768,18 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
+            sorted([bk.id for bk in resp.context_data['open_block_bookings']]),
             sorted([bk.id for bk in bookings])
         )
-        self.assertEqual(resp.context_data['open_direct_paid_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(list(resp.context_data['open_free_class']), [])
+        self.assertEqual(
+            list(resp.context_data['open_direct_paid_bookings']), []
+        )
 
     def test_get_cancel_page_open_free_class_bookings(self):
         # open bookings displayed on page, not in due_refunds list
@@ -773,10 +790,18 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
+            sorted([bk.id for bk in resp.context_data['open_free_class']]),
             sorted([bk.id for bk in bookings])
         )
-        self.assertEqual(resp.context_data['open_direct_paid_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_direct_paid_bookings']), []
+        )
 
     def test_get_cancel_page_open_direct_paid_bookings(self):
         # open bookings displayed on page, in due_refunds list
@@ -786,16 +811,21 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             _quantity=3
         )
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
-            sorted([bk.id for bk in bookings])
-        )
+
         self.assertEqual(
             sorted(
                 [bk.id for bk in resp.context_data['open_direct_paid_bookings']]
             ),
             sorted([bk.id for bk in bookings])
         )
+
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(list(resp.context_data['open_free_class']), [])
+        self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
 
     def test_get_cancel_page_multiple_bookings(self):
         # multiple bookings, cancelled not displayed at all; all open displayed
@@ -819,6 +849,13 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=True, free_class=False,
             _quantity=3
         )
+
+        deposit_only_paid_bookings = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN",
+            deposit_paid=True, paid=False, free_class=False,
+            _quantity=3
+        )
+
         for user in mommy.make_recipe('booking.user', _quantity=3):
             block = mommy.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
@@ -828,23 +865,42 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
-        block_bookings = list(Booking.objects.all().exclude(block=None))
+        block_bookings = list(Booking.objects.filter(block__isnull=False))
 
-        self.assertEqual(Booking.objects.filter(event=self.event).count(), 15)
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 18)
 
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
-            sorted(
-                [bk.id for bk in unpaid_bookings + free_class_bookings +
-                                  direct_paid_bookings + block_bookings]
-            )
-        )
+
+        self.assertEqual(resp.context_data['open_bookings'], True)
         self.assertEqual(
             sorted(
                 [bk.id for bk in resp.context_data['open_direct_paid_bookings']]
             ),
             sorted([bk.id for bk in direct_paid_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_unpaid_bookings']]
+            ),
+            sorted([bk.id for bk in unpaid_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_free_class']]
+            ),
+            sorted([bk.id for bk in free_class_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_deposit_only_paid_bookings']]
+            ),
+            sorted([bk.id for bk in deposit_only_paid_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_block_bookings']]
+            ),
+            sorted([bk.id for bk in block_bookings])
         )
 
     def test_cancelling_event_sets_booking_and_payment_closed(self):
