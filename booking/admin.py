@@ -274,7 +274,7 @@ class BookingInLine(admin.TabularInline):
                 kwargs["queryset"] = Event.objects.filter(
                     event_type=block.block_type.event_type
                 )
-            except IndexError:
+            except IndexError:  # pragma: no cover
                 pass
         return super(
             BookingInLine, self
@@ -353,8 +353,10 @@ class BlockAdmin(admin.ModelAdmin):
     formatted_expiry_date.short_description = 'Expiry date'
 
     def save_formset(self, request, form, formset, change):
-        if formset.model != Booking:
-            return super(BlockAdmin, self).save_formset(request, form, formset, change)
+        if formset.model != Booking:  # pragma: no cover
+            # not used atm as Booking is the only inline
+            return super(BlockAdmin, self)\
+                .save_formset(request, form, formset, change)
 
         bookingformset = formset.save(commit=False)
         block = form.save()

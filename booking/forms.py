@@ -34,7 +34,11 @@ class BookingCreateForm(forms.ModelForm):
 class BlockTypeChoiceField(forms.ModelChoiceField):
 
     def label_from_instance(self, obj):
-        return '{} - quantity {}'.format(obj.event_type.subtype, obj.size)
+        return '{}{} - quantity {}'.format(
+            obj.event_type.subtype,
+            ' ({})'.format(obj.identifier) if obj.identifier else '',
+            obj.size
+        )
 
     def to_python(self, value):
         if value:
@@ -49,7 +53,9 @@ class BlockCreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(BlockCreateForm, self).__init__(*args, **kwargs)
-        self.fields['block_type'] = BlockTypeChoiceField(queryset=BlockType.objects.filter(active=True))
+        self.fields['block_type'] = BlockTypeChoiceField(
+            queryset=BlockType.objects.filter(active=True)
+        )
 
 
 def get_event_names(event_type):

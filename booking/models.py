@@ -251,17 +251,11 @@ class Block(models.Model):
 
     def __str__(self):
 
-        if self.block_type.identifier == 'free class':
-            block_name = self.block_type.identifier
-        elif self.block_type.identifier and \
-                self.block_type.identifier.startswith('transferred'):
-            block_name = self.block_type.identifier
-        else:
-            block_name = self.block_type.event_type.subtype
-
-        return "{} -- {} -- size {} -- start {}".format(
+        return "{} -- {}{} -- size {} -- start {}".format(
             self.user.username,
-            block_name,
+            self.block_type.event_type.subtype,
+            ' ({})'.format(self.block_type.identifier)
+            if self.block_type.identifier else '',
             self.block_type.size,
             self.start_date.strftime('%d %b %Y')
         )

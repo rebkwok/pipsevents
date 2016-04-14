@@ -37,10 +37,9 @@ class BlockListView(LoginRequiredMixin, StaffUserMixin, ListView):
                 'user__first_name'
             )
         elif block_status == 'transfers':
-            transfers = (block.id for block in all_blocks if block.block_type.identifier and block.block_type.identifier.startswith('transferred'))
-            return Block.objects.filter(id__in=transfers).order_by(
-                'user__first_name'
-            )
+            return all_blocks.filter(
+                block_type__identifier='transferred'
+            ).order_by('user__first_name')
         elif block_status == 'unpaid':
             unpaid = (block.id for block in all_blocks
                       if not block.expired and not block.paid

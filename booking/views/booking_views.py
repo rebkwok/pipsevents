@@ -838,6 +838,7 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                 )
                 transfer_block_created = True
                 booking.paid = False
+                booking.payment_confirmed = False
 
             # send email to studio only for 'EV' which are not transferable
             else:

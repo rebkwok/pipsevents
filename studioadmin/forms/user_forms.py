@@ -177,12 +177,11 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         """
         make sure that block selected is for the correct event type
         and that a block has not been filled
-        :return:
         """
         super(UserBookingInlineFormSet, self).clean()
         if {
             '__all__': ['Booking with this User and Event already exists.']
-        } in self.errors:
+        } in self.errors:  # pragma: no cover
             pass
         elif any(self.errors):
             return

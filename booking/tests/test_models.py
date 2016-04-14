@@ -567,7 +567,24 @@ class BlockTests(TestCase):
         )
 
         self.assertEqual(
-            str(block), 'TestUser -- Pole level class -- size 4 -- start 01 Jan 2015'
+            str(block), 'TestUser -- Pole level class -- size 4 -- '
+                        'start 01 Jan 2015'
+        )
+
+        blocktype1 = mommy.make_recipe(
+            'booking.blocktype', size=1, duration=1, identifier='transferred',
+            event_type__subtype="Pole level class1"
+        )
+        block1 = mommy.make_recipe(
+            'booking.block',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            user=mommy.make_recipe('booking.user', username="TestUser1"),
+            block_type=blocktype1,
+        )
+
+        self.assertEqual(
+            str(block1), 'TestUser1 -- Pole level class1 (transferred) -- '
+                         'size 1 -- start 01 Jan 2015'
         )
 
     def test_str_for_free_class_block(self):
@@ -582,7 +599,8 @@ class BlockTests(TestCase):
         )
 
         self.assertEqual(
-            str(block), 'TestUser -- free class -- size 1 -- start 01 Jan 2015'
+            str(block), 'TestUser -- Pole level class (free class) '
+                        '-- size 1 -- start 01 Jan 2015'
         )
 
     def test_create_free_class_block_with_parent(self):

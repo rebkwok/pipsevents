@@ -397,6 +397,28 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
+    def test_block_type_id_user_display(self):
+        bt1 = mommy.make_recipe(
+            'booking.blocktype5', event_type__subtype='Test1',
+            identifier='transferred'
+        )
+        mommy.make_recipe('booking.block', block_type=bt1, user=self.user)
+        bt2 = mommy.make_recipe(
+            'booking.blocktype5', event_type__subtype='Test2',
+            identifier='free class'
+        )
+        mommy.make_recipe('booking.block', block_type=bt2, user=self.user)
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(reverse('booking:block_list'))
+
+        self.assertIn(
+            'Test1 (transferred)', format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Test2 (free class)', format_content(resp.rendered_content)
+        )
+
 
 class BlockDeleteViewTests(TestSetupMixin, TestCase):
 
