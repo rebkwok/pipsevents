@@ -1,8 +1,10 @@
 {{ event_type }} {{ event }} has been cancelled.
 
-The following users' bookings were paid for directly (i.e. not with a block).  Please review and refund these payments.
+{% if transfer_direct_paid %}Transfer blocks have been created for users who paid directly in full for their bookings (i.e. not with a block).
+The following users paid directly for the deposit only and have not been given transfer blocks.  Please review and refund these payments.
+{% else %}The following users' bookings were paid for directly (i.e. not with a block).  Please review and refund these payments.{% endif %}
 
 When the payment has been refunded, use the links below to confirm and update the payment status on the booking site:
-{% for booking in open_direct_paid_bookings %}
+{% for booking in bookings_to_refund %}
 - {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}
 {% endfor %}
