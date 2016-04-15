@@ -317,7 +317,10 @@ class UserBlockFormSetTests(TestCase):
         self.user = mommy.make_recipe('booking.user')
         self.block_type = mommy.make_recipe(
             'booking.blocktype', event_type=event_type)
-        self.block = mommy.make_recipe('booking.block', block_type=self.block_type, user=self.user, paid=True)
+        self.block = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, user=self.user,
+            paid=True
+        )
 
     def formset_data(self, extra_data={}):
 
@@ -385,3 +388,45 @@ class UserBlockFormSetTests(TestCase):
         block_type_queryset = form.fields['block_type'].queryset
         self.assertEquals(block_type_queryset.count(), 6)
         self.assertIn(self.block_type, block_type_queryset)
+
+    def test_delete_checkbox(self):
+        """
+        Delete checkbox should be active only for unpaid blocks, unused free
+        blocks or unused transfer blocks
+        """
+        unpaid = mommy.make_recipe(
+            'booking.block', user=self.user, paid=False
+        )
+        free_block_type = mommy.make_recipe('booking.free_blocktype')
+        free = mommy.make(
+            'booking.block', user=self.user, paid=True,
+            block_type=free_block_type
+        )
+        free_used = mommy.make_recipe(
+            'booking.block', user=self.user, paid=True,
+            block_type=free_block_type
+        )
+        mommy.make_recipe('booking.booking', user=self.user, block=free_used)
+        transfer = mommy.make_recipe(
+            'booking.block', user=self.user, paid=True,
+            block_type__identifier='transferred'
+        )
+        transfer_used = mommy.make_recipe(
+            'booking.block', user=self.user, paid=True,
+            block_type__identifier='transferred'
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=transfer_used
+        )
+
+        cannot_delete = [self.block, free_used, transfer_used]
+        formset = UserBlockFormSet(instance=self.user, user=self.user)
+
+        self.assertEqual(len(formset.forms), 7)  # 6 blocks plus new form
+
+        for form in formset.forms[:-1]:
+            disabled = form.fields['DELETE'].widget.attrs.get('disabled', None)
+            if form.instance in cannot_delete:
+                self.assertEqual(disabled, 'disabled')
+            else:
+                self.assertIsNone(disabled)

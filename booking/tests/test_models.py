@@ -571,9 +571,10 @@ class BlockTests(TestCase):
                         'start 01 Jan 2015'
         )
 
+    def test_str_for_transfer_block(self):
         blocktype1 = mommy.make_recipe(
             'booking.blocktype', size=1, duration=1, identifier='transferred',
-            event_type__subtype="Pole level class1"
+            event_type__subtype="Pole level class"
         )
         block1 = mommy.make_recipe(
             'booking.block',
@@ -583,7 +584,7 @@ class BlockTests(TestCase):
         )
 
         self.assertEqual(
-            str(block1), 'TestUser1 -- Pole level class1 (transferred) -- '
+            str(block1), 'TestUser1 -- Pole level class (transferred) -- '
                          'size 1 -- start 01 Jan 2015'
         )
 

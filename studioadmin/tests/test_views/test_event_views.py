@@ -205,9 +205,20 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
 
         self.assertEqual(Event.objects.count(), 26)
 
+        # get only shows future unless page is specified (only past events
+        # paginated)
+        resp = self.client.get(url)
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 0)
+
+        resp = self.client.get(url + '?page=1')
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 20)
+        paginator = resp.context_data['events']
+        self.assertEqual(paginator.number, 1)
+
         # default shows page 1 of 2
         resp = self.client.post(url, {'past': 'Show past'})
-
         eventsformset = resp.context_data['eventformset']
         self.assertEqual(eventsformset.queryset.count(), 20)
         paginator = resp.context_data['events']
