@@ -2,7 +2,7 @@
 import logging
 import pytz
 
-from decimal import Decimal, ROUND_UP, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN
 
 from datetime import timedelta
 
@@ -10,6 +10,7 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -288,6 +289,23 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         return updated_context
 
     def form_valid(self, form):
+        if self.event.event_type.event_type == 'CL':
+            # check if this is the user's first class booking
+            user_class_bookings = Booking.objects.filter(
+                user=self.request.user, event__event_type__event_type='CL'
+            ).exists()
+            if not user_class_bookings:
+                group, _ = Group.objects.get_or_create(name='subscribed')
+                group.user_set.add(self.request.user)
+                ActivityLog.objects.create(
+                    log='First class booking created; {} {} ({}) has been '
+                        'added to subscribed group for mailing list.'.format(
+                            self.request.user.first_name,
+                            self.request.user.last_name,
+                            self.request.user.username
+                        )
+                )
+
         booking = form.save(commit=False)
         try:
             cancelled_booking = Booking.objects.get(

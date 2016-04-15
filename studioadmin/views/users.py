@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User,  Permission
+from django.contrib.auth.models import Group, User,  Permission
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -25,7 +25,7 @@ from studioadmin.forms import BookingStatusFilter,  UserBookingFormSet,  \
     UserBlockFormSet,  UserListSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
-    staff_required
+    staff_required, StaffUserMixin
 from activitylog.models import ActivityLog
 
 
@@ -609,3 +609,10 @@ def user_blocks_view(request,  user_id):
             'sidenav_selection': 'users'
         }
     )
+
+
+class MailingListView(LoginRequiredMixin, StaffUserMixin, ListView):
+    model = User
+    template_name = 'studioadmin/mailing_list.html'
+    queryset = Group.objects.get(name='subscribed').user_set.all()
+    context_object_name = 'users'

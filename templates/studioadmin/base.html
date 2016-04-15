@@ -74,6 +74,8 @@
                         <span class="sidebar_active">Blocks</span>{% else %}Blocks{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:choose_email_users' %}">{% if sidenav_selection == 'email_users' %}
                         <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:mailing_list' %}">{% if sidenav_selection == 'mailing_list' %}
+                        <span class="sidebar_active">Mailing list</span>{% else %}Mailing list{% endif %}</a></li>
                 </ul>
             </li>
 
@@ -234,13 +236,15 @@
                             Students
                         </a>
                     </li>
-                    <span id="users" class="collapse {% if sidenav_selection == 'users' or sidenav_selection == 'blocks' or sidenav_selection == 'email_users' %} in{% endif %}">
+                    <span id="users" class="collapse {% if sidenav_selection == 'users' or sidenav_selection == 'blocks' or sidenav_selection == 'email_users' or sidenav_selection == 'mailing_list' %} in{% endif %}">
                         <li><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
                         <li><a href="{% url 'studioadmin:blocks' %}">{% if sidenav_selection == 'blocks' %}
                         <span class="sidebar_active">Blocks</span>{% else %}Blocks{% endif %}</a></li>
                         <li><a href="{% url 'studioadmin:choose_email_users' %}">{% if sidenav_selection == 'email_users' %}
                         <span class="sidebar_active">Bulk email to students</span>{% else %}Bulk email to students{% endif %}</a></li>
+                        <li class="active-nav"><a href="{% url 'studioadmin:mailing_list' %}">{% if sidenav_selection == 'mailing_list' %}
+                        <span class="sidebar_active">Mailing list</span>{% else %}Mailing list{% endif %}</a></li>
                     </span>
 
                     <li class="sidebar-title">
