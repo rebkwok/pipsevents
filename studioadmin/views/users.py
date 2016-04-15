@@ -203,6 +203,57 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
                 user_to_change.save()
                 return HttpResponseRedirect(reverse('studioadmin:users'))
 
+        if 'change_subscription' in request.GET:
+            if not request.user.is_staff:
+                messages.error(request,  "This action is not permitted")
+            else:
+                change_user_id = request.GET.getlist('change_subscription')[0]
+                user_to_change = User.objects.get(id=change_user_id)
+
+                group, _ = Group.objects.get(name='subscribed')
+                subscribed = group in user_to_change.groups.all()
+                if subscribed:
+                    group.user_set.remove(user_to_change)
+                    messages.success(
+                        request,
+                        "User {} {} ({}) unsubscribed from mailing list.".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="User {} {} ({}) unsubscribed from mailing list by "
+                            "admin user {}".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username,
+                            request.user.username
+                        )
+                    )
+
+                else:
+                    group.user_set.add(user_to_change)
+                    messages.success(
+                        request,
+                        "User {} {} ({}) subscribed to mailing list.".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log="User {} {} ({}) subscribed to mailing list by "
+                            "admin user {}".format(
+                            user_to_change.first_name,
+                            user_to_change.last_name,
+                            user_to_change.username,
+                            request.user.username
+                        )
+                    )
+                user_to_change.save()
+                return HttpResponseRedirect(reverse('studioadmin:users'))
+
         return super(UserListView,  self).get(request,  *args,  **kwargs)
 
     def get_context_data(self):
@@ -614,5 +665,8 @@ def user_blocks_view(request,  user_id):
 class MailingListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = User
     template_name = 'studioadmin/mailing_list.html'
-    queryset = Group.objects.get(name='subscribed').user_set.all()
     context_object_name = 'users'
+
+    def get_queryset(self, **kwargs):
+        group, _ = Group.objects.get_or_create(name='subscribed')
+        return group.user_set.all()
