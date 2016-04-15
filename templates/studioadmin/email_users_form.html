@@ -27,12 +27,16 @@
                                 </ul>
                             {% endif %}
 
-                            The following students will be emailed:
-                            <ul>
-                            {% for user in users_to_email %}
-                                <li>{{ user.first_name }} {{ user.last_name }} ({{ user.username }})
-                            {% endfor %}
-                            </ul>
+                            {% if mailing_list %}
+                                All users subscribed to the <a href="{% url 'studioadmin:mailing_list' %}">mailing list</a> will be emailed.
+                            {% else %}
+                                The following students will be emailed:
+                                <ul>
+                                {% for user in users_to_email %}
+                                    <li>{{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+                                {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                     </div>
                           <span class="divider"></span>

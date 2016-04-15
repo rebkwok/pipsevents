@@ -1,0 +1,12 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+        <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success">Email mailing list</div></a>
+        {{ users }}
+    </div>
+
+{% endblock studioadmincontent %}
