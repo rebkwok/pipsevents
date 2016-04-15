@@ -5,8 +5,44 @@
 {% block studioadmincontent %}
 
     <div class="container-fluid row">
-        <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success">Email mailing list</div></a>
-        {{ users }}
+
+        <h2>Mailing List</h2>
+        <p>Go to <a href="{% url 'studioadmin:users' %}">user list</a> to subscribe/unsubscribe users to mailing list.</p>
+        <div>
+            <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success">Email mailing list</div></a>
+        </div>
+
+
+    <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="table-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="table-center">First Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Email <span class="fa fa-sort"></span></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+    </div>
+
     </div>
 
 {% endblock studioadmincontent %}
