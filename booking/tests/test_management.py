@@ -5,19 +5,18 @@ from io import StringIO
 from mock import patch
 from model_mommy import mommy
 
-
 from django.test import TestCase, override_settings
 from django.conf import settings
 from django.core import management
 from django.core import mail
 from django.db.models import Q
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
 from allauth.socialaccount.models import SocialApp
 
 from activitylog.models import ActivityLog
-from booking.models import Event, Booking, EventType, BlockType, \
+from booking.models import Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
 from payments.models import PaypalBookingTransaction
 
@@ -2513,5 +2512,160 @@ class ActivateSaleTests(TestCase):
             self.output.getvalue()
         )
 
+
+class CreateFreeMonthlyBlocksTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.event_type = mommy.make(
+            EventType, event_type='CL', subtype='Pole level class'
+        )
+
+    def test_group_not_created(self):
+        self.assertFalse(Block.objects.exists())
+        management.call_command('create_free_monthly_blocks')
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Free blocks creation failed'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                )
+        )
+        self.assertEqual(
+            email.body,
+            "Error: Group named 'free_monthly_blocks' does not exist"
+        )
+        self.assertFalse(Block.objects.exists())
+
+    def test_no_users_in_group(self):
+        self.assertFalse(Block.objects.exists())
+        Group.objects.create(name='free_monthly_blocks')
+        management.call_command('create_free_monthly_blocks')
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Free blocks creation failed'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                )
+        )
+        self.assertEqual(
+            email.body,
+            'No users in free_monthly_blocks group'
+        )
+        self.assertFalse(Block.objects.exists())
+
+    def test_create_free_blocks(self):
+        self.assertFalse(Block.objects.exists())
+        group = Group.objects.create(name='free_monthly_blocks')
+        user1 = mommy.make(User, first_name='Test', last_name='User1')
+        user2 = mommy.make(User, first_name='Test', last_name='User2')
+        user3 = mommy.make(User, first_name='Test', last_name='User3')
+        for user in [user1, user2]:
+            user.groups.add(group)
+
+        management.call_command('create_free_monthly_blocks')
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(
+            email.subject,
+            '{} Free blocks created'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                )
+        )
+        self.assertEqual(
+            email.body,
+            'Free 5 class blocks created for Test User1, Test User2'
+        )
+
+    def test_dont_create_duplicate_free_blocks(self):
+        self.assertFalse(Block.objects.exists())
+        group = Group.objects.create(name='free_monthly_blocks')
+        user1 = mommy.make(User, first_name='Test', last_name='User1')
+        user2 = mommy.make(User, first_name='Test', last_name='User2')
+        user3 = mommy.make(User, first_name='Test', last_name='User3')
+        for user in [user1, user2]:
+            user.groups.add(group)
+
+        management.call_command('create_free_monthly_blocks')
+        self.assertEqual(Block.objects.count(), 2)
+
+        # call again; no new blocks created
+        management.call_command('create_free_monthly_blocks')
+        self.assertEqual(Block.objects.count(), 2)
+
+        email = mail.outbox[-1]
+        self.assertEqual(
+            email.subject,
+            '{} Free blocks not created'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                )
+        )
+        self.assertEqual(
+            email.body,
+            'Free 5 class blocks not created for Test User1, Test User2 as '
+            'active free block already exists'
+        )
+
+    def test_only_create_free_blocks_if_not_already_active(self):
+        self.assertFalse(Block.objects.exists())
+        group = Group.objects.create(name='free_monthly_blocks')
+        user1 = mommy.make(User, first_name='Test', last_name='User1')
+        user2 = mommy.make(User, first_name='Test', last_name='User2')
+        user3 = mommy.make(User, first_name='Test', last_name='User3')
+
+        for user in [user1, user2, user3]:
+            user.groups.add(group)
+
+        management.call_command('create_free_monthly_blocks')
+        self.assertEqual(Block.objects.count(), 3)
+
+        # user1's block has expired
+        block1 = Block.objects.get(user=user1)
+        block1.start_date = timezone.now() - timedelta(50)
+        block1.save()
+
+        # user2's block is full
+        block2 = Block.objects.get(user=user2)
+        mommy.make_recipe(
+            'booking.booking', user=user2, block=block2, _quantity=5
+        )
+
+        block3 = Block.objects.get(user=user3)
+        self.assertFalse(block1.active_block())
+        self.assertFalse(block2.active_block())
+        self.assertTrue(block3.active_block())
+
+        # call again; new blocks created for only user1 and user2
+        management.call_command('create_free_monthly_blocks')
+        self.assertEqual(Block.objects.count(), 5)
+
+        # 3 emails; 1 for first run when the blocks are created, 2 for second
+        # run
+        self.assertEqual(len(mail.outbox), 3)
+        created_email = mail.outbox[1]
+        self.assertEqual(
+            created_email.subject,
+            '{} Free blocks created'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                )
+        )
+        self.assertEqual(
+            created_email.body,
+            'Free 5 class blocks created for Test User1, Test User2'
+        )
+
+        not_created_email = mail.outbox[2]
+        self.assertEqual(
+            not_created_email.subject,
+            '{} Free blocks not created'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                )
+        )
+        self.assertEqual(
+            not_created_email.body,
+            'Free 5 class blocks not created for Test User3 as '
+            'active free block already exists'
+        )
 
 
