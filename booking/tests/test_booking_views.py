@@ -1965,6 +1965,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         transfer_block = Block.objects.first()
         self.assertEqual(transfer_block.block_type.identifier, 'transferred')
         self.assertEqual(transfer_block.transferred_booking_id, booking.id)
+        self.assertEqual(transfer_block.user,self.user)
 
         self.assertEqual(booking.status, 'CANCELLED')
         self.assertFalse(booking.paid)
@@ -1991,6 +1992,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         transfer_block = Block.objects.first()
         self.assertEqual(transfer_block.block_type.identifier, 'transferred')
         self.assertEqual(transfer_block.transferred_booking_id, booking.id)
+        self.assertEqual(transfer_block.user,self.user)
 
         self.assertEqual(booking.status, 'CANCELLED')
         self.assertFalse(booking.paid)

@@ -197,7 +197,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             )
         )
 
-    def test_block_type_identfier_display(self):
+    def test_transferred_from_display(self):
 
         mommy.make_recipe(
             'booking.block', paid=True,
@@ -214,8 +214,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertNotIn('(182893429)', resp.rendered_content)
 
-
-    def test_transferred_from_display(self):
+    def test_transferred_from_display_with_valid_booking(self):
 
         booking = mommy.make('booking.booking', status='CANCELLED')
 
@@ -245,3 +244,17 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             ),
             resp.rendered_content
         )
+
+    def test_block_type_identfier_display(self):
+        mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1, block_type__identifier='transferred',
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn('(transfer)', resp.rendered_content)
+
+        mommy.make_recipe(
+            'booking.block', paid=True, block_type__identifier='other id'
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn('(other id)', resp.rendered_content)

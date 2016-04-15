@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytz
-from datetime import datetime
+from datetime import  date, datetime
 
+from mock import patch
 from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
@@ -777,15 +778,29 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertEquals(resp.status_code, 200)
 
-    def test_events_excluded_from_form_for_instructors(self):
-        events = mommy.make_recipe(
+    @patch('studioadmin.forms.register_forms.date')
+    @patch('studioadmin.views.register.datetime')
+    def test_events_excluded_from_form_for_instructors(
+            self, mock_tz, mock_date
+    ):
+        mock_tz.now.return_value = datetime(
+            year=2015, month=9, day=7, hour=10, tzinfo=timezone.utc
+        )
+        mock_date.today.return_value = date(year=2015, month=9, day=7)
+        mommy.make_recipe(
             'booking.future_EV',
-            date=timezone.now(),
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
             _quantity=3
         )
         pole_classes = mommy.make_recipe(
             'booking.future_PC',
-            date=timezone.now(),
+            date=datetime(
+                year=2015, month=9, day=7,
+                hour=18, minute=0, tzinfo=timezone.utc
+            ),
             _quantity=3
         )
         resp = self._get_response(self.instructor_user)
