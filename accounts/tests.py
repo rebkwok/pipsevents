@@ -933,3 +933,82 @@ class ImportDisclaimersTests(TestCase):
         self.assertTrue(test_1_disclaimer.terms_accepted)
         self.assertIsNotNone(test_1_disclaimer.over_18_statement)
         self.assertTrue(test_1_disclaimer.age_over_18_confirmed)
+
+
+class EmailDuplicateUsersTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.users_file = os.path.join(
+            os.path.dirname(__file__), 'test_data/test_duplicate_users.csv'
+        )
+
+    def test_emails_sent(self):
+        """
+        test data file has:
+        user 1: 2 accounts, only one used for booking
+        user 2: 2 accounts, both used for booking
+        user 3: 3 accounts, 2 used for booking
+        user 4: 2 accounts, neither used
+        """
+        management.call_command('email_duplicate_users', file=self.users_file)
+        emails = mail.outbox
+        # one email sent per account
+        self.assertEqual(len(emails), 4)
+
+        user1_email = emails[0]
+        self.assertIn(
+            'It looks like you have 2 accounts on the Watermelon Studio '
+            'booking system.',
+            user1_email.body,
+        )
+        self.assertIn(
+            'I will merge your accounts to the one that you have previously '
+            'used for booking',
+            user1_email.body,
+        )
+
+        user2_email = emails[1]
+        self.assertIn(
+            'It looks like you have 2 accounts on the Watermelon Studio '
+            'booking system.',
+            user2_email.body,
+        )
+        self.assertIn(
+            'As more than one of these accounts has been used for booking, '
+            'please confirm which one you would like to keep.',
+            user2_email.body,
+        )
+
+        user3_email = emails[2]
+        self.assertIn(
+            'It looks like you have 3 accounts on the Watermelon Studio '
+            'booking system.',
+            user3_email.body,
+        )
+        self.assertIn(
+            'As more than one of these accounts has been used for booking, '
+            'please confirm which one you would like to keep.',
+            user3_email.body,
+        )
+
+        user4_email = emails[3]
+        self.assertIn(
+            'It looks like you have 2 accounts on the Watermelon Studio '
+            'booking system.',
+            user4_email.body,
+        )
+        self.assertIn(
+            'I will merge your email addresses to one account.  Please let me '
+            'know if you have a preference as to which one is primary',
+            user4_email.body,
+        )
+
+    @patch('accounts.management.commands.email_duplicate_users.EmailMessage.send')
+    @patch('booking.email_helpers.send_mail')
+    def test_email_errors(self, mock_send_mail, mock_send_mail1):
+        mock_send_mail.side_effect = Exception('Error sending mail')
+        mock_send_mail1.side_effect = Exception('Error sending mail')
+
+        management.call_command('email_duplicate_users', file=self.users_file)
+        self.assertEqual(len(mail.outbox), 0)
