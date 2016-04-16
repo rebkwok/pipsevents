@@ -358,13 +358,17 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         button; users with print disclaimer or no disclaimer show print
         disclaimer button
         """
+        superuser = User.objects.create_superuser(
+            username='super', email='super@test.com', password='test'
+        )
+
         user_with_print_disclaimer = mommy.make_recipe('booking.user')
         mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
         user_with_online_disclaimer = mommy.make_recipe('booking.user')
         mommy.make(OnlineDisclaimer, user=user_with_online_disclaimer)
         user_with_no_disclaimer = mommy.make_recipe('booking.user')
 
-        resp = self._get_response(self.staff_user)
+        resp = self._get_response(superuser)
         self.assertIn(
             'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
             str(resp.rendered_content)
@@ -384,18 +388,43 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             str(resp.rendered_content)
         )
 
-    def test_print_disclaimer_button_not_shown_for_instructors(self):
-        user_with_print_disclaimer = mommy.make_recipe('booking.user')
-        mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
-
         resp = self._get_response(self.staff_user)
         self.assertIn(
-            'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
+            'class="has-disclaimer-pill"', str(resp.rendered_content)
+        )
+        self.assertIn(
+            reverse(
+                'studioadmin:user_disclaimer',
+                args=[int_str(chaffify(user_with_online_disclaimer.id))]
+            ),
+            str(resp.rendered_content)
+        )
+
+    def test_print_disclaimer_button_only_shown_for_superusers(self):
+        user_with_print_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        superuser = User.objects.create_superuser(
+            username='super', email='super@test.com', password='test'
+        )
+        resp = self._get_response(superuser)
+        self.assertIn(
+            'id="print_disclaimer_button" value="{}">Yes'.format(
+                user_with_print_disclaimer.id
+            ),
+            str(resp.rendered_content)
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertNotIn(
+            'id="print_disclaimer_button" value="{}">Yes'.format(
+                user_with_print_disclaimer.id
+            ),
             str(resp.rendered_content)
         )
         resp = self._get_response(self.instructor_user)
         self.assertNotIn(
-            'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
+            'id="print_disclaimer_button" value="{}">Yes'.format(
+                user_with_print_disclaimer.id
+            ),
             str(resp.rendered_content)
         )
 

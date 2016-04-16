@@ -39,25 +39,25 @@
                         <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success">
-                                <th class="table-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Username <span class="fa fa-sort"></span>{% if request.user.is_staff %}</br><span class="studioadmin-help">Click to view bookings</span>{% endif %}</th>
                                 <th class="table-center">First Name <span class="fa fa-sort"></span></th>
                                 <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                {% if request.user.is_staff %}
-                                    <th class="table-center">Regular student</th>
-                                    <th class="table-center">Paper Disclaimer</th>
-                                {% endif %}
+                                {% if request.user.is_staff %}<th class="table-center">Regular student</th>{% endif %}
+                                {% if request.user.is_superuser %}<th class="table-center">Paper Disclaimer</th>{% endif %}
                                 <th class="table-center">Online Disclaimer</br><span class="studioadmin-help">Click to view/print disclaimer</span></th>
-                                {% if request.user.is_staff %}
-                                    <th class="table-center">Bookings</th>
-                                    <th class="table-center">Blocks</th>
-                                {% endif %}
                                 <th class="table-center">Email</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for user in users %}
                             <tr>
-                                <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if request.user.is_staff %}
+                                    <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}">{{ user.username|abbr_username }}</a>
+                                    {% else %}
+                                    {{ user.username|abbr_username }}
+                                    {% endif %}
+                                </td>
                                 <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
                                 {% if request.user.is_staff %}
@@ -67,6 +67,8 @@
                                                             type="submit" name="change_user" id="regular_student_button" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
                                         </form>
                                     </td>
+                                {% endif %}
+                                {% if request.user.is_superuser %}
                                     <td class="table-center studioadmin-tbl">
                                         {% if user|has_online_disclaimer %}
                                             N/A
@@ -82,20 +84,13 @@
                                     {% if user|has_online_disclaimer %}
                                         <a href="{% url 'studioadmin:user_disclaimer' user.id|encode %}" target="_blank"><span class="has-disclaimer-pill">Yes</span></a>
                                     {% else %}No{% endif %}
-                                </td>
-                                {% if request.user.is_staff %}
-                                    <td class="table-center studioadmin-tbl">
-                                        <a href="{% url 'studioadmin:user_bookings_list' user.id 'future_open' %}"><span class="fa fa-external-link fa-lg"></span></a></td>
-                                    <td class="table-center studioadmin-tbl">
-                                        <a href="{% url 'studioadmin:user_blocks_list' user.id %}"><span class="fa fa-external-link fa-lg"></span></a></td>
-                                {% endif %}
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email|abbr_email }}</a></td>
                             </tr>
                             {% endfor %}
 
                             {% if is_paginated %}
                                 <tr>
-                                    <td class="studioadmin-tbl" {% if request.user.is_staff %}colspan="9"{% else %}colspan="5"{% endif %}>
+                                    <td class="studioadmin-tbl" {% if request.user.is_superuser %}colspan="7"{% elif request.user.is_staff %}colspan="6"{% else %}colspan="5"{% endif %}>
 
                                             <div class="pagination">
                                                 {% if page_obj.has_previous %}
@@ -119,7 +114,7 @@
                             </tbody>
                             <tfoot>
                             <tr class="success">
-                                <td {% if request.user.is_staff %}colspan="9"{% else %}colspan="5"{% endif %}>
+                                <td {% if request.user.is_superuser %}colspan="7"{% elif request.user.is_staff %}colspan="6"{% else %}colspan="5"{% endif %}>
                                     {% if search_submitted or active_filter %}
                                         Search results: returned {{ num_results }} of {{ total_users }} users
                                     {% else %}
