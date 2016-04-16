@@ -7,42 +7,54 @@
     <div class="container-fluid row">
 
         <h2>Mailing List</h2>
-        <p>Go to <a href="{% url 'studioadmin:users' %}">user list</a> to subscribe/unsubscribe users to mailing list.</p>
-        <div>
-            <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success">Email mailing list</div></a>
-        </div>
+        <p>Go to <a href="{% url 'studioadmin:users' %}">user list</a> to subscribe new users to mailing list.</p>
+
+        {% if users %}
+            <div>
+                <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success">Email mailing list</div></a>
+            </div>
 
 
-    <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-success">
+            <div class="row">
+                    <div class="col-sm-12">
+                        <div class="panel panel-success">
 
-                    <div class="table-responsive">
-                        <table class="table tablesorter" id="sortTable">
-                            <thead>
-                            <tr class="success">
-                                <th class="table-center">Username <span class="fa fa-sort"></span></th>
-                                <th class="table-center">First Name <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Email <span class="fa fa-sort"></span></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for user in users %}
-                            <tr>
-                                <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
-                                <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
-                                <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
-                                <td class="table-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
-                            </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
+                            <div class="table-responsive">
+                                <table class="table tablesorter" id="sortTable">
+                                    <thead>
+                                    <tr class="success">
+                                        <th class="table-center">Username <span class="fa fa-sort"></span></th>
+                                        <th class="table-center">First Name <span class="fa fa-sort"></span></th>
+                                        <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
+                                        <th class="table-center">Email <span class="fa fa-sort"></span></th>
+                                        <th></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                        <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
+                                        <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
+                                        <td class="table-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
+                                        <td class="table-center studioadmin-tbl">
+                                            <form class="wl-table-form" method="get">
+                                                <button class="btn table-btn btn-danger"
+                                                        type="submit" name="unsubscribe" id="subscribe_button" value="{{ user.id }}">Unsubscribe</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-    </div>
 
-    </div>
+            </div>
+        {% else %}
+            <p>No users currently subscribed to mailing list</p>
+        {% endif %}
 
 {% endblock studioadmincontent %}
