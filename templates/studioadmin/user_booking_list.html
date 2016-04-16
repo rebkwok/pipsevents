@@ -18,14 +18,13 @@
                 <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ userbookingformset.management_form }}
-
                     <div class="top-button-row">
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
                         <span class="pull-right">Show:
                             {{ booking_status_filter.booking_status }}
                             <input class="btn btn-info table-btn" name="booking_status" type="submit" value="Filter" /></span>
-
                     </div>
+                    <div><a href="{% url 'studioadmin:user_blocks_list' user.id %}">Go to user's blocks</a></div>
 
                 <div class="table-responsive">
                         <table class="table">
