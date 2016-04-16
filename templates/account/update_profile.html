@@ -1,6 +1,7 @@
 {% extends 'account/base.html' %}
 {% load static %}
 {% load socialaccount %}
+{% load bookingtags %}
 
 {% block content %}
 
@@ -13,19 +14,29 @@
            <div class="panel-body">
                 <form action="" method="post">{% csrf_token %}
                     {{ form.as_p}}
-
-
                     <input class="btn btn-success" type="submit" value="Update" />
                     <a href="{% url 'profile:profile' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
-            </br>
+                </br>
 
-            <p><strong>Connect a third-party account:</strong></p>
-            <div style="list-style-type: none;">
-               {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+
+
+               <div>
+                    <h4>Connect a third-party account:</h4>
+                    <div style="list-style-type: none;">
+                       {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+                    </div>
+                </div><br>
+
+               <div>
+                     <h4>Mailing list</h4>
+                    {% if request.user|subscribed or request.user|has_booked_class %}
+                    <p class="active-nav-login"><a href="{% url 'subscribe' %}">Subscribe/unsubscribe</a> to mailing list</p>
+                    {% endif %}
+                 </div>
+
+                </br>
             </div>
-
-           </div>
         </div>
     </div>
 </div>
