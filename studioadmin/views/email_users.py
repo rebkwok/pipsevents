@@ -134,6 +134,7 @@ def email_users_view(request, mailing_list=False,
                 email_addresses = [user.email for user in users_to_email]
                 success = []
                 fail = []
+                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                 for email_address in email_addresses:
                     try:
                         msg = EmailMultiAlternatives(
@@ -146,7 +147,8 @@ def email_users_view(request, mailing_list=False,
                                   {
                                       'subject': subject,
                                       'message': message,
-                                      'mailing_list': mailing_list
+                                      'mailing_list': mailing_list,
+                                      'host': host,
                                   }
                               ),
                             "text/html"

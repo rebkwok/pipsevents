@@ -3,7 +3,7 @@
 {%  block donotreply %}{% endblock %}
 {% block messagecontent %}
     {% if mailing_list %}
-        <p>PENDING: UNSUBSCRIBE LINK</p>
+        <p><a href="{{ host }}/accounts/mailing-list">Unsubscribe from this mailing list</a></p>
     {% endif %}
     {{ message|linebreaks }}
 {% endblock %}

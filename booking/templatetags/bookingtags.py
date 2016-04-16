@@ -201,3 +201,9 @@ def format_event_types(ev_types):
 def subscribed(user):
     group, _ = Group.objects.get_or_create(name='subscribed')
     return group in user.groups.all()
+
+@register.filter
+def has_booked_class(user):
+    return Booking.objects.filter(
+        user=user, event__event_type__event_type='CL'
+    ).exists()
