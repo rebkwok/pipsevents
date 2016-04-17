@@ -109,12 +109,12 @@ def abbr_ref(ref):
 @register.filter
 def abbr_username(user):
     if len(user) > 15:
-        return mark_safe("{}-</br>{}".format(user[:15], user[15:]))
+        return mark_safe("{}-</br>{}".format(user[:12], user[12:]))
     return user
 
 @register.filter
 def abbr_name(name):
-    if '-' in name:
+    if len(name) > 8 and '-' in name:
         split_name = name.split('-')
         return mark_safe(
             "{}-</br>{}".format(split_name[0], '-'.join(split_name[1:]))
@@ -125,8 +125,8 @@ def abbr_name(name):
 
 @register.filter
 def abbr_email(email):
-    if len(email) > 18:
-        return "{}...".format(email[:15])
+    if len(email) > 25:
+        return "{}...".format(email[:22])
     return email
 
 @register.inclusion_tag('booking/sale.html')

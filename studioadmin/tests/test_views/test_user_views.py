@@ -88,7 +88,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             username='test123456789101112'
         )
         resp = self._get_response(self.staff_user)
-        self.assertIn('test12345678910-</br>1112', resp.rendered_content)
+        self.assertIn('test12345678-</br>9101112', resp.rendered_content)
 
     def test_abbreviations_for_long_names(self):
         """
@@ -108,15 +108,14 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
     def test_abbreviations_for_long_email(self):
         """
-        Email > 18 characters is truncated
+        Email > 25 characters is truncated
         """
         mommy.make_recipe(
             'booking.user',
-            email='test1@longemail.com'
+            email='test12345678@longemail.com'
         )
         resp = self._get_response(self.staff_user)
-        self.assertIn('test1@longemail...', resp.rendered_content)
-
+        self.assertIn('test12345678@longemail...', resp.rendered_content)
 
     def test_display_regular_students(self):
         not_reg_student = mommy.make_recipe('booking.user')
