@@ -138,9 +138,19 @@ def email_users_view(request, mailing_list=False,
                 for email_address in email_addresses:
                     try:
                         msg = EmailMultiAlternatives(
-                            subject, message, from_address, [email_address],
-                            cc=[from_address] if cc else [], reply_to=[from_address]
-                        )
+                            subject,
+                            get_template(
+                                'studioadmin/email/email_users.txt').render(
+                                  {
+                                      'subject': subject,
+                                      'message': message,
+                                      'mailing_list': mailing_list,
+                                      'host': host,
+                                  }),
+                            from_address, [email_address],
+                            cc=[from_address] if cc else [],
+                            reply_to=[from_address]
+                            )
                         msg.attach_alternative(
                             get_template(
                                 'studioadmin/email/email_users.html').render(
