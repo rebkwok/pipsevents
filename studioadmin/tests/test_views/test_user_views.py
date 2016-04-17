@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 from django.db.models import Q
 from django.test import TestCase
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import Group, User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -475,6 +475,81 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         # not permitted - no print disclaimer created
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
         self.assertIn('This action is not permitted', resp.rendered_content)
+
+    def test_display_mailing_list_status(self):
+        subscribed_user = mommy.make_recipe('booking.user')
+        unsubscribed_user = mommy.make_recipe('booking.user')
+        subscribed = mommy.make(Group, name='subscribed')
+        subscribed.user_set.add(subscribed_user)
+
+        resp = self._get_response(self.staff_user)
+        self.assertIn('"subscribe_button" value="{}">Yes'.format(subscribed_user.id),
+            resp.rendered_content
+        )
+        self.assertIn(
+            'id="subscribe_button" value="{}">No'.format(unsubscribed_user.id),
+            resp.rendered_content
+        )
+
+    def test_mailing_list_button_not_shown_for_instructors(self):
+        subscribed_user = mommy.make_recipe('booking.user')
+        unsubscribed_user = mommy.make_recipe('booking.user')
+        subscribed = mommy.make(Group, name='subscribed')
+        subscribed.user_set.add(subscribed_user)
+
+        resp = self._get_response(self.staff_user)
+        self.assertIn('"subscribe_button" value="{}">Yes'.format(subscribed_user.id),
+            resp.rendered_content
+        )
+        self.assertIn(
+            'id="subscribe_button" value="{}">No'.format(unsubscribed_user.id),
+            resp.rendered_content
+        )
+
+        resp = self._get_response(self.instructor_user)
+        resp.render()
+        self.assertNotIn(
+            'id="subscribe_button" value="{}">Yes'.format(subscribed_user.id),
+            str(resp.content)
+        )
+        self.assertNotIn(
+            'id="subscribe_button" value="{}">No'.format(unsubscribed_user.id),
+            str(resp.content)
+        )
+
+    def test_change_mailing_list(self):
+        subscribed_user = mommy.make_recipe('booking.user')
+        unscubscribed_user = mommy.make_recipe('booking.user')
+        subscribed = mommy.make(Group, name='subscribed')
+        subscribed.user_set.add(subscribed_user)
+
+        self.assertIn(subscribed, subscribed_user.groups.all())
+        self._get_response(
+            self.staff_user, {'change_subscription': [subscribed_user.id]}
+        )
+        changed_student = subscribed_user.refresh_from_db()
+        self.assertNotIn(subscribed, subscribed_user.groups.all())
+
+        self.assertNotIn(subscribed, unscubscribed_user.groups.all())
+        self._get_response(
+            self.staff_user, {'change_subscription': [unscubscribed_user.id]}
+        )
+        changed_student = unscubscribed_user.refresh_from_db()
+        self.assertIn(subscribed, unscubscribed_user.groups.all())
+
+    def test_instructor_cannot_change_mailing_list(self):
+        subscribed_user = mommy.make_recipe('booking.user')
+        subscribed = mommy.make(Group, name='subscribed')
+        subscribed.user_set.add(subscribed_user)
+
+        self.assertIn(subscribed, subscribed_user.groups.all())
+        resp = self._get_response(
+            self.instructor_user, {'change_subscription': [subscribed_user.id]}
+        )
+
+        self.assertIn('This action is not permitted', resp.rendered_content)
+        subscribed_user.refresh_from_db()
+        self.assertIn(subscribed, subscribed_user.groups.all())
 
 
 class UserBookingsViewTests(TestPermissionMixin, TestCase):
@@ -1798,3 +1873,72 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             format_content(resp.rendered_content)
         )
         self.assertEqual(Block.objects.count(), 1)
+
+
+class MailingListViewTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super(MailingListViewTests, cls).setUpTestData()
+        cls.subscribed = mommy.make(Group, name='subscribed')
+
+    def test_staff_login_required(self):
+        url = reverse('studioadmin:mailing_list')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url,
+            reverse('login') + '?next=/studioadmin/users/mailing-list/'
+        )
+
+        self.client.login(
+            username=self.instructor_user.username, password='test'
+        )
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url,
+            reverse('booking:permission_denied')
+        )
+
+        self.client.login(
+            username=self.staff_user.username, password='test'
+        )
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_shows_only_users_on_mailing_list(self):
+        ml_users = mommy.make_recipe('booking.user', _quantity=5)
+        not_ml_users = mommy.make_recipe('booking.user', _quantity=5)
+
+        for user in ml_users:
+            self.subscribed.user_set.add(user)
+        self.client.login(
+            username=self.staff_user.username, password='test'
+        )
+
+        url = reverse('studioadmin:mailing_list')
+        resp = self.client.get(url)
+        self.assertEqual(resp.context_data['users'].count(), 5)
+        self.assertEqual(
+            sorted([user.id for user in resp.context_data['users']]),
+            sorted([user.id for user in ml_users])
+        )
+
+    def test_unsubscribe_user(self):
+        ml_users = mommy.make_recipe('booking.user', _quantity=5)
+
+        for user in ml_users:
+            self.subscribed.user_set.add(user)
+        ml_user = ml_users[0]
+
+        self.client.login(
+            username=self.staff_user.username, password='test'
+        )
+        self.assertIn(self.subscribed, ml_user.groups.all())
+
+        resp = self.client.get(
+            reverse('studioadmin:mailing_list'), {'unsubscribe': [ml_user.id]}
+        )
+        ml_user.refresh_from_db()
+        self.assertNotIn(self.subscribed, ml_user.groups.all())

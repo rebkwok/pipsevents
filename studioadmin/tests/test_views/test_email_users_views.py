@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 
 from activitylog.models import ActivityLog
@@ -426,7 +426,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(len(mail.outbox), 1)
         email = mail.outbox[0]
-        self.assertEqual(email.body, 'Test message')
+        self.assertIn('Test message', email.body)
         self.assertEqual(email.subject, '[watermelon studio bookings] Test email')
 
     @patch('studioadmin.views.email_users.EmailMultiAlternatives.send')
@@ -491,3 +491,71 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(len(mail.outbox), 0)
         self.assertIn('Please correct errors in form', resp.rendered_content)
+
+    def test_email_mailing_list(self):
+        url = reverse('studioadmin:mailing_list_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(url)
+
+        # group is created in view if it doesn't already exist
+        group = Group.objects.get(name='subscribed')
+        self.assertFalse(group.user_set.exists())
+        self.assertEqual(resp.context_data['users_to_email'].count(), 0)
+
+        subscribed_users = mommy.make_recipe('booking.user', _quantity=3)
+        mommy.make_recipe('booking.user', _quantity=3)
+        for user in subscribed_users:
+            group.user_set.add(user)
+
+        resp = self.client.get(url)
+        # staff, instructor, user plus 6 created here
+        self.assertEqual(User.objects.count(), 9)
+        # only the 3 in the subscribed group
+        self.assertEqual(resp.context_data['users_to_email'].count(), 3)
+        self.assertEqual(
+            sorted([user.id for user in resp.context_data['users_to_email']]),
+            sorted([user.id for user in subscribed_users])
+        )
+
+    def test_unsubscribe_link_in_mailing_list_emails_only(self):
+        form_data = {
+            'subject': 'Test email',
+            'message': 'Test message',
+            'from_address': 'test@test.com',
+            'cc': True
+        }
+
+        subscribed_user = mommy.make_recipe(
+            'booking.user', email='subscribed@test.com'
+        )
+        group = mommy.make(Group, name='subscribed')
+        group.user_set.add(subscribed_user)
+
+        # mailing list
+        url = reverse('studioadmin:mailing_list_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(url, form_data)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['subscribed@test.com'])
+        self.assertIn(
+            'Unsubscribe from this mailing list', mail.outbox[0].body
+        )
+        self.assertIn(
+            reverse('subscribe'), mail.outbox[0].body
+        )
+
+        # mailing list
+        self._post_response(
+            self.staff_user, [self.user.id],
+            event_ids=[], lesson_ids=[],
+            form_data={
+                'subject': 'Test email',
+                'message': 'Test message',
+                'from_address': 'test@test.com',
+                'cc': True}
+        )
+        self.assertEqual(len(mail.outbox), 2)  # mailing list email is first
+        self.assertEqual(mail.outbox[-1].to, [self.user.email])
+        self.assertNotIn(
+            'Unsubscribe from this mailing list', mail.outbox[-1].body
+        )
