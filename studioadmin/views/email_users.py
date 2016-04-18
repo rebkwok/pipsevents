@@ -30,9 +30,7 @@ logger = logging.getLogger(__name__)
 @staff_required
 def choose_users_to_email(request,
                           template_name='studioadmin/choose_users_form.html'):
-
-    initial_userfilterdata={'events': [''], 'lessons': ['']}
-
+    userfilterform = UserFilterForm(prefix='filter')
     if 'filter' in request.POST:
         event_ids = request.POST.getlist('filter-events')
         lesson_ids = request.POST.getlist('filter-lessons')
@@ -41,31 +39,40 @@ def choose_users_to_email(request,
             if request.session.get('events'):
                 del request.session['events']
             event_ids = []
+        elif '' in event_ids:
+            event_ids.remove('')
         else:
             request.session['events'] = event_ids
-            initial_userfilterdata['events'] = event_ids
 
         if lesson_ids == ['']:
             if request.session.get('lessons'):
                 del request.session['lessons']
             lesson_ids = []
+        elif '' in lesson_ids:
+            lesson_ids.remove('')
         else:
             request.session['lessons'] = lesson_ids
-            initial_userfilterdata['lessons'] = lesson_ids
 
         if not event_ids and not lesson_ids:
             usersformset = ChooseUsersFormSet(
-                queryset=User.objects.all().order_by('username'))
+                queryset=User.objects.all().order_by('first_name', 'last_name')
+            )
         else:
             event_and_lesson_ids = event_ids + lesson_ids
             bookings = Booking.objects.filter(event__id__in=event_and_lesson_ids)
             user_ids = set([booking.user.id for booking in bookings
                             if booking.status == 'OPEN'])
             usersformset = ChooseUsersFormSet(
-                queryset=User.objects.filter(id__in=user_ids).order_by('username')
+                queryset=User.objects.filter(id__in=user_ids)
+                    .order_by('first_name', 'last_name')
+            )
+            userfilterform = UserFilterForm(
+                prefix='filter',
+                initial={'events': event_ids, 'lessons': lesson_ids}
             )
 
     elif request.method == 'POST':
+        userfilterform = UserFilterForm(prefix='filter', data=request.POST)
         usersformset = ChooseUsersFormSet(request.POST)
 
         if usersformset.is_valid():
@@ -88,12 +95,8 @@ def choose_users_to_email(request,
 
     else:
         usersformset = ChooseUsersFormSet(
-            queryset=User.objects.all().order_by('username'),
+            queryset=User.objects.all().order_by('first_name', 'last_name'),
         )
-
-    userfilterform = UserFilterForm(
-        prefix='filter', initial=initial_userfilterdata
-    )
 
     return TemplateResponse(
         request, template_name, {

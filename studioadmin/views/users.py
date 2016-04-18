@@ -669,7 +669,7 @@ class MailingListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
     def get_queryset(self, **kwargs):
         group, _ = Group.objects.get_or_create(name='subscribed')
-        return group.user_set.all()
+        return group.user_set.all().order_by('first_name', 'last_name')
 
     def get(self, request, *args,  **kwargs):
         if 'unsubscribe' in request.GET:
