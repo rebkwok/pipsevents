@@ -7,7 +7,7 @@ from model_mommy import mommy
 
 from django.conf import settings
 from django.core import management, mail
-from django.test import TestCase, RequestFactory, Client, override_settings
+from django.test import TestCase, override_settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from allauth.account.models import EmailAddress
 
-from activitylog.models import ActivityLog
 from accounts.forms import SignupForm, DisclaimerForm
 from accounts.management.commands.import_disclaimer_data import logger as \
     import_disclaimer_data_logger
@@ -23,10 +22,9 @@ from accounts.management.commands.export_encrypted_disclaimers import EmailMessa
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
     DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
+
+from booking.models import Booking
 from booking.tests.helpers import set_up_fb, _create_session, TestSetupMixin
-
-
-from model_mommy import mommy
 
 
 class SignUpFormTests(TestSetupMixin, TestCase):
@@ -1012,3 +1010,111 @@ class EmailDuplicateUsersTests(TestCase):
 
         management.call_command('email_duplicate_users', file=self.users_file)
         self.assertEqual(len(mail.outbox), 0)
+
+
+class MailingListSubscribeViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super(MailingListSubscribeViewTests, cls).setUpTestData()
+        cls.subscribed = mommy.make(Group, name='subscribed')
+
+    def test_login_required(self):
+        url = reverse('subscribe')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            resp.url, reverse('login') + '?next=/accounts/mailing-list/'
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_shows_correct_subscription_status(self):
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(reverse('subscribe'))
+        self.assertIn(
+            "You are not currently subscribed to the mailing list.",
+            resp.rendered_content
+        )
+
+        self.subscribed.user_set.add(self.user)
+        resp = self.client.get(reverse('subscribe'))
+        self.assertIn(
+            "You are currently subscribed to the mailing list.  "
+            "Please click below if you would like to unsubscribe.",
+            resp.rendered_content
+        )
+
+    def test_can_change_subscription(self):
+        self.subscribed = Group.objects.get(name='subscribed')
+        self.client.login(username=self.user.username, password='test')
+        self.assertNotIn(self.subscribed, self.user.groups.all())
+
+        self.client.post(reverse('subscribe'), {'subscribe': 'Subscribe'})
+        self.assertIn(self.subscribed, self.user.groups.all())
+
+        self.client.post(reverse('subscribe'), {'unsubscribe': 'Unsubscribe'})
+        self.assertNotIn(self.subscribed, self.user.groups.all())
+
+
+class CreateMailingListTests(TestSetupMixin, TestCase):
+
+    def test_group_created(self):
+        self.assertFalse(Group.objects.filter(name='subscribed').exists())
+        self.assertFalse(Booking.objects.exists())
+        self.assertTrue(User.objects.count(), 3)
+
+        management.call_command('create_mailing_list')
+        groups = Group.objects.filter(name='subscribed')
+        self.assertEqual(groups.count(), 1)
+
+        self.assertFalse(groups[0].user_set.exists())
+
+    def test_group_and_mailing_list_created(self):
+        """
+        Add users to mailing list only if they have booked a CL event type
+        """
+        book_cl_users = mommy.make_recipe(
+            'booking.booking', event__event_type__event_type='CL', _quantity=3
+        )
+        mommy.make_recipe(
+            'booking.booking', event__event_type__event_type='EV', _quantity=3
+        )
+        # group was created on model pre-save when bookings created; delete it
+        Group.objects.get(name='subscribed').delete()
+
+        management.call_command('create_mailing_list')
+        group = Group.objects.get(name='subscribed')
+        self.assertEqual(group.user_set.count(), 3)
+        self.assertEqual(
+            sorted(user.id for user in group.user_set.all()),
+            sorted(booking.user.id for booking in book_cl_users)
+        )
+
+    def test_mailing_list_not_created_if_group_exists(self):
+        self.assertFalse(Group.objects.filter(name='subscribed').exists())
+        management.call_command('create_mailing_list')
+
+        book_cl_users = mommy.make_recipe(
+            'booking.booking', event__event_type__event_type='CL', _quantity=3
+        )
+        mommy.make_recipe(
+            'booking.booking', event__event_type__event_type='EV', _quantity=3
+        )
+        # group is created on model pre-save when bookings created
+        self.assertTrue(Group.objects.filter(name='subscribed').exists())
+        group = Group.objects.get(name='subscribed')
+        self.assertEqual(group.user_set.count(), 3)
+
+        # remove users from mailing list
+        for booking in book_cl_users:
+            group.user_set.remove(booking.user)
+
+        management.call_command('create_mailing_list')
+        self.assertFalse(group.user_set.exists())
+
+        group.user_set.add(book_cl_users[0].user)
+        management.call_command('create_mailing_list')
+        self.assertEqual(group.user_set.count(), 1)

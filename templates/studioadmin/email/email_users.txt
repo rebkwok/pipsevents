@@ -1,0 +1,8 @@
+{% if mailing_list %}
+Unsubscribe from this mailing list: {{ host }}/accounts/mailing-list/
+{% endif %}
+{{ message|linebreaks }}
+THE WATERMELON STUDIO
+19 Beaverbank Place
+Edinburgh, EH7 4FB
+thewatermelonstudio@hotmail.com

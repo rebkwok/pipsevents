@@ -21,13 +21,18 @@
 
                <div class="col-xs-12">
                    <div class="col-xs-3"><p><strong>Last name:</strong></p></div>
-                   <div class="col-xs-9"><p>{{ user.last_name }}</p></div>
+                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3"><p>{{ user.last_name }}</p></div>
+                  <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'profile:update_profile' %}">Change</a></p></div>
                </div>
+
 
                <div class="col-xs-12">
                    <div class="col-xs-3"><p><strong>Primary email address:</strong></p></div>
-                   <div class="col-xs-9"><p>{{ user.email }}</p></div>
+                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3"><p>{{ user.email }}</p></div>
+                    <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'account_email' %}">Change</a></p></div>
                </div>
+
+
 
                <div class="col-xs-12">
                    <div class="col-xs-3"><p><strong>Account Status:</strong></p></div>
@@ -44,7 +49,26 @@
                            {% endif %}
                         </p>
                    </div>
+               </div>
 
+
+                   {% if request.user.is_staff or request.user|has_booked_class %}
+                   <div class="col-xs-12">
+                   <div class="col-xs-3"><p><strong>Mailing List:</strong></p></div>
+                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3">
+                        <p>
+                           {% if request.user|subscribed %}
+                                Subscribed
+                           {% else %}
+                                Not subscribed
+                           {% endif %}
+                        </p>
+                   </div>
+                  <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'subscribe' %}">Change</a></p></div>
+                  </div>
+                   {% endif %}
+
+                   <div class="col-xs-12">
                    <div class="col-xs-3"><p><strong>Disclaimer:</strong></p></div>
                    <div class="col-xs-9">
                         <p>
@@ -54,6 +78,7 @@
                                 Not completed
                            {% endif %}
                         </p>
+                   </div>
                    </div>
                    {% if not disclaimer %}
                    <div class="col-xs-12">
@@ -71,8 +96,8 @@
                    {% endif %}
                </div>
 
-
         </div>
        </div>
 </div>
 {% endblock content %}
+

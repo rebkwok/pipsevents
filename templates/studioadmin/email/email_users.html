@@ -1,3 +1,9 @@
 {% extends 'email_base.html' %}
 
-{% block messagecontent %}{{ message|linebreaks }}{% endblock %}
+{% block donotreply %}{% endblock %}
+{% block messagecontent %}
+    {% if mailing_list %}
+        <p><a href="{{ host }}/accounts/mailing-list/">Unsubscribe from this mailing list</a></p>
+    {% endif %}
+    {{ message|linebreaks }}
+{% endblock %}

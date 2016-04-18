@@ -5,7 +5,7 @@ from django.views.generic import RedirectView
 from django.conf.urls.static import static
 
 from accounts.views import CustomLoginView, DisclaimerCreateView, \
-    data_protection
+    data_protection, subscribe_view
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
@@ -22,6 +22,7 @@ urlpatterns = [
         r'^accounts/disclaimer/$', DisclaimerCreateView.as_view(),
         name='disclaimer_form'
     ),
+    url(r'^accounts/mailing-list/$', subscribe_view, name='subscribe'),
     url(r'^accounts/', include('allauth.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),

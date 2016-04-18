@@ -2,7 +2,7 @@
 import logging
 import pytz
 
-from decimal import Decimal, ROUND_UP, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN
 
 from datetime import timedelta
 

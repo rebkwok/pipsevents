@@ -6,7 +6,7 @@ import shortuuid
 
 from django.db import models
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db.models.signals import pre_save, post_save
@@ -532,6 +532,28 @@ def update_free_blocks(sender, instance, **kwargs):
                                 instance.user.username
                             )
                         )
+
+
+@receiver(pre_save)
+def add_to_mailing_list(sender, instance, **kwargs):
+    if sender == Booking:
+        if instance.event.event_type.event_type == 'CL':
+            # check if this is the user's first class booking
+            user_class_bookings = Booking.objects.filter(
+                user=instance.user, event__event_type__event_type='CL'
+            ).exists()
+            if not user_class_bookings:
+                group, _ = Group.objects.get_or_create(name='subscribed')
+                group.user_set.add(instance.user)
+                ActivityLog.objects.create(
+                    log='First class booking created; {} {} ({}) has been '
+                        'added to subscribed group for mailing list.'.format(
+                            instance.user.first_name,
+                            instance.user.last_name,
+                            instance.user.username
+                        )
+                )
+
 
 
 class WaitingListUser(models.Model):
