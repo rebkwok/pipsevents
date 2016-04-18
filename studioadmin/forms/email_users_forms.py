@@ -25,14 +25,14 @@ class UserFilterForm(forms.Form):
     events = forms.MultipleChoiceField(
         choices=get_event_names('EV'),
         widget=forms.SelectMultiple(
-            attrs={'class': 'form-control'}
+            attrs={'class': 'form-control', 'style': 'font-size: smaller;'}
         ),
     )
 
     lessons = forms.MultipleChoiceField(
         choices=get_event_names('CL'),
         widget=forms.SelectMultiple(
-            attrs={'class': 'form-control'}
+            attrs={'class': 'form-control', 'style': 'font-size: smaller;'}
         ),
     )
 
