@@ -1043,7 +1043,7 @@ class MailingListSubscribeViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(reverse('subscribe'))
         self.assertIn(
             "You are currently subscribed to the mailing list.  "
-            "Please click below to unscubscribe.",
+            "Please click below if you would like to unsubscribe.",
             resp.rendered_content
         )
 
