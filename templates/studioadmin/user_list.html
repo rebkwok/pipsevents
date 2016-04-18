@@ -45,7 +45,10 @@
                                 {% if request.user.is_staff %}<th class="table-center">Regular student</th>{% endif %}
                                 {% if request.user.is_superuser %}<th class="table-center">Paper Disclaimer</th>{% endif %}
                                 <th class="table-center">Online Disclaimer</br><span class="studioadmin-help">Click to view/print disclaimer</span></th>
-                                <th class="table-center">Email</th>
+                                {% if request.user.is_staff %}
+                                    <th class="table-center">Email</th>
+                                    <th class="table-center">Subscribed</th>
+                                {% endif %}
                             </tr>
                             </thead>
                             <tbody>
@@ -85,13 +88,20 @@
                                         <a href="{% url 'studioadmin:user_disclaimer' user.id|encode %}" target="_blank"><span class="has-disclaimer-pill">Yes</span></a>
                                     {% else %}No{% endif %}
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email|abbr_email }}</a></td>
+                                {% if request.user.is_staff %}
+                                <td class="table-center studioadmin-tbl">
+                                    <form class="wl-table-form" method="get">
+                                        <button class="btn table-btn perm-btn {% if user|subscribed %}btn-success{% else %}btn-default{% endif %}"
+                                                type="submit" name="change_subscription" id="subscribe_button" value="{{ user.id }}">{% if user|subscribed %}Yes{% else %}No{% endif %}</button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
 
                             {% if is_paginated %}
                                 <tr>
-                                    <td class="studioadmin-tbl" {% if request.user.is_superuser %}colspan="7"{% elif request.user.is_staff %}colspan="6"{% else %}colspan="5"{% endif %}>
-
+                                    <td class="studioadmin-tbl" {% if request.user.is_superuser %}colspan="8"{% elif request.user.is_staff %}colspan="7"{% else %}colspan="5"{% endif %}>
                                             <div class="pagination">
                                                 {% if page_obj.has_previous %}
                                                     <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
@@ -114,7 +124,7 @@
                             </tbody>
                             <tfoot>
                             <tr class="success">
-                                <td {% if request.user.is_superuser %}colspan="7"{% elif request.user.is_staff %}colspan="6"{% else %}colspan="5"{% endif %}>
+                                <td {% if request.user.is_superuser %}colspan="8"{% elif request.user.is_staff %}colspan="7"{% else %}colspan="5"{% endif %}>
                                     {% if search_submitted or active_filter %}
                                         Search results: returned {{ num_results }} of {{ total_users }} users
                                     {% else %}

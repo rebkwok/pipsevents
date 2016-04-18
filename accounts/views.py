@@ -1,9 +1,12 @@
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.template.response import TemplateResponse
 from django.utils.safestring import mark_safe
 
 from braces.views import LoginRequiredMixin
@@ -11,6 +14,8 @@ from braces.views import LoginRequiredMixin
 from allauth.account.views import LoginView
 
 from accounts.forms import DisclaimerForm
+
+from activitylog.models import ActivityLog
 
 
 def profile(request):
@@ -121,3 +126,33 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
 def data_protection(request):
     return render(request, 'account/data_protection_statement.html')
+
+
+@login_required
+def subscribe_view(request):
+
+    if request.method == 'POST':
+        group = Group.objects.get(name='subscribed')
+        if 'subscribe' in request.POST:
+            group.user_set.add(request.user)
+            messages.success(
+                request, 'You have been subscribed to the mailing list'
+            )
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has subscribed to the mailing list'.format(
+                    request.user.first_name, request.user.last_name,
+                    request.user.username
+                )
+            )
+        elif 'unsubscribe' in request.POST:
+            group.user_set.remove(request.user)
+            messages.success(request, 'You have been unsubscribed from the mailing list')
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has unsubscribed from the mailing list'.format(
+                    request.user.first_name, request.user.last_name,
+                    request.user.username
+                )
+            )
+    return TemplateResponse(
+        request, 'account/mailing_list_subscribe.html'
+    )

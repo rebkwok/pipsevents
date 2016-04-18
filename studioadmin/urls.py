@@ -8,6 +8,7 @@ from studioadmin.views import (ConfirmRefundView,
                                EventAdminUpdateView,
                                EventAdminCreateView,
                                EventRegisterListView,
+                               MailingListView,
                                TimetableSessionUpdateView,
                                TimetableSessionCreateView,
                                UserListView,
@@ -88,6 +89,9 @@ urlpatterns = [
         name="choose_email_users"),
     url(r'^users/email/emailform/$', email_users_view,
         name="email_users_view"),
+    url(r'^users/email/mailing-list-email/$', email_users_view,
+        {'mailing_list': True}, name="mailing_list_email"),
+    url(r'^users/mailing-list/$', MailingListView.as_view(), name='mailing_list'),
     url(
         r'^users/(?P<user_id>\d+)/bookings/(?P<booking_status>[\w-]+)$',
         user_bookings_view, name='user_bookings_list'

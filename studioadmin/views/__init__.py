@@ -19,8 +19,8 @@ from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
 from studioadmin.views.timetable import timetable_admin_list, \
     TimetableSessionCreateView, TimetableSessionUpdateView, \
     upload_timetable_view
-from studioadmin.views.users import user_bookings_view, user_blocks_view, \
-    UserListView
+from studioadmin.views.users import MailingListView,user_bookings_view, \
+    user_blocks_view, UserListView
 from studioadmin.views.vouchers import VoucherCreateView, VoucherListView, \
     VoucherUpdateView
 from studioadmin.views.waiting_list import event_waiting_list_view
@@ -33,7 +33,8 @@ __all__ = [
     'DisclaimerUpdateView',
     'email_users_view', 'event_admin_list',
     'EventAdminCreateView', 'EventAdminUpdateView'
-    'EventRegisterListView', 'event_waiting_list_view', 'print_tickets_list',
+    'EventRegisterListView', 'event_waiting_list_view', 'MailingListView',
+    'print_tickets_list',
     'register_print_day', 'register_view', 'TicketedEventBookingsListView',
     'TicketedEventAdminUpdateView', 'TicketedEventAdminListView',
     'TicketedEventAdminCreateView', 'ConfirmTicketBookingRefundView',

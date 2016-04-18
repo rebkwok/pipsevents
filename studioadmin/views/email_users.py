@@ -3,7 +3,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -106,10 +106,16 @@ def choose_users_to_email(request,
 
 @login_required
 @staff_required
-def email_users_view(request,
+def email_users_view(request, mailing_list=False,
                      template_name='studioadmin/email_users_form.html'):
 
-        users_to_email = User.objects.filter(id__in=request.session['users_to_email'])
+        if mailing_list:
+            subscribed, _ = Group.objects.get_or_create(name='subscribed')
+            users_to_email = subscribed.user_set.all()
+        else:
+            users_to_email = User.objects.filter(
+                id__in=request.session['users_to_email']
+            )
 
         if request.method == 'POST':
 
@@ -128,18 +134,31 @@ def email_users_view(request,
                 email_addresses = [user.email for user in users_to_email]
                 success = []
                 fail = []
+                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                 for email_address in email_addresses:
                     try:
                         msg = EmailMultiAlternatives(
-                            subject, message, from_address, [email_address],
-                            cc=[from_address] if cc else [], reply_to=[from_address]
-                        )
+                            subject,
+                            get_template(
+                                'studioadmin/email/email_users.txt').render(
+                                  {
+                                      'subject': subject,
+                                      'message': message,
+                                      'mailing_list': mailing_list,
+                                      'host': host,
+                                  }),
+                            from_address, [email_address],
+                            cc=[from_address] if cc else [],
+                            reply_to=[from_address]
+                            )
                         msg.attach_alternative(
                             get_template(
                                 'studioadmin/email/email_users.html').render(
                                   {
                                       'subject': subject,
-                                      'message': message
+                                      'message': message,
+                                      'mailing_list': mailing_list,
+                                      'host': host,
                                   }
                               ),
                             "text/html"
@@ -200,9 +219,9 @@ def email_users_view(request,
                 )
 
         else:
-            event_ids = ast.literal_eval(request.GET.get('events'))
+            event_ids = ast.literal_eval(request.GET.get('events', '[]'))
             events = Event.objects.filter(id__in=event_ids)
-            lesson_ids = ast.literal_eval(request.GET.get('lessons'))
+            lesson_ids = ast.literal_eval(request.GET.get('lessons', '[]'))
             lessons = Event.objects.filter(id__in=lesson_ids)
             totaleventids = event_ids + lesson_ids
             totalevents = Event.objects.filter(id__in=totaleventids)
@@ -216,9 +235,11 @@ def email_users_view(request,
             request, template_name, {
                 'form': form,
                 'users_to_email': users_to_email,
-                'sidenav_selection': 'email_users',
+                'sidenav_selection': 'mailing_list'
+                if mailing_list else 'email_users',
                 'events': events,
-                'lessons': lessons
+                'lessons': lessons,
+                'mailing_list': mailing_list
             }
         )
 

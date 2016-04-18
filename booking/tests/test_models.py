@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
@@ -142,6 +142,7 @@ class BookingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.event = mommy.make_recipe('booking.future_EV', max_participants=20)
+        cls.subscribed = mommy.make(Group, name='subscribed')
 
     def setUp(self):
         mommy.make_recipe('booking.user', _quantity=15)
@@ -393,6 +394,34 @@ class BookingTests(TestCase):
 
         booking.refresh_from_db()
         self.assertIsNone(booking.date_rebooked)
+
+    def test_user_added_to_mailing_list_when_booking_first_CL(self):
+        user = mommy.make_recipe('booking.user')
+        self.assertNotIn(self.subscribed, user.groups.all())
+        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        self.assertIn(self.subscribed, user.groups.all())
+
+    def test_unsubscribed_user_with_past_CL_not_added_to_mailing_list(self):
+        user = mommy.make_recipe('booking.user')
+        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        self.assertIn(self.subscribed, user.groups.all())
+
+        self.subscribed.user_set.remove(user)
+        self.assertNotIn(self.subscribed, user.groups.all())
+
+        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        self.assertEqual(Booking.objects.filter(user=user).count(), 2)
+        self.assertNotIn(self.subscribed, user.groups.all())
+
+    def test_user_not_added_to_mailing_list_when_booking_non_CL(self):
+        user = mommy.make_recipe('booking.user')
+        self.assertNotIn(self.subscribed, user.groups.all())
+        mommy.make(Booking, user=user, event__event_type__event_type='EV')
+        self.assertNotIn(self.subscribed, user.groups.all())
+        self.assertTrue(Booking.objects.filter(user=user).exists())
+
+        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        self.assertIn(self.subscribed, user.groups.all())
 
 
 class BlockTests(TestCase):
