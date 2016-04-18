@@ -200,6 +200,37 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         users = [form.instance for form in usersformset.forms]
         self.assertEqual(set(users), {self.user, new_user1})
 
+    def test_filter_users_ignores_none_selected(self):
+        """
+        It is possible to select the "None selected" option as well as an
+        event/class.  Previously this caused an error because it tried to look
+        up bookings with an id of ''.  Particularly an issue on mobile where
+        the multiselect is replaced by checkboxes and the none box is not
+        unchecked when another option is selected.
+        """
+        new_user1 = mommy.make_recipe('booking.user')
+        new_user2 = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': ['', pole_class.id],
+                'filter-events': ['', event.id]}
+        )
+        resp = self._post_response(self.staff_user, form_data)
+
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 5)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 2)
+
+        users = [form.instance for form in usersformset.forms]
+        self.assertEqual(set(users), {self.user, new_user1})
+        
     def test_users_for_cancelled_bookings_not_shown(self):
         new_user = mommy.make_recipe('booking.user')
         event = mommy.make_recipe('booking.future_EV')
