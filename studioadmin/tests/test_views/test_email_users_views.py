@@ -230,7 +230,7 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
         users = [form.instance for form in usersformset.forms]
         self.assertEqual(set(users), {self.user, new_user1})
-        
+
     def test_users_for_cancelled_bookings_not_shown(self):
         new_user = mommy.make_recipe('booking.user')
         event = mommy.make_recipe('booking.future_EV')
@@ -447,8 +447,9 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
     def test_emails_sent(self):
         event = mommy.make_recipe('booking.future_EV')
+        user = mommy.make_recipe('booking.user', email='other@test.com')
         self._post_response(
-            self.staff_user, [self.user.id],
+            self.staff_user, [self.user.id, user.id],
             event_ids=[event.id], lesson_ids=[],
             form_data={
                 'subject': 'Test email',
@@ -458,7 +459,12 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         email = mail.outbox[0]
         self.assertIn('Test message', email.body)
-        self.assertEqual(email.subject, '[watermelon studio bookings] Test email')
+        self.assertEqual(email.to, [])
+        self.assertEqual(email.reply_to, ['test@test.com'])
+        self.assertEqual(sorted(email.bcc), [self.user.email, user.email])
+        self.assertEqual(
+            email.subject, '[watermelon studio bookings] Test email'
+        )
 
     @patch('studioadmin.views.email_users.EmailMultiAlternatives.send')
     def test_email_errors(self, mock_send):
@@ -567,7 +573,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(url, form_data)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ['subscribed@test.com'])
+        self.assertEqual(mail.outbox[0].bcc, ['subscribed@test.com'])
         self.assertIn(
             'Unsubscribe from this mailing list', mail.outbox[0].body
         )
@@ -575,7 +581,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
             reverse('subscribe'), mail.outbox[0].body
         )
 
-        # mailing list
+        # bulk email
         self._post_response(
             self.staff_user, [self.user.id],
             event_ids=[], lesson_ids=[],
@@ -586,7 +592,61 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
                 'cc': True}
         )
         self.assertEqual(len(mail.outbox), 2)  # mailing list email is first
-        self.assertEqual(mail.outbox[-1].to, [self.user.email])
+        self.assertEqual(mail.outbox[-1].bcc, [self.user.email])
         self.assertNotIn(
             'Unsubscribe from this mailing list', mail.outbox[-1].body
         )
+
+    def test_sending_test_email_only_goes_to_from_address(self):
+        form_data = {
+            'subject': 'Test email',
+            'message': 'Test message',
+            'from_address': 'test@test.com',
+            'cc': True,
+            'send_test': True
+        }
+
+        subscribed_user = mommy.make_recipe(
+            'booking.user', email='subscribed@test.com'
+        )
+        subscribed_user1 = mommy.make_recipe(
+            'booking.user', email='subscribed1@test.com'
+        )
+        group = mommy.make(Group, name='subscribed')
+        group.user_set.add(subscribed_user)
+        group.user_set.add(subscribed_user1)
+
+        # mailing list
+        url = reverse('studioadmin:mailing_list_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(url, form_data)
+
+        self.assertEqual(len(mail.outbox), 1)
+        # email is sent to the 'from' address only
+        self.assertEqual(mail.outbox[0].bcc, ['test@test.com'])
+        self.assertEqual(mail.outbox[0].cc, ['test@test.com'])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} Test email [TEST EMAIL]'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+        del form_data['send_test']
+        self.client.post(url, form_data)
+
+        self.assertEqual(len(mail.outbox), 2)
+        # email is sent to the mailing list users
+        self.assertEqual(
+            sorted(mail.outbox[1].bcc),
+            sorted(['subscribed@test.com', 'subscribed1@test.com'])
+        )
+        self.assertEqual(mail.outbox[1].cc, ['test@test.com'])
+        self.assertEqual(mail.outbox[1].reply_to, ['test@test.com'])
+        self.assertEqual(
+            mail.outbox[1].subject,
+            '{} Test email'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
