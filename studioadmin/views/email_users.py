@@ -64,7 +64,7 @@ def choose_users_to_email(request,
                             if booking.status == 'OPEN'])
             usersformset = ChooseUsersFormSet(
                 queryset=User.objects.filter(id__in=user_ids)
-                    .order_by('first_name', 'last_name')
+                .order_by('first_name', 'last_name')
             )
             userfilterform = UserFilterForm(
                 prefix='filter',
@@ -94,6 +94,11 @@ def choose_users_to_email(request,
             )
 
     else:
+        # for a new GET, remove any event/lesson session data
+        if request.session.get('events'):
+            del request.session['events']
+        if request.session.get('lessons'):
+            del request.session['lessons']
         usersformset = ChooseUsersFormSet(
             queryset=User.objects.all().order_by('first_name', 'last_name'),
         )
