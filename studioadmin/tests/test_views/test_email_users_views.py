@@ -22,28 +22,10 @@ from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
-        url = reverse('studioadmin:choose_email_users')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return choose_users_to_email(request)
-
-    def _post_response(self, user, form_data, session_data=None):
-        url = reverse('studioadmin:choose_email_users')
-        session = _create_session()
-        if session_data:
-            for k, v in session_data.items():
-                session[k] = v
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return choose_users_to_email(request)
+    @classmethod
+    def setUpTestData(cls):
+        super(ChooseUsersToEmailTests, cls).setUpTestData()
+        cls.url = reverse('studioadmin:choose_email_users')
 
     def formset_data(self, extra_data={}):
 
@@ -72,7 +54,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -81,7 +64,10 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user)
+        self.client.login(
+            username=self.instructor_user.username, password='test'
+        )
+        resp = self.client.get(self.url)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
 
@@ -89,7 +75,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
         self.assertEquals(resp.status_code, 200)
 
     def test_filter_users_by_event_booked(self):
@@ -99,7 +86,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {'filter': 'Show Students', 'filter-events': [event.id]}
         )
-        resp = self._post_response(self.staff_user, form_data)
+
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -117,7 +106,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {'filter': 'Show Students', 'filter-lessons': [pole_class.id]}
         )
-        resp = self._post_response(self.staff_user, form_data)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -144,10 +134,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter-lessons': [''],
                 'filter-events': ['']}
         )
-        resp = self._post_response(
-            self.staff_user, form_data,
-            session_data={'events': [event1.id], 'lessons': [lesson.id]}
-        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -165,7 +153,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter-lessons': [''],
                 'filter-events': ['']}
         )
-        resp = self._post_response(self.staff_user, form_data)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -189,7 +178,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter-lessons': [pole_class.id],
                 'filter-events': [event.id]}
         )
-        resp = self._post_response(self.staff_user, form_data)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -220,7 +210,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter-lessons': ['', pole_class.id],
                 'filter-events': ['', event.id]}
         )
-        resp = self._post_response(self.staff_user, form_data)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -243,7 +234,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter': 'Show Students',
                 'filter-events': [event.id]}
         )
-        resp = self._post_response(self.staff_user, form_data)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         usersformset = resp.context_data['usersformset']
         self.assertEqual(len(usersformset.forms), 1)
@@ -261,7 +253,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter': 'Show Students',
                 'filter-events': [event.id for event in events]}
         )
-        resp = self._post_response(self.staff_user, form_data)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 4)
@@ -298,9 +291,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             'events': [old_event.id],
             'lessons': [old_pole_class.id]
         }
-        resp = self._post_response(
-            self.staff_user, form_data, session_data=session_data
-        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
@@ -310,6 +302,33 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
         users = [form.instance for form in usersformset.forms]
         self.assertEqual(set(users), {self.user, new_user1})
+
+    def test_session_data_reset_on_get(self):
+        user1 = mommy.make_recipe('booking.user')
+        user2 = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        pole_class = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=user1, event=event)
+        mommy.make_recipe('booking.booking', user=user2, event=pole_class)
+
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [pole_class.id],
+                'filter-events': [event.id]}
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        # post to set the session data
+        self.client.post(
+            reverse('studioadmin:choose_email_users'), form_data
+        )
+        self.assertEqual(self.client.session['events'], [str(event.id)])
+        self.assertEqual(self.client.session['lessons'], [str(pole_class.id)])
+
+        self.client.get(reverse('studioadmin:choose_email_users'))
+        self.assertIsNone(self.client.session.get('events'))
+        self.assertIsNone(self.client.session.get('lessons'))
 
     def test_get_users_to_email(self):
         new_user1 = mommy.make_recipe('booking.user')
@@ -323,6 +342,17 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             'lessons': [pole_class.id]
         }
 
+        self.client.login(username=self.staff_user.username, password='test')
+        # post with filter to set session data
+
+        filter_form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [pole_class.id],
+                'filter-events': [event.id]}
+        )
+        self.client.post(self.url, filter_form_data)
+
         form_data = self.formset_data(
             {
                 'filter-lessons': [pole_class.id],
@@ -335,13 +365,17 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'form-1-email_user': True,
             }
         )
-        resp = self._post_response(self.staff_user, form_data, session_data)
-
+        resp = self.client.post(self.url, form_data)
+        self.assertEqual(
+            sorted(self.client.session['users_to_email']),
+            sorted([self.user.id, new_user1.id])
+        )
         self.assertEqual(resp.status_code, 302)
+
         self.assertEqual(
             url_with_querystring(
                 reverse('studioadmin:email_users_view'),
-                events=[event.id], lessons=[pole_class.id]),
+                events=[str(event.id)], lessons=[str(pole_class.id)]),
             resp.url
         )
 
@@ -649,4 +683,3 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
             )
         )
-
