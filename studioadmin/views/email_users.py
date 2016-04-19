@@ -213,7 +213,7 @@ def email_users_view(request, mailing_list=False,
                                     from_address
                                     )
                     )
-
+            
             # Do this if form not valid OR sending test email
             event_ids = request.session.get('events', [])
             lesson_ids = request.session.get('lessons', [])
