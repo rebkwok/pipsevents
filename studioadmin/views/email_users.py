@@ -174,20 +174,23 @@ def email_users_view(request, mailing_list=False,
 
                     if not test_email:
                         ActivityLog.objects.create(
-                        log='Bulk email with subject "{}" sent to users {} by '
-                            'admin user {}'.format(
-                            subject, ', '.join(email_addresses),
-                            request.user.username
+                            log='{} email with subject "{}" sent to users {} by'
+                                ' admin user {}'.format(
+                                    'Mailing list' if mailing_list else 'Bulk',
+                                    subject, ', '.join(email_addresses),
+                                    request.user.username
+                                )
                         )
-                    )
                 except Exception as e:
                     # send mail to tech support with Exception
                     send_support_email(
                         e, __name__, "Bulk Email to students"
                     )
                     ActivityLog.objects.create(
-                        log="Possible error with sending bulk email; "
-                            "notification sent to tech support"
+                        log="Possible error with sending {} email; "
+                            "notification sent to tech support".format(
+                                'mailing list' if mailing_list else 'bulk'
+                        )
                     )
 
                     if not test_email:
@@ -201,10 +204,15 @@ def email_users_view(request, mailing_list=False,
                         )
 
                 if not test_email:
-                    return render(
+                    messages.success(
                         request,
-                        'studioadmin/email_users_confirmation.html',
+                        '{} email with subject "{}" has been sent to '
+                        'users'.format(
+                            'Mailing list' if mailing_list else 'Bulk',
+                            subject
+                        )
                     )
+                    return HttpResponseRedirect(reverse('studioadmin:users'))
                 else:
                     messages.success(
                         request, 'Test email has been sent to {} only. Click '
