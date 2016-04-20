@@ -318,12 +318,8 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                     if booking.status == 'CANCELLED':
                                         if booking.block:
                                             booking.block = None
-                                            # if it was a free class block,
-                                            # remove free_class status
-                                            booking.free_class = False
                                             block_removed = True
                                         elif booking.paid \
-                                                and not booking.free_class \
                                                 and booking.event.event_type.event_type != 'EV':
                                             block_type, _ = BlockType.objects.get_or_create(
                                                 event_type=booking.event.event_type,
@@ -339,6 +335,7 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                         booking.deposit_paid = False
                                         booking.paid = False
                                         booking.payment_confirmed = False
+                                        booking.free_class = False
                                         action = 'cancelled'
                                     elif booking.status == 'OPEN':
                                         action = 'reopened'

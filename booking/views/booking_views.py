@@ -820,8 +820,9 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                 "the studio for information")
 
         transfer_block_created = False
-        if not booking.block and booking.paid and not booking.free_class:
+        if not booking.block and booking.paid:
             # booking was paid directly, either in cash or by paypal
+            # OR booking was free class but not made with free class block
             # if event is CL or RH, get or create transfer block type, create
             # transfer block for user and set transferred_booking_id to the
             # cancelled one

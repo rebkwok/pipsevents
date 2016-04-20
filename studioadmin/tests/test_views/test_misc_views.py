@@ -291,6 +291,32 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.payment_confirmed)
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_confirm_refund_for_free_booking(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        self.booking.free_class = True
+        self.booking.save()
+
+        self.assertTrue(self.booking.paid)
+        self.assertTrue(self.booking.payment_confirmed)
+        resp = self._post_response(
+            self.staff_user, self.booking, form_data={'confirmed': ['Confirm']}
+            )
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('studioadmin:users'))
+        booking = Booking.objects.get(id=self.booking.id)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.free_class)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(
+            'Your free booking for {} has been refunded/compensated.'.format(
+                booking.event
+            ),
+            mail.outbox[0].body,
+        )
+
     def test_cancel_confirm_form(self):
         """
         test that page redirects without changes if cancel button used

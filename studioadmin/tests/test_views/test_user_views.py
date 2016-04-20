@@ -14,7 +14,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.models import Booking, Block, EventType, WaitingListUser
+from booking.models import Booking, Block, BlockType, EventType, WaitingListUser
 from booking.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
@@ -1766,6 +1766,284 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         booking.refresh_from_db()
         # but changes still make
         self.assertEqual(booking.status, 'CANCELLED')
+
+    def test_cancel_direct_paid_CL_or_RH_creates_transfer_block(self):
+        self.assertFalse(
+            BlockType.objects.filter(identifier='transferred').exists()
+        )
+        cl_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='CL',
+            user=self.user, paid=True, payment_confirmed=True
+        )
+        rh_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='RH',
+            user=self.user, paid=True, payment_confirmed=True
+        )
+        ev_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='EV',
+            user=self.user, paid=True, payment_confirmed=True
+        )
+
+        data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 5,
+                'bookings-INITIAL_FORMS': 5,
+                'bookings-2-id': cl_booking.id,
+                'bookings-2-event': cl_booking.event.id,
+                'bookings-2-status': 'CANCELLED',
+                'bookings-2-paid': cl_booking.paid,
+                'bookings-3-id': rh_booking.id,
+                'bookings-3-event': rh_booking.event.id,
+                'bookings-3-status': 'CANCELLED',
+                'bookings-3-paid': rh_booking.paid,
+                'bookings-4-id': ev_booking.id,
+                'bookings-4-event': ev_booking.event.id,
+                'bookings-4-status': 'CANCELLED',
+                'bookings-4-paid': ev_booking.paid,
+                'booking_status': ['future']
+            }
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(
+            reverse(
+                'studioadmin:user_bookings_list',
+                args=[self.user.id, 'future']
+            ),
+            data
+        )
+
+        self.assertTrue(
+            BlockType.objects.filter(identifier='transferred').exists()
+        )
+        self.assertEqual(
+            Block.objects.filter(
+                block_type__identifier='transferred', user=self.user
+            ).count(),
+            2
+        )
+
+        cl_booking.refresh_from_db()
+        self.assertEqual(cl_booking.status, 'CANCELLED')
+        self.assertFalse(cl_booking.paid)
+        self.assertFalse(cl_booking.payment_confirmed)
+        cl_block = Block.objects.get(
+            user=self.user, transferred_booking_id=cl_booking.id,
+        )
+        self.assertEqual(
+            cl_block.block_type.event_type, cl_booking.event.event_type
+        )
+
+        rh_booking.refresh_from_db()
+        self.assertEqual(rh_booking.status, 'CANCELLED')
+        self.assertFalse(rh_booking.paid)
+        self.assertFalse(rh_booking.payment_confirmed)
+        rh_block = Block.objects.get(
+            user=self.user, transferred_booking_id=rh_booking.id,
+        )
+        self.assertEqual(
+            rh_block.block_type.event_type, rh_booking.event.event_type
+        )
+
+        ev_booking.refresh_from_db()
+        self.assertEqual(ev_booking.status, 'CANCELLED')
+        self.assertFalse(ev_booking.paid)
+        self.assertFalse(ev_booking.payment_confirmed)
+
+        with self.assertRaises(Block.DoesNotExist):
+            Block.objects.get(
+                user=self.user, transferred_booking_id=ev_booking.id,
+            )
+
+    def test_cancel_free_non_block_CL_or_RH_creates_transfer_block(self):
+        self.assertFalse(
+            BlockType.objects.filter(identifier='transferred').exists()
+        )
+        cl_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='CL',
+            user=self.user, paid=True, payment_confirmed=True, free_class=True
+        )
+        rh_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='RH',
+            user=self.user, paid=True, payment_confirmed=True, free_class=True
+        )
+        ev_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='EV',
+            user=self.user, paid=True, payment_confirmed=True, free_class=True
+        )
+
+        data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 5,
+                'bookings-INITIAL_FORMS': 5,
+                'bookings-2-id': cl_booking.id,
+                'bookings-2-event': cl_booking.event.id,
+                'bookings-2-status': 'CANCELLED',
+                'bookings-2-paid': cl_booking.paid,
+                'bookings-2-free_class': cl_booking.free_class,
+                'bookings-3-id': rh_booking.id,
+                'bookings-3-event': rh_booking.event.id,
+                'bookings-3-status': 'CANCELLED',
+                'bookings-3-paid': rh_booking.paid,
+                'bookings-3-free_class': rh_booking.free_class,
+                'bookings-4-id': ev_booking.id,
+                'bookings-4-event': ev_booking.event.id,
+                'bookings-4-status': 'CANCELLED',
+                'bookings-4-paid': ev_booking.paid,
+                'bookings-4-free_class': ev_booking.free_class,
+                'booking_status': ['future']
+            }
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(
+            reverse(
+                'studioadmin:user_bookings_list',
+                args=[self.user.id, 'future']
+            ),
+            data, follow=True
+        )
+        self.assertTrue(
+            BlockType.objects.filter(identifier='transferred').exists()
+        )
+        self.assertEqual(
+            Block.objects.filter(
+                block_type__identifier='transferred', user=self.user
+            ).count(),
+            2
+        )
+
+        cl_booking.refresh_from_db()
+        self.assertEqual(cl_booking.status, 'CANCELLED')
+        self.assertFalse(cl_booking.paid)
+        self.assertFalse(cl_booking.payment_confirmed)
+        cl_block = Block.objects.get(
+            user=self.user, transferred_booking_id=cl_booking.id,
+        )
+        self.assertEqual(
+            cl_block.block_type.event_type, cl_booking.event.event_type
+        )
+
+        rh_booking.refresh_from_db()
+        self.assertEqual(rh_booking.status, 'CANCELLED')
+        self.assertFalse(rh_booking.paid)
+        self.assertFalse(rh_booking.payment_confirmed)
+        rh_block = Block.objects.get(
+            user=self.user, transferred_booking_id=rh_booking.id,
+        )
+        self.assertEqual(
+            rh_block.block_type.event_type, rh_booking.event.event_type
+        )
+
+        ev_booking.refresh_from_db()
+        self.assertEqual(ev_booking.status, 'CANCELLED')
+        self.assertFalse(ev_booking.paid)
+        self.assertFalse(ev_booking.payment_confirmed)
+
+        with self.assertRaises(Block.DoesNotExist):
+            Block.objects.get(
+                user=self.user, transferred_booking_id=ev_booking.id,
+            )
+
+    def test_cancel_block_booked_CL_does_not_creates_transfer_block(self):
+        block = mommy.make(
+            Block,
+            user=self.user, block_type__event_type__event_type='CL'
+        )
+        cl_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='CL', block=block,
+            user=self.user, paid=True, payment_confirmed=True
+        )
+
+        data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-INITIAL_FORMS': 3,
+                'bookings-2-id': cl_booking.id,
+                'bookings-2-event': cl_booking.event.id,
+                'bookings-2-status': 'CANCELLED',
+                'bookings-2-paid': cl_booking.paid,
+                'bookings-2-block': cl_booking.block.id,
+                'booking_status': ['future']
+            }
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(
+            reverse(
+                'studioadmin:user_bookings_list',
+                args=[self.user.id, 'future']
+            ),
+            data
+        )
+
+        self.assertFalse(
+            BlockType.objects.filter(identifier='transferred').exists()
+        )
+
+        cl_booking.refresh_from_db()
+        self.assertEqual(cl_booking.status, 'CANCELLED')
+        self.assertFalse(cl_booking.paid)
+        self.assertFalse(cl_booking.payment_confirmed)
+        self.assertIsNone(cl_booking.block)
+
+        with self.assertRaises(Block.DoesNotExist):
+            Block.objects.get(
+                user=self.user, transferred_booking_id=cl_booking.id,
+            )
+
+    def test_cancel_free_block_booked_CL_does_not_creates_transfer_block(self):
+        free_blocktype = mommy.make_recipe('booking.free_blocktype')
+        block = mommy.make(Block, user=self.user, block_type=free_blocktype)
+        cl_booking = mommy.make_recipe(
+            'booking.booking',
+            event__event_type__event_type='CL', block=block,
+            user=self.user, paid=True, payment_confirmed=True, free_class=True
+        )
+
+        data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-INITIAL_FORMS': 3,
+                'bookings-2-id': cl_booking.id,
+                'bookings-2-event': cl_booking.event.id,
+                'bookings-2-status': 'CANCELLED',
+                'bookings-2-paid': cl_booking.paid,
+                'bookings-2-block': cl_booking.block.id,
+                'booking_status': ['future']
+            }
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(
+            reverse(
+                'studioadmin:user_bookings_list',
+                args=[self.user.id, 'future']
+            ),
+            data
+        )
+
+        self.assertFalse(
+            BlockType.objects.filter(identifier='transferred').exists()
+        )
+
+        cl_booking.refresh_from_db()
+        self.assertEqual(cl_booking.status, 'CANCELLED')
+        self.assertFalse(cl_booking.paid)
+        self.assertFalse(cl_booking.payment_confirmed)
+        self.assertIsNone(cl_booking.block)
+
+        with self.assertRaises(Block.DoesNotExist):
+            Block.objects.get(
+                user=self.user, transferred_booking_id=cl_booking.id,
+            )
 
 
 class UserBlocksViewTests(TestPermissionMixin, TestCase):
