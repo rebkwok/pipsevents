@@ -5,6 +5,16 @@ The following users paid directly for the deposit only and have not been given t
 {% else %}The following users' bookings were paid for directly (i.e. not with a block).  Please review and refund these payments.{% endif %}
 
 When the payment has been refunded, use the links below to confirm and update the payment status on the booking site:
-{% for booking in bookings_to_refund %}
-- {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}
-{% endfor %}
+{% if transfer_direct_paid %}
+{% for booking in bookings_to_refund %}- {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}{% endfor %}
+{% else %}
+{% if open_direct_paid_bookings %}Fully paid:
+{% for booking in open_direct_paid_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}{% endfor %}
+{% endif %}
+{% if open_deposit_only_paid_bookings %}Deposit only paid:
+{% for booking in open_deposit_only_paid_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}{% endfor %}
+{% endif %}
+{% if open_free_non_block %}Free class (manually created as free, no free block used):
+{% for booking in open_free_non_block %}- {{ booking.user.first_name }} {{ booking.user.last_name }} {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}{% endfor %}
+{% endif %}
+{% endif %}

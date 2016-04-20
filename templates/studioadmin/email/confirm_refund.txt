@@ -1,4 +1,5 @@
-Your refund for {{ event }} has been confirmed.
+{% if not free %}Your refund for {{ event }} has been confirmed.
+{% else %}Your free booking for {{ event }} has been refunded/compensated.{% endif %}
 
 View your bookings: {{ host }}{% url 'booking:bookings' %}
 
