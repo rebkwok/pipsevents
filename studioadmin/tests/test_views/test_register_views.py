@@ -280,7 +280,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, event.slug)
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select id="id_bookings-0-block" name="bookings-0-block">',
+            '<span class="hide"><select id="id_bookings-0-block" '
+            'name="bookings-0-block">',
             resp.rendered_content
         )
         # block info is displayed
@@ -312,7 +313,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select class="form-control input-xs studioadmin-list" id="id_bookings-0-block" name="bookings-0-block">',
+            '<span class="hide"><select class="form-control input-xs '
+            'studioadmin-list" id="id_bookings-0-block" '
+            'name="bookings-0-block">',
             resp.rendered_content
         )
         # block info is displayed
@@ -338,7 +341,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select class="form-control input-xs studioadmin-list" id="id_bookings-0-block" name="bookings-0-block">',
+            '<span class="hide"><select class="form-control input-xs '
+            'studioadmin-list" id="id_bookings-0-block" '
+            'name="bookings-0-block">',
             resp.rendered_content
         )
         # block info is displayed

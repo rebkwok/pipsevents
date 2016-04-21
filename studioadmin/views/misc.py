@@ -123,6 +123,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         free = booking.free_class
 
         if 'confirmed' in self.request.POST:
+            booking.deposit_paid = False
             booking.paid = False
             booking.payment_confirmed = False
             booking.date_payment_confirmed = None
