@@ -430,7 +430,7 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                 if set_as_free:
                                     extra_msg = "and marked as free class"
                                 elif transfer_block_created:
-                                    extra_msg = "and transfer block created"
+                                    extra_msg = "and transfer block created as credit"
                                 else:
                                     extra_msg = ''
 
@@ -473,7 +473,7 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                             "cancelled. The booking has "
                                             "automatically been marked as "
                                             "unpaid and a transfer block "
-                                            "has been created.  If you wish to "
+                                            "has been created as credit.  If you wish to "
                                             "refund the user instead, go "
                                             "to the <a href={}>user's blocks</a> "
                                             "and delete "

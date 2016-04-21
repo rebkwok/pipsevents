@@ -87,28 +87,28 @@
                                             {% else %}
                                             <span class="fa fa-times"></span>
                                             {% endif %}
-                                        {% endif %}</td>
-                                        {% if available_block_type %}
-                                            {% if bookingform.instance.paid and bookingform.instance.block %}
-                                                <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center studioadmin-tbl">{{ bookingform.instance.block | format_block }}</td>
-                                            {% elif bookingform.instance.paid and bookingform.available_block %}
-                                                {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}
-                                            {% elif bookingform.available_block %}
-                                                <td class="table-center studioadmin-tbl">
-                                                    {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                            {% else %}
-                                                <span class="hide">{{ bookingform.block }}</span>
-                                                <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
-                                            {% endif %}</td>
                                         {% endif %}
-                                    {% elif not print %}
-                                        <td class="no-block-comment table-center" colspan="3">Click <strong>Save</strong> to see block/payment options</td>
-                                    {% else %}
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
+                                    </td>
+
+                                    {% if available_block_type %}
+                                        {% if bookingform.instance.paid %}
+                                            <span class="hide">{{ bookingform.block }}</span>
+                                            <td class="table-center no-block-comment studioadmin-tbl">{{ bookingform.instance.block | format_block }}</td>
+                                        {% elif bookingform.available_block %}
+                                            <td class="table-center studioadmin-tbl">
+                                                {% if not print %}{{ bookingform.block }}{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                        {% else %}
+                                            <span class="hide">{{ bookingform.block }}</span>
+                                            <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
+                                        {% endif %}
                                     {% endif %}
+                                {% elif not print %}
+                                    <td class="no-block-comment table-center" colspan="3">Click <strong>Save</strong> to see block/payment options</td>
+                                {% else %}
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
 

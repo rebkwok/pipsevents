@@ -789,7 +789,12 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             list(resp.context_data['open_deposit_only_paid_bookings']), []
         )
-        self.assertEqual(list(resp.context_data['open_free_class']), [])
+        self.assertEqual(
+            list(resp.context_data['open_free_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_non_block_bookings']), []
+        )
         self.assertEqual(
             list(resp.context_data['open_direct_paid_bookings']), []
         )
@@ -819,7 +824,13 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             list(resp.context_data['open_deposit_only_paid_bookings']), []
         )
-        self.assertEqual(list(resp.context_data['open_free_class']), [])
+        self.assertEqual(
+            list(resp.context_data['open_free_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_non_block_bookings']), []
+        )
+
         self.assertEqual(
             list(resp.context_data['open_direct_paid_bookings']), []
         )
@@ -833,11 +844,16 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_free_class']]),
+            sorted(
+                [bk.id for bk in
+                 resp.context_data['open_free_non_block_bookings']
+                 ]
+            ),
             sorted([bk.id for bk in bookings])
         )
         self.assertEqual(resp.context_data['open_bookings'], True)
         self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(list(resp.context_data['open_free_block_bookings']), [])
         self.assertEqual(
             list(resp.context_data['open_deposit_only_paid_bookings']), []
         )
@@ -867,7 +883,12 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             list(resp.context_data['open_deposit_only_paid_bookings']), []
         )
-        self.assertEqual(list(resp.context_data['open_free_class']), [])
+        self.assertEqual(
+            list(resp.context_data['open_free_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_non_block_bookings']), []
+        )
         self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
 
     def test_get_cancel_page_multiple_bookings(self):
@@ -882,7 +903,21 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=False,
             _quantity=3
         )
-        free_class_bookings = mommy.make_recipe(
+
+        free_blocktype = mommy.make_recipe('booking.free_blocktype')
+        for user in mommy.make_recipe('booking.user', _quantity=3):
+            block = mommy.make_recipe(
+                'booking.block', block_type=free_blocktype, user=user
+            )
+            mommy.make_recipe(
+                'booking.booking', event=self.event, status="OPEN", block=block,
+                paid=True, free_class=True
+            )
+        free_class_block_bookings = list(Booking.objects.filter(
+            block__isnull=False, free_class=True)
+        )
+
+        free_class_non_block_bookings = mommy.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
@@ -908,9 +943,11 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
-        block_bookings = list(Booking.objects.filter(block__isnull=False))
+        block_bookings = list(Booking.objects.filter(
+            block__isnull=False, free_class=False)
+        )
 
-        self.assertEqual(Booking.objects.filter(event=self.event).count(), 18)
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 21)
 
         resp = self._get_response(self.staff_user, self.event)
 
@@ -929,9 +966,15 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(
             sorted(
-                [bk.id for bk in resp.context_data['open_free_class']]
+                [bk.id for bk in resp.context_data['open_free_non_block_bookings']]
             ),
-            sorted([bk.id for bk in free_class_bookings])
+            sorted([bk.id for bk in free_class_non_block_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_free_block_bookings']]
+            ),
+            sorted([bk.id for bk in free_class_block_bookings])
         )
         self.assertEqual(
             sorted(
@@ -1181,12 +1224,12 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         # studio
         self.assertEquals(len(mail.outbox), 13)
 
-    def test_emails_sent_to_studio_for_direct_paid_bookings_only(self):
+    def test_emails_sent_to_studio_on_cancelling_event(self):
         """
         Emails sent for direct paid and for free without block
         """
         # cancelled
-        mommy.make_recipe(
+        cancelled = mommy.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
         # unpaid
@@ -1195,7 +1238,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=False,
             _quantity=3
         )
-        # free_class
+        # free_class wuth block
         blocktype = mommy.make_recipe('booking.free_blocktype')
         block = mommy.make(Block, block_type=blocktype)
         mommy.make_recipe(
@@ -1214,14 +1257,25 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             )
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 10)
 
+        open_bookings = Booking.objects.filter(event=self.event, status='OPEN')
+
         self._post_response(
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
-        # sends one email per open booking (not already cancelled). No email to
-        # studio as no direct paid bookings
-        self.assertEquals(len(mail.outbox), 7)
+        # sends one email per open booking and one email to studio
+        self.assertEquals(len(mail.outbox), 8)
+        self.assertIn('(unpaid) - no action required', mail.outbox[-1].body)
+        self.assertIn('(free class - block) - no action required', mail.outbox[-1].body)
+        self.assertIn('(paid by block) - no action required', mail.outbox[-1].body)
+        for booking in open_bookings:
+            self.assertIn(mail.outbox[-1].body, booking.user.first_name)
+        for booking in cancelled:
+            self.assertNotIn(mail.outbox[-1].body, booking.user.first_name)
 
     def test_email_to_studio_for_direct_paid_bookings_content(self):
+        """
+        Notification email always sent to studio; lists all open bookings
+        """
         # cancelled
         for i in range(2):
             user = mommy.make_recipe(
@@ -1254,6 +1308,9 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN",
                 paid=True, free_class=True, user=user, block=block
             )
+        free_with_block = Booking.objects.filter(
+            free_class=True, block__isnull=False
+        )
         # unpaid
         for i in range(2):
             user = mommy.make_recipe(
@@ -1292,13 +1349,27 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             event=self.event, paid=True, block=None, free_class=False
         )
 
-        self.assertEqual(Booking.objects.filter(event=self.event).count(), 12)
+        # deposit only paid
+        for i in range(2):
+            user = mommy.make_recipe(
+                'booking.user', first_name="Deposit",
+                last_name="User" + str(i)
+            )
+            mommy.make_recipe(
+                'booking.booking', event=self.event, status="OPEN",
+                paid=False, deposit_paid=True, free_class=False, user=user
+            )
+        deposit_only = Booking.objects.filter(
+            event=self.event, paid=True, block=None, free_class=False
+        )
+
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 14)
         self._post_response(
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
         # sends one email per open booking (not already cancelled) and one to
         # studio
-        self.assertEqual(len(mail.outbox), 11)
+        self.assertEqual(len(mail.outbox), 13)
 
         studio_email = mail.outbox[-1]
         self.assertEqual(studio_email.to, [settings.DEFAULT_STUDIO_EMAIL])
@@ -1308,15 +1379,20 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertIn('Free User1', studio_email.body)
         self.assertNotIn('Cancelled User0', studio_email.body)
         self.assertNotIn('Cancelled User1', studio_email.body)
-        self.assertNotIn('Unpaid User0', studio_email.body)
-        self.assertNotIn('Unpaid User1', studio_email.body)
-        self.assertNotIn('FreeBlock User0', studio_email.body)
-        self.assertNotIn('FreeBlock User1', studio_email.body)
-        self.assertNotIn('Block User0', studio_email.body)
-        self.assertNotIn('Block User1', studio_email.body)
+        self.assertIn('Unpaid User0', studio_email.body)
+        self.assertIn('Unpaid User1', studio_email.body)
+        self.assertIn('FreeBlock User0', studio_email.body)
+        self.assertIn('FreeBlock User1', studio_email.body)
+        self.assertIn('Block User0', studio_email.body)
+        self.assertIn('Block User1', studio_email.body)
+        self.assertIn('Deposit User0', studio_email.body)
+        self.assertIn('Deposit User1', studio_email.body)
 
-        direct_bookings_ids = [booking.id for booking in direct_bookings]
-        for id in direct_bookings_ids:
+        refunds_due_ids = [
+            booking.id for booking in
+            list(direct_bookings) + list(free_with_block) + list(deposit_only)
+            ]
+        for id in refunds_due_ids:
             self.assertIn(
                 '/studioadmin/confirm-refunded/{}'.format(id), studio_email.body
             )
@@ -1766,7 +1842,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             Booking.objects.filter(event=self.event, status='OPEN').count(), 0
         )
 
-    def test_transfer_blocks_studio_email_not_sent_for_direct_paid(self):
+    def test_transfer_blocks_studio_email_sent(self):
         pole_class = mommy.make_recipe('booking.future_PC')
 
         # free class
@@ -1820,8 +1896,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         cancelled_bookings = Booking.objects.filter(event=pole_class).count()
         emails = mail.outbox
-        # emails sent to users only
-        self.assertEqual(len(emails), cancelled_bookings)
+        # emails sent to users and studio
+        self.assertEqual(len(emails), cancelled_bookings + 1)
 
     def test_transfer_blocks_studio_email_sent_for_deposit_only_paid(self):
         pole_class = mommy.make_recipe('booking.future_PC')
