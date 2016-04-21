@@ -198,22 +198,34 @@ class BlockType(models.Model):
                   'Check this carefully!'
     )
 
+    class Meta:
+        ordering = ('event_type__subtype', 'size')
+
     def __str__(self):
         return '{}{} - quantity {}'.format(
             self.event_type.subtype,
-            ' (free class)' if self.identifier == 'free class' else '',
+            ' ({})'.format(self.identifier) if self.identifier else '',
             self.size
         )
 
 
 @receiver(pre_save)
-def check_duplicate_free_class_blocktype(sender, instance, **kwargs):
+def check_duplicate_blocktype(sender, instance, **kwargs):
+    # makes sure we don't create duplicate
     if sender == BlockType:
-        if not instance.id and instance.identifier == "free class":
-            if BlockType.objects.filter(identifier='free class').count() == 1:
-                raise BlockTypeError(
-                    'Block type with idenitifer "free class" already exists'
-                )
+        if not instance.id and instance.identifier:
+            if instance.identifier == "free class" or instance.identifier == "transferred":
+                if BlockType.objects.filter(
+                    event_type=instance.event_type,
+                    identifier=instance.identifier
+                ).count() == 1:
+                    raise BlockTypeError(
+                        'Block type with event type "{}" and idenitifer "{}" '
+                        'already exists'.format(
+                            instance.event_type,
+                            instance.identifier
+                        )
+                    )
 
 
 class Block(models.Model):
@@ -232,20 +244,18 @@ class Block(models.Model):
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children'
     )
+    transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
         ordering = ['user__username']
 
     def __str__(self):
 
-        if self.block_type.identifier == 'free class':
-            block_name = self.block_type.identifier
-        else:
-            block_name = self.block_type.event_type.subtype
-
-        return "{} -- {} -- size {} -- start {}".format(
+        return "{} -- {}{} -- size {} -- start {}".format(
             self.user.username,
-            block_name,
+            self.block_type.event_type.subtype,
+            ' ({})'.format(self.block_type.identifier)
+            if self.block_type.identifier else '',
             self.block_type.size,
             self.start_date.strftime('%d %b %Y')
         )

@@ -43,6 +43,26 @@ class BlockCreateFormTests(TestCase):
         form = BlockCreateForm(data=form_data)
         self.assertTrue(form.is_valid())
 
+    def test_create_form_block_type_display(self):
+        block_type = mommy.make_recipe(
+            'booking.blocktype', event_type__subtype='Test', size=3
+        )
+        block_type1 = mommy.make_recipe(
+            'booking.blocktype', event_type__subtype='Test 1', size=4,
+            identifier='test'
+        )
+        form = BlockCreateForm()
+
+        self.assertEqual(
+            form.fields['block_type'].label_from_instance(block_type),
+            'Test - quantity 3'
+
+        )
+        self.assertEqual(
+            form.fields['block_type'].label_from_instance(block_type1),
+            'Test 1 (test) - quantity 4'
+        )
+
 
 class TicketPurchaseFormTests(TestCase):
 

@@ -18,7 +18,7 @@ from braces.views import LoginRequiredMixin
 
 from accounts.models import PrintDisclaimer
 
-from booking.models import Booking,  Block,  WaitingListUser
+from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
 from studioadmin.forms import BookingStatusFilter,  UserBookingFormSet,  \
@@ -311,12 +311,31 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                 booking = form.save(commit=False)
                                 event_was_full = booking.event.spaces_left() == 0
                                 action = 'updated' if form.instance.id else 'created'
+                                transfer_block_created = False
+                                block_removed = False
+
                                 if 'status' in form.changed_data and action == 'updated':
                                     if booking.status == 'CANCELLED':
+                                        if booking.block:
+                                            booking.block = None
+                                            block_removed = True
+                                        elif booking.paid \
+                                                and booking.event.event_type.event_type != 'EV':
+                                            block_type, _ = BlockType.objects.get_or_create(
+                                                event_type=booking.event.event_type,
+                                                size=1, cost=0, duration=1,
+                                                identifier='transferred',
+                                                active=False
+                                            )
+                                            Block.objects.create(
+                                                block_type=block_type, user=booking.user,
+                                                transferred_booking_id=booking.id
+                                            )
+                                            transfer_block_created = True
                                         booking.deposit_paid = False
                                         booking.paid = False
                                         booking.payment_confirmed = False
-                                        booking.block = None
+                                        booking.free_class = False
                                         action = 'cancelled'
                                     elif booking.status == 'OPEN':
                                         action = 'reopened'
@@ -408,12 +427,19 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                         booking.event,  action,  send_confirmation_msg
                                     )
                                 )
+                                if set_as_free:
+                                    extra_msg = "and marked as free class"
+                                elif transfer_block_created:
+                                    extra_msg = "and transfer block created as credit"
+                                else:
+                                    extra_msg = ''
+
                                 ActivityLog.objects.create(
                                     log='Booking id {} (user {}) for "{}" {} '
                                             'by admin user {} {}'.format(
                                         booking.id,  booking.user.username,  booking.event, 
                                         action,  request.user.username, 
-                                        "and marked as free class" if set_as_free else ""
+                                       extra_msg
                                     )
                                 )
 
@@ -440,11 +466,38 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                         )
                                     )
                                 elif action == 'cancelled':
-                                    messages.info(
-                                        request,  'Note: this booking has been '
-                                        'cancelled.  The booking has automatically '
-                                        'been marked as unpaid (refunded) and,  if '
-                                        'applicable,  the block used has been updated.')
+                                    if transfer_block_created:
+                                        messages.info(
+                                            request,
+                                            mark_safe("Note: this booking has been "
+                                            "cancelled. The booking has "
+                                            "automatically been marked as "
+                                            "unpaid and a transfer block "
+                                            "has been created as credit.  If you wish to "
+                                            "refund the user instead, go "
+                                            "to the <a href={}>user's blocks</a> "
+                                            "and delete "
+                                            "the transfer block first.".format(
+                                                reverse(
+                                                    'studioadmin:user_blocks_list',
+                                                    args=[booking.user.id]
+                                                )
+                                            ))
+                                        )
+                                    elif block_removed:
+                                        messages.info(
+                                            request,
+                                            'Note: this booking has been '
+                                            'cancelled. The booking has '
+                                            'automatically been marked as '
+                                            'unpaid and the block '
+                                            'used has been updated.'
+                                        )
+                                    else:
+                                        messages.info(
+                                            request,  'Note: this booking has been '
+                                            'cancelled. The booking has automatically '
+                                            'been marked as unpaid (refunded).')
 
                                     if event_was_full:
                                         waiting_list_users = WaitingListUser.objects.filter(

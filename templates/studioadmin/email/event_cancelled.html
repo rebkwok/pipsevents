@@ -5,9 +5,11 @@
 
 <p>We regret to inform you that {{ event_type }} {{ event }} has been cancelled.</p>
 
-<p>Your booking has been cancelled{% if block_paid %} and your block has been
-updated{% elif direct_paid %} and we will be in touch shortly regarding your
-payment{% endif %}.</p>
+<p>Your booking has been cancelled{% if block_paid %} and your {% if free_block %}(free) {% endif %}block has been
+updated{% elif transfer_block_created %}.  A transfer block has been created as credit for
+your cancelled {{ event_type }}.  You can use this block to book another
+    {{ event_type }} of the same type within the next month.{% elif direct_paid %} and we will be in touch shortly regarding your
+payment.{% endif %}</p>
 
 
 

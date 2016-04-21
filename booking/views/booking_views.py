@@ -27,7 +27,9 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from booking.models import Event, Booking, Voucher, WaitingListUser
+from booking.models import (
+    Block, BlockType, Booking, Event, Voucher, WaitingListUser
+)
 from booking.forms import BookingCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
@@ -451,15 +453,19 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                 extra_msg = 'Please make your payment as soon as possible. ' \
                             '<strong>{}</strong>'.format(cancellation_warning)
         elif not booking.block.active_block():
-            extra_msg = 'You have just used the last space in your block. '
-            if booking.block.children.exists() and not has_free_block_pre_save:
-                extra_msg += '</br><span style="color: #9A2EFE;">' \
-                             '<strong>You have qualified for a extra free ' \
-                             'class which has been added to ' \
-                             '<a href="/blocks">your blocks</a></strong><span>  '
-            else:
-                extra_msg += 'Go to <a href="/blocks">Your Blocks</a> to ' \
-                             'buy a new one.'
+            transfer_block = booking.block.block_type.identifier\
+                .startswith('transferred') \
+                if booking.block.block_type.identifier else False
+            if not transfer_block:
+                extra_msg = 'You have just used the last space in your block. '
+                if booking.block.children.exists() and not has_free_block_pre_save:
+                    extra_msg += '</br><span style="color: #9A2EFE;">' \
+                                 '<strong>You have qualified for a extra free ' \
+                                 'class which has been added to ' \
+                                 '<a href="/blocks">your blocks</a></strong><span>  '
+                else:
+                    extra_msg += 'Go to <a href="/blocks">Your Blocks</a> to ' \
+                                 'buy a new one.'
 
         messages.success(
             self.request,
@@ -813,30 +819,55 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
             messages.error(self.request, "An error occured, please contact "
                 "the studio for information")
 
-        if not booking.block and booking.paid and not booking.free_class:
-            # send email to studio
-            send_mail('{} {} {} has just cancelled a booking for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                'ACTION REQUIRED!' if not booking.block else '',
-                booking.user.username,
-                booking.event.name),
-                      get_template('booking/email/to_studio_booking_cancelled.txt').render(
-                          {
-                              'host': host,
-                              'booking': booking,
-                              'event': booking.event,
-                              'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%I:%M %p'),
-                          }
-                      ),
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.DEFAULT_STUDIO_EMAIL],
-                fail_silently=False)
+        transfer_block_created = False
+        if not booking.block and booking.paid:
+            # booking was paid directly, either in cash or by paypal
+            # OR booking was free class but not made with free class block
+            # if event is CL or RH, get or create transfer block type, create
+            # transfer block for user and set transferred_booking_id to the
+            # cancelled one
+            if booking.event.event_type.event_type != 'EV':
+                block_type, _ = BlockType.objects.get_or_create(
+                    event_type=booking.event.event_type,
+                    size=1, cost=0, duration=1,
+                    identifier='transferred',
+                    active=False
+                )
+                Block.objects.create(
+                    block_type=block_type, user=booking.user,
+                    transferred_booking_id=booking.id
+                )
+                transfer_block_created = True
+                booking.deposit_paid = False
+                booking.paid = False
+                booking.payment_confirmed = False
+
+            # send email to studio only for 'EV' which are not transferable
+            else:
+                send_mail('{} {} {} has just cancelled a booking for {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    'ACTION REQUIRED!' if not booking.block else '',
+                    booking.user.username,
+                    booking.event.name
+                    ),
+                          get_template('booking/email/to_studio_booking_cancelled.txt').render(
+                              {
+                                  'host': host,
+                                  'booking': booking,
+                                  'event': booking.event,
+                                  'date': booking.event.date.strftime('%A %d %B'),
+                                  'time': booking.event.date.strftime('%I:%M %p'),
+                              }
+                          ),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    fail_silently=False)
 
         # if booking was bought with a block, remove from block and set
-        # paid and payment_confirmed to False. If paid directly, we need to
-        # deal with refunds manually, so leave paid as True but change
-        # payment_confirmed to False
+        # paid and payment_confirmed to False. If paid directly, paid is only
+        # changed to False for bookings that have created transfer blocks; for
+        # EV event types, leave paid as True as refunds need to be dealt with
+        # manually but change payment_confirmed to False
         # reassigning free class blocks is done in model save
         if booking.block:
             booking.block = None
@@ -860,6 +891,23 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                     self.request.user.username
                 )
         )
+
+        if transfer_block_created:
+            ActivityLog.objects.create(
+                log='Transfer block created for user {} (for {}; transferred '
+                    'booking id {} '.format(
+                        booking.user.username, booking.event.event_type.subtype,
+                        booking.id
+                    )
+            )
+            messages.info(
+                self.request,
+                mark_safe(
+                    'A transfer block has been created for you as '
+                    'credit for your cancelled booking and is valid for '
+                    '1 month (<a href="/blocks">View your blocks</a>)'
+                )
+            )
 
         # if applicable, email users on waiting list
         if event_was_full:

@@ -155,8 +155,11 @@ def in_group(user, group_name):
     group = Group.objects.get(name=group_name)
     return True if group in user.groups.all() else False
 
+
 @register.filter
 def format_block(block):
+    if not block:
+        return "Active block not used"
     return "{} ({}/{} left); expires {}".format(
             block.block_type.event_type.subtype,
             block.block_type.size - block.bookings_made(),
@@ -202,8 +205,64 @@ def subscribed(user):
     group, _ = Group.objects.get_or_create(name='subscribed')
     return group in user.groups.all()
 
+
 @register.filter
 def has_booked_class(user):
     return Booking.objects.filter(
         user=user, event__event_type__event_type='CL'
     ).exists()
+
+
+@register.filter
+def format_block_type_id_user(block):
+    if block.block_type.identifier \
+            and block.block_type.identifier == 'free class':
+        return '(free class)'
+    elif block.block_type.identifier \
+            and block.block_type.identifier == 'transferred':
+        try:
+            booking = Booking.objects.get(id=block.transferred_booking_id)
+            return '(transferred from {} {})'.format(
+                booking.event.name, booking.event.date.strftime('%d%b%y')
+            )
+        except Booking.DoesNotExist:
+            return '(transferred)'
+    return ''
+
+
+@register.filter
+def format_block_type_identifier(value):
+    if value:
+        if value.startswith('transferred'):
+            return '(transfer)'
+        return '({})'.format(value)
+    return ''
+
+
+@register.filter
+def format_paid_status(booking):
+    if booking.free_class:
+        return mark_safe('<span class="confirmed">Free class</span>')
+    elif booking.block and booking.block.block_type.identifier and \
+            booking.block.block_type.identifier.startswith('transferred'):
+        return mark_safe('<span class="confirmed">Transferred</span>')
+    elif booking.event.cost and booking.paid:
+        return mark_safe('<span class="confirmed fa fa-check"></span>')
+    elif booking.event.cost and not booking.paid:
+        return mark_safe('<span class="not-confirmed fa fa-close"></span>')
+    else:
+        return mark_safe('<strong>N/A</strong>')
+
+
+@register.filter
+def transferred_from(block):
+    if block.transferred_booking_id:
+        try:
+            bk = Booking.objects.get(id=block.transferred_booking_id)
+            return '{} {} ({})'.format(
+                bk.event.name, bk.event.date.strftime('%d%b%y'),
+                block.transferred_booking_id
+            )
+        except Booking.DoesNotExist:
+            return '({})'.format(block.transferred_booking_id)
+    return ''

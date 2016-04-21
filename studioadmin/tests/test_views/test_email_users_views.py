@@ -468,15 +468,19 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         )
 
     def test_subject_is_autopoulated(self):
-        event = mommy.make_recipe('booking.future_EV')
-        lesson = mommy.make_recipe('booking.future_PC')
+        event = mommy.make_recipe('booking.future_EV', name='Workshop')
+        lesson = mommy.make_recipe('booking.future_PC', name='Class')
         resp = self._get_response(
             self.staff_user, [self.user.id],
             event_ids=[event.id], lesson_ids=[lesson.id]
         )
         form = resp.context_data['form']
-        self.assertEqual(
-            form.initial['subject'], "; ".join([str(event), str(lesson)])
+        self.assertIn(
+            form.initial['subject'],
+            [
+                "; ".join([str(event), str(lesson)]),
+                "; ".join([str(lesson), str(event)])
+            ]
         )
 
     def test_emails_sent(self):

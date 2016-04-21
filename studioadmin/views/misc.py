@@ -114,34 +114,42 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
     model = Booking
     template_name = 'studioadmin/confirm_refunded.html'
-    success_message = "Refund of payment for {}'s booking for {} has been " \
+    success_message = "Refund of payment for {}'s {}booking for {} has been " \
                       "confirmed.  An update email has been sent to {}."
     fields = ('id',)
 
     def form_valid(self, form):
         booking = form.save(commit=False)
+        free = booking.free_class
 
         if 'confirmed' in self.request.POST:
+            booking.deposit_paid = False
             booking.paid = False
             booking.payment_confirmed = False
             booking.date_payment_confirmed = None
+            if free:
+                booking.free_class = False
             booking.save()
 
             messages.success(
                 self.request,
                 self.success_message.format(booking.user.username,
+                                            '(free) ' if free else '',
                                             booking.event,
                                             booking.user.username)
             )
 
             ctx = {
                 'event': booking.event,
-                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST')),
+                'free': free
             }
 
             send_mail(
-                '{} Payment refund confirmed for {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
+                '{} Payment refund confirmed for {}{}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event,
+                    '(free class)' if free else '',
+                ),
                 get_template('studioadmin/email/confirm_refund.txt').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [self.request.user.email],
@@ -150,8 +158,9 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                 fail_silently=False)
 
             ActivityLog.objects.create(
-                log='Payment refund for booking id {} for event {}, '
+                log='Payment refund for {}booking id {} for event {}, '
                     'user {} updated by admin user {}'.format(
+                    '(free) ' if free else '',
                     booking.id, booking.event, booking.user.username,
                     self.request.user.username
                 )
