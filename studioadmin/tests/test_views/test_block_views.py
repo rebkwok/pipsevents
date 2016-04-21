@@ -88,7 +88,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         unpaid_blocks = mommy.make_recipe(
             'booking.block', _quantity=3, paid=False
         )
-        current_blocks = active_blocks + unpaid_blocks
+
         expired_blocks = mommy.make_recipe(
             'booking.block', paid=True,
             start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
@@ -106,6 +106,18 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             block_type__size=1,
             _quantity=3
         )
+        transferred_blocks1 = mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1, block_type__identifier='transferred',
+            _quantity=3
+        )
+        transferred_blocks2 = mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1, block_type__identifier='transferred',
+            _quantity=3
+        )
+        current_blocks = active_blocks + unpaid_blocks + \
+                         transferred_blocks1 + transferred_blocks2
         for block in full_blocks:
             mommy.make_recipe('booking.booking', block=block)
 
@@ -121,11 +133,12 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, form_data={'block_status': 'active'}
         )
+        active = active_blocks + transferred_blocks1 + transferred_blocks2
         self.assertEqual(
             list(resp.context_data['blocks']),
             list(
                 Block.objects.filter(
-                    id__in=[block.id for block in active_blocks]
+                    id__in=[block.id for block in active]
                 ).order_by('user__first_name')
             )
         )
@@ -169,3 +182,79 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
                 ).order_by('user__first_name')
             )
         )
+
+        # transferred blocks
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'transfers'}
+        )
+        transfers = transferred_blocks1 + transferred_blocks2
+        self.assertEqual(
+            list(resp.context_data['blocks']),
+            list(
+                Block.objects.filter(
+                    id__in=[block.id for block in transfers]
+                ).order_by('user__first_name')
+            )
+        )
+
+    def test_transferred_from_display(self):
+
+        mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1, block_type__identifier='transferred',
+            transferred_booking_id='182893429'
+        )
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'transfers'}
+        )
+        self.assertIn('(182893429)', resp.rendered_content)
+
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'all'}
+        )
+        self.assertNotIn('(182893429)', resp.rendered_content)
+
+    def test_transferred_from_display_with_valid_booking(self):
+
+        booking = mommy.make('booking.booking', status='CANCELLED')
+
+        mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1, block_type__identifier='transferred',
+            transferred_booking_id=booking.id
+        )
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'transfers'}
+        )
+        self.assertIn(
+            '{} {} ({})'.format(
+                booking.event.name, booking.event.date.strftime('%d%b%y'),
+                booking.id
+            ),
+            resp.rendered_content
+        )
+
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'all'}
+        )
+        self.assertNotIn(
+            '{} {} ({})'.format(
+                booking.event.name, booking.event.date.strftime('%d%b%y'),
+                booking.id
+            ),
+            resp.rendered_content
+        )
+
+    def test_block_type_identfier_display(self):
+        mommy.make_recipe(
+            'booking.block', paid=True,
+            block_type__size=1, block_type__identifier='transferred',
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn('(transfer)', resp.rendered_content)
+
+        mommy.make_recipe(
+            'booking.block', paid=True, block_type__identifier='other id'
+        )
+        resp = self._get_response(self.staff_user)
+        self.assertIn('(other id)', resp.rendered_content)

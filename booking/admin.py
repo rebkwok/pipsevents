@@ -274,7 +274,7 @@ class BookingInLine(admin.TabularInline):
                 kwargs["queryset"] = Event.objects.filter(
                     event_type=block.block_type.event_type
                 )
-            except IndexError:
+            except IndexError:  # pragma: no cover
                 pass
         return super(
             BookingInLine, self
@@ -311,10 +311,9 @@ class BlockFilter(admin.SimpleListFilter):
 
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'parent', 'formatted_cost', 'start_date',
+    fields = ('user', 'block_type', 'parent', 'transferred_booking_id', 'formatted_cost', 'start_date',
               'paid', 'formatted_expiry_date')
-    readonly_fields = ('formatted_cost',
-                       'formatted_expiry_date')
+    readonly_fields = ('formatted_cost', 'formatted_expiry_date')
     list_display = ('get_user', 'block_type', 'block_size', 'active_block',
                     'get_full', 'paid', 'formatted_start_date',
                     'formatted_expiry_date')
@@ -354,8 +353,10 @@ class BlockAdmin(admin.ModelAdmin):
     formatted_expiry_date.short_description = 'Expiry date'
 
     def save_formset(self, request, form, formset, change):
-        if formset.model != Booking:
-            return super(BlockAdmin, self).save_formset(request, form, formset, change)
+        if formset.model != Booking:  # pragma: no cover
+            # not used atm as Booking is the only inline
+            return super(BlockAdmin, self)\
+                .save_formset(request, form, formset, change)
 
         bookingformset = formset.save(commit=False)
         block = form.save()

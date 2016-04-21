@@ -10,31 +10,73 @@
     <p>You are cancelling {{ event_type }} {{ event }}.</p>
 
     {% if open_bookings %}
-        <p>Bookings for the following users are open and will be cancelled.
-            Blocks will be updated for any bookings made with blocks.
-        </p>
+        <p>Bookings for the following users are open and will be cancelled.</p>
+
         <ul>
-            {% for booking in open_bookings %}
-            <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
+        {% if open_block_bookings %}
+            {% for booking in open_block_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid by block)</li>
             {% endfor %}
-        </ul>
+        {% endif %}
+
+        {% if open_free_non_block_bookings %}
+            {% for booking in open_free_non_block_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (free class - assigned manually)</li>
+            {% endfor %}
+        {% endif %}
+
+        {% if open_free_block_bookings %}
+            {% for booking in open_free_block_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (free class - block)</li>
+            {% endfor %}
+        {% endif %}
 
         {% if open_direct_paid_bookings %}
-          <p>The following users paid for this {{ event_type }} directly and
-              will need to be refunded:</p>
-            <ul>
-                {% for booking in open_direct_paid_bookings %}
-                    <li>{{ booking.user.first_name }} {{ booking.user.last_name }}</li>
-                {% endfor %}
-            </ul>
+            {% for booking in open_direct_paid_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid directly)</li>
+            {% endfor %}
         {% endif %}
+
+        {% if open_deposit_only_paid_bookings %}
+            {% for booking in open_deposit_only_paid_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (deposit only paid)</li>
+            {% endfor %}
+        {% endif %}
+
+        {% if open_unpaid_bookings %}
+            {% for booking in open_unpaid_bookings %}
+            <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (unpaid)</li>
+            {% endfor %}
+        {% endif %}
+        </ul>
+
+        {% if event.event_type.event_type == 'EV' %}
+            {% if open_direct_paid_bookings or open_deposit_only_paid_bookings %}
+                Users who paid directly for this {{ event_type }} will need to be refunded
+            {% endif %}
+        {% endif %}
+
     {% else %}
         <p>There are no open bookings on this {{ event_type }}.</p>
     {% endif %}
 
-    <p><strong>Please confirm you want to cancel this {{ event_type }}.</strong></p>
-
     <form action="" method="post">{% csrf_token %}
+        {% if open_bookings %}
+            <p><strong>Blocks will be updated for any bookings made with blocks.</strong></p>
+        {% endif %}
+        {% if open_direct_paid_bookings or open_free_non_block_bookings %}
+            <span>
+        {% else %}
+            <span class="hide">
+        {% endif %}
+            {% if event.event_type.event_type != 'EV' %}
+                <p><strong>How do you want to deal with bookings paid directly (i.e. by cash/paypal) and free classes not associated with automatic free-class blocks?</strong><br>
+                <input type="radio" name="direct_paid_action" value="transfer" checked="checked"> Create transfer credits<br>
+                <input type="radio" name="direct_paid_action" value="refund"> Refund manually</p>
+            {% endif %}
+        </span>
+
+        <p><strong>Please confirm you want to cancel this {{ event_type }}.</strong></p>
         <input class="btn btn-success" type="submit" name="confirm" value="Yes, cancel this {{ event_type }}" />
         <input class="btn btn-danger" type="submit" name="cancel" value="No, take me back" />
     </form>

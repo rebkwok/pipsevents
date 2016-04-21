@@ -14,7 +14,7 @@ from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from booking.models import Event, Booking
+from booking.models import Block, BlockType, Event, Booking
 from booking.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     cancel_event_view,
@@ -195,6 +195,49 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
 
         self.assertIn('Scheduled Events', resp.rendered_content)
         self.assertNotIn('Past Events', resp.rendered_content)
+
+    def test_past_with_invalid_page(self):
+        mommy.make_recipe('booking.past_class', _quantity=25)
+        url = reverse('studioadmin:lessons')
+        self.client.login(
+            username=self.staff_user.username, password='test'
+        )
+
+        self.assertEqual(Event.objects.count(), 26)
+
+        # get only shows future unless page is specified (only past events
+        # paginated)
+        resp = self.client.get(url)
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 0)
+
+        resp = self.client.get(url + '?page=1')
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 20)
+        paginator = resp.context_data['events']
+        self.assertEqual(paginator.number, 1)
+
+        # default shows page 1 of 2
+        resp = self.client.post(url, {'past': 'Show past'})
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 20)
+        paginator = resp.context_data['events']
+        self.assertEqual(paginator.number, 1)
+
+        # page not a number shows page 1
+        resp = self.client.post(url + '?page=one', {'past': 'Show past'})
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 20)
+        paginator = resp.context_data['events']
+        self.assertEqual(paginator.number, 1)
+
+        # page out of range shows last page
+        resp = self.client.post(url + '?page=3', {'past': 'Show past'})
+
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 5)
+        paginator = resp.context_data['events']
+        self.assertEqual(paginator.number, 2)
 
     def test_cancel_button_shown_for_events_with_bookings(self):
         """
@@ -717,7 +760,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
     def test_get_cancel_page_with_no_bookings(self):
         # no open bookings displayed on page
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(resp.context_data['open_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], False)
 
     def test_get_cancel_page_with_cancelled_bookings_only(self):
         # no open bookings displayed on page
@@ -726,7 +769,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
 
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(resp.context_data['open_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], False)
 
     def test_get_cancel_page_open_unpaid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
@@ -737,10 +780,24 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
+            sorted([bk.id for bk in resp.context_data['open_unpaid_bookings']]),
             sorted([bk.id for bk in bookings])
         )
-        self.assertEqual(resp.context_data['open_direct_paid_bookings'], [])
+
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_non_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_direct_paid_bookings']), []
+        )
 
     def test_get_cancel_page_open_block_paid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
@@ -759,10 +816,24 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
+            sorted([bk.id for bk in resp.context_data['open_block_bookings']]),
             sorted([bk.id for bk in bookings])
         )
-        self.assertEqual(resp.context_data['open_direct_paid_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_non_block_bookings']), []
+        )
+
+        self.assertEqual(
+            list(resp.context_data['open_direct_paid_bookings']), []
+        )
 
     def test_get_cancel_page_open_free_class_bookings(self):
         # open bookings displayed on page, not in due_refunds list
@@ -773,10 +844,23 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         resp = self._get_response(self.staff_user, self.event)
         self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
+            sorted(
+                [bk.id for bk in
+                 resp.context_data['open_free_non_block_bookings']
+                 ]
+            ),
             sorted([bk.id for bk in bookings])
         )
-        self.assertEqual(resp.context_data['open_direct_paid_bookings'], [])
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(list(resp.context_data['open_free_block_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_direct_paid_bookings']), []
+        )
 
     def test_get_cancel_page_open_direct_paid_bookings(self):
         # open bookings displayed on page, in due_refunds list
@@ -786,16 +870,26 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             _quantity=3
         )
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
-            sorted([bk.id for bk in bookings])
-        )
+
         self.assertEqual(
             sorted(
                 [bk.id for bk in resp.context_data['open_direct_paid_bookings']]
             ),
             sorted([bk.id for bk in bookings])
         )
+
+        self.assertEqual(resp.context_data['open_bookings'], True)
+        self.assertEqual(list(resp.context_data['open_block_bookings']), [])
+        self.assertEqual(
+            list(resp.context_data['open_deposit_only_paid_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_block_bookings']), []
+        )
+        self.assertEqual(
+            list(resp.context_data['open_free_non_block_bookings']), []
+        )
+        self.assertEqual(list(resp.context_data['open_unpaid_bookings']), [])
 
     def test_get_cancel_page_multiple_bookings(self):
         # multiple bookings, cancelled not displayed at all; all open displayed
@@ -809,7 +903,21 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=False,
             _quantity=3
         )
-        free_class_bookings = mommy.make_recipe(
+
+        free_blocktype = mommy.make_recipe('booking.free_blocktype')
+        for user in mommy.make_recipe('booking.user', _quantity=3):
+            block = mommy.make_recipe(
+                'booking.block', block_type=free_blocktype, user=user
+            )
+            mommy.make_recipe(
+                'booking.booking', event=self.event, status="OPEN", block=block,
+                paid=True, free_class=True
+            )
+        free_class_block_bookings = list(Booking.objects.filter(
+            block__isnull=False, free_class=True)
+        )
+
+        free_class_non_block_bookings = mommy.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
@@ -819,6 +927,13 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=True, free_class=False,
             _quantity=3
         )
+
+        deposit_only_paid_bookings = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN",
+            deposit_paid=True, paid=False, free_class=False,
+            _quantity=3
+        )
+
         for user in mommy.make_recipe('booking.user', _quantity=3):
             block = mommy.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
@@ -828,23 +943,50 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
-        block_bookings = list(Booking.objects.all().exclude(block=None))
+        block_bookings = list(Booking.objects.filter(
+            block__isnull=False, free_class=False)
+        )
 
-        self.assertEqual(Booking.objects.filter(event=self.event).count(), 15)
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 21)
 
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEqual(
-            sorted([bk.id for bk in resp.context_data['open_bookings']]),
-            sorted(
-                [bk.id for bk in unpaid_bookings + free_class_bookings +
-                                  direct_paid_bookings + block_bookings]
-            )
-        )
+
+        self.assertEqual(resp.context_data['open_bookings'], True)
         self.assertEqual(
             sorted(
                 [bk.id for bk in resp.context_data['open_direct_paid_bookings']]
             ),
             sorted([bk.id for bk in direct_paid_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_unpaid_bookings']]
+            ),
+            sorted([bk.id for bk in unpaid_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_free_non_block_bookings']]
+            ),
+            sorted([bk.id for bk in free_class_non_block_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_free_block_bookings']]
+            ),
+            sorted([bk.id for bk in free_class_block_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_deposit_only_paid_bookings']]
+            ),
+            sorted([bk.id for bk in deposit_only_paid_bookings])
+        )
+        self.assertEqual(
+            sorted(
+                [bk.id for bk in resp.context_data['open_block_bookings']]
+            ),
+            sorted([bk.id for bk in block_bookings])
         )
 
     def test_cancelling_event_sets_booking_and_payment_closed(self):
@@ -893,13 +1035,19 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_cancelling_event_cancels_free_class_bookings(self):
         """
-        Cancelling changes free class to not free class, not paid, not payment
-        confirmed
+        Cancelling changes leaves free class as free class, not paid, not payment
+        confirmed if not booked with block
         """
-        mommy.make_recipe(
+        non_block_free = mommy.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
+        )
+        block_type = mommy.make_recipe('booking.free_blocktype')
+        block = mommy.make(Block, block_type=block_type)
+        free_with_block = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN",
+            free_class=True, paid=True, block=block
         )
         for booking in Booking.objects.filter(event=self.event):
             self.assertTrue(booking.free_class)
@@ -909,11 +1057,18 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
 
-        for booking in Booking.objects.filter(event=self.event):
-            self.assertFalse(booking.free_class)
-            self.assertFalse(booking.paid)
-            self.assertFalse(booking.payment_confirmed)
+        for booking in non_block_free:
+            booking.refresh_from_db()
+            self.assertTrue(booking.free_class)
+            self.assertTrue(booking.paid)
+            self.assertTrue(booking.payment_confirmed)
             self.assertEqual(booking.status, 'CANCELLED')
+
+        free_with_block.refresh_from_db()
+        self.assertFalse(free_with_block.free_class)
+        self.assertFalse(free_with_block.paid)
+        self.assertFalse(free_with_block.payment_confirmed)
+        self.assertEqual(free_with_block.status, 'CANCELLED')
 
     def test_cancelling_event_cancels_direct_paid_bookings(self):
         """
@@ -1069,9 +1224,12 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         # studio
         self.assertEquals(len(mail.outbox), 13)
 
-    def test_emails_sent_to_studio_for_direct_paid_bookings_only(self):
+    def test_emails_sent_to_studio_on_cancelling_event(self):
+        """
+        Emails sent for direct paid and for free without block
+        """
         # cancelled
-        mommy.make_recipe(
+        cancelled = mommy.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
         # unpaid
@@ -1080,11 +1238,12 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=False,
             _quantity=3
         )
-        # free_class
+        # free_class wuth block
+        blocktype = mommy.make_recipe('booking.free_blocktype')
+        block = mommy.make(Block, block_type=blocktype)
         mommy.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
-            free_class=True, paid=True,
-            _quantity=3
+            free_class=True, paid=True, block=block
         )
         # block bookings
         for user in mommy.make_recipe('booking.user', _quantity=3):
@@ -1096,16 +1255,27 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
             )
-        self.assertEqual(Booking.objects.filter(event=self.event).count(), 12)
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 10)
+
+        open_bookings = Booking.objects.filter(event=self.event, status='OPEN')
 
         self._post_response(
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
-        # sends one email per open booking (not already cancelled). No email to
-        # studio as no direct paid bookings
-        self.assertEquals(len(mail.outbox), 9)
+        # sends one email per open booking and one email to studio
+        self.assertEquals(len(mail.outbox), 8)
+        self.assertIn('(unpaid) - no action required', mail.outbox[-1].body)
+        self.assertIn('(free class - block) - no action required', mail.outbox[-1].body)
+        self.assertIn('(paid by block) - no action required', mail.outbox[-1].body)
+        for booking in open_bookings:
+            self.assertIn(mail.outbox[-1].body, booking.user.first_name)
+        for booking in cancelled:
+            self.assertNotIn(mail.outbox[-1].body, booking.user.first_name)
 
     def test_email_to_studio_for_direct_paid_bookings_content(self):
+        """
+        Notification email always sent to studio; lists all open bookings
+        """
         # cancelled
         for i in range(2):
             user = mommy.make_recipe(
@@ -1126,6 +1296,21 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN",
                 paid=True, free_class=True, user=user
             )
+        # free class with block
+        blocktype = mommy.make_recipe('booking.free_blocktype')
+        for i in range(2):
+            user = mommy.make_recipe(
+                'booking.user', first_name="FreeBlock",
+                last_name="User" + str(i)
+            )
+            block = mommy.make(Block, block_type=blocktype, user=user)
+            mommy.make_recipe(
+                'booking.booking', event=self.event, status="OPEN",
+                paid=True, free_class=True, user=user, block=block
+            )
+        free_with_block = Booking.objects.filter(
+            free_class=True, block__isnull=False
+        )
         # unpaid
         for i in range(2):
             user = mommy.make_recipe(
@@ -1164,29 +1349,50 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             event=self.event, paid=True, block=None, free_class=False
         )
 
-        self.assertEqual(Booking.objects.filter(event=self.event).count(), 10)
+        # deposit only paid
+        for i in range(2):
+            user = mommy.make_recipe(
+                'booking.user', first_name="Deposit",
+                last_name="User" + str(i)
+            )
+            mommy.make_recipe(
+                'booking.booking', event=self.event, status="OPEN",
+                paid=False, deposit_paid=True, free_class=False, user=user
+            )
+        deposit_only = Booking.objects.filter(
+            event=self.event, paid=True, block=None, free_class=False
+        )
+
+        self.assertEqual(Booking.objects.filter(event=self.event).count(), 14)
         self._post_response(
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
         # sends one email per open booking (not already cancelled) and one to
         # studio
-        self.assertEqual(len(mail.outbox), 9)
+        self.assertEqual(len(mail.outbox), 13)
 
         studio_email = mail.outbox[-1]
         self.assertEqual(studio_email.to, [settings.DEFAULT_STUDIO_EMAIL])
         self.assertIn('Direct User0', studio_email.body)
         self.assertIn('Direct User1', studio_email.body)
+        self.assertIn('Free User0', studio_email.body)
+        self.assertIn('Free User1', studio_email.body)
         self.assertNotIn('Cancelled User0', studio_email.body)
         self.assertNotIn('Cancelled User1', studio_email.body)
-        self.assertNotIn('Unpaid User0', studio_email.body)
-        self.assertNotIn('Unpaid User1', studio_email.body)
-        self.assertNotIn('Free User0', studio_email.body)
-        self.assertNotIn('Free User1', studio_email.body)
-        self.assertNotIn('Block User0', studio_email.body)
-        self.assertNotIn('Block User1', studio_email.body)
+        self.assertIn('Unpaid User0', studio_email.body)
+        self.assertIn('Unpaid User1', studio_email.body)
+        self.assertIn('FreeBlock User0', studio_email.body)
+        self.assertIn('FreeBlock User1', studio_email.body)
+        self.assertIn('Block User0', studio_email.body)
+        self.assertIn('Block User1', studio_email.body)
+        self.assertIn('Deposit User0', studio_email.body)
+        self.assertIn('Deposit User1', studio_email.body)
 
-        direct_bookings_ids = [booking.id for booking in direct_bookings]
-        for id in direct_bookings_ids:
+        refunds_due_ids = [
+            booking.id for booking in
+            list(direct_bookings) + list(free_with_block) + list(deposit_only)
+            ]
+        for id in refunds_due_ids:
             self.assertIn(
                 '/studioadmin/confirm-refunded/{}'.format(id), studio_email.body
             )
@@ -1222,3 +1428,535 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         self.event.refresh_from_db()
         self.assertTrue(self.event.cancelled)
+
+    def test_transfer_blocks_for_CL(self):
+        """
+        cancelling a class creates transfer blocks for direct paid and free non
+        block if transfer option selected (default)
+        - no transfer blocks for block paid/unpaid/free block/deposit only paid
+
+        """
+        pole_class = mommy.make_recipe('booking.future_PC')
+
+        # cancelled
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="CANCELLED",
+        )
+        # free class
+        free = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # unpaid
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False
+        )
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user
+        )
+        block_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        # free block class
+        user = mommy.make_recipe('booking.user')
+        f_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            block_type__identifier='free', block_type__size=1, paid=True,
+            user=user
+        )
+        free_block = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=f_block,
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # direct paid
+        direct_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            deposit_paid=True,
+            paid=True, free_class=False, payment_confirmed=True
+        )
+        # deposit only paid
+        deposit_only_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False,
+            deposit_paid=True
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        transfer_btypes = BlockType.objects.filter(identifier='transferred')
+        self.assertEqual(transfer_btypes.count(), 1)
+
+        transfer_blocks = Block.objects.filter(block_type=transfer_btypes[0])
+        self.assertEquals(transfer_blocks.count(), 2)
+        direct_paid_transfer = transfer_blocks.get(
+            transferred_booking_id=direct_paid.id
+        )
+        free_transfer = transfer_blocks.get(transferred_booking_id=free.id)
+        self.assertEqual(
+            direct_paid_transfer.block_type.event_type, pole_class.event_type
+        )
+
+        self.assertEqual(
+            free_transfer.block_type.event_type, pole_class.event_type
+        )
+
+        direct_paid.refresh_from_db()
+        deposit_only_paid.refresh_from_db()
+        block_paid.refresh_from_db()
+        free.refresh_from_db()
+        free_block.refresh_from_db()
+
+        self.assertFalse(direct_paid.paid)
+        self.assertFalse(direct_paid.deposit_paid)
+        self.assertFalse(direct_paid.payment_confirmed)
+
+        self.assertTrue(deposit_only_paid.deposit_paid, True)
+
+        self.assertIsNone(block_paid.block)
+        self.assertFalse(block_paid.paid)
+
+        self.assertFalse(free.paid)
+        self.assertFalse(free.deposit_paid)
+        self.assertFalse(free.payment_confirmed)
+
+        self.assertIsNone(free_block.block)
+        self.assertFalse(free_block.paid)
+        self.assertFalse(free_block.payment_confirmed)
+
+        self.assertEquals(
+            Booking.objects.filter(event=pole_class, status='OPEN').count(), 0
+        )
+
+    def test_transfer_blocks_for_RH(self):
+        """
+        cancelling a class creates transfer blocks for direct paid if transfer
+        option selected (default)
+        - no transfer blocks for block paid/unpaid/free/deposit only paid
+
+        """
+        room_hire = mommy.make_recipe('booking.future_RH')
+
+        # cancelled
+        mommy.make_recipe(
+            'booking.booking', event=room_hire, status="CANCELLED",
+        )
+        # free class
+        free = mommy.make_recipe(
+            'booking.booking', event=room_hire, status="OPEN",
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # unpaid
+        mommy.make_recipe(
+            'booking.booking', event=room_hire, status="OPEN", paid=False
+        )
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=room_hire.event_type,
+            user=user
+        )
+        block_paid = mommy.make_recipe(
+            'booking.booking', event=room_hire, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        # free block class
+        user = mommy.make_recipe('booking.user')
+        f_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=room_hire.event_type,
+            block_type__identifier='free', block_type__size=1, paid=True,
+            user=user
+        )
+        free_block = mommy.make_recipe(
+            'booking.booking', event=room_hire, status="OPEN", block=f_block,
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # direct paid
+        direct_paid = mommy.make_recipe(
+            'booking.booking', event=room_hire, status="OPEN",
+            deposit_paid=True,
+            paid=True, free_class=False, payment_confirmed=True
+        )
+        # deposit only paid
+        deposit_only_paid = mommy.make_recipe(
+            'booking.booking', event=room_hire, status="OPEN", paid=False,
+            deposit_paid=True
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': room_hire.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        transfer_btypes = BlockType.objects.filter(identifier='transferred')
+        self.assertEqual(transfer_btypes.count(), 1)
+
+        transfer_blocks = Block.objects.filter(block_type=transfer_btypes[0])
+        self.assertEquals(transfer_blocks.count(), 2)
+
+        direct_paid_transfers = transfer_blocks.get(
+            transferred_booking_id=direct_paid.id
+        )
+        free_paid_transfers = transfer_blocks.get(
+            transferred_booking_id=free.id
+        )
+        self.assertEqual(
+            direct_paid_transfers.block_type.event_type, room_hire.event_type
+        )
+        self.assertEqual(
+            free_paid_transfers.block_type.event_type, room_hire.event_type
+        )
+        direct_paid.refresh_from_db()
+        deposit_only_paid.refresh_from_db()
+        block_paid.refresh_from_db()
+        free.refresh_from_db()
+        free_block.refresh_from_db()
+
+        self.assertFalse(direct_paid.paid)
+        self.assertFalse(direct_paid.deposit_paid)
+        self.assertFalse(direct_paid.payment_confirmed)
+
+        self.assertTrue(deposit_only_paid.deposit_paid, True)
+
+        self.assertIsNone(block_paid.block)
+        self.assertFalse(block_paid.paid)
+        self.assertFalse(block_paid.payment_confirmed)
+
+        self.assertFalse(free.paid)
+        self.assertFalse(free.deposit_paid)
+        self.assertFalse(free.payment_confirmed)
+
+        self.assertIsNone(free_block.block)
+        self.assertFalse(free_block.paid)
+        self.assertFalse(free_block.payment_confirmed)
+
+        self.assertEquals(
+            Booking.objects.filter(event=room_hire, status='OPEN').count(), 0
+        )
+
+    def test_transfer_blocks_for_EV(self):
+        """
+        cancelling an event (EV) does not create transfer blocks for any
+        bookings even if transfer option selected (shouldn't happen but check
+        anyway)
+        """
+        # cancelled
+        mommy.make_recipe(
+            'booking.booking', event=self.event, status="CANCELLED",
+        )
+        # free class
+        free = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN",
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # unpaid
+        mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN", paid=False
+        )
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=self.event.event_type,
+            user=user
+        )
+        block_paid = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        # free block class
+        user = mommy.make_recipe('booking.user')
+        f_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=self.event.event_type,
+            block_type__identifier='free', block_type__size=1, paid=True,
+            user=user
+        )
+        free_block = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN", block=f_block,
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # direct paid
+        direct_paid = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN",
+            deposit_paid=True,
+            paid=True, free_class=False, payment_confirmed=True
+        )
+        # deposit only paid
+        deposit_only_paid = mommy.make_recipe(
+            'booking.booking', event=self.event, status="OPEN", paid=False,
+            deposit_paid=True
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': self.event.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        transfer_btypes = BlockType.objects.filter(identifier='transferred')
+        self.assertEqual(transfer_btypes.count(), 0)
+
+        direct_paid.refresh_from_db()
+        deposit_only_paid.refresh_from_db()
+        block_paid.refresh_from_db()
+        free.refresh_from_db()
+        free_block.refresh_from_db()
+
+        self.assertTrue(direct_paid.paid)
+        self.assertTrue(direct_paid.deposit_paid)
+        self.assertTrue(direct_paid.payment_confirmed)
+
+        self.assertTrue(deposit_only_paid.deposit_paid, True)
+
+        self.assertTrue(free.paid)
+        self.assertTrue(free.free_class)
+
+        self.assertIsNone(block_paid.block)
+        self.assertFalse(block_paid.paid)
+
+        self.assertIsNone(free_block.block)
+        self.assertFalse(free_block.paid)
+        self.assertFalse(free_block.payment_confirmed)
+
+        self.assertEquals(
+            Booking.objects.filter(event=self.event, status='OPEN').count(), 0
+        )
+
+    def test_cancel_CL_with_refund_option(self):
+        """
+        If refund option selected, transfer blocks not created for
+        direct paid and direct paid remain paid and payment confirmed
+        Free non block classes also remain free/paid/payment confirmed
+        """
+        pole_class = mommy.make_recipe('booking.future_PC')
+
+        # cancelled
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="CANCELLED",
+        )
+        # free class
+        free = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # unpaid
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False
+        )
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user
+        )
+        block_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        # free block class
+        user = mommy.make_recipe('booking.user')
+        f_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            block_type__identifier='free', block_type__size=1, paid=True,
+            user=user
+        )
+        free_block = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=f_block,
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # direct paid
+        direct_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            deposit_paid=True,
+            paid=True, free_class=False, payment_confirmed=True
+        )
+        # deposit only paid
+        deposit_only_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False,
+            deposit_paid=True
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'refund',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        transfer_btypes = BlockType.objects.filter(identifier='transferred')
+        self.assertEqual(transfer_btypes.count(), 0)
+
+        direct_paid.refresh_from_db()
+        deposit_only_paid.refresh_from_db()
+        block_paid.refresh_from_db()
+        free.refresh_from_db()
+        free_block.refresh_from_db()
+
+        self.assertTrue(direct_paid.paid)
+        self.assertTrue(direct_paid.deposit_paid)
+        self.assertTrue(direct_paid.payment_confirmed)
+
+        self.assertTrue(free.paid)
+        self.assertTrue(free.free_class)
+        self.assertTrue(free.payment_confirmed)
+
+        self.assertTrue(deposit_only_paid.deposit_paid, True)
+
+        self.assertIsNone(block_paid.block)
+        self.assertFalse(block_paid.paid)
+
+        self.assertIsNone(free_block.block)
+        self.assertFalse(free_block.paid)
+        self.assertFalse(free_block.payment_confirmed)
+
+        self.assertEquals(
+            Booking.objects.filter(event=self.event, status='OPEN').count(), 0
+        )
+
+    def test_transfer_blocks_studio_email_sent(self):
+        pole_class = mommy.make_recipe('booking.future_PC')
+
+        # free class
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # unpaid
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False
+        )
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user
+        )
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        # free block class
+        user = mommy.make_recipe('booking.user')
+        f_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            block_type__identifier='free', block_type__size=1, paid=True,
+            user=user
+        )
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=f_block,
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # direct paid
+        direct_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            deposit_paid=True,
+            paid=True, free_class=False, payment_confirmed=True
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        cancelled_bookings = Booking.objects.filter(event=pole_class).count()
+        emails = mail.outbox
+        # emails sent to users and studio
+        self.assertEqual(len(emails), cancelled_bookings + 1)
+
+    def test_transfer_blocks_studio_email_sent_for_deposit_only_paid(self):
+        pole_class = mommy.make_recipe('booking.future_PC')
+
+        # free class
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # unpaid
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False
+        )
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user
+        )
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        # free block class
+        user = mommy.make_recipe('booking.user')
+        f_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            block_type__identifier='free', block_type__size=1, paid=True,
+            user=user
+        )
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=f_block,
+            paid=True, payment_confirmed=True, free_class=True
+        )
+        # direct paid
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            deposit_paid=True,
+            paid=True, free_class=False, payment_confirmed=True
+        )
+
+        # deposit only paid
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", paid=False,
+            deposit_paid=True
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        cancelled_bookings = Booking.objects.filter(event=pole_class).count()
+        emails = mail.outbox
+        # emails sent to users plus studio for deposit paid
+        self.assertEqual(len(emails), cancelled_bookings + 1)

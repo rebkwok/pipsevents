@@ -8,12 +8,15 @@
 
     <h2>Confirm payment has been refunded</h2>
     <p>{{ booking.user.first_name }} {{ booking.user.last_name }}
-    ({{ booking.user.username }}) has cancelled or requested a refund for
-        {{ booking.event }}</p>
+    ({{ booking.user.username }})'s booking for
+        {{ booking.event }} has been cancelled or a refund has been requested.</p>
 
-    {% if not booking.paid or not booking.payment_confirmed %}
+    {% if booking.deposit_paid or booking.paid %}
+        {% if booking.deposit_paid and not booking.paid %}
+            <p>Note: only the deposit has been paid for this booking.</p>
+        {% endif %}
         <p>Click the button below to confirm that the payment has been refunded.
-            When you click 'confirm', {{ booking.user.username }} will be sent a confirmation
+            {{ booking.user.first_name }} will be sent a confirmation
             email.</p>
 
         <form action="" method="post">{% csrf_token %}

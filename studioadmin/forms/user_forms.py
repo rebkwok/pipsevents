@@ -177,12 +177,11 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         """
         make sure that block selected is for the correct event type
         and that a block has not been filled
-        :return:
         """
         super(UserBookingInlineFormSet, self).clean()
         if {
             '__all__': ['Booking with this User and Event already exists.']
-        } in self.errors:
+        } in self.errors:  # pragma: no cover
             pass
         elif any(self.errors):
             return
@@ -341,10 +340,13 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
             )
         else:
 
-            # only allow deleting blocks if not yet paid
-            if not form.instance.paid \
-                    or (form.instance.block_type.identifier == 'free class'
-                        and not form.instance.bookings.exists()):
+            # only allow deleting blocks if not yet paid or unused free/transfer
+            identifier = form.instance.block_type.identifier
+            deletable = identifier and \
+                        (identifier == 'free class'
+                         or identifier.startswith('transferred')) \
+                        and not form.instance.bookings.exists()
+            if not form.instance.paid or deletable:
                 form.fields['DELETE'] = forms.BooleanField(
                     widget=forms.CheckboxInput(attrs={
                         'class': 'delete-checkbox studioadmin-list',
@@ -371,6 +373,17 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
             required=False
             )
         form.paid_id = 'paid_{}'.format(index)
+
+    def clean(self):
+        for form in self.forms:
+            if form.instance.id and 'start_date' in form.changed_data:
+                # start date in form is in local time; on BST it will differ
+                # from the stored UTC date
+                start = form.cleaned_data['start_date']
+                startutc = start.astimezone(timezone.utc).replace(microsecond=0)
+                origstart = form.initial['start_date'].replace(microsecond=0)
+                if startutc == origstart:
+                    form.changed_data.remove('start_date')
 
 
 UserBlockFormSet = inlineformset_factory(

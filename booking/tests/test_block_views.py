@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from model_mommy import mommy
 
 from django.conf import settings
@@ -396,6 +396,55 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             'Please complete a disclaimer form before buying a block.',
             format_content(resp.rendered_content)
         )
+
+    def test_block_type_id_user_display(self):
+        bt1 = mommy.make_recipe(
+            'booking.blocktype5', event_type__subtype='Test1',
+            identifier='transferred'
+        )
+        mommy.make_recipe('booking.block', block_type=bt1, user=self.user)
+        bt2 = mommy.make_recipe(
+            'booking.blocktype5', event_type__subtype='Test2',
+            identifier='free class'
+        )
+        mommy.make_recipe('booking.block', block_type=bt2, user=self.user)
+
+        bt3 = mommy.make_recipe(
+            'booking.blocktype5', event_type__subtype='Test3',
+            identifier='transferred'
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', event__name='Test event',
+            event__date=datetime(
+                year=2015, month=1, day=12, tzinfo=timezone.utc
+            ), status='CANCELLED'
+        )
+        mommy.make_recipe(
+            'booking.block', block_type=bt3, user=self.user,
+            transferred_booking_id=booking.id
+        )
+        bt4 = mommy.make_recipe(
+            'booking.blocktype5', event_type__subtype='Test4',
+        )
+        mommy.make_recipe(
+            'booking.block', block_type=bt4, user=self.user,
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(reverse('booking:block_list'))
+
+        self.assertIn(
+            'Test1 (transferred)', format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Test2 (free class)', format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Test3 (transferred from Test event 12Jan15)',
+            format_content(resp.rendered_content)
+        )
+        self.assertIn('Test4', format_content(resp.rendered_content))
+        self.assertNotIn('Test4 (', format_content(resp.rendered_content))
 
 
 class BlockDeleteViewTests(TestSetupMixin, TestCase):

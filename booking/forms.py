@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
-from booking.models import Booking, Event, Block, Ticket, TicketBooking
+from booking.models import Booking, Event, Block, BlockType, \
+    Ticket, TicketBooking
 
 
 MONTH_CHOICES = {
@@ -30,11 +31,31 @@ class BookingCreateForm(forms.ModelForm):
         fields = ['event', ]
 
 
+class BlockTypeChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return '{}{} - quantity {}'.format(
+            obj.event_type.subtype,
+            ' ({})'.format(obj.identifier) if obj.identifier else '',
+            obj.size
+        )
+
+    def to_python(self, value):
+        if value:
+            return BlockType.objects.get(id=value)
+
+
 class BlockCreateForm(forms.ModelForm):
 
     class Meta:
         model = Block
         fields = ['block_type', ]
+
+    def __init__(self, *args, **kwargs):
+        super(BlockCreateForm, self).__init__(*args, **kwargs)
+        self.fields['block_type'] = BlockTypeChoiceField(
+            queryset=BlockType.objects.filter(active=True)
+        )
 
 
 def get_event_names(event_type):
