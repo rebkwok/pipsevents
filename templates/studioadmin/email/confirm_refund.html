@@ -3,11 +3,11 @@
 {% block messagecontent %}
 <div style="font-family: sans-serif;">
 {%  if not free %}
-<p>Your refund for {{ event }} has been confirmed.</p>
+<p>Your refund for {{ event }} has been confirmed/compensated.</p>
 {% else %}
 <p>Your free booking for {{ event }} has been refunded/compensated.</p>
 {% endif %}
 
-<p>View your bookings: {{ host }}{% url 'booking:bookings' %}</p>
+<p><a href="{{ host }}{% url 'booking:bookings' %}">View your bookings</a></p>
 </div>
 {% endblock %}

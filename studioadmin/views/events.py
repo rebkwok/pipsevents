@@ -285,8 +285,8 @@ def cancel_event_view(request, slug):
     open_bookings = Booking.objects.filter(event=event, status='OPEN')
     open_block_bookings = [bk for bk in open_bookings if bk.block and not bk.free_class]
     open_unpaid_bookings = [bk for bk in open_bookings if not bk.deposit_paid and not bk.paid]
-    open_free_class = [bk for bk in open_bookings if bk.free_class]
-    open_free_non_block = [bk for bk in open_free_class if not bk.block]
+    open_free_non_block = [bk for bk in open_bookings if bk.free_class and not bk.block]
+    open_free_block = [bk for bk in open_bookings if bk.free_class and bk.block]
     open_direct_paid_deposit_only = [
         bk for bk in open_bookings if not bk.block
         and not bk.free_class and bk.deposit_paid and not bk.paid
@@ -299,11 +299,14 @@ def cancel_event_view(request, slug):
     if request.method == 'POST':
         if 'confirm' in request.POST:
             transfer_direct_paid = request.POST.get('direct_paid_action') == 'transfer'
-            transfer_block_created = False
-            for booking in open_bookings:
 
-                block_paid = bool(booking.block)
-                direct_paid = booking in open_direct_paid
+            for booking in open_bookings:
+                transfer_block_created = False
+                block_paid = bool(booking.block)  # block paid and free blocks
+                free_block = bool(booking.block and booking.free_class)
+                direct_paid = booking in open_direct_paid or \
+                              booking in open_free_non_block
+                deposit_only_paid = booking in open_direct_paid_deposit_only
 
                 if booking.block:
                     booking.block = None
@@ -312,8 +315,8 @@ def cancel_event_view(request, slug):
                     booking.payment_confirmed = False
                     # in case this was paid with a free class block
                     booking.free_class = False
-                elif (booking.free_class or direct_paid) \
-                        and transfer_direct_paid:
+                elif direct_paid and transfer_direct_paid:
+                    # direct paid = paypal and free non-block paid
                     # create transfer block and make this booking unpaid
                     if booking.event.event_type.event_type != 'EV':
                         booking.deposit_paid = False
@@ -339,13 +342,14 @@ def cancel_event_view(request, slug):
                     # send notification email to user
                     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
                     ctx = {
-                          'host': host,
-                          'event_type': ev_type,
-                          'block': block_paid,
-                          'direct_paid': direct_paid,
-                          'transfer_block_created': transfer_block_created,
-                          'event': event,
-                          'user': booking.user,
+                        'host': host,
+                        'event_type': ev_type,
+                        'block_paid': block_paid,
+                        'direct_paid': direct_paid or deposit_only_paid,
+                        'free_block': free_block,
+                        'transfer_block_created': transfer_block_created,
+                        'event': event,
+                        'user': booking.user,
                     }
                     send_mail('{} {} has been cancelled'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ev_type.title(),
@@ -376,47 +380,42 @@ def cancel_event_view(request, slug):
             # if action selected is not transfer, otherwise just email for
             # deposits as we don't create
             # transfer blocks for deposit-only
-            bookings_to_refund = []
-            if not transfer_direct_paid:
-                bookings_to_refund = [
-                    bk for bk in open_bookings if not bk.block
-                    and (bk.deposit_paid or bk.paid)
-                ]
-            else:
-                bookings_to_refund = open_direct_paid_deposit_only
-
-            if bookings_to_refund:
-                try:
-                    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-                    # send email to studio
-                    ctx = {
-                          'host': host,
-                          'event_type': ev_type,
-                          'transfer_direct_paid': transfer_direct_paid,
-                          'bookings_to_refund': bookings_to_refund,
-                          'open_direct_paid_bookings': open_direct_paid,
-                          'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
-                          'open_free_non_block': open_free_non_block,
-                          'event': event,
-                    }
-                    send_mail('{} Refunds due for cancelled {}'.format(
+            try:
+                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                # send email to studio
+                ctx = {
+                    'host': host,
+                    'event_type': ev_type,
+                    'transfer_direct_paid': transfer_direct_paid,
+                    'open_bookings': open_bookings,
+                    'open_direct_paid_bookings': open_direct_paid,
+                    'open_block_bookings': open_block_bookings,
+                    'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
+                    'open_unpaid_bookings': open_unpaid_bookings,
+                    'open_free_non_block_bookings': open_free_non_block,
+                    'open_free_block_bookings': open_free_block,
+                    'event': event,
+                }
+                send_mail(
+                    '{} {} has been cancelled - please review for refunds '
+                    'required'.format(
                         settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, ev_type.title(),
-                        ),
-                        get_template(
-                            'studioadmin/email/to_studio_event_cancelled.txt'
+                    ),
+                    get_template(
+                        'studioadmin/email/to_studio_event_cancelled.txt'
+                    ).render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'studioadmin/email/to_studio_event_cancelled.html'
                         ).render(ctx),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [settings.DEFAULT_STUDIO_EMAIL],
-                        html_message=get_template(
-                            'studioadmin/email/to_studio_event_cancelled.html'
-                            ).render(ctx),
-                        fail_silently=False)
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(
-                        e, __name__, "cancel event - "
-                        "send refund notification email to studio"
-                    )
+                    fail_silently=False)
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(
+                    e, __name__, "cancel event - "
+                    "send refund notification email to studio"
+                )
 
             if open_bookings:
                 booking_cancelled_msg = 'open ' \
@@ -471,7 +470,8 @@ def cancel_event_view(request, slug):
         'open_block_bookings': open_block_bookings,
         'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
         'open_unpaid_bookings': open_unpaid_bookings,
-        'open_free_class': open_free_class,
+        'open_free_non_block_bookings': open_free_non_block,
+        'open_free_block_bookings': open_free_block,
     }
 
     return TemplateResponse(

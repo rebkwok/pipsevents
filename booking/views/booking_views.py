@@ -838,6 +838,7 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                     transferred_booking_id=booking.id
                 )
                 transfer_block_created = True
+                booking.deposit_paid = False
                 booking.paid = False
                 booking.payment_confirmed = False
 
@@ -847,7 +848,8 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                     'ACTION REQUIRED!' if not booking.block else '',
                     booking.user.username,
-                    booking.event.name),
+                    booking.event.name
+                    ),
                           get_template('booking/email/to_studio_booking_cancelled.txt').render(
                               {
                                   'host': host,
@@ -901,8 +903,8 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
             messages.info(
                 self.request,
                 mark_safe(
-                    'A transfer block has been created for you as a '
-                    'replacement for your cancelled booking and is valid for '
+                    'A transfer block has been created for you as '
+                    'credit for your cancelled booking and is valid for '
                     '1 month (<a href="/blocks">View your blocks</a>)'
                 )
             )
