@@ -261,6 +261,91 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, self.event.slug)
         self.assertEquals(resp.status_code, 200)
 
+    def test_block_format_block_used(self):
+        event = mommy.make_recipe(
+            'booking.future_EV', max_participants=1, event_type__subtype='Event'
+        )
+        # block used
+        block_type = mommy.make(
+            BlockType, event_type=event.event_type, size=3
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type, user=self.user, paid=True
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=event,
+            block=block, paid=True, payment_confirmed=True
+        )
+
+        resp = self._get_response(self.staff_user, event.slug)
+        # block is hidden as booking is paid
+        self.assertIn(
+            '<span class="hide"><select id="id_bookings-0-block" name="bookings-0-block">',
+            resp.rendered_content
+        )
+        # block info is displayed
+        self.assertIn(
+            'Event (2/3 left); expires {}'.format(
+                block.expiry_date.strftime('%d %b %y')
+            ),
+            resp.rendered_content
+        )
+
+
+    def test_block_format_block_available_not_used(self):
+        # paid (user has available block not used)
+        event = mommy.make_recipe(
+            'booking.future_EV', max_participants=1, event_type__subtype='Event'
+        )
+        # block used
+        block_type = mommy.make(
+            BlockType, event_type=event.event_type, size=3
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type, user=self.user, paid=True
+        )
+        mommy.make_recipe(
+            'booking.booking',  event=event, user=self.user, paid=True,
+            payment_confirmed=True
+        )
+        resp = self._get_response(self.staff_user, event.slug)
+
+        # block is hidden as booking is paid
+        self.assertIn(
+            '<span class="hide"><select class="form-control input-xs studioadmin-list" id="id_bookings-0-block" name="bookings-0-block">',
+            resp.rendered_content
+        )
+        # block info is displayed
+        self.assertIn(
+            'Active block not used', resp.rendered_content
+        )
+
+    def test_block_format_paid_no_block_available(self):
+        # paid (user has available block not used)
+        event = mommy.make_recipe('booking.future_EV', max_participants=1)
+        # block used
+        block_type = mommy.make(
+            BlockType, event_type=event.event_type, size=3
+        )
+        # paid (user has no available block)
+        user1 = mommy.make_recipe('booking.user')
+        mommy.make_recipe(
+            'booking.booking',  event=event, user=user1, paid=True,
+            payment_confirmed=True
+        )
+
+        resp = self._get_response(self.staff_user, event.slug)
+
+        # block is hidden as booking is paid
+        self.assertIn(
+            '<span class="hide"><select class="form-control input-xs studioadmin-list" id="id_bookings-0-block" name="bookings-0-block">',
+            resp.rendered_content
+        )
+        # block info is displayed
+        self.assertIn(
+            'No active block', resp.rendered_content
+        )
+
     def test_status_choice_filter(self):
         open_bookings = mommy.make_recipe(
             'booking.booking', event=self.event, status='OPEN', _quantity=5
