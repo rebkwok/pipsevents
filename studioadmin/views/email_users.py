@@ -131,8 +131,7 @@ def email_users_view(request, mailing_list=False,
             test_email = request.POST.get('send_test', False)
 
             if form.is_valid():
-                subject = '{} {}{}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                subject = '{}{}'.format(
                     form.cleaned_data['subject'],
                     ' [TEST EMAIL]' if test_email else ''
                 )

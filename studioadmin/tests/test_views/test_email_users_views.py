@@ -501,7 +501,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(email.reply_to, ['test@test.com'])
         self.assertEqual(sorted(email.bcc), [self.user.email, user.email])
         self.assertEqual(
-            email.subject, '[watermelon studio bookings] Test email'
+            email.subject, 'Test email'
         )
 
     @patch('studioadmin.views.email_users.EmailMultiAlternatives.send')
@@ -521,9 +521,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             log.log,
             'Bulk email error '
-            '(email subject "{} Test email"), '
+            '(email subject "Test email"), '
             'sent by by admin user {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                 self.staff_user.username
             )
         )
@@ -708,8 +707,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(mail.outbox[0].cc, ['test@test.com'])
         self.assertEqual(
             mail.outbox[0].subject,
-            '{} Test email [TEST EMAIL]'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            'Test email [TEST EMAIL]'.format(
             )
         )
 
@@ -726,7 +724,6 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(mail.outbox[1].reply_to, ['test@test.com'])
         self.assertEqual(
             mail.outbox[1].subject,
-            '{} Test email'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            'Test email'.format(
             )
         )
