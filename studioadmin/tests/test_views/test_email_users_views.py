@@ -520,10 +520,9 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         log = ActivityLog.objects.latest('id')
         self.assertEqual(
             log.log,
-            'Bulk email error for users {} '
+            'Bulk email error '
             '(email subject "{} Test email"), '
             'sent by by admin user {}'.format(
-                self.user.email,
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                 self.staff_user.username
             )
@@ -592,6 +591,55 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
             sorted([user.id for user in subscribed_users])
         )
 
+    def test_email_mailing_list_for_more_than_100_users(self):
+        url = reverse('studioadmin:mailing_list_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(url)
+
+        # group is created in view if it doesn't already exist
+        group = Group.objects.get(name='subscribed')
+        self.assertFalse(group.user_set.exists())
+        self.assertEqual(resp.context_data['users_to_email'].count(), 0)
+
+        for i in range(150):
+            mommy.make_recipe(
+                'booking.user', email='subscribed{}@test.com'.format(i)
+            )
+        subscribed_users = User.objects.filter(email__icontains='subscribed')
+
+        mommy.make_recipe('booking.user', _quantity=3)
+        for user in subscribed_users:
+            group.user_set.add(user)
+
+        form_data = {
+            'subject': 'Test email',
+            'message': 'Test message',
+            'from_address': 'test@test.com',
+            'cc': True
+        }
+
+        url = reverse('studioadmin:mailing_list_email')
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.post(url, form_data)
+        self.assertEqual(len(mail.outbox), 2)  # emails split to 2 emails
+        # from address cc'd on both emails
+        self.assertEqual(mail.outbox[0].cc, ['test@test.com'])
+        self.assertEqual(mail.outbox[1].cc, ['test@test.com'])
+        self.assertEqual(len(mail.outbox[0].bcc), 99)
+        self.assertEqual(len(mail.outbox[1].bcc), 51)
+
+        self._post_response(
+            self.staff_user, [user.id for user in User.objects.all()],
+            event_ids=[], lesson_ids=[],
+            form_data=form_data
+        )
+        self.assertEqual(len(mail.outbox), 4)  # emails split to 2 emails
+        # from address cc'd on both emails
+        self.assertEqual(mail.outbox[-2].cc, ['test@test.com'])
+        self.assertEqual(mail.outbox[-1].cc, ['test@test.com'])
+        self.assertEqual(len(mail.outbox[-2].bcc), 99)
+        self.assertEqual(len(mail.outbox[-1].bcc), 57)
+
     def test_unsubscribe_link_in_mailing_list_emails_only(self):
         form_data = {
             'subject': 'Test email',
@@ -621,13 +669,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
         # bulk email
         self._post_response(
-            self.staff_user, [self.user.id],
-            event_ids=[], lesson_ids=[],
-            form_data={
-                'subject': 'Test email',
-                'message': 'Test message',
-                'from_address': 'test@test.com',
-                'cc': True}
+            self.staff_user, [self.user.id], event_ids=[], lesson_ids=[],
+            form_data=form_data
         )
         self.assertEqual(len(mail.outbox), 2)  # mailing list email is first
         self.assertEqual(mail.outbox[-1].bcc, [self.user.email])
