@@ -142,45 +142,57 @@ def email_users_view(request, mailing_list=False,
 
                 # bcc recipients
                 email_addresses = [user.email for user in users_to_email]
-                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-                try:
-                    msg = EmailMultiAlternatives(
-                        subject,
-                        get_template(
-                            'studioadmin/email/email_users.txt').render(
-                              {
-                                  'subject': subject,
-                                  'message': message,
-                                  'mailing_list': mailing_list,
-                                  'host': host,
-                              }),
-                        bcc=[from_address] if test_email else email_addresses,
-                        cc=[from_address] if cc else [],
-                        reply_to=[from_address]
-                        )
-                    msg.attach_alternative(
-                        get_template(
-                            'studioadmin/email/email_users.html').render(
-                              {
-                                  'subject': subject,
-                                  'message': message,
-                                  'mailing_list': mailing_list,
-                                  'host': host,
-                              }
-                          ),
-                        "text/html"
-                    )
-                    msg.send(fail_silently=False)
 
-                    if not test_email:
-                        ActivityLog.objects.create(
-                            log='{} email with subject "{}" sent to users {} by'
-                                ' admin user {}'.format(
-                                    'Mailing list' if mailing_list else 'Bulk',
-                                    subject, ', '.join(email_addresses),
-                                    request.user.username
-                                )
+                email_count = len(email_addresses)
+                email_lists = [email_addresses]  # will be a list of lists
+                # split into multiple emails of 99 bcc plus 1 cc
+                if email_count > 99:
+                    email_lists = [
+                        email_addresses[i : i + 99]
+                        for i in range(0, email_count, 99)
+                        ]
+
+                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+
+                try:
+                    for email_list in email_lists:
+                        msg = EmailMultiAlternatives(
+                            subject,
+                            get_template(
+                                'studioadmin/email/email_users.txt').render(
+                                  {
+                                      'subject': subject,
+                                      'message': message,
+                                      'mailing_list': mailing_list,
+                                      'host': host,
+                                  }),
+                            bcc=[from_address] if test_email else email_list,
+                            cc=[from_address] if cc else [],
+                            reply_to=[from_address]
+                            )
+                        msg.attach_alternative(
+                            get_template(
+                                'studioadmin/email/email_users.html').render(
+                                  {
+                                      'subject': subject,
+                                      'message': message,
+                                      'mailing_list': mailing_list,
+                                      'host': host,
+                                  }
+                              ),
+                            "text/html"
                         )
+                        msg.send(fail_silently=False)
+
+                        if not test_email:
+                            ActivityLog.objects.create(
+                                log='{} email with subject "{}" sent to users {} by'
+                                    ' admin user {}'.format(
+                                        'Mailing list' if mailing_list else 'Bulk',
+                                        subject, ', '.join(email_list),
+                                        request.user.username
+                                    )
+                            )
                 except Exception as e:
                     # send mail to tech support with Exception
                     send_support_email(
@@ -195,11 +207,11 @@ def email_users_view(request, mailing_list=False,
 
                     if not test_email:
                         ActivityLog.objects.create(
-                            log='Bulk email error for users {} '
+                            log='{} email error '
                                 '(email subject "{}"), sent by '
                                 'by admin user {}'.format(
-                                 ', '.join(email_addresses), subject,
-                                    request.user.username
+                                    'Mailing list' if mailing_list else 'Bulk',
+                                    subject, request.user.username
                                 )
                         )
 
@@ -221,7 +233,9 @@ def email_users_view(request, mailing_list=False,
                                     from_address
                                     )
                     )
-            
+
+
+
             # Do this if form not valid OR sending test email
             event_ids = request.session.get('events', [])
             lesson_ids = request.session.get('lessons', [])
