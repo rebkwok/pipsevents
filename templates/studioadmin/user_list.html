@@ -64,24 +64,22 @@
                                 <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
                                 <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
                                 {% if request.user.is_staff %}
-                                    <td class="table-center studioadmin-tbl">
-                                        <form class="wl-table-form" method="get">
-                                                    <button class="btn table-btn perm-btn {% if user|is_regular_student %}btn-success{% else %}btn-default{% endif %}"
-                                                            type="submit" name="change_user" id="regular_student_button" value="{{ user.id }}">{% if user|is_regular_student %}Yes{% else %}No{% endif %}</button>
-                                        </form>
-                                    </td>
+                                    {% if user.is_superuser %}
+                                        <td class="table-center studioadmin-tbl">YES</td>
+                                    {% else %}
+                                        <td id="toggle_regular_student_{{ user.id }}" data-user_id="{{ user.id }}" class="table-center studioadmin-tbl td_regular_student_button">
+                                            {% include "studioadmin/includes/regular_student_button.txt" %}
+                                        </td>
+                                    {% endif %}
                                 {% endif %}
                                 {% if request.user.is_superuser %}
-                                    <td class="table-center studioadmin-tbl">
-                                        {% if user|has_online_disclaimer %}
-                                            N/A
-                                        {% else %}
-                                            <form class="wl-table-form" method="get">
-                                                        <button class="btn table-btn perm-btn {% if user|has_print_disclaimer %}btn-success{% else %}btn-default{% endif %}"
-                                                                type="submit" name="change_print_disclaimer" id="print_disclaimer_button" value="{{ user.id }}">{% if user|has_print_disclaimer %}Yes{% else %}No{% endif %}</button>
-                                            </form>
-                                        {% endif %}
-                                    </td>
+                                    {% if user|has_online_disclaimer %}
+                                        <td class="table-center studioadmin-tbl">N/A</td>
+                                    {% else %}
+                                        <td id="toggle_print_disclaimer_{{ user.id }}" data-user_id="{{ user.id }}" class="table-center studioadmin-tbl td_print_disclaimer_button">
+                                        {% include "studioadmin/includes/print_disclaimer_button.txt" %}
+                                        </td>
+                                    {% endif %}
                                 {% endif %}
                                 <td class="table-center studioadmin-tbl">
                                     {% if user|has_online_disclaimer %}
@@ -89,12 +87,9 @@
                                     {% else %}No{% endif %}
                                 <td class="table-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email|abbr_email }}</a></td>
                                 {% if request.user.is_staff %}
-                                <td class="table-center studioadmin-tbl">
-                                    <form class="wl-table-form" method="get">
-                                        <button class="btn table-btn perm-btn {% if user|subscribed %}btn-success{% else %}btn-default{% endif %}"
-                                                type="submit" name="change_subscription" id="subscribe_button" value="{{ user.id }}">{% if user|subscribed %}Yes{% else %}No{% endif %}</button>
-                                    </form>
-                                </td>
+                                    <td id="toggle_subscribed_{{ user.id }}" data-user_id="{{ user.id }}" class="table-center studioadmin-tbl td_subscribed_button">
+                                        {% include "studioadmin/includes/subscribed_button.txt" %}
+                                    </td>
                                 {% endif %}
                             </tr>
                             {% endfor %}
@@ -142,3 +137,8 @@
     </div>
 
 {% endblock studioadmincontent %}
+
+{% block extra_js %}
+   <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+   <script type='text/javascript' src="{% static 'studioadmin/js/user_list_ajax.js' %}"></script>
+{% endblock %}

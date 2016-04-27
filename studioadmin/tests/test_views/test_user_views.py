@@ -119,24 +119,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertIn('test12345678@longemail...', resp.rendered_content)
 
-    def test_display_regular_students(self):
-        not_reg_student = mommy.make_recipe('booking.user')
-        reg_student = mommy.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
-
-        resp = self._get_response(self.staff_user)
-        resp.render()
-        self.assertIn(
-            'id="regular_student_button" value="{}">Yes'.format(reg_student.id),
-            str(resp.content)
-        )
-        self.assertIn(
-            'id="regular_student_button" value="{}">No'.format(not_reg_student.id),
-            str(resp.content)
-        )
-
     def test_regular_student_button_not_shown_for_instructors(self):
         not_reg_student = mommy.make_recipe('booking.user')
         reg_student = mommy.make_recipe('booking.user')
@@ -147,22 +129,22 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         resp.render()
         self.assertIn(
-            'id="regular_student_button" value="{}">Yes'.format(reg_student.id),
+            'id="toggle_regular_student_{}"'.format(reg_student.id),
             str(resp.content)
         )
         self.assertIn(
-            'id="regular_student_button" value="{}">No'.format(not_reg_student.id),
+            'id="toggle_regular_student_{}"'.format(not_reg_student.id),
             str(resp.content)
         )
 
         resp = self._get_response(self.instructor_user)
         resp.render()
         self.assertNotIn(
-            'id="regular_student_button" value="{}">Yes'.format(reg_student.id),
+            'id="toggle_regular_student_{}"'.format(reg_student.id),
             str(resp.content)
         )
         self.assertNotIn(
-            'id="regular_student_button" value="{}">No'.format(not_reg_student.id),
+            'id="toggle_regular_student_{}"'.format(not_reg_student.id),
             str(resp.content)
         )
 
@@ -174,16 +156,20 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         reg_student.save()
 
         self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
-        self._get_response(
-            self.staff_user, {'change_user': [reg_student.id]}
+        self.client.login(username=self.staff_user, password='test')
+        self.client.get(
+            reverse('studioadmin:toggle_regular_student', args=[reg_student.id])
         )
         changed_student = User.objects.get(id=reg_student.id)
         self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
 
         self.assertFalse(not_reg_student.has_perm('booking.is_regular_student'))
-        self._get_response(
-            self.staff_user, {'change_user': [not_reg_student.id]}
+        self.client.get(
+            reverse(
+                'studioadmin:toggle_regular_student', args=[not_reg_student.id]
+            )
         )
+
         changed_student = User.objects.get(id=not_reg_student.id)
         self.assertTrue(changed_student.has_perm('booking.is_regular_student'))
 
@@ -206,23 +192,18 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             username=self.staff_user.username, password='test'
         )
         self.client.get(
-            reverse('studioadmin:users'), {'change_user': [reg_student.id]}
+            reverse('studioadmin:toggle_regular_student', args=[reg_student.id])
         )
 
         changed_student = User.objects.get(id=reg_student.id)
         self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
 
-        resp = self.client.get(
-            reverse('studioadmin:users'), {'change_user': [superuser.id]},
-            follow=True
+        self.client.get(
+            reverse('studioadmin:toggle_regular_student', args=[superuser.id])
         )
 
         # status hasn't changed
         self.assertTrue(superuser.has_perm('booking.is_regular_student'))
-        self.assertIn(
-            'Donald Duck (dd) is a superuser; you cannot remove permissions',
-            format_content(resp.rendered_content)
-        )
 
     def test_user_search(self):
 
@@ -349,7 +330,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.instructor_user, {'change_user': [reg_student.id]}
         )
-        self.assertIn('This action is not permitted', resp.rendered_content)
         reg_student = User.objects.get(id=reg_student.id)
         self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
 
@@ -371,14 +351,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
         resp = self._get_response(superuser)
         self.assertIn(
-            'id="print_disclaimer_button" value="{}">Yes'.format(user_with_print_disclaimer.id),
-            str(resp.rendered_content)
-        )
-        self.assertIn(
-            'id="print_disclaimer_button" value="{}">No'.format(user_with_no_disclaimer.id),
-            str(resp.rendered_content)
-        )
-        self.assertIn(
             'class="has-disclaimer-pill"', str(resp.rendered_content)
         )
         self.assertIn(
@@ -388,7 +360,24 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             ),
             str(resp.rendered_content)
         )
-
+        self.assertIn(
+            'id="toggle_print_disclaimer_{}"'.format(
+                user_with_print_disclaimer.id
+            ),
+            str(resp.rendered_content)
+        )
+        self.assertIn(
+            'id="toggle_print_disclaimer_{}"'.format(
+                user_with_no_disclaimer.id
+            ),
+            str(resp.rendered_content)
+        )
+        self.assertNotIn(
+            'id="toggle_print_disclaimer_{}"'.format(
+                user_with_online_disclaimer.id
+            ),
+            str(resp.rendered_content)
+        )
         resp = self._get_response(self.staff_user)
         self.assertIn(
             'class="has-disclaimer-pill"', str(resp.rendered_content)
@@ -409,21 +398,21 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
         resp = self._get_response(superuser)
         self.assertIn(
-            'id="print_disclaimer_button" value="{}">Yes'.format(
+            'id="toggle_print_disclaimer_{}"'.format(
                 user_with_print_disclaimer.id
             ),
             str(resp.rendered_content)
         )
         resp = self._get_response(self.staff_user)
         self.assertNotIn(
-            'id="print_disclaimer_button" value="{}">Yes'.format(
+            'id="toggle_print_disclaimer_{}"'.format(
                 user_with_print_disclaimer.id
             ),
             str(resp.rendered_content)
         )
         resp = self._get_response(self.instructor_user)
         self.assertNotIn(
-            'id="print_disclaimer_button" value="{}">Yes'.format(
+            'id="toggle_print_disclaimer_{}"'.format(
                 user_with_print_disclaimer.id
             ),
             str(resp.rendered_content)
@@ -438,17 +427,25 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
         self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        self._get_response(
-            self.staff_user, {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.get(
+            reverse(
+                'studioadmin:toggle_print_disclaimer',
+                args=[user_with_print_disclaimer.id]
+            )
         )
+
         # print disclaimer has been deleted
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
-        self._get_response(
-            self.staff_user, {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        self.client.get(
+            reverse(
+                'studioadmin:toggle_print_disclaimer',
+                args=[user_with_print_disclaimer.id]
+            )
         )
         self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        user = User.objects.get(id = user_with_print_disclaimer.id)
+        user = User.objects.get(id=user_with_print_disclaimer.id)
         # a new print disclaimer has been created
         self.assertNotEqual(
             print_disc.id,
@@ -464,34 +461,26 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
         self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        self._get_response(
-            self.staff_user, {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.get(
+            reverse(
+                'studioadmin:toggle_print_disclaimer',
+                args=[user_with_print_disclaimer.id]
+                )
         )
         # print disclaimer has been deleted
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
-        resp = self._get_response(
-            self.instructor_user,
-            {'change_print_disclaimer': [user_with_print_disclaimer.id]}
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(
+            reverse(
+                'studioadmin:toggle_print_disclaimer',
+                args=[user_with_print_disclaimer.id]
+            )
         )
         # not permitted - no print disclaimer created
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
-        self.assertIn('This action is not permitted', resp.rendered_content)
-
-    def test_display_mailing_list_status(self):
-        subscribed_user = mommy.make_recipe('booking.user')
-        unsubscribed_user = mommy.make_recipe('booking.user')
-        subscribed = mommy.make(Group, name='subscribed')
-        subscribed.user_set.add(subscribed_user)
-
-        resp = self._get_response(self.staff_user)
-        self.assertIn('"subscribe_button" value="{}">Yes'.format(subscribed_user.id),
-            resp.rendered_content
-        )
-        self.assertIn(
-            'id="subscribe_button" value="{}">No'.format(unsubscribed_user.id),
-            resp.rendered_content
-        )
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_mailing_list_button_not_shown_for_instructors(self):
         subscribed_user = mommy.make_recipe('booking.user')
@@ -500,22 +489,23 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         subscribed.user_set.add(subscribed_user)
 
         resp = self._get_response(self.staff_user)
-        self.assertIn('"subscribe_button" value="{}">Yes'.format(subscribed_user.id),
+        self.assertIn(
+            'id="toggle_subscribed_{}"'.format(subscribed_user.id),
             resp.rendered_content
         )
         self.assertIn(
-            'id="subscribe_button" value="{}">No'.format(unsubscribed_user.id),
+            'id="toggle_subscribed_{}"'.format(unsubscribed_user.id),
             resp.rendered_content
         )
 
         resp = self._get_response(self.instructor_user)
         resp.render()
         self.assertNotIn(
-            'id="subscribe_button" value="{}">Yes'.format(subscribed_user.id),
+            'id="toggle_subscribed_{}"'.format(subscribed_user.id),
             str(resp.content)
         )
         self.assertNotIn(
-            'id="subscribe_button" value="{}">No'.format(unsubscribed_user.id),
+            'id="toggle_subscribed_{}"'.format(unsubscribed_user.id),
             str(resp.content)
         )
 
@@ -526,17 +516,21 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         subscribed.user_set.add(subscribed_user)
 
         self.assertIn(subscribed, subscribed_user.groups.all())
-        self._get_response(
-            self.staff_user, {'change_subscription': [subscribed_user.id]}
+        self.client.login(username=self.staff_user.username, password='test')
+        self.client.get(
+            reverse('studioadmin:toggle_subscribed', args=[subscribed_user.id])
         )
-        changed_student = subscribed_user.refresh_from_db()
+
+        subscribed_user.refresh_from_db()
         self.assertNotIn(subscribed, subscribed_user.groups.all())
 
         self.assertNotIn(subscribed, unscubscribed_user.groups.all())
-        self._get_response(
-            self.staff_user, {'change_subscription': [unscubscribed_user.id]}
+        self.client.get(
+            reverse(
+                'studioadmin:toggle_subscribed', args=[unscubscribed_user.id]
+            )
         )
-        changed_student = unscubscribed_user.refresh_from_db()
+        unscubscribed_user.refresh_from_db()
         self.assertIn(subscribed, unscubscribed_user.groups.all())
 
     def test_instructor_cannot_change_mailing_list(self):
@@ -545,11 +539,13 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         subscribed.user_set.add(subscribed_user)
 
         self.assertIn(subscribed, subscribed_user.groups.all())
-        resp = self._get_response(
-            self.instructor_user, {'change_subscription': [subscribed_user.id]}
+        self.client.login(
+            username=self.instructor_user.username, password='test'
         )
-
-        self.assertIn('This action is not permitted', resp.rendered_content)
+        resp = self.client.get(
+            reverse('studioadmin:toggle_subscribed', args=[subscribed_user.id])
+        )
+        self.assertIn(resp.url, reverse('booking:permission_denied'))
         subscribed_user.refresh_from_db()
         self.assertIn(subscribed, subscribed_user.groups.all())
 

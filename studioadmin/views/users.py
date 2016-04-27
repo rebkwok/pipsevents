@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect,  get_object_or_404
+from django.shortcuts import HttpResponseRedirect, get_object_or_404, render_to_response
 from django.views.generic import ListView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -88,174 +88,6 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
 
         return queryset
 
-    def get(self,  request,  *args,  **kwargs):
-        if 'change_user' in request.GET:
-            if not request.user.is_staff:
-                messages.error(request,  "This action is not permitted")
-            else:
-                change_user_id = request.GET.getlist('change_user')[0]
-                user_to_change = User.objects.get(id=change_user_id)
-                is_regular_student = user_to_change.has_perm('booking.is_regular_student')
-                perm = Permission.objects.get(codename='is_regular_student')
-                if is_regular_student:
-                    user_to_change.user_permissions.remove(perm)
-                    if user_to_change.is_superuser:
-                        messages.error(
-                            request, 
-                            "{} {} ({}) is a superuser; you cannot remove "
-                            "permissions".format(
-                                user_to_change.first_name, 
-                                user_to_change.last_name, 
-                                user_to_change.username
-                            )
-                        )
-                    else:
-                        messages.success(
-                            request, 
-                            "'Regular student' status has been removed for "
-                            "{} {} ({})".format(
-                                user_to_change.first_name, 
-                                user_to_change.last_name, 
-                                user_to_change.username
-                            )
-                        )
-                        ActivityLog.objects.create(
-                            log="'Regular student' status has been removed for "
-                            "{} {} ({}) by admin user {}".format(
-                                user_to_change.first_name, 
-                                user_to_change.last_name, 
-                                user_to_change.username, 
-                                request.user.username
-                            )
-                        )
-
-                else:
-                    user_to_change.user_permissions.add(perm)
-                    messages.success(
-                        request, 
-                        "{} {} ({}) has been given 'regular student' "
-                        "status".format(
-                            user_to_change.first_name, 
-                            user_to_change.last_name, 
-                            user_to_change.username
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="{} {} ({}) has been given 'regular student' "
-                        "status by admin user {}".format(
-                            user_to_change.first_name, 
-                                user_to_change.last_name, 
-                                user_to_change.username, 
-                                request.user.username
-                            )
-                    )
-                user_to_change.save()
-                return HttpResponseRedirect(reverse('studioadmin:users'))
-
-        if 'change_print_disclaimer' in request.GET:
-            if not request.user.is_staff:
-                messages.error(request,  "This action is not permitted")
-            else:
-                change_user_id = request.GET.getlist('change_print_disclaimer')[0]
-                user_to_change = User.objects.get(id=change_user_id)
-
-                disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
-                if disclaimer:
-                    disclaimer.delete()
-                    messages.success(
-                        request, 
-                        "Print disclaimer removed for "
-                        "{} {} ({})".format(
-                            user_to_change.first_name, 
-                            user_to_change.last_name, 
-                            user_to_change.username
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="Print disclaimer has been removed for "
-                        "{} {} ({}) by admin user {}".format(
-                            user_to_change.first_name, 
-                            user_to_change.last_name, 
-                            user_to_change.username, 
-                            request.user.username
-                        )
-                    )
-
-                else:
-                    PrintDisclaimer.objects.create(user=user_to_change)
-                    messages.success(
-                        request, 
-                        "Print disclaimer recorded for {} {} ({})".format(
-                            user_to_change.first_name, 
-                            user_to_change.last_name, 
-                            user_to_change.username
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="Print disclaimer recorded for {} {} ({}) "
-                        "by admin user {}".format(
-                            user_to_change.first_name, 
-                                user_to_change.last_name, 
-                                user_to_change.username, 
-                                request.user.username
-                            )
-                    )
-                user_to_change.save()
-                return HttpResponseRedirect(reverse('studioadmin:users'))
-
-        if 'change_subscription' in request.GET:
-            if not request.user.is_staff:
-                messages.error(request,  "This action is not permitted")
-            else:
-                change_user_id = request.GET.getlist('change_subscription')[0]
-                user_to_change = User.objects.get(id=change_user_id)
-
-                group, _ = Group.objects.get_or_create(name='subscribed')
-                subscribed = group in user_to_change.groups.all()
-                if subscribed:
-                    group.user_set.remove(user_to_change)
-                    messages.success(
-                        request,
-                        "User {} {} ({}) unsubscribed from mailing list.".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
-                            user_to_change.username
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="User {} {} ({}) unsubscribed from mailing list by "
-                            "admin user {}".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
-                            user_to_change.username,
-                            request.user.username
-                        )
-                    )
-
-                else:
-                    group.user_set.add(user_to_change)
-                    messages.success(
-                        request,
-                        "User {} {} ({}) subscribed to mailing list.".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
-                            user_to_change.username
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="User {} {} ({}) subscribed to mailing list by "
-                            "admin user {}".format(
-                            user_to_change.first_name,
-                            user_to_change.last_name,
-                            user_to_change.username,
-                            request.user.username
-                        )
-                    )
-                user_to_change.save()
-                return HttpResponseRedirect(reverse('studioadmin:users'))
-
-        return super(UserListView,  self).get(request,  *args,  **kwargs)
-
     def get_context_data(self):
         context = super(UserListView,  self).get_context_data()
         context['sidenav_selection'] = 'users'
@@ -278,8 +110,109 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['form'] = form
         context['num_results'] = num_results
         context['total_users'] = total_users
-
         return context
+
+
+@login_required
+@staff_required
+def toggle_regular_student(request,  user_id):
+    user_to_change = User.objects.get(id=user_id)
+    perm = Permission.objects.get(codename='is_regular_student')
+    if not user_to_change.is_superuser:
+        if user_to_change.is_regular_student():
+            user_to_change.user_permissions.remove(perm)
+            ActivityLog.objects.create(
+                log="'Regular student' status has been removed for "
+                "{} {} ({}) by admin user {}".format(
+                    user_to_change.first_name,
+                    user_to_change.last_name,
+                    user_to_change.username,
+                    request.user.username
+                )
+            )
+        else:
+            user_to_change.user_permissions.add(perm)
+            ActivityLog.objects.create(
+                log="{} {} ({}) has been given 'regular student' "
+                "status by admin user {}".format(
+                    user_to_change.first_name,
+                        user_to_change.last_name,
+                        user_to_change.username,
+                        request.user.username
+                    )
+            )
+    # get the user again, otherwise permissions are cached
+    return render_to_response(
+        "studioadmin/includes/regular_student_button.txt",
+        {"user": User.objects.get(id=user_to_change.id)}
+    )
+
+
+@login_required
+@staff_required
+def toggle_print_disclaimer(request,  user_id):
+    user_to_change = User.objects.get(id=user_id)
+    disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
+    if disclaimer:
+        disclaimer.delete()
+        ActivityLog.objects.create(
+            log="Print disclaimer has been removed for "
+            "{} {} ({}) by admin user {}".format(
+                user_to_change.first_name,
+                user_to_change.last_name,
+                user_to_change.username,
+                request.user.username
+            )
+        )
+    else:
+        PrintDisclaimer.objects.create(user=user_to_change)
+        ActivityLog.objects.create(
+            log="Print disclaimer recorded for {} {} ({}) "
+            "by admin user {}".format(
+                user_to_change.first_name,
+                    user_to_change.last_name,
+                    user_to_change.username,
+                    request.user.username
+                )
+        )
+    return render_to_response(
+        "studioadmin/includes/print_disclaimer_button.txt",
+        {"user": user_to_change}
+    )
+
+
+@login_required
+@staff_required
+def toggle_subscribed(request,  user_id):
+    user_to_change = User.objects.get(id=user_id)
+    group, _ = Group.objects.get_or_create(name='subscribed')
+    subscribed = group in user_to_change.groups.all()
+    if subscribed:
+        group.user_set.remove(user_to_change)
+        ActivityLog.objects.create(
+            log="User {} {} ({}) unsubscribed from mailing list by "
+                "admin user {}".format(
+                user_to_change.first_name,
+                user_to_change.last_name,
+                user_to_change.username,
+                request.user.username
+            )
+        )
+    else:
+        group.user_set.add(user_to_change)
+        ActivityLog.objects.create(
+            log="User {} {} ({}) subscribed to mailing list by "
+                "admin user {}".format(
+                user_to_change.first_name,
+                user_to_change.last_name,
+                user_to_change.username,
+                request.user.username
+            )
+        )
+    return render_to_response(
+        "studioadmin/includes/subscribed_button.txt",
+        {"user": user_to_change}
+    )
 
 
 @login_required

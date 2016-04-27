@@ -23,6 +23,9 @@ from studioadmin.views import (ConfirmRefundView,
                                register_print_day,
                                event_admin_list,
                                timetable_admin_list,
+                               toggle_regular_student,
+                               toggle_print_disclaimer,
+                               toggle_subscribed,
                                upload_timetable_view,
                                choose_users_to_email,
                                user_bookings_view,
@@ -99,6 +102,18 @@ urlpatterns = [
     url(
         r'^users/(?P<user_id>\d+)/blocks/$',
         user_blocks_view, name='user_blocks_list'
+    ),
+    url(
+        r'^users/(?P<user_id>\d+)/toggle_regular_student/$',
+        toggle_regular_student, name='toggle_regular_student'
+    ),
+    url(
+        r'^users/(?P<user_id>\d+)/toggle_print_disclaimer/$',
+        toggle_print_disclaimer, name='toggle_print_disclaimer'
+    ),
+    url(
+        r'^users/(?P<user_id>\d+)/toggle_subscribed/$',
+        toggle_subscribed, name='toggle_subscribed'
     ),
     url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/$',
         user_disclaimer,
