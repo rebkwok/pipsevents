@@ -1,0 +1,3 @@
+<button class="btn table-btn perm-btn {% if user.is_regular_student %}btn-success{% else %}btn-default{% endif %}">
+    {% if user.is_regular_student %}Yes{% else %}No{% endif %}
+</button>

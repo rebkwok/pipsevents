@@ -19,8 +19,9 @@ from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
 from studioadmin.views.timetable import timetable_admin_list, \
     TimetableSessionCreateView, TimetableSessionUpdateView, \
     upload_timetable_view
-from studioadmin.views.users import MailingListView,user_bookings_view, \
-    user_blocks_view, UserListView
+from studioadmin.views.users import MailingListView, toggle_print_disclaimer, \
+    toggle_regular_student, toggle_subscribed, \
+    user_bookings_view, user_blocks_view, UserListView
 from studioadmin.views.vouchers import VoucherCreateView, VoucherListView, \
     VoucherUpdateView
 from studioadmin.views.waiting_list import event_waiting_list_view
@@ -40,7 +41,8 @@ __all__ = [
     'TicketedEventAdminCreateView', 'ConfirmTicketBookingRefundView',
     'test_paypal_view',
     'timetable_admin_list', 'TimetableSessionCreateView',
-    'TimetableSessionUpdateView', 'upload_timetable_view',
+    'TimetableSessionUpdateView', 'toggle_print_disclaimer',
+    'toggle_regular_student', 'toggle_subscribed', 'upload_timetable_view',
     'user_bookings_view', 'user_blocks_view', 'user_disclaimer',
     'UserListView', 'VoucherCreateView', 'VoucherListView', 'VoucherUpdateView'
 ]
