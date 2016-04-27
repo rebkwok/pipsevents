@@ -38,10 +38,7 @@
                                         <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
                                         <td class="table-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
                                         <td class="table-center studioadmin-tbl">
-                                            <form class="wl-table-form" method="get">
-                                                <button class="btn table-btn btn-danger"
-                                                        type="submit" name="unsubscribe" id="subscribe_button" value="{{ user.id }}">Unsubscribe</button>
-                                            </form>
+                                            <a class="btn table-btn btn-danger" href="{% url 'studioadmin:unsubscribe' user.id %}">Unsubscribe</a>
                                         </td>
                                     </tr>
                                     {% endfor %}

@@ -657,29 +657,27 @@ class MailingListView(LoginRequiredMixin, StaffUserMixin, ListView):
         group, _ = Group.objects.get_or_create(name='subscribed')
         return group.user_set.all().order_by('first_name', 'last_name')
 
-    def get(self, request, *args,  **kwargs):
-        if 'unsubscribe' in request.GET:
-            change_user_id = request.GET.getlist('unsubscribe')[0]
-            user_to_change = User.objects.get(id=change_user_id)
-            group = Group.objects.get(name='subscribed')
-            group.user_set.remove(user_to_change)
-            messages.success(
-                request,
-                "User {} {} ({}) unsubscribed from mailing list.".format(
-                    user_to_change.first_name,
-                    user_to_change.last_name,
-                    user_to_change.username
-                )
+
+def unsubscribe(request, user_id):
+    user_to_change = User.objects.get(id=user_id)
+    group = Group.objects.get(name='subscribed')
+    group.user_set.remove(user_to_change)
+    messages.success(
+        request,
+        "User {} {} ({}) unsubscribed from mailing list.".format(
+            user_to_change.first_name,
+            user_to_change.last_name,
+            user_to_change.username
+        )
+    )
+    ActivityLog.objects.create(
+        log="User {} {} ({}) unsubscribed from mailing list by "
+            "admin user {}".format(
+            user_to_change.first_name,
+            user_to_change.last_name,
+            user_to_change.username,
+            request.user.username
             )
-            ActivityLog.objects.create(
-                log="User {} {} ({}) unsubscribed from mailing list by "
-                    "admin user {}".format(
-                    user_to_change.first_name,
-                    user_to_change.last_name,
-                    user_to_change.username,
-                    request.user.username
-                    )
-            )
-            user_to_change.save()
-            return HttpResponseRedirect(reverse('studioadmin:mailing_list'))
-        return super(MailingListView, self).get(request, *args, **kwargs)
+    )
+    user_to_change.save()
+    return HttpResponseRedirect(reverse('studioadmin:mailing_list'))

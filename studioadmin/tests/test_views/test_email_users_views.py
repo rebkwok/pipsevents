@@ -284,24 +284,27 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
-                'filter-lessons': [pole_class.id],
-                'filter-events': [event.id]}
+                'filter-lessons': [old_pole_class.id],
+                'filter-events': [old_event.id]}
         )
-        session_data = {
-            'events': [old_event.id],
-            'lessons': [old_pole_class.id]
-        }
         self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(self.url, form_data)
+        self.client.post(self.url, form_data)
+        self.assertEqual(
+            self.client.session['lessons'], [str(old_pole_class.id)]
+        )
+        self.assertEqual(self.client.session['events'], [str(old_event.id)])
 
-        # incl user, staff_user, instructor_user
-        self.assertEqual(User.objects.count(), 5)
-
-        usersformset = resp.context_data['usersformset']
-        self.assertEqual(len(usersformset.forms), 2)
-
-        users = [form.instance for form in usersformset.forms]
-        self.assertEqual(set(users), {self.user, new_user1})
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [''],
+                'filter-events': ['']}
+        )
+        # Filter again without refreshing and with no selections;
+        # need to remove old session data
+        self.client.post(self.url, form_data)
+        self.assertIsNone(self.client.session.get('lessons'))
+        self.assertIsNone(self.client.session.get('events'))
 
     def test_session_data_reset_on_get(self):
         user1 = mommy.make_recipe('booking.user')
