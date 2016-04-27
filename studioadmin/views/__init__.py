@@ -20,7 +20,7 @@ from studioadmin.views.timetable import timetable_admin_list, \
     TimetableSessionCreateView, TimetableSessionUpdateView, \
     upload_timetable_view
 from studioadmin.views.users import MailingListView, toggle_print_disclaimer, \
-    toggle_regular_student, toggle_subscribed, \
+    toggle_regular_student, toggle_subscribed, unsubscribe, \
     user_bookings_view, user_blocks_view, UserListView
 from studioadmin.views.vouchers import VoucherCreateView, VoucherListView, \
     VoucherUpdateView
@@ -42,7 +42,8 @@ __all__ = [
     'test_paypal_view',
     'timetable_admin_list', 'TimetableSessionCreateView',
     'TimetableSessionUpdateView', 'toggle_print_disclaimer',
-    'toggle_regular_student', 'toggle_subscribed', 'upload_timetable_view',
+    'toggle_regular_student', 'toggle_subscribed', 'unsubscribe',
+    'upload_timetable_view',
     'user_bookings_view', 'user_blocks_view', 'user_disclaimer',
     'UserListView', 'VoucherCreateView', 'VoucherListView', 'VoucherUpdateView'
 ]

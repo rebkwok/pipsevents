@@ -2286,8 +2286,6 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertIn(self.subscribed, ml_user.groups.all())
 
-        resp = self.client.get(
-            reverse('studioadmin:mailing_list'), {'unsubscribe': [ml_user.id]}
-        )
+        self.client.get(reverse('studioadmin:unsubscribe', args=[ml_user.id]))
         ml_user.refresh_from_db()
         self.assertNotIn(self.subscribed, ml_user.groups.all())

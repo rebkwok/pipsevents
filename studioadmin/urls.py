@@ -26,6 +26,7 @@ from studioadmin.views import (ConfirmRefundView,
                                toggle_regular_student,
                                toggle_print_disclaimer,
                                toggle_subscribed,
+                               unsubscribe,
                                upload_timetable_view,
                                choose_users_to_email,
                                user_bookings_view,
@@ -95,6 +96,10 @@ urlpatterns = [
     url(r'^users/email/mailing-list-email/$', email_users_view,
         {'mailing_list': True}, name="mailing_list_email"),
     url(r'^users/mailing-list/$', MailingListView.as_view(), name='mailing_list'),
+    url(
+        r'^users/(?P<user_id>\d+)/mailing-list/unsubscribe$',
+        unsubscribe, name='unsubscribe'
+    ),
     url(
         r'^users/(?P<user_id>\d+)/bookings/(?P<booking_status>[\w-]+)$',
         user_bookings_view, name='user_bookings_list'
