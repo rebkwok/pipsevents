@@ -500,70 +500,58 @@ class Booking(models.Model):
         super(Booking, self).save(*args, **kwargs)
 
 
-@receiver(post_save)
+@receiver(post_save, sender=Booking)
 def update_free_blocks(sender, instance, **kwargs):
-    if sender == Booking:
-        # for new bookings or rebooking with block
-        if instance.block and \
-                (instance.status == 'OPEN' or instance.date_rebooked):
-            try:
-                free_blocktype = BlockType.objects.get(identifier='free class')
-            except BlockType.DoesNotExist:
-                free_blocktype = None
+    # saving any open booking
+    if instance.block and instance.status == 'OPEN':
+        try:
+            free_blocktype = BlockType.objects.get(identifier='free class')
+        except BlockType.DoesNotExist:
+            free_blocktype = None
 
-            if free_blocktype \
-                    and instance.block.paid \
-                    and not instance.block.active_block() \
-                    and instance.block.block_type.event_type.subtype == "Pole level class" \
-                    and instance.block.block_type.size == 10:
-                # just used last block in 10 class pole level class block;
-                # check for free class block, add one if doesn't exist
-                # already (unless block has already expired)
-                if not instance.block.children.exists():
-                    if not instance.block.expired:
-                        free_block = Block.objects.create(
-                            user=instance.user, parent=instance.block,
-                            block_type=free_blocktype
-                        )
-                        ActivityLog.objects.create(
-                            log='Free class block created with booking {}. '
-                                'Block id {}, parent block id {}, user {}'.format(
-                                instance.id,
-                                free_block.id, instance.block.id,
-                                instance.user.username
-                            )
-                        )
-                    else:
-                        ActivityLog.objects.create(
-                            log='Last booking created on expired block. Free '
-                                'class block not created.  Block id {}, '
-                                'user {}'.format(
-                                instance.block.id,
-                                instance.user.username
-                            )
-                        )
-
-
-@receiver(pre_save)
-def add_to_mailing_list(sender, instance, **kwargs):
-    if sender == Booking:
-        if instance.event.event_type.event_type == 'CL':
-            # check if this is the user's first class booking
-            user_class_bookings = Booking.objects.filter(
-                user=instance.user, event__event_type__event_type='CL'
-            ).exists()
-            if not user_class_bookings:
-                group, _ = Group.objects.get_or_create(name='subscribed')
-                group.user_set.add(instance.user)
+        if free_blocktype \
+                and instance.block.paid \
+                and not instance.block.active_block() \
+                and instance.block.block_type.event_type.subtype == \
+                        "Pole level class" \
+                and instance.block.block_type.size == 10:
+            # just used last block in 10 class pole level class block;
+            # check for free class block, add one if doesn't exist
+            # already (unless block has already expired)
+            if not instance.block.children.exists() \
+                    and not instance.block.expired:
+                free_block = Block.objects.create(
+                    user=instance.user, parent=instance.block,
+                    block_type=free_blocktype
+                )
                 ActivityLog.objects.create(
-                    log='First class booking created; {} {} ({}) has been '
-                        'added to subscribed group for mailing list.'.format(
-                            instance.user.first_name,
-                            instance.user.last_name,
+                    log='Free class block created with booking {}. '
+                        'Block id {}, parent block id {}, user {}'.format(
+                            instance.id,
+                            free_block.id, instance.block.id,
                             instance.user.username
                         )
                 )
 
+
+@receiver(pre_save, sender=Booking)
+def add_to_mailing_list(sender, instance, **kwargs):
+    if instance.event.event_type.event_type == 'CL':
+        # check if this is the user's first class booking
+        user_class_bookings = Booking.objects.filter(
+            user=instance.user, event__event_type__event_type='CL'
+        ).exists()
+        if not user_class_bookings:
+            group, _ = Group.objects.get_or_create(name='subscribed')
+            group.user_set.add(instance.user)
+            ActivityLog.objects.create(
+                log='First class booking created; {} {} ({}) has been '
+                    'added to subscribed group for mailing list.'.format(
+                        instance.user.first_name,
+                        instance.user.last_name,
+                        instance.user.username
+                    )
+            )
 
 
 class WaitingListUser(models.Model):
