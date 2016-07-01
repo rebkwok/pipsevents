@@ -2,10 +2,13 @@
 Create free 5-class blocks for users in 'free_monthly_blocks' group
 Will be run on 1st of each month as cron job
 '''
+import datetime
+
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from booking.models import Block, BlockType, EventType
 
@@ -53,8 +56,14 @@ class Command(BaseCommand):
                 if active_free_blocks:
                     already_active_users.append(user)
                 else:
+                    # Block expiry is set to the end of the date it's created
+                    # create new block with start date previous day, so when
+                    # we run this command on 1st of the month, it
+                    # expires on last day of that month, not 1st of next month
                     Block.objects.create(
-                        block_type=free_blocktype, user=user, paid=True
+                        block_type=free_blocktype, user=user, paid=True,
+                        start_date=(timezone.now() - datetime.timedelta(1))
+                        .replace(hour=23, minute=59, second=59)
                     )
                     created_users.append(user)
 

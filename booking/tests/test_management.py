@@ -2668,4 +2668,40 @@ class CreateFreeMonthlyBlocksTests(TestCase):
             'active free block already exists'
         )
 
+    def test_blocks_created_with_previous_day_start_date(self):
+        """
+        Check that we can create blocks on 1st of the month, and they will have
+        expired on 1st of the next month
+        """
+        group = Group.objects.create(name='free_monthly_blocks')
+        user1 = mommy.make(User, first_name='Test', last_name='User1')
+        user2 = mommy.make(User, first_name='Test', last_name='User2')
+        user3 = mommy.make(User, first_name='Test', last_name='User3')
 
+        for user in [user1, user2, user3]:
+            user.groups.add(group)
+
+        # make blocks on 1st Jan
+        with patch(
+                'booking.management.commands.create_free_monthly_blocks'
+                '.timezone.now',
+                return_value=datetime(2016, 1, 1, tzinfo=timezone.utc)
+            ):
+            management.call_command('create_free_monthly_blocks')
+
+        self.assertEqual(Block.objects.count(), 3)
+
+        # make blocks on 1st Feb; previous blocks are now inactive, so new
+        # blocks made
+        with patch(
+                'booking.management.commands.create_free_monthly_blocks'
+                '.timezone.now',
+                return_value=datetime(2016, 1, 1, tzinfo=timezone.utc)
+            ):
+            # blocks are not full, and are paid, so active unless expired
+            self.assertEqual(
+                [bl for bl in Block.objects.all() if bl.full], []
+            )
+            self.assertEqual(Block.objects.filter(paid=False).count(), 0)
+            management.call_command('create_free_monthly_blocks')
+        self.assertEqual(Block.objects.count(), 3)
