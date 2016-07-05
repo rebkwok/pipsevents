@@ -6,7 +6,7 @@
 
     <div class="container-fluid row">
 
-        <h2>Vouchers</h2>
+        <h2>Block Vouchers</h2>
 
 
 
@@ -22,20 +22,20 @@
                                 <th class="table-center">Expiry Date</th>
                                 <th class="table-center">Max uses</th>
                                 <th class="table-center">Times used</th>
-                                <th class="table-center">Event Types</th>
+                                <th class="table-center">Block Types</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% if vouchers %}
                                 {% for voucher in vouchers %}
                                 <tr>
-                                    <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:edit_voucher' voucher.pk %}">{{ voucher.code }}</a></td>
+                                    <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:edit_block_voucher' voucher.pk %}">{{ voucher.code }}</a></td>
                                     <td class="table-center studioadmin-tbl">{{ voucher.discount }}%</td>
                                     <td class="table-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}
                                     <td class="table-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
                                     <td class="table-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher|times_voucher_used }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.event_types.all|format_event_types }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ voucher.users.count }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ voucher.block_types.all|format_block_types_for_voucher_list }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
