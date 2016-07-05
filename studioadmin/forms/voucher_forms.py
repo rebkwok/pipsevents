@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.utils import timezone
-from booking.models import Event, EventType, Voucher
+from booking.models import BlockType, BlockVoucher, EventVoucher, \
+    UsedBlockVoucher, UsedEventVoucher
 
 
 def validate_discount(value):
@@ -26,9 +26,11 @@ def validate_code(code):
 
 class VoucherStudioadminForm(forms.ModelForm):
     class Meta:
-        model = Voucher
+        model = EventVoucher
         fields = (
-            'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
+            'code', 'discount', 'start_date', 'expiry_date',
+            'max_per_user',
+            'max_vouchers',
             'event_types'
         )
         widgets = {
@@ -39,6 +41,9 @@ class VoucherStudioadminForm(forms.ModelForm):
                 attrs={'class': "form-control"}
             ),
             'max_vouchers': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'max_per_user': forms.TextInput(
                 attrs={'class': "form-control"}
             ),
             'start_date': forms.DateInput(
@@ -62,8 +67,10 @@ class VoucherStudioadminForm(forms.ModelForm):
         }
 
         help_texts = {
+            'max_per_user': 'Optional: set a limit on the number of times '
+                            'this voucher can be used by a single user',
             'max_vouchers': 'Optional: set a limit on the number of times this '
-                            'voucher can be used',
+                            'voucher can be used (across all users)',
             'start_date': 'Pick from calendar or enter in format '
                           'e.g. 10 Jan 2016',
             'expiry_date': 'Optional: set an expiry date after which the '
@@ -78,6 +85,9 @@ class VoucherStudioadminForm(forms.ModelForm):
         self.fields['discount'].validators = [validate_discount]
         self.fields['max_vouchers'].validators = [validate_greater_than_0]
 
+    def get_uses(self):
+        return UsedEventVoucher.objects.filter(voucher=self.instance).count()
+
     def clean(self):
         super(VoucherStudioadminForm, self).clean()
         cleaned_data = self.cleaned_data
@@ -86,7 +96,7 @@ class VoucherStudioadminForm(forms.ModelForm):
 
         old = None
         if self.instance.id:
-            old = Voucher.objects.get(id=self.instance.id)
+            old = EventVoucher.objects.get(id=self.instance.id)
 
         uk = pytz.timezone('Europe/London')
 
@@ -130,12 +140,78 @@ class VoucherStudioadminForm(forms.ModelForm):
 
         max_uses = cleaned_data.get('max_vouchers')
         if self.instance.id and max_uses:
-            uses = self.instance.users.count()
+            uses = self.get_uses()
             if uses > max_uses:
                 self.add_error(
-                    'max_vouchers', 'Voucher code has already been used by '
-                                    '{times_used} users; set max uses to '
-                                    '{times_used} or greater'.format(
+                    'max_vouchers',
+                    'Voucher code has already been used {times_used} in '
+                    'total; set max uses to {times_used} or greater'.format(
                         times_used=uses,
                     )
                 )
+
+
+class BlockVoucherStudioadminForm(VoucherStudioadminForm):
+
+    class Meta:
+        model = BlockVoucher
+        fields = (
+            'code', 'discount', 'start_date', 'expiry_date',
+            'max_per_user',
+            'max_vouchers',
+            'block_types'
+        )
+        widgets = {
+            'code': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'discount': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'max_vouchers': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'max_per_user': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+            'start_date': forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': "datepicker",
+                },
+                format='%d %b %Y'
+            ),
+            'expiry_date': forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': "datepicker1",
+                },
+                format='%d %b %Y'
+            ),
+            'block_types': forms.CheckboxSelectMultiple(),
+        }
+        labels = {
+            'discount': 'Discount (%)'
+        }
+
+        help_texts = {
+            'max_per_user': 'Optional: set a limit on the number of times '
+                            'this voucher can be used by a single user',
+            'max_vouchers': 'Optional: set a limit on the number of times this '
+                            'voucher can be used (across all users)',
+            'start_date': 'Pick from calendar or enter in format '
+                          'e.g. 10 Jan 2016',
+            'expiry_date': 'Optional: set an expiry date after which the '
+                           'voucher will no longer be accepted',
+            'block_types': 'Choose block types that this voucher can '
+                           'be used for'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(BlockVoucherStudioadminForm, self).__init__(*args, **kwargs)
+        block_types = self.fields['block_types']
+        block_types.queryset = BlockType.objects.filter(active=True)\
+            .exclude(identifier="free class")
+
+    def get_uses(self):
+        return UsedBlockVoucher.objects.filter(voucher=self.instance).count()

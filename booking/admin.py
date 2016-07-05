@@ -13,7 +13,8 @@ from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
-    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, Voucher
+    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
+    Voucher, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from booking.forms import BookingAdminForm, BlockAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
@@ -496,6 +497,34 @@ class VoucherAdmin(admin.ModelAdmin):
         return obj.users.count()
 
 
+class EventVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
+        'ev_types', 'times_used'
+    )
+
+    def ev_types(self, obj):
+        return ', '.join(et.subtype for et in obj.event_types.all())
+    ev_types.short_description = 'Event types'
+
+    def times_used(self, obj):
+        return UsedEventVoucher.objects.filter(voucher=obj).count()
+
+
+class BlockVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
+        'block_types', 'times_used'
+    )
+
+    def block_types(self, obj):
+        return ', '.join(bt.block_type for bt in obj.block_types.all())
+    block_types.short_description = 'Event types'
+
+    def times_used(self, obj):
+        return UsedBlockVoucher.objects.filter(voucher=obj).count()
+
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
@@ -506,3 +535,7 @@ admin.site.register(TicketBooking, TicketBookingAdmin)
 admin.site.register(Ticket, TicketAdmin)
 admin.site.register(TicketedEvent, TicketedEventAdmin)
 admin.site.register(Voucher, VoucherAdmin)
+admin.site.register(EventVoucher, EventVoucherAdmin)
+admin.site.register(BlockVoucher, BlockVoucherAdmin)
+admin.site.register(UsedEventVoucher)
+admin.site.register(UsedBlockVoucher)

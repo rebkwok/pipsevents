@@ -12,7 +12,8 @@ from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED, \
     ST_PP_PENDING
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
-from booking.models import Booking, Block, TicketBooking, Voucher
+from booking.models import Booking, Block, TicketBooking, BlockVoucher, \
+    EventVoucher, UsedBlockVoucher, UsedEventVoucher
 
 from activitylog.models import ActivityLog
 
@@ -38,6 +39,7 @@ class PaypalBlockTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
     block = models.ForeignKey(Block, null=True)
     transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.invoice_id
@@ -124,7 +126,7 @@ def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
 
 def send_processed_test_confirmation_emails(additional_data):
     invoice_id = additional_data['test_invoice']
-    paypal_email =  additional_data['test_paypal_email']
+    paypal_email = additional_data['test_paypal_email']
     user_email = additional_data['user_email']
     # send email to user email only and to support for checking;
     send_mail(
@@ -171,7 +173,7 @@ def send_processed_test_pending_emails(additional_data):
 
 def send_processed_test_refund_emails(additional_data):
     invoice_id = additional_data['test_invoice']
-    paypal_email =  additional_data['test_paypal_email']
+    paypal_email = additional_data['test_paypal_email']
     user_email = additional_data['user_email']
     # send email to user email only and to support for checking;
     # user will have received automated paypal payment
@@ -212,7 +214,7 @@ def get_obj(ipn_obj):
         obj_type = custom[0]
         obj_id = int(custom[1])
         voucher_code = custom[2] if len(custom) == 3 and \
-                                    obj_type != 'test' else None
+            obj_type != 'test' else None
     except IndexError:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')
 
@@ -469,8 +471,16 @@ def payment_received(sender, **kwargs):
                                               obj.user, obj)
 
                 if voucher_code:
-                    voucher = Voucher.objects.get(code=voucher_code)
-                    voucher.users.add(obj.user)
+                    if obj_type == 'booking':
+                        voucher = EventVoucher.objects.get(code=voucher_code)
+                        UsedEventVoucher.objects.create(
+                            voucher=voucher, user=obj.user
+                        )
+                    elif obj_type == 'block':
+                        voucher = BlockVoucher.objects.get(code=voucher_code)
+                        UsedBlockVoucher.objects.create(
+                            voucher=voucher, user=obj.user
+                        )
                     paypal_trans.voucher_code = voucher_code
                     paypal_trans.save()
 

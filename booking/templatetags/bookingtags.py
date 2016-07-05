@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
 
-from booking.models import Booking
+from booking.models import Booking, UsedBlockVoucher, UsedEventVoucher
 
 from studioadmin.utils import int_str, chaffify
 
@@ -195,6 +195,17 @@ def encode(val):
 def format_event_types(ev_types):
     return ', '.join([ev_type.subtype for ev_type in ev_types])
 
+@register.filter
+def format_block_types_for_voucher_list(block_types):
+    return ', '.join([str(block_type) for block_type in block_types])
+
+@register.filter
+def times_voucher_used(voucher):
+    return UsedEventVoucher.objects.filter(voucher=voucher).count()
+
+@register.filter
+def times_block_voucher_used(voucher):
+    return UsedBlockVoucher.objects.filter(voucher=voucher).count()
 
 @register.filter
 def subscribed(user):

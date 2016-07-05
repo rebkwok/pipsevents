@@ -18,6 +18,21 @@
                     {% endif %}
                 </p>
             </div>
+            <div>
+                {% if not valid_voucher %}
+                    <form name="voucher_form" class="form-inline" method="post" action="">
+                        {% csrf_token %}
+                            <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
+                            <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
+                            {% if voucher_error %}
+                                <p class="errorlist">{{ voucher_error }}</p>
+                            {% endif %}
+                    </form>
+                {% else %}
+                    <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
+                        <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
+                {% endif %}
+            </div>
             {% if blockformlist %}
                 <div class="panel panel-success">
                     <div class="table-responsive">
@@ -26,6 +41,7 @@
                                 <th>Paid</th>
                                 <th>Block Status</th>
                                 <th>Block Type</th>
+                                <th>Cost</th>
                                 <th class="hidden-sm hidden-xs">Start date</th>
                                 <th>Expiry Date</th>
                                 <th class="table-center" >Block size</th>
@@ -43,6 +59,7 @@
                                     </td>
                                     <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
                                     <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
+                                    <td>{% if blockform.block_cost %}{{ blockform.block_cost }}{% endif %}</td>
                                     <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                     <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
                                     <td class="table-center">{{ blockform.block.block_type.size }}</td>
