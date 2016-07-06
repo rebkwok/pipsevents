@@ -88,6 +88,9 @@ class VoucherStudioadminForm(forms.ModelForm):
     def get_uses(self):
         return UsedEventVoucher.objects.filter(voucher=self.instance).count()
 
+    def get_old_instance(self, id):
+        return EventVoucher.objects.get(id=id)
+
     def clean(self):
         super(VoucherStudioadminForm, self).clean()
         cleaned_data = self.cleaned_data
@@ -96,7 +99,7 @@ class VoucherStudioadminForm(forms.ModelForm):
 
         old = None
         if self.instance.id:
-            old = EventVoucher.objects.get(id=self.instance.id)
+            old = self.get_old_instance(self.instance.id)
 
         uk = pytz.timezone('Europe/London')
 
@@ -111,9 +114,10 @@ class VoucherStudioadminForm(forms.ModelForm):
                     self.changed_data.remove('start_date')
             except ValueError:
                 self.add_error(
-                    'start_date', 'Invalid date format.  Select from '
-                                        'the date picker or enter date in the '
-                                        'format dd Mmm YYYY')
+                    'start_date',
+                    'Invalid date format.  Select from the date picker or '
+                    'enter date in the format dd Mmm YYYY'
+                )
                 start_date = None
 
         if expiry_date:
@@ -128,9 +132,9 @@ class VoucherStudioadminForm(forms.ModelForm):
                     self.changed_data.remove('expiry_date')
             except ValueError:
                 self.add_error(
-                    'expiry_date', 'Invalid date format.  Select from '
-                                        'the date picker or enter date in the '
-                                        'format dd Mmm YYYY')
+                    'expiry_date',
+                    'Invalid date format.  Select from the date picker or '
+                    'enter date in the format dd Mmm YYYY')
                 expiry_date = None
 
         if start_date and expiry_date:
@@ -144,7 +148,7 @@ class VoucherStudioadminForm(forms.ModelForm):
             if uses > max_uses:
                 self.add_error(
                     'max_vouchers',
-                    'Voucher code has already been used {times_used} in '
+                    'Voucher code has already been used {times_used} times in '
                     'total; set max uses to {times_used} or greater'.format(
                         times_used=uses,
                     )
@@ -215,3 +219,6 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
 
     def get_uses(self):
         return UsedBlockVoucher.objects.filter(voucher=self.instance).count()
+
+    def get_old_instance(self, id):
+        return BlockVoucher.objects.get(id=id)

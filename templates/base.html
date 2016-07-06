@@ -16,12 +16,21 @@
 
         <link rel="shortcut icon" href="{{ STATIC_URL }}/favicon.ico">
 
-        <!-- Bootstrap core CSS -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-        <!-- Bootstrap theme -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-        <!-- Font awesome -->
-       <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+      {% check_debug as is_debug_on %}
+
+      {% if is_debug_on %}
+            <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap.min.css' %}">
+            <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
+            <link rel="stylesheet" href="{% static 'booking/bootstrap/font-awesome.min.css' %}">
+        {% else %}
+            <!-- Bootstrap core CSS -->
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+            <!-- Bootstrap theme -->
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+           <!-- Font awesome -->
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+        {% endif %}
+
         <!-- Custom styles --->
         <link href="{% static 'booking/css/custom.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />

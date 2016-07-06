@@ -1300,7 +1300,7 @@ class PaypalSignalsTests(TestCase):
     def test_paypal_notify_with_voucher_code(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
         ev_type = mommy.make_recipe('booking.event_type_PC')
-        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher = mommy.make(EventVoucher, code='test', discount=10)
         voucher.event_types.add(ev_type)
         user = mommy.make_recipe('booking.user')
         booking = mommy.make_recipe(
@@ -1333,8 +1333,8 @@ class PaypalSignalsTests(TestCase):
 
         pptrans.refresh_from_db()
         self.assertEqual(pptrans.voucher_code, voucher.code)
-        self.assertEqual(voucher.users.count(), 1)
-        self.assertEqual(voucher.users.first(), user)
+        self.assertEqual(UsedEventVoucher.objects.count(), 1)
+        self.assertEqual(UsedEventVoucher.object.first().user, user)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_with_invalid_voucher_code(self, mock_postback):
@@ -1382,6 +1382,96 @@ class PaypalSignalsTests(TestCase):
             support_email.subject,
             '{} There was some problem processing payment for booking '
             'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
+        )
+        self.assertIn(
+            'The exception raised was "Voucher matching query does not exist.',
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_block_voucher_code(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block_type = mommy.make_recipe('booking.blocktype')
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(block_type)
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type,
+            user=user,
+        )
+        pptrans = helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {} {}'.format(block.id, voucher.code)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, voucher.code)
+        self.assertEqual(UsedBlockVoucher.objects.count(), 1)
+        self.assertEqual(UsedBlockVoucher.object.first().user, user)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_invalid_block_voucher_code(self, mock_postback):
+        """
+        Test that paypal is processed properly and marked as paid if an
+        invalid voucher code is included. Warning mail sent to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        block_type = mommy.make_recipe('booking.blocktype')
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type,
+            user=user,
+        )
+        pptrans = helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {} invalid_code'.format(block.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+
+        # email to user, studio, and support email
+        self.assertEqual(len(mail.outbox), 3)
+        support_email = mail.outbox[2]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for block '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.id)
         )
         self.assertIn(
             'The exception raised was "Voucher matching query does not exist.',
