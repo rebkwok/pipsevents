@@ -3,6 +3,7 @@ import pytz
 
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django import template
 from django.utils import timezone
@@ -273,3 +274,7 @@ def transferred_from(block):
         except Booking.DoesNotExist:
             return '({})'.format(block.transferred_booking_id)
     return ''
+
+@register.assignment_tag
+def check_debug():
+    return settings.DEBUG

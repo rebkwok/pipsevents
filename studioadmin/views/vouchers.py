@@ -108,7 +108,7 @@ class BlockVoucherUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
     context_object_name = 'voucher'
 
     def get_context_data(self, **kwargs):
-        context = super(VoucherUpdateView, self).get_context_data(**kwargs)
+        context = super(BlockVoucherUpdateView, self).get_context_data(**kwargs)
         context['sidenav_selection'] = 'block_vouchers'
         context['is_block_voucher'] = True
         return context

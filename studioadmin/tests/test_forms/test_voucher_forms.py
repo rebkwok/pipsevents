@@ -5,8 +5,9 @@ from model_mommy import mommy
 
 from django.test import TestCase
 
-from booking.models import Voucher
-from studioadmin.forms import VoucherStudioadminForm
+from booking.models import EventVoucher, UsedEventVoucher
+from studioadmin.forms import BlockVoucherStudioadminForm, \
+    VoucherStudioadminForm
 
 
 class VoucherStudioAdminFormTests(TestCase):
@@ -138,17 +139,17 @@ class VoucherStudioAdminFormTests(TestCase):
         )
 
     def test_cannot_make_max_vouchers_greater_than_number_already_used(self):
-        voucher = mommy.make(Voucher, max_vouchers=3)
+        voucher = mommy.make(EventVoucher, max_vouchers=3)
         users = mommy.make_recipe('booking.user', _quantity=3)
         for user in users:
-            voucher.users.add(user)
+            UsedEventVoucher.objects.create(voucher=voucher, user=user)
         self.data.update({'max_vouchers': 2, 'id': voucher.id})
         form = VoucherStudioadminForm(data=self.data, instance=voucher)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
             {'max_vouchers': [
-                'Voucher code has already been used by 3 users; '
+                'Voucher code has already been used 3 times in total; '
                 'set max uses to 3 or greater'
             ]}
         )
@@ -156,3 +157,21 @@ class VoucherStudioAdminFormTests(TestCase):
         self.data.update({'max_vouchers': 3})
         form = VoucherStudioadminForm(data=self.data, instance=voucher)
         self.assertTrue(form.is_valid())
+
+
+class BlockVoucherStudioadminFormTests(TestCase):
+
+    def test_only_active_and_non_free_blocktypes_in_choices(self):
+        # free_block
+        mommy.make_recipe('booking.free_blocktype')
+        # inactive_block
+        mommy.make_recipe('booking.blocktype', active=False)
+        active_blocktypes = mommy.make_recipe('booking.blocktype', _quantity=2)
+
+        form = BlockVoucherStudioadminForm()
+        block_types = form.fields['block_types']
+        self.assertEqual(
+            sorted(list([bt.id for bt in block_types.queryset])),
+            sorted([bt.id for bt in active_blocktypes])
+        )
+

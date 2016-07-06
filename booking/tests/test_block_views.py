@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer
 from booking.forms import BlockCreateForm
-from booking.models import Block
+from booking.models import Block, BlockVoucher, UsedBlockVoucher
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
 from booking.tests.helpers import _create_session, format_content, \
     setup_view, TestSetupMixin
@@ -305,6 +305,12 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
 
 class BlockListViewTests(TestSetupMixin, TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        super(BlockListViewTests, cls).setUpTestData()
+        cls.block_type = mommy.make_recipe('booking.blocktype5', cost=30)
+        cls.url = reverse('booking:block_list')
+
     def _set_session(self, user, request):
         request.session = _create_session()
         request.user = user
@@ -445,6 +451,199 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         )
         self.assertIn('Test4', format_content(resp.rendered_content))
         self.assertNotIn('Test4 (', format_content(resp.rendered_content))
+
+    def test_submitting_voucher_code(self):
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(self.block_type)
+        block = mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+
+        self.client.login(username=self.user.username, password='test')
+
+        # On get, show standard costs
+        resp = self.client.get(self.url)
+        self.assertIn('£ 30.00', resp.rendered_content)
+        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 30.00)
+        self.assertEqual(
+            paypal_form.initial['custom'], 'block {}'.format(block.id)
+        )
+        self.assertNotIn('voucher', resp.context_data)
+
+        # On post, show discounted costs
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertIn('£ 27.00', resp.rendered_content)
+
+        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 27.00)
+        self.assertEqual(
+            paypal_form.initial['custom'], 'block {} {}'.format(
+                block.id, voucher.code
+            )
+        )
+        self.assertEqual(resp.context_data['voucher'], voucher)
+
+    def test_no_voucher_code(self):
+        self.client.login(username=self.user.username, password='test')
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': ''}
+        resp = self.client.post(self.url, form_data)
+        self.assertEqual(resp.context_data['voucher_error'], 'No code provided')
+
+    def test_invalid_voucher_code(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(self.block_type)
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'foo'}
+        resp = self.client.post(self.url, form_data)
+        self.assertEqual(resp.context_data['voucher_error'], 'Invalid code')
+
+    def test_voucher_code_not_started_yet(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(
+            BlockVoucher, code='test', discount=10,
+            start_date=timezone.now() + timedelta(2)
+        )
+        voucher.block_types.add(self.block_type)
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher code is not valid until {}'.format(
+                voucher.start_date.strftime("%d %b %y")
+            )
+        )
+
+    def test_expired_voucher(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(
+            BlockVoucher, code='test', discount=10,
+            start_date=timezone.now() - timedelta(4),
+            expiry_date=timezone.now() - timedelta(2)
+        )
+        voucher.block_types.add(self.block_type)
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'], 'Voucher code has expired'
+        )
+
+    def test_voucher_used_max_times(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(
+            BlockVoucher, code='test', discount=10,
+            max_vouchers=2
+        )
+        voucher.block_types.add(self.block_type)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            UsedBlockVoucher.objects.create(voucher=voucher, user=user)
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher has limited number of uses and has now expired'
+        )
+
+    def test_voucher_used_max_times_by_user(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(
+            BlockVoucher, code='test', discount=10,
+            max_vouchers=6, max_per_user=2
+        )
+        voucher.block_types.add(self.block_type)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            UsedBlockVoucher.objects.create(voucher=voucher, user=user)
+        for i in range(2):
+            UsedBlockVoucher.objects.create(voucher=voucher, user=self.user)
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+
+        # Used vouchers is < 6, but this user has used their max (2)
+        self.assertLess(
+            UsedBlockVoucher.objects.filter(voucher=voucher).count(),
+            voucher.max_vouchers,
+        )
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Voucher code has already been used the maximum number of '
+            'times (2)'
+        )
+
+    def test_voucher_only_shows_discount_for_valid_block_types(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(self.block_type)
+        # valid block, cost=30, discounted cost = 27
+        block1 = mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        # valid block, cost=50
+        block2 = mommy.make(
+            'booking.block', user=self.user, block_type__cost=50
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertIn('£ 27.00', resp.rendered_content)
+        self.assertIn('£ 50.00', resp.rendered_content)
+
+        paypal_form2 = resp.context_data['blockformlist'][0]['paypalform']
+        self.assertEqual(paypal_form2.initial['amount'], 50.00)
+        self.assertEqual(
+            paypal_form2.initial['custom'], 'block {} {}'.format(
+                block2.id, voucher.code
+            )
+        )
+
+        paypal_form1 = resp.context_data['blockformlist'][1]['paypalform']
+        self.assertEqual(paypal_form1.initial['amount'], 27.00)
+        self.assertEqual(
+            paypal_form1.initial['custom'], 'block {} {}'.format(
+                block1.id, voucher.code
+            )
+        )
+
+    def test_remove_extra_spaces_from_voucher_code(self):
+        """
+        Test that extra leading and/or trailing spaces in code are ignored
+        """
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(self.block_type)
+        block = mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+
+        form_data = {'apply_voucher': 'Apply', 'code': '  test '}
+        resp = self.client.post(self.url, form_data)
+        self.assertIn('£ 27.00', resp.rendered_content)
+        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 27.00)
+        self.assertEqual(
+            paypal_form.initial['custom'], 'block {} {}'.format(
+                block.id, voucher.code
+            )
+        )
 
 
 class BlockDeleteViewTests(TestSetupMixin, TestCase):

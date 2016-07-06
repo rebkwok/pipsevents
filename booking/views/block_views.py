@@ -113,7 +113,7 @@ class BlockListView(LoginRequiredMixin, ListView):
             return 'Voucher code has expired'
         elif voucher.max_vouchers and \
             UsedBlockVoucher.objects.filter(voucher=voucher).count() >= \
-                self.max_vouchers:
+                voucher.max_vouchers:
             return 'Voucher has limited number of uses and has now expired'
         elif not voucher.has_started:
             return 'Voucher code is not valid until {}'.format(
@@ -184,7 +184,10 @@ class BlockListView(LoginRequiredMixin, ListView):
         voucher_error = kwargs.get('voucher_error', None)
         code = kwargs.get('code', None)
         context['voucher_form'] = VoucherForm(initial={'code': code})
-        context['voucher_error'] = voucher_error
+        if voucher:
+            context['voucher'] = voucher
+        if voucher_error:
+            context['voucher_error'] = voucher_error
         valid_voucher = False
         if voucher:
             valid_voucher = not bool(voucher_error)
@@ -216,7 +219,10 @@ class BlockListView(LoginRequiredMixin, ListView):
                         paypal_cost,
                         block.block_type,
                         invoice_id,
-                        '{} {}'.format('block', block.id),
+                        '{} {}{}'.format(
+                            'block', block.id, ' {}'.format(code)
+                            if valid_voucher else ''
+                        ),
                         paypal_email=block.block_type.paypal_email
                     )
                 )
