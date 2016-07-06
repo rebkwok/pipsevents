@@ -59,7 +59,9 @@
                                     </td>
                                     <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
                                     <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
-                                    <td>{% if blockform.block_cost %}£ {{ blockform.block_cost }}{% endif %}</td>
+                                    <td>{% if blockform.block_cost %}
+                                        £ {{ blockform.block_cost }}{% if blockform.voucher_applied %}<br/><span class="studioadmin-help">Voucher applied</span>{% endif %}
+                                        {% endif %}</td>
                                     <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                     <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
                                     <td class="table-center">{{ blockform.block.block_type.size }}</td>
