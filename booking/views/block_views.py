@@ -196,8 +196,8 @@ class BlockListView(LoginRequiredMixin, ListView):
         blockformlist = []
         for block in self.get_queryset():
             expired = block.expiry_date < timezone.now()
-
             paypal_cost = None
+            voucher_applied = False
 
             if not block.paid and not expired:
                 paypal_cost = block.block_type.cost
@@ -205,6 +205,7 @@ class BlockListView(LoginRequiredMixin, ListView):
                     paypal_cost = Decimal(
                         float(paypal_cost) * ((100 - voucher.discount) / 100)
                     ).quantize(Decimal('.05'))
+                    voucher_applied = True
                     messages.info(
                         self.request,
                         'Voucher has been applied to qualifying block types'
@@ -232,6 +233,7 @@ class BlockListView(LoginRequiredMixin, ListView):
                 block__id=block.id).count() >= block.block_type.size
             blockform = {
                 'block': block,
+                'voucher_applied': voucher_applied,
                 'block_cost': paypal_cost,
                 'paypalform': paypal_form,
                 'expired': expired or full}
