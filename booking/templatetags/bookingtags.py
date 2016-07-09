@@ -197,10 +197,6 @@ def format_event_types(ev_types):
     return ', '.join([ev_type.subtype for ev_type in ev_types])
 
 @register.filter
-def format_block_types_for_voucher_list(block_types):
-    return ', '.join([str(block_type) for block_type in block_types])
-
-@register.filter
 def times_voucher_used(voucher):
     return UsedEventVoucher.objects.filter(voucher=voucher).count()
 

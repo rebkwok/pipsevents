@@ -83,13 +83,13 @@
                   <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Vouchers </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
-                        <span class="sidebar_active">View and edit vouchers</span>{% else %}View and edit vouchers{% endif %}</a></li>
+                        <span class="sidebar_active">View/edit vouchers</span>{% else %}View/edit vouchers{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:add_voucher' %}">{% if sidenav_selection == 'add_voucher' %}
-                        <span class="sidebar_active">Add a new voucher</span>{% else %}Add a new voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add new voucher</span>{% else %}Add new voucher{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:block_vouchers' %}">{% if sidenav_selection == 'block_vouchers' %}
-                        <span class="sidebar_active">View and edit block vouchers</span>{% else %}View and edit block vouchers{% endif %}</a></li>
+                        <span class="sidebar_active">View/edit block vouchers</span>{% else %}View/edit block vouchers{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:add_block_voucher' %}">{% if sidenav_selection == 'add_block_voucher' %}
-                        <span class="sidebar_active">Add a new block voucher</span>{% else %}Add a new block voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add new block voucher</span>{% else %}Add new block voucher{% endif %}</a></li>
                 </ul>
             </li>
 
@@ -265,13 +265,13 @@
                     </li>
                     <span id="vouchers" class="collapse {% if sidenav_selection == 'vouchers' or sidenav_selection == 'add_voucher' %} in{% endif %}">
                          <li><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
-                        <span class="sidebar_active">View and edit vouchers</span>{% else %}View and edit vouchers{% endif %}</a></li>
+                        <span class="sidebar_active">View/edit vouchers</span>{% else %}View/edit vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_voucher' %}">{% if sidenav_selection == 'add_voucher' %}
-                        <span class="sidebar_active">Add a new voucher</span>{% else %}Add a new voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add new voucher</span>{% else %}Add new voucher{% endif %}</a></li>
                         <li><a href="{% url 'studioadmin:block_vouchers' %}">{% if sidenav_selection == 'block_vouchers' %}
-                        <span class="sidebar_active">View and edit block vouchers</span>{% else %}View and edit block vouchers{% endif %}</a></li>
+                        <span class="sidebar_active">View/edit block vouchers</span>{% else %}View/edit block vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_block_voucher' %}">{% if sidenav_selection == 'add_block_voucher' %}
-                        <span class="sidebar_active">Add a new block voucher</span>{% else %}Add a new block voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add new block voucher</span>{% else %}Add new block voucher{% endif %}</a></li>
                     </span>
 
                     <li class="sidebar-title">

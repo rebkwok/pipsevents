@@ -167,6 +167,20 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
             reverse('studioadmin:edit_voucher', args=[voucher.id]), resp.url
         )
 
+    def test_create_block_voucher_context(self):
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        url = reverse('studioadmin:add_block_voucher')
+        resp = self.client.get(url, follow=True)
+
+        self.assertTrue(resp.context_data['is_block_voucher'])
+        self.assertEqual(
+            resp.context_data['sidenav_selection'], 'add_block_voucher'
+        )
+
     def test_create_block_voucher(self):
         self.assertTrue(
             self.client.login(
@@ -180,6 +194,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
         del data['event_types']
         data.update(block_types=[block_type.id])
         resp = self.client.post(url, data, follow=True)
+
         self.assertEquals(BlockVoucher.objects.count(), 1)
         voucher = BlockVoucher.objects.first()
         self.assertEqual(voucher.code, 'test_code')
@@ -318,6 +333,23 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
 
         self.assertIn(
             'Voucher with code new_test_code has been updated!',
+            format_content(resp.rendered_content)
+        )
+
+    def test_update_block_voucher_with_no_changes(self):
+        url = reverse(
+            'studioadmin:edit_block_voucher', args=[self.block_voucher.id]
+        )
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.post(url, self.block_data, follow=True)
+        self.voucher.refresh_from_db()
+
+        self.assertIn(
+            'No changes made',
             format_content(resp.rendered_content)
         )
 

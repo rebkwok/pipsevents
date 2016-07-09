@@ -206,10 +206,6 @@ class BlockListView(LoginRequiredMixin, ListView):
                         float(paypal_cost) * ((100 - voucher.discount) / 100)
                     ).quantize(Decimal('.05'))
                     voucher_applied = True
-                    messages.info(
-                        self.request,
-                        'Voucher has been applied to qualifying block types'
-                    )
 
                 invoice_id = create_block_paypal_transaction(
                     self.request.user, block).invoice_id

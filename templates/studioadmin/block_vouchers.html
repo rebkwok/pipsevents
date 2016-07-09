@@ -34,8 +34,8 @@
                                     <td class="table-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}
                                     <td class="table-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
                                     <td class="table-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.users.count }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.block_types.all|format_block_types_for_voucher_list }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ voucher|times_block_voucher_used }}</td>
+                                    <td class="studioadmin-tbl">{% for bt in voucher.block_types.all %}{{ bt }}</br>{% endfor %}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}

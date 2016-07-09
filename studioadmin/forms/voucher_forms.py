@@ -70,7 +70,7 @@ class VoucherStudioadminForm(forms.ModelForm):
             'max_per_user': 'Optional: set a limit on the number of times '
                             'this voucher can be used by a single user',
             'max_vouchers': 'Optional: set a limit on the number of times this '
-                            'voucher can be used (across all users)',
+                            'voucher can be used (across ALL users)',
             'start_date': 'Pick from calendar or enter in format '
                           'e.g. 10 Jan 2016',
             'expiry_date': 'Optional: set an expiry date after which the '
@@ -202,7 +202,7 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
             'max_per_user': 'Optional: set a limit on the number of times '
                             'this voucher can be used by a single user',
             'max_vouchers': 'Optional: set a limit on the number of times this '
-                            'voucher can be used (across all users)',
+                            'voucher can be used (across ALL users)',
             'start_date': 'Pick from calendar or enter in format '
                           'e.g. 10 Jan 2016',
             'expiry_date': 'Optional: set an expiry date after which the '

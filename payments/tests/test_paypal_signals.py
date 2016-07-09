@@ -1033,6 +1033,43 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(pptrans.voucher_code, 'test')
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_only_1_used_event_voucher_deleted_on_refund(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        voucher = mommy.make(EventVoucher, code='test')
+        voucher.event_types.add(booking.event.event_type)
+        mommy.make(
+            UsedEventVoucher, voucher=voucher, user=booking.user, _quantity=3
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.voucher_code = voucher.code
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertEqual(UsedEventVoucher.objects.count(), 3)
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {} test'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        booking.refresh_from_db()
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.paid)
+
+        # one of the 3 used vouchers has been deleted
+        self.assertEqual(UsedEventVoucher.objects.count(), 2)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_used_block_voucher_deleted_on_refund(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
         block = mommy.make_recipe(

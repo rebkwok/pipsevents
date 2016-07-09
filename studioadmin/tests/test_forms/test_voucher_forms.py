@@ -5,7 +5,8 @@ from model_mommy import mommy
 
 from django.test import TestCase
 
-from booking.models import EventVoucher, UsedEventVoucher
+from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
+    UsedEventVoucher
 from studioadmin.forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
 
@@ -175,3 +176,33 @@ class BlockVoucherStudioadminFormTests(TestCase):
             sorted([bt.id for bt in active_blocktypes])
         )
 
+    def test_cannot_make_max_vouchers_greater_than_number_already_used(self):
+        block_type = mommy.make_recipe('booking.blocktype')
+        voucher = mommy.make(BlockVoucher, max_vouchers=3)
+        voucher.block_types.add(block_type)
+        users = mommy.make_recipe('booking.user', _quantity=3)
+        for user in users:
+            UsedBlockVoucher.objects.create(voucher=voucher, user=user)
+        data = {
+            'id': voucher.id,
+            'code': 'test_code',
+            'discount': 10,
+            'start_date': '01 Jan 2016',
+            'expiry_date': '31 Jan 2016',
+            'max_vouchers': 2,
+            'block_types': [block_type.id]
+        }
+
+        form = BlockVoucherStudioadminForm(data=data, instance=voucher)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'max_vouchers': [
+                'Voucher code has already been used 3 times in total; '
+                'set max uses to 3 or greater'
+            ]}
+        )
+
+        data.update({'max_vouchers': 3})
+        form = BlockVoucherStudioadminForm(data=data, instance=voucher)
+        self.assertTrue(form.is_valid())
