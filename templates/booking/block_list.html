@@ -31,6 +31,9 @@
                 {% else %}
                     <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
                         <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
+                    <p class="errorlist">Note: Voucher has been applied to all qualifying blocks; it can be used a maximum {{ voucher.max_per_user }}
+                    {% if max_vouchers == 1 %}time{% else %}times{% endif %}
+                    </p>
                 {% endif %}
             </div>
             {% if blockformlist %}
@@ -61,7 +64,7 @@
                                     <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
                                     <td>{% if blockform.block_cost %}
                                         £ {{ blockform.block_cost }}{% if blockform.voucher_applied %}<br/><span class="studioadmin-help">Voucher applied</span>{% endif %}
-                                        {% endif %}</td>
+                                        {% else %}-{% endif %}</td>
                                     <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                     <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
                                     <td class="table-center">{{ blockform.block.block_type.size }}</td>

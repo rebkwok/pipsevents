@@ -375,26 +375,23 @@ def payment_received(sender, **kwargs):
             else:
                 voucher_refunded = False
                 if paypal_trans.voucher_code:
-                    # check for voucher on paypal trans object; delete
+                    # check for voucher on paypal trans object; delete first
                     # UsedEventVoucher/UsedBlockVoucher if applicable
+                    used_voucher = None
                     if obj_type == 'block':
-                        try:
-                            UsedBlockVoucher.objects.get(
-                                voucher__code=paypal_trans.voucher_code,
-                                user=obj.user
-                            ).delete()
-                            voucher_refunded = True
-                        except UsedBlockVoucher.DoesNotExist:
-                            pass
+                        used_voucher = UsedBlockVoucher.objects.filter(
+                            voucher__code=paypal_trans.voucher_code,
+                            user=obj.user
+                        ).first()
                     elif obj_type == 'booking':
-                        try:
-                            UsedEventVoucher.objects.get(
-                                voucher__code=paypal_trans.voucher_code,
-                                user=obj.user
-                            ).delete()
-                            voucher_refunded = True
-                        except UsedEventVoucher.DoesNotExist:
-                            pass
+                        used_voucher = UsedEventVoucher.objects.filter(
+                            voucher__code=paypal_trans.voucher_code,
+                            user=obj.user
+                        ).first()
+                        voucher_refunded = True
+                    if used_voucher:
+                        voucher_refunded = True
+                        used_voucher.delete()
 
                 if obj_type == 'booking':
                     obj.payment_confirmed = False
