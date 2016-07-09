@@ -373,6 +373,29 @@ def payment_received(sender, **kwargs):
                 send_processed_test_refund_emails(additional_data)
 
             else:
+                voucher_refunded = False
+                if paypal_trans.voucher_code:
+                    # check for voucher on paypal trans object; delete
+                    # UsedEventVoucher/UsedBlockVoucher if applicable
+                    if obj_type == 'block':
+                        try:
+                            UsedBlockVoucher.objects.get(
+                                voucher__code=paypal_trans.voucher_code,
+                                user=obj.user
+                            ).delete()
+                            voucher_refunded = True
+                        except UsedBlockVoucher.DoesNotExist:
+                            pass
+                    elif obj_type == 'booking':
+                        try:
+                            UsedEventVoucher.objects.get(
+                                voucher__code=paypal_trans.voucher_code,
+                                user=obj.user
+                            ).delete()
+                            voucher_refunded = True
+                        except UsedEventVoucher.DoesNotExist:
+                            pass
+
                 if obj_type == 'booking':
                     obj.payment_confirmed = False
                 obj.paid = False
@@ -380,9 +403,11 @@ def payment_received(sender, **kwargs):
 
                 ActivityLog.objects.create(
                     log='{} id {} for user {} has been refunded from paypal; '
-                        'paypal transaction id {}, invoice id {}'.format(
-                        obj_type.title(), obj.id, obj.user.username,
-                        ipn_obj.txn_id, paypal_trans.invoice_id
+                        'paypal transaction id {}, invoice id {}.{}'.format(
+                            obj_type.title(), obj.id, obj.user.username,
+                            ipn_obj.txn_id, paypal_trans.invoice_id,
+                            ' Used voucher deleted.' if voucher_refunded
+                            else ''
                         )
                 )
                 if settings.SEND_ALL_STUDIO_EMAILS:

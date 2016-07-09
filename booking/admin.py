@@ -505,7 +505,7 @@ class BlockVoucherAdmin(admin.ModelAdmin):
     )
 
     def block_types(self, obj):
-        return ', '.join(bt.block_type for bt in obj.block_types.all())
+        return ', '.join([str(bt) for bt in obj.block_types.all()])
     block_types.short_description = 'Event types'
 
     def times_used(self, obj):
