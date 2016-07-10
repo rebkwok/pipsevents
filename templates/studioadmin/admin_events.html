@@ -49,6 +49,7 @@
                                     {% elif type == 'lessons' %}
                                     <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
                                     {% endif %}
+                                     <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
                                 </td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
