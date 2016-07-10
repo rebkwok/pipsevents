@@ -31,7 +31,7 @@
                 {% else %}
                     <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
                         <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
-                    <p class="errorlist">Note: Voucher has been applied to all qualifying blocks; it can be used a maximum of {{ voucher.max_per_user }}
+                    <p class="errorlist">Note: Voucher has been applied to all qualifying blocks below; it can be used a maximum of {{ voucher.max_per_user }}
                     {% if voucher.max_per_user == 1 %}time{% else %}times{% endif %}
                     </p>
                 {% endif %}
