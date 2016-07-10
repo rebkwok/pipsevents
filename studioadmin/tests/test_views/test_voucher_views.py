@@ -7,7 +7,8 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import timezone
 
-from booking.models import BlockVoucher, EventVoucher
+from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
+    UsedEventVoucher
 from booking.tests.helpers import format_content
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -59,15 +60,15 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
     def test_vouchers_listed(self):
         # start date in past
         mommy.make(
-            EventVoucher, start_date=timezone.now() - timedelta (10), _quantity=2
+            EventVoucher, start_date=timezone.now() - timedelta(10), _quantity=2
         )
         # start date in future
         mommy.make(
-            EventVoucher, start_date=timezone.now() + timedelta (10), _quantity=2
+            EventVoucher, start_date=timezone.now() + timedelta(10), _quantity=2
         )
         # expired
         mommy.make(
-            EventVoucher, expiry_date=timezone.now() - timedelta (10), _quantity=2
+            EventVoucher, expiry_date=timezone.now() - timedelta(10), _quantity=2
         )
         self.assertTrue(
             self.client.login(
@@ -77,6 +78,35 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(len(resp.context_data['vouchers']), 6)
         self.assertEqual(resp.context_data['sidenav_selection'], 'vouchers')
+
+    def test_vouchers_expired(self):
+        """
+        Grey out expired/used vouchers
+        """
+        # active
+        voucher = mommy.make(EventVoucher)
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.url)
+        self.assertNotIn('class="expired_block"', resp.rendered_content)
+
+        voucher.delete()
+        # expired
+        voucher = mommy.make(
+            EventVoucher, expiry_date=timezone.now() - timedelta(10)
+        )
+        resp = self.client.get(self.url)
+        self.assertIn('class="expired_block"', resp.rendered_content)
+
+        voucher.delete()
+        # max used
+        voucher = mommy.make(EventVoucher, max_vouchers=1)
+        mommy.make(UsedEventVoucher, voucher=voucher)
+        resp = self.client.get(self.url)
+        self.assertIn('class="expired_block"', resp.rendered_content)
 
 
 class VoucherCreateViewTests(TestPermissionMixin, TestCase):
@@ -418,6 +448,127 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(self.url)
         self.assertEqual(len(resp.context_data['vouchers']), 6)
+        self.assertEqual(
+            resp.context_data['sidenav_selection'], 'block_vouchers'
+        )
+
+    def test_vouchers_expired(self):
+        """
+        Grey out expired/used vouchers
+        """
+        # active
+        voucher = mommy.make(BlockVoucher)
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.url)
+        self.assertNotIn('class="expired_block"', resp.rendered_content)
+
+        voucher.delete()
+        # expired
+        voucher = mommy.make(
+            BlockVoucher, expiry_date=timezone.now() - timedelta(10)
+        )
+        resp = self.client.get(self.url)
+        self.assertIn('class="expired_block"', resp.rendered_content)
+
+        voucher.delete()
+        # max used
+        voucher = mommy.make(BlockVoucher, max_vouchers=1)
+        mommy.make(UsedBlockVoucher, voucher=voucher)
+        resp = self.client.get(self.url)
+        self.assertIn('class="expired_block"', resp.rendered_content)
+
+
+class VoucherUsesViewTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super(VoucherUsesViewTests, cls).setUpTestData()
+        cls.voucher = mommy.make(EventVoucher)
+        cls.block_voucher = mommy.make(BlockVoucher)
+        cls.voucher_url = reverse(
+            'studioadmin:voucher_uses', args=[cls.voucher.pk]
+        )
+        cls.block_voucher_url = reverse(
+            'studioadmin:block_voucher_uses', args=[cls.block_voucher.pk]
+        )
+
+    def test_access(self):
+        """
+        requires login
+        requires staff user
+        instructor can't access
+        """
+        # can't access if not logged in
+        resp = self.client.get(self.voucher_url)
+        redirected_url = reverse('account_login') + \
+            "?next={}".format(self.voucher_url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+        # can't access if not staff
+        self.assertTrue(
+            self.client.login(username=self.user.username, password='test')
+        )
+        resp = self.client.get(self.voucher_url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+        self.assertTrue(
+            self.client.login(
+                username=self.instructor_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.voucher_url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.voucher_url)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_voucher_counts_listed(self):
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            mommy.make(
+                UsedEventVoucher, voucher=self.voucher, user=user, _quantity=2
+            )
+
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.voucher_url)
+        self.assertEqual(len(resp.context_data['user_list']), 2)
+        for user_item in resp.context_data['user_list']:
+            self.assertEqual(user_item['count'], 2)
+        self.assertEqual(resp.context_data['sidenav_selection'], 'vouchers')
+
+    def test_block_voucher_counts_listed(self):
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            mommy.make(
+                UsedBlockVoucher, voucher=self.block_voucher, user=user,
+                _quantity=2
+            )
+
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.block_voucher_url)
+        self.assertEqual(len(resp.context_data['user_list']), 2)
+        for user_item in resp.context_data['user_list']:
+            self.assertEqual(user_item['count'], 2)
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'block_vouchers'
         )

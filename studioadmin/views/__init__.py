@@ -24,12 +24,14 @@ from studioadmin.views.users import MailingListView, toggle_print_disclaimer, \
     user_bookings_view, user_blocks_view, UserListView
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
-    VoucherListView, VoucherUpdateView
+    VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
+    EventVoucherDetailView
 from studioadmin.views.waiting_list import event_waiting_list_view
 
 
 __all__ = [
     'ActivityLogListView', 'BlockListView', 'BlockVoucherCreateView',
+    'BlockVoucherDetailView',
     'BlockVoucherListView', 'BlockVoucherUpdateView',
     'cancel_ticketed_event_view',
     'cancel_event_view', 'choose_users_to_email',
@@ -37,7 +39,8 @@ __all__ = [
     'DisclaimerUpdateView',
     'email_users_view', 'event_admin_list',
     'EventAdminCreateView', 'EventAdminUpdateView'
-    'EventRegisterListView', 'event_waiting_list_view', 'MailingListView',
+    'EventRegisterListView', 'EventVoucherDetailView',
+    'event_waiting_list_view', 'MailingListView',
     'print_tickets_list',
     'register_print_day', 'register_view', 'TicketedEventBookingsListView',
     'TicketedEventAdminUpdateView', 'TicketedEventAdminListView',
