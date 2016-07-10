@@ -623,6 +623,24 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             )
         )
 
+    def test_voucher_no_valid_block_types(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        block1 = mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+
+        # paypal form has non-discounted amount
+        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
+        self.assertEqual(paypal_form.initial['amount'], 30.00)
+
+        self.assertEqual(
+            resp.context_data['voucher_error'],
+            'Code is not valid for any of your currently unpaid blocks'
+        )
+
     def test_remove_extra_spaces_from_voucher_code(self):
         """
         Test that extra leading and/or trailing spaces in code are ignored
