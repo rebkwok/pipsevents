@@ -707,7 +707,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         # email is sent to the 'from' address only
         self.assertEqual(mail.outbox[0].bcc, ['test@test.com'])
-        self.assertEqual(mail.outbox[0].cc, ['test@test.com'])
+        # cc ignored for test email
+        self.assertEqual(mail.outbox[0].cc, [])
         self.assertEqual(
             mail.outbox[0].subject,
             'Test email [TEST EMAIL]'.format(

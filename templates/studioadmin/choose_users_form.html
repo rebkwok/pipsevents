@@ -27,8 +27,9 @@
                                         </div>
                                         <div class="form-group">
                                             <div class="col-sm-12">
-                                                <input class="btn table-btn btn-info" name="filter" type="submit" value="Show Students" />
-                                                <span class="header-not-bold">Select/deselect all</span> <input checked="checked" class="regular-checkbox studioadmin-list" id="select-all" type="checkbox"><label for={{ "select-all" }}></label>
+                                                <input class="btn table-btn btn-info" name="filter" type="submit" value="Show Students" /><br/>
+                                                <a class="pull-right" href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success studioadmin-tbl">Email mailing list</div></a>
+                                                <span class="header-not-bold">Select/unselect all</span> <input checked="checked" class="regular-checkbox studioadmin-list" id="select-all" type="checkbox"><label for={{ "select-all" }}></label>
                                             </div>
 
                                         </div>
@@ -61,7 +62,6 @@
                             </tbody>
                                 <td class="studioadmin-tbl" colspan="5">
                                     <input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email selected students" />
-                                    <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success studioadmin-tbl">Email mailing list</div></a>
                                 </td>
                                 </tr>
                             </table>

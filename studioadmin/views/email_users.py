@@ -1,7 +1,8 @@
 import ast
 import logging
 
-from django.conf import settings
+from math import ceil
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 
@@ -141,43 +142,47 @@ def email_users_view(request, mailing_list=False,
 
                 # bcc recipients
                 email_addresses = [user.email for user in users_to_email]
-
                 email_count = len(email_addresses)
-                email_lists = [email_addresses]  # will be a list of lists
-                # split into multiple emails of 99 bcc plus 1 cc
-                if email_count > 99:
-                    email_lists = [
-                        email_addresses[i : i + 99]
-                        for i in range(0, email_count, 99)
-                        ]
+                number_of_emails = ceil(email_count / 99)
+
+                if test_email:
+                    email_lists = [[from_address]]
+                else:
+                    email_lists = [email_addresses]  # will be a list of lists
+                    # split into multiple emails of 99 bcc plus 1 cc
+                    if email_count > 99:
+                        email_lists = [
+                            email_addresses[i : i + 99]
+                            for i in range(0, email_count, 99)
+                            ]
 
                 host = 'http://{}'.format(request.META.get('HTTP_HOST'))
 
                 try:
                     for email_list in email_lists:
+                        ctx = {
+                                  'subject': subject,
+                                  'message': message,
+                                  'number_of_emails': number_of_emails,
+                                  'email_count': email_count,
+                                  'is_test': test_email,
+                                  'mailing_list': mailing_list,
+                                  'host': host,
+                              }
                         msg = EmailMultiAlternatives(
                             subject,
                             get_template(
                                 'studioadmin/email/email_users.txt').render(
-                                  {
-                                      'subject': subject,
-                                      'message': message,
-                                      'mailing_list': mailing_list,
-                                      'host': host,
-                                  }),
-                            bcc=[from_address] if test_email else email_list,
-                            cc=[from_address] if cc else [],
+                                    ctx
+                                ),
+                            bcc=email_list,
+                            cc=[from_address] if (cc and not test_email) else [],
                             reply_to=[from_address]
                             )
                         msg.attach_alternative(
                             get_template(
                                 'studioadmin/email/email_users.html').render(
-                                  {
-                                      'subject': subject,
-                                      'message': message,
-                                      'mailing_list': mailing_list,
-                                      'host': host,
-                                  }
+                                  ctx
                               ),
                             "text/html"
                         )
