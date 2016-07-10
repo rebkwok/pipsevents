@@ -210,6 +210,7 @@ class BlockListView(LoginRequiredMixin, ListView):
             voucher_applied = False
 
             if not block.paid and not expired:
+                context['has_unpaid_block'] = True
                 paypal_cost = block.block_type.cost
                 if valid_voucher and voucher.check_block_type(block.block_type):
                     paypal_cost = Decimal(
