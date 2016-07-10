@@ -159,7 +159,7 @@ def email_users_view(request, mailing_list=False,
                 host = 'http://{}'.format(request.META.get('HTTP_HOST'))
 
                 try:
-                    for email_list in email_lists:
+                    for i, email_list in enumerate(email_lists):
                         ctx = {
                                   'subject': subject,
                                   'message': message,
@@ -176,7 +176,8 @@ def email_users_view(request, mailing_list=False,
                                     ctx
                                 ),
                             bcc=email_list,
-                            cc=[from_address] if (cc and not test_email) else [],
+                            cc=[from_address]
+                            if (i == 0 and cc and not test_email) else [],
                             reply_to=[from_address]
                             )
                         msg.attach_alternative(
