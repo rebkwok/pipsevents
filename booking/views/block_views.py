@@ -126,6 +126,16 @@ class BlockListView(LoginRequiredMixin, ListView):
                    'of times ({})'.format(
                     voucher.max_per_user
                     )
+        else:
+            user_unpaid_blocks = [
+                block for block in Block.objects.filter(user=user, paid=False)
+                if not block.expired
+            ]
+            for block in user_unpaid_blocks:
+                if voucher.check_block_type(block.block_type):
+                    return None
+            return 'Code is not valid for any of your currently unpaid ' \
+                   'blocks'
 
     def post(self, request):
         if "apply_voucher" in request.POST:

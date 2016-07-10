@@ -577,7 +577,7 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         elif voucher.max_vouchers and \
             UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
                 voucher.max_vouchers:
-            return 'Voucher has limited number of uses and has now expired'
+            return 'Voucher has limited number of total uses and has now expired'
         elif not voucher.has_started:
             return 'Voucher code is not valid until {}'.format(
                 voucher.start_date.strftime("%d %b %y")

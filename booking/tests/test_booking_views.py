@@ -2703,7 +2703,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         resp = self._post_response(self.user, booking, form_data)
         self.assertEqual(
             resp.context_data['voucher_error'],
-            'Voucher has limited number of uses and has now expired'
+            'Voucher has limited number of total uses and has now expired'
         )
 
     def test_voucher_used_max_times_by_user(self):
