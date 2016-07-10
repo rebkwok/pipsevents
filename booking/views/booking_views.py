@@ -544,6 +544,10 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
                     float(paypal_cost) * ((100 - voucher.discount) / 100)
                 ).quantize(Decimal('.05'))
                 messages.info(self.request, 'Voucher has been applied')
+                times_used = UsedEventVoucher.objects.filter(
+                    voucher=voucher, user=self.request.user
+                ).count()
+                context['times_voucher_used'] = times_used
 
         paypal_form = PayPalPaymentsUpdateForm(
             initial=context_helpers.get_paypal_dict(
