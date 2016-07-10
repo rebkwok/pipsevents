@@ -624,9 +624,9 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(url, form_data)
         self.assertEqual(len(mail.outbox), 2)  # emails split to 2 emails
-        # from address cc'd on both emails
+        # from address cc'd on first email only
         self.assertEqual(mail.outbox[0].cc, ['test@test.com'])
-        self.assertEqual(mail.outbox[1].cc, ['test@test.com'])
+        self.assertEqual(mail.outbox[1].cc, [])
         self.assertEqual(len(mail.outbox[0].bcc), 99)
         self.assertEqual(len(mail.outbox[1].bcc), 51)
 
@@ -638,7 +638,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox), 4)  # emails split to 2 emails
         # from address cc'd on both emails
         self.assertEqual(mail.outbox[-2].cc, ['test@test.com'])
-        self.assertEqual(mail.outbox[-1].cc, ['test@test.com'])
+        self.assertEqual(mail.outbox[-1].cc, [])
         self.assertEqual(len(mail.outbox[-2].bcc), 99)
         self.assertEqual(len(mail.outbox[-1].bcc), 57)
 
