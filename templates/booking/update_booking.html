@@ -26,6 +26,7 @@
                         {% else %}
                             <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
                                 <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}" />Remove</a></p>
+                            <small>You have already used this voucher {% if times_voucher_used == 1 %}once{% else %}{{ times_voucher_used }} times{% endif %} (max {{ voucher.max_per_user }})</small>
                         {% endif %}
                      {% endif %}
             </div>
