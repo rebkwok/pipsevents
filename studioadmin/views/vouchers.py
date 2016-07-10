@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.shortcuts import HttpResponseRedirect
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from django.utils.safestring import mark_safe
 
 from braces.views import LoginRequiredMixin
 
-from booking.models import BlockVoucher, EventVoucher
+from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
+    UsedEventVoucher
 from studioadmin.forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
 from studioadmin.views.helpers import StaffUserMixin
@@ -19,6 +21,7 @@ class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = EventVoucher
     template_name = 'studioadmin/vouchers.html'
     context_object_name = 'vouchers'
+    queryset = EventVoucher.objects.all().order_by('-start_date')
 
     def get_context_data(self, **kwargs):
         context = super(VoucherListView, self).get_context_data(**kwargs)
@@ -93,6 +96,7 @@ class BlockVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = BlockVoucher
     template_name = 'studioadmin/block_vouchers.html'
     context_object_name = 'vouchers'
+    queryset = BlockVoucher.objects.all().order_by('-start_date')
 
     def get_context_data(self, **kwargs):
         context = super(BlockVoucherListView, self).get_context_data(**kwargs)
@@ -163,3 +167,42 @@ class BlockVoucherCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
 
     def get_success_url(self, voucher_id):
         return reverse('studioadmin:edit_block_voucher', args=[voucher_id])
+
+
+class EventVoucherDetailView(LoginRequiredMixin, StaffUserMixin, DetailView):
+    model = EventVoucher
+    template_name = 'studioadmin/voucher_uses.html'
+    context_object_name = 'voucher'
+
+    def get_used_vouchers(self):
+        return UsedEventVoucher.objects.filter(voucher=self.object)
+
+    def get_context_data(self, **kwargs):
+        context = super(EventVoucherDetailView, self).get_context_data(**kwargs)
+        context['sidenav_selection'] = 'vouchers'
+        user_list = []
+
+        used_vouchers = self.get_used_vouchers()
+        user_ids = used_vouchers.values_list('user', flat=True).distinct()
+        for user_id in user_ids:
+            voucher_count = used_vouchers.filter(user__id=user_id).count()
+            user_list.append(
+                {'user': User.objects.get(id=user_id), 'count': voucher_count}
+            )
+        context['user_list'] = user_list
+        return context
+
+
+class BlockVoucherDetailView(EventVoucherDetailView):
+    model = BlockVoucher
+    template_name = 'studioadmin/voucher_uses.html'
+    context_object_name = 'voucher'
+
+    def get_used_vouchers(self):
+        return UsedBlockVoucher.objects.filter(voucher=self.object)
+
+    def get_context_data(self, **kwargs):
+        context = super(BlockVoucherDetailView, self).get_context_data(**kwargs)
+        context['sidenav_selection'] = 'block_vouchers'
+        context['is_block_voucher'] = True
+        return context
