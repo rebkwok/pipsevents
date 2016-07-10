@@ -39,7 +39,12 @@ from studioadmin.views import (ConfirmRefundView,
                                user_disclaimer,
                                VoucherCreateView,
                                VoucherListView,
-                               VoucherUpdateView
+                               VoucherUpdateView,
+                               BlockVoucherListView,
+                               BlockVoucherUpdateView,
+                               BlockVoucherCreateView,
+                               BlockVoucherDetailView,
+                               EventVoucherDetailView,
                                )
 
 
@@ -157,6 +162,17 @@ urlpatterns = [
     url(r'^vouchers/$', VoucherListView.as_view(), name='vouchers'),
     url(r'^vouchers/new/$', VoucherCreateView.as_view(), name='add_voucher'),
     url(r'^vouchers/(?P<pk>\d+)/edit/$', VoucherUpdateView.as_view(), name='edit_voucher'),
+    url(r'^block-vouchers/$', BlockVoucherListView.as_view(), name='block_vouchers'),
+    url(r'^block-vouchers/new/$', BlockVoucherCreateView.as_view(), name='add_block_voucher'),
+    url(r'^block-vouchers/(?P<pk>\d+)/edit/$', BlockVoucherUpdateView.as_view(), name='edit_block_voucher'),
     url(r'^test-paypal-email/$', test_paypal_view, name='test_paypal_email'),
+    url(
+        r'^voucher/(?P<pk>\d+)/uses/$', EventVoucherDetailView.as_view(),
+        name='voucher_uses'
+    ),
+    url(
+        r'^block-voucher/(?P<pk>\d+)/uses/$', BlockVoucherDetailView.as_view(),
+        name='block_voucher_uses'
+    ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     ]

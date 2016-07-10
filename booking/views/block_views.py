@@ -1,5 +1,7 @@
 import logging
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
@@ -11,11 +13,12 @@ from django.views.generic import ListView, CreateView, DeleteView
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import get_template
+from django.template.response import TemplateResponse
 from braces.views import LoginRequiredMixin
 
 from payments.forms import PayPalPaymentsListForm
-from booking.models import Booking, Block
-from booking.forms import BlockCreateForm
+from booking.models import Booking, Block, BlockVoucher, UsedBlockVoucher
+from booking.forms import BlockCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.views.views_utils import DisclaimerRequiredMixin
 from payments.helpers import create_block_paypal_transaction
@@ -105,10 +108,71 @@ class BlockListView(LoginRequiredMixin, ListView):
     context_object_name = 'blocks'
     template_name = 'booking/block_list.html'
 
+    def validate_voucher_code(self, voucher, user):
+        if voucher.has_expired:
+            return 'Voucher code has expired'
+        elif voucher.max_vouchers and \
+            UsedBlockVoucher.objects.filter(voucher=voucher).count() >= \
+                voucher.max_vouchers:
+            return 'Voucher has limited number of uses and has now expired'
+        elif not voucher.has_started:
+            return 'Voucher code is not valid until {}'.format(
+                voucher.start_date.strftime("%d %b %y")
+            )
+        elif voucher.max_per_user and UsedBlockVoucher.objects.filter(
+                voucher=voucher, user=user
+        ).count() >= voucher.max_per_user:
+            return 'Voucher code has already been used the maximum number ' \
+                   'of times ({})'.format(
+                    voucher.max_per_user
+                    )
+        else:
+            user_unpaid_blocks = [
+                block for block in Block.objects.filter(user=user, paid=False)
+                if not block.expired
+            ]
+            for block in user_unpaid_blocks:
+                if voucher.check_block_type(block.block_type):
+                    return None
+            return 'Code is not valid for any of your currently unpaid ' \
+                   'blocks'
+
+    def post(self, request):
+        if "apply_voucher" in request.POST:
+            voucher_error = None
+            code = request.POST['code'].strip()
+            try:
+                voucher = BlockVoucher.objects.get(code=code)
+            except BlockVoucher.DoesNotExist:
+                voucher = None
+                voucher_error = 'Invalid code' if code else 'No code provided'
+
+            if voucher:
+                voucher_error = self.validate_voucher_code(
+                    voucher, self.request.user
+                )
+
+            context = {'blocks': self.get_queryset()}
+            extra_context = self.get_extra_context(
+                voucher=voucher, voucher_error=voucher_error, code=code,
+            )
+            context.update(**extra_context)
+            return TemplateResponse(self.request, self.template_name, context)
+
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
+        extra_context = self.get_extra_context()
+        context.update(**extra_context)
+        return context
 
+    def get_queryset(self):
+        return Block.objects.filter(
+           Q(user=self.request.user)
+        ).order_by('-start_date')
+
+    def get_extra_context(self, **kwargs):
+        context = {}
         try:
             self.request.user.online_disclaimer
             context['disclaimer'] = True
@@ -126,31 +190,58 @@ class BlockListView(LoginRequiredMixin, ListView):
         if types_available_to_book:
             context['can_book_block'] = True
 
+        voucher = kwargs.get('voucher', None)
+        voucher_error = kwargs.get('voucher_error', None)
+        code = kwargs.get('code', None)
+        context['voucher_form'] = VoucherForm(initial={'code': code})
+        if voucher:
+            context['voucher'] = voucher
+        if voucher_error:
+            context['voucher_error'] = voucher_error
+        valid_voucher = False
+        if voucher:
+            valid_voucher = not bool(voucher_error)
+            context['valid_voucher'] = valid_voucher
+
         blockformlist = []
-        for block in self.object_list:
+        for block in self.get_queryset():
             expired = block.expiry_date < timezone.now()
+            paypal_cost = None
+            voucher_applied = False
 
             if not block.paid and not expired:
+                context['has_unpaid_block'] = True
+                paypal_cost = block.block_type.cost
+                if valid_voucher and voucher.check_block_type(block.block_type):
+                    paypal_cost = Decimal(
+                        float(paypal_cost) * ((100 - voucher.discount) / 100)
+                    ).quantize(Decimal('.05'))
+                    voucher_applied = True
+
                 invoice_id = create_block_paypal_transaction(
                     self.request.user, block).invoice_id
                 host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
                 paypal_form = PayPalPaymentsListForm(
                     initial=context_helpers.get_paypal_dict(
                         host,
-                        block.block_type.cost,
+                        paypal_cost,
                         block.block_type,
                         invoice_id,
-                        '{} {}'.format('block', block.id),
+                        '{} {}{}'.format(
+                            'block', block.id, ' {}'.format(code)
+                            if valid_voucher else ''
+                        ),
                         paypal_email=block.block_type.paypal_email
                     )
                 )
             else:
                 paypal_form = None
-
             full = Booking.objects.filter(
                 block__id=block.id).count() >= block.block_type.size
             blockform = {
                 'block': block,
+                'voucher_applied': voucher_applied,
+                'block_cost': paypal_cost,
                 'paypalform': paypal_form,
                 'expired': expired or full}
             blockformlist.append(blockform)
@@ -158,11 +249,6 @@ class BlockListView(LoginRequiredMixin, ListView):
         context['blockformlist'] = blockformlist
 
         return context
-
-    def get_queryset(self):
-        return Block.objects.filter(
-           Q(user=self.request.user)
-        ).order_by('-start_date')
 
 
 class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):

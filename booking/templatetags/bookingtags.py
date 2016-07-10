@@ -3,6 +3,7 @@ import pytz
 
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django import template
 from django.utils import timezone
@@ -10,7 +11,8 @@ from django.utils.safestring import mark_safe
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
 
-from booking.models import Booking
+from booking.models import Booking, EventVoucher, UsedBlockVoucher, \
+    UsedEventVoucher
 
 from studioadmin.utils import int_str, chaffify
 
@@ -193,8 +195,17 @@ def encode(val):
 
 @register.filter
 def format_event_types(ev_types):
-    return ', '.join([ev_type.subtype for ev_type in ev_types])
+    return mark_safe(''.join(
+        ['{}<br/>'.format(ev_type.subtype) for ev_type in ev_types]
+    ))
 
+@register.filter
+def times_voucher_used(voucher):
+    return UsedEventVoucher.objects.filter(voucher=voucher).count()
+
+@register.filter
+def times_block_voucher_used(voucher):
+    return UsedBlockVoucher.objects.filter(voucher=voucher).count()
 
 @register.filter
 def subscribed(user):
@@ -262,3 +273,27 @@ def transferred_from(block):
         except Booking.DoesNotExist:
             return '({})'.format(block.transferred_booking_id)
     return ''
+
+
+@register.assignment_tag
+def check_debug():
+    return settings.DEBUG
+
+
+@register.assignment_tag
+def voucher_expired(voucher):
+    # voucher has expired if expiry date passed or has been used max times
+    if voucher.expiry_date and voucher.expiry_date < timezone.now():
+        return True
+    elif voucher.max_vouchers:
+        if isinstance(voucher, EventVoucher):
+            times_used = UsedEventVoucher.objects.filter(voucher=voucher)\
+                .count()
+        else:
+            times_used = UsedBlockVoucher.objects.filter(voucher=voucher)\
+                .count()
+
+        if times_used and times_used >= voucher.max_vouchers:
+            return True
+
+    return False

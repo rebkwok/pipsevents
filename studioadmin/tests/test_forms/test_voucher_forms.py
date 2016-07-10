@@ -5,8 +5,10 @@ from model_mommy import mommy
 
 from django.test import TestCase
 
-from booking.models import Voucher
-from studioadmin.forms import VoucherStudioadminForm
+from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
+    UsedEventVoucher
+from studioadmin.forms import BlockVoucherStudioadminForm, \
+    VoucherStudioadminForm
 
 
 class VoucherStudioAdminFormTests(TestCase):
@@ -138,21 +140,69 @@ class VoucherStudioAdminFormTests(TestCase):
         )
 
     def test_cannot_make_max_vouchers_greater_than_number_already_used(self):
-        voucher = mommy.make(Voucher, max_vouchers=3)
+        voucher = mommy.make(EventVoucher, max_vouchers=3)
         users = mommy.make_recipe('booking.user', _quantity=3)
         for user in users:
-            voucher.users.add(user)
+            UsedEventVoucher.objects.create(voucher=voucher, user=user)
         self.data.update({'max_vouchers': 2, 'id': voucher.id})
         form = VoucherStudioadminForm(data=self.data, instance=voucher)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
             {'max_vouchers': [
-                'Voucher code has already been used by 3 users; '
+                'Voucher code has already been used 3 times in total; '
                 'set max uses to 3 or greater'
             ]}
         )
 
         self.data.update({'max_vouchers': 3})
         form = VoucherStudioadminForm(data=self.data, instance=voucher)
+        self.assertTrue(form.is_valid())
+
+
+class BlockVoucherStudioadminFormTests(TestCase):
+
+    def test_only_active_and_non_free_blocktypes_in_choices(self):
+        # free_block
+        mommy.make_recipe('booking.free_blocktype')
+        # inactive_block
+        mommy.make_recipe('booking.blocktype', active=False)
+        active_blocktypes = mommy.make_recipe('booking.blocktype', _quantity=2)
+
+        form = BlockVoucherStudioadminForm()
+        block_types = form.fields['block_types']
+        self.assertEqual(
+            sorted(list([bt.id for bt in block_types.queryset])),
+            sorted([bt.id for bt in active_blocktypes])
+        )
+
+    def test_cannot_make_max_vouchers_greater_than_number_already_used(self):
+        block_type = mommy.make_recipe('booking.blocktype')
+        voucher = mommy.make(BlockVoucher, max_vouchers=3)
+        voucher.block_types.add(block_type)
+        users = mommy.make_recipe('booking.user', _quantity=3)
+        for user in users:
+            UsedBlockVoucher.objects.create(voucher=voucher, user=user)
+        data = {
+            'id': voucher.id,
+            'code': 'test_code',
+            'discount': 10,
+            'start_date': '01 Jan 2016',
+            'expiry_date': '31 Jan 2016',
+            'max_vouchers': 2,
+            'block_types': [block_type.id]
+        }
+
+        form = BlockVoucherStudioadminForm(data=data, instance=voucher)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'max_vouchers': [
+                'Voucher code has already been used 3 times in total; '
+                'set max uses to 3 or greater'
+            ]}
+        )
+
+        data.update({'max_vouchers': 3})
+        form = BlockVoucherStudioadminForm(data=data, instance=voucher)
         self.assertTrue(form.is_valid())

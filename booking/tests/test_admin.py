@@ -10,7 +10,7 @@ from django.utils import timezone
 
 import booking.admin as admin
 from booking.models import Event, Booking, Block, BlockType, TicketBooking, \
-    Ticket, Voucher
+    Ticket, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from booking.tests.helpers import format_content
 
 
@@ -458,10 +458,10 @@ class BlockTypeAdminTests(TestCase):
         )
 
 
-class VoucherAdminTests(TestCase):
+class EventVoucherAdminTests(TestCase):
 
     def test_event_types_display(self):
-        voucher = mommy.make(Voucher)
+        voucher = mommy.make(EventVoucher)
         event_typepp = mommy.make_recipe(
             'booking.event_type_PP', subtype='Pole class')
         event_typepc = mommy.make_recipe(
@@ -470,7 +470,7 @@ class VoucherAdminTests(TestCase):
         voucher.event_types.add(event_typepc)
         voucher.event_types.add(event_typepp)
 
-        voucher_admin = admin.VoucherAdmin(Voucher, AdminSite())
+        voucher_admin = admin.EventVoucherAdmin(EventVoucher, AdminSite())
         voucher_query = voucher_admin.get_queryset(None)[0]
 
         self.assertEqual(
@@ -479,12 +479,42 @@ class VoucherAdminTests(TestCase):
         )
 
     def test_times_used_display(self):
-        voucher = mommy.make(Voucher)
+        voucher = mommy.make(EventVoucher)
         users = mommy.make_recipe('booking.user', _quantity=2)
         for user in users:
-            voucher.users.add(user)
+            UsedEventVoucher.objects.create(voucher=voucher, user=user)
 
-        voucher_admin = admin.VoucherAdmin(Voucher, AdminSite())
+        voucher_admin = admin.EventVoucherAdmin(EventVoucher, AdminSite())
+        voucher_query = voucher_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            voucher_admin.times_used(voucher_query), 2
+        )
+
+
+class BlockVoucherAdminTests(TestCase):
+
+    def test_block_types_display(self):
+        voucher = mommy.make(BlockVoucher)
+        block_type = mommy.make_recipe('booking.blocktype')
+
+        voucher.block_types.add(block_type)
+
+        voucher_admin = admin.BlockVoucherAdmin(BlockVoucher, AdminSite())
+        voucher_query = voucher_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            voucher_admin.block_types(voucher_query),
+            str(block_type)
+        )
+
+    def test_times_used_display(self):
+        voucher = mommy.make(BlockVoucher)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            UsedBlockVoucher.objects.create(voucher=voucher, user=user)
+
+        voucher_admin = admin.BlockVoucherAdmin(BlockVoucher, AdminSite())
         voucher_query = voucher_admin.get_queryset(None)[0]
 
         self.assertEqual(

@@ -312,7 +312,12 @@ SUIT_CONFIG = {
         {
             'label': 'Vouchers',
             'icon': 'icon-asterisk',
-            'models': ('booking.voucher')
+            'models': (
+                'booking.eventvoucher',
+                'booking.blockvoucher',
+                'booking.usedeventvoucher',
+                'booking.usedblockvoucher'
+            )
         },
         {
             'label': 'Activity Log',

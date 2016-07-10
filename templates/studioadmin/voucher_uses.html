@@ -1,0 +1,48 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>{% if is_block_voucher %}Block {% endif %}Voucher Uses: {{ voucher.code }}</h2>
+
+        <div>
+            {% if is_block_voucher %}
+            <a href="{% url 'studioadmin:block_vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
+            {% else %}
+            <a href="{% url 'studioadmin:vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
+            {% endif %}
+        </div><br/>
+
+        <div class="row">
+            <div class="col-sm-12">
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="table-center">User</th>
+                                <th class="table-center">Times used</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% if user_list %}
+                                {% for user in user_list %}
+                                <tr>
+                                    <td class="table-center studioadmin-tbl">{{ user.user.first_name }} {{ user.user.last_name }}</td>
+                                    <td class="table-center studioadmin-tbl">{{ user.count }}</td>
+
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                              <tr><td colspan="2" class="studioadmin-tbl">Voucher not used</td></tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+         </div>
+
+{% endblock studioadmincontent %}

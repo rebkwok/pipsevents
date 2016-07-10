@@ -738,17 +738,20 @@ class Ticket(models.Model):
         super(Ticket, self).save(*args, **kwargs)
 
 
-class Voucher(models.Model):
-    code = models.CharField(max_length=255, unique=True)
+class BaseVoucher(models.Model):
     discount = models.PositiveIntegerField(
         help_text="Enter a number between 1 and 99"
     )
     start_date = models.DateTimeField(default=timezone.now)
     expiry_date = models.DateTimeField(null=True, blank=True)
     max_vouchers = models.PositiveIntegerField(
-        null=True, blank=True, verbose_name='Maximum uses')
-    event_types = models.ManyToManyField(EventType)
-    users = models.ManyToManyField(User, blank=True)
+        null=True, blank=True, verbose_name='Maximum available vouchers',
+        help_text="Maximum uses across all users")
+    max_per_user = models.PositiveIntegerField(
+        null=True, blank=True, default=1,
+        verbose_name="Maximum uses per user",
+        help_text="Maximum times this voucher can be used by a single user"
+    )
 
     def __str__(self):
         return self.code
@@ -762,18 +765,6 @@ class Voucher(models.Model):
     @property
     def has_started(self):
         return bool(self.start_date < timezone.now())
-
-    @property
-    def used_max_times(self):
-        if self.max_vouchers and self.users.count() >= self.max_vouchers:
-            return True
-        return False
-
-    def check_event_type(self, ev_type):
-        return bool(ev_type in self.event_types.all())
-
-    def used(self, user):
-        return bool(user in self.users.all())
 
     def save(self, *args, **kwargs):
         # replace start time with very start of day
@@ -789,4 +780,30 @@ class Voucher(models.Model):
                 hour=0, minute=0, second=0, microsecond=0
             )
             self.expiry_date = next_day - timedelta(seconds=1)
-        super(Voucher, self).save(*args, **kwargs)
+        super(BaseVoucher, self).save(*args, **kwargs)
+
+
+class EventVoucher(BaseVoucher):
+    code = models.CharField(max_length=255, unique=True)
+    event_types = models.ManyToManyField(EventType)
+
+    def check_event_type(self, ev_type):
+        return bool(ev_type in self.event_types.all())
+
+
+class BlockVoucher(BaseVoucher):
+    code = models.CharField(max_length=255, unique=True)
+    block_types = models.ManyToManyField(BlockType)
+
+    def check_block_type(self, block_type):
+        return bool(block_type in self.block_types.all())
+
+
+class UsedEventVoucher(models.Model):
+    voucher = models.ForeignKey(EventVoucher)
+    user = models.ForeignKey(User)
+
+
+class UsedBlockVoucher(models.Model):
+    voucher = models.ForeignKey(BlockVoucher)
+    user = models.ForeignKey(User)
