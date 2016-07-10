@@ -2,7 +2,7 @@
 import logging
 import pytz
 
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal
 
 from datetime import timedelta
 
@@ -28,7 +28,8 @@ from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
 from booking.models import (
-    Block, BlockType, Booking, Event, Voucher, WaitingListUser
+    Block, BlockType, Booking, Event, UsedEventVoucher, EventVoucher,
+    WaitingListUser
 )
 from booking.forms import BookingCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
@@ -541,8 +542,12 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
             if valid:
                 paypal_cost = Decimal(
                     float(paypal_cost) * ((100 - voucher.discount) / 100)
-                ).quantize(Decimal('.01'), rounding=ROUND_DOWN)
+                ).quantize(Decimal('.05'))
                 messages.info(self.request, 'Voucher has been applied')
+                times_used = UsedEventVoucher.objects.filter(
+                    voucher=voucher, user=self.request.user
+                ).count()
+                context['times_voucher_used'] = times_used
 
         paypal_form = PayPalPaymentsUpdateForm(
             initial=context_helpers.get_paypal_dict(
@@ -567,24 +572,31 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
     def validate_voucher_code(self, voucher, user, event):
         if not voucher.check_event_type(event.event_type):
             return 'Voucher code is not valid for this event/class type'
-        elif voucher.used(user):
-            return 'Voucher code has already been used'
         elif voucher.has_expired:
             return 'Voucher code has expired'
-        elif voucher.used_max_times:
-            return 'Voucher code has a limited number of uses and has now expired'
+        elif voucher.max_vouchers and \
+            UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
+                voucher.max_vouchers:
+            return 'Voucher has limited number of total uses and has now expired'
         elif not voucher.has_started:
             return 'Voucher code is not valid until {}'.format(
                 voucher.start_date.strftime("%d %b %y")
             )
+        elif voucher.max_per_user and UsedEventVoucher.objects.filter(
+                voucher=voucher, user=user
+        ).count() >= voucher.max_per_user:
+            return 'Voucher code has already been used the maximum number ' \
+                   'of times ({})'.format(
+                    voucher.max_per_user
+                    )
 
     def form_valid(self, form):
 
         if "apply_voucher" in form.data:
             code = form.data['code'].strip()
             try:
-                voucher = Voucher.objects.get(code=code)
-            except Voucher.DoesNotExist:
+                voucher = EventVoucher.objects.get(code=code)
+            except EventVoucher.DoesNotExist:
                 voucher = None
                 voucher_error = 'Invalid code' if code else 'No code provided'
 

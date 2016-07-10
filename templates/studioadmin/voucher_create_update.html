@@ -19,7 +19,11 @@
 
             <div class="panel-body">
                 <div>
+                    {% if is_block_voucher %}
+                    <a href="{% url 'studioadmin:block_vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
+                    {% else %}
                     <a href="{% url 'studioadmin:vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
+                    {% endif %}
                 </div><br/>
                 {% if form.errors %}
                     <div class="form-error">
@@ -36,7 +40,7 @@
                             <div class="form-group">
                                 <label class="col-sm-12"><div class="col-sm-2 control-label ">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                 <div class="col-sm-10 {% if field.errors %}ticket-error{% endif %}">
-                                    {% if field.name == "event_types" %}
+                                    {% if field.name == "event_types" or field.name == "block_types" %}
                                         {% for choice in field %}
                                             {{ choice.tag }} <label for="id_{{ field.name }}_{{ forloop.counter0 }}">{{ choice.choice_label }}</label></br>
                                         {% endfor %}

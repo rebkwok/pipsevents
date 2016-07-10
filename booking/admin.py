@@ -13,7 +13,8 @@ from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
-    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, Voucher
+    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
+    BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from booking.forms import BookingAdminForm, BlockAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
@@ -483,17 +484,46 @@ class TicketAdmin(admin.ModelAdmin):
     user.admin_order_field = 'ticket_booking__user__first_name'
 
 
-class VoucherAdmin(admin.ModelAdmin):
+class EventVoucherAdmin(admin.ModelAdmin):
     list_display = (
         'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
         'ev_types', 'times_used'
     )
+
     def ev_types(self, obj):
         return ', '.join(et.subtype for et in obj.event_types.all())
     ev_types.short_description = 'Event types'
 
     def times_used(self, obj):
-        return obj.users.count()
+        return UsedEventVoucher.objects.filter(voucher=obj).count()
+
+
+class BlockVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
+        'block_types', 'times_used'
+    )
+
+    def block_types(self, obj):
+        return ', '.join([str(bt) for bt in obj.block_types.all()])
+    block_types.short_description = 'Event types'
+
+    def times_used(self, obj):
+        return UsedBlockVoucher.objects.filter(voucher=obj).count()
+
+
+class UsedEventVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'voucher', 'user'
+    )
+    list_filter = ('voucher', UserFilter)
+
+
+class UsedBlockVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'voucher', 'user'
+    )
+    list_filter = ('voucher', UserFilter)
 
 
 admin.site.register(Event, EventAdmin)
@@ -505,4 +535,7 @@ admin.site.register(WaitingListUser, WaitingListUserAdmin)
 admin.site.register(TicketBooking, TicketBookingAdmin)
 admin.site.register(Ticket, TicketAdmin)
 admin.site.register(TicketedEvent, TicketedEventAdmin)
-admin.site.register(Voucher, VoucherAdmin)
+admin.site.register(EventVoucher, EventVoucherAdmin)
+admin.site.register(BlockVoucher, BlockVoucherAdmin)
+admin.site.register(UsedEventVoucher, UsedEventVoucherAdmin)
+admin.site.register(UsedBlockVoucher, UsedBlockVoucherAdmin)

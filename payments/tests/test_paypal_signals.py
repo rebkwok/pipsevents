@@ -9,7 +9,9 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase, Client, override_settings
 from django.utils import timezone
 
-from booking.models import Booking, Voucher
+from booking.models import Booking, BlockVoucher, EventVoucher, \
+    UsedBlockVoucher, UsedEventVoucher
+
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
@@ -992,6 +994,186 @@ class PaypalSignalsTests(TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_used_event_voucher_deleted_on_refund(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        voucher = mommy.make(EventVoucher, code='test')
+        voucher.event_types.add(booking.event.event_type)
+        mommy.make(UsedEventVoucher, voucher=voucher, user=booking.user)
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.voucher_code = voucher.code
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertEqual(UsedEventVoucher.objects.count(), 1)
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {} test'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        booking.refresh_from_db()
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.paid)
+
+        # used voucher has been deleted
+        self.assertFalse(UsedEventVoucher.objects.exists())
+
+        # paypal trans object still has record of voucher code used
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, 'test')
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_only_1_used_event_voucher_deleted_on_refund(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        voucher = mommy.make(EventVoucher, code='test')
+        voucher.event_types.add(booking.event.event_type)
+        mommy.make(
+            UsedEventVoucher, voucher=voucher, user=booking.user, _quantity=3
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.voucher_code = voucher.code
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertEqual(UsedEventVoucher.objects.count(), 3)
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {} test'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        booking.refresh_from_db()
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.paid)
+
+        # one of the 3 used vouchers has been deleted
+        self.assertEqual(UsedEventVoucher.objects.count(), 2)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_used_block_voucher_deleted_on_refund(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block = mommy.make_recipe(
+            'booking.block',
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        voucher = mommy.make(BlockVoucher, code='test')
+        voucher.block_types.add(block.block_type)
+        mommy.make(UsedBlockVoucher, voucher=voucher, user=block.user)
+        pptrans = helpers.create_block_paypal_transaction(block.user, block)
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.voucher_code = voucher.code
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        self.assertEqual(UsedBlockVoucher.objects.count(), 1)
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {} test'.format(block.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        block.refresh_from_db()
+        self.assertFalse(block.paid)
+
+        # used voucher has been deleted
+        self.assertFalse(UsedBlockVoucher.objects.exists())
+
+        # paypal trans object still has record of voucher code used
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, 'test')
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_refund_processed_if_no_used_voucher(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe(
+            'booking.booking', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        voucher = mommy.make(EventVoucher, code='test')
+        voucher.event_types.add(booking.event.event_type)
+
+        # voucher exists, but not UsedEventVoucher
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.voucher_code = voucher.code
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {} test'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        booking.refresh_from_db()
+        # refund processed
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.paid)
+
+        # paypal trans object still has record of voucher code used
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, 'test')
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_refund_processed_if_no_used_block_voucher(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block = mommy.make_recipe('booking.block')
+        voucher = mommy.make(BlockVoucher, code='test')
+        voucher.block_types.add(block.block_type)
+
+        # voucher exists, but not UsedBlockVoucher
+        pptrans = helpers.create_block_paypal_transaction(block.user, block)
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.voucher_code = voucher.code
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {} test'.format(block.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        block.refresh_from_db()
+        # refund processed
+        self.assertFalse(block.paid)
+
+        # paypal trans object still has record of voucher code used
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, 'test')
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_date_format_with_extra_spaces(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
@@ -1300,7 +1482,7 @@ class PaypalSignalsTests(TestCase):
     def test_paypal_notify_with_voucher_code(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
         ev_type = mommy.make_recipe('booking.event_type_PC')
-        voucher = mommy.make(Voucher, code='test', discount=10)
+        voucher = mommy.make(EventVoucher, code='test', discount=10)
         voucher.event_types.add(ev_type)
         user = mommy.make_recipe('booking.user')
         booking = mommy.make_recipe(
@@ -1333,8 +1515,8 @@ class PaypalSignalsTests(TestCase):
 
         pptrans.refresh_from_db()
         self.assertEqual(pptrans.voucher_code, voucher.code)
-        self.assertEqual(voucher.users.count(), 1)
-        self.assertEqual(voucher.users.first(), user)
+        self.assertEqual(UsedEventVoucher.objects.count(), 1)
+        self.assertEqual(UsedEventVoucher.objects.first().user, user)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_with_invalid_voucher_code(self, mock_postback):
@@ -1384,7 +1566,102 @@ class PaypalSignalsTests(TestCase):
             'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id)
         )
         self.assertIn(
-            'The exception raised was "Voucher matching query does not exist.',
+            'The exception raised was "EventVoucher matching query does '
+            'not exist.',
+            support_email.body
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_block_voucher_code(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block_type = mommy.make_recipe(
+            'booking.blocktype', paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(block_type)
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type,
+            user=user,
+        )
+        pptrans = helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {} {}'.format(block.id, voucher.code)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.voucher_code, voucher.code)
+        self.assertEqual(UsedBlockVoucher.objects.count(), 1)
+        self.assertEqual(UsedBlockVoucher.objects.first().user, user)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_invalid_block_voucher_code(self, mock_postback):
+        """
+        Test that paypal is processed properly and marked as paid if an
+        invalid voucher code is included. Warning mail sent to support.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        block_type = mommy.make_recipe(
+            'booking.blocktype', paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type=block_type,
+            user=user,
+        )
+        pptrans = helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {} invalid_code'.format(block.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        block.refresh_from_db()
+        self.assertTrue(block.paid)
+
+        # email to user, studio, and support email
+        self.assertEqual(len(mail.outbox), 3)
+        support_email = mail.outbox[2]
+        self.assertEqual(support_email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            support_email.subject,
+            '{} There was some problem processing payment for block '
+            'id {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, block.id)
+        )
+        self.assertIn(
+            'The exception raised was "BlockVoucher matching query does not exist.',
             support_email.body
         )
 
