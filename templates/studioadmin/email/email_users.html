@@ -2,6 +2,10 @@
 
 {% block donotreply %}{% endblock %}
 {% block messagecontent %}
+    {% if is_test %}
+        <p>This is a TEST EMAIL.  The real email will be bcc'd to {{ email_count }} users in {{ number_of_emails }} batch email{% if number_of_emails > 1 %}s{% endif %}.<br/>
+        ___________________________________________________________________</p>
+    {% endif %}
     {% if mailing_list %}
         <p><a href="{{ host }}/accounts/mailing-list/">Unsubscribe from this mailing list</a></p>
     {% endif %}

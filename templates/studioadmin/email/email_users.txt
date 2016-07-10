@@ -1,3 +1,5 @@
+{% if is_test %}This is a TEST EMAIL.  The real email will be bcc'd to {{ email_count }} users in {{ number_of_emails }} batch email{% if number_of_emails > 1 %}s{% endif %}.
+___________________________________________________________________{% endif %}
 {% if mailing_list %}
 Unsubscribe from this mailing list: {{ host }}/accounts/mailing-list/
 {% endif %}
