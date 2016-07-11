@@ -998,6 +998,13 @@ li>a.adminmenu {
     padding-top: 1px;
 }
 
+@media (max-width: 767px) {
+    .navbar-nav .open .dropdown-menu>li>a {
+        padding-bottom: 1px;
+        padding-top: 1px;
+    }
+}
+
 .adminmenu-title {
     padding-left: 12px;
     font-weight: bold;
