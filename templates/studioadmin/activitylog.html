@@ -2,10 +2,11 @@
 {% load static %}
 {% load bookingtags %}
 
+{% block bodytag %}<body onload="startTime()">{% endblock %}
 {% block studioadmincontent %}
 
     <div class="container-fluid row">
-
+        <span class="small pull-right" id="show-clock"></span>
         <h2>Activity Log</h2>
 
         <div class=row>
@@ -83,3 +84,7 @@
     </div>
 
 {% endblock studioadmincontent %}
+
+{% block extra_js %}
+    <script src="{% static 'studioadmin/js/clock.js' %}"></script>
+{% endblock %}
