@@ -182,12 +182,15 @@ class EventVoucherDetailView(LoginRequiredMixin, StaffUserMixin, DetailView):
         context['sidenav_selection'] = 'vouchers'
         user_list = []
 
-        used_vouchers = self.get_used_vouchers()
+        used_vouchers = self.get_used_vouchers()\
+            .order_by('user__first_name', 'user__last_name')
         user_ids = used_vouchers.values_list('user', flat=True).distinct()
         for user_id in user_ids:
             voucher_count = used_vouchers.filter(user__id=user_id).count()
             user_list.append(
-                {'user': User.objects.get(id=user_id), 'count': voucher_count}
+                {
+                    'user': User.objects.get(id=user_id),
+                    'count': voucher_count}
             )
         context['user_list'] = user_list
         return context
