@@ -133,7 +133,7 @@ def get_event_context(context, event, user):
 
 def get_booking_create_context(event, request, context):
     # find if block booking is available for this type of event
-    blocktypes = BlockType.objects.values_list('event_type__id', flat=True)
+    blocktypes = BlockType.objects.filter(active=True).values_list('event_type__id', flat=True)
     blocktype_available = event.event_type.id in blocktypes
     context['blocktype_available'] = blocktype_available
     # Add in the event name
