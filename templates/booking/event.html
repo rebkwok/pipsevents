@@ -55,16 +55,17 @@
                             </li>
                             {% if not event.allow_booking_cancellation %}
                                 <li class="list-group-item"><strong>Cancellation information</strong>
-                                    <p>Bookings are final and non-refundable; cancellation is not allowed for this {{ event_type_str }}</p>
+                                    <p>Bookings are final and non-refundable; if you cancel your booking you will not be eligible for any refund or credit.</p>
                                 </li>
                             {% elif event.cancellation_period %}
                                 <li class="list-group-item"><strong>Cancellation information</strong>
                                     <p>Cancellation is allowed up to {{ event.cancellation_period | format_cancellation }} prior to the {{ event_type_str }}
                                         {% if event.advance_payment_required %}
                                         {% if not event.payment_due_date and not event.payment_time_allowed %}
-                                            (payment due {{ cancellation_due_date|date:"D d F, g:i a" }})
+                                            (payment due {{ cancellation_due_date|date:"D d F, g:i a" }}).
                                         {% endif %}
                                         {% endif %}
+                                        If you cancel your booking after this time, you will not be eligible for any refund or credit.
                                     </p>
                                 </li>
 
@@ -88,7 +89,7 @@
                             <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
                              confirm payment and to check if your place has been confirmed{% endif %}.</h5>
                         {% else %}
-                            <h5>{{ booking_info_text_cancelled }}</br>{{ booking_info_text | safe }}</h5>
+                            <h5>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
                                     <a {% if not disclaimer %}class='disabled'{% endif %}
                                        {% if not event.booking_open and not unbookable_pole_practice %}class='disabled'{% endif %}

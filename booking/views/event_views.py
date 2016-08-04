@@ -52,7 +52,7 @@ class EventListView(ListView):
             # Add in the booked_events
             user_bookings = self.request.user.bookings.all()
             booked_events = [booking.event for booking in user_bookings
-                             if not booking.status == 'CANCELLED']
+                             if booking.status == 'OPEN' and not booking.no_show]
             user_waiting_lists = WaitingListUser.objects.filter(user=self.request.user)
             waiting_list_events = [wluser.event for wluser in user_waiting_lists]
             context['booked_events'] = booked_events

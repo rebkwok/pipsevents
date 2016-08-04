@@ -41,9 +41,9 @@
                         {% endif %}
 
                         {% if not event.can_cancel %}
-                            <p class="cancel-warning">Please note that the cancellation period for this {{ ev_type }} has passed.</p>
+                            <p class="cancel-warning">Please note that the allowed cancellation period for this {{ ev_type }} has passed.</p>
                             {% if event.cost %}
-                                <p>If you continue with the booking, you will not have the option to cancel.</p>
+                                <p>You will still have the option to cancel your booking, but you will not be eligible for any refunds or transfer credit if you do so.</p>
                                 {% if not event.advance_payment_required%}
                                     <p class="cancel-warning">Your payment will still be due even if you do not attend the {{ ev_type }}.</p>
                                 {% else %}
@@ -62,7 +62,7 @@
                         <span class="hide">{{ form.event }}</span>
                         <span class="hide">{{ form.user }}</span>
                         {% if blocktype_available %}
-                            {% if active_user_block %}
+                            {%  if active_user_block and not reopening_paid_booking %}
                                 <input class="btn btn-success update-btn" type="submit" name="block_book" value="Book & pay with block" />
                                 <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book & pay by paypal" />
                                 <p class="studioadmin-help">If you have a voucher code, select Book & pay by paypal; you will will have the option to enter a code on the payment page.</p>

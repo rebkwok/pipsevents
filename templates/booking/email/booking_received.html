@@ -20,7 +20,7 @@ Your booking has been received for {{ event }}.
             <p>Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you
                 no longer wish to attend, please delete your booking by visiting your bookings page at
                 <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
-        {% else %}
+        {% elif not booking.paid %}
             <p>Advance payment is required for this {{ ev_type }}.  Your space will be confirmed once the
                 organiser has received your payment.</p>
         {% endif %}
