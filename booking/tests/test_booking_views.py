@@ -334,24 +334,6 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         #  listing should still only show this user's past bookings
         self.assertEquals(resp.context_data['bookings'].count(), 1)
 
-    def test_cancelled_booking_shown_in_booking_history(self):
-        """
-        Test that cancelled bookings are listed in booking history
-        """
-        ev = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe(
-            'booking.booking',
-            user=self.user,
-            event=ev,
-            status='CANCELLED'
-        )
-        # check there are now 3 bookings
-        self.assertEquals(Booking.objects.all().count(), 3)
-        resp = self._get_response(self.user)
-
-        # listing should show show all 3 bookings (1 past, 1 cancelled)
-        self.assertEquals(resp.context_data['bookings'].count(), 2)
-
 
 class BookingCreateViewTests(TestSetupMixin, TestCase):
 
@@ -743,6 +725,35 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         booking.refresh_from_db()
         self.assertEqual('OPEN', booking.status)
         self.assertIsNotNone(booking.date_rebooked)
+
+    def test_rebook_no_show_booking(self):
+        """
+        Test can rebook a booking marked as no_show
+        """
+
+        pclass = mommy.make_recipe(
+            'booking.future_PC', allow_booking_cancellation=False, cost=10
+        )
+        # book for non-refundable event and mark as no_show
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=pclass, paid=True,
+            no_show=True
+        )
+
+        # cancel booking
+        self.assertIsNone(booking.date_rebooked)
+
+        # try to book again
+        self._post_response(self.user, pclass)
+        booking.refresh_from_db()
+        self.assertEqual('OPEN', booking.status)
+        self.assertFalse(booking.no_show)
+        self.assertIsNotNone(booking.date_rebooked)
+
+        # emails sent to student
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['test@test.com'])
 
     def test_rebook_cancelled_paid_booking(self):
 
@@ -1668,9 +1679,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(block.bookings_made(), 0)
 
     @patch("booking.views.booking_views.timezone")
-    def test_cannot_cancel_after_cancellation_period(self, mock_tz):
+    def test_can_cancel_after_cancellation_period(self, mock_tz):
         """
         Test trying to cancel after cancellation period
+        Cancellation is allowed but shows warning message
         """
         mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
         event = mommy.make_recipe(
@@ -1692,12 +1704,12 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         view = BookingDeleteView.as_view()
         resp = view(request, pk=booking.id)
 
-        cannot_cancel_url = reverse('booking:cancellation_period_past',
-                                kwargs={'event_slug': event.slug}
+        self.assertEqual(200, resp.status_code)
+        self.assertIn(
+            'If you continue, you will not be eligible for any refund or '
+            'transfer credit.',
+            resp.rendered_content
         )
-        # test redirect to cannot cancel url
-        self.assertEqual(302, resp.status_code)
-        self.assertEqual(resp.url, cannot_cancel_url)
 
     def test_cancelling_free_class(self):
         """
@@ -1737,19 +1749,37 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             resp.url, reverse('booking:already_cancelled', args=[booking.id])
         )
 
-    def test_redirects_if_cancellation_not_allowed(self):
+    def test_event_with_cancellation_not_allowed(self):
+        """
+        Can still be cancelled but not refundable
+        Paid booking stays OPEN but is set to no_show
+        Unpaid booking is just cancelled
+        """
         event = mommy.make_recipe(
-            'booking.future_EV', allow_booking_cancellation=False
+            'booking.future_PC', allow_booking_cancellation=False
         )
-        booking = mommy.make_recipe('booking.booking', event=event,
-                                    user=self.user)
-        self.assertEqual(Booking.objects.all().count(), 1)
-        resp = self._delete_response(self.user, booking)
-        booking.refresh_from_db()
-        # still open
-        self.assertEqual('OPEN', booking.status)
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn(resp.url, reverse('booking:permission_denied'))
+        paid_booking = mommy.make_recipe('booking.booking', event=event,
+                                    user=self.user, paid=True)
+        resp = self._delete_response(self.user, paid_booking)
+        paid_booking.refresh_from_db()
+        # still open, but no_show
+        self.assertEqual('OPEN', paid_booking.status)
+        self.assertTrue(paid_booking.no_show)
+
+        event1 = mommy.make_recipe(
+            'booking.future_PC', allow_booking_cancellation=False
+        )
+        unpaid_booking = mommy.make_recipe(
+            'booking.booking', event=event1, user=self.user
+        )
+        resp = self._delete_response(self.user, unpaid_booking)
+        unpaid_booking.refresh_from_db()
+        # cancelled
+        self.assertEqual('CANCELLED', unpaid_booking.status)
+        self.assertFalse(unpaid_booking.no_show)
+
+        # no transfer blocks made
+        self.assertFalse(Block.objects.filter(user=self.user).exists())
 
     def test_cancelling_sends_email_to_user_and_studio_if_applicable(self):
         """ emails are always sent to user; only sent to studio if previously

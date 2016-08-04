@@ -451,8 +451,8 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         )
         self.assertNotIn('(payment due ', content)
         self.assertIn(
-            'Bookings are final and non-refundable; cancellation is not '
-            'allowed for this event', content
+            'Bookings are final and non-refundable; if you cancel your booking '
+            'you will not be eligible for any refund or credit.', content
         )
 
 

@@ -416,27 +416,31 @@ class Booking(models.Model):
     def _is_rebooking(self):
         if not self.pk:
             return False
-        return self._old_booking().status == 'CANCELLED' and self.status == 'OPEN'
+        was_cancelled = self._old_booking().status == 'CANCELLED' \
+            and self.status == 'OPEN'
+        was_no_show = self._old_booking().no_show and not self.no_show
+        return was_cancelled or was_no_show
 
     def _is_cancellation(self):
         if not self.pk:
             return False
-        return self._old_booking().status == 'OPEN' and self.status == 'CANCELLED'
+        return self._old_booking().status == 'OPEN' \
+            and self.status == 'CANCELLED'
 
     def clean(self):
         if self._is_rebooking():
             if self.event.spaces_left() == 0:
                 raise ValidationError(
                     _('Attempting to reopen booking for full '
-                    'event %s' % self.event.id)
+                      'event %s' % self.event.id)
                 )
 
         if self._is_new_booking() and self.status != "CANCELLED" and \
-            self.event.spaces_left() == 0:
-                raise ValidationError(
-                    _('Attempting to create booking for full '
-                    'event %s' % self.event.id)
-                )
+                self.event.spaces_left() == 0:
+                    raise ValidationError(
+                        _('Attempting to create booking for full '
+                          'event %s' % self.event.id)
+                    )
 
         if self.attended and self.no_show:
             raise ValidationError(
