@@ -455,9 +455,11 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                         'reviewed your payment status.'
         elif previously_no_show:
             if booking.block:
-                extra_msg = "You previously paid for this booking with a block."
+                extra_msg = "You previously paid for this booking with a " \
+                            "block and your booking has been reopened."
             elif booking.paid:
-                extra_msg = "You are reopening a previously paid booking."
+                extra_msg = "You previously paid for this booking and your " \
+                            "booking has been reopened."
         elif not booking.block:
             if booking.event.cost and not booking.paid:
                 # prev no_show could still be paid
@@ -969,13 +971,14 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
             else:  # set to no-show
                 booking.no_show = True
                 booking.save()
-                messages.success(
-                    self.request,
-                    self.success_message.format(booking.event) +
-                    ' Please note that this booking is not eligible for refunds '
-                    'or transfer credit.'
-                )
+
                 if not booking.event.allow_booking_cancellation:
+                    messages.success(
+                        self.request,
+                        self.success_message.format(booking.event) +
+                        ' Please note that this booking is not eligible for refunds '
+                        'or transfer credit.'
+                    )
                     ActivityLog.objects.create(
                         log='Booking id {} for NON-CANCELLABLE event {}, user {}, '
                             'was cancelled and set to no-show'.format(
@@ -984,6 +987,13 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                             )
                     )
                 else:
+                    messages.success(
+                        self.request,
+                        self.success_message.format(booking.event) +
+                        ' Please note that this booking is not eligible for '
+                        'refunds or transfer credit as the allowed '
+                        'cancellation period has passed.'
+                    )
                     ActivityLog.objects.create(
                         log='Booking id {} for event {}, user {}, was cancelled '
                             'after the cancellation period and set to '
