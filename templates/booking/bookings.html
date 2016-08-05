@@ -95,13 +95,15 @@
                                 <td class="table-center">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
                                 <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
                                     {% else %}<strong>N/A</strong>{% endif %}</td>
+                                <td class="hidden-sm hidden-xs table-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
                                 {% if bookingform.booking.space_confirmed %}
-                                    <td class="hidden-sm hidden-xs table-center confirmed fa fa-check"></td>
+                                    <span class="fa fa-check"></span>
                                     {% elif bookingform.booking_status == 'CANCELLED' %}
-                                    <td class="hidden-sm hidden-xs table-center not-confirmed fa fa-close"></td>
+                                    <span class="fa fa-close"></span>
                                     {% else %}
-                                    <td class="hidden-sm hidden-xs table-center not-confirmed"> Pending</td>
+                                    Pending
                                 {% endif %}
+                                </td>
 
                             </tr>
                         {% endfor %}

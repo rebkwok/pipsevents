@@ -304,8 +304,8 @@ class SessionAdminForm(forms.ModelForm):
                 'bookings will be cancelled after this time'
             ),
             'allow_booking_cancellation': _(
-                'Untick to make class/event non-cancellable by user (and '
-                'payment non-refundable'
+                'Untick to make class/event non-refundable/transferable (users '
+                'will be able to cancel but will not be eligible for refunds)'
             )
 
         }
