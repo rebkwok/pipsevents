@@ -164,7 +164,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
     success_message = 'Your booking has been made for {}.'
     form_class = BookingCreateForm
 
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, request, *args, **kwargs):
         self.event = get_object_or_404(Event, slug=kwargs['event_slug'])
 
         if self.event.event_type.event_type == 'CL':
@@ -186,7 +186,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         if self.request.method == 'GET' and \
                 ('join waiting list' in self.request.GET or
                     'leave waiting list' in self.request.GET):
-            return super(BookingCreateView, self).dispatch(*args, **kwargs)
+            return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
 
         # redirect if fully booked and user doesn't already have open booking
         if self.event.spaces_left <= 0 and self.request.user not in \
@@ -209,7 +209,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             if booking.status == 'CANCELLED' or booking.no_show:
                 return super(
                     BookingCreateView, self
-                    ).dispatch(*args, **kwargs)
+                    ).dispatch(request, *args, **kwargs)
             # redirect if arriving back here from booking update page
             elif self.request.session.get(
                     'booking_created_{}'.format(booking.id)
@@ -223,7 +223,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
         except Booking.DoesNotExist:
-            return super(BookingCreateView, self).dispatch(*args, **kwargs)
+            return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_initial(self):
         return {

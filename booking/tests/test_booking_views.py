@@ -710,6 +710,35 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, event)
         self.assertEqual(resp.status_code, 200)
 
+    def test_no_show_booking_can_be_rebooked(self):
+        """
+        Test can load create booking page with a no_show open booking
+        No option to book with block
+        """
+        pclass = mommy.make_recipe(
+            'booking.future_PC', allow_booking_cancellation=False, cost=10
+        )
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pclass.event_type,
+            user=self.user, paid=True
+        )
+        # book for non-refundable event and mark as no_show
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=pclass, paid=True,
+            no_show=True, status='OPEN'
+        )
+
+        # try to get booking page again
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(
+            reverse('booking:book_event', kwargs={'event_slug': pclass.slug}),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context_data['reopening_paid_booking'])
+        # active block is present but not an option in the page b/c already paid
+        self.assertTrue(resp.context_data['active_user_block'])
+        self.assertNotIn('Book & pay with block', resp.rendered_content)
+
     def test_rebook_cancelled_booking(self):
         """
         Test can rebook a cancelled booking
@@ -744,16 +773,68 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=self.user, event=pclass, paid=True,
             no_show=True
         )
+        self.assertIsNone(booking.date_rebooked)
+
+        # try to book again
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(
+            reverse('booking:book_event', kwargs={'event_slug': pclass.slug}),
+            {'event': pclass.id},
+            follow=True
+        )
+        booking.refresh_from_db()
+        self.assertEqual('OPEN', booking.status)
+        self.assertFalse(booking.no_show)
+        self.assertIsNotNone(booking.date_rebooked)
+        self.assertIn(
+            "You previously paid for this booking and your "
+            "booking has been reopened.",
+            resp.rendered_content
+        )
+
+        # emails sent to student
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['test@test.com'])
+
+    def test_rebook_no_show_block_booking(self):
+        """
+        Test can rebook a block booking marked as no_show
+        """
+
+        pclass = mommy.make_recipe(
+            'booking.future_PC', allow_booking_cancellation=False, cost=10
+        )
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, paid=True,
+            block_type__event_type =pclass.event_type
+        )
+        # book for non-refundable event and mark as no_show
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=pclass, paid=True,
+            no_show=True, block=block
+        )
 
         # cancel booking
         self.assertIsNone(booking.date_rebooked)
 
         # try to book again
-        self._post_response(self.user, pclass)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(
+            reverse('booking:book_event', kwargs={'event_slug': pclass.slug}),
+            {'event': pclass.id},
+            follow=True
+        )
+
         booking.refresh_from_db()
         self.assertEqual('OPEN', booking.status)
         self.assertFalse(booking.no_show)
         self.assertIsNotNone(booking.date_rebooked)
+        self.assertIn(
+            "You previously paid for this booking with a block and your "
+            "booking has been reopened.",
+            resp.rendered_content
+        )
 
         # emails sent to student
         self.assertEqual(len(mail.outbox), 1)
@@ -1703,14 +1784,8 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         url = reverse('booking:delete_booking', args=[booking.id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = self.user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BookingDeleteView.as_view()
-        resp = view(request, pk=booking.id)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(url)
 
         self.assertEqual(200, resp.status_code)
         self.assertIn(
@@ -1718,6 +1793,34 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             'transfer credit.',
             resp.rendered_content
         )
+
+    @patch("booking.views.booking_views.timezone")
+    def test_cancelling_after_cancellation_period(self, mock_tz):
+        """
+        Test cancellation after cancellation period sets no_show to True
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            cancellation_period=48
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, paid=True
+        )
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.delete(url, follow=True)
+        self.assertIn(
+            'Please note that this booking is not eligible for refunds or '
+            'transfer credit as the allowed cancellation period has passed.',
+            resp.rendered_content
+        )
+        booking.refresh_from_db()
+        self.assertTrue(booking.no_show)
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertTrue(booking.paid)
 
     def test_cancelling_free_class(self):
         """
