@@ -277,6 +277,15 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                                       "to {}".format(action)
                                                       )
 
+                                elif 'no_show' in form.changed_data \
+                                    and action == 'updated' \
+                                        and booking.status == 'OPEN':
+                                    action = 'cancelled' if booking.no_show \
+                                        else 'reopened'
+                                    extra_msgs.append(
+                                        "Booking {} as 'no-show'".format(action)
+                                    )
+
                                 if booking.block:
                                     booking.paid = True
                                     booking.payment_confirmed = True

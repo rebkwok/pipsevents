@@ -14,7 +14,8 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.models import Booking, Block, BlockType, EventType, WaitingListUser
+from booking.models import Booking, Block, BlockType, Event, EventType, \
+    WaitingListUser
 from booking.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
@@ -1295,6 +1296,44 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             },
             errors)
 
+    def test_open_no_show_booking_for_cancelled_event(self):
+        event = mommy.make_recipe('booking.future_EV', cancelled=True)
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event=event,
+            user=self.user,
+            status="OPEN",
+            paid=True,
+            no_show=True
+        )
+
+        self.assertFalse(booking.block)
+        form_data = self.formset_data(
+            {
+                'bookings-TOTAL_FORMS': 3,
+                'bookings-INITIAL_FORMS': 3,
+                'bookings-2-id': booking.id,
+                'bookings-2-event': event.id,
+                'bookings-2-status':'OPEN',
+                'bookings-2-no_show': False
+            }
+        )
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=form_data
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'OPEN')
+
+        errors = resp.context_data['userbookingformset'].errors
+        self.assertIn(
+            {
+                'status': [
+                    'Cannot reopen booking for cancelled event {}'.format(event)
+                ]
+            },
+            errors)
+
     def test_assign_booking_for_cancelled_event_to_free_class(self):
         event = mommy.make_recipe('booking.future_EV', cancelled=True)
         booking = mommy.make_recipe(
@@ -1459,6 +1498,71 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         # payment status not changed unless specifically updated in form
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
+
+    def test_cannot_reopen_booking_for_full_event(self):
+        event = mommy.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
+        )
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, status='CANCELLED', paid=False,
+            payment_confirmed=False, user=user
+        )
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': booking.event.id,
+            'bookings-0-status': 'OPEN',
+            'bookings-0-paid': booking.paid,
+            'bookings-0-no_show': booking.no_show
+            }
+
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=data
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'CANCELLED')
+        self.assertIn(
+            'Please correct the following errors:__all__Attempting to create '
+            'booking for full event',
+            format_content(resp.rendered_content)
+        )
+
+    def test_cannot_reopen_no_show_booking_for_full_event(self):
+        event = mommy.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
+        )
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, status='OPEN', paid=True,
+            payment_confirmed=True, user=user, no_show=True
+        )
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': booking.event.id,
+            'bookings-0-status': booking.status,
+            'bookings-0-paid': booking.paid,
+            'bookings-0-no_show': False
+            }
+
+        resp = self._post_response(
+            self.staff_user, self.user.id, form_data=data
+        )
+
+        booking.refresh_from_db()
+        self.assertIn(
+            'Please correct the following errors:__all__Attempting to create '
+            'booking for full event',
+            format_content(resp.rendered_content)
+        )
 
     def test_remove_block_from_booking(self):
         booking = self.future_user_bookings[0]
@@ -1669,6 +1773,54 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         booking.refresh_from_db()
         # booking now cancelled
         self.assertEqual(booking.status, 'CANCELLED')
+
+        # waiting list emailed
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].bcc, ['test@test.com'])
+        self.assertEqual(
+            mail.outbox[0].subject,
+            '{} {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event)
+        )
+        self.assertIn(
+            'A space has become available for {}'.format(event),
+            mail.outbox[0].body
+        )
+
+    def test_make_booking_no_show_for_full_event_emails_waiting_list(self):
+        event = mommy.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
+        )
+        user = mommy.make_recipe('booking.user')
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event=event, status='OPEN', paid=True,
+            no_show=False
+        )
+
+        # fill event and make a waiting list
+        mommy.make_recipe('booking.booking', event=event)
+        user1 = mommy.make_recipe('booking.user', email='test@test.com')
+        mommy.make(WaitingListUser, event=event, user=user1)
+
+        # event = Event.objects.get(id=event.id)
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'OPEN',
+            'bookings-0-paid': booking.paid,
+            'bookings-0-no_show': True
+            }
+
+        resp = self._post_response(
+            self.staff_user, user.id, form_data=data
+        )
+
+        booking.refresh_from_db()
+        # booking now no-show, still open and paid
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertTrue(booking.no_show)
+        self.assertTrue(booking.paid)
 
         # waiting list emailed
         self.assertEqual(len(mail.outbox), 1)
