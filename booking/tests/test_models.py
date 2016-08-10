@@ -27,21 +27,23 @@ class EventTests(TestCase):
         Test that event bookable logic returns correctly
         """
         event = mommy.make_recipe('booking.future_EV', booking_open=False)
-        self.assertFalse(event.bookable())
+        self.assertFalse(event.bookable)
 
     def test_bookable_with_no_payment_date(self):
         """
         Test that event bookable logic returns correctly
         """
         event = mommy.make_recipe('booking.future_EV')
-        self.assertTrue(event.bookable())
+        self.assertTrue(event.bookable)
 
     def test_bookable_spaces(self):
         event = mommy.make_recipe('booking.future_EV', max_participants=2)
-        self.assertTrue(event.bookable())
+        self.assertTrue(event.bookable)
 
         mommy.make_recipe('booking.booking', event=event, _quantity=2)
-        self.assertFalse(event.bookable())
+        # need to get event again as bookable is cached property
+        event = Event.objects.get(id=event.id)
+        self.assertFalse(event.bookable)
 
     @patch('booking.models.timezone')
     def test_bookable_with_payment_dates(self, mock_tz):
@@ -55,7 +57,7 @@ class EventTests(TestCase):
             cost=10,
             payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc))
 
-        self.assertTrue(event.bookable())
+        self.assertTrue(event.bookable)
 
         # bookable even if payment due date has passed
         event1 = mommy.make_recipe(
@@ -63,7 +65,7 @@ class EventTests(TestCase):
             cost=10,
             payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
         )
-        self.assertTrue(event1.bookable())
+        self.assertTrue(event1.bookable)
 
     def test_event_pre_save_event_with_no_cost(self):
         """
@@ -158,12 +160,14 @@ class BookingTests(TestCase):
         """
 
         self.assertEqual(self.event.max_participants, 20)
-        self.assertEqual(self.event.spaces_left(), 20)
+        self.assertEqual(self.event.spaces_left, 20)
 
         for user in self.users:
             mommy.make_recipe('booking.booking', user=user, event=self.event)
 
-        self.assertEqual(self.event.spaces_left(), 5)
+        # we need to get the event again as spaces_left is cached property
+        event = Event.objects.get(id=self.event.id)
+        self.assertEqual(event.spaces_left, 5)
 
     def test_event_spaces_left_does_not_count_cancelled_or_no_shows(self):
         """
@@ -171,7 +175,7 @@ class BookingTests(TestCase):
         """
 
         self.assertEqual(self.event.max_participants, 20)
-        self.assertEqual(self.event.spaces_left(), 20)
+        self.assertEqual(self.event.spaces_left, 20)
 
         for user in self.users:
             mommy.make_recipe('booking.booking', user=user, event=self.event)
@@ -183,8 +187,10 @@ class BookingTests(TestCase):
         )
         # 20 total spaces, 15 open bookings, 1 cancelled, 1 no-show; still 5
         # spaces left
-        self.assertEqual(self.event.bookings.count(), 17)
-        self.assertEqual(self.event.spaces_left(), 5)
+        # we need to get the event again as spaces_left is cached property
+        event = Event.objects.get(id=self.event.id)
+        self.assertEqual(event.bookings.count(), 17)
+        self.assertEqual(event.spaces_left, 5)
 
     def test_space_confirmed_no_cost(self):
         """
@@ -291,9 +297,11 @@ class BookingTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
+        # we need to get the event again as spaces_left is cached property
+        event = Event.objects.get(id=self.event_with_cost.id)
         with self.assertRaises(ValidationError):
             Booking.objects.create(
-                event=self.event_with_cost, user=self.users[0]
+                event=event, user=self.users[0]
             )
 
     def test_reopening_booking_full_event(self):
@@ -304,12 +312,12 @@ class BookingTests(TestCase):
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
         user = self.users[0]
-        booking = mommy.make_recipe(
-            'booking.booking', event=self.event_with_cost, user=user,
-            status='CANCELLED'
-        )
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
+        )
+        event = Event.objects.get(id=self.event_with_cost.id)
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=user, status='CANCELLED'
         )
         with self.assertRaises(ValidationError):
             booking.status = 'OPEN'
@@ -382,12 +390,12 @@ class BookingTests(TestCase):
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
         user = self.users[0]
-        booking = mommy.make_recipe(
-            'booking.booking', event=self.event_with_cost, user=user,
-            status='CANCELLED'
-        )
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
+        )
+        event = Event.objects.get(id=self.event_with_cost.id)
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=user, status='CANCELLED'
         )
         with self.assertRaises(ValidationError):
             booking.status = 'OPEN'
@@ -1048,7 +1056,7 @@ class TicketedEventTests(TestCase):
         """
         Test that event bookable logic returns correctly
         """
-        self.assertTrue(self.ticketed_event.bookable())
+        self.assertTrue(self.ticketed_event.bookable)
         # if we make 10 bookings on this event, it should no longer be bookable
         ticket_booking = mommy.make(
             TicketBooking, ticketed_event=self.ticketed_event,

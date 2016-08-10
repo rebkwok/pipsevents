@@ -12,6 +12,7 @@ from django.core.urlresolvers import reverse
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from django_extensions.db.fields import AutoSlugField
@@ -120,6 +121,7 @@ class Event(models.Model):
     class Meta:
         ordering = ['-date']
 
+    @cached_property
     def spaces_left(self):
         if self.max_participants:
             booked_number = Booking.objects.filter(
@@ -128,8 +130,9 @@ class Event(models.Model):
         else:
             return 100
 
+    @cached_property
     def bookable(self):
-        return self.booking_open and self.spaces_left() > 0
+        return self.booking_open and self.spaces_left > 0
 
     def can_cancel(self):
         time_until_event = self.date - timezone.now()
@@ -429,14 +432,14 @@ class Booking(models.Model):
 
     def clean(self):
         if self._is_rebooking():
-            if self.event.spaces_left() == 0:
+            if self.event.spaces_left == 0:
                 raise ValidationError(
                     _('Attempting to reopen booking for full '
                       'event %s' % self.event.id)
                 )
 
         if self._is_new_booking() and self.status != "CANCELLED" and \
-                self.event.spaces_left() == 0:
+                self.event.spaces_left == 0:
                     raise ValidationError(
                         _('Attempting to create booking for full '
                           'event %s' % self.event.id)

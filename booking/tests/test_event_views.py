@@ -90,7 +90,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, 'events')
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(booked_event in booked_events)
+        self.assertTrue(booked_event.id in booked_events)
 
     def test_event_list_shows_only_current_user_bookings(self):
         """
@@ -116,7 +116,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(event1 in booked_events)
+        self.assertTrue(event1.id in booked_events)
 
     def test_filter_events(self):
         """
@@ -543,7 +543,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(event1 in booked_events)
+        self.assertTrue(event1.id in booked_events)
 
     def test_lesson_list_only_shows_open_bookings(self):
         events = Event.objects.filter(event_type__event_type="CL")
@@ -565,7 +565,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(event1 in booked_events)
+        self.assertTrue(event1.id in booked_events)
 
 
 class RoomHireListViewTests(TestSetupMixin, TestCase):
@@ -656,7 +656,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(event1 in booked_events)
+        self.assertTrue(event1.id in booked_events)
 
     def test_lesson_list_only_shows_open_bookings(self):
         events = Event.objects.filter(event_type__event_type="RH")
@@ -678,7 +678,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(event1 in booked_events)
+        self.assertTrue(event1.id in booked_events)
 
 
 class LessonDetailViewTests(TestSetupMixin, TestCase):

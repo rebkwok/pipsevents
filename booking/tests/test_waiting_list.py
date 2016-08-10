@@ -124,7 +124,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.booking', event=event, _quantity=2)
         mommy.make_recipe('booking.booking', event=event, user=self.user)
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(resp.context_data['booked_events'], [event])
+        self.assertEquals(list(resp.context_data['booked_events']), [event.id])
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
@@ -140,7 +140,9 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=self.user
         )
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(resp.context_data['waiting_list_events'], [event])
+        self.assertEquals(
+            list(resp.context_data['waiting_list_events']), [event.id]
+        )
 
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
@@ -158,8 +160,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.booking', event=event, user=self.user)
 
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(resp.context_data['waiting_list_events'], [wlevent])
-        self.assertEquals(resp.context_data['booked_events'], [event])
+        self.assertEquals(
+            list(resp.context_data['waiting_list_events']), [wlevent.id]
+        )
+        self.assertEquals(
+            list(resp.context_data['booked_events']), [event.id]
+        )
 
     def test_event_list_already_on_waiting_list_not_full_event(self):
         """
@@ -172,7 +178,9 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=self.user
         )
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(resp.context_data['waiting_list_events'], [event])
+        self.assertEquals(
+            list(resp.context_data['waiting_list_events']), [event.id]
+        )
 
         resp.render()
         self.assertIn('book_button', str(resp.content))

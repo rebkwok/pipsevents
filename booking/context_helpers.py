@@ -78,7 +78,7 @@ def get_event_context(context, event, user):
 
     # booking info text and bookable
     booking_info_text = ""
-    context['bookable'] = event.bookable()
+    context['bookable'] = event.bookable
     if booked:
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
@@ -114,7 +114,7 @@ def get_event_context(context, event, user):
             booking_info_text = "Bookings are not open for this {}.".format(
                 event_type_str
             )
-        if event.spaces_left() <= 0:
+        if event.spaces_left <= 0:
             booking_info_text = "This {} is now full.".format(event_type_str)
         if event.payment_due_date:
             if event.payment_due_date < timezone.now():

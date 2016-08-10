@@ -673,9 +673,12 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         self.event.max_participants = 10
         self.event.save()
-        self.assertEqual(self.event.spaces_left(), 8)
+
+        # need to get event again as spaces_left is cached property
+        event = Event.objects.get(id=self.event.id)
+        self.assertEqual(event.spaces_left, 8)
         resp = self._get_response(
-            self.staff_user, self.event.slug,
+            self.staff_user, event.slug,
             status_choice='OPEN'
         )
         self.assertEqual(resp.context_data['extra_lines'], 8)
@@ -683,14 +686,14 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         # if there is a max_participants, and filter is not 'OPEN',
         # show extra lines to this number, plus the number of cancelled
         # bookings (extra lines is always equal to number of spaces left).
-        self.assertEqual(self.event.spaces_left(), 8)
+        self.assertEqual(event.spaces_left, 8)
         self.assertEqual(
             Booking.objects.filter(
-                event=self.event, status='CANCELLED'
+                event=event, status='CANCELLED'
             ).count(), 1
         )
         resp = self._get_response(
-            self.staff_user, self.event.slug,
+            self.staff_user, event.slug,
             status_choice='ALL'
         )
         self.assertEqual(resp.context_data['extra_lines'], 8)
@@ -699,17 +702,19 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         # up to 15 open bookings
         self.event.max_participants = None
         self.event.save()
+        # need to get event again as spaces_left is cached property
+        event = Event.objects.get(id=self.event.id)
         resp = self._get_response(
-            self.staff_user, self.event.slug,
+            self.staff_user, event.slug,
             status_choice='OPEN'
         )
         open_bookings = [
-            booking for booking in self.event.bookings.all()
+            booking for booking in event.bookings.all()
             if booking.status == 'OPEN'
         ]
         self.assertEqual(len(open_bookings), 3)
         cancelled_bookings = [
-            booking for booking in self.event.bookings.all()
+            booking for booking in event.bookings.all()
             if booking.status == 'CANCELLED'
         ]
         self.assertEqual(len(cancelled_bookings), 1)
@@ -717,8 +722,10 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         # if 15 or more bookings, just show 2 extra lines
         mommy.make_recipe('booking.booking', event=self.event, _quantity=12)
+        # need to get event again as spaces_left is cached property
+        event = Event.objects.get(id=self.event.id)
         resp = self._get_response(
-            self.staff_user, self.event.slug,
+            self.staff_user, event.slug,
             status_choice='OPEN'
         )
         self.assertEqual(resp.context_data['extra_lines'], 2)

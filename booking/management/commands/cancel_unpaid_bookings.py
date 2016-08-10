@@ -75,7 +75,7 @@ class Command(BaseCommand):
                         bookings.append(booking)
 
         for booking in bookings:
-            event_was_full = booking.event.spaces_left() == 0
+            event_was_full = booking.event.spaces_left == 0
 
             ctx = {
                   'booking': booking,
