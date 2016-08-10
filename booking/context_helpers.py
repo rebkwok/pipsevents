@@ -56,12 +56,18 @@ def get_event_context(context, event, user):
     context['payment_text'] = payment_text
 
     # booked flag
-    user_booked_events = Booking.objects.filter(user=user, status='OPEN')\
-        .values_list('event__id', flat=True)
-    user_cancelled_events = Booking.objects.filter(user=user, status='CANCELLED')\
-        .values_list('event__id', flat=True)
+    user_booked_events = Booking.objects.filter(
+        user=user, status='OPEN', no_show=False
+    ).values_list('event__id', flat=True)
+    user_cancelled_events = Booking.objects.filter(
+        user=user, status='CANCELLED'
+    ).values_list('event__id', flat=True)
+    user_no_show_event = Booking.objects.filter(
+        user=user, status='OPEN', no_show=True
+    ).values_list('event__id', flat=True)
     booked = event.id in user_booked_events
-    cancelled = event.id in user_cancelled_events
+    cancelled = (event.id in user_cancelled_events) \
+        or (event.id in user_no_show_event)
 
     # waiting_list flag
     try:
@@ -72,7 +78,7 @@ def get_event_context(context, event, user):
 
     # booking info text and bookable
     booking_info_text = ""
-    context['bookable'] = event.bookable()
+    context['bookable'] = event.bookable
     if booked:
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
@@ -108,7 +114,7 @@ def get_event_context(context, event, user):
             booking_info_text = "Bookings are not open for this {}.".format(
                 event_type_str
             )
-        if event.spaces_left() <= 0:
+        if event.spaces_left <= 0:
             booking_info_text = "This {} is now full.".format(event_type_str)
         if event.payment_due_date:
             if event.payment_due_date < timezone.now():
@@ -170,6 +176,15 @@ def get_booking_create_context(event, request, context):
         event_full = True if \
             (event.max_participants - bookings_count) <= 0 else False
         context['event_full'] = event_full
+
+
+    try:
+        # if reopening an already paid booking, we don't want to give option to
+        # book with block
+        Booking.objects.get(event=event, user=request.user, paid=True)
+        context['reopening_paid_booking'] = True
+    except Booking.DoesNotExist:
+        pass
 
     return context
 

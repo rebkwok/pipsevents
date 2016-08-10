@@ -282,10 +282,21 @@ def cancel_event_view(request, slug):
     event = get_object_or_404(Event, slug=slug)
     ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
 
-    open_bookings = Booking.objects.filter(event=event, status='OPEN')
-    open_block_bookings = [bk for bk in open_bookings if bk.block and not bk.free_class]
-    open_unpaid_bookings = [bk for bk in open_bookings if not bk.deposit_paid and not bk.paid]
-    open_free_non_block = [bk for bk in open_bookings if bk.free_class and not bk.block]
+    open_bookings = Booking.objects.filter(
+        event=event, status='OPEN', no_show=False
+    )
+    no_shows_all = Booking.objects.filter(
+        event=event, status='OPEN', no_show=True
+    )
+    no_shows = [bk for bk in no_shows_all if bk.paid or bk.deposit_paid]
+    open_block_bookings = [
+        bk for bk in open_bookings if bk.block and not bk.free_class
+        ]
+    open_unpaid_bookings = [
+        bk for bk in open_bookings if not bk.deposit_paid and not bk.paid]
+    open_free_non_block = [
+        bk for bk in open_bookings if bk.free_class and not bk.block
+        ]
     open_free_block = [bk for bk in open_bookings if bk.free_class and bk.block]
     open_direct_paid_deposit_only = [
         bk for bk in open_bookings if not bk.block
@@ -394,6 +405,7 @@ def cancel_event_view(request, slug):
                     'open_unpaid_bookings': open_unpaid_bookings,
                     'open_free_non_block_bookings': open_free_non_block,
                     'open_free_block_bookings': open_free_block,
+                    'no_shows': no_shows,
                     'event': event,
                 }
                 send_mail(
@@ -472,6 +484,7 @@ def cancel_event_view(request, slug):
         'open_unpaid_bookings': open_unpaid_bookings,
         'open_free_non_block_bookings': open_free_non_block,
         'open_free_block_bookings': open_free_block,
+        'no_shows': no_shows
     }
 
     return TemplateResponse(

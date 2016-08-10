@@ -195,7 +195,7 @@ class EventAdmin(admin.ModelAdmin):
     ]
 
     def get_spaces_left(self, obj):
-        return obj.spaces_left()
+        return obj.spaces_left
     get_spaces_left.short_description = '# Spaces left'
 
 

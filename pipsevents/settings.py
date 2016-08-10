@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 import dj_database_url
 import environ
 import os
+import sys
 
 root = environ.Path(__file__) - 2  # two folders back (/a/b/ - 3 = /)
 
@@ -433,7 +434,7 @@ if env('TRAVIS') or env('HEROKU'):
 def show_toolbar(request):  # pragma: no cover
     return True
 
-# if DEBUG:
+# if DEBUG and 'test' not in sys.argv:
 #     ENABLE_DEBUG_TOOLBAR = True
 #     DEBUG_TOOLBAR_CONFIG = {
 #         "SHOW_TOOLBAR_CALLBACK": show_toolbar,

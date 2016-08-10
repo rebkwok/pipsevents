@@ -7,7 +7,7 @@ Some booking may require manual refunds.  When the payment has been refunded or 
 {% if open_direct_paid_bookings or open_deposit_only_paid_bookings or open_free_non_block_bookings %}
 Some booking may require manual refunds.  When the payment has been refunded or credited, use the links below to confirm and update the payment status on the booking site</p>
 {% endif %}{% endif %}{% endif %}
-{% if open_bookings %}Summary of cancelled bookings:
+{% if open_bookings or no_shows %}{% if open_bookings %}Summary of cancelled bookings:
 ==============================
 The following open bookings for this {{ event_type }} were cancelled (users have been sent notification emails):
 
@@ -22,6 +22,16 @@ The following open bookings for this {{ event_type }} were cancelled (users have
 {% for booking in open_free_block_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} (free class - block) - no action required
 {% endfor %}
 {% for booking in open_unpaid_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} (unpaid) - no action required
-{% endfor %}
+{% endfor %}{% endif %}
+{% if no_shows %}Summary of previously cancelled (paid) bookings:
+====================================
+Bookings for the following users were previously cancelled but remain paid because {% if not event.allow_booking_cancellation %}this {{ event_type }} is non-refundable.{% else %}the booking was cancelled after the allowed cancellation period.{% endif %}
+These users have NOT been emailed notification of the {{ event_type }} cancellation and have NOT been automatically refunded or issued transfer credit.
+Please review and determine if refunds are necessary.
+
+{% for booking in no_shows %}- {{ booking.user.first_name }} {{ booking.user.last_name }} {% if booking.block %}(paid by block){% elif booking.free_class %}(free class){% else %}(paid directly i.e. cash/paypal){% endif %}
+User's bookings: {{ host }}/studioadmin/user/{{ booking.user.id }}/bookings/open
+{% if booking.paid and not booking.block and not booking.free_class %}Confirm refunded: {{ host }}/studioadmin/confirm-refunded/{{ booking.id }}{% endif %}
+{% endfor %}{% endif %}
 {% else %}There were no open bookings for this {{ event_type }}.
 {% endif %}

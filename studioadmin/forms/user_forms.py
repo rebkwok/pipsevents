@@ -153,25 +153,54 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             initial='OPEN'
         )
 
-        if form.instance.id and \
-                (form.instance.status == 'CANCELLED' or form.instance.block):
-            # disable payment and free class fields for cancelled and
-            # block bookings
+        form.fields['no_show'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+                'id': 'no_show_{}'.format(index)
+            }),
+            required=False
+        )
+        form.no_show_id = 'no_show_{}'.format(index)
+
+        if form.instance.id:
             paid_widget = form.fields['paid'].widget
             deposit_paid_widget = form.fields['deposit_paid'].widget
             free_class_widget = form.fields['free_class'].widget
-            paid_widget.attrs.update({
-                'class': 'regular-checkbox regular-checkbox-disabled',
-                'OnClick': "javascript:return ReadOnlyCheckBox()"
-            })
-            deposit_paid_widget.attrs.update({
-                'class': 'regular-checkbox regular-checkbox-disabled',
-                'OnClick': "javascript:return ReadOnlyCheckBox()"
-            })
-            free_class_widget.attrs.update({
-                'class': 'regular-checkbox regular-checkbox-disabled',
-                'OnClick': "javascript:return ReadOnlyCheckBox()"
-            })
+            no_show_widget = form.fields['no_show'].widget
+
+            if form.instance.status == 'CANCELLED':
+                # disable no_show for cancelled
+                no_show_widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'OnClick': "javascript:return ReadOnlyCheckBox()"
+                })
+            elif form.instance.no_show:
+                # make checkboxes greyed out but still usable for no-shows
+                for widget in [
+                    paid_widget, deposit_paid_widget, free_class_widget,
+                    no_show_widget
+                ]:
+                    widget.attrs.update({
+                        'class': 'regular-checkbox regular-checkbox-disabled'
+                    })
+
+
+            if form.instance.status == 'CANCELLED' or form.instance.block:
+                # also disable payment and free class fields for cancelled and
+                # block bookings
+
+                paid_widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'OnClick': "javascript:return ReadOnlyCheckBox()"
+                })
+                deposit_paid_widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'OnClick': "javascript:return ReadOnlyCheckBox()"
+                })
+                free_class_widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'OnClick': "javascript:return ReadOnlyCheckBox()"
+                })
 
     def clean(self):
         """
@@ -272,7 +301,8 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 UserBookingFormSet = inlineformset_factory(
     User,
     Booking,
-    fields=('paid', 'deposit_paid', 'event', 'block', 'status', 'free_class'),
+    fields=('paid', 'deposit_paid', 'event', 'block', 'status', 'free_class',
+            'no_show'),
     can_delete=False,
     formset=UserBookingInlineFormSet,
     extra=1,
@@ -286,6 +316,7 @@ class BlockTypeModelChoiceField(forms.ModelChoiceField):
             " ({})".format(obj.identifier) if obj.identifier else '',
             obj.size
         )
+
     def to_python(self, value):
         if value:
             return BlockType.objects.get(id=value)
