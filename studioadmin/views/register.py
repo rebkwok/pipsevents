@@ -304,7 +304,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     if status_choice == 'CANCELLED':
         extra_lines = 0
     elif event.max_participants:
-        extra_lines = event.spaces_left()
+        extra_lines = event.spaces_left
     elif event.bookings.count() < 15:
         open_bookings = Booking.objects.filter(event=event, status='OPEN', no_show=False)
         extra_lines = 15 - open_bookings.count()
@@ -423,7 +423,7 @@ def register_print_day(request):
                         bookinglist.append(booking_ctx)
 
                     if event.max_participants:
-                        extra_lines = event.spaces_left()
+                        extra_lines = event.spaces_left
                     elif event.bookings.count() < 15:
                         open_bookings = [
                             event for event in event.bookings.all() if event.status == 'OPEN'

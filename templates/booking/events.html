@@ -43,7 +43,7 @@
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
                                 {% if user.is_authenticated %}
                                     <td class="table-center">
-                                        {% if event in booked_events %}
+                                        {% if event.id in booked_events %}
                                             <span class="fa fa-check"></span>
                                         {% elif event not in booked_events %}
                                             {% if not disclaimer %}
@@ -66,7 +66,7 @@
                                                 {% endif %}
                                                 Further details</a>
                                             {% elif not event.bookable and event.booking_open %}
-                                                {% if event in waiting_list_events %}
+                                                {% if event.id in waiting_list_events %}
                                                     <form class="wl-table-form" action="{% url 'booking:book_event' event.slug %}" method="get">
                                                         <input class="btn btn-warning table-btn" id="leave_waiting_list_button" type="submit" value="Leave waiting list" name="leave waiting list"/>
                                                     </form>

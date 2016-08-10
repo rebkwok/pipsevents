@@ -651,8 +651,10 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         users = mommy.make_recipe('booking.user', _quantity=3)
         for user in users:
             mommy.make_recipe('booking.booking', event=event, user=user)
-        # check event is full
-        self.assertEqual(event.spaces_left(), 0)
+        # check event is full; we need to get the event again as spaces_left is
+        # cached property
+        event = Event.objects.get(id=event.id)
+        self.assertEqual(event.spaces_left, 0)
 
         # try to book for event
         resp = self._get_response(self.user, event)
@@ -672,8 +674,11 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         users = mommy.make_recipe('booking.user', _quantity=3)
         for user in users:
             mommy.make_recipe('booking.booking', event=event, user=user)
-        # check event is full
-        self.assertEqual(event.spaces_left(), 0)
+
+        # check event is full; we need to get the event again as spaces_left is
+        # cached property
+        event = Event.objects.get(id=event.id)
+        self.assertEqual(event.spaces_left, 0)
 
         # try to book for event
         resp = self._post_response(self.user, event)
@@ -1517,7 +1522,10 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
         mommy.make_recipe(
             'booking.booking', status='OPEN', event=event, _quantity=3
         )
-        self.assertEqual(event.spaces_left(), 0)
+        # check event is full; we need to get the event again as spaces_left is
+        # cached property
+        event = Event.objects.get(id=event.id)
+        self.assertEqual(event.spaces_left, 0)
         resp = self._get_update_booking_cancelled(self.user, booking)
         self.assertIn(event.name, str(resp.content))
         self.assertIn("This event is now full", str(resp.content))

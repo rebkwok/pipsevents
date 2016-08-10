@@ -9,7 +9,7 @@ from django.views.generic import (
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
-from booking.models import Event, WaitingListUser
+from booking.models import Booking, Event, WaitingListUser
 from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers
 
@@ -33,13 +33,13 @@ class EventListView(ListView):
         name = self.request.GET.get('name')
 
         if name:
-            return Event.objects.filter(
+            return Event.objects.select_related('event_type').filter(
                 event_type__event_type=ev_abbr,
                 date__gte=timezone.now(),
                 name=name,
                 cancelled=False
             ).order_by('date')
-        return Event.objects.filter(
+        return Event.objects.select_related('event_type').filter(
             event_type__event_type=ev_abbr,
             date__gte=timezone.now(),
             cancelled=False
@@ -50,11 +50,14 @@ class EventListView(ListView):
         context = super(EventListView, self).get_context_data(**kwargs)
         if not self.request.user.is_anonymous():
             # Add in the booked_events
-            user_bookings = self.request.user.bookings.all()
-            booked_events = [booking.event for booking in user_bookings
-                             if booking.status == 'OPEN' and not booking.no_show]
-            user_waiting_lists = WaitingListUser.objects.filter(user=self.request.user)
-            waiting_list_events = [wluser.event for wluser in user_waiting_lists]
+            user_booked_events = Booking.objects.select_related()\
+                .filter(user=self.request.user, status='OPEN', no_show=False)\
+                .values_list('event__id', flat=True)
+            booked_events = Event.objects.select_related()\
+                .filter(id__in=user_booked_events).values_list('id', flat=True)
+            waiting_list_events = WaitingListUser.objects\
+                .filter(user=self.request.user)\
+                .values_list('event__id', flat=True)
             context['booked_events'] = booked_events
             context['waiting_list_events'] = waiting_list_events
             context['is_regular_student'] = self.request.user.has_perm(

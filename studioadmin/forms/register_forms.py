@@ -21,7 +21,7 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
         super(BookingRegisterInlineFormSet, self).__init__(*args, **kwargs)
         if self.instance.max_participants:
-            self.extra = self.instance.spaces_left()
+            self.extra = self.instance.spaces_left
         elif self.instance.bookings.count() < 15:
             open_bookings = [
                 bk for bk in self.instance.bookings.all() if bk.status == 'OPEN'

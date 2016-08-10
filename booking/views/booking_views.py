@@ -189,7 +189,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             return super(BookingCreateView, self).dispatch(*args, **kwargs)
 
         # redirect if fully booked and user doesn't already have open booking
-        if self.event.spaces_left() <= 0 and self.request.user not in \
+        if self.event.spaces_left <= 0 and self.request.user not in \
             [
                 booking.user for booking in self.event.bookings.all()
                 if booking.status == 'OPEN' and not booking.no_show
@@ -834,7 +834,7 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
         can_cancel_and_refund = booking.event.allow_booking_cancellation \
             and booking.event.can_cancel()
 
-        event_was_full = booking.event.spaces_left() == 0
+        event_was_full = booking.event.spaces_left == 0
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -1060,7 +1060,7 @@ def update_booking_cancelled(request, pk):
     else:
         ev_type = 'room hire'
     context = {'booking': booking, 'ev_type': ev_type}
-    if booking.event.spaces_left() == 0:
+    if booking.event.spaces_left == 0:
         context['full'] = True
     return render(request, 'booking/update_booking_cancelled.html', context)
 

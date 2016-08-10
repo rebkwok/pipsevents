@@ -242,7 +242,7 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                                 extra_msgs = [] # these will be displayed as a list in the email to the user
 
                                 booking = form.save(commit=False)
-                                event_was_full = booking.event.spaces_left() == 0
+                                event_was_full = booking.event.spaces_left == 0
                                 action = 'updated' if form.instance.id else 'created'
                                 transfer_block_created = False
                                 block_removed = False
