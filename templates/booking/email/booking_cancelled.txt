@@ -1,12 +1,13 @@
 {% include "account/email/do_not_reply.txt" %}
 
 Your booking for {{ event }} has been cancelled.
-{% if booking.block %}
+{% if not event.allow_booking_cancellation %}Please note that this booking is not eligible for refunds or transfer credit on cancellation.{% elif not event.can_cancel %}Please note that you have cancelled after the allowed cancellation period and therefore you are not eligible for any refund or transfer credit.
+{% else %}{% if booking.block %}
 You used a block to make this booking; your block has been updated.
 {% elif booking.paid %}
 {% if event.event_type.event_type == 'CL' %}This booking is not refundable; a transfer block has been created for you as credit and can be used for your next booking for the same class type.
 {% elif event.event_type.event_type == 'RH' %}This booking is not refundable; a transfer block has been created for you as credit and can be used for your next room hire booking.
 {% elif booking.free_class %}This booking was marked as a free class. If you decide to reopen this booking you will need to resubmit a free class request for approval.
 {% else %}Please note that payments are not automatically refunded. The organiser has been informed of your cancellation and will be in contact soon.
-{% endif %}{% endif %}
+{% endif %}{% endif %}{% endif %}
 For further information please contact {{ booking.event.contact_person }} at {{ booking.event.contact_email }}

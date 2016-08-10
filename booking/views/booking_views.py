@@ -92,7 +92,7 @@ class BookingListView(LoginRequiredMixin, ListView):
 
             can_cancel = booking.event.allow_booking_cancellation and \
                          booking.event.can_cancel() and \
-                         booking.status == 'OPEN'
+                         (booking.status == 'OPEN' and not booking.no_show)
 
             due_date_time = None
             if booking.event.advance_payment_required:
@@ -109,6 +109,8 @@ class BookingListView(LoginRequiredMixin, ListView):
                     due_date_time = due_date_time.astimezone(uk_tz)
 
             bookingform = {
+                'booking_status': 'CANCELLED' if
+                (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
                 'ev_type': booking.event.event_type.event_type,
                 'booking': booking,
                 'paypalform': paypal_form,
@@ -131,8 +133,7 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            (Q(event__date__lte=timezone.now()) | Q(status='CANCELLED')) &
-            Q(user=self.request.user)
+            event__date__lte=timezone.now(), user=self.request.user
         ).order_by('-event__date')
 
     def get_context_data(self, **kwargs):
@@ -146,6 +147,8 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
         bookingformlist = []
         for booking in self.object_list:
             bookingform = {
+                'booking_status': 'CANCELLED' if
+                (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
                 'booking': booking,
                 'ev_type': booking.event.event_type.event_type
             }
@@ -161,7 +164,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
     success_message = 'Your booking has been made for {}.'
     form_class = BookingCreateForm
 
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, request, *args, **kwargs):
         self.event = get_object_or_404(Event, slug=kwargs['event_slug'])
 
         if self.event.event_type.event_type == 'CL':
@@ -183,13 +186,13 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         if self.request.method == 'GET' and \
                 ('join waiting list' in self.request.GET or
                     'leave waiting list' in self.request.GET):
-            return super(BookingCreateView, self).dispatch(*args, **kwargs)
+            return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
 
-        # redirect if fully booked
-        if self.event.spaces_left() <= 0 and self.request.user not in \
+        # redirect if fully booked and user doesn't already have open booking
+        if self.event.spaces_left <= 0 and self.request.user not in \
             [
                 booking.user for booking in self.event.bookings.all()
-                if booking.status == 'OPEN'
+                if booking.status == 'OPEN' and not booking.no_show
                 ]:
             return HttpResponseRedirect(
                 reverse('booking:fully_booked', args=[self.event.slug])
@@ -200,11 +203,13 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             booking = Booking.objects.get(
                 user=self.request.user, event=self.event
             )
-            # all getting page to rebook if cancelled
-            if booking.status == 'CANCELLED':
+            # all getting page to rebook if cancelled or previously marked as
+            # no_show (i.e. cancelled after cancellation period or cancelled a
+            # non-refundable event)
+            if booking.status == 'CANCELLED' or booking.no_show:
                 return super(
                     BookingCreateView, self
-                    ).dispatch(*args, **kwargs)
+                    ).dispatch(request, *args, **kwargs)
             # redirect if arriving back here from booking update page
             elif self.request.session.get(
                     'booking_created_{}'.format(booking.id)
@@ -218,7 +223,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
         except Booking.DoesNotExist:
-            return super(BookingCreateView, self).dispatch(*args, **kwargs)
+            return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_initial(self):
         return {
@@ -293,16 +298,24 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
     def form_valid(self, form):
         booking = form.save(commit=False)
         try:
-            cancelled_booking = Booking.objects.get(
+            # We shouldn't even get here with a booking that isn't either
+            # cancelled or no_show; those get redirected in the dispatch()
+            existing_booking = Booking.objects.get(
                 user=self.request.user,
                 event=booking.event,
-                status='CANCELLED'
                 )
-            booking = cancelled_booking
+            booking = existing_booking
+            if booking.status == 'CANCELLED':
+                previously_cancelled = True
+                previously_no_show = False
+            elif booking.no_show:
+                previously_no_show = True
+                previously_cancelled = False
             booking.status = 'OPEN'
-            previously_cancelled = True
+            booking.no_show = False
         except Booking.DoesNotExist:
             previously_cancelled = False
+            previously_no_show = False
 
         booking.user = self.request.user
         transaction_id = None
@@ -323,6 +336,10 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                 transaction_id = pptrans[0].transaction_id
                 invoice_id = pptrans[0].invoice_id
 
+        elif previously_no_show and booking.paid:
+            # leave paid no_show booking with existing payment method
+            pass
+
         elif 'block_book' in form.data:
             active_block = _get_active_user_block(self.request.user, booking)
             if active_block:
@@ -331,6 +348,9 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                 booking.payment_confirmed = True
 
         # check for existence of free child block on pre-saved booking
+        # note for prev no-shows booked with block, any free child blocks should
+        # have already been created.  Rebooking prev no-show doesn;t add a new
+        # block booking
         has_free_block_pre_save = False
         if booking.block and booking.block.children.exists():
             has_free_block_pre_save = True
@@ -340,7 +360,9 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             ActivityLog.objects.create(
                 log='Booking {} {} for "{}" by user {}'.format(
                     booking.id,
-                    'created' if not previously_cancelled else 'rebooked',
+                    'created' if not
+                    (previously_cancelled or previously_no_show)
+                    else 'rebooked',
                     booking.event, booking.user.username)
             )
         except ValidationError:  # pragma: no cover
@@ -431,8 +453,16 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
             extra_msg = 'You previously paid for this booking; your booking ' \
                         'will remain as pending until the organiser has ' \
                         'reviewed your payment status.'
+        elif previously_no_show:
+            if booking.block:
+                extra_msg = "You previously paid for this booking with a " \
+                            "block and your booking has been reopened."
+            elif booking.paid:
+                extra_msg = "You previously paid for this booking and your " \
+                            "booking has been reopened."
         elif not booking.block:
-            if booking.event.cost:
+            if booking.event.cost and not booking.paid:
+                # prev no_show could still be paid
                 cancellation_warning = ""
                 if booking.event.advance_payment_required and \
                         booking.event.allow_booking_cancellation:
@@ -489,7 +519,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         except WaitingListUser.DoesNotExist:
             pass
 
-        if "book_one_off" in form.data and booking.event.cost:
+        if not booking.paid and booking.event.cost:
             return HttpResponseRedirect(
                 reverse('booking:update_booking', args=[booking.id])
             )
@@ -771,19 +801,11 @@ def _get_block_status(booking, request):
 class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView):
     model = Booking
     template_name = 'booking/delete_booking.html'
-    success_message = 'Booking cancelled for {}'
+    success_message = 'Booking cancelled for {}.'
 
     def dispatch(self, request, *args, **kwargs):
-        # redirect if cancellation period past
         booking = get_object_or_404(Booking, pk=self.kwargs['pk'])
-        if not booking.event.allow_booking_cancellation:
-            return HttpResponseRedirect(reverse('booking:permission_denied'))
-        elif not booking.event.can_cancel():
-            return HttpResponseRedirect(
-                reverse('booking:cancellation_period_past',
-                        args=[booking.event.slug])
-            )
-        elif booking.status == 'CANCELLED':
+        if booking.status == 'CANCELLED':
             # redirect if already cancelled
             return HttpResponseRedirect(
                 reverse('booking:already_cancelled',
@@ -804,7 +826,15 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
 
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
-        event_was_full = booking.event.spaces_left() == 0
+
+        # Booking can be fully cancelled if the event allows cancellation AND
+        # the cancellation period is not past
+        # If not, we let people cancel but leave the booking status OPEN and
+        # set to no-show
+        can_cancel_and_refund = booking.event.allow_booking_cancellation \
+            and booking.event.can_cancel()
+
+        event_was_full = booking.event.spaces_left == 0
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
         # send email to user
@@ -831,95 +861,147 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
             messages.error(self.request, "An error occured, please contact "
                 "the studio for information")
 
-        transfer_block_created = False
-        if not booking.block and booking.paid:
-            # booking was paid directly, either in cash or by paypal
-            # OR booking was free class but not made with free class block
-            # if event is CL or RH, get or create transfer block type, create
-            # transfer block for user and set transferred_booking_id to the
-            # cancelled one
-            if booking.event.event_type.event_type != 'EV':
-                block_type, _ = BlockType.objects.get_or_create(
-                    event_type=booking.event.event_type,
-                    size=1, cost=0, duration=1,
-                    identifier='transferred',
-                    active=False
-                )
-                Block.objects.create(
-                    block_type=block_type, user=booking.user,
-                    transferred_booking_id=booking.id
-                )
-                transfer_block_created = True
-                booking.deposit_paid = False
+        if can_cancel_and_refund:
+            transfer_block_created = False
+            if not booking.block and booking.paid:
+                # booking was paid directly, either in cash or by paypal
+                # OR booking was free class but not made with free class block
+                # if event is CL or RH, get or create transfer block type, create
+                # transfer block for user and set transferred_booking_id to the
+                # cancelled one
+                if booking.event.event_type.event_type != 'EV':
+                    block_type, _ = BlockType.objects.get_or_create(
+                        event_type=booking.event.event_type,
+                        size=1, cost=0, duration=1,
+                        identifier='transferred',
+                        active=False
+                    )
+                    Block.objects.create(
+                        block_type=block_type, user=booking.user,
+                        transferred_booking_id=booking.id
+                    )
+                    transfer_block_created = True
+                    booking.deposit_paid = False
+                    booking.paid = False
+                    booking.payment_confirmed = False
+
+                # send email to studio only for 'EV' which are not transferable
+                else:
+                    send_mail('{} {} {} has just cancelled a booking for {}'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                        'ACTION REQUIRED!' if not booking.block else '',
+                        booking.user.username,
+                        booking.event.name
+                        ),
+                              get_template('booking/email/to_studio_booking_cancelled.txt').render(
+                                  {
+                                      'host': host,
+                                      'booking': booking,
+                                      'event': booking.event,
+                                      'date': booking.event.date.strftime('%A %d %B'),
+                                      'time': booking.event.date.strftime('%I:%M %p'),
+                                  }
+                              ),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [settings.DEFAULT_STUDIO_EMAIL],
+                        fail_silently=False)
+
+            # if booking was bought with a block, remove from block and set
+            # paid and payment_confirmed to False. If paid directly, paid is only
+            # changed to False for bookings that have created transfer blocks; for
+            # EV event types, leave paid as True as refunds need to be dealt with
+            # manually but change payment_confirmed to False
+            # reassigning free class blocks is done in model save
+            if booking.block:
+                booking.block = None
                 booking.paid = False
-                booking.payment_confirmed = False
 
-            # send email to studio only for 'EV' which are not transferable
-            else:
-                send_mail('{} {} {} has just cancelled a booking for {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                    'ACTION REQUIRED!' if not booking.block else '',
-                    booking.user.username,
-                    booking.event.name
-                    ),
-                          get_template('booking/email/to_studio_booking_cancelled.txt').render(
-                              {
-                                  'host': host,
-                                  'booking': booking,
-                                  'event': booking.event,
-                                  'date': booking.event.date.strftime('%A %d %B'),
-                                  'time': booking.event.date.strftime('%I:%M %p'),
-                              }
-                          ),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.DEFAULT_STUDIO_EMAIL],
-                    fail_silently=False)
+            if booking.free_class:
+                booking.free_class = False
+                booking.paid = False
+            booking.status = 'CANCELLED'
+            booking.payment_confirmed = False
+            booking.save()
 
-        # if booking was bought with a block, remove from block and set
-        # paid and payment_confirmed to False. If paid directly, paid is only
-        # changed to False for bookings that have created transfer blocks; for
-        # EV event types, leave paid as True as refunds need to be dealt with
-        # manually but change payment_confirmed to False
-        # reassigning free class blocks is done in model save
-        if booking.block:
-            booking.block = None
-            booking.paid = False
-
-        if booking.free_class:
-            booking.free_class = False
-            booking.paid = False
-        booking.status = 'CANCELLED'
-        booking.payment_confirmed = False
-        booking.save()
-
-        messages.success(
-            self.request,
-            self.success_message.format(booking.event)
-        )
-        ActivityLog.objects.create(
-            log='Booking id {} for event {}, user {}, was cancelled by user '
-                '{}'.format(
-                    booking.id, booking.event, booking.user.username,
-                    self.request.user.username
-                )
-        )
-
-        if transfer_block_created:
+            messages.success(
+                self.request,
+                self.success_message.format(booking.event)
+            )
             ActivityLog.objects.create(
-                log='Transfer block created for user {} (for {}; transferred '
-                    'booking id {} '.format(
-                        booking.user.username, booking.event.event_type.subtype,
-                        booking.id
+                log='Booking id {} for event {}, user {}, was cancelled by user '
+                    '{}'.format(
+                        booking.id, booking.event, booking.user.username,
+                        self.request.user.username
                     )
             )
-            messages.info(
-                self.request,
-                mark_safe(
-                    'A transfer block has been created for you as '
-                    'credit for your cancelled booking and is valid for '
-                    '1 month (<a href="/blocks">View your blocks</a>)'
+
+            if transfer_block_created:
+                ActivityLog.objects.create(
+                    log='Transfer block created for user {} (for {}; transferred '
+                        'booking id {} '.format(
+                            booking.user.username, booking.event.event_type.subtype,
+                            booking.id
+                        )
                 )
-            )
+                messages.info(
+                    self.request,
+                    mark_safe(
+                        'A transfer block has been created for you as '
+                        'credit for your cancelled booking and is valid for '
+                        '1 month (<a href="/blocks">View your blocks</a>)'
+                    )
+                )
+        else:
+            # if the booking wasn't paid, just cancel it
+            if not booking.paid:
+                booking.status = 'CANCELLED'
+                booking.payment_confirmed = False
+                booking.save()
+                messages.success(
+                    self.request,
+                    self.success_message.format(booking.event)
+                )
+                ActivityLog.objects.create(
+                    log='Booking id {} for event {}, user {}, was cancelled by user '
+                        '{}'.format(
+                            booking.id, booking.event, booking.user.username,
+                            self.request.user.username
+                        )
+                )
+            else:  # set to no-show
+                booking.no_show = True
+                booking.save()
+
+                if not booking.event.allow_booking_cancellation:
+                    messages.success(
+                        self.request,
+                        self.success_message.format(booking.event) +
+                        ' Please note that this booking is not eligible for refunds '
+                        'or transfer credit.'
+                    )
+                    ActivityLog.objects.create(
+                        log='Booking id {} for NON-CANCELLABLE event {}, user {}, '
+                            'was cancelled and set to no-show'.format(
+                                booking.id, booking.event, booking.user.username,
+                                self.request.user.username
+                            )
+                    )
+                else:
+                    messages.success(
+                        self.request,
+                        self.success_message.format(booking.event) +
+                        ' Please note that this booking is not eligible for '
+                        'refunds or transfer credit as the allowed '
+                        'cancellation period has passed.'
+                    )
+                    ActivityLog.objects.create(
+                        log='Booking id {} for event {}, user {}, was cancelled '
+                            'after the cancellation period and set to '
+                            'no-show'.format(
+                                booking.id, booking.event, booking.user.username,
+                                self.request.user.username
+                            )
+                    )
 
         # if applicable, email users on waiting list
         if event_was_full:
@@ -978,7 +1060,7 @@ def update_booking_cancelled(request, pk):
     else:
         ev_type = 'room hire'
     context = {'booking': booking, 'ev_type': ev_type}
-    if booking.event.spaces_left() == 0:
+    if booking.event.spaces_left == 0:
         context['full'] = True
     return render(request, 'booking/update_booking_cancelled.html', context)
 

@@ -163,7 +163,7 @@ class UserBookingFormSetTests(TestCase):
         self.assertTrue(formset.is_valid(), formset.errors)
 
     def test_additional_data_in_form(self):
-        active_user_block = mommy.make_recipe('booking.block',
+        mommy.make_recipe('booking.block',
                                         block_type=self.block_type,
                                         user=self.user,
                                         paid=True)
@@ -179,13 +179,11 @@ class UserBookingFormSetTests(TestCase):
         """
         New form should show all active user blocks
         """
-        active_user_block = mommy.make_recipe('booking.block',
-                                        block_type=self.block_type,
-                                        user=self.user,
-                                        paid=True)
-        active_user_block_diff_type = mommy.make_recipe('booking.block',
-                                         user=self.user,
-                                         paid=True)
+        mommy.make_recipe(
+            'booking.block', block_type=self.block_type, user=self.user,
+            paid=True
+        )
+        mommy.make_recipe( 'booking.block', user=self.user, paid=True)
 
         formset = UserBookingFormSet(instance=self.user,
                                      user=self.user)
@@ -308,6 +306,111 @@ class UserBookingFormSetTests(TestCase):
         event = form.fields['event']
         # queryset shows all events (will be hidden in the template)
         self.assertEquals(6, event.queryset.count())
+
+    def test_widgets_disabled(self):
+        """
+        Cancelled: no_show widget, paid, deposit_paid, free_class disabled
+        Block: paid, deposit_paid, free_class disabled
+        No-show: no_show widget, paid, deposit_paid, free_class enabled but
+            greyed
+        No-show with block: no_show widget enabled but greyed, paid,
+            deposit_paid, free_class disabled
+        """
+        events = mommy.make_recipe('booking.future_PC', _quantity=4)
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', user=user,
+            block_type__event_type=events[1].event_type
+        )
+        cancelled_booking = mommy.make_recipe(
+            'booking.booking', user=user, event=events[0], paid=True,
+            payment_confirmed=True, status='CANCELLED'
+        )
+        block_booking = mommy.make_recipe(
+            'booking.booking', user=user, event=events[1], paid=True,
+            payment_confirmed=True, status='OPEN', block=block
+        )
+        no_show_booking = mommy.make_recipe(
+            'booking.booking', user=user, event=events[2], paid=True,
+            payment_confirmed=True, status='OPEN', no_show=True
+        )
+        no_show_block_booking = mommy.make_recipe(
+            'booking.booking', user=user, event=events[3], paid=True,
+            payment_confirmed=True, status='OPEN', block=block, no_show=True
+        )
+        data = {
+            'bookings-TOTAL_FORMS': 4,
+            'bookings-INITIAL_FORMS': 4,
+            'bookings-0-id': cancelled_booking.id,
+            'bookings-0-event': cancelled_booking.event.id,
+            'bookings-0-status': cancelled_booking.status,
+            'bookings-1-id': block_booking.id,
+            'bookings-1-event': block_booking.event.id,
+            'bookings-1-status': block_booking.status,
+            'bookings-2-id': no_show_booking.id,
+            'bookings-2-event': no_show_booking.event.id,
+            'bookings-2-status': no_show_booking.status,
+            'bookings-3-id': no_show_block_booking.id,
+            'bookings-3-event': no_show_block_booking.event.id,
+            'bookings-3-status': no_show_block_booking.status,
+            }
+
+        formset = UserBookingFormSet(
+            data=data, instance=user, user=self.user
+        )
+        cancelled_form = formset.forms[0]
+        for field in ['no_show', 'paid', 'deposit_paid', 'free_class']:
+            self.assertEqual(
+                cancelled_form.fields[field].widget.attrs['class'],
+                'regular-checkbox regular-checkbox-disabled'
+            )
+            self.assertEqual(
+                cancelled_form.fields[field].widget.attrs['OnClick'],
+                'javascript:return ReadOnlyCheckBox()'
+            )
+
+        block_form = formset.forms[1]
+        for field in ['paid', 'deposit_paid', 'free_class']:
+            self.assertEqual(
+                block_form.fields[field].widget.attrs['class'],
+                'regular-checkbox regular-checkbox-disabled'
+            )
+            self.assertEqual(
+                block_form.fields[field].widget.attrs['OnClick'],
+                'javascript:return ReadOnlyCheckBox()'
+            )
+        self.assertEqual(
+            block_form.fields['no_show'].widget.attrs['class'],
+            'regular-checkbox'
+        )
+
+        no_show_form = formset.forms[2]
+        for field in ['no_show', 'paid', 'deposit_paid', 'free_class']:
+            self.assertEqual(
+                no_show_form.fields[field].widget.attrs['class'],
+                'regular-checkbox regular-checkbox-disabled'
+            )
+            self.assertIsNone(
+                no_show_form.fields[field].widget.attrs.get('OnClick', None)
+            )
+
+        no_show_block_form = formset.forms[3]
+        for field in ['paid', 'deposit_paid', 'free_class']:
+            self.assertEqual(
+                no_show_block_form.fields[field].widget.attrs['class'],
+                'regular-checkbox regular-checkbox-disabled'
+            )
+            self.assertEqual(
+                no_show_block_form.fields[field].widget.attrs['OnClick'],
+                'javascript:return ReadOnlyCheckBox()'
+            )
+        self.assertEqual(
+            block_form.fields['no_show'].widget.attrs['class'],
+            'regular-checkbox'
+        )
+        self.assertIsNone(
+                no_show_form.fields['no_show'].widget.attrs.get('OnClick', None)
+            )
 
 
 class UserBlockFormSetTests(TestCase):
