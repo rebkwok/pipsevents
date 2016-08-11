@@ -74,7 +74,7 @@
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED
-                                    {% elif event.cannot_delete %}
+                                    {% elif event.instance.id in non_deletable_events %}
                                         <a href="{% url 'studioadmin:cancel_event' event.instance.slug %}">
                                             <div id="cancel_button" class="btn btn-danger table-btn">Cancel {% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</div>
                                         </a>

@@ -56,7 +56,7 @@ class EventFormSetTests(TestCase):
 
     def test_event_formset_delete_with_bookings(self):
         """
-        Test delete widget is not formatted if bookings made against event
+        Test delete widget is formatted if bookings made against event
         (will be hidden in template and Cancel button will be displayed instead)
         """
         extra_data = {
@@ -88,7 +88,10 @@ class EventFormSetTests(TestCase):
             delete_no_bookings_widget.attrs['class'],
             'delete-checkbox studioadmin-list'
         )
-        self.assertEqual(delete_with_bookings_widget.attrs, {})
+        self.assertEqual(
+            delete_with_bookings_widget.attrs['class'],
+            'delete-checkbox studioadmin-list'
+        )
 
 
 class EventAdminFormTests(TestCase):

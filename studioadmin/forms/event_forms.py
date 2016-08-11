@@ -46,16 +46,13 @@ class EventBaseFormSet(BaseModelFormSet):
             )
             form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
-            if form.instance.bookings.count() > 0:
-                form.cannot_delete = True
-            else:
-                form.fields['DELETE'] = forms.BooleanField(
-                    widget=forms.CheckboxInput(attrs={
-                        'class': 'delete-checkbox studioadmin-list',
-                        'id': 'DELETE_{}'.format(index)
-                    }),
-                    required=False
-                )
+            form.fields['DELETE'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': 'delete-checkbox studioadmin-list',
+                    'id': 'DELETE_{}'.format(index)
+                }),
+                required=False
+            )
             form.DELETE_id = 'DELETE_{}'.format(index)
 
 EventFormSet = modelformset_factory(
