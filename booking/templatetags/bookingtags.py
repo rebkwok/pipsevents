@@ -74,7 +74,7 @@ def get_index_open(event, extraline_index):
 
 @register.filter
 def bookings_count(event):
-    return Booking.objects.filter(
+    return Booking.objects.select_related('event', 'event__type', 'user').filter(
         event=event, status='OPEN', no_show=False
     ).count()
 

@@ -74,7 +74,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         if 'user' in form.changed_data:
 
                             try:
-                                new_booking = Booking.objects.get(
+                                new_booking = Booking.objects\
+                                    .select_related('event', 'user').get(
                                         user=booking.user, event=booking.event,
                                         status='CANCELLED'
                                     )
@@ -105,9 +106,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 new_booking.save()
 
                                 ActivityLog.objects.create(
-                                    log='(Register) Cancelled booking id {} for event {}, '
-                                        'user {} reopened by admin '
-                                        'user {}'.format(
+                                    log='(Register) Cancelled booking id {} '
+                                        'for event {}, user {} reopened by '
+                                        'admin user {}'.format(
                                         new_booking.id, new_booking.event,
                                         new_booking.user.username,
                                         request.user.username
@@ -115,7 +116,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                                 )
                                 messages.success(
                                     request,
-                                    "Cancelled booking reopened for user {}".format(
+                                    "Cancelled booking reopened for user "
+                                    "{}".format(
                                         booking.user.username
                                     )
                                 )
@@ -126,8 +128,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                             booking.save()
 
                             ActivityLog.objects.create(
-                                log='(Register) Block {} for booking id {} for event '
-                                    '{}, user {} by admin user {}'.format(
+                                log='(Register) Block {} for booking id {} for '
+                                    'event {}, user {} by admin user {}'.format(
                                     'added' if booking.block else 'removed',
                                     booking.id, booking.event,
                                     booking.user.username,
@@ -137,7 +139,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                             updated.append(booking)
 
                         else:
-                            # add to updated list if something more than just the
+                            # add to updated list if something more than just
                             # attended checkbox has changed
                             booking.save()
                             if form.changed_data != ['attended']:
@@ -202,8 +204,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         )
                     )
                     ActivityLog.objects.create(
-                        log="(Register) User{} {} marked as attended for event {} by "
-                            "admin user {}".format(
+                        log="(Register) User{} {} marked as attended for "
+                            "event {} by admin user {}".format(
                             's' if len(attended_checked) > 1 else '',
                             ', '.join(attended_checked),
                             booking.event, request.user.username
@@ -219,8 +221,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         )
                     )
                     ActivityLog.objects.create(
-                        log="(Register) User{} {} marked as unattended for event {} by "
-                            "admin user {}".format(
+                        log="(Register) User{} {} marked as unattended for "
+                            "event {} by admin user {}".format(
                             's' if len(attended_unchecked) > 1 else '',
                             ', '.join(attended_unchecked),
                             booking.event, request.user.username
@@ -235,8 +237,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         )
                     )
                     ActivityLog.objects.create(
-                        log="(Register) User{} {} marked as no-show for event {} by "
-                            "admin user {}".format(
+                        log="(Register) User{} {} marked as no-show for event "
+                            "{} by admin user {}".format(
                             's' if len(no_show_checked) > 1 else '',
                             ', '.join(no_show_checked),
                             booking.event, request.user.username
@@ -252,8 +254,8 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         )
                     )
                     ActivityLog.objects.create(
-                        log="(Register) User{} {} unmarked as no-show for event {} by "
-                            "admin user {}".format(
+                        log="(Register) User{} {} unmarked as no-show for "
+                            "event {} by admin user {}".format(
                             's' if len(no_show_unchecked) > 1 else '',
                             ', '.join(no_show_unchecked),
                             booking.event, request.user.username
@@ -290,9 +292,12 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
 
     else:
         if status_choice == 'ALL':
-            queryset = Booking.objects.all()
+            queryset = Booking.objects\
+                .select_related('event', 'user', 'event__event_type').all()
         else:
-            queryset = Booking.objects.filter(status=status_choice)
+            queryset = Booking.objects\
+                .select_related('event', 'user', 'event__event_type')\
+                .filter(status=status_choice)
 
         formset = SimpleBookingRegisterFormSet(
             instance=event,
@@ -306,7 +311,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     elif event.max_participants:
         extra_lines = event.spaces_left
     elif event.bookings.count() < 15:
-        open_bookings = Booking.objects.filter(event=event, status='OPEN', no_show=False)
+        open_bookings = Booking.objects.filter(
+            event=event, status='OPEN', no_show=False
+        )
         extra_lines = 15 - open_bookings.count()
     else:
         extra_lines = 2

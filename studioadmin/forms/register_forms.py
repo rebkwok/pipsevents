@@ -40,7 +40,9 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
             user = form.instance.user
             event_type = form.instance.event.event_type
             available_block = [
-                block for block in Block.objects.filter(user=user) if
+                block for block in Block.objects.select_related(
+                    'block_type', 'block_type__event_type', 'user'
+                ).filter(user=user) if
                 block.active_block()
                 and block.block_type.event_type == event_type
             ]
@@ -68,7 +70,8 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
             # add field for if booking has been paid by paypal (don't allow
             # changing paid in register for paypal payments
-            pbts = PaypalBookingTransaction.objects.filter(
+            pbts = PaypalBookingTransaction.objects\
+                .select_related('booking').filter(
                 booking=form.instance
             )
             if pbts and pbts[0].transaction_id:
@@ -79,10 +82,11 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                 form.user_has_disclaimer = True
 
         else:
-            booked_user_ids = [
-                bk.user.id for bk in self.instance.bookings.all()
-                if bk.status == 'OPEN'
-                ]
+            booked_user_ids = Booking.objects.select_related(
+                'event', 'event__event_type', 'user'
+            ).filter(status='OPEN', event=self.instance).values_list(
+                'user__id', flat=True
+            )
 
             form.fields['user'] = UserModelChoiceField(
                 queryset=User.objects.exclude(id__in=booked_user_ids).order_by('first_name'),

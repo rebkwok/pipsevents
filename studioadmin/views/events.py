@@ -60,13 +60,13 @@ def event_admin_list(request, ev_type):
 
     if ev_type == 'events':
         ev_type_text = 'event'
-        events = Event.objects.filter(
+        events = Event.objects.select_related('event_type').filter(
             event_type__event_type='EV',
             date__gte=timezone.now() - timedelta(hours=1)
         ).order_by('date')
     else:
         ev_type_text = 'class'
-        events = Event.objects.filter(
+        events = Event.objects.select_related('event_type').filter(
             date__gte=timezone.now() - timedelta(hours=1)
         ).exclude(event_type__event_type='EV').order_by('date')
 
@@ -77,7 +77,6 @@ def event_admin_list(request, ev_type):
             show_past = True
             events, eventformset = _get_past_events(ev_type, request)
         elif "upcoming" in request.POST:
-            events = events.order_by('date')
             show_past = False
             eventformset = EventFormSet(queryset=events)
         else:
@@ -151,6 +150,8 @@ def event_admin_list(request, ev_type):
         else:
             eventformset = EventFormSet(queryset=events)
 
+    non_deletable_events = Booking.objects.select_related('event').filter(event__in=events).distinct().values_list('event__id', flat=True)
+
     return TemplateResponse(
         request, 'studioadmin/admin_events.html', {
             'eventformset': eventformset,
@@ -158,6 +159,7 @@ def event_admin_list(request, ev_type):
             'events': events,
             'sidenav_selection': ev_type,
             'show_past': show_past,
+            'non_deletable_events': non_deletable_events
             }
     )
 
