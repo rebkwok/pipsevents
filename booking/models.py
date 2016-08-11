@@ -288,8 +288,8 @@ class Block(models.Model):
 
     @property
     def full(self):
-        return Booking.objects.filter(
-            block__id=self.id).count() >= self.block_type.size
+        return Booking.objects.select_related('block', 'block__block_type')\
+                   .filter(block__id=self.id).count() >= self.block_type.size
 
     def active_block(self):
         """

@@ -62,10 +62,10 @@
                                 {% endif %}
                                 </td>
                                 <td class="table-center studioadmin-tbl">
-                                    {% if bookingform.instance.user and bookingform.instance.user|has_online_disclaimer %}
+                                    {% if bookingform.instance.user.id in users_with_online_disclaimers %}
                                         <a href="{% url 'studioadmin:user_disclaimer' bookingform.instance.user.id|encode %}" target="_blank">
                                             <span id="disclaimer" class="fa fa-file-text-o">{% if bookingform.instance.user|disclaimer_medical_info %}*{% endif %}</span></a>
-                                    {% elif bookingform.instance.user and bookingform.instance.user|has_print_disclaimer %}
+                                    {% elif bookingform.instance.user.id in users_with_print_disclaimers %}
                                         <span id="disclaimer" class="fa fa-check"></span>
                                     {% else %}
                                         <span id="disclaimer" class="fa fa-times"></span>

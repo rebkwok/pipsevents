@@ -22,14 +22,14 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
         super(BookingRegisterInlineFormSet, self).__init__(*args, **kwargs)
         if self.instance.max_participants:
             self.extra = self.instance.spaces_left
-        elif self.instance.bookings.count() < 15:
-            open_bookings = [
-                bk for bk in self.instance.bookings.all() if bk.status == 'OPEN'
-                ]
-            self.extra = 15 - len(open_bookings)
         else:
-            self.extra = 2
-
+            bookings = Booking.objects.select_related('event')\
+                .filter(event=self.instance)
+            if bookings.count() < 15:
+                open_bookings = bookings.filter(status='OPEN')
+                self.extra = 15 - len(open_bookings)
+            else:
+                self.extra = 2
 
     def add_fields(self, form, index):
         super(BookingRegisterInlineFormSet, self).add_fields(form, index)
@@ -72,9 +72,9 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
             # changing paid in register for paypal payments
             pbts = PaypalBookingTransaction.objects\
                 .select_related('booking').filter(
-                booking=form.instance
-            )
-            if pbts and pbts[0].transaction_id:
+                    booking=form.instance
+                ).first()
+            if pbts and pbts.transaction_id:
                 form.paid_by_paypal = True
 
         else:

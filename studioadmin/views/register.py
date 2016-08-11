@@ -14,6 +14,7 @@ from django.utils.safestring import mark_safe
 
 from braces.views import LoginRequiredMixin
 
+from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Event, Booking, Block, BlockType
 from studioadmin.forms import SimpleBookingRegisterFormSet, StatusFilter, \
     RegisterDayForm
@@ -326,18 +327,23 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
     if event.event_type.event_type == 'EV':
         sidenav_selection = 'events_register'
 
-    available_block_type = [
-        block_type for block_type in
-        BlockType.objects.filter(event_type=event.event_type)
-    ]
+    available_block_type = BlockType.objects.filter(event_type=event.event_type)
+    users_with_online_disclaimers = OnlineDisclaimer.objects.filter(
+        user__in=Booking.objects.filter(event=event).values_list('user__id', flat=True)
+    ).values_list('user__id', flat=True)
+    users_with_print_disclaimers = PrintDisclaimer.objects.filter(
+        user__in=Booking.objects.filter(event=event).values_list('user__id', flat=True)
+    ).values_list('user__id', flat=True)
 
     return TemplateResponse(
         request, template, {
             'formset': formset, 'event': event, 'status_filter': status_filter,
             'extra_lines': extra_lines, 'print': print_view,
             'status_choice': status_choice,
-            'available_block_type': True if available_block_type else False,
-            'sidenav_selection': sidenav_selection
+            'available_block_type': bool(available_block_type),
+            'sidenav_selection': sidenav_selection,
+            'users_with_online_disclaimers': users_with_online_disclaimers,
+            'users_with_print_disclaimers': users_with_print_disclaimers,
         }
     )
 

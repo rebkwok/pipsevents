@@ -168,14 +168,12 @@ def format_block(block):
 
 @register.filter
 def has_print_disclaimer(user):
-    disclaimer = PrintDisclaimer.objects.filter(user=user)
-    return bool(disclaimer)
+    return PrintDisclaimer.objects.filter(user=user).exists()
 
 
 @register.filter
 def has_online_disclaimer(user):
-    disclaimer = OnlineDisclaimer.objects.filter(user=user)
-    return bool(disclaimer)
+    return OnlineDisclaimer.objects.filter(user=user)
 
 
 @register.filter
