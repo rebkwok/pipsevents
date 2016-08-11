@@ -77,10 +77,6 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
             if pbts and pbts[0].transaction_id:
                 form.paid_by_paypal = True
 
-            if OnlineDisclaimer.objects.filter(user=user) or \
-                    PrintDisclaimer.objects.filter(user=user):
-                form.user_has_disclaimer = True
-
         else:
             booked_user_ids = Booking.objects.select_related(
                 'event', 'event__event_type', 'user'

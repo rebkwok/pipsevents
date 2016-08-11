@@ -183,6 +183,14 @@ def has_disclaimer(user):
     return has_online_disclaimer(user) or has_print_disclaimer(user)
 
 
+@register.filter
+def disclaimer_medical_info(user):
+    disclaimer = OnlineDisclaimer.objects.select_related('user').get(user=user)
+    return disclaimer.medical_conditions \
+        or disclaimer.joint_problems \
+        or disclaimer.allergies
+
+
 @register.simple_tag
 def get_verbose_field_name(instance, field_name):
     return instance._meta.get_field(field_name).verbose_name.title()

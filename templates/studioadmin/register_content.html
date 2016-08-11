@@ -61,9 +61,15 @@
                                     {{ bookingform.user }}
                                 {% endif %}
                                 </td>
-                                <td class="table-center studioadmin-tbl">{% if bookingform.user_has_disclaimer %}
-                                    <span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>
-                                {% endif %}
+                                <td class="table-center studioadmin-tbl">
+                                    {% if bookingform.instance.user and bookingform.instance.user|has_online_disclaimer %}
+                                        <a href="{% url 'studioadmin:user_disclaimer' bookingform.instance.user.id|encode %}" target="_blank">
+                                            <span id="disclaimer" class="fa fa-file-text-o">{% if bookingform.instance.user|disclaimer_medical_info %}*{% endif %}</span></a>
+                                    {% elif bookingform.instance.user and bookingform.instance.user|has_print_disclaimer %}
+                                        <span id="disclaimer" class="fa fa-check"></span>
+                                    {% else %}
+                                        <span id="disclaimer" class="fa fa-times"></span>
+                                    {% endif %}
                                 </td>
 
                                 {% if bookingform.instance.id %}
