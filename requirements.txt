@@ -25,3 +25,4 @@ beautifulsoup4==4.4.1
 django-responsive==0.3.0
 pycrypto==2.6.1
 simple-crypt==4.1.7
+python-memcached==1.58
