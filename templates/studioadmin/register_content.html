@@ -81,7 +81,7 @@
                                     </td>
                                     <td class="table-center studioadmin-tbl {% if bookingform.instance.id and not bookingform.instance.paid and not print %}register-unpaid{% endif %}">
                                         {% if bookingform.instance.paid %}
-                                            {% if bookingform.paid_by_paypal or bookingform.instance.block %}
+                                            {% if bookingform.instance.id in bookings_paid_by_paypal or bookingform.instance.block %}
                                                 <span class="fa fa-check"></span>
                                                 <span class="hide">{{ bookingform.paid }}</span>
                                             {% else %}

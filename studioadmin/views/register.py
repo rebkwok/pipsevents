@@ -16,6 +16,7 @@ from braces.views import LoginRequiredMixin
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Event, Booking, Block, BlockType
+from payments.models import PaypalBookingTransaction
 from studioadmin.forms import SimpleBookingRegisterFormSet, StatusFilter, \
     RegisterDayForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
@@ -335,6 +336,10 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
         user__in=Booking.objects.filter(event=event).values_list('user__id', flat=True)
     ).values_list('user__id', flat=True)
 
+    bookings_paid_by_paypal = PaypalBookingTransaction.objects.filter(
+        booking__event=event, transaction_id__isnull=False
+    ).values_list('booking__id', flat=True)
+
     return TemplateResponse(
         request, template, {
             'formset': formset, 'event': event, 'status_filter': status_filter,
@@ -344,6 +349,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
             'sidenav_selection': sidenav_selection,
             'users_with_online_disclaimers': users_with_online_disclaimers,
             'users_with_print_disclaimers': users_with_print_disclaimers,
+            'bookings_paid_by_paypal': bookings_paid_by_paypal,
         }
     )
 

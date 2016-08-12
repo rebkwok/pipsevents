@@ -67,7 +67,6 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         self.assertEquals(form.checkbox_paid_id, 'checkbox_paid_0')
         self.assertEquals(form.checkbox_attended_id, 'checkbox_attended_0')
         self.assertEquals(form.checkbox_no_show_id, 'checkbox_no_show_0')
-        self.assertEquals(form.paid_by_paypal, True)
 
     def test_block_queryset_with_other_event_types(self):
         """
