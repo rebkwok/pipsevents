@@ -5,6 +5,7 @@
   with_items:
     - rubygems-integration #for ubuntu 14.04 (older versions may user just rubygems)
     - libsqlite3-dev
+    - ruby-dev
     - ruby1.9.3
 
 #- name: Ruby Update Alternatives
@@ -15,9 +16,14 @@
 #  sudo: yes
 #  shell: update-alternatives --set gem /usr/bin/gem1.9.1
 
+- name: Fix gem types for mailcatcher (https://github.com/sj26/mailcatcher/issues/277)
+  become: true
+  become_user: root
+  gem: name=mime-types version=<3
+
 - name: Install Mailcatcher
   sudo: yes
-  gem: name=mailcatcher state=latest user_install=no
+  gem: name=mailcatcher state=latest user_install=no build_flags=conservative
 
 - name: Add mailcatcher conf file
   sudo: yes
