@@ -68,15 +68,6 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
                 widget=forms.Select(attrs={'class': 'hide'})
             )
 
-            # add field for if booking has been paid by paypal (don't allow
-            # changing paid in register for paypal payments
-            pbts = PaypalBookingTransaction.objects\
-                .select_related('booking').filter(
-                    booking=form.instance
-                ).first()
-            if pbts and pbts.transaction_id:
-                form.paid_by_paypal = True
-
         else:
             booked_user_ids = Booking.objects.select_related(
                 'event', 'event__event_type', 'user'

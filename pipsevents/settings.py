@@ -442,6 +442,15 @@ if env('TRAVIS') or env('HEROKU'):
 def show_toolbar(request):  # pragma: no cover
     return True
 
+
+if 'test' in sys.argv:  # use local cache for tests
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'test-cache',
+        }
+    }
+
 # if DEBUG and 'test' not in sys.argv:  # pragma: no cover
 #     ENABLE_DEBUG_TOOLBAR = True
 #     DEBUG_TOOLBAR_CONFIG = {
