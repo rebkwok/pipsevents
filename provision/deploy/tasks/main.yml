@@ -1,10 +1,10 @@
 ---
 - name: Setup Virtualenv
-  pip: executable=pip3 virtualenv={{ virtualenv_path }} requirements={{ project_root_path }}/requirements.txt
+  pip: virtualenv={{ virtualenv_path }} requirements={{ project_root_path }}/requirements.txt
 
 - name: Install some dev tools
   sudo: yes
-  pip: name={{ item }} executable=pip3 virtualenv={{ virtualenv_path }}
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
     - ipdb
     - ipython
@@ -13,17 +13,16 @@
 - name: Django db
   django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
   with_items:
-    - syncdb
     - migrate
 
-- name: Populate database
-  django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
-  with_items:
-    - setup_fb
-    - load_users
-    - create_event_and_blocktypes
-    - create_timetable
-    - create_events
-    - create_classes
-    - create_bookings
+#- name: Populate database
+#  django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+#  with_items:
+#    - setup_fb
+#    - load_users
+#    - create_event_and_blocktypes
+#    - create_timetable
+#    - create_events
+#    - create_classes
+#    - create_bookings
 
