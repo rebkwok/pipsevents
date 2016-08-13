@@ -7,33 +7,7 @@ from django.utils import timezone
 
 from booking.models import Block, Booking, Event, BlockType
 from payments.models import PaypalBookingTransaction
-
-
-class UserBlockModelChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return "{}{}; exp {}; {} left".format(
-            obj.block_type.event_type.subtype,
-            " ({})".format(obj.block_type.identifier)
-            if obj.block_type.identifier else '',
-            obj.expiry_date.strftime('%d/%m'),
-            obj.block_type.size - obj.bookings_made()
-        )
-
-    def to_python(self, value):
-        if value:
-            return Block.objects.get(id=value)
-
-
-class UserModelChoiceField(forms.ModelChoiceField):
-
-    def label_from_instance(self, obj):
-        return "{} {} ({})".format(
-            obj.first_name, obj.last_name, obj.username
-        )
-
-    def to_python(self, value):
-        if value:
-            return User.objects.get(id=value)
+from studioadmin.fields import UserBlockModelChoiceField
 
 
 class UserBookingInlineFormSet(BaseInlineFormSet):

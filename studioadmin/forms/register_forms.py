@@ -11,15 +11,37 @@ from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Block, Booking, Event
 from payments.models import PaypalBookingTransaction
 
-from studioadmin.forms.user_forms import UserBlockModelChoiceField, \
-    UserModelChoiceField
+from studioadmin.fields import BlockChoiceField, UserBlockModelChoiceField, \
+    UserChoiceField
 
 
 class BookingRegisterInlineFormSet(BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
-
         super(BookingRegisterInlineFormSet, self).__init__(*args, **kwargs)
+
+        self.user_choices = [
+            (user.id, '{} {}'.format(user.first_name, user.last_name))
+            for user in User.objects.all().order_by('first_name')
+            ]
+        self.user_choices.insert(0, ('', '--------'))
+
+        booked_user_ids = Booking.objects.select_related(
+                'event', 'event__event_type', 'user'
+            ).filter(status='OPEN', event=self.instance).values_list(
+                'user__id', flat=True
+            )
+        self.new_user_choices = []
+        for user in self.user_choices:
+            if user[0] in booked_user_ids:
+                continue
+            self.new_user_choices.append(user)
+
+        self.block_choices = [
+            (block.id, block.id) for block in Block.objects.all()
+        ]
+        self.block_choices.insert(0, ('', '--------'))
+
         if self.instance.max_participants:
             self.extra = self.instance.spaces_left
         else:
@@ -39,50 +61,62 @@ class BookingRegisterInlineFormSet(BaseInlineFormSet):
         if form.instance.id:
             user = form.instance.user
             event_type = form.instance.event.event_type
-            available_block = [
-                block for block in Block.objects.select_related(
-                    'block_type', 'block_type__event_type', 'user'
-                ).filter(user=user) if
-                block.active_block()
-                and block.block_type.event_type == event_type
-            ]
+
             if form.instance.block:
                 form.available_block = form.instance.block
-            else:
-                form.available_block = form.instance.block or (
-                    available_block[0] if available_block else None
+                form.fields['block'] = BlockChoiceField(
+                    choices=self.block_choices,
+                    initial=form.instance.block.id,
+                    widget=forms.Select(attrs={'class': 'hide'}),
                 )
-                available_block_ids = [block.id for block in available_block
-                                       ]
-                form.fields['block'] = UserBlockModelChoiceField(
+            else:
+                available_block = [
+                    block for block in Block.objects.select_related(
+                        'block_type', 'block_type__event_type', 'user'
+                    ).filter(user=user) if
+                    block.active_block()
+                    and block.block_type.event_type == event_type
+                ]
+                if available_block:
+                    form.available_block = available_block[0]
+                    available_block_ids = [block.id for block in available_block]
+
+                    form.fields['block'] = UserBlockModelChoiceField(
                     queryset=Block.objects.filter(id__in=available_block_ids),
                     widget=forms.Select(
                         attrs={'class': 'form-control input-xs studioadmin-list'}),
                     required=False,
                     empty_label="Active block not used"
                 )
+                else:
+                    form.available_block = None
+                    form.fields['block'] = BlockChoiceField(
+                        choices=self.block_choices,
+                        widget=forms.Select(attrs={'class': 'hide'}),
+                        required=False
+                    )
 
-            form.fields['user'] = forms.ModelChoiceField(
-                queryset=User.objects.all(),
+            form.fields['user'] = UserChoiceField(
+                choices=self.user_choices,
                 initial=user,
-                widget=forms.Select(attrs={'class': 'hide'})
+                widget=forms.Select(attrs={'class': 'hide'}),
             )
 
         else:
-            booked_user_ids = Booking.objects.select_related(
-                'event', 'event__event_type', 'user'
-            ).filter(status='OPEN', event=self.instance).values_list(
-                'user__id', flat=True
-            )
-
-            form.fields['user'] = UserModelChoiceField(
-                queryset=User.objects.exclude(id__in=booked_user_ids).order_by('first_name'),
+            form.fields['user'] = UserChoiceField(
+                choices=self.new_user_choices,
                 widget=forms.Select(
                     attrs={
                         'class': 'form-control input-xs studioadmin-list',
                         'style': 'max-width: 150px'
                     }
-                )
+                ),
+                initial=''
+            )
+            form.fields['block'] = BlockChoiceField(
+                choices=self.block_choices,
+                widget=forms.Select(attrs={'class': 'hide'}),
+                required=False
             )
 
         checkbox_class = 'regular-checkbox'
