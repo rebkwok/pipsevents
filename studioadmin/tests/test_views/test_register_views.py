@@ -281,7 +281,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, event.slug)
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select id="id_bookings-0-block" '
+            '<select class="hide" id="id_bookings-0-block" '
             'name="bookings-0-block">',
             resp.rendered_content
         )
@@ -342,8 +342,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select class="form-control input-xs '
-            'studioadmin-list" id="id_bookings-0-block" '
+            '<span class="hide"><select class="hide" id="id_bookings-0-block" '
             'name="bookings-0-block">',
             resp.rendered_content
         )
@@ -526,30 +525,6 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         booking = Booking.objects.get(id=self.booking1.id)
         self.assertEqual(booking.block, block)
         self.assertTrue(booking.paid)
-
-    def test_unselecting_block_makes_booking_paid(self):
-        block_type = mommy.make(
-            BlockType, event_type=self.event.event_type
-        )
-        block = mommy.make_recipe(
-            'booking.block', block_type=block_type, user=self.user, paid=True
-        )
-        self.booking1.block = block
-        self.booking1.paid = True
-        self.booking1.save()
-        self.assertTrue(block.active_block())
-
-        formset_data = self.formset_data({
-            'bookings-0-block': '',
-            'formset_submitted': 'Save changes'
-        })
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
-        )
-        booking = Booking.objects.get(id=self.booking1.id)
-        self.assertIsNone(booking.block)
-        self.assertFalse(booking.paid)
 
     def test_can_add_new_booking(self):
 

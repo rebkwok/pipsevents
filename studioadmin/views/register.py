@@ -281,13 +281,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                 request,
                 mark_safe(
                     "Please correct the following errors:{}{}".format(
-                        '</br>'.join(
-                            ["{}".format(error) for error in formset.errors]
-                        ) if formset.errors else '',
-                        '</br>'.join(
-                            ["{}".format(error) for error
-                             in formset.non_form_errors()]
-                        ) if formset.non_form_errors() else ''
+                        ''.join(["{}".format(error) for error in formset.errors]),
+                        ''.join(["{}".format(err)
+                                 for err in formset.non_form_errors()])
                     )
                 )
             )

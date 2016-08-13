@@ -101,7 +101,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
 
     def test_block_queryset_with_inactive_block(self):
         """
-        Only active blocks for this user should appear in the block dropdown
+        Block dropdown hidden if no active blocks
         """
         self.active_block.paid = False
         self.active_block.save()
@@ -111,7 +111,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         form = formset.forms[0]
         self.assertEquals(Block.objects.filter(user=self.user).count(), 1)
         block_field = form.fields['block']
-        self.assertFalse(block_field.queryset)
+        self.assertEquals(block_field.widget.attrs, {'class': 'hide'})
 
     def test_block_queryset_with_expired_block(self):
         """
