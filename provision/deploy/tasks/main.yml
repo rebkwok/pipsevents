@@ -1,6 +1,6 @@
 ---
 - name: Setup Virtualenv
-  pip: virtualenv={{ virtualenv_path }} requirements={{ project_root_path }}/requirements.txt
+  pip: virtualenv={{ virtualenv_path }} requirements={{ project_root_path }}/requirements.txt virtualenv_python=python3.4
 
 - name: Install some dev tools
   sudo: yes
