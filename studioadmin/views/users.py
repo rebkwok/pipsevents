@@ -38,12 +38,10 @@ NAME_FILTERS = (
 )
 
 
-def _get_name_filter_available(search_text):
-    queryset = User.objects.filter(
-        Q(first_name__icontains=search_text) |
-        Q(last_name__icontains=search_text) |
-        Q(username__icontains=search_text)
-    )
+def _get_name_filter_available(queryset):
+    names_list = queryset.distinct().values_list('first_name', flat=True)
+    letter_set = set([name[0].lower() for name in names_list if name])
+
     name_filter_options = []
     for option in NAME_FILTERS:
         if option == "All":
@@ -51,9 +49,8 @@ def _get_name_filter_available(search_text):
         else:
             name_filter_options.append(
                 {
-                    'value': option, 
-                    'available': queryset.filter(first_name__istartswith=option)
-                    .exists()
+                    'value': option,
+                    'available': option.lower() in letter_set
                 }
             )
     return name_filter_options
@@ -89,17 +86,16 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         return queryset
 
     def get_context_data(self):
+        queryset = self.get_queryset()
         context = super(UserListView,  self).get_context_data()
         context['sidenav_selection'] = 'users'
         context['search_submitted'] = self.request.GET.get('search_submitted')
         context['active_filter'] = self.request.GET.get('filter',  'All')
         search_text = self.request.GET.get('search',  '')
         reset = self.request.GET.get('reset')
-        context['filter_options'] = _get_name_filter_available(
-            '' if reset else search_text
-        )
+        context['filter_options'] = _get_name_filter_available(queryset)
 
-        num_results = self.get_queryset().count()
+        num_results = queryset.count()
         total_users = User.objects.count()
 
         if reset:
@@ -186,8 +182,7 @@ def toggle_print_disclaimer(request,  user_id):
 def toggle_subscribed(request,  user_id):
     user_to_change = User.objects.get(id=user_id)
     group, _ = Group.objects.get_or_create(name='subscribed')
-    subscribed = group in user_to_change.groups.all()
-    if subscribed:
+    if user_to_change.subscribed():
         group.user_set.remove(user_to_change)
         ActivityLog.objects.create(
             log="User {} {} ({}) unsubscribed from mailing list by "

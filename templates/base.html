@@ -14,7 +14,8 @@
         {% block extra_head %}
         {% endblock %}
 
-        <link rel="shortcut icon" href="{{ STATIC_URL }}/favicon.ico">
+        <link rel="shortcut icon" href="{% static 'booking/images/favicon.ico' %}" type="image/vnd.microsoft.icon">
+        <link rel="icon" type="image/png" href="{% static 'booking/images/icon.png' %}">
 
       {% check_debug as is_debug_on %}
 
