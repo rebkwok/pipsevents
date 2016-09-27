@@ -43,7 +43,7 @@ IPN_POST_PARAMS = {
     "custom": b"booking 1",
     "payer_status": b"verified",
     "payment_status": b"Completed",
-    "business": b"thewatermelonstudio%40hotmail.com",
+    "business": b(TEST_RECEIVER_EMAIL),
     "quantity": b"1",
     "verify_sign": b"An5ns1Kso7MWUdW4ErQKJJJ4qi4-AqdZy6dD.sGO3sDhTf1wAbuO2IZ7",
     "payer_email": b"test_user@gmail.com",
@@ -1700,7 +1700,7 @@ class PaypalSignalsTests(TestCase):
         self.assertTrue(ppipn.flag)
         self.assertEqual(
             ppipn.flag_info,
-            'Invalid receiver_email ({})'.format(TEST_RECEIVER_EMAIL)
+            'Invalid business email ({})'.format(TEST_RECEIVER_EMAIL)
         )
 
         booking.refresh_from_db()
@@ -1717,7 +1717,7 @@ class PaypalSignalsTests(TestCase):
         )
         self.assertIn(
             'The exception raised was '
-            '"Invalid receiver_email ({})'.format(TEST_RECEIVER_EMAIL),
+            '"Invalid business email ({})'.format(TEST_RECEIVER_EMAIL),
             support_email.body
         )
 

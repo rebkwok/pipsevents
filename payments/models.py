@@ -352,9 +352,9 @@ def payment_received(sender, **kwargs):
 
     try:
         if obj_type != 'paypal_test' \
-                and get_paypal_email(obj, obj_type) != ipn_obj.receiver_email:
+                and get_paypal_email(obj, obj_type) != ipn_obj.business:
             ipn_obj.set_flag(
-                "Invalid receiver_email (%s)" % ipn_obj.receiver_email
+                "Invalid business email (%s)" % ipn_obj.business
             )
             ipn_obj.save()
             raise PayPalTransactionError(ipn_obj.flag_info)
@@ -642,14 +642,14 @@ def payment_not_received(sender, **kwargs):
             send_mail(
                 'WARNING! Invalid Payment Notification received from PayPal',
                 'PayPal sent an invalid transaction notification while '
-                'attempting to process payment for {}.\n\nThe flag '
+                'attempting to process payment for {} {}.\n\nThe flag '
                 'info was "{}"'.format(
                     obj_type.title(),
                     'payment to paypal email {}'.format(
                         additional_data['test_paypal_email']
-                    ) if obj_type == 'paypal_test' else
-                    'id {}'.format(obj.id),
-                    ipn_obj.flag_info),
+                    ) if obj_type == 'paypal_test' else 'id {}'.format(obj.id),
+                    ipn_obj.flag_info
+                ),
                 settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
                 fail_silently=False)
 
