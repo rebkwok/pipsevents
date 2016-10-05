@@ -11,7 +11,6 @@ class UserChoiceField(forms.ChoiceField):
     def to_python(self, value):
         if value:
             return User.objects.get(id=value)
-        return value
 
     def validate(self, value):
         if value:
@@ -29,7 +28,6 @@ class BlockChoiceField(forms.ChoiceField):
     def to_python(self, value):
         if value:
             return Block.objects.get(id=value)
-        return None
 
     def validate(self, value):
         if value:

@@ -15,7 +15,7 @@
                     {% elif event.event_type.event_type == 'CL' %}<a href="{% url 'booking:lesson_detail' event.slug %}">{% endif %}{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h3>
                 <h4>Are you sure?</h4>
                 {% if event.allow_booking_cancellation and event.can_cancel %}
-                    {% if booked_with_block %}
+                    {% if booked_with_block and not booking.block.expired %}
                     <p>You used a block for this booking; your block will be updated automatically.</p>
                     {% elif event.event_type.event_type != 'EV' %}
                         <p>Please note that this booking is transferable but not refundable.

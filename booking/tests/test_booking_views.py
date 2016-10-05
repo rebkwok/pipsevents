@@ -1894,7 +1894,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
     def test_cancelling_sends_email_to_user_and_studio_if_applicable(self):
         """ emails are always sent to user; only sent to studio if previously
-        direct paid
+        direct paid and not eligible for transfer
         """
         event_with_cost = mommy.make_recipe('booking.future_EV', cost=10)
         booking = mommy.make_recipe(
@@ -1907,7 +1907,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(user_mail.to, [self.user.email])
 
         booking.status = 'OPEN'
-        booking.block = mommy.make_recipe('booking.block_5')
+        # make a block that isn't expired
+        booking.block = mommy.make_recipe(
+            'booking.block_5', start_date=timezone.now()
+        )
         booking.save()
         self._delete_response(self.user, booking)
         # only 1 email sent for cancelled booking paid with block
@@ -2419,6 +2422,87 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         block = Block.objects.latest('id')
         self.assertEqual(block.user, user5)
         self.assertEqual(block.transferred_booking_id, direct_paid_booking.id)
+
+    def test_cancel_expired_block_paid_creates_transfer_block(self):
+        """
+        block paid, but block now expired, does create transfers for PC and RH
+        """
+        self.assertFalse(Block.objects.exists())
+
+        pc = mommy.make_recipe('booking.future_PC', cost=10)
+        ev = mommy.make_recipe('booking.future_EV', cost=10)
+        rh = mommy.make_recipe('booking.future_RH', cost=10)
+
+        # PC expired block paid
+        user1 = mommy.make_recipe('booking.user')
+        mommy.make_recipe('booking.online_disclaimer', user=user1)
+        block_pc = mommy.make_recipe(
+            'booking.block', block_type__event_type=pc.event_type,
+            block_type__duration=2,
+            user=user1, start_date=timezone.now() - timedelta(days=100)
+        )
+        pc_block_booking = mommy.make_recipe(
+            'booking.booking', user=user1, event=pc, block=block_pc,
+        )
+        self.assertTrue(pc_block_booking.paid)
+        self.assertTrue(pc_block_booking.payment_confirmed)
+        self.assertTrue(block_pc.expired)
+
+        self._delete_response(user1, pc_block_booking)
+
+        pc_block_booking.refresh_from_db()
+        self.assertTrue(
+            Block.objects.filter(
+                block_type__identifier='transferred',
+                transferred_booking_id=pc_block_booking.id
+            ).exists()
+        )
+
+        # RH expired block paid
+        block_rh = mommy.make_recipe(
+            'booking.block', block_type__event_type=rh.event_type,
+            block_type__duration=2,
+            user=user1, start_date=timezone.now() - timedelta(days=100)
+        )
+        rh_block_booking = mommy.make_recipe(
+            'booking.booking', user=user1, event=rh, block=block_rh,
+        )
+        self.assertTrue(rh_block_booking.paid)
+        self.assertTrue(rh_block_booking.payment_confirmed)
+        self.assertTrue(block_rh.expired)
+
+        self._delete_response(user1, rh_block_booking)
+
+        rh_block_booking.refresh_from_db()
+        self.assertTrue(
+            Block.objects.filter(
+                block_type__identifier='transferred',
+                transferred_booking_id=rh_block_booking.id
+            ).exists()
+        )
+
+        # EV expired block paid
+        block_ev = mommy.make_recipe(
+            'booking.block', block_type__event_type=ev.event_type,
+            block_type__duration=2,
+            user=user1, start_date=timezone.now() - timedelta(days=100)
+        )
+        ev_block_booking = mommy.make_recipe(
+            'booking.booking', user=user1, event=ev, block=block_ev,
+        )
+        self.assertTrue(ev_block_booking.paid)
+        self.assertTrue(ev_block_booking.payment_confirmed)
+        self.assertTrue(block_ev.expired)
+
+        self._delete_response(user1, ev_block_booking)
+
+        ev_block_booking.refresh_from_db()
+        self.assertFalse(
+            Block.objects.filter(
+                block_type__identifier='transferred',
+                transferred_booking_id=ev_block_booking.id
+            ).exists()
+        )
 
 
 class BookingUpdateViewTests(TestSetupMixin, TestCase):

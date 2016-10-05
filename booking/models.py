@@ -217,7 +217,8 @@ def check_duplicate_blocktype(sender, instance, **kwargs):
     # makes sure we don't create duplicate
     if sender == BlockType:
         if not instance.id and instance.identifier:
-            if instance.identifier == "free class" or instance.identifier == "transferred":
+            if instance.identifier == "free class" \
+                    or instance.identifier == "transferred":
                 if BlockType.objects.filter(
                     event_type=instance.event_type,
                     identifier=instance.identifier
