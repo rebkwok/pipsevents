@@ -863,12 +863,19 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
 
         if can_cancel_and_refund:
             transfer_block_created = False
-            if not booking.block and booking.paid:
+            if booking.paid and (not booking.block or booking.block.expired):
                 # booking was paid directly, either in cash or by paypal
-                # OR booking was free class but not made with free class block
-                # if event is CL or RH, get or create transfer block type, create
-                # transfer block for user and set transferred_booking_id to the
-                # cancelled one
+                # OR booking was free class but not made with free block
+                # OR booking was made with block (normal/free/transfer) but
+                # block has now expired and we can't credit by reassigning
+                # space to block.
+                # NOTE: this does mean that potentially someone could defer
+                # a class indefinitely by cancelling and rebooking, but
+                # let's assume that would be a rare occurrence
+
+                # If event is CL or RH, get or create transfer block type,
+                # create transfer block for user and set transferred_
+                # booking_id to the cancelled one
                 if booking.event.event_type.event_type != 'EV':
                     block_type, _ = BlockType.objects.get_or_create(
                         event_type=booking.event.event_type,
@@ -887,21 +894,24 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
 
                 # send email to studio only for 'EV' which are not transferable
                 else:
-                    send_mail('{} {} {} has just cancelled a booking for {}'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                        'ACTION REQUIRED!' if not booking.block else '',
-                        booking.user.username,
-                        booking.event.name
-                        ),
-                              get_template('booking/email/to_studio_booking_cancelled.txt').render(
-                                  {
-                                      'host': host,
-                                      'booking': booking,
-                                      'event': booking.event,
-                                      'date': booking.event.date.strftime('%A %d %B'),
-                                      'time': booking.event.date.strftime('%I:%M %p'),
-                                  }
-                              ),
+                    send_mail(
+                        '{} {} {} has just cancelled a booking for {}'.format(
+                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                            'ACTION REQUIRED!' if not booking.block else '',
+                            booking.user.username,
+                            booking.event.name
+                            ),
+                          get_template(
+                              'booking/email/to_studio_booking_cancelled.txt'
+                          ).render(
+                              {
+                                  'host': host,
+                                  'booking': booking,
+                                  'event': booking.event,
+                                  'date': booking.event.date.strftime('%A %d %B'),
+                                  'time': booking.event.date.strftime('%I:%M %p'),
+                              }
+                          ),
                         settings.DEFAULT_FROM_EMAIL,
                         [settings.DEFAULT_STUDIO_EMAIL],
                         fail_silently=False)
