@@ -92,6 +92,29 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(booked_event.id in booked_events)
 
+    def test_event_list_booked_paid_events(self):
+        """
+        test that booked events are shown on listing
+        """
+        # create a booking for this user
+        booked_event = Event.objects.all()[0]
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=booked_event,
+            paid=True, payment_confirmed=True
+        )
+        resp = self._get_response(self.user, 'events')
+        booked_events = [event for event in resp.context_data['booked_events']]
+        self.assertEquals(len(booked_events), 1)
+        self.assertTrue(booked_event.id in booked_events)
+        self.assertNotIn('pay_button', resp.rendered_content)
+
+        # unpaid booking
+        booking.paid = False
+        booking.payment_confirmed = False
+        booking.save()
+        resp = self._get_response(self.user, 'events')
+        self.assertIn('pay_button', resp.rendered_content)
+
     def test_event_list_shows_only_current_user_bookings(self):
         """
         Test that only user's booked events are shown as booked
@@ -250,11 +273,25 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         Test that booked event is shown as booked
         """
         #create a booking for this event and user
-        mommy.make_recipe('booking.booking', user=self.user, event=self.event)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=self.event, paid=True,
+            payment_confirmed=True
+        )
         resp = self._get_response(self.user, self.event, 'event')
         self.assertTrue(resp.context_data['booked'])
         self.assertEquals(resp.context_data['booking_info_text'],
                           'You have booked for this event.')
+        self.assertNotIn('pay_button', resp.rendered_content)
+
+        # make booking unpaid
+        booking.paid = False
+        booking.payment_confirmed = False
+        booking.save()
+        resp = self._get_response(self.user, self.event, 'event')
+        self.assertTrue(resp.context_data['booked'])
+        self.assertEquals(resp.context_data['booking_info_text'],
+                          'You have booked for this event.')
+        self.assertIn('pay_button', resp.rendered_content)
 
     def test_with_booked_event_for_different_user(self):
         """

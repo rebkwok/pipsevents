@@ -1,0 +1,7 @@
+{% if booking_id %}
+<a {% if not payment_open %}class="disabled"{% endif %} href="{% url 'booking:update_booking' booking_id %}">
+   <div id='pay_button' class="btn btn-info table-btn {% if not payment_open %}disabled{% endif %}">Pay now</div>
+</a>
+{% else %}
+<span class="fa fa-check"></span>
+{% endif %}

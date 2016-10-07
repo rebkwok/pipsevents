@@ -86,6 +86,10 @@
 
                         {% if booked %}
                             <h5>{{ booking_info_text }}</h5>
+                            {% if booked and not booking.paid %}
+                                <a href="{% url 'booking:update_booking' booking.id %}" {% if not event.payment_open %}class="disabled"{% endif %}>
+                                        <div id='pay_button' class="btn btn-success table-btn {% if not event.payment_open %}disabled{% endif %}">Pay now</div></a>
+                            {% endif %}
                             <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
                              confirm payment and to check if your place has been confirmed{% endif %}.</h5>
                         {% else %}
