@@ -303,3 +303,13 @@ def voucher_expired(voucher):
             return True
 
     return False
+
+@register.inclusion_tag('booking/includes/payment_button.html')
+def get_payment_button(event, user):
+    booking = Booking.objects.get(event=event, user=user)
+    if not (booking.paid and booking.payment_confirmed):
+        return {
+            'booking_id': booking.id,
+            'payment_open': booking.event.payment_open
+        }
+    return {}

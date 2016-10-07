@@ -215,7 +215,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.booking', event=event, user=self.user)
         resp = self._get_event_detail(self.user, event, "lesson")
         self.assertTrue(resp.context_data['booked'])
-        self.assertNotIn('waiting_list', resp.context_data)
+        self.assertFalse(resp.context_data['waiting_list'])
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))

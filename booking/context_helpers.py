@@ -56,25 +56,22 @@ def get_event_context(context, event, user):
     context['payment_text'] = payment_text
 
     # booked flag
-    user_booked_events = Booking.objects.filter(
-        user=user, status='OPEN', no_show=False
-    ).values_list('event__id', flat=True)
-    user_cancelled_events = Booking.objects.filter(
-        user=user, status='CANCELLED'
-    ).values_list('event__id', flat=True)
-    user_no_show_event = Booking.objects.filter(
-        user=user, status='OPEN', no_show=True
-    ).values_list('event__id', flat=True)
-    booked = event.id in user_booked_events
-    cancelled = (event.id in user_cancelled_events) \
-        or (event.id in user_no_show_event)
+    user_bookings = Booking.objects.filter(
+        event=event, user=user, status='OPEN', no_show=False
+    )
+    user_cancelled = Booking.objects.filter(
+        event=event, user=user, status='CANCELLED'
+    ).exists()
+    user_no_show = Booking.objects.filter(
+        event=event, user=user, status='OPEN', no_show=True
+    ).exists()
+    booked = bool(user_bookings)
+    cancelled = user_cancelled or user_no_show
 
     # waiting_list flag
-    try:
-        WaitingListUser.objects.get(user=user, event=event)
-        context['waiting_list'] = True
-    except WaitingListUser.DoesNotExist:
-        pass
+    context['waiting_list'] = WaitingListUser.objects.filter(
+        user=user, event=event
+    ).exists()
 
     # booking info text and bookable
     booking_info_text = ""
@@ -83,6 +80,7 @@ def get_event_context(context, event, user):
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)
         context['booked'] = True
+        context['booking'] = user_bookings[0]
     elif not disclaimer:
         booking_info_text = "<strong>Please complete a <a href='{}' " \
                             "target=_blank>disclaimer form</a> before " \
