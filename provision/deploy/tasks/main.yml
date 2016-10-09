@@ -10,6 +10,9 @@
     - ipython
     - django-extensions
 
+- name: Install .env file
+  template: src=env.j2 dest="{{ project_root_path }}/pipsevents/.env" force=no
+
 - name: Django db
   django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
   with_items:
