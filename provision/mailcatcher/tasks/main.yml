@@ -1,6 +1,6 @@
 ---
 - name: Install ruby requirements
-  sudo: yes
+  become: true
   apt: pkg={{ item }} state=installed
   with_items:
     - rubygems-integration #for ubuntu 14.04 (older versions may user just rubygems)
@@ -10,24 +10,23 @@
     - ruby2.0
 
 #- name: Ruby Update Alternatives
-#  sudo: yes
+#  become: true
 #  shell: update-alternatives --set ruby /usr/bin/ruby1.9.1
 
 #- name: Gem Update Alternatives
-#  sudo: yes
+#  become: true
 #  shell: update-alternatives --set gem /usr/bin/gem1.9.1
 
 - name: Fix gem types for mailcatcher (https://github.com/sj26/mailcatcher/issues/277)
   become: true
-  become_user: root
   gem: name=mime-types version=<3
 
 - name: Install Mailcatcher
-  sudo: yes
+  become: true
   gem: name=mailcatcher state=latest user_install=no build_flags=conservative
 
 - name: Add mailcatcher conf file
-  sudo: yes
+  become: true
   copy: src=mailcatcher.conf dest=/etc/init/mailcatcher.conf
 
 - name: Make sure Mailcatcher is not running
