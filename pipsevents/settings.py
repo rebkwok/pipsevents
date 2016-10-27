@@ -366,7 +366,7 @@ CKEDITOR_CONFIGS = {
           'TextColor', 'BGColor'],
          ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-',
           'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-',
-          'Table', 'HorizontalRule', 'Smiley', 'SpecialChar'],
+          'Table', 'HorizontalRule', 'Smiley', 'Image', 'SpecialChar'],
          ['Format', 'Font', 'FontSize', 'Link']
         ],
         'height': 200,

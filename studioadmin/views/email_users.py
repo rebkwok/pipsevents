@@ -137,7 +137,7 @@ def email_users_view(request, mailing_list=False,
                     ' [TEST EMAIL]' if test_email else ''
                 )
                 from_address = form.cleaned_data['from_address']
-                message = form.cleaned_data['message']
+                message = mark_safe(form.cleaned_data['message'])
                 cc = form.cleaned_data['cc']
 
                 # bcc recipients
