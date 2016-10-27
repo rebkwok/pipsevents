@@ -7,6 +7,8 @@ from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils import timezone
 from booking.models import Event
 
+from ckeditor.widgets import CKEditorWidget
+
 
 def get_event_names(event_type):
 
@@ -79,7 +81,8 @@ class EmailUsersForm(forms.Form):
         initial=True,
         required=False
     )
-    message = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control email-message',
-                                     'rows': 10}),
-        required=True)
+
+    message = forms.CharField(widget=CKEditorWidget(
+                attrs={'class': 'form-control container-fluid'},
+                config_name='studioadmin',
+            ))
