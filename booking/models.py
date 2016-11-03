@@ -194,7 +194,7 @@ class BlockType(models.Model):
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     duration = models.PositiveIntegerField(
         help_text="Number of months until block expires")
-    active = models.BooleanField(default=True)
+    active = models.BooleanField(default=False)
     paypal_email = models.EmailField(
         default=settings.DEFAULT_PAYPAL_EMAIL,
         help_text='Email for the paypal account to be used for payment.  '

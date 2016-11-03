@@ -457,6 +457,62 @@ class BlockTypeAdminTests(TestCase):
             '2 months'
         )
 
+    def test_active_block_type_warnings(self):
+        user = User.objects.create_superuser(
+            username='test', email='test@test.com', password='test'
+        )
+        self.client.login(username=user.username, password='test')
+        pc = mommy.make_recipe('booking.event_type_PC')
+        data = {
+            'identifier': 'test',
+            'size': 2,
+            'event_type': pc.id,
+            'duration': 2,
+            'active': True,
+            'cost': 0,
+            'paypal_email': 'test@test.com'
+        }
+        url = reverse('admin:booking_blocktype_add')
+        self.assertFalse(BlockType.objects.exists())
+        response = self.client.post(url, data, follow=True)
+        self.assertEqual(BlockType.objects.count(), 1)
+        self.assertIn(
+            '{} is active and will appear on site for purchase; identifier '
+            'is not standard or sale type; please check this is '
+            'correct.'.format(BlockType.objects.latest('id')),
+            response.rendered_content
+        )
+
+        # no warning if not active
+        data.update(active=False)
+        response = self.client.post(url, data, follow=True)
+        self.assertEqual(BlockType.objects.count(), 2)
+        self.assertNotIn(
+            'is active and will appear on site for purchase; identifier '
+            'is not standard or sale type',
+            response.rendered_content
+        )
+
+        # no warning if active and identifier is sale or standard
+        data.update(active=True, identifier='standard')
+        response = self.client.post(url, data, follow=True)
+        self.assertEqual(BlockType.objects.count(), 3)
+        self.assertNotIn(
+            'is active and will appear on site for purchase; identifier '
+            'is not standard or sale type',
+            response.rendered_content
+        )
+
+        # no warning if active and identifier is sale or standard
+        data.update(identifier='sale')
+        response = self.client.post(url, data, follow=True)
+        self.assertEqual(BlockType.objects.count(), 4)
+        self.assertNotIn(
+            'is active and will appear on site for purchase; identifier '
+            'is not standard or sale type',
+            response.rendered_content
+        )
+
 
 class EventVoucherAdminTests(TestCase):
 

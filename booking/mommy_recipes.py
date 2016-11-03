@@ -71,15 +71,17 @@ past_class = Recipe(Event,
                     payment_due_date=past-timedelta(10)
                     )
 
-blocktype = Recipe(BlockType)
+blocktype = Recipe(BlockType, active=True)
 
 blocktype5 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
-                    size=5, duration=2)
+                    size=5, duration=2, active=True)
 blocktype10 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
-                     size=10, duration=4)
+                     size=10, duration=4, active=True)
 blocktypePP10 = Recipe(BlockType, event_type=foreign_key(event_type_PP),
-                     size=10, duration=4)
-blocktype_other = Recipe(BlockType, event_type=foreign_key(event_type_OC))
+                     size=10, duration=4, active=True)
+blocktype_other = Recipe(
+    BlockType, event_type=foreign_key(event_type_OC), active=True
+)
 
 free_blocktype = Recipe(
     BlockType, event_type=foreign_key(event_type_PC), size=1, duration=1,
