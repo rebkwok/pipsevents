@@ -422,6 +422,19 @@ class BlockTypeAdmin(admin.ModelAdmin):
         return u"\u00A3{:.2f}".format(obj.cost)
     formatted_cost.short_description = "Cost"
 
+    def save_form(self, request, form, change):
+        blocktype = super(BlockTypeAdmin, self).save_form(request, form, change)
+        identifier = form.cleaned_data.get('identifier')
+        active = form.cleaned_data.get('active')
+        if active and identifier not in ['standard', 'sale']:
+            messages.warning(
+                request,
+                '{} is active and will appear on site for purchase; identifier '
+                'is not standard or sale type; please check this is '
+                'correct.'.format(blocktype)
+            )
+        return blocktype
+
 
 class WaitingListUserAdmin(admin.ModelAdmin):
     fields = ('user', 'event')

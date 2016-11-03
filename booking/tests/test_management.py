@@ -2209,9 +2209,6 @@ class ActivateBlockTypeTests(TestCase):
         mommy.make_recipe(
             'booking.blocktype5', identifier='test', _quantity=5
         )
-        self.assertEqual(
-            BlockType.objects.filter(active=True).count(), 5
-        )
         management.call_command(
             'activate_blocktypes', 'test', 'off'
         )
