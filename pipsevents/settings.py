@@ -19,7 +19,8 @@ env = environ.Env(DEBUG=(bool, False),
                   USE_MAILCATCHER=(bool, False),
                   TRAVIS=(bool, False),
                   HEROKU=(bool, False),
-                  SEND_ALL_STUDIO_EMAILS=(bool, False)
+                  SEND_ALL_STUDIO_EMAILS=(bool, False),
+                  AUTO_BOOK_EMAILS=(list, [])
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -456,3 +457,5 @@ if 'test' in sys.argv:  # use local cache for tests
 #     DEBUG_TOOLBAR_CONFIG = {
 #         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
 #     }
+
+AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
