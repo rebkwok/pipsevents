@@ -1,10 +1,10 @@
 from model_mommy import mommy
+
+from django.conf import settings
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
-from django.contrib.messages.storage.fallback import FallbackStorage
-
-from accounts.models import PrintDisclaimer
+from django.test import TestCase, override_settings
 
 from booking.models import Booking, WaitingListUser
 from booking.views import BookingListView, BookingCreateView, \
@@ -584,7 +584,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
             Booking.objects.filter(event=event, status='OPEN').count(),
             3
         )
-        resp = self._booking_delete(self.user, booking)
+        self._booking_delete(self.user, booking)
         self.assertEqual(
             Booking.objects.filter(event=event, status='OPEN').count(),
             2
@@ -596,6 +596,132 @@ class WaitingListTests(TestSetupMixin, TestCase):
         self.assertEqual(
             sorted(wl_email.bcc),
             ['test0@test.com', 'test1@test.com', 'test2@test.com']
+        )
+
+    @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
+    def test_auto_book_user_on_waiting_list(self):
+        """
+        Test that emails listed in AUTO_BOOK_EMAILS are automatically booked
+        if on waiting list
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC',
+            max_participants=3
+        )
+        mommy.make_recipe(
+            'booking.booking', event=event, _quantity=2
+        )
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event
+        )
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        self._booking_delete(self.user, booking)
+        # Now there are only 2 booking; no auto-bookings made
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            2
+        )
+
+        # foo@test.com on waiting list
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event,
+            user__email='foo@test.com'
+        )
+
+        # make and delete booking again
+        booking.status = 'OPEN'
+        booking.save()
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+
+        self._booking_delete(self.user, booking)
+        # there are still 3 bookings because foo@test.com has been auto-booked
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        event.refresh_from_db()
+
+        self.assertIn(
+            'foo@test.com',
+            [booking.user.email for booking in event.bookings.all()]
+        )
+
+        # 5 emails in mail box;
+        # First booking cancellation: cancel email to user and
+        # a single email with bcc to waiting list users
+        # 2nd cancellation: cancel email to user, one email to waiting list,
+        # one email to auto booked user
+        self.assertEqual(len(mail.outbox), 5)
+        auto_book_email = mail.outbox[4]
+        self.assertEqual(auto_book_email.to, ['foo@test.com'])
+        self.assertEqual(
+            auto_book_email.subject, 'Booking for {}'.format(event)
+        )
+
+    @override_settings(AUTO_BOOK_EMAILS=['foo@test.com', 'bar@test.com'])
+    def test_auto_book_only_first_user(self):
+        """
+        Test that only one auto booking is made, and only for the first email
+        in the AUTO_BOOK_EMAILS list
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC',
+            max_participants=3
+        )
+        mommy.make_recipe(
+            'booking.booking', event=event, _quantity=2
+        )
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event
+        )
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=event,
+                user__email='test{}@test.com'.format(i)
+            )
+        for email in settings.AUTO_BOOK_EMAILS:
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=event,
+                user__email=email
+            )
+
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        self._booking_delete(self.user, booking)
+        # there are still 3 bookings because foo@test.com has been auto-booked
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        event.refresh_from_db()
+        # only the first email in the list is autobooked
+        self.assertNotIn(
+            'bar@test.com',
+            [booking.user.email for booking in event.bookings.all()]
+        )
+        self.assertIn(
+            'bar@test.com',
+            [wl.user.email for wl in event.waitinglistusers.all()]
+        )
+        self.assertNotIn(
+            'foo@test.com',
+            [wl.user.email for wl in event.waitinglistusers.all()]
         )
 
 
