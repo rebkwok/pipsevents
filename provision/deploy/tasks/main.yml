@@ -3,12 +3,15 @@
   pip: virtualenv={{ virtualenv_path }} requirements={{ project_root_path }}/requirements.txt virtualenv_python=python3.4
 
 - name: Install some dev tools
-  sudo: yes
+  become: true
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
     - ipdb
     - ipython
     - django-extensions
+
+- name: Install .env file
+  template: src=env.j2 dest="{{ project_root_path }}/pipsevents/.env" force=no
 
 - name: Django db
   django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
