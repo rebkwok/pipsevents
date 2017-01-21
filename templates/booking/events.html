@@ -26,7 +26,7 @@
                         <table class="table">
                             <tr class="success">
                                 {% if user.is_authenticated %}
-                                    <th class="table-center">Booked</th>
+                                    <th colspan="2">Booked</th>
                                 {% endif %}
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'room_hire' %}Room Hire{% endif %}</th>
@@ -43,6 +43,11 @@
                             {% for event in events %}
                                 <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
                                 {% if user.is_authenticated %}
+                                    <td class="table-center">
+                                        {% if event.id in booked_events %}
+                                            <span class="fa fa-check"></span>
+                                        {% endif %}
+                                    </td>
                                     <td class="table-center">
                                         {% if event.id in booked_events %}
                                             {% get_payment_button event user %}

@@ -1,0 +1,18 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>You have been booked into {{ event }}.  You still need to pay!</p>
+
+    {% if booking.user.is_superuser %}
+    <p><a href="{{ host }}/studioadmin/users/{{ booking.user.id }}/bookings/future">Your admin page</a></p>
+    {% endif %}
+
+    <p><a href="{{ host }}/booking/update/{{ booking.id }}">Pay for this booking</a></p>
+
+    <p><a href="{{ host }}/booking/cancel/{{ booking.id }}">Cancel this booking</a></p>
+
+</div>
+
+{% endblock %}

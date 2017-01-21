@@ -1,7 +1,4 @@
-{% if booking_id %}
-<a {% if not payment_open %}class="disabled"{% endif %} href="{% url 'booking:update_booking' booking_id %}">
-   <div id='pay_button' class="btn btn-info table-btn {% if not payment_open %}disabled{% endif %}">Pay now</div>
-</a>
-{% else %}
-<span class="fa fa-check"></span>
-{% endif %}
+{% if unpaid %}
+<a {% if not payment_open %} class="disabled"{% endif %} href="{% url 'booking:update_booking' booking.id %}"><div id='pay_button' class="btn btn-info table-btn {% if not payment_open %}disabled{% endif %}">Pay now</div></a>
+{% endif %}<div class="inc-btm-space"></div>
+<a href="{% url 'booking:delete_booking' booking.id %}"><div class="btn btn-danger table-btn">Cancel booking</div></a>
