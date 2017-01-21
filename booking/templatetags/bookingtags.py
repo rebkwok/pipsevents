@@ -309,7 +309,8 @@ def get_payment_button(event, user):
     booking = Booking.objects.get(event=event, user=user)
     if not (booking.paid and booking.payment_confirmed):
         return {
-            'booking_id': booking.id,
-            'payment_open': booking.event.payment_open
+            'unpaid': True,
+            'booking': booking,
+            'payment_open': booking.event.payment_open,
         }
-    return {}
+    return {'booking': booking}

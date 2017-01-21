@@ -519,18 +519,18 @@ a.disabled {
 }
 
 .inc-btm-space {
-    padding-bottom: 2;
+    padding-bottom: 2px;
 }
 
 .booking-btn {
-    width: 120;
+    width: 120px;
     }
 
 .message {
-    margin-top: 20;
-    margin-bottom: -10;
-    margin-left: 1;
-    margin-right: 1;
+    margin-top: 20px;
+    margin-bottom: -10px;
+    margin-left: 1px;
+    margin-right: 1px;
 }
 
 .filter-row {
@@ -542,7 +542,7 @@ a.disabled {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     padding-left: 0 !important;
-    margin-top: 2 !important;
+    margin-top: 2px !important;
     margin-left: 0 !important;
     margin-bottom: 0 !important;
 }
@@ -584,7 +584,7 @@ a.disabled {
 }
 
 .selectpicker {
-   font-size: 12;
+   font-size: 12px;
 }
 
 @media(max-width:767px){
@@ -993,6 +993,7 @@ label.control-label {
 .vspace {
     padding-bottom: 15px;
 }
+
 li>a.adminmenu {
     padding-bottom: 1px;
     padding-top: 1px;
@@ -1022,4 +1023,8 @@ li>a.adminmenu {
 .btn.btn-alph-filter.btn-unselected {
     background-color:dimgrey;
     color: white;
+}
+
+.fa.fa-check {
+    color: green;
 }

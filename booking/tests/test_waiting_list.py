@@ -659,16 +659,19 @@ class WaitingListTests(TestSetupMixin, TestCase):
             [booking.user.email for booking in event.bookings.all()]
         )
 
-        # 5 emails in mail box;
+        # 4 emails in mail box;
         # First booking cancellation: cancel email to user and
         # a single email with bcc to waiting list users
-        # 2nd cancellation: cancel email to user, one email to waiting list,
-        # one email to auto booked user
-        self.assertEqual(len(mail.outbox), 5)
-        auto_book_email = mail.outbox[4]
+        # 2nd cancellation: cancel email to user, one email to auto booked
+        #     user, no waiting list email
+        self.assertEqual(len(mail.outbox), 4)
+        auto_book_email = mail.outbox[3]
         self.assertEqual(auto_book_email.to, ['foo@test.com'])
         self.assertEqual(
-            auto_book_email.subject, 'Booking for {}'.format(event)
+            auto_book_email.subject,
+            '{} You have been booked into {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
+            )
         )
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com', 'bar@test.com'])
@@ -723,6 +726,270 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'foo@test.com',
             [wl.user.email for wl in event.waitinglistusers.all()]
         )
+
+    @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
+    def test_auto_book_user_already_booked(self):
+        """
+        Test that if autobook user is already booked, the next autobook user
+        on the list is booked instead.  If no more autobook users, send the
+        waiting list email.
+        """
+        auto_book_user = mommy.make_recipe(
+            'booking.user', email='foo@test.com'
+        )
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Test event',
+            max_participants=3
+        )
+        # Full event, and booked by an auto book user
+        mommy.make_recipe('booking.booking', event=event)
+        mommy.make_recipe('booking.booking', event=event, user=auto_book_user)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        # auto book user is also on waiting list
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event, user=auto_book_user
+        )
+
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        self.assertEqual(
+            WaitingListUser.objects.filter(event=event).count(), 4
+        )
+        self._booking_delete(self.user, booking)
+
+        # there are now only 2 bookings because foo@test.com is already booked
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            2
+        )
+        # Auto book user removed from waiting list
+        self.assertEqual(
+            WaitingListUser.objects.filter(event=event).count(), 3
+        )
+
+        # 2 emails in waiting list: cancel email and waitinglist email
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            "{} Booking for {} cancelled".format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event.name
+            )
+        )
+        self.assertIn(
+            "A space has become available for {}".format(event),
+            mail.outbox[1].body
+        )
+
+    @override_settings(AUTO_BOOK_EMAILS=['foo@test.com', 'bar@test.com'])
+    def test_first_auto_book_user_already_booked(self):
+        """
+        Test that if autobook user is already booked, the next autobook user
+        on the list is booked instead.  If no more autobook users, send the
+        waiting list email.
+        """
+        auto_book_user = mommy.make_recipe(
+            'booking.user', email='foo@test.com'
+        )
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Test event',
+            max_participants=3
+        )
+        # Full event, and booked by first auto book user
+        mommy.make_recipe('booking.booking', event=event)
+        mommy.make_recipe('booking.booking', event=event, user=auto_book_user)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        # both auto book users are on waiting list
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event, user=auto_book_user
+        )
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event,
+            user__email='bar@test.com'
+        )
+
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        self.assertEqual(
+            WaitingListUser.objects.filter(event=event).count(), 5
+        )
+        self._booking_delete(self.user, booking)
+
+        # there are still 3 bookings because bar@test.com has been autobooked
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        # Both auto book users removed from waiting list
+        self.assertEqual(
+            WaitingListUser.objects.filter(event=event).count(), 3
+        )
+
+        # 2 emails in waiting list: cancel email and autobook email
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            "{} Booking for {} cancelled".format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event.name
+            )
+        )
+        self.assertEqual(
+           mail.outbox[1].subject,
+           "{} You have been booked into {}".format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
+            )
+        )
+        self.assertEqual(
+           mail.outbox[1].to, ['bar@test.com']
+        )
+
+    @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
+    def test_auto_book_user_has_cancelled_booking(self):
+        """
+        Test that if autobook user has previously booked and cancelled,
+        their booking is reopened
+        """
+        auto_book_user = mommy.make_recipe(
+            'booking.user', email='foo@test.com'
+        )
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Test event',
+            max_participants=3
+        )
+
+        # Full event, and booked/cancelled by an auto book user
+        mommy.make_recipe(
+            'booking.booking', event=event, user=auto_book_user,
+            status='CANCELLED'
+        )
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        for i in range(3):
+            mommy.make_recipe(
+                'booking.waiting_list_user', event=event,
+                user__email='test{}@test.com'.format(i)
+            )
+
+        # auto book user is also on waiting list
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event, user=auto_book_user
+        )
+
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        self.assertEqual(
+            WaitingListUser.objects.filter(event=event).count(), 4
+        )
+        self._booking_delete(self.user, booking)
+
+        # there are still 3 bookings because foo@test.com has been repopened
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        # Auto book user removed from waiting list
+        self.assertEqual(
+            WaitingListUser.objects.filter(event=event).count(), 3
+        )
+
+        # 2 emails in waiting list: cancel email and autobook email
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            "{} Booking for {} cancelled".format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event.name
+            )
+        )
+        self.assertEqual(
+            mail.outbox[1].subject,
+            "{} You have been booked into {}".format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
+            )
+        )
+        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
+
+    @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
+    def test_admin_link_in_auto_book_user_emails(self):
+        """Test only show admin link in email if autobook user is superuser"""
+        auto_book_user = mommy.make_recipe(
+            'booking.user', email='foo@test.com'
+        )
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Test event',
+            max_participants=3
+        )
+
+        # Full event
+        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
+        # auto book user is on waiting list
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event, user=auto_book_user
+        )
+
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+        self._booking_delete(self.user, booking)
+
+        # there are still 3 bookings because foo@test.com has been booked
+        self.assertEqual(
+            Booking.objects.filter(event=event, status='OPEN').count(),
+            3
+        )
+
+        # 2 emails in waiting list: cancel email and autobook email
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
+        self.assertIn('Pay for this booking', mail.outbox[1].body)
+        self.assertIn('Cancel this booking', mail.outbox[1].body)
+        self.assertNotIn('Your admin page', mail.outbox[1].body)
+
+        # make autobook user superuser
+        auto_book_user.is_superuser = True
+        auto_book_user.save()
+        # delete booking, rebook self.user and add autobook user to WL again
+        Booking.objects.get(event=event, user=auto_book_user).delete()
+        booking.status = 'OPEN'
+        booking.save()
+        mommy.make_recipe(
+            'booking.waiting_list_user', event=event, user=auto_book_user
+        )
+
+        self._booking_delete(self.user, booking)
+        # 4 emails in waiting list: original 2, plus second
+        # cancel email and autobook email
+        self.assertEqual(len(mail.outbox), 4)
+        self.assertEqual(mail.outbox[3].to, ['foo@test.com'])
+        self.assertIn('Pay for this booking', mail.outbox[3].body)
+        self.assertIn('Cancel this booking', mail.outbox[3].body)
+        self.assertIn('Your admin page', mail.outbox[3].body)
 
 
 class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
