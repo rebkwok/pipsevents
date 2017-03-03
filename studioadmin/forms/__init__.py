@@ -13,13 +13,12 @@ from studioadmin.forms.timetable_forms import SessionAdminForm, \
     TimetableSessionFormSet, UploadTimetableForm, DAY_CHOICES
 from studioadmin.forms.user_forms import UserBlockFormSet, \
     UserBookingFormSet, UserListSearchForm
-from studioadmin.forms.utils import BookingStatusFilter, StatusFilter
+from studioadmin.forms.utils import StatusFilter
 from studioadmin.forms.voucher_forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
 
 __all__ = [
     'ActivityLogSearchForm', 'BlockVoucherStudioadminForm',
-    'BookingStatusFilter',
     'ChooseUsersFormSet', 'ConfirmPaymentForm', 'DAY_CHOICES',
     'EmailUsersForm', 'EventAdminForm', 'EventFormSet',
     'PrintTicketsForm',

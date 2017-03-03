@@ -28,30 +28,34 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-def _get_past_events(ev_type, request):
+def _get_events(ev_type, request, past):
     if ev_type == 'events':
-        nonpag_events = Event.objects.filter(
-            event_type__event_type='EV',
-            date__lte=timezone.now()
-        ).order_by('-date')
+        nonpag_events = Event.objects.select_related('event_type').filter(
+            event_type__event_type='EV'
+        )
     else:
-        nonpag_events = Event.objects.filter(
-            date__lte=timezone.now()
-        ).exclude(event_type__event_type='EV').order_by('-date')
+        nonpag_events = Event.objects.select_related('event_type').filter(
+        ).exclude(event_type__event_type='EV')
 
-    paginator = Paginator(nonpag_events, 20)
+    if past:
+        nonpag_events = nonpag_events.filter(date__lt=timezone.now())\
+            .order_by('-date')
+    else:
+        nonpag_events = nonpag_events.filter(date__gte=timezone.now())\
+            .order_by('date')
+    paginator = Paginator(nonpag_events, 30)
     page = request.GET.get('page')
     try:
-        events = paginator.page(page)
+        event_page = paginator.page(page)
     except PageNotAnInteger:
         # If page is not an integer, deliver first page.
-        events = paginator.page(1)
+        event_page = paginator.page(1)
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
-        events = paginator.page(paginator.num_pages)
-    page_query = nonpag_events.filter(id__in=[obj.id for obj in events])
-    eventformset = EventFormSet(queryset=page_query)
-    return events, eventformset
+        event_page = paginator.page(paginator.num_pages)
+    events = event_page.object_list
+    eventformset = EventFormSet(queryset=events)
+    return events, event_page, eventformset
 
 
 @login_required
@@ -71,13 +75,14 @@ def event_admin_list(request, ev_type):
         ).exclude(event_type__event_type='EV').order_by('date')
 
     show_past = False
+    ev_page = None
 
     if request.method == 'POST':
-        if "past" in request.POST:
-            show_past = True
-            events, eventformset = _get_past_events(ev_type, request)
-        elif "upcoming" in request.POST:
-            show_past = False
+        if "past" in request.POST or "upcoming" in request.POST:
+            show_past = "past" in request.POST
+            events, ev_page, eventformset = _get_events(
+                ev_type, request, show_past
+            )
             eventformset = EventFormSet(queryset=events)
         else:
             eventformset = EventFormSet(request.POST)
@@ -143,20 +148,21 @@ def event_admin_list(request, ev_type):
                 )
 
     else:
-        page = request.GET.get('page')  # only past is paginated
-        if page:
-            show_past = True
-            events, eventformset = _get_past_events(ev_type, request)
-        else:
-            eventformset = EventFormSet(queryset=events)
+        events, ev_page, eventformset = _get_events(
+            ev_type, request, show_past
+        )
+        eventformset = EventFormSet(queryset=events)
 
-    non_deletable_events = Booking.objects.select_related('event').filter(event__in=events).distinct().values_list('event__id', flat=True)
+    non_deletable_events = Booking.objects.select_related('event')\
+        .filter(event__in=events)\
+        .distinct().values_list('event__id', flat=True)
 
     return TemplateResponse(
         request, 'studioadmin/admin_events.html', {
             'eventformset': eventformset,
             'type': ev_type,
             'events': events,
+            'event_page': ev_page,
             'sidenav_selection': ev_type,
             'show_past': show_past,
             'non_deletable_events': non_deletable_events

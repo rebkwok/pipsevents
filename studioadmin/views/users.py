@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User,  Permission
 from django.contrib import messages
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.template.loader import get_template
@@ -21,7 +22,7 @@ from accounts.models import PrintDisclaimer
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
-from studioadmin.forms import BookingStatusFilter,  UserBookingFormSet,  \
+from studioadmin.forms import UserBookingFormSet,  \
     UserBlockFormSet,  UserListSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
@@ -212,11 +213,10 @@ def toggle_subscribed(request,  user_id):
 
 @login_required
 @staff_required
-def user_bookings_view(request,  user_id,  booking_status='future'):
+def user_bookings_view(request,  user_id):
     user = get_object_or_404(User,  id=user_id)
 
     if request.method == 'POST':
-        booking_status = request.POST.getlist('booking_status')[0]
         userbookingformset = UserBookingFormSet(
             request.POST.copy(),  instance=user,  user=user, 
         )
@@ -499,10 +499,7 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
             return HttpResponseRedirect(
                 reverse(
                     'studioadmin:user_bookings_list', 
-                    kwargs={
-                        'user_id': user.id, 
-                        'booking_status': booking_status
-                    }
+                    kwargs={'user_id': user.id}
                 )
             )
         else:
@@ -520,43 +517,63 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
                 )
             )
     else:
-        all_bookings = Booking.objects.filter(user=user)
-
-        if booking_status == 'past':
-            queryset = all_bookings.filter(
-                event__date__lt=timezone.now()
-            ).order_by('-event__date')
-            userbookingformset = UserBookingFormSet(
-                queryset=queryset,  instance=user,  user=user, 
-            )
-        else:
-            # 'future' by default
-            queryset = all_bookings.filter(
-                event__date__gte=timezone.now()
+        all_bookings = Booking.objects.select_related('event', 'user')\
+            .filter(
+                user=user, event__date__gte=timezone.now()
             ).order_by('event__date')
-            userbookingformset = UserBookingFormSet(
-                queryset=queryset,  instance=user,  user=user, 
-            )
 
         userbookingformset = UserBookingFormSet(
             instance=user, 
-            queryset=queryset, 
+            queryset=all_bookings,
             user=user
         )
-
-    booking_status_filter = BookingStatusFilter(
-        initial={'booking_status': booking_status}
-    )
 
     template = 'studioadmin/user_booking_list.html'
     return TemplateResponse(
         request,  template,  {
             'userbookingformset': userbookingformset,  'user': user, 
             'sidenav_selection': 'users', 
-            'booking_status_filter': booking_status_filter, 
-            'booking_status': booking_status
+            'booking_status': 'future'
         }
     )
+
+
+@login_required
+@staff_required
+def user_past_bookings_view(request,  user_id):
+    user = get_object_or_404(User,  id=user_id)
+
+    all_bookings = Booking.objects.select_related('event', 'user')\
+        .filter(
+            user=user, event__date__lt=timezone.now()
+        ).order_by('-event__date')
+
+    paginator = Paginator(all_bookings, 20)
+    page = request.GET.get('page')
+    try:
+        page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+    bookings = page.object_list
+
+    # TODO
+    # include edit link for each booking? Edit on separate page or show ajax
+
+    template = 'studioadmin/user_booking_list.html'
+    return TemplateResponse(
+        request,  template,  {
+            'bookings': bookings,  'page': page, 'user': user,
+            'sidenav_selection': 'users',
+            'booking_status': 'past',
+            'total_count': paginator.count,
+            'current_count': bookings.count()
+        }
+    )
+
 
 
 @login_required
@@ -564,6 +581,7 @@ def user_bookings_view(request,  user_id,  booking_status='future'):
 def user_blocks_view(request,  user_id):
 
     user = get_object_or_404(User,  id=user_id)
+
     if request.method == 'POST':
         userblockformset = UserBlockFormSet(
             request.POST, 
@@ -621,7 +639,7 @@ def user_blocks_view(request,  user_id):
             return HttpResponseRedirect(
                 reverse('studioadmin:user_blocks_list', 
                         kwargs={'user_id': user.id}
-                        )
+                        ) + '?page=' + request.POST.get('page', '')
             )
         else:
             messages.error(
@@ -634,20 +652,33 @@ def user_blocks_view(request,  user_id):
                     )
                 )
             )
-    else:
-        queryset = Block.objects.filter(
-            user=user).order_by('-start_date')
-        userblockformset = UserBlockFormSet(
-            instance=user, 
-            queryset=queryset, 
-            user=user
-        )
+
+    queryset = Block.objects.filter(
+        user=user).order_by('-start_date')
+
+    paginator = Paginator(queryset, 10)
+    page = request.GET.get('page')
+    try:
+        page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+
+    queryset = queryset.filter(id__in=[obj.id for obj in page])
+    userblockformset = UserBlockFormSet(
+        instance=user,
+        queryset=queryset,
+        user=user
+    )
 
     template = 'studioadmin/user_block_list.html'
     return TemplateResponse(
         request,  template,  {
             'userblockformset': userblockformset,  'user': user, 
-            'sidenav_selection': 'users'
+            'sidenav_selection': 'users', 'page': page
         }
     )
 
