@@ -12,6 +12,6 @@
 {% elif booking_status == 'rebook' %}
 <p>This is an existing cancelled booking that {{ user.first_name }} has now reopened and requested to claim a as a free class.
     {% endif %}
-<a href="{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id booking_status='future_open'%}">Click here</a> to view this booking and approve it as a free class.</p>
+<a href="{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id%}">Click here</a> to view this booking and approve it as a free class.</p>
 </div>
 {% endblock %}

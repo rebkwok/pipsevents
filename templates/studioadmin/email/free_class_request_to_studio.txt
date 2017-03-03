@@ -5,4 +5,4 @@
 {% elif booking_status == 'rebook' %}This is an existing cancelled booking that {{ user.first_name }} has now reopened and requested to claim a as a free class.
 {% endif %}
 Follow the link below to view the booking and approve it as a free class.
-{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id booking_status='future_cancelled'%}
+{{ host }}{% url 'studioadmin:user_bookings_list' user_id=user.id %}

@@ -6,7 +6,7 @@
 <p>You have been booked into {{ event }}.  You still need to pay!</p>
 
     {% if booking.user.is_superuser %}
-    <p><a href="{{ host }}/studioadmin/users/{{ booking.user.id }}/bookings/future">Your admin page</a></p>
+    <p><a href="{{ host }}/studioadmin/users/{{ booking.user.id }}/bookings">Your admin page</a></p>
     {% endif %}
 
     <p><a href="{{ host }}/booking/update/{{ booking.id }}">Pay for this booking</a></p>

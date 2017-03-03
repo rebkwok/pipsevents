@@ -994,21 +994,18 @@ class WaitingListTests(TestSetupMixin, TestCase):
 
 class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
 
-    def _post_response(self, user, user_id, form_data, booking_status='future'):
+    def _post_response(self, user, user_id, form_data):
         url = reverse(
             'studioadmin:user_bookings_list',
-            kwargs={'user_id': user_id, 'booking_status': booking_status}
+            kwargs={'user_id': user_id}
         )
-        form_data['booking_status'] = [booking_status]
         session = _create_session()
         request = self.factory.post(url, form_data)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return user_bookings_view(
-            request, user_id, booking_status=booking_status
-        )
+        return user_bookings_view(request, user_id)
 
     def test_cancel_booking_for_full_event(self):
         """

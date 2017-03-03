@@ -11,17 +11,6 @@ class StatusFilter(forms.Form):
     )
 
 
-class BookingStatusFilter(forms.Form):
-
-    booking_status = forms.ChoiceField(
-        widget=forms.Select,
-        choices=(
-            ('future', 'Upcoming bookings'),
-            ('past', 'Past bookings'),
-        ),
-    )
-
-
 day = 24
 week = day * 7
 

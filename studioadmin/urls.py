@@ -30,6 +30,7 @@ from studioadmin.views import (ConfirmRefundView,
                                upload_timetable_view,
                                choose_users_to_email,
                                user_bookings_view,
+                               user_past_bookings_view,
                                user_blocks_view,
                                email_users_view,
                                event_waiting_list_view,
@@ -106,8 +107,12 @@ urlpatterns = [
         unsubscribe, name='unsubscribe'
     ),
     url(
-        r'^users/(?P<user_id>\d+)/bookings/(?P<booking_status>[\w-]+)$',
+        r'^users/(?P<user_id>\d+)/bookings/$',
         user_bookings_view, name='user_bookings_list'
+    ),
+    url(
+        r'^users/(?P<user_id>\d+)/bookings/past/$',
+        user_past_bookings_view, name='user_past_bookings_list'
     ),
     url(
         r'^users/(?P<user_id>\d+)/blocks/$',

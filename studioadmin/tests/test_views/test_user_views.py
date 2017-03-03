@@ -1,5 +1,3 @@
-import random
-
 from datetime import timedelta
 from mock import patch
 from model_mommy import mommy
@@ -14,7 +12,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.models import Booking, Block, BlockType, Event, EventType, \
+from booking.models import Booking, Block, BlockType, EventType, \
     WaitingListUser
 from booking.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
@@ -22,6 +20,7 @@ from studioadmin.views import (
     UserListView,
     user_blocks_view,
     user_bookings_view,
+    user_past_bookings_view
 )
 from studioadmin.views.users import NAME_FILTERS
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
@@ -614,37 +613,36 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         return data
 
     def _get_response(self, user, user_id, booking_status='future'):
-        url = reverse(
-            'studioadmin:user_bookings_list',
-            kwargs={'user_id': user_id, 'booking_status': booking_status}
-        )
+        if booking_status == 'future':
+            url = reverse(
+                'studioadmin:user_bookings_list', kwargs={'user_id': user_id}
+            )
+            view = user_bookings_view
+        else:
+            url = reverse(
+                'studioadmin:user_past_bookings_list',
+                kwargs={'user_id': user_id}
+            )
+            view = user_past_bookings_view
         session = _create_session()
         request = self.factory.get(url)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return user_bookings_view(
-            request, user_id, booking_status=booking_status
-        )
+        return view(request, user_id)
 
-    def _post_response(
-        self, user, user_id, form_data, booking_status='future'
-        ):
+    def _post_response(self, user, user_id, form_data):
         url = reverse(
-            'studioadmin:user_bookings_list',
-            kwargs={'user_id': user_id, 'booking_status': booking_status}
+            'studioadmin:user_bookings_list', kwargs={'user_id': user_id}
         )
-        form_data['booking_status'] = [booking_status]
         session = _create_session()
         request = self.factory.post(url, form_data)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return user_bookings_view(
-            request, user_id, booking_status=booking_status
-        )
+        return user_bookings_view(request, user_id)
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -652,7 +650,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         """
         url = reverse(
             'studioadmin:user_bookings_list',
-            kwargs={'user_id': self.user.id, 'booking_status': 'future'}
+            kwargs={'user_id': self.user.id}
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
@@ -719,11 +717,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
         # past bookings
         resp = self._get_response(self.staff_user, self.user.id, 'past')
-        # get all but last form (last form is the empty extra one)
-        booking_forms = resp.context_data['userbookingformset'].forms[:-1]
-        self.assertEqual(len(booking_forms), 4)
+        # no formset in past list
+        self.assertNotIn('userbookingformset', resp.context_data)
+        bookings = resp.context_data['bookings']
+        self.assertEqual(bookings.count(), 4)
         self.assertEqual(
-            sorted([booking.instance.id for booking in booking_forms]),
+            sorted([booking.id for booking in bookings]),
             sorted([
                        bk.id for bk in
                        self.past_user_bookings + self.past_cancelled_bookings
@@ -781,7 +780,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
                 'bookings-2-status': 'OPEN'
             }
         )
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, self.user.id, form_data=form_data
         )
         self.assertEqual(Booking.objects.count(), 11)
@@ -1094,7 +1093,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             resp.url,
             reverse(
                 'studioadmin:user_bookings_list',
-                kwargs={'user_id': self.user.id, 'booking_status': 'future'}
+                kwargs={'user_id': self.user.id}
             )
         )
 
@@ -1161,7 +1160,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
                 'bookings-0-send_confirmation': 'on',
             }
         )
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, self.user.id, form_data=form_data
         )
         self.assertEqual(len(mail.outbox), 1)
@@ -1171,7 +1170,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             {'formset_submitted': 'Submit',
             'bookings-0-send_confirmation': 'on'}
         )
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, self.user.id, form_data=form_data
             )
         self.assertEqual(len(mail.outbox), 0)
@@ -1213,14 +1212,16 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertIn(
             {
                 'block': [
-                    'A cancelled booking cannot be assigned to a ' \
-                    'block.  Please change status of booking for {} to "OPEN" ' \
+                    'A cancelled booking cannot be assigned to a block.  '
+                    'Please change status of booking for {} to "OPEN" '
                     'before assigning block'.format(booking.event)
                 ]
             },
             errors)
 
-    def test_cannot_assign_booking_for_cancelled_event_to_available_block(self):
+    def test_cannot_assign_booking_for_cancelled_event_to_available_block(
+            self
+    ):
         event = mommy.make_recipe('booking.future_EV', cancelled=True)
         booking = mommy.make_recipe(
             'booking.booking',
@@ -1625,8 +1626,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
         self.client.login(username=self.staff_user.username, password='test')
         url = reverse(
-            'studioadmin:user_bookings_list',
-            kwargs={'user_id': self.user.id, 'booking_status': 'OPEN'}
+            'studioadmin:user_bookings_list', kwargs={'user_id': self.user.id}
         )
         resp = self.client.post(url, form_data, follow=True)
 
@@ -1683,7 +1683,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.client.login(username=self.staff_user.username, password='test')
         url = reverse(
             'studioadmin:user_bookings_list',
-            kwargs={'user_id': self.user.id, 'booking_status': 'OPEN'}
+            kwargs={'user_id': self.user.id}
         )
         resp = self.client.post(url, form_data, follow=True)
 
@@ -1957,10 +1957,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(
-            reverse(
-                'studioadmin:user_bookings_list',
-                args=[self.user.id, 'future']
-            ),
+            reverse('studioadmin:user_bookings_list', args=[self.user.id]),
             data
         )
 
@@ -2052,8 +2049,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(
             reverse(
-                'studioadmin:user_bookings_list',
-                args=[self.user.id, 'future']
+                'studioadmin:user_bookings_list', args=[self.user.id]
             ),
             data, follow=True
         )
@@ -2125,10 +2121,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(
-            reverse(
-                'studioadmin:user_bookings_list',
-                args=[self.user.id, 'future']
-            ),
+            reverse('studioadmin:user_bookings_list', args=[self.user.id]),
             data
         )
 
@@ -2171,10 +2164,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(
-            reverse(
-                'studioadmin:user_bookings_list',
-                args=[self.user.id, 'future']
-            ),
+            reverse('studioadmin:user_bookings_list', args=[self.user.id]),
             data
         )
 
@@ -2192,6 +2182,66 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             Block.objects.get(
                 user=self.user, transferred_booking_id=cl_booking.id,
             )
+
+    def test_past_bookings_pagination(self):
+
+        for i in range(20):
+            mommy.make(
+                'booking.booking', user=self.user,
+                event__date=timezone.now()-timedelta(10+i)
+            )
+
+        self.assertEqual(
+            Booking.objects.filter(
+                user=self.user, event__date__lt=timezone.now()
+            ).count(),
+            24
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        # no page in url, shows first page
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_past_bookings_list', args=[self.user.id]
+            )
+        )
+        bookings = resp.context_data['bookings']
+        self.assertEqual(bookings.count(), 20)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 1)
+
+        # page 1
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_past_bookings_list', args=[self.user.id]
+            ) + '?page=1'
+        )
+        bookings = resp.context_data['bookings']
+        self.assertEqual(bookings.count(), 20)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 1)
+
+        # page number > max pages gets last page
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_past_bookings_list', args=[self.user.id]
+            ) + '?page=4'
+        )
+        bookings = resp.context_data['bookings']
+        self.assertEqual(bookings.count(), 4)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 2)
+
+        # page not a number > gets first page
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_past_bookings_list', args=[self.user.id]
+            ) + '?page=foo'
+        )
+        bookings = resp.context_data['bookings']
+        self.assertEqual(bookings.count(), 20)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 1)
 
 
 class UserBlocksViewTests(TestPermissionMixin, TestCase):
@@ -2340,7 +2390,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             reverse(
                 'studioadmin:user_blocks_list',
                 kwargs={'user_id': self.user.id}
-            )
+            ) + '?page='
         )
 
     def test_delete_block(self):
@@ -2374,6 +2424,97 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             format_content(resp.rendered_content)
         )
         self.assertEqual(Block.objects.count(), 1)
+
+    def test_block_pagination(self):
+        # Blocks are paginated by 10
+        for i in range(20):
+            mommy.make(
+                'booking.block', user=self.user,
+                start_date=timezone.now()+timedelta(1+i)
+            )
+
+        self.assertEqual(Block.objects.filter(user=self.user).count(), 21)
+
+        self.client.login(username=self.staff_user.username, password='test')
+        # no page in url, shows first page
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_blocks_list', args=[self.user.id]
+            )
+        )
+        blocks = resp.context_data['userblockformset'].queryset
+        self.assertEqual(blocks.count(), 10)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 1)
+
+        # page 1
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_blocks_list', args=[self.user.id]
+            ) + '?page=1'
+        )
+        blocks = resp.context_data['userblockformset'].queryset
+        self.assertEqual(blocks.count(), 10)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 1)
+
+        # page number > max pages gets last page
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_blocks_list', args=[self.user.id]
+            ) + '?page=4'
+        )
+        blocks = resp.context_data['userblockformset'].queryset
+        self.assertEqual(blocks.count(), 1)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 3)
+
+        # page not a number > gets first page
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_blocks_list', args=[self.user.id]
+            ) + '?page=foo'
+        )
+        blocks = resp.context_data['userblockformset'].queryset
+        self.assertEqual(blocks.count(), 10)
+        paginator = resp.context_data['page']
+        self.assertEqual(paginator.number, 1)
+
+    def test_post_with_page(self):
+        # Post return same page number
+        new_blocks = mommy.make('booking.block', user=self.user, _quantity=15)
+        self.assertEqual(Block.objects.filter(user=self.user).count(), 16)
+
+        self.client.login(username=self.staff_user.username, password='test')
+
+        data = self.formset_data(
+            {
+                'blocks-INITIAL_FORMS': 16,
+                'blocks-TOTAL_FORMS': 16,
+                'page': '2'
+            }
+        )
+
+        for i, block in enumerate(new_blocks, 1):
+            data['blocks-{}-id'.format(i)] = block.id
+            data['blocks-{}-block_type'.format(i)] = block.block_type.id
+            data['blocks-{}-start_date'.format(i)] = block.start_date.strftime(
+                '%Y-%m-%d %H:%M:%S'
+            ),
+            data['blocks-{}-paid'.format(i)] = self.block.paid
+
+        resp = self.client.post(
+            reverse(
+                'studioadmin:user_blocks_list', args=[self.user.id]
+            ), data
+        )
+
+        self.assertEqual(
+            resp.url,
+            reverse(
+                'studioadmin:user_blocks_list', args=[self.user.id]
+            ) + '?page=2'
+        )
 
 
 class MailingListViewTests(TestPermissionMixin, TestCase):

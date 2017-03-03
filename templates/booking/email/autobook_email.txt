@@ -1,7 +1,7 @@
 {% include "account/email/do_not_reply.txt" %}
 
 You have been booked into {{ event }}.  You still need to pay!.
-{% if booking.user.is_superuser %}Your admin page: {{ host }}/studioadmin/users/{{ booking.user.id }}/bookings/future{% endif %}
+{% if booking.user.is_superuser %}Your admin page: {{ host }}/studioadmin/users/{{ booking.user.id }}/bookings{% endif %}
 
 Pay for this booking: {{ host }}/booking/update/{{ booking.id }}
 
