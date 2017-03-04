@@ -31,3 +31,7 @@ Your booking has been received for {{ event }}.
     {% endif %}
 
 {% endif %}
+
+{% if booking.user.is_superuser %}
+    {{ host }}{% url 'studioadmin:user_bookings_list' booking.user.id %}>Your admin page</a></p>
+{% endif %}
