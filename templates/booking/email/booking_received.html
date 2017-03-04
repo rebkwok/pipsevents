@@ -49,9 +49,11 @@ Your booking has been received for {{ event }}.
             your booking will be updated once your request has been reviewed and approved.</p>
         <p> View your bookings at
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
-
     {% endif %}
 
+    {% if booking.user.is_superuser %}
+    <p><a href="{{ host }}{% url 'studioadmin:user_bookings_list' booking.user.id %}">Your admin page</a></p>
+    {% endif %}
 
 {% endif %}
 </div>
