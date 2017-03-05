@@ -83,7 +83,7 @@
                                         {% endif %}</td>
                                     {% endif %}
                                     <td>{{ event.date | date:"D d M H:i" }}</td>
-                                    <td>{% if type == 'events' %}
+                                    <td class="table-event">{% if type == 'events' %}
                                         <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
                                         {% elif type == 'lessons' %}
                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
