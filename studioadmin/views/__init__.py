@@ -22,7 +22,7 @@ from studioadmin.views.timetable import timetable_admin_list, \
 from studioadmin.views.users import MailingListView, toggle_print_disclaimer, \
     toggle_regular_student, toggle_subscribed, unsubscribe, \
     user_bookings_view, user_blocks_view, UserListView, \
-    user_past_bookings_view
+    user_past_bookings_view, BookingEditView
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
     VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
@@ -53,6 +53,7 @@ __all__ = [
     'upload_timetable_view',
     'user_bookings_view', 'user_blocks_view', 'user_disclaimer',
     'UserListView', 'user_past_bookings_view', 'VoucherCreateView',
-    'VoucherListView', 'VoucherUpdateView'
+    'VoucherListView', 'VoucherUpdateView',
+    'BookingEditView'
 ]
 

@@ -33,13 +33,13 @@
                     </div>
                     <div><a href="{% url 'studioadmin:user_blocks_list' user.id %}">Go to user's blocks</a></div>
 
-                <div class="table-responsive">
+                    <div class="table-responsive">
                         <table class="table">
                             <thead>
                             <tr class="success">
-                                <th>Date</th>
-                                <th>Class/Event</th>
                                 {% if booking_status == 'future' %}
+                                    <th>Date</th>
+                                    <th>Class/Event</th>
                                     <th class="table-center">Deposit Paid</th>
                                     <th class="table-center">Fully Paid</th>
                                     <th class="table-center">PayPal ID</th>
@@ -49,6 +49,9 @@
                                     <th class="table-center">No Show</th>
                                     <th class="table-center">Send confirmation?</th>
                                 {% else %}
+                                    <th></th>
+                                    <th>Date</th>
+                                    <th>Class/Event</th>
                                     <th class="table-center">Paid</th>
                                     <th class="table-center">Free class?</th>
                                     <th class="table-center">Block used</th>
@@ -118,8 +121,13 @@
                                 {% endfor %}
 
                             {% else %} <!-- PAST -->
+                            <!-- Modal -->
+                            <div class="modal fade" id="UserBookingModal" tabindex="-1" role="dialog" aria-labelledby="UserBookingModalLabel"></div>
+                            <!-- /.modal -->
+
                                 {% for booking in bookings %}
                                     <tr {% if booking.status == 'CANCELLED' or booking.no_show %} class='expired'{% endif %}>
+                                        <td><a class="bookingedit" href="#" data-form="{% url 'studioadmin:bookingedit' booking.id %}" title="edit booking">Edit</a></td>
                                         <td>{{ booking.event.date|date:"d/m/y H:i" }}</td>
                                         <td>{{ booking.event.name }}</td>
                                         <td class="table-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
@@ -129,7 +137,7 @@
                                     </tr>
                                 {% endfor %}
                                 <tr>
-                                    <td class="studioadmin-tbl" colspan="6">
+                                    <td class="studioadmin-tbl" colspan="7">
                                         <div class="pagination">
                                             {% if page.has_previous %}
                                                 <a href="?page={{ page.previous_page_number }}">Previous</a>
@@ -154,10 +162,27 @@
                         </table>
                     </div>
                 </form>
-                </div>
             </div>
          </div>
-
     </div>
 
+
+
 {% endblock studioadmincontent %}
+
+
+{% block extra_js %}
+<script src="http://malsup.github.com/jquery.form.js"></script>
+<script>
+    $(".bookingedit").click(function(ev) { // for each edit url
+        ev.preventDefault(); // prevent navigation
+        var url = $(this).data("form"); // get the form url
+        $("#UserBookingModal").load(url, function() { // load the url into the modal
+            $(this).modal('show'); // display the modal on url load
+        });
+
+        return false; // prevent the click propagation
+    });
+
+</script>
+{% endblock %}
