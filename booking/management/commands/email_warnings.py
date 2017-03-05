@@ -34,6 +34,11 @@ class Command(BaseCommand):
 
 
 def get_bookings(num_hrs):
+
+    events_with_payment_time_allowed = Event.objects.filter(
+        date__gte=timezone.now(), payment_time_allowed__isnull=False
+    )
+
     events_cancellation_period_soon = [
         event for event in Event.objects.all() if event.cancellation_period and
         event.date >= timezone.now() and
@@ -49,6 +54,7 @@ def get_bookings(num_hrs):
         (event.payment_due_date - timedelta(hours=num_hrs)) <= timezone.now()
     ]
     events = list(
+        set(events_with_payment_time_allowed) |
         set(events_payment_due_soon) | set(events_cancellation_period_soon)
         )
 
@@ -65,8 +71,18 @@ def get_bookings(num_hrs):
 def send_warning_email(self, upcoming_bookings):
     for booking in upcoming_bookings:
         uk_tz = pytz.timezone('Europe/London')
-        due_datetime = booking.event.date - timedelta(hours=(booking.event.cancellation_period))
-        if booking.event.payment_due_date and booking.event.payment_due_date < due_datetime:
+
+        due_datetime = booking.event.date - \
+                       timedelta(hours=(booking.event.cancellation_period))
+
+        if booking.event.payment_time_allowed:
+            date_booked = booking.date_rebooked \
+                if booking.date_rebooked else booking.date_booked
+            due_datetime = date_booked + \
+                           timedelta(hours=booking.event.payment_time_allowed)
+
+        if booking.event.payment_due_date and \
+                        booking.event.payment_due_date < due_datetime:
             due_datetime = booking.event.payment_due_date
         due_datetime = due_datetime.astimezone(uk_tz)
 

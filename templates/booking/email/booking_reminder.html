@@ -5,10 +5,11 @@
 <div style="font-family: sans-serif">
 <h4>Reminder! You have booked for {{ event }}.</h4>
 
-<p>A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.</p>
 {% if cost and not paid and not payment_confirmed %}
 <p>Your payment has not yet been received/confirmed for this event.
     Please make your payment as soon as possible to confirm your place.</p>
+
+<p><a href="http://booking.thewatermelonstudio.co.uk{% url 'booking:update_booking' booking.id %}">Pay for this booking</a></p>
 {% endif %}
 </div>
 {% endblock %}

@@ -2,8 +2,6 @@
 
 Reminder! Your payment has not yet been received/confirmed for {{ event }}.
 
-A cancellation period of {{ cancellation_period }} applies to this {{ ev_type }}.
-
 {% if payment_due_date %}
 The payment due date for this {{ ev_type }} is {{ payment_due_date }}
 {% if advance_payment_required %}
@@ -11,11 +9,13 @@ If your payment is not received by the payment due date, your booking will be ca
 {% else %}
 If your payment is not received by the payment due date, your place may be offered to another student.
 {% endif %}{% else %}
-Payment is due by {{ due_datetime }}
+Payment is due by {{ due_datetime }}.
 {% if advance_payment_required %}
 If your payment is not received by this time, your booking will be cancelled.
 {% else %}
 If your payment is not received by this time, your place may be offered to another student.
 {% endif %}{% endif %}
+
+Pay for this booking: http://booking.thewatermelonstudio.co.uk{% url 'booking:update_booking' booking.id %}
 
 Please contact {{ booking.event.contact_email }} urgently if you have already made payment.

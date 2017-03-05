@@ -40,7 +40,7 @@ DEBUG = env('DEBUG')
 # when env variable is changed it will be a string, not bool
 if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
     DEBUG = True
-else:
+else:  # pragma: no cover
     DEBUG = False
 
 ALLOWED_HOSTS = []
@@ -400,7 +400,7 @@ DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
 # TRAVIS and HEROKU logging
-if env('TRAVIS') or env('HEROKU'):
+if env('TRAVIS') or env('HEROKU'):  # pragma: no cover
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
