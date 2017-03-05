@@ -1031,3 +1031,20 @@ li>a.adminmenu {
 .fa.fa-check {
     color: green;
 }
+
+.label.label-rounded.label-spaces {
+    display: block;
+    border-radius: 25px;
+    width: 50px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+td span.label.label-rounded.label-spaces{
+    display:inline-block;
+    text-align:center;
+}
+
+tr.table-shaded{
+    background-color: rgba(0, 0, 0, 0.08);
+}

@@ -26,7 +26,7 @@
                         <table class="table">
                             <tr class="success">
                                 {% if user.is_authenticated %}
-                                    <th colspan="2">Booked</th>
+                                    <th></th>
                                 {% endif %}
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'room_hire' %}Room Hire{% endif %}</th>
@@ -35,19 +35,15 @@
                                 {% endif %}
                                 <th class="hidden-sm hidden-xs table-center">Cost</th>
                                 <th class="hidden-xs table-center">Spaces</th>
-                                <th class="hidden-xs table-center">Spaces left</th>
+                                <th class="table-center">Spaces left</th>
                                 <th class="hidden-sm hidden-xs table-center">Booking open</th>
                                 <th class="hidden-sm hidden-xs table-center">Payment open</th>
                             </tr>
 
                             {% for event in events %}
-                                <tr {% if event.bookable %}class="active_block"{% else %}class="inactive_block"{% endif %}>
+                                {% get_weekday event.date.weekday as table_shaded %}
+                                <tr class="{% if event.bookable %}active_block{% else %}inactive_block{% endif %} {{ table_shaded }}">
                                 {% if user.is_authenticated %}
-                                    <td class="table-center">
-                                        {% if event.id in booked_events %}
-                                            <span class="fa fa-check"></span>
-                                        {% endif %}
-                                    </td>
                                     <td class="table-center">
                                         {% if event.id in booked_events %}
                                             {% get_payment_button event user %}
@@ -101,9 +97,14 @@
                                     {% endif %}
                                     <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
                                     <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
-                                    <td class="hidden-xs table-center">
+                                    <td class="table-center" style="vertical-align: middle; horiz-align: center">
                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
-                                        {% elif event.max_participants %}{{ event.spaces_left }}
+                                        {% elif event.max_participants %}
+                                            {% if event.spaces_left = 0 %}
+                                                <span class="label label-spaces label-default label-rounded">FULL</span>
+                                            {% else %}
+                                                <span class="label label-spaces label-success label-rounded">{{ event.spaces_left }}</span>
+                                            {% endif %}
                                         {% else %}N/A{% endif %}</td>
                                     <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
                                     <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
