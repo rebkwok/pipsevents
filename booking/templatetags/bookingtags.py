@@ -314,3 +314,11 @@ def get_payment_button(event, user):
             'payment_open': booking.event.payment_open,
         }
     return {'booking': booking}
+
+
+@register.assignment_tag
+def get_weekday(weekday_num):
+    if weekday_num in [0, 2, 4]:
+        return 'table-shaded'
+    else:
+        return ''
