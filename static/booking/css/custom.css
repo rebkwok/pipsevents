@@ -1048,3 +1048,16 @@ td span.label.label-rounded.label-spaces{
 tr.table-shaded{
     background-color: rgba(0, 0, 0, 0.08);
 }
+
+@media (max-width: 768px) { /* use the max to specify at each container level */
+    td.table-event > a {
+        width:200px;  /* adjust to desired wrapping */
+        display:table;
+        white-space: pre-wrap; /* css-3 */
+        white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+        white-space: -pre-wrap; /* Opera 4-6 */
+        white-space: -o-pre-wrap; /* Opera 7 */
+        word-wrap: break-word; /* Internet Explorer 5.5+ */
+    }
+}
+
