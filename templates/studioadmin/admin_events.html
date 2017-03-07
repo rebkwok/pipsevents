@@ -26,16 +26,16 @@
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
+                                <th></th>
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
-                                <th class="table-center">Edit</th>
                                 <th class="table-center">Max spaces</th>
                                 <th class="table-center">Bookings</br>
                                     <span class="studioadmin-help">Click for waiting list</span></th>
                                 <th class="table-center">Booking open</th>
                                 <th class="table-center">Payment open</th>
-                                <th class="table-center">Advance payment required</th>
+                                <th class="table-center">Advance payment<br/>required</th>
                                 <th class="table-center">Cancellation allowed</th>
                                 <th class="table-center">Delete</th>
                             </tr>
@@ -43,6 +43,13 @@
                             {% for event in eventformset %}
                             <tr {% if event.instance.cancelled %}class="cancelled-event"{% endif %}>
                                 <span class="hide">{{ event.id }}</span>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if type == 'events' %}
+                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fa fa-pencil-square-o"></span>
+                                    {% elif type == 'lessons' %}</a>
+                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fa fa-pencil-square-o"></span>
+                                    {% endif %}</a>
+                                </td>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl">{% if type == 'events' %}
                                     <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
@@ -50,13 +57,6 @@
                                     <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
                                     {% endif %}
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
-                                </td>
-                                <td class="table-center studioadmin-tbl">
-                                    {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fa fa-pencil-square-o fa-lg"></span>
-                                    {% elif type == 'lessons' %}</a>
-                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fa fa-pencil-square-o fa-lg"></span>
-                                    {% endif %}</a>
                                 </td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
