@@ -207,7 +207,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         resp = self._get_response(user, 'events')
         # user has no disclaimer
-        self.assertIsNone(resp.context_data.get('disclaimer'))
+        self.assertFalse(resp.context_data.get('disclaimer'))
         self.assertIn(
             'Please note that you will need to complete a disclaimer form '
             'before booking',

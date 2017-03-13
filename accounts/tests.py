@@ -78,12 +78,12 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
         }
 
     def test_disclaimer_form(self):
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertTrue(form.is_valid())
 
     def test_custom_validators(self):
         self.form_data['terms_accepted'] = False
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -95,7 +95,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
         self.form_data['terms_accepted'] = True
         self.form_data['age_over_18_confirmed'] = False
 
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -106,7 +106,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
         self.form_data['age_over_18_confirmed'] = True
         self.form_data['medical_treatment_permission'] = False
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -118,7 +118,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def test_under_18(self):
         self.form_data['dob'] = '01 Jan 2015'
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -129,7 +129,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def test_invalid_date_format(self):
         self.form_data['dob'] = '32 Jan 2015'
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -141,7 +141,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def test_medical_conditions_without_details(self):
         self.form_data['medical_conditions'] = True
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -152,7 +152,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def test_joint_problems_without_details(self):
         self.form_data['joint_problems'] = True
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
@@ -164,7 +164,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def test_allergies_without_details(self):
         self.form_data['allergies'] = True
-        form = DisclaimerForm(data=self.form_data)
+        form = DisclaimerForm(data=self.form_data, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,

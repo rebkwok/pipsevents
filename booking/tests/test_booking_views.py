@@ -1652,6 +1652,7 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
         self.assertIn(booking.event.name, str(resp.content))
 
     def test_disclaimer_required(self):
+        self.client.login(username=self.user.username, password='test')
         resp = self.client.get(reverse('booking:disclaimer_required'))
         self.assertIn(
             'Please submit a disclaimer form and try again',
