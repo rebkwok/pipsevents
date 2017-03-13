@@ -27,6 +27,8 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
+from accounts.utils import has_expired_disclaimer
+
 from booking.models import (
     Block, BlockType, Booking, Event, UsedEventVoucher, EventVoucher,
     WaitingListUser
@@ -157,7 +159,9 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
         return context
 
 
-class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
+class BookingCreateView(
+    DisclaimerRequiredMixin, LoginRequiredMixin, CreateView
+):
 
     model = Booking
     template_name = 'booking/create_booking.html'
@@ -183,7 +187,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
 
         # don't redirect fully/already booked if trying to join/leave waiting
         # list
-        if self.request.method == 'GET' and \
+        if request.method == 'GET' and \
                 ('join waiting list' in self.request.GET or
                     'leave waiting list' in self.request.GET):
             return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
@@ -201,7 +205,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
         try:
             # redirect if already booked
             booking = Booking.objects.get(
-                user=self.request.user, event=self.event
+                user=request.user, event=self.event
             )
             # all getting page to rebook if cancelled or previously marked as
             # no_show (i.e. cancelled after cancellation period or cancelled a
@@ -211,7 +215,7 @@ class BookingCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView)
                     BookingCreateView, self
                     ).dispatch(request, *args, **kwargs)
             # redirect if arriving back here from booking update page
-            elif self.request.session.get(
+            elif request.session.get(
                     'booking_created_{}'.format(booking.id)
             ):
                 del self.request.session[
@@ -1111,4 +1115,9 @@ def already_paid(request, pk):
 
 
 def disclaimer_required(request):
-    return render(request, 'booking/disclaimer_required.html')
+
+    return render(
+        request,
+        'booking/disclaimer_required.html',
+        {'has_expired_disclaimer': has_expired_disclaimer(request.user)}
+    )

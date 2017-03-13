@@ -1,14 +1,14 @@
 import logging
 
-from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, DeleteView
+    ListView, DetailView
 )
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
+from accounts.utils import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Booking, Event, WaitingListUser
 from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers
@@ -75,17 +75,10 @@ class EventListView(ListView):
         context['form'] = form
 
         if not self.request.user.is_anonymous():
-            try:
-                self.request.user.online_disclaimer
-                context['disclaimer'] = True
-            except ObjectDoesNotExist:
-                pass
-
-            try:
-                self.request.user.print_disclaimer
-                context['disclaimer'] = True
-            except ObjectDoesNotExist:
-                pass
+            context['disclaimer'] = has_active_disclaimer(self.request.user)
+            context['expired_disclaimer'] = has_expired_disclaimer(
+                self.request.user
+            )
 
         return context
 

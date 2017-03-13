@@ -13,26 +13,18 @@ from braces.views import LoginRequiredMixin
 
 from allauth.account.views import LoginView
 
-from accounts.forms import DisclaimerForm
-
+from .forms import DisclaimerForm
+from .utils import has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 
 
 def profile(request):
-    disclaimer = False
-    try:
-        request.user.online_disclaimer
-        disclaimer = True
-    except ObjectDoesNotExist:
-        pass
+    disclaimer = has_active_disclaimer(request.user)
+    expired_disclaimer = has_expired_disclaimer(request.user)
 
-    try:
-        request.user.print_disclaimer
-        disclaimer = True
-    except ObjectDoesNotExist:
-        pass
-
-    return render(request, 'account/profile.html', {'disclaimer': disclaimer})
+    return render(
+        request, 'account/profile.html',
+        {'disclaimer': disclaimer, 'expired_disclaimer': expired_disclaimer})
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
@@ -42,7 +34,10 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     fields = ('username', 'first_name', 'last_name',)
 
     def get_object(self):
-        return get_object_or_404(User, username=self.request.user.username, email=self.request.user.email)
+        return get_object_or_404(
+            User, username=self.request.user.username,
+            email=self.request.user.email
+        )
 
     def get_success_url(self):
         return reverse('profile:profile')
@@ -68,28 +63,26 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.method == 'POST':
-            try:
-                request.user.online_disclaimer
+            if has_active_disclaimer(request.user):
                 return HttpResponseRedirect(reverse('disclaimer_form'))
-            except ObjectDoesNotExist:
-                pass
-        return super(DisclaimerCreateView, self).dispatch(request, *args, **kwargs)
+        return super(DisclaimerCreateView, self).dispatch(
+            request, *args, **kwargs
+        )
 
     def get_context_data(self, **kwargs):
         context = super(DisclaimerCreateView, self).get_context_data(**kwargs)
 
-        try:
-            self.request.user.online_disclaimer
-            context['disclaimer'] = True
-        except ObjectDoesNotExist:
-            pass
-        try:
-            self.request.user.print_disclaimer
-            context['disclaimer'] = True
-        except ObjectDoesNotExist:
-            pass
+        context['disclaimer'] = has_active_disclaimer(self.request.user)
+        context['expired_disclaimer'] = has_expired_disclaimer(
+            self.request.user
+        )
 
         return context
+
+    def get_form_kwargs(self, **kwargs):
+        form_kwargs = super(DisclaimerCreateView, self).get_form_kwargs(**kwargs)
+        form_kwargs["user"] = self.request.user
+        return form_kwargs
 
     def form_valid(self, form):
         disclaimer = form.save(commit=False)
@@ -106,7 +99,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
                     )
                 )
             )
-            form = DisclaimerForm(form.data)
+            form = DisclaimerForm(form.data, user=self.request.user)
             return render(self.request, self.template_name, {'form':form})
 
         if self.request.user.check_password(password):
@@ -114,11 +107,10 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
             disclaimer.save()
         else:
             messages.error(self.request, "Password is incorrect")
-            form = DisclaimerForm(form.data)
+            form = DisclaimerForm(form.data, user=self.request.user)
             return render(self.request, self.template_name, {'form':form})
 
         return super(DisclaimerCreateView, self).form_valid(form)
-
 
     def get_success_url(self):
         return reverse('profile:profile')

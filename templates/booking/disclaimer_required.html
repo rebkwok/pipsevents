@@ -6,10 +6,17 @@
 <div>
 
     <h2>Permission Denied</h2>
-        <h4>I'm sorry, you must have a completed online disclaimer in order
-            to perform the requested action.</h4>
 
-        <h4>Please <a href="{% url 'disclaimer_form' %}">submit a disclaimer form</a> and try again.</h4>
+        {% if has_expired_disclaimer %}
+            <h4>Your disclaimer has expired.  You must have a completed up-to-date disclaimer in order
+                to perform the requested action.  We require disclaimers to be updated once a year for health and safety reasons.</h4>
+            <h4>Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> and try again.</h4>
+        {% else %}
+            <h4>I'm sorry, you must have a completed online disclaimer in order
+                to perform the requested action.</h4>
+            <h4>Please <a href="{% url 'disclaimer_form' %}">submit a disclaimer form</a> and try again.</h4>
+
+        {% endif %}
 
 </div>
 
