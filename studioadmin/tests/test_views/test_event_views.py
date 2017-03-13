@@ -196,13 +196,45 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('Scheduled Events', resp.rendered_content)
         self.assertNotIn('Past Events', resp.rendered_content)
 
+    def test_pagination(self):
+        mommy.make_recipe('booking.future_PC', _quantity=35)
+        url = reverse('studioadmin:lessons')
+        self.client.login(
+            username=self.staff_user.username, password='test'
+        )
+
+        self.assertEqual(
+            Event.objects.filter(
+                event_type__event_type='CL').count(), 35
+        )
+        # paginating future
+        resp = self.client.get(url + '?page=1')
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 30)
+        paginator = resp.context_data['event_page']
+        self.assertEqual(paginator.number, 1)
+
+        # page not a number shows page 1
+        resp = self.client.get(url + '?page=one')
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 30)
+        paginator = resp.context_data['event_page']
+        self.assertEqual(paginator.number, 1)
+
+        # page out of range shows last page
+        resp = self.client.get(url + '?page=3')
+
+        eventsformset = resp.context_data['eventformset']
+        self.assertEqual(eventsformset.queryset.count(), 5)
+        paginator = resp.context_data['event_page']
+        self.assertEqual(paginator.number, 2)
+
     def test_past_pagination(self):
         mommy.make_recipe('booking.past_class', _quantity=35)
         url = reverse('studioadmin:lessons')
         self.client.login(
             username=self.staff_user.username, password='test'
         )
-
         self.assertEqual(Event.objects.count(), 36)
 
         # get only shows future by default
@@ -210,34 +242,13 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         eventsformset = resp.context_data['eventformset']
         self.assertEqual(eventsformset.queryset.count(), 0)
 
-        # paginating future
-        resp = self.client.get(url + '?page=1')
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 0)
-        paginator = resp.context_data['event_page']
-        self.assertEqual(paginator.number, 1)
-
-        # past with no page shows page 1 of 2
-        resp = self.client.post(url, {'past': 'Show past'})
+        # past with page defaults back to page 1 b/c we are switching from
+        # displaying upcoming
+        resp = self.client.post(url + '?page=2', {'past': 'Show past'})
         eventsformset = resp.context_data['eventformset']
         self.assertEqual(eventsformset.queryset.count(), 30)
         paginator = resp.context_data['event_page']
         self.assertEqual(paginator.number, 1)
-
-        # page not a number shows page 1
-        resp = self.client.post(url + '?page=one', {'past': 'Show past'})
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 30)
-        paginator = resp.context_data['event_page']
-        self.assertEqual(paginator.number, 1)
-
-        # page out of range shows last page
-        resp = self.client.post(url + '?page=3', {'past': 'Show past'})
-
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 5)
-        paginator = resp.context_data['event_page']
-        self.assertEqual(paginator.number, 2)
 
     def test_cancel_button_shown_for_events_with_bookings(self):
         """

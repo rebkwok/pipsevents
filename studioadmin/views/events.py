@@ -28,7 +28,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-def _get_events(ev_type, request, past):
+def _get_events(ev_type, request, past, page=None):
     if ev_type == 'events':
         nonpag_events = Event.objects.select_related('event_type').filter(
             event_type__event_type='EV'
@@ -41,10 +41,12 @@ def _get_events(ev_type, request, past):
         nonpag_events = nonpag_events.filter(date__lt=timezone.now())\
             .order_by('-date')
     else:
-        nonpag_events = nonpag_events.filter(date__gte=timezone.now())\
-            .order_by('date')
+        nonpag_events = nonpag_events.filter(
+            date__gte=timezone.now() - timedelta(hours=1)
+        ).order_by('date')
     paginator = Paginator(nonpag_events, 30)
-    page = request.GET.get('page')
+    if page is None:
+        page = request.GET.get('page')
     try:
         event_page = paginator.page(page)
     except PageNotAnInteger:
@@ -64,26 +66,17 @@ def event_admin_list(request, ev_type):
 
     if ev_type == 'events':
         ev_type_text = 'event'
-        events = Event.objects.select_related('event_type').filter(
-            event_type__event_type='EV',
-            date__gte=timezone.now() - timedelta(hours=1)
-        ).order_by('date')
     else:
         ev_type_text = 'class'
-        events = Event.objects.select_related('event_type').filter(
-            date__gte=timezone.now() - timedelta(hours=1)
-        ).exclude(event_type__event_type='EV').order_by('date')
 
-    show_past = False
-    ev_page = None
-
+    page = request.GET.get('page', None) or request.POST.get('page', None)
     if request.method == 'POST':
+        show_past = "past" in request.POST
         if "past" in request.POST or "upcoming" in request.POST:
-            show_past = "past" in request.POST
+            # clear the page number if we're switching btwn past and upcoming
             events, ev_page, eventformset = _get_events(
-                ev_type, request, show_past
+                ev_type, request, show_past, page=1
             )
-            eventformset = EventFormSet(queryset=events)
         else:
             eventformset = EventFormSet(request.POST)
 
@@ -128,7 +121,7 @@ def event_admin_list(request, ev_type):
                             form.save()
                     eventformset.save()
                 return HttpResponseRedirect(
-                    reverse('studioadmin:{}'.format(ev_type),)
+                    reverse('studioadmin:{}'.format(ev_type))
                 )
             else:  # pragma: no cover
                 # currently only boolean fields, this is left here in case of
@@ -146,10 +139,15 @@ def event_admin_list(request, ev_type):
                         )
                     )
                 )
+                #  get events and page, keep existing queryset
+                events, ev_page, _ = _get_events(
+                    ev_type, request, show_past, page
+                )
 
-    else:
+    else:  # GET; default to upcoming
+        show_past = False
         events, ev_page, eventformset = _get_events(
-            ev_type, request, show_past
+            ev_type, request, show_past, page
         )
         eventformset = EventFormSet(queryset=events)
 
