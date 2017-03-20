@@ -725,11 +725,6 @@ class BookingEditView(UpdateView):
     template_name = 'studioadmin/includes/user-booking-modal.html'
     form_class = EditBookingForm
 
-    def get_success_url(self):
-        return reverse(
-            'studioadmin:user_past_bookings_list', args=[self.object.user.id]
-        )
-
     def form_valid(self, form):
         form.save()
         if form.has_changed():

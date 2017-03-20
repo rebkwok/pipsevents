@@ -7,6 +7,7 @@ from model_mommy import mommy
 
 from django.conf import settings
 from django.core import management, mail
+from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -172,6 +173,35 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
                 'Please provide details of allergies'
             ]}
         )
+
+    def test_with_expired_disclaimer(self):
+        field = OnlineDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make(
+                OnlineDisclaimer, user=self.user, name='Donald Duck',
+                dob=date(2000, 10, 5), address='1 Main St',
+                postcode='AB1 2CD', terms_accepted=True,
+            )
+        self.assertFalse(disclaimer.is_active)
+
+        form = DisclaimerForm(user=self.user)
+        # initial fields set to expired disclaimer
+        self.assertEqual(
+            form.fields['name'].initial, 'Donald Duck'
+        )
+        self.assertEqual(
+            form.fields['address'].initial, '1 Main St'
+        )
+        self.assertEqual(
+            form.fields['postcode'].initial, 'AB1 2CD'
+        )
+        self.assertEqual(
+            form.fields['dob'].initial, '05 Oct 2000'
+        )
+
+        # terms accepted NOT set to expired
+        self.assertIsNone(form.fields['terms_accepted'].initial)
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
@@ -347,6 +377,21 @@ class DisclaimerModelTests(TestCase):
             disclaimer.over_18_statement = 'foo'
             disclaimer.save()
 
+    def test_cannot_create_new_active_disclaimer(self):
+        user = mommy.make_recipe('booking.user', username='testuser')
+        field = OnlineDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make(OnlineDisclaimer, user=user)
+
+        self.assertFalse(disclaimer.is_active)
+
+        new_disclaimer = mommy.make(OnlineDisclaimer, user=user)
+        self.assertTrue(new_disclaimer.is_active)
+
+        with self.assertRaises(ValidationError):
+            mommy.make(OnlineDisclaimer, user=user)
+
 
 class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
@@ -453,7 +498,6 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         # no new disclaimer created
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
-
 
     def test_message_shown_if_no_usable_password(self):
         user = mommy.make_recipe('booking.user')
