@@ -385,6 +385,29 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, event)
         self.assertEqual(resp.status_code, 200)
 
+    def test_cannot_access_if_expired_disclaimer(self):
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        user = mommy.make_recipe('booking.user')
+        field = OnlineDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make_recipe(
+               'booking.online_disclaimer', user=user
+            )
+        self.assertFalse(disclaimer.is_active)
+
+        resp = self._get_response(user, event)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
+
+        resp = self._post_response(user, event)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
+
+        mommy.make(OnlineDisclaimer, user=user)
+        resp = self._get_response(user, event)
+        self.assertEqual(resp.status_code, 200)
+
     def test_get_create_booking_page(self):
         """
         Get the booking page with the event context

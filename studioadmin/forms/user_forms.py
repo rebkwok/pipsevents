@@ -493,27 +493,27 @@ class EditBookingForm(forms.ModelForm):
         if self.instance.event.cancelled:
             base_error_msg = '{} is cancelled. '.format(self.instance.event)
             if block:
-                error_msg = 'Cannot assign booking to a block'.format(ev_type)
+                error_msg = 'Cannot assign booking to a block.'
                 self.add_error('block', base_error_msg + error_msg)
             if status == 'OPEN':
                 error_msg = 'Cannot reopen booking for cancelled ' \
-                            '{}'.format(ev_type)
+                            '{}.'.format(ev_type)
                 self.add_error('status', base_error_msg + error_msg)
             if free_class:
                 error_msg = 'Cannot assign booking for cancelled ' \
-                            '{} as free class'.format(ev_type)
+                            '{} as free class.'.format(ev_type)
                 self.add_error('free_class', base_error_msg + error_msg)
             if paid:
-                error_msg = 'Cannot assign booking for cancelled ' \
-                            '{} as paid'.format(ev_type)
+                error_msg = 'Cannot change booking for cancelled ' \
+                            '{} to paid.'.format(ev_type)
                 self.add_error('paid', base_error_msg + error_msg)
             if attended:
-                error_msg = 'Cannot assign booking for cancelled ' \
-                            '{} as attended'.format(ev_type)
+                error_msg = 'Cannot mark booking for cancelled ' \
+                            '{} as attended.'.format(ev_type)
                 self.add_error('attended', base_error_msg + error_msg)
             if no_show:
-                error_msg = 'Cannot assign booking for cancelled ' \
-                            '{} as no-show'.format(ev_type)
+                error_msg = 'Cannot mark booking for cancelled ' \
+                            '{} as no-show.'.format(ev_type)
                 self.add_error('no_show', base_error_msg + error_msg)
 
         else:
@@ -532,13 +532,13 @@ class EditBookingForm(forms.ModelForm):
 
             if block and 'paid' in self.changed_data \
                     and 'block' not in self.changed_data:
-                self.add_error('paid', 'Cannot make block booking unpaid')
+                self.add_error('paid', 'Cannot make block booking unpaid.')
 
             if attended and no_show:
                 if 'attended' in self.changed_data:
                     self.add_error(
                         'attended',
-                        'Booking cannot be both attended and no-show'
+                        'Booking cannot be both attended and no-show.'
                     )
                 if 'no_show' in self.changed_data:
                     self.add_error(
