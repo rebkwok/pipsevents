@@ -41,7 +41,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             'booking_info_payment_date_past': "The payment due date has "
                                               "passed for this event.  Please "
                                               "make your payment as soon as "
-                                              "possible to secure your place."
+                                              "possible to secure your place.",
         }
         cls.CONTEXT_FLAGS = {
             'booked': True,
@@ -313,6 +313,31 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             'Please note that you will need to complete a disclaimer form '
             'before booking',
             format_content(resp.rendered_content)
+        )
+
+    def test_expired_disclaimer(self):
+        """
+        Test correct context returned for user disclaimer
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Pole', cost=10, booking_open=True,
+        )
+        user = mommy.make_recipe('booking.user')
+        field = OnlineDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make_recipe(
+               'booking.online_disclaimer', user=user
+            )
+        self.assertFalse(disclaimer.is_active)
+
+        resp = self._get_response(user, event, 'lesson')
+        self.assertEqual(
+            resp.context_data['booking_info_text'],
+            "<strong>Please update your <a href='{}' target=_blank>"
+            "disclaimer form</a> before booking.</strong>".format(
+                reverse('disclaimer_form')
+            )
         )
 
 

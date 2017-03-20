@@ -8,8 +8,8 @@ from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import Event, BlockType
-from studioadmin.forms import ChooseUsersFormSet, EmailUsersForm, \
-    UserFilterForm, UserBookingFormSet, UserBlockFormSet
+from studioadmin.forms import ChooseUsersFormSet, EditBookingForm, \
+    EmailUsersForm, UserFilterForm, UserBookingFormSet, UserBlockFormSet
 
 
 class ChooseUsersFormSetTests(TestCase):
@@ -533,3 +533,298 @@ class UserBlockFormSetTests(TestCase):
                 self.assertEqual(disabled, 'disabled')
             else:
                 self.assertIsNone(disabled)
+
+
+class EditBookingFormTests(TestCase):
+
+    def setUp(self):
+        self.event = mommy.make_recipe('booking.past_event')
+        self.cancelled_event = mommy.make_recipe(
+            'booking.past_event', cancelled=True
+        )
+        self.user = mommy.make_recipe('booking.user')
+        self.block_type = mommy.make_recipe(
+            'booking.blocktype5', event_type=self.event.event_type
+        )
+        # 5 active blocks for other users
+        mommy.make_recipe(
+                    'booking.block',
+                    block_type=self.block_type,
+                    paid=True,
+                    _quantity=5
+                    )
+        self.booking = mommy.make_recipe(
+            'booking.booking', event=self.event, user=self.user
+        )
+        self.booking_for_cancelled = mommy.make_recipe(
+            'booking.booking', event=self.cancelled_event, user=self.user,
+            status='CANCELLED'
+        )
+
+    def test_block_choices(self):
+        # block drop down lists all blocks for event type with spaces
+        # if booking is already assigned to a block that's full, still list
+        # block in options
+        # includes expired blocks for past events
+
+        # user block, not expired, not full
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block1, _quantity=4
+        )
+        # user block, not expired, full
+        block2 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block2, _quantity=5
+        )
+        # user block, expired, not full
+        block3 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user, start_date=timezone.now() - timedelta(days=90)
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block3, _quantity=4
+        )
+        # user block, expired, full
+        block4 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user, start_date=timezone.now() - timedelta(days=90)
+        )
+        mommy.make_recipe(
+            'booking.booking', user=self.user, block=block4, _quantity=5
+        )
+
+        form = EditBookingForm(instance=self.booking)
+        self.assertCountEqual(
+            form.fields['block'].queryset, [block1, block3]
+        )
+
+        # Add booking to block 1; block 1 is now full, but is included in
+        # queryset
+        self.booking.block = block1
+        self.booking.save()
+        form = EditBookingForm(instance=self.booking)
+        self.assertCountEqual(
+            form.fields['block'].queryset, [block1, block3]
+        )
+
+        # A different booking does NOT include full block 1
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user,
+            event__event_type=self.block_type.event_type
+        )
+        form = EditBookingForm(instance=booking)
+        self.assertCountEqual(
+            form.fields['block'].queryset, [block3]
+        )
+
+    def test_changing_status_to_cancelled(self):
+        # sets paid to False and block to None
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        self.booking.block = block1
+        self.booking.paid = True
+        self.booking.save()
+
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': 'CANCELLED',
+            'block': self.booking.block.id
+        }
+        form = EditBookingForm(instance=self.booking, data=data)
+        self.assertTrue(form.is_valid())
+        self.assertFalse(form.cleaned_data['paid'])
+        self.assertIsNone(form.cleaned_data['block'])
+
+    def test_error_messages_for_cancelled_event(self):
+        # can't assign booking for cancelled event to block
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        data = {
+            'id': self.booking_for_cancelled.id,
+            'paid': self.booking_for_cancelled.paid,
+            'status': self.booking_for_cancelled.status,
+            'block': block1.id
+        }
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'block': [
+                    '{} is cancelled. Cannot assign booking to a '
+                    'block.'.format(self.cancelled_event)
+                ]
+             }
+        )
+
+        # can't change status to open
+        data.update(status='OPEN', block=None)
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'status': [
+                    '{} is cancelled. Cannot reopen booking for cancelled '
+                    'event.'.format(self.cancelled_event)
+                ]
+             }
+        )
+
+        # can't change status to free
+        data.update(status=self.booking_for_cancelled.status, free_class=True)
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'free_class': [
+                    '{} is cancelled. Cannot assign booking for cancelled ' \
+                    'event as free class.'.format(self.cancelled_event)
+                ]
+             }
+        )
+
+        # can't change to paid
+        data.update(paid=True, free_class=False)
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'paid': [
+                    '{} is cancelled. Cannot change booking for cancelled ' \
+                    'event to paid.'.format(self.cancelled_event)
+                ]
+             }
+        )
+
+        # can't change to attended
+        data.update(paid=False, attended=True)
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'attended': [
+                    '{} is cancelled. Cannot mark booking for cancelled ' \
+                    'event as attended.'.format(self.cancelled_event)
+                ]
+             }
+        )
+
+        # can't change to no-show
+        data.update(no_show=True, attended=False)
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'no_show': [
+                    '{} is cancelled. Cannot mark booking for cancelled ' \
+                    'event as no-show.'.format(self.cancelled_event)
+                ]
+             }
+        )
+
+    def test_cannot_assign_free_class_to_block(self):
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        self.booking.free_class = True
+        self.booking.save()
+
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': self.booking.status,
+            'free_class': self.booking.free_class,
+            'block': block1.id
+        }
+        form = EditBookingForm(instance=self.booking, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'free_class': ['Free class cannot be assigned to a block.']}
+        )
+
+    def test_cannot_assign_cancelled_class_to_block(self):
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        self.booking.status = 'CANCELLED'
+        self.booking.save()
+
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': self.booking.status,
+            'block': block1.id
+        }
+        form = EditBookingForm(instance=self.booking, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'block': [
+                    'Cannot assign cancelled booking to a block. To assign '
+                    'to block, please also change booking status to OPEN.'
+                ]
+            }
+        )
+
+    def test_cannot_make_block_booking_unpaid(self):
+        block1 = mommy.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True,
+            user=self.user
+        )
+        self.booking.block = block1
+        self.booking.save()
+
+        data = {
+            'id': self.booking.id,
+            'paid': False,
+            'status': self.booking.status,
+            'block': self.booking.block.id
+        }
+        form = EditBookingForm(instance=self.booking, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'paid': ['Cannot make block booking unpaid.']}
+        )
+
+    def test_cannot_make_both_attended_and_no_show(self):
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': self.booking.status,
+            'attended': True,
+            'no_show': True
+        }
+        form = EditBookingForm(instance=self.booking, data=data)
+        self.assertFalse(form.is_valid())
+        self.assertCountEqual(
+            form.errors,
+            {
+                'attended': ['Booking cannot be both attended and no-show.'],
+                'no_show': ['Booking cannot be both attended and no-show.']
+            }
+        )
+
+
+

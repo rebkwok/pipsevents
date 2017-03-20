@@ -7,10 +7,11 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect, get_object_or_404, render_to_response
-from django.views.generic import ListView
+from django.shortcuts import HttpResponse, HttpResponseRedirect, \
+    get_object_or_404, render_to_response
+from django.views.generic import ListView, UpdateView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
@@ -22,7 +23,7 @@ from accounts.models import PrintDisclaimer
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
-from studioadmin.forms import UserBookingFormSet,  \
+from studioadmin.forms import EditBookingForm, UserBookingFormSet,  \
     UserBlockFormSet,  UserListSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
@@ -716,3 +717,23 @@ def unsubscribe(request, user_id):
     )
     user_to_change.save()
     return HttpResponseRedirect(reverse('studioadmin:mailing_list'))
+
+
+class BookingEditView(UpdateView):
+
+    model = Booking
+    template_name = 'studioadmin/includes/user-booking-modal.html'
+    form_class = EditBookingForm
+
+    def form_valid(self, form):
+        form.save()
+        if form.has_changed():
+            messages.success(self.request, 'Saved!')
+            form.save()
+        else:
+            messages.success(self.request, 'No changes made')
+        return HttpResponse(
+            render_to_string(
+                'studioadmin/includes/user-booking-edit-success.html'
+            )
+        )

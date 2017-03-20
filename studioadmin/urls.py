@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
-from studioadmin.views import (ConfirmRefundView,
+from studioadmin.views import (BookingEditView,
+                               ConfirmRefundView,
                                ConfirmTicketBookingRefundView,
                                ConfirmPaymentView,
                                DisclaimerDeleteView,
@@ -178,6 +179,10 @@ urlpatterns = [
     url(
         r'^block-voucher/(?P<pk>\d+)/uses/$', BlockVoucherDetailView.as_view(),
         name='block_voucher_uses'
+    ),
+    url(
+        r'^bookingedit/(?P<pk>\d+)/$', BookingEditView.as_view(),
+        name='bookingedit'
     ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     ]
