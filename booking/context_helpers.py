@@ -5,28 +5,18 @@ import pytz
 
 from datetime import timedelta
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
+from accounts.utils import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Block, BlockType, Booking, WaitingListUser
 
+
 def get_event_context(context, event, user):
-
-    disclaimer = False
-    try:
-        user.online_disclaimer
-        disclaimer = True
-    except ObjectDoesNotExist:
-        pass
-
-    try:
-        user.print_disclaimer
-        disclaimer = True
-    except ObjectDoesNotExist:
-        pass
-
+    disclaimer = has_active_disclaimer(user)
+    expired_disclaimer = has_expired_disclaimer(user)
     context['disclaimer'] = disclaimer
+    context['expired_disclaimer'] = expired_disclaimer
 
     if event.event_type.event_type == 'CL':
         context['type'] = "lesson"
@@ -82,11 +72,18 @@ def get_event_context(context, event, user):
         context['booked'] = True
         context['booking'] = user_bookings[0]
     elif not disclaimer:
-        booking_info_text = "<strong>Please complete a <a href='{}' " \
-                            "target=_blank>disclaimer form</a> before " \
-                            "booking.</strong>".format(
-                                reverse('disclaimer_form')
-                            )
+        if expired_disclaimer:
+            booking_info_text = "<strong>Please update your <a href='{}' " \
+                                "target=_blank>disclaimer form</a> before " \
+                                "booking.</strong>".format(
+                                    reverse('disclaimer_form')
+                                )
+        else:
+            booking_info_text = "<strong>Please complete a <a href='{}' " \
+                                "target=_blank>disclaimer form</a> before " \
+                                "booking.</strong>".format(
+                                    reverse('disclaimer_form')
+                                )
     elif event.event_type.subtype == "Pole practice" \
         and not user.has_perm("booking.is_regular_student"):
         context['bookable'] = False

@@ -14,25 +14,24 @@
                         <table class="table compress">
                             <tr class="success compress">
                                 <th>Date</th>
-                                <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}</th>
+                                <th class="table-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
+                                    <span class="studioadmin-help">Click to view register</span></th>
                                 <th class="table-center">Bookings</th>
-                                <th class="table-center">View Register</th>
                                 <th class="table-center">View Waiting List</th>
                             </tr>
 
                             {% for event in events %}
                             <tr class="compress">
                                 <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
-                                <td class="studioadmin-tbl">{{ event.name }}</td>
-                                <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
                                         <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">
-                                            <span class="fa fa-external-link fa-lg"></span></a>
+                                            {{ event.name }}</a>
                                     {% elif type == 'lessons' %}
                                         <a href="{% url 'studioadmin:class_register' event.slug 'OPEN' %}">
-                                            <span class="fa fa-external-link fa-lg"></span></a>
+                                            {{ event.name }}</a>
                                     {% endif %}</td>
+                                <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.waitinglistusers.count > 0 %}
                                         <a href="{% url 'studioadmin:event_waiting_list' event.id %}">

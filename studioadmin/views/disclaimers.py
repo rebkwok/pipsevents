@@ -6,12 +6,11 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.template.response import TemplateResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, Http404
 from django.views.generic import UpdateView, DeleteView
 from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer
-
 from studioadmin.forms import StudioadminDisclaimerForm
 from studioadmin.utils import str_int, dechaffify
 from studioadmin.views.helpers import is_instructor_or_staff, StaffUserMixin
@@ -25,8 +24,11 @@ logger = logging.getLogger(__name__)
 @login_required
 @is_instructor_or_staff
 def user_disclaimer(request, encoded_user_id):
+    # get last disclaimer for this user
     user_id = dechaffify(str_int(encoded_user_id))
-    disclaimer = OnlineDisclaimer.objects.get(user__id=user_id)
+
+    disclaimer = OnlineDisclaimer.objects.filter(user__id=user_id).last()
+
     ctx = {'disclaimer': disclaimer, 'encoded_user_id': encoded_user_id}
 
     return TemplateResponse(
@@ -43,7 +45,15 @@ class DisclaimerUpdateView(StaffUserMixin, UpdateView):
     def get_object(self):
         encoded_user_id = self.kwargs.get('encoded_user_id')
         user_id = dechaffify(str_int(encoded_user_id))
-        return get_object_or_404(OnlineDisclaimer, user__id=user_id)
+        obj = OnlineDisclaimer.objects.filter(user__id=user_id).last()
+        return obj if obj else Http404
+
+    def get_form_kwargs(self, **kwargs):
+        form_kwargs = super(
+            DisclaimerUpdateView, self
+        ).get_form_kwargs(**kwargs)
+        form_kwargs["user"] = self.object.user
+        return form_kwargs
 
     def get_context_data(self, **kwargs):
         context = super(DisclaimerUpdateView, self).get_context_data(**kwargs)
@@ -80,7 +90,9 @@ class DisclaimerUpdateView(StaffUserMixin, UpdateView):
                 )
             else:
                 messages.error(self.request, "Password is incorrect")
-                form = StudioadminDisclaimerForm(form.data)
+                form = StudioadminDisclaimerForm(
+                    form.data, user=disclaimer.user
+                )
                 return TemplateResponse(
                     self.request, self.template_name, {'form': form}
                 )

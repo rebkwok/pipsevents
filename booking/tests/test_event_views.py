@@ -207,10 +207,28 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         resp = self._get_response(user, 'events')
         # user has no disclaimer
-        self.assertIsNone(resp.context_data.get('disclaimer'))
+        self.assertFalse(resp.context_data.get('disclaimer'))
         self.assertIn(
             'Please note that you will need to complete a disclaimer form '
             'before booking',
+            format_content(resp.rendered_content)
+        )
+
+        # expired disclaimer
+        field = OnlineDisclaimer._meta.get_field('date')
+        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        with patch.object(field, 'default', new=mock_now):
+            disclaimer = mommy.make_recipe(
+               'booking.online_disclaimer', user=user
+            )
+        self.assertFalse(disclaimer.is_active)
+        resp = self._get_response(user, 'events')
+        self.assertNotIn(
+            'Get a new block!', format_content(resp.rendered_content)
+        )
+        self.assertIn(
+            'Your disclaimer has expired. Please review and confirm your '
+            'information before booking.',
             format_content(resp.rendered_content)
         )
 
@@ -218,8 +236,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(user, 'events')
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
-            'Please note that you will need to complete a disclaimer form '
-            'before booking',
+            'Your disclaimer has expired. Please review and confirm your '
+            'information before booking.',
             format_content(resp.rendered_content)
         )
 
@@ -233,6 +251,33 @@ class EventListViewTests(TestSetupMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
+    @patch('booking.views.event_views.timezone')
+    def test_event_list_formatting(self, mock_tz):
+        """
+        Test that events are coloured on alt days
+        """
+        # mock now to make sure our events are in the future for the test
+        mock_tz.now.return_value = datetime(2017, 3, 19, tzinfo=timezone.utc)
+        events = Event.objects.filter(event_type__event_type='EV')
+        ev1 = events[0]
+        ev2 = events[1]
+        ev3 = events[2]
+        # Mon
+        ev1.date = datetime(2017, 3, 20, 10, 0, tzinfo=timezone.utc)
+        ev1.save()
+        # Tue
+        ev2.date = datetime(2017, 3, 21, 10, 0, tzinfo=timezone.utc)
+        ev2.save()
+        # Wed
+        ev3.date = datetime(2017, 3, 22, 10, 0, tzinfo=timezone.utc)
+        ev3.save()
+
+        url = reverse('booking:events')
+        resp = self.client.get(url)
+        # Mon and Wed events are shaded
+        self.assertEqual(
+            resp.rendered_content.count('table-shaded'), 2
+        )
 
 class EventDetailViewTests(TestSetupMixin, TestCase):
 

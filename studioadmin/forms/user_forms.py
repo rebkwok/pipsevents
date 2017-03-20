@@ -410,3 +410,138 @@ class UserListSearchForm(forms.Form):
             }
         )
     )
+
+
+class EditBookingForm(forms.ModelForm):
+
+    class Meta:
+        model = Booking
+        fields = (
+            'paid', 'status', 'no_show', 'attended', 'block',
+            'free_class'
+        )
+
+        widgets = {
+            'paid': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'status': forms.Select(
+                attrs={'class': "form-control input-sm"}
+            ),
+            'no_show': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'attended': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'free_class': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            )
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(EditBookingForm, self).__init__(*args, **kwargs)
+        # find all blocks for this user that are not full (i.e. that we could
+        # use for this booking.  We allow admin users to change a past booking
+        # to a block that is expired
+        if self.instance.block:
+            blocks = [
+                block.id for block in Block.objects.filter(
+                    user=self.instance.user,
+                    block_type__event_type=self.instance.event.event_type)
+                if not block.full or block == self.instance.block
+            ]
+        else:
+            blocks = [
+                block.id for block in Block.objects.filter(
+                    user=self.instance.user,
+                    block_type__event_type=self.instance.event.event_type)
+                if not block.full
+            ]
+
+        self.fields['block'] = (UserBlockModelChoiceField(
+            queryset=Block.objects.filter(id__in=blocks),
+            widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            required=False,
+            empty_label="--------None--------"
+        ))
+
+    def clean(self):
+        status = self.cleaned_data.get('status')
+        free_class = self.cleaned_data.get('free_class')
+        attended = self.cleaned_data.get('attended')
+        no_show = self.cleaned_data.get('no_show')
+
+        if status == 'CANCELLED' and 'status' in self.changed_data:
+            self.cleaned_data['paid'] = False
+            self.cleaned_data['block'] = None
+
+        block = self.cleaned_data.get('block')
+        paid = self.cleaned_data.get('paid')
+
+        ev_type = 'class' \
+            if self.instance.event.event_type.event_type == 'CL' else 'event'
+
+        if self.instance.event.cancelled:
+            base_error_msg = '{} is cancelled. '.format(self.instance.event)
+            if block:
+                error_msg = 'Cannot assign booking to a block.'
+                self.add_error('block', base_error_msg + error_msg)
+            if status == 'OPEN':
+                error_msg = 'Cannot reopen booking for cancelled ' \
+                            '{}.'.format(ev_type)
+                self.add_error('status', base_error_msg + error_msg)
+            if free_class:
+                error_msg = 'Cannot assign booking for cancelled ' \
+                            '{} as free class.'.format(ev_type)
+                self.add_error('free_class', base_error_msg + error_msg)
+            if paid:
+                error_msg = 'Cannot change booking for cancelled ' \
+                            '{} to paid.'.format(ev_type)
+                self.add_error('paid', base_error_msg + error_msg)
+            if attended:
+                error_msg = 'Cannot mark booking for cancelled ' \
+                            '{} as attended.'.format(ev_type)
+                self.add_error('attended', base_error_msg + error_msg)
+            if no_show:
+                error_msg = 'Cannot mark booking for cancelled ' \
+                            '{} as no-show.'.format(ev_type)
+                self.add_error('no_show', base_error_msg + error_msg)
+
+        else:
+            if (block and free_class and
+                    block.block_type.identifier != 'free class'):
+                self.add_error(
+                    'free_class', 'Free class cannot be assigned to a block.'
+                )
+
+            if block and status == 'CANCELLED':
+                self.add_error(
+                    'block', 'Cannot assign cancelled booking to a block. To '
+                             'assign to block, please also change booking status '
+                             'to OPEN.'
+                )
+
+            if block and 'paid' in self.changed_data \
+                    and 'block' not in self.changed_data:
+                self.add_error('paid', 'Cannot make block booking unpaid.')
+
+            if attended and no_show:
+                if 'attended' in self.changed_data:
+                    self.add_error(
+                        'attended',
+                        'Booking cannot be both attended and no-show.'
+                    )
+                if 'no_show' in self.changed_data:
+                    self.add_error(
+                        'no_show',
+                        'Booking cannot be both attended and no-show'
+                    )

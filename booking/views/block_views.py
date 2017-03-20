@@ -16,6 +16,7 @@ from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from braces.views import LoginRequiredMixin
 
+from accounts.utils import has_active_disclaimer, has_expired_disclaimer
 from payments.forms import PayPalPaymentsListForm
 from booking.models import Booking, Block, BlockVoucher, UsedBlockVoucher
 from booking.forms import BlockCreateForm, VoucherForm
@@ -173,17 +174,10 @@ class BlockListView(LoginRequiredMixin, ListView):
 
     def get_extra_context(self, **kwargs):
         context = {}
-        try:
-            self.request.user.online_disclaimer
-            context['disclaimer'] = True
-        except ObjectDoesNotExist:
-            pass
-
-        try:
-            self.request.user.print_disclaimer
-            context['disclaimer'] = True
-        except ObjectDoesNotExist:
-            pass
+        context['disclaimer'] = has_active_disclaimer(self.request.user)
+        context['expired_disclaimer'] = has_expired_disclaimer(
+            self.request.user
+        )
 
         types_available_to_book = context_helpers.\
             get_blocktypes_available_to_book(self.request.user)

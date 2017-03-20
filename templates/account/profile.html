@@ -32,8 +32,6 @@
                     <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'account_email' %}">Change</a></p></div>
                </div>
 
-
-
                <div class="col-xs-12">
                    <div class="col-xs-3"><p><strong>Account Status:</strong></p></div>
                    <div class="col-xs-9">
@@ -74,6 +72,8 @@
                         <p>
                            {% if disclaimer %}
                                 Completed
+                            {% elif expired_disclaimer %}
+                                Expired
                            {% else %}
                                 Not completed
                            {% endif %}
@@ -83,8 +83,13 @@
                    {% if not disclaimer %}
                    <div class="col-xs-12">
                        <h3>DISCLAIMER</h3>
-                       <p>You have not completed a disclaimer form.
+                       {% if expired_disclaimer %}
+                            <p>Your disclaimer has expired.  We require disclaimers to be updated once a year for health and safety reasons.
+                           You must review and confirm your information before attending any classes or workshops.</p>
+                       {% else %}
+                            <p>You have not completed a disclaimer form.
                            This must be completed before attending any classes or workshops.</p>
+                       {% endif %}
                        <p><a href="{% url 'disclaimer_form' %}">Complete disclaimer form now</a></p>
                    </div>
                    {% else %}

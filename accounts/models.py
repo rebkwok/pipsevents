@@ -3,10 +3,16 @@
 import logging
 import pytz
 
+from datetime import timedelta
+
 from django.db import models
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from accounts.utils import active_disclaimer_cache_key, \
+    expired_disclaimer_cache_key
 from activitylog.models import ActivityLog
 
 
@@ -31,9 +37,12 @@ def has_readonly_fields(original_class):
             if old_value != new_value:
                 raise ValueError("Field %s is read only." % field_name)
 
-    models.signals.post_init.connect(store_read_only_fields, original_class, weak=False) # for load
-    models.signals.post_save.connect(store_read_only_fields, original_class, weak=False) # for save
-    models.signals.pre_save.connect(check_read_only_fields, original_class, weak=False)
+    models.signals.post_init.connect(
+        store_read_only_fields, original_class, weak=False) # for load
+    models.signals.post_save.connect(
+        store_read_only_fields, original_class, weak=False) # for save
+    models.signals.pre_save.connect(
+        check_read_only_fields, original_class, weak=False)
     return original_class
 
 
@@ -76,7 +85,7 @@ class OnlineDisclaimer(models.Model):
         'date'
     )
 
-    user = models.OneToOneField(User, related_name='online_disclaimer')
+    user = models.ForeignKey(User, related_name='online_disclaimer')
     date = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(null=True, blank=True)
 
@@ -137,16 +146,45 @@ class OnlineDisclaimer(models.Model):
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M'))
 
+    @property
+    def is_active(self):
+        # Disclaimer is active if it was signed <1 yr ago
+        date_signed = self.date_updated if self.date_updated else self.date
+        return (date_signed + timedelta(days=365)) > timezone.now()
+
     def save(self, **kwargs):
         if not self.id:
             self.disclaimer_terms = DISCLAIMER_TERMS
             self.over_18_statement = OVER_18_TERMS
             self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
 
+            existing_disclaimers = OnlineDisclaimer.objects.filter(
+                user=self.user
+            )
+            if existing_disclaimers and [
+                True for disc in existing_disclaimers if disc.is_active
+            ]:
+                raise ValidationError('Active disclaimer already exists')
+
             ActivityLog.objects.create(
                 log="Online disclaimer created: {}".format(self.__str__())
             )
         super(OnlineDisclaimer, self).save()
+
+        # cache disclaimer
+        if self.is_active:
+            cache.set(
+                active_disclaimer_cache_key(self.user), True, timeout=6000
+            )
+        else:
+            cache.set(
+                expired_disclaimer_cache_key(self.user), True, timeout=6000
+            )
+
+    def delete(self, using=None, keep_parents=False):
+        # clear active cache if there is any
+        cache.delete(active_disclaimer_cache_key(self.user))
+        super(OnlineDisclaimer, self).delete(using, keep_parents)
 
 
 class PrintDisclaimer(models.Model):

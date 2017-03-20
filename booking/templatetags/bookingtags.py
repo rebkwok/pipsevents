@@ -3,6 +3,7 @@ import pytz
 
 from datetime import datetime
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django import template
@@ -10,7 +11,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-
+from accounts.utils import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Booking, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
 
@@ -173,8 +174,13 @@ def has_print_disclaimer(user):
 
 @register.filter
 def has_online_disclaimer(user):
-    return OnlineDisclaimer.objects.filter(user=user)
+    if has_active_disclaimer(user):
+        return user.online_disclaimer.exists()
 
+
+@register.filter
+def expired_disclaimer(user):
+    return has_expired_disclaimer(user)
 
 @register.filter
 def has_disclaimer(user):

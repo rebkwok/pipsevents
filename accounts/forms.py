@@ -7,7 +7,7 @@ from django import forms
 from accounts import validators as account_validators
 from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
     OVER_18_TERMS, MEDICAL_TREATMENT_TERMS
-
+from accounts.utils import has_expired_disclaimer
 
 class SignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label='First name')
@@ -75,10 +75,12 @@ class DisclaimerForm(forms.ModelForm):
         label="Please enter your password to submit your data.<br/>"
               "By submitting this form, you confirm that "
               "the information you have provided is complete and accurate.",
-        required=True
+        required=True,
     )
 
     def __init__(self, *args, **kwargs):
+
+        user = kwargs.pop('user')
         super(DisclaimerForm, self).__init__(*args, **kwargs)
         # the agreed-to terms are read-only fields.  For a new disclaimer, we
         # show the default terms from the model.  If we're updating an existing
@@ -97,6 +99,22 @@ class DisclaimerForm(forms.ModelForm):
             self.disclaimer_terms = DISCLAIMER_TERMS
             self.over_18_terms = OVER_18_TERMS
             self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
+
+            if has_expired_disclaimer(user):
+                last_disclaimer = OnlineDisclaimer.objects.filter(user=user)\
+                    .last()
+                # set initial on all fields except ^^^ and terms_accepted
+                # to data from last disclaimer
+                for field_name in self.fields:
+                    if field_name not in [
+                        'medical_treatment_terms', 'over_18_terms',
+                        'disclaimer_terms', 'terms_accepted',
+                        'password'
+                    ]:
+                        last_value = getattr(last_disclaimer, field_name)
+                        if field_name == 'dob':
+                            last_value = last_value.strftime('%d %b %Y')
+                        self.fields[field_name].initial = last_value
 
         self.fields['home_phone'].required = False
 
