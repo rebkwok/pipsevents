@@ -189,7 +189,8 @@ def has_disclaimer(user):
 
 @register.filter
 def disclaimer_medical_info(user):
-    disclaimer = OnlineDisclaimer.objects.select_related('user').get(user=user)
+    disclaimer = OnlineDisclaimer.objects.select_related('user')\
+        .filter(user=user).latest('id')
     return disclaimer.medical_conditions \
         or disclaimer.joint_problems \
         or disclaimer.allergies
