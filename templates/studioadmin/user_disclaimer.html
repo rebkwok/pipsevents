@@ -16,7 +16,7 @@
 
     <div class="disclaimer">
     <h1>Disclaimer for {{ disclaimer.user.first_name }} {{ disclaimer.user.last_name }} ({{ disclaimer.user.username }})
-        {% if not user|has_online_disclaimer %}(EXPIRED){% endif %}
+        {% if not disclaimer.user|has_online_disclaimer %}(EXPIRED){% endif %}
     </h1>
 
     <div class="divider"></div>

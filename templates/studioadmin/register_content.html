@@ -65,6 +65,7 @@
                                     {% if bookingform.instance.user.id in users_with_online_disclaimers %}
                                         <a href="{% url 'studioadmin:user_disclaimer' bookingform.instance.user.id|encode %}" target="_blank">
                                             <span id="disclaimer" class="fa fa-file-text-o">{% if bookingform.instance.user|disclaimer_medical_info %}*{% endif %}</span></a>
+                                        {% if not bookingform.instance.user|has_online_disclaimer %}<span class="studioadmin-help">(expired)</span>{% endif %}
                                     {% elif bookingform.instance.user.id in users_with_print_disclaimers %}
                                         <span id="disclaimer" class="fa fa-check"></span>
                                     {% else %}
