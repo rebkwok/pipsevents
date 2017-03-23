@@ -369,7 +369,7 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test',
             'cancellation_period': 24,
-            'location': 'Watermelon Studio',
+            'location': Event.LOCATION_CHOICES[0][0],
             'allow_booking_cancellation': True,
             'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
