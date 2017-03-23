@@ -20,6 +20,7 @@
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Session<br/><span class="studioadmin-help">Click to edit</span></th>
+                                <th class="table-center">Location</th>
                                 <th class="table-center">Cost</th>
                                 <th class="table-center">Max spaces</th>
                                 <th class="table-center">Booking open</th>
@@ -34,6 +35,7 @@
                                 <td class="studioadmin-tbl">{{ session.formatted_day }}</td>
                                 <td class="studioadmin-tbl">{{ session.instance.time|time:"H:i" }}</td>
                                 <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_session' session.instance.id %}">{{ session.instance.name }}</a></td>
+                                <td class="table-center studioadmin-tbl">{{ session.instance.location }}</div></td>
                                 <td class="table-center studioadmin-tbl">£ {{ session.instance.cost }}</div></td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if session.instance.max_participants %}{{ session.instance.max_participants }}{% else %}N/A{% endif %}</td>
@@ -45,7 +47,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                        <td class="studioadmin-tbl" colspan="8"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                        <td class="studioadmin-tbl" colspan="10"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
                         </tr>
                     </table>
                 </div>

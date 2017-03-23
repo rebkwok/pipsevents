@@ -4,6 +4,8 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from booking.models import EventType
+from booking.models import Event
+
 
 class Session(models.Model):
     MON = '01MON'
@@ -28,7 +30,10 @@ class Session(models.Model):
     time = models.TimeField()
     event_type = models.ForeignKey(EventType, null=True)
     description = models.TextField(blank=True, default="")
-    location = models.CharField(max_length=255, default="Watermelon Studio")
+    location = models.CharField(
+        max_length=255, choices=Event.LOCATION_CHOICES,
+        default="Beaverbank Place"
+    )
     max_participants = models.PositiveIntegerField(
         null=True, blank=True, default=10,
         help_text="Leave blank if no max number of participants"

@@ -33,7 +33,6 @@ class Command(BaseCommand):
             event_type=ev,
             description="Outing for pips to play!\n"
                         "Cost, no max participants, payment open.",
-            location="The pub",
             date=now + timedelta(20),
             cost=5,
             payment_open=True,

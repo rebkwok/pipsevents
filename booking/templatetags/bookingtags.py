@@ -3,7 +3,6 @@ import pytz
 
 from datetime import datetime
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django import template
@@ -11,10 +10,8 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from accounts.utils import has_active_disclaimer, \
-    has_active_online_disclaimer, has_active_print_disclaimer, \
-    has_expired_disclaimer
-from booking.models import Booking, EventVoucher, UsedBlockVoucher, \
+from accounts.utils import has_active_disclaimer, has_expired_disclaimer
+from booking.models import Booking, Event, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
 from payments.models import PaypalBookingTransaction
 from studioadmin.utils import int_str, chaffify
@@ -339,3 +336,9 @@ def has_paypal(booking):
         )
         return ppbs.exists()
     return False
+
+
+@register.filter
+def full_location(location):
+    locations = dict(Event.LOCATION_CHOICES)
+    return locations[location]
