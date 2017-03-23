@@ -69,11 +69,17 @@ class EventType(models.Model):
 
 
 class Event(models.Model):
+    LOCATION_CHOICES = (
+        ('Beaverbank Place', 'The Watermelon Studio - Beaverbank Place'),
+        ('New Location', 'The Watermelon Studio - New Location')
+    )
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType)
     description = models.TextField(blank=True, default="")
     date = models.DateTimeField()
-    location = models.CharField(max_length=255, default="Watermelon Studio")
+    location = models.CharField(
+        max_length=255, choices=LOCATION_CHOICES, default="Beaverbank Place"
+    )
     max_participants = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Leave blank if no max number of participants"
@@ -144,11 +150,12 @@ class Event(models.Model):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 
     def __str__(self):
-        return '{} - {}'.format(
+        return '{} - {} ({})'.format(
             str(self.name),
             self.date.astimezone(
                 pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M')
+            ).strftime('%d %b %Y, %H:%M'),
+            self.location
         )
 
     def save(self, *args, **kwargs):

@@ -101,8 +101,9 @@
                                     <a href="{% url 'booking:room_hire_detail' bookingform.booking.event.slug %}">
                                         {{ bookingform.booking.event.name }}</a>
                                     {% endif %}
-                                    </td>
-                                <td>{{ bookingform.booking_status }}</td>
+                                    <span class="studioadmin-help">({{ bookingform.booking.event.location }})</span>
+                                </td>
+                                <td class="table-center">{{ bookingform.booking_status }}</td>
                                 <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
                                 <td class="table-center">{{ bookingform.booking|format_paid_status }}</td>
                                 <td class="table-center">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>

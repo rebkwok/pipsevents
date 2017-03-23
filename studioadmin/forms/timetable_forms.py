@@ -218,7 +218,7 @@ class SessionAdminForm(forms.ModelForm):
                 attrs={'class': "form-control",
                        'placeholder': 'Name of session e.g. Pole Level 1'},
             ),
-            'location': forms.TextInput(
+            'location': forms.Select(
                 attrs={'class': "form-control"}
             ),
             'max_participants': forms.TextInput(

@@ -16,6 +16,7 @@
                                 <th>Date</th>
                                 <th class="table-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
                                     <span class="studioadmin-help">Click to view register</span></th>
+                                <th class="table-center">Location</th>
                                 <th class="table-center">Bookings</th>
                                 <th class="table-center">View Waiting List</th>
                             </tr>
@@ -31,6 +32,7 @@
                                         <a href="{% url 'studioadmin:class_register' event.slug 'OPEN' %}">
                                             {{ event.name }}</a>
                                     {% endif %}</td>
+                                <td class="table-center studioadmin-tbl">{{ event.location }}</td>
                                 <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.waitinglistusers.count > 0 %}

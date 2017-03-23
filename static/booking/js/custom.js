@@ -6,9 +6,6 @@ Date.prototype.dateFormat = function( format ){
   return moment(this).format(format);
 };
 
-function ReadOnlyCheckBox() {
-    return false;
-};
 
 jQuery(document).ready(function () {
 

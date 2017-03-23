@@ -411,7 +411,8 @@ class BookingCreateView(
         }
         try:
             send_mail('{} Booking for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
+            ),
                 get_template('booking/email/booking_received.txt').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [booking.user.email],
@@ -438,7 +439,9 @@ class BookingCreateView(
             try:
                 send_mail('{} {} {} {} has just booked for {}'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-                    booking.user.first_name, booking.user.last_name, booking.event.name),
+                    booking.user.first_name, booking.user.last_name,
+                    booking.event
+                ),
                           get_template(
                             'booking/email/to_studio_booking.txt'
                             ).render(
@@ -703,7 +706,8 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
                 'ev_type': ev_type
             }
             send_mail('{} Block used for booking for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
+            ),
                 get_template('booking/email/booking_updated.txt').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [booking.user.email],
@@ -867,7 +871,7 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
               }
         try:
             send_mail('{} Booking for {} cancelled'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
                 get_template('booking/email/booking_cancelled.txt').render(ctx),
                 settings.DEFAULT_FROM_EMAIL,
                 [booking.user.email],
@@ -918,7 +922,7 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
                             'ACTION REQUIRED!' if not booking.block else '',
                             booking.user.username,
-                            booking.event.name
+                            booking.event
                             ),
                           get_template(
                               'booking/email/to_studio_booking_cancelled.txt'

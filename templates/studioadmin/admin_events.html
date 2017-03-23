@@ -30,6 +30,7 @@
                                 <th>Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
+                                <th class="table-center">Location</th>
                                 <th class="table-center">Max spaces</th>
                                 <th class="table-center">Bookings</br>
                                     <span class="studioadmin-help">Click for waiting list</span></th>
@@ -58,6 +59,7 @@
                                     {% endif %}
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
                                 </td>
+                                <td class="table-center studioadmin-tbl">{{ event.instance.location }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
@@ -85,7 +87,7 @@
                             </tr>
                         {% endfor %}
                             <tr>
-                                <td class="studioadmin-tbl" colspan="10">
+                                <td class="studioadmin-tbl" colspan="11">
 
                                         <div class="pagination">
                                             {% if event_page.has_previous %}
