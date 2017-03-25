@@ -8,11 +8,19 @@
             <p>Start date: {{ start_date | date:"D d F Y"}}</p>
             <p>End date: {{ end_date | date:"D d F Y"}}</p>
 
+            {% if duplicate_classes %}
+                <h3 style="color: red;">WARNING: The following duplicate classes were found!</h3>
+                <ul>
+                    {% for duplicate in duplicate_classes %}
+                        <li><strong>{{ duplicate.class.name }} ({{ duplicate.class.location }})</strong>, {{ duplicate.class.date | date:"D d F Y, g:i a"}} (x {{ duplicate.count}})</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
             {% if created_classes %}
                 <p>The following classes were created :</p>
                 <ul>
                 {% for class in created_classes %}
-                    <li><strong>{{ class.name }}</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
+                    <li><strong>{{ class.name }} ({{ class.location }})</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
                 {% endfor %}
                 </ul>
             {% endif %}
@@ -21,7 +29,7 @@
                     not been added again:</p>
                 <ul>
                 {% for class in existing_classes %}
-                    <li><strong>{{ class.name }}</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
+                    <li><strong>{{ class.name }} ({{ class.location }})</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>
                 {% endfor %}
                 </ul>
             {% endif %}
