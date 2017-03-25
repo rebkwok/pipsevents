@@ -104,6 +104,7 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
 
     created_classes = []
     existing_classes = []
+    duplicate_classes = []
 
     d = start_date
     delta = timedelta(days=1)
@@ -118,34 +119,41 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
             local_date = localtz.localize(datetime.combine(d,
                 session.time))
             converted_date = local_date.astimezone(pytz.utc)
-
-            cl, created = Event.objects.get_or_create(
+            existing = Event.objects.filter(
                 name=session.name,
                 event_type=session.event_type,
                 date=converted_date,
                 location=session.location
             )
-            if created:
-                cl.description = session.description
-                cl.max_participants = session.max_participants
-                cl.contact_person = session.contact_person
-                cl.contact_email = session.contact_email
-                cl.cost = session.cost
-                cl.payment_open = session.payment_open
-                cl.advance_payment_required = session.advance_payment_required
-                cl.booking_open = session.booking_open
-                cl.payment_info = session.payment_info
-                cl.cancellation_period = session.cancellation_period
-                cl.external_instructor = session.external_instructor
-                cl.email_studio_when_booked = session.email_studio_when_booked
-                cl.payment_time_allowed = session.payment_time_allowed
-                cl.allow_booking_cancellation = session.allow_booking_cancellation
-                cl.paypal_email = session.paypal_email
-                cl.save()
-
+            if not existing:
+                cl = Event.objects.create(
+                    name=session.name,
+                    event_type=session.event_type,
+                    date=converted_date,
+                    location=session.location,
+                    description=session.description,
+                    max_participants=session.max_participants,
+                    contact_person=session.contact_person,
+                    contact_email=session.contact_email,
+                    cost=session.cost,
+                    payment_open=session.payment_open,
+                    advance_payment_required=session.advance_payment_required,
+                    booking_open=session.booking_open,
+                    payment_info=session.payment_info,
+                    cancellation_period=session.cancellation_period,
+                    external_instructor=session.external_instructor,
+                    email_studio_when_booked=session.email_studio_when_booked,
+                    payment_time_allowed=session.payment_time_allowed,
+                    allow_booking_cancellation=session.allow_booking_cancellation,
+                    paypal_email=session.paypal_email
+                )
                 created_classes.append(cl)
             else:
-                existing_classes.append(cl)
+                if existing.count() > 1:
+                    duplicate_classes.append(
+                        {'class': existing[0], 'count': existing.count()}
+                    )
+                existing_classes.append(existing[0])
         d += delta
 
     if created_classes:
@@ -157,4 +165,4 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
             )
         )
 
-    return created_classes, existing_classes
+    return created_classes, existing_classes, duplicate_classes
