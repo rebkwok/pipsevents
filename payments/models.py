@@ -210,7 +210,9 @@ def get_obj(ipn_obj):
     from payments import helpers
     additional_data = {}
     try:
-        custom = ipn_obj.custom.split()
+        # occasionally paypal sends back the custom field with the space
+        # replaced with '+'. i.e. "booking+1" instead of "booking 1"
+        custom = ipn_obj.custom.replace('+', ' ').split()
         obj_type = custom[0]
         obj_id = int(custom[1])
         voucher_code = custom[2] if len(custom) == 3 and \

@@ -256,6 +256,46 @@ class PaypalSignalsTests(TestCase):
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_ipn_obj_with_space_replaced(self, mock_postback):
+        # occasionally paypal sends back the custom field with the space
+        # replaced with '+'. i.e. "booking+1" instead of "booking 1"
+        mock_postback.return_value = b"VERIFIED"
+        booking = mommy.make_recipe(
+            'booking.booking',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking+{}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        # 2 emails sent, to user and studio
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status_unmatching_object(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
 
