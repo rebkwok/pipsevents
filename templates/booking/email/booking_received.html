@@ -51,6 +51,12 @@ Your booking has been received for {{ event }}.
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
     {% endif %}
 
+    <p><span style="color: red;">PLEASE NOTE: </span> A warm up and cool down is provided for every class.
+        If you are late and/or miss the warm up, you will not be allowed to attend for safety reasons and to
+        avoid disruption to the class.</p>
+    <p>Please arrive at least 5 mins before your class to allow time to change.
+    </p>
+
     {% if booking.user.is_superuser %}
     <p><a href="{{ host }}{% url 'studioadmin:user_bookings_list' booking.user.id %}">Your admin page</a></p>
     {% endif %}

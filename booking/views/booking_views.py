@@ -166,6 +166,12 @@ class BookingCreateView(
     model = Booking
     template_name = 'booking/create_booking.html'
     success_message = 'Your booking has been made for {}.'
+    info_message = mark_safe(
+        '<span style="color: red;">PLEASE NOTE: </span>'
+        'If you are late and/or miss the warm up, you will not be allowed to attend for '
+        'safety reasons and to avoid disruption to the class. <strong>Please arrive at least '
+        '5 mins before your class to allow time to change.</strong>'
+    )
     form_class = BookingCreateForm
 
     def dispatch(self, request, *args, **kwargs):
@@ -508,6 +514,7 @@ class BookingCreateView(
                 self.success_message.format(booking.event),
                 extra_msg))
         )
+        messages.info(self.request, self.info_message)
 
         try:
             waiting_list_user = WaitingListUser.objects.get(
