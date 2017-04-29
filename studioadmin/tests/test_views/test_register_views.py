@@ -2,7 +2,7 @@
 import pytz
 from datetime import  date, datetime
 
-from mock import patch
+from unittest.mock import patch
 from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
@@ -279,10 +279,10 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
 
         resp = self._get_response(self.staff_user, event.slug)
+
         # block is hidden as booking is paid
         self.assertIn(
-            '<select class="hide" id="id_bookings-0-block" '
-            'name="bookings-0-block">',
+            '<span class="hide"><select name="bookings-0-block"',
             resp.rendered_content
         )
         # block info is displayed
@@ -292,7 +292,6 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             ),
             resp.rendered_content
         )
-
 
     def test_block_format_block_available_not_used(self):
         # paid (user has available block not used)
@@ -311,12 +310,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             payment_confirmed=True
         )
         resp = self._get_response(self.staff_user, event.slug)
-
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select class="form-control input-xs '
-            'studioadmin-list" id="id_bookings-0-block" '
-            'name="bookings-0-block">',
+            '<span class="hide"><select name="bookings-0-block"',
             resp.rendered_content
         )
         # block info is displayed
@@ -342,8 +338,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         # block is hidden as booking is paid
         self.assertIn(
-            '<span class="hide"><select class="hide" id="id_bookings-0-block" '
-            'name="bookings-0-block">',
+            '<span class="hide"><select name="bookings-0-block"',
             resp.rendered_content
         )
         # block info is displayed
@@ -553,7 +548,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         resp.render()
         self.assertIn(
-            '<select id="id_status_choice" name="status_choice">',
+            '<select name="status_choice" id="id_status_choice">',
             str(resp.content),
         )
         resp = self._get_response(
@@ -562,7 +557,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         resp.render()
         self.assertNotIn(
-            '<select id="id_status_choice" name="status_choice">',
+            '<select name="status_choice" id="id_status_choice">',
             str(resp.content),
         )
         self.assertIn(

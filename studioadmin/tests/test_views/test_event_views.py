@@ -3,7 +3,7 @@ import pytz
 
 from datetime import timedelta
 
-from mock import patch
+from unittest.mock import patch
 
 from model_mommy import mommy
 
@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from booking.models import Block, BlockType, Event, Booking
 from booking.tests.helpers import _create_session, format_content
+from common.utils import _add_user_email_addresses
 from studioadmin.views import (
     cancel_event_view,
     event_admin_list,
@@ -262,14 +263,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(self.event.bookings.all().count(), 0)
 
         resp = self._get_response(self.staff_user, 'events')
-        self.assertIn(
-            'class="delete-checkbox studioadmin-list" '
-            'id="DELETE_0" name="form-0-DELETE"',
-            resp.rendered_content
-        )
-        self.assertNotIn('id="DELETE_1" name="form-1-DELETE"',
-            resp.rendered_content
-        )
+        self.assertIn('id="DELETE_0"', resp.rendered_content)
+        self.assertNotIn('id="DELETE_1"', resp.rendered_content)
         self.assertIn('cancel_button', resp.rendered_content)
 
     def test_can_delete(self):
@@ -1184,7 +1179,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
-
+        _add_user_email_addresses(Booking)
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 12)
 
         self._post_response(
@@ -1226,6 +1221,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
             )
+        _add_user_email_addresses(Booking)
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 15)
 
         self._post_response(
@@ -1269,7 +1265,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 10)
 
         open_bookings = Booking.objects.filter(event=self.event, status='OPEN')
-
+        _add_user_email_addresses(Booking)
         self._post_response(
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
@@ -1892,6 +1888,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
         )
+        _add_user_email_addresses(Booking)
 
         self.client.login(username=self.staff_user.username, password='test')
         url = reverse(
@@ -1955,6 +1952,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             'booking.booking', event=pole_class, status="OPEN", paid=False,
             deposit_paid=True
         )
+        _add_user_email_addresses(Booking)
+
         self.client.login(username=self.staff_user.username, password='test')
         url = reverse(
             'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from mock import patch
+from unittest.mock import patch
 from model_mommy import mommy
 
 from django.conf import settings

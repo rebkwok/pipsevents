@@ -6,10 +6,12 @@ from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
 
 
 def create_booking_paypal_transaction(user, booking):
-    id_string = "-".join([user.username] +
-                         ["".join([word[0] for word in
-                                   booking.event.name.split()])] +
-                         [booking.event.date.strftime("%d%m%y%H%M")] + ['inv#'])
+    # truncate username to avoid making invoice ids that
+    # are too long for the django-paypal ipn invoice model field
+    username = user.username[:50]
+    id_string = "-".join([username] + [
+        "".join([word[0] for word in booking.event.name.split()])
+    ] + [booking.event.date.strftime("%d%m%y%H%M")] + ['inv#'])
     existing = PaypalBookingTransaction.objects.filter(
         invoice_id__contains=id_string, booking=booking).order_by('-invoice_id')
 
@@ -43,8 +45,8 @@ def create_booking_paypal_transaction(user, booking):
 
 
 def create_block_paypal_transaction(user, block):
-
-    id_string = "-".join([user.username] +
+    username = user.username[:50]
+    id_string = "-".join([username] +
                          ["".join([word[0] for word in
                           block.block_type.event_type.subtype.split()])] +
                          [str(block.block_type.size)] +

@@ -1,6 +1,6 @@
 from model_mommy import mommy
 from datetime import datetime, timedelta
-from mock import patch
+from unittest.mock import patch
 
 
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -323,12 +323,10 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
         )
         user = mommy.make_recipe('booking.user')
-        field = OnlineDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make_recipe(
-               'booking.online_disclaimer', user=user
-            )
+        disclaimer = mommy.make_recipe(
+           'booking.online_disclaimer', user=user,
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        )
         self.assertFalse(disclaimer.is_active)
 
         resp = self._get_response(user, event, 'lesson')

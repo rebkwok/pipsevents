@@ -1,8 +1,9 @@
 import csv
 import os
+import pytz
 
 from datetime import date, datetime, timedelta
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from model_mommy import mommy
 
 from django.conf import settings
@@ -175,14 +176,12 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
         )
 
     def test_with_expired_disclaimer(self):
-        field = OnlineDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make(
-                OnlineDisclaimer, user=self.user, name='Donald Duck',
-                dob=date(2000, 10, 5), address='1 Main St',
-                postcode='AB1 2CD', terms_accepted=True,
-            )
+        disclaimer = mommy.make(
+            OnlineDisclaimer, user=self.user, name='Donald Duck',
+            dob=date(2000, 10, 5), address='1 Main St',
+            postcode='AB1 2CD', terms_accepted=True,
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        )
         self.assertFalse(disclaimer.is_active)
 
         form = DisclaimerForm(user=self.user)
@@ -336,19 +335,21 @@ class DisclaimerModelTests(TestCase):
 
     def test_online_disclaimer_str(self,):
         user = mommy.make_recipe('booking.user', username='testuser')
-        field = OnlineDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make(OnlineDisclaimer, user=user)
-            self.assertEqual(str(disclaimer), 'testuser - 10 Feb 2015, 19:00')
+        disclaimer = mommy.make(OnlineDisclaimer, user=user)
+        self.assertEqual(str(disclaimer), 'testuser - {}'.format(
+            disclaimer.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y, %H:%M')
+        ))
 
     def test_print_disclaimer_str(self):
         user = mommy.make_recipe('booking.user', username='testuser')
-        field = PrintDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make(PrintDisclaimer, user=user)
-            self.assertEqual(str(disclaimer), 'testuser - 10 Feb 2015, 19:00')
+        disclaimer = mommy.make(PrintDisclaimer, user=user)
+        self.assertEqual(str(disclaimer), 'testuser - {}'.format(
+            disclaimer.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y, %H:%M')
+        ))
 
     def test_default_terms_set_on_new_online_disclaimer(self):
         disclaimer = mommy.make(
@@ -379,16 +380,15 @@ class DisclaimerModelTests(TestCase):
 
     def test_cannot_create_new_active_disclaimer(self):
         user = mommy.make_recipe('booking.user', username='testuser')
-        field = OnlineDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make(OnlineDisclaimer, user=user)
+        disclaimer = mommy.make(
+            OnlineDisclaimer, user=user,
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+        )
 
         self.assertFalse(disclaimer.is_active)
-
-        new_disclaimer = mommy.make(OnlineDisclaimer, user=user)
-        self.assertTrue(new_disclaimer.is_active)
-
+        # can make a new disclaimer
+        mommy.make(OnlineDisclaimer, user=user)
+        # can't make new disclaimer when one is already active
         with self.assertRaises(ValidationError):
             mommy.make(OnlineDisclaimer, user=user)
 

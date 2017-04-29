@@ -1,6 +1,6 @@
 import os
 
-from mock import patch
+from unittest.mock import patch
 
 from model_mommy import mommy
 from datetime import datetime, timedelta
@@ -215,12 +215,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         # expired disclaimer
-        field = OnlineDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make_recipe(
-               'booking.online_disclaimer', user=user
-            )
+        disclaimer = mommy.make_recipe(
+           'booking.online_disclaimer', user=user,
+            date=datetime(2015, 2, 1, tzinfo=timezone.utc)
+        )
+
         self.assertFalse(disclaimer.is_active)
         resp = self._get_response(user, 'events')
         self.assertNotIn(

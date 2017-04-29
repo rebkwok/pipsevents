@@ -19,7 +19,7 @@ future = now + timedelta(30)
 user = Recipe(User,
               username=seq("test_user"),
               password="password",
-              email="test_user@test.com",
+              email=seq("test_user@test.com"),
               )
 
 # events; use defaults apart from dates
@@ -100,7 +100,8 @@ block_10 = Recipe(Block,
                   block_type=foreign_key(blocktype10),
                   start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
-booking = Recipe(Booking, user=foreign_key(user))
+booking = Recipe(Booking)
+booking_with_user = Recipe(Booking, user=foreign_key(user))
 
 past_booking = Recipe(Booking,
                       event=foreign_key(past_event),
