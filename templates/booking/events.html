@@ -104,7 +104,7 @@
                                     <td class="table-center" style="vertical-align: middle; horiz-align: center">
                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                         {% elif event.max_participants %}
-                                            {% if event.spaces_left = 0 %}
+                                            {% if event.spaces_left == 0 %}
                                                 <span class="label label-spaces label-default label-rounded">FULL</span>
                                             {% else %}
                                                 <span class="label label-spaces label-success label-rounded">{{ event.spaces_left }}</span>
