@@ -1,17 +1,9 @@
 from django.test import TestCase
-from django.conf import settings
 from django.core import management
-from django.core import mail
-from django.db.models import Q
-from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import datetime, timedelta
 from allauth.socialaccount.models import SocialApp
-from mock import patch
 from model_mommy import mommy
 
-from booking.models import Event, Booking, EventType, BlockType, \
-    TicketBooking, Ticket
+from booking.models import EventType
 from timetable.models import Session
 
 

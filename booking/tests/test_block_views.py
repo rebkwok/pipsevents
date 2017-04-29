@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from mock import patch
+from unittest.mock import patch
 from model_mommy import mommy
 
 from django.conf import settings
@@ -411,12 +411,11 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.client.login(
             username=user_expired_disclaimer.username, password='test'
         )
-        field = OnlineDisclaimer._meta.get_field('date')
-        mock_now = lambda: datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
-        with patch.object(field, 'default', new=mock_now):
-            disclaimer = mommy.make_recipe(
-               'booking.online_disclaimer', user=user_expired_disclaimer
-            )
+        disclaimer = mommy.make(OnlineDisclaimer,
+            user=user_expired_disclaimer,
+            date=datetime(2015, 2, 1, tzinfo=timezone.utc)
+        )
+        disclaimer.save()
         self.assertFalse(disclaimer.is_active)
         resp = self.client.get(reverse('booking:block_list'))
         self.assertNotIn(

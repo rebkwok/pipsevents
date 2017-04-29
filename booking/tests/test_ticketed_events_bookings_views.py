@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from model_mommy import mommy
-from mock import patch
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
