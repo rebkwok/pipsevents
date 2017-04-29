@@ -100,10 +100,11 @@ block_10 = Recipe(Block,
                   block_type=foreign_key(blocktype10),
                   start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
-booking = Recipe(Booking)
+booking = Recipe(Booking, user=foreign_key(user))
 
 past_booking = Recipe(Booking,
-                      event=foreign_key(past_event)
+                      event=foreign_key(past_event),
+                      user=foreign_key(user)
                       )
 
 fb_app = Recipe(SocialApp,
@@ -122,14 +123,14 @@ wed_session = Recipe(
     payment_time_allowed=None
 )
 
-waiting_list_user = Recipe(WaitingListUser)
+waiting_list_user = Recipe(WaitingListUser, user=foreign_key(user))
 
 ticketed_event_max10 = Recipe(
     TicketedEvent, max_tickets=10, ticket_cost=10, date=future
 )
 ticketed_event_past_max10 = Recipe(TicketedEvent, max_tickets=10,
                                    ticket_cost=10, date=past)
-ticket_booking = Recipe(TicketBooking)
+ticket_booking = Recipe(TicketBooking, user=foreign_key(user))
 
 online_disclaimer = Recipe(
     OnlineDisclaimer, dob=now - timedelta(20*365),
