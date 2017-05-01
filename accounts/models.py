@@ -67,7 +67,9 @@ DISCLAIMER_TERMS = "I recognise that I may be asked to participate in some " \
                    "may use the information submitted in this form to help " \
                    "keep the chances of any injury to a minimum. I also " \
                    "hereby agree to follow all rules set out by The " \
-                   "Watermelon Studio.  I have read and agree to the terms " \
+                   "Watermelon Studio. I understand that photographs taken " \
+                   "at the studio may be used on the studio's website and " \
+                   "social media pages.  I have read and agree to the terms " \
                    "and conditions on the website."
 
 OVER_18_TERMS = "I confirm that I am aged 18 or over"
