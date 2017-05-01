@@ -44,7 +44,7 @@ if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
 else:  # pragma: no cover
     DEBUG = False
 
-ALLOWED_HOSTS = ['booking.thewatermelonstudio.co.uk']
+ALLOWED_HOSTS = ['booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk']
 
 
 # Application definition
@@ -267,9 +267,6 @@ if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Allow all host headers
-ALLOWED_HOSTS = ['*']
 
 # DJANGO-SUIT
 SUIT_CONFIG = {
