@@ -20,32 +20,45 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         event_type = EventType.objects.get(subtype='Pole level class')
-        free_blocktype, _ = BlockType.objects.get_or_create(
+        free_5_blocktype, _ = BlockType.objects.get_or_create(
             identifier='Free - 5 classes', active=False, cost=0, duration=1,
             size=5, event_type=event_type
         )
+        free_7_blocktype, _ = BlockType.objects.get_or_create(
+            identifier='Free - 7 classes', active=False, cost=0, duration=1,
+            size=7, event_type=event_type
+        )
 
-        users = []
-        group = None
-        try:
-            group = Group.objects.get(name='free_monthly_blocks')
-            users = group.user_set.all()
-        except Group.DoesNotExist:
-            error_msg = "Group named 'free_monthly_blocks' does not exist"
-            self.stdout.write(error_msg)
-            send_mail(
-                '{} Free blocks creation failed'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                ),
-                'Error: {}'.format(error_msg),
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.SUPPORT_EMAIL],
-                fail_silently=False
-            )
+        group5, _ = Group.objects.get_or_create(name='free_5monthly_blocks')
+        group7, _ = Group.objects.get_or_create(name='free_7monthly_blocks')
 
-        if group:
-            created_users = []
-            already_active_users = []
+        groupmap = {
+            group5: {
+                'blocktype': free_5_blocktype, 'users': group5.user_set.all()
+            },
+            group7: {
+                'blocktype': free_7_blocktype, 'users': group7.user_set.all()
+            }
+        }
+
+        created_users = []
+        already_active_users = []
+
+        for group in groupmap.keys():
+            free_blocktype = groupmap[group]['blocktype']
+            users = groupmap[group]['users']
+
+            if not users:
+                self.stdout.write('No users in {} group'.format(group.name))
+                send_mail(
+                    '{} Free blocks creation failed'.format(
+                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                    ),
+                    'No users in {} group'.format(group.name),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.SUPPORT_EMAIL],
+                    fail_silently=False
+                )
 
             for user in users:
                 active_free_blocks = [
@@ -67,53 +80,41 @@ class Command(BaseCommand):
                     )
                     created_users.append(user)
 
-            if created_users:
-                message = 'Free 5 class blocks created for {}'.format(
-                    ', '.join(
-                        ['{} {}'.format(user.first_name, user.last_name)
-                         for user in created_users]
-                    )
+        if created_users:
+            message = 'Free class blocks created for {}'.format(
+                ', '.join(
+                    ['{} {}'.format(user.first_name, user.last_name)
+                     for user in created_users]
                 )
-                ActivityLog.objects.create(log=message)
-                self.stdout.write(message)
-                send_mail(
-                    '{} Free blocks created'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    ),
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.SUPPORT_EMAIL],
-                    fail_silently=False
-                )
+            )
+            ActivityLog.objects.create(log=message)
+            self.stdout.write(message)
+            send_mail(
+                '{} Free blocks created'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                ),
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.SUPPORT_EMAIL],
+                fail_silently=False
+            )
 
-            if already_active_users:
-                message = 'Free 5 class blocks not created for {} as active ' \
-                          'free block already exists'.format(
-                    ', '.join(
-                        ['{} {}'.format(user.first_name, user.last_name)
-                         for user in already_active_users]
-                    )
+        if already_active_users:
+            message = 'Free monthly class blocks not created for {} as ' \
+                      'active free block already exists'.format(
+                ', '.join(
+                    ['{} {}'.format(user.first_name, user.last_name)
+                     for user in already_active_users]
                 )
-                ActivityLog.objects.create(log=message)
-                self.stdout.write(message)
-                send_mail(
-                    '{} Free blocks not created'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    ),
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.SUPPORT_EMAIL],
-                    fail_silently=False
-                )
-
-            if not (already_active_users or created_users):
-                self.stdout.write('No users in free_monthly_blocks group')
-                send_mail(
-                    '{} Free blocks creation failed'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    ),
-                    'No users in free_monthly_blocks group',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.SUPPORT_EMAIL],
-                    fail_silently=False
-                )
+            )
+            ActivityLog.objects.create(log=message)
+            self.stdout.write(message)
+            send_mail(
+                '{} Free blocks not created'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                ),
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.SUPPORT_EMAIL],
+                fail_silently=False
+            )
