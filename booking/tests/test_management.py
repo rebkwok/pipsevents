@@ -2621,9 +2621,12 @@ class CreateFreeMonthlyBlocksTests(TestCase):
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
                 )
         )
-        self.assertEqual(
+        self.assertIn(
             email.body,
-            'Free class blocks created for Test User1, Test User2'
+            [
+                'Free class blocks created for Test User1, Test User2',
+                'Free class blocks created for Test User2, Test User1'
+            ]
         )
 
     def test_dont_create_duplicate_free_blocks(self):
@@ -2710,9 +2713,12 @@ class CreateFreeMonthlyBlocksTests(TestCase):
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
                 )
         )
-        self.assertEqual(
+        self.assertIn(
             created_email.body,
-            'Free class blocks created for Test User1, Test User2'
+            [
+                'Free class blocks created for Test User1, Test User2',
+                'Free class blocks created for Test User2, Test User1'
+            ]
         )
 
         not_created_email = mail.outbox[2]
