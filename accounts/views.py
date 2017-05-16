@@ -18,6 +18,7 @@ from .utils import has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 
 
+@login_required
 def profile(request):
     disclaimer = has_active_disclaimer(request.user)
     expired_disclaimer = has_expired_disclaimer(request.user)
