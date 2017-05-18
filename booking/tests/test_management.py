@@ -2,7 +2,7 @@ import sys
 
 from datetime import datetime, timedelta
 from io import StringIO
-from mock import patch
+from unittest.mock import patch
 from model_mommy import mommy
 
 from django.test import TestCase, override_settings
@@ -18,6 +18,7 @@ from allauth.socialaccount.models import SocialApp
 from activitylog.models import ActivityLog
 from booking.models import Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
+from common.utils import _add_user_email_addresses
 from payments.models import PaypalBookingTransaction
 
 
@@ -178,6 +179,9 @@ class EmailReminderAndWarningTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=event1, _quantity=5,
             )
+        # add user emails
+        _add_user_email_addresses(Booking)
+
         management.call_command('email_reminders')
         # emails are only sent for event1
         self.assertEquals(len(mail.outbox), 5)
@@ -199,6 +203,7 @@ class EmailReminderAndWarningTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=event, _quantity=5,
             )
+        _add_user_email_addresses(Booking)
         management.call_command('email_reminders')
         self.assertEquals(len(mail.outbox), 0)
 
@@ -218,6 +223,7 @@ class EmailReminderAndWarningTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=event, _quantity=5,
             )
+        _add_user_email_addresses(Booking)
 
         management.call_command('email_reminders')
         self.assertEquals(len(mail.outbox), 5)
@@ -244,6 +250,7 @@ class EmailReminderAndWarningTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=event, paid=True, payment_confirmed=True,
             )
+        _add_user_email_addresses(Booking)
         management.call_command('email_reminders')
         self.assertEquals(len(mail.outbox), 1)
         self.assertEquals(
@@ -269,6 +276,7 @@ class EmailReminderAndWarningTests(TestCase):
         mommy.make_recipe(
             'booking.booking', event=event, status='CANCELLED', _quantity=5
             )
+        _add_user_email_addresses(Booking)
         management.call_command('email_reminders')
         self.assertEquals(len(mail.outbox), 5)
         for booking in Booking.objects.filter(status='OPEN'):
@@ -331,6 +339,7 @@ class EmailReminderAndWarningTests(TestCase):
             date_booked=datetime(2015, 2, 9, 21, 00, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 10)
 
@@ -360,7 +369,7 @@ class EmailReminderAndWarningTests(TestCase):
             date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
             _quantity=5,
             )
-
+        _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 5)
 
@@ -420,7 +429,8 @@ class EmailReminderAndWarningTests(TestCase):
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
             )
-
+        _add_user_email_addresses(Booking)
+        
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 3)
 
@@ -448,6 +458,8 @@ class EmailReminderAndWarningTests(TestCase):
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=5,
             )
+        
+        _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 5)
         for booking in Booking.objects.all():
@@ -487,6 +499,8 @@ class EmailReminderAndWarningTests(TestCase):
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=3,
             )
+        _add_user_email_addresses(Booking)
+        
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 3)
         for booking in Booking.objects.filter(payment_confirmed=False):
@@ -522,6 +536,8 @@ class EmailReminderAndWarningTests(TestCase):
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=3,
             )
+        _add_user_email_addresses(Booking)
+        
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 3)
         for booking in Booking.objects.filter(status='OPEN'):
@@ -554,6 +570,7 @@ class EmailReminderAndWarningTests(TestCase):
             payment_confirmed=False, status='OPEN',
             date_booked=datetime(2015, 2, 9, 22, 30, tzinfo=timezone.utc)
             )
+        _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
         self.assertEquals(len(mail.outbox), 1)
         booking1.refresh_from_db()
@@ -1209,6 +1226,8 @@ class TicketBookingWarningTests(TestCase):
             _quantity=5,
             )
 
+        _add_user_email_addresses(TicketBooking)
+
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
 
@@ -1238,6 +1257,7 @@ class TicketBookingWarningTests(TestCase):
 
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
+        _add_user_email_addresses(TicketBooking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 0)
@@ -1265,6 +1285,7 @@ class TicketBookingWarningTests(TestCase):
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(TicketBooking)
 
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
@@ -1293,6 +1314,7 @@ class TicketBookingWarningTests(TestCase):
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(TicketBooking)
 
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
@@ -1335,6 +1357,7 @@ class TicketBookingWarningTests(TestCase):
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
 
@@ -1371,6 +1394,7 @@ class TicketBookingWarningTests(TestCase):
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
 
@@ -1414,6 +1438,7 @@ class TicketBookingWarningTests(TestCase):
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
 
@@ -1447,6 +1472,7 @@ class TicketBookingWarningTests(TestCase):
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
+        _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all()[0:5]:
             mommy.make(Ticket, ticket_booking=ticket_booking)
 
@@ -1483,6 +1509,7 @@ class TicketBookingWarningTests(TestCase):
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 10, 23, 0, tzinfo=timezone.utc),
             )
+        _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=ticket_booking)
 
@@ -1520,6 +1547,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             )
         for booking in [self.paid, self.unpaid]:
             mommy.make(Ticket, ticket_booking=booking)
+        _add_user_email_addresses(TicketBooking)
 
         # redirect stdout so we can test it
         self.output = StringIO()

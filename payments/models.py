@@ -2,7 +2,7 @@
 
 import logging
 
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
@@ -281,7 +281,6 @@ def get_obj(ipn_obj):
                 paypal_trans = paypal_trans.latest('id')
         else:  # we got one paypaltrans, as we should have
             paypal_trans = paypal_trans[0]
-
 
     elif obj_type == 'ticket_booking':
         try:

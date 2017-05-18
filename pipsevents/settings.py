@@ -15,6 +15,7 @@ import sys
 root = environ.Path(__file__) - 2  # two folders back (/a/b/ - 3 = /)
 
 env = environ.Env(DEBUG=(bool, False),
+                  SHOW_DEBUG_TOOLBAR=(bool, True),
                   PAYPAL_TEST=(bool, False),
                   USE_MAILCATCHER=(bool, False),
                   TRAVIS=(bool, False),
@@ -43,7 +44,7 @@ if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
 else:  # pragma: no cover
     DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk']
 
 
 # Application definition
@@ -67,6 +68,7 @@ INSTALLED_APPS = (
     'debug_toolbar',
     'accounts',
     'booking',
+    'common',
     'timetable',
     'studioadmin',
     'ckeditor',
@@ -77,7 +79,7 @@ INSTALLED_APPS = (
 
 SITE_ID = 1
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -86,7 +88,7 @@ MIDDLEWARE_CLASSES = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'responsive.middleware.DeviceInfoMiddleware',
+    'common.middleware.NewDeviceInfoMiddleware',
 )
 
 
@@ -266,9 +268,6 @@ if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Allow all host headers
-ALLOWED_HOSTS = ['*']
-
 # DJANGO-SUIT
 SUIT_CONFIG = {
     'ADMIN_NAME': "Watermelon Pips Events",
@@ -342,7 +341,7 @@ SUIT_CONFIG = {
     )
 }
 
-INTERNAL_IPS = ('127.0.0.1',)
+INTERNAL_IPS = ('127.0.0.1', '10.0.2.2')
 
 
 # CKEDITOR
@@ -439,11 +438,6 @@ if env('TRAVIS') or env('HEROKU'):  # pragma: no cover
         },
     }
 
-
-def show_toolbar(request):  # pragma: no cover
-    return True
-
-
 if 'test' in sys.argv:  # use local cache for tests
     CACHES = {
         'default': {
@@ -452,10 +446,20 @@ if 'test' in sys.argv:  # use local cache for tests
         }
     }
 
-# if DEBUG and 'test' not in sys.argv:  # pragma: no cover
-#     ENABLE_DEBUG_TOOLBAR = True
-#     DEBUG_TOOLBAR_CONFIG = {
-#         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
-#     }
+
+def show_toolbar(request):  # pragma: no cover
+    return env('SHOW_DEBUG_TOOLBAR')
+
+
+# With Django 1.11, the TemplatesPanel in the debug toolbar makes everything
+# excessively slow
+# See https://github.com/jazzband/django-debug-toolbar/issues/910
+DEBUG_TOOLBAR_CONFIG = {
+    'DISABLE_PANELS': {
+        'debug_toolbar.panels.redirects.RedirectsPanel',
+        'debug_toolbar.panels.templates.TemplatesPanel'
+    },
+    "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+}
 
 AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
