@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytz
 from datetime import timedelta
-from mock import patch
+from unittest.mock import patch
 from model_mommy import mommy
 
 from django.conf import settings
@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.tests.helpers import _create_session, format_content
+from common.utils import _add_user_email_addresses
 
 from studioadmin.views import (
     ConfirmTicketBookingRefundView,
@@ -161,13 +162,10 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
 
         resp = self._get_response(self.staff_user)
         self.assertIn(
-            'class="delete-checkbox studioadmin-list" '
-            'id="DELETE_0" name="form-0-DELETE"',
-            resp.rendered_content
+            'id="DELETE_0"', resp.rendered_content
         )
         self.assertNotIn(
-            'id="DELETE_1" name="form-1-DELETE"',
-            resp.rendered_content
+            'id="DELETE_1"', resp.rendered_content
         )
         self.assertIn('cancel_button', resp.rendered_content)
 
@@ -1212,7 +1210,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         )
         for tb in TicketBooking.objects.all():
             mommy.make(Ticket, ticket_booking=tb)
-
+        _add_user_email_addresses(TicketBooking)
         self._post_response(
             self.staff_user, self.ticketed_event_with_booking,
             {'confirm': 'Yes, cancel this event'}
