@@ -45,7 +45,8 @@ else:  # pragma: no cover
     DEBUG = False
 
 ALLOWED_HOSTS = ['booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk']
-
+if env('LOCAL'):
+    ALLOWED_HOSTS = ['*']
 
 # Application definition
 
