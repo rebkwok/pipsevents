@@ -14,14 +14,16 @@ import sys
 
 root = environ.Path(__file__) - 2  # two folders back (/a/b/ - 3 = /)
 
+# defaults
 env = environ.Env(DEBUG=(bool, False),
-                  SHOW_DEBUG_TOOLBAR=(bool, True),
+                  SHOW_DEBUG_TOOLBAR=(bool, False),
                   PAYPAL_TEST=(bool, False),
                   USE_MAILCATCHER=(bool, False),
                   TRAVIS=(bool, False),
                   HEROKU=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
-                  AUTO_BOOK_EMAILS=(list, [])
+                  AUTO_BOOK_EMAILS=(list, []),
+                  LOCAL=(bool, False)
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
