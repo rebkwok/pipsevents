@@ -464,3 +464,7 @@ DEBUG_TOOLBAR_CONFIG = {
 }
 
 AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
+
+# Increase this to deal with the bulk emails.  Currently just under 2000
+# users, posts 2 fields per user
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 8000
