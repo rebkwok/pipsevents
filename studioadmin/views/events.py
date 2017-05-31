@@ -145,7 +145,7 @@ def event_admin_list(request, ev_type):
                 )
 
     else:  # GET; default to upcoming
-        show_past = False
+        show_past = request.GET.get('past', False)
         events, ev_page, eventformset = _get_events(
             ev_type, request, show_past, page
         )

@@ -89,7 +89,7 @@
 
                                         <div class="pagination">
                                             {% if event_page.has_previous %}
-                                                <a href="?page={{ event_page.previous_page_number }}">Previous</a>
+                                                <a href="?page={{ event_page.previous_page_number }}{% if show_past %}&past=true{% endif %}">Previous</a>
                                             {% else %}
                                                 <a class="disabled" disabled=disabled href="#">Previous</a>
                                             {% endif %}
@@ -97,7 +97,7 @@
                                                 --  Page {{ event_page.number }} of {{ event_page.paginator.num_pages }} --
                                             </span>
                                             {% if event_page.has_next %}
-                                                <a href="?page={{ event_page.next_page_number }}">Next</a>
+                                                <a href="?page={{ event_page.next_page_number }}{% if show_past %}&past=true{% endif %}">Next</a>
                                             {% else %}
                                                 <a class="disabled" href="#">Next</a>
                                             {% endif %}
