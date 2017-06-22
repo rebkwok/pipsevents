@@ -1,8 +1,8 @@
 from model_mommy import mommy
 
+from django.contrib.auth.models import Group, User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
-from django.contrib.auth.models import Group
 
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -72,3 +72,35 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         self.client.get(reverse('studioadmin:unsubscribe', args=[ml_user.id]))
         ml_user.refresh_from_db()
         self.assertNotIn(self.subscribed, ml_user.groups.all())
+
+    def test_export_mailing_list(self):
+        non_mailing_list_users = []
+        for i in range(5):
+            user = mommy.make_recipe(
+                'booking.user', email='test_user_{}@test.com'.format(i),
+                first_name='Test_{}'.format(i), last_name='User'
+            )
+            self.subscribed.user_set.add(user)
+            mommy.make_recipe(
+                'booking.user', email='test_non_ml_user_{}@test.com'.format(i),
+                first_name='Test_non_ml{}'.format(i), last_name='User'
+            )
+
+        for user in User.objects.all():
+            if user not in self.subscribed.user_set.all():
+                non_mailing_list_users.append(user)
+        self.client.login(
+            username=self.staff_user.username, password='test'
+        )
+        resp = self.client.get(reverse('studioadmin:export_mailing_list'))
+        # decode content, strip last EOL and split on EOLs
+        content = resp.content.decode("utf-8").strip('\r\n')
+        content_list = content.split('\r\n')
+        # 6 rows in file, header row and 5 mailing list users
+        self.assertEqual(len(content_list), 6)
+        for user in self.subscribed.user_set.all():
+            self.assertIn(user.email, content)
+            self.assertIn(user.first_name, content)
+            self.assertIn(user.last_name, content)
+        for user in non_mailing_list_users:
+            self.assertNotIn(user.email, content)
