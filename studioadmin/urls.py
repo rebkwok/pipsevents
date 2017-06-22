@@ -47,6 +47,7 @@ from studioadmin.views import (BookingEditView,
                                BlockVoucherCreateView,
                                BlockVoucherDetailView,
                                EventVoucherDetailView,
+                               export_mailing_list
                                )
 
 
@@ -103,6 +104,10 @@ urlpatterns = [
     url(r'^users/email/mailing-list-email/$', email_users_view,
         {'mailing_list': True}, name="mailing_list_email"),
     url(r'^users/mailing-list/$', MailingListView.as_view(), name='mailing_list'),
+    url(
+        r'^users/mailing-list/export/$', export_mailing_list,
+        name='export_mailing_list'
+    ),
     url(
         r'^users/(?P<user_id>\d+)/mailing-list/unsubscribe$',
         unsubscribe, name='unsubscribe'

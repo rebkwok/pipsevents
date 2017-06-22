@@ -1,4 +1,5 @@
 import ast
+import csv
 import logging
 
 from math import ceil
@@ -7,12 +8,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 
 from django.contrib import messages
+from django.core.mail.message import EmailMultiAlternatives
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponseRedirect, render
+from django.utils.encoding import smart_str
 from django.utils.safestring import mark_safe
-from django.core.mail.message import EmailMultiAlternatives
 
 from booking.models import Event, Booking
 from booking.email_helpers import send_support_email
@@ -292,3 +295,29 @@ def email_users_view(request, mailing_list=False,
             }
         )
 
+
+@login_required
+@staff_required
+def export_mailing_list(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="mailing_list.csv"'
+
+    subscribed, _ = Group.objects.get_or_create(name='subscribed')
+    mailing_list_users = subscribed.user_set.all()
+
+    wr = csv.writer(response)
+
+    wr.writerow([
+        smart_str(u"Email Address"),
+        smart_str(u"First Name"),
+        smart_str(u"Last Name")
+    ])
+
+    for user in mailing_list_users:
+        wr.writerow([
+            smart_str(user.email),
+            smart_str(user.first_name),
+            smart_str(user.last_name)
+        ])
+
+    return response
