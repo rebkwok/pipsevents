@@ -9,7 +9,8 @@ class ActivityLogSearchForm(forms.Form):
             attrs={
                 'placeholder': 'Search log text'
             }
-        )
+        ),
+        required=False
     )
     search_date = forms.DateTimeField(
         widget=forms.DateTimeInput(
@@ -20,6 +21,7 @@ class ActivityLogSearchForm(forms.Form):
             },
             format='%d-%m-%y',
         ),
+        required=False
     )
     hide_empty_cronjobs = forms.BooleanField(
         widget=forms.CheckboxInput(attrs={
