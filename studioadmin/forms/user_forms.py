@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytz
+
+from datetime import datetime
 
 from django import forms
 from django.contrib.auth.models import User
@@ -323,26 +326,25 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
         form.can_buy_block = True if available_block_types else False
         queryset = available_block_types | free_class_block
 
+        form.fields['start_date'] = forms.DateField(
+                widget=forms.DateInput(
+                    attrs={
+                        'class': "form-control blockdatepicker",
+                        'style': 'text-align: center'
+                    },
+                    format='%d %b %Y',
+                ),
+                required=False,
+            )
+
         if not form.instance.id:
             form.fields['block_type'] = (BlockTypeModelChoiceField(
                 queryset=queryset.order_by('event_type__subtype'),
                 widget=forms.Select(attrs={'class': 'form-control input-sm'}),
-                required=False,
+                required=True,
                 empty_label="---Choose block type---"
             ))
 
-            form.fields['start_date'] = forms.DateTimeField(
-                widget=forms.DateTimeInput(
-                    attrs={
-                        'class': "form-control",
-                        'id': "datepicker",
-                        'placeholder': "dd/mm/yy",
-                        'style': 'text-align: center'
-                    },
-                    format='%d %m %y',
-                ),
-                required=False,
-            )
         else:
 
             # only allow deleting blocks if not yet paid or unused free/transfer
@@ -380,15 +382,32 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
         form.paid_id = 'paid_{}'.format(index)
 
     def clean(self):
-        for form in self.forms:
-            if form.instance.id and 'start_date' in form.changed_data:
-                # start date in form is in local time; on BST it will differ
-                # from the stored UTC date
-                start = form.cleaned_data['start_date']
-                startutc = start.astimezone(timezone.utc).replace(microsecond=0)
-                origstart = form.initial['start_date'].replace(microsecond=0)
-                if startutc == origstart:
-                    form.changed_data.remove('start_date')
+
+        for i, form in enumerate(self.forms):
+            if 'start_date' in form.errors:  # convert start date
+                form_start_date = form.data['blocks-{}-start_date'.format(i)]
+                try:
+                    start = datetime.strptime(form_start_date, '%d %b %Y')
+                    start = pytz.utc.localize(start)
+                    start.replace(hour=0, minute=0, second=0, microsecond=0)
+                    del form.errors['start_date']
+                    form.cleaned_data['start_date'] = start
+                except ValueError:
+                    return  # if we can't convert the date entered
+
+            if form.instance.id:
+                if 'start_date' in form.changed_data:
+                    # start date in form is in local time; on BST it will differ
+                    # from the stored UTC date
+                    start = form.cleaned_data['start_date']
+                    startutc = start.astimezone(timezone.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+                    origstart = form.initial['start_date'].replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+                    if startutc == origstart:
+                        form.changed_data.remove('start_date')
 
 
 UserBlockFormSet = inlineformset_factory(

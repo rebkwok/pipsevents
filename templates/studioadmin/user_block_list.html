@@ -41,7 +41,7 @@
                             <tbody>
                             {% for block in userblockformset %}
                             <tr {% if block.instance.expired or block.instance.full %}class="expired"{% endif %}>
-                                <span class="hide">{{ block.id }}{{ block.block_type }}{{ block.start_date }}</span>
+                                <span class="hide">{{ block.id }}{{ block.block_type }}</span>
                                 {% if block.instance.id %}
                                     <span class="hide">{{ block.block.event_type }}</span>
                                     <span class="hide">{{ block.size }}</span>
@@ -64,7 +64,7 @@
                                     {% endif %}
                                     <td class="table-center studioadmin-tbl">{{ block.instance.block_type.size }}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ block.instance.start_date | date:"d M Y"}}</td>
+                                    <td class="table-center studioadmin-tbl">{{ block.start_date }}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.instance.expiry_date | date:"d M Y"}}</td>
                                     <td class="table-center studioadmin-tbl">{{ block.DELETE }}<label for={{ block.DELETE_id }}></label></td>
 

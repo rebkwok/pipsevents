@@ -432,7 +432,7 @@ class UserBlockFormSetTests(TestCase):
             'blocks-INITIAL_FORMS': 1,
             'blocks-0-id': self.block.id,
             'blocks-0-block_type': self.block.block_type.id,
-            'blocks-0-start_date': self.block.start_date
+            'blocks-0-start_date': self.block.start_date.strftime('%d %b %Y')
             }
 
         for key, value in extra_data.items():

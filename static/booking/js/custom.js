@@ -38,6 +38,16 @@ jQuery(document).ready(function () {
         scrollInput: false,
     });
 
+    jQuery('.blockdatepicker').datetimepicker({
+        format:'DD MMM YYYY',
+        startDate: new Date(),
+        timepicker: false,
+        closeOnDateSelect: true,
+        scrollMonth: false,
+        scrollTime: false,
+        scrollInput: false,
+    });
+
     jQuery('#datepicker1').datetimepicker({
         format:'DD MMM YYYY',
         formatTime:'HH:mm',

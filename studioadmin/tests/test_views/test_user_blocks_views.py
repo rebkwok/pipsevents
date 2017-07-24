@@ -51,12 +51,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             'blocks-INITIAL_FORMS': 1,
             'blocks-0-id': str(self.block.id),
             'blocks-0-block_type': str(self.block.block_type.id),
-            'blocks-0-start_date': self.block.start_date.strftime(
-                '%Y-%m-%d %H:%M:%S'
-            ),
-            'initial-blocks-0-start_date': self.block.start_date.strftime(
-                '%Y-%m-%d %H:%M:%S'
-            ),
+            'blocks-0-start_date': self.block.start_date.strftime('%d %b %Y'),
             'blocks-0-paid': self.block.paid
             }
 
@@ -267,7 +262,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             data['blocks-{}-id'.format(i)] = block.id
             data['blocks-{}-block_type'.format(i)] = block.block_type.id
             data['blocks-{}-start_date'.format(i)] = block.start_date.strftime(
-                '%Y-%m-%d %H:%M:%S'
+                '%d %b %Y'
             ),
             data['blocks-{}-paid'.format(i)] = self.block.paid
 
