@@ -11,7 +11,9 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from accounts.utils import has_active_disclaimer, has_expired_disclaimer
+from accounts.utils import has_active_disclaimer, \
+    has_active_online_disclaimer, has_active_print_disclaimer, \
+    has_expired_disclaimer
 from booking.models import Booking, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
 
@@ -169,13 +171,12 @@ def format_block(block):
 
 @register.filter
 def has_print_disclaimer(user):
-    return PrintDisclaimer.objects.filter(user=user).exists()
+    return has_active_print_disclaimer(user)
 
 
 @register.filter
 def has_online_disclaimer(user):
-    if has_active_disclaimer(user):
-        return user.online_disclaimer.exists()
+    return has_active_online_disclaimer(user)
 
 
 @register.filter
@@ -184,7 +185,7 @@ def expired_disclaimer(user):
 
 @register.filter
 def has_disclaimer(user):
-    return has_online_disclaimer(user) or has_print_disclaimer(user)
+    return has_active_disclaimer(user)
 
 
 @register.filter
