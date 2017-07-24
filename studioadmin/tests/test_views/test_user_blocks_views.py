@@ -119,7 +119,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     def test_can_update_block(self):
         self.assertFalse(self.block.paid)
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, self.user.id,
             self.formset_data({'blocks-0-paid': True})
         )
@@ -129,7 +129,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
     def test_can_create_block(self):
         block_type = mommy.make_recipe('booking.blocktype')
         self.assertEqual(Block.objects.count(), 1)
-        resp = self._post_response(
+        self._post_response(
             self.staff_user, self.user.id,
             self.formset_data(
                 {
@@ -139,6 +139,24 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             )
         )
         self.assertEqual(Block.objects.count(), 2)
+
+    def test_can_create_block_without_start_date(self):
+        block_type = mommy.make_recipe('booking.blocktype')
+        self.assertEqual(Block.objects.count(), 1)
+        self._post_response(
+            self.staff_user, self.user.id,
+            self.formset_data(
+                {
+                    'blocks-TOTAL_FORMS': 2,
+                    'blocks-1-block_type': block_type.id,
+                    'blocks-1-start_date': ''
+                }
+            )
+        )
+        self.assertEqual(Block.objects.count(), 2)
+        new_block = Block.objects.latest('id')
+        today = timezone.now()
+        self.assertEqual(new_block.start_date.day, today.day)
 
     def test_formset_unchanged(self):
         """
