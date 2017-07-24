@@ -487,3 +487,10 @@ AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 # Increase this to deal with the bulk emails.  Currently just under 2000
 # users, posts 2 fields per user
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 8000
+
+# MAILCHIMP
+MAILCHIMP_USER = env('MAILCHIMP_USER')
+MAILCHIMP_SECRET = env('MAILCHIMP_SECRET')
+
+if MAILCHIMP_USER is None or MAILCHIMP_SECRET is None:  # pragma: no cover
+    print("You must set the MAILCHIMP_USER and MAILCHIMP_SECRET")

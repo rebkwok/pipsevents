@@ -15,6 +15,7 @@ dj-static==0.0.6
 psycopg2==2.7.1
 python-dateutil==2.6.0
 PyYAML==3.12
+mailchimp3==2.0.15
 model-mommy==1.2.6
 mock==2.0.0
 django-ckeditor==5.2.2
