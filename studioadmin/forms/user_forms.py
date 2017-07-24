@@ -60,7 +60,8 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         else:
             active_blocks = [
-                block.id for block in Block.objects.filter(user=self.user)
+                block.id for block in
+                Block.objects.select_related('user', 'block_type').filter(user=self.user)
                     if block.active_block()
             ]
             form.fields['block'] = (UserBlockModelChoiceField(
@@ -72,8 +73,8 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         if form.instance.id is None:
             already_booked = [
-                booking.event.id for booking
-                in Booking.objects.filter(user=self.user)
+                booking.event.id for booking in
+                Booking.objects.select_related('user', 'event').filter(user=self.user)
             ]
 
             form.fields['event'] = forms.ModelChoiceField(
