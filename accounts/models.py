@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from accounts.utils import active_disclaimer_cache_key, \
+    active_print_disclaimer_cache_key, active_online_disclaimer_cache_key, \
     expired_disclaimer_cache_key
 from activitylog.models import ActivityLog
 
@@ -187,6 +188,7 @@ class OnlineDisclaimer(models.Model):
     def delete(self, using=None, keep_parents=False):
         # clear active cache if there is any
         cache.delete(active_disclaimer_cache_key(self.user))
+        cache.delete(active_online_disclaimer_cache_key(self.user))
         super(OnlineDisclaimer, self).delete(using, keep_parents)
 
 
@@ -199,3 +201,13 @@ class PrintDisclaimer(models.Model):
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M'))
 
+    @property
+    def is_active(self):
+        # Disclaimer is active if it was created <1 yr ago
+        return (self.date + timedelta(days=365)) > timezone.now()
+
+    def delete(self, using=None, keep_parents=False):
+        # clear active cache if there is any
+        cache.delete(active_disclaimer_cache_key(self.user))
+        cache.delete(active_print_disclaimer_cache_key(self.user))
+        super(PrintDisclaimer, self).delete(using, keep_parents)
