@@ -597,6 +597,8 @@ def user_blocks_view(request,  user_id):
                     if form.has_changed():
 
                         block = form.save(commit=False)
+                        if not block.start_date:
+                            block.start_date = timezone.now().replace()
 
                         if 'DELETE' in form.changed_data:
                             messages.success(
