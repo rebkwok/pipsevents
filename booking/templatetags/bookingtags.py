@@ -170,11 +170,6 @@ def format_block(block):
 
 
 @register.filter
-def has_print_disclaimer(user):
-    return has_active_print_disclaimer(user)
-
-
-@register.filter
 def has_online_disclaimer(user):
     return has_active_online_disclaimer(user)
 
@@ -182,6 +177,7 @@ def has_online_disclaimer(user):
 @register.filter
 def expired_disclaimer(user):
     return has_expired_disclaimer(user)
+
 
 @register.filter
 def has_disclaimer(user):
@@ -213,13 +209,16 @@ def format_event_types(ev_types):
         ['{}<br/>'.format(ev_type.subtype) for ev_type in ev_types]
     ))
 
+
 @register.filter
 def times_voucher_used(voucher):
     return UsedEventVoucher.objects.filter(voucher=voucher).count()
 
+
 @register.filter
 def times_block_voucher_used(voucher):
     return UsedBlockVoucher.objects.filter(voucher=voucher).count()
+
 
 @register.filter
 def subscribed(user):
