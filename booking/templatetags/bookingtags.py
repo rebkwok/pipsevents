@@ -16,7 +16,7 @@ from accounts.utils import has_active_disclaimer, \
     has_expired_disclaimer
 from booking.models import Booking, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
-
+from payments.models import PaypalBookingTransaction
 from studioadmin.utils import int_str, chaffify
 
 
@@ -329,3 +329,13 @@ def get_weekday(weekday_num):
         return 'table-shaded'
     else:
         return ''
+
+
+@register.filter
+def has_paypal(booking):
+    if booking.event.cost and booking.paid:
+        ppbs = PaypalBookingTransaction.objects.filter(
+            booking_id=booking.id, transaction_id__isnull=False
+        )
+        return ppbs.exists()
+    return False

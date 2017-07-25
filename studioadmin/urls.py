@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
 from studioadmin.views import (BookingEditView,
+                               BookingEditPastView,
                                ConfirmRefundView,
                                ConfirmTicketBookingRefundView,
                                ConfirmPaymentView,
@@ -30,8 +31,8 @@ from studioadmin.views import (BookingEditView,
                                unsubscribe,
                                upload_timetable_view,
                                choose_users_to_email,
-                               user_bookings_view,
-                               user_past_bookings_view,
+                               user_bookings_view_old,
+                               user_modal_bookings_view,
                                user_blocks_view,
                                email_users_view,
                                event_waiting_list_view,
@@ -47,7 +48,8 @@ from studioadmin.views import (BookingEditView,
                                BlockVoucherCreateView,
                                BlockVoucherDetailView,
                                EventVoucherDetailView,
-                               export_mailing_list
+                               export_mailing_list,
+                               BookingAddView
                                )
 
 
@@ -113,12 +115,16 @@ urlpatterns = [
         unsubscribe, name='unsubscribe'
     ),
     url(
+        r'^users/(?P<user_id>\d+)/bookings/old/$',
+        user_bookings_view_old, name='user_bookings_list'
+    ),
+    url(
         r'^users/(?P<user_id>\d+)/bookings/$',
-        user_bookings_view, name='user_bookings_list'
+        user_modal_bookings_view, {'past': False}, name='user_upcoming_bookings_list'
     ),
     url(
         r'^users/(?P<user_id>\d+)/bookings/past/$',
-        user_past_bookings_view, name='user_past_bookings_list'
+        user_modal_bookings_view, {'past': True}, name='user_past_bookings_list'
     ),
     url(
         r'^users/(?P<user_id>\d+)/blocks/$',
@@ -186,8 +192,16 @@ urlpatterns = [
         name='block_voucher_uses'
     ),
     url(
+        r'^bookingeditpast/(?P<pk>\d+)/$', BookingEditPastView.as_view(),
+        name='bookingeditpast'
+    ),
+        url(
         r'^bookingedit/(?P<pk>\d+)/$', BookingEditView.as_view(),
         name='bookingedit'
+    ),
+    url(
+        r'^bookingadd/(?P<user_id>\d+)/$', BookingAddView.as_view(),
+        name='bookingadd'
     ),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     ]

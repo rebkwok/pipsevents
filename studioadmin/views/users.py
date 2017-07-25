@@ -11,7 +11,7 @@ from django.template.loader import get_template, render_to_string
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponse, HttpResponseRedirect, \
     get_object_or_404, render_to_response
-from django.views.generic import ListView, UpdateView
+from django.views.generic import CreateView, ListView, UpdateView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
@@ -23,7 +23,8 @@ from accounts.models import PrintDisclaimer
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
-from studioadmin.forms import EditBookingForm, UserBookingFormSet,  \
+from studioadmin.forms import AddBookingForm, EditPastBookingForm, \
+    EditBookingForm, UserBookingFormSet,  \
     UserBlockFormSet,  UserListSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
@@ -214,7 +215,7 @@ def toggle_subscribed(request,  user_id):
 
 @login_required
 @staff_required
-def user_bookings_view(request,  user_id):
+def user_bookings_view_old(request,  user_id):
     user = get_object_or_404(User,  id=user_id)
 
     if request.method == 'POST':
@@ -227,273 +228,7 @@ def user_bookings_view(request,  user_id):
                 messages.info(request,  "No changes were made")
             else:
                 for form in userbookingformset:
-                    if form.is_valid():
-                        if form.has_changed():
-                            if form.changed_data == ['send_confirmation']:
-                                messages.info(
-                                    request,  "'Send confirmation' checked for '{}' "
-                                    "but no changes were made; email has not been "
-                                    "sent to user.".format(form.instance.event))
-                            else:
-                                extra_msgs = [] # these will be displayed as a list in the email to the user
-
-                                booking = form.save(commit=False)
-                                event_was_full = booking.event.spaces_left == 0
-                                action = 'updated' if form.instance.id else 'created'
-                                transfer_block_created = False
-                                block_removed = False
-
-                                if 'status' in form.changed_data and action == 'updated':
-                                    if booking.status == 'CANCELLED':
-                                        if booking.block:
-                                            booking.block = None
-                                            block_removed = True
-                                        elif booking.paid \
-                                                and booking.event.event_type.event_type != 'EV':
-                                            block_type, _ = BlockType.objects.get_or_create(
-                                                event_type=booking.event.event_type,
-                                                size=1, cost=0, duration=1,
-                                                identifier='transferred',
-                                                active=False
-                                            )
-                                            Block.objects.create(
-                                                block_type=block_type, user=booking.user,
-                                                transferred_booking_id=booking.id
-                                            )
-                                            transfer_block_created = True
-                                        booking.deposit_paid = False
-                                        booking.paid = False
-                                        booking.payment_confirmed = False
-                                        booking.free_class = False
-                                        action = 'cancelled'
-                                    elif booking.status == 'OPEN':
-                                        action = 'reopened'
-
-                                    extra_msgs.append("Booking status changed "
-                                                      "to {}".format(action)
-                                                      )
-
-                                elif 'no_show' in form.changed_data \
-                                    and action == 'updated' \
-                                        and booking.status == 'OPEN':
-                                    action = 'cancelled' if booking.no_show \
-                                        else 'reopened'
-                                    extra_msgs.append(
-                                        "Booking {} as 'no-show'".format(action)
-                                    )
-
-                                if booking.block:
-                                    booking.paid = True
-                                    booking.payment_confirmed = True
-                                elif 'block' in form.changed_data:
-                                    booking.block = None
-                                    booking.paid = False
-                                    booking.payment_confirmed = False
-
-                                # check for existence of free child block on pre-saved booking
-                                has_free_block_pre_save = False
-                                if booking.block and booking.block.children.exists():
-                                    has_free_block_pre_save = True
-
-                                if 'deposit_paid' in form.changed_data:
-                                    if booking.deposit_paid:
-                                        extra_msgs.append(
-                                            "Booking payment status changed to "
-                                            "'deposit paid'"
-                                        )
-
-                                if 'paid' in form.changed_data:
-                                    if booking.paid:
-                                        # assume that if booking is being done via
-                                        # studioadmin,  marking paid also means payment
-                                        # is confirmed
-                                        booking.payment_confirmed = True
-                                        extra_msgs.append(
-                                            "Booking payment status changed to "
-                                            "'fully paid and confirmed'"
-                                        )
-                                    else:
-                                        booking.payment_confirmed = False
-
-                                booking.save()
-
-                                set_as_free = 'free_class' in \
-                                              form.changed_data and \
-                                              booking.free_class
-                                if 'send_confirmation' in form.changed_data:
-                                    try:
-                                        # send confirmation email
-                                        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-                                        # send email to studio
-                                        ctx = {
-                                              'host': host, 
-                                              'event': booking.event, 
-                                              'user': booking.user, 
-                                              'action': action, 
-                                              'set_as_free': set_as_free, 
-                                              'extra_msgs': extra_msgs
-                                        }
-                                        send_mail('{} Your booking for {} has been {}'.format(
-                                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,  booking.event,  action
-                                            ), 
-                                            get_template(
-                                                'studioadmin/email/booking_change_confirmation.txt'
-                                            ).render(ctx), 
-                                            settings.DEFAULT_FROM_EMAIL, 
-                                            [booking.user.email], 
-                                            html_message=get_template(
-                                                'studioadmin/email/booking_change_confirmation.html'
-                                                ).render(ctx), 
-                                            fail_silently=False)
-                                        send_confirmation_msg = "and confirmation " \
-                                        "email sent to user"
-                                    except Exception as e:
-                                        # send mail to tech support with Exception
-                                        send_support_email(
-                                            e,  __name__,  "user_booking_list - "
-                                            "send confirmation email"
-                                        )
-                                        send_confirmation_msg = ". There was a " \
-                                        "problem sending the confirmation email to the " \
-                                        "user.  Tech support has been notified."
-                                else:
-                                    send_confirmation_msg = ""
-
-                                messages.success(
-                                    request, 
-                                    'Booking for {} has been {} {}'.format(
-                                        booking.event,  action,  send_confirmation_msg
-                                    )
-                                )
-                                if set_as_free:
-                                    extra_msg = "and marked as free class"
-                                elif transfer_block_created:
-                                    extra_msg = "and transfer block created as credit"
-                                else:
-                                    extra_msg = ''
-
-                                ActivityLog.objects.create(
-                                    log='Booking id {} (user {}) for "{}" {} '
-                                            'by admin user {} {}'.format(
-                                        booking.id,  booking.user.username,  booking.event, 
-                                        action,  request.user.username, 
-                                       extra_msg
-                                    )
-                                )
-
-                                if not booking.block \
-                                         and 'block' in form.changed_data:
-                                     messages.info(
-                                         request, 
-                                         'Block removed for {}; booking is '
-                                         'now marked as unpaid'.format(
-                                             booking.event
-                                         ), 
-                                     )
-
-                                if action == 'reopened':
-                                    messages.info(
-                                        request,  mark_safe(
-                                            'Note: this booking was previously '
-                                            'cancelled and has now been reopened. '
-                                            '<span class="cancel-warning">Payment '
-                                            'status has not been automatically '
-                                            'updated. Please review the booking '
-                                            'and update if paid '
-                                            'and/or block used.</span>'
-                                        )
-                                    )
-                                elif action == 'cancelled':
-                                    if transfer_block_created:
-                                        messages.info(
-                                            request,
-                                            mark_safe("Note: this booking has been "
-                                            "cancelled. The booking has "
-                                            "automatically been marked as "
-                                            "unpaid and a transfer block "
-                                            "has been created as credit.  If you wish to "
-                                            "refund the user instead, go "
-                                            "to the <a href={}>user's blocks</a> "
-                                            "and delete "
-                                            "the transfer block first.".format(
-                                                reverse(
-                                                    'studioadmin:user_blocks_list',
-                                                    args=[booking.user.id]
-                                                )
-                                            ))
-                                        )
-                                    elif block_removed:
-                                        messages.info(
-                                            request,
-                                            'Note: this booking has been '
-                                            'cancelled. The booking has '
-                                            'automatically been marked as '
-                                            'unpaid and the block '
-                                            'used has been updated.'
-                                        )
-                                    else:
-                                        messages.info(
-                                            request,  'Note: this booking has been '
-                                            'cancelled. The booking has automatically '
-                                            'been marked as unpaid (refunded).')
-
-                                    if event_was_full:
-                                        waiting_list_users = WaitingListUser.objects.filter(
-                                            event=booking.event
-                                        )
-                                        if waiting_list_users:
-                                            try:
-                                                send_waiting_list_email(
-                                                    booking.event, 
-                                                    [wluser.user for \
-                                                        wluser in waiting_list_users], 
-                                                    host='http://{}'.format(
-                                                        request.META.get('HTTP_HOST')
-                                                    )
-                                                )
-                                                ActivityLog.objects.create(
-                                                    log='Waiting list email sent to '
-                                                    'user(s) {} for event {}'.format(
-                                                        ',  '.join(
-                                                            [wluser.user.username \
-                                                                for wluser in \
-                                                                waiting_list_users]
-                                                        ), 
-                                                        booking.event
-                                                    )
-                                                )
-                                            except Exception as e:
-                                                # send mail to tech support with Exception
-                                                send_support_email(
-                                                    e,  __name__, 
-                                                    "Studioadmin user booking list - waiting list email"
-                                                )
-
-                                if action == 'created' or action == 'reopened':
-                                    try:
-                                        waiting_list_user = WaitingListUser.objects.get(
-                                            user=booking.user,  event=booking.event
-                                        )
-                                        waiting_list_user.delete()
-                                        ActivityLog.objects.create(
-                                            log='User {} has been removed from the '
-                                            'waiting list for {}'.format(
-                                                booking.user.username, 
-                                                booking.event
-                                            )
-                                        )
-                                    except WaitingListUser.DoesNotExist:
-                                        pass
-
-                                if booking.block and not booking.block.active_block():
-                                    if booking.block.children.exists() \
-                                            and not has_free_block_pre_save:
-                                         messages.info(
-                                             request, 
-                                            'You have added the last booking '
-                                            'to a 10 class block; free class '
-                                            'block has been created.'
-                                         )
+                    process_user_booking_updates(form, request)
 
                     userbookingformset.save(commit=False)
 
@@ -529,7 +264,7 @@ def user_bookings_view(request,  user_id):
             user=user
         )
 
-    template = 'studioadmin/user_booking_list.html'
+    template = 'studioadmin/user_booking_list_old.html'
     return TemplateResponse(
         request,  template,  {
             'userbookingformset': userbookingformset,  'user': user, 
@@ -541,13 +276,19 @@ def user_bookings_view(request,  user_id):
 
 @login_required
 @staff_required
-def user_past_bookings_view(request,  user_id):
+def user_modal_bookings_view(request, user_id, past=False):
     user = get_object_or_404(User,  id=user_id)
 
-    all_bookings = Booking.objects.select_related('event', 'user')\
+    if past:
+        all_bookings = Booking.objects.select_related('event', 'user')\
+            .filter(
+                user=user, event__date__lt=timezone.now()
+            ).order_by('-event__date')
+    else:
+        all_bookings = Booking.objects.select_related('event', 'user')\
         .filter(
-            user=user, event__date__lt=timezone.now()
-        ).order_by('-event__date')
+            user=user, event__date__gt=timezone.now()
+        ).order_by('event__date')
 
     paginator = Paginator(all_bookings, 20)
     page = request.GET.get('page')
@@ -561,20 +302,16 @@ def user_past_bookings_view(request,  user_id):
         page = paginator.page(paginator.num_pages)
     bookings = page.object_list
 
-    # TODO
-    # include edit link for each booking? Edit on separate page or show ajax
-
     template = 'studioadmin/user_booking_list.html'
     return TemplateResponse(
         request,  template,  {
             'bookings': bookings,  'page': page, 'user': user,
             'sidenav_selection': 'users',
-            'booking_status': 'past',
+            'booking_status': 'past' if past else 'future',
             'total_count': paginator.count,
             'current_count': bookings.count()
         }
     )
-
 
 
 @login_required
@@ -721,11 +458,11 @@ def unsubscribe(request, user_id):
     return HttpResponseRedirect(reverse('studioadmin:mailing_list'))
 
 
-class BookingEditView(UpdateView):
+class BookingEditPastView(UpdateView):
 
     model = Booking
     template_name = 'studioadmin/includes/user-booking-modal.html'
-    form_class = EditBookingForm
+    form_class = EditPastBookingForm
 
     def form_valid(self, form):
         form.save()
@@ -739,3 +476,272 @@ class BookingEditView(UpdateView):
                 'studioadmin/includes/user-booking-edit-success.html'
             )
         )
+
+
+class BookingEditView(BookingEditPastView):
+    form_class = EditBookingForm
+
+    def form_valid(self, form):
+        process_user_booking_updates(form, self.request)
+
+        return HttpResponse(
+            render_to_string(
+                'studioadmin/includes/user-booking-edit-success.html'
+            )
+        )
+
+
+class BookingAddView(CreateView):
+
+    model = Booking
+    template_name = 'studioadmin/includes/user-booking-add-modal.html'
+    form_class = AddBookingForm
+
+
+    def get_form_kwargs(self, *args, **kwargs):
+        kwargs = super(BookingAddView, self).get_form_kwargs(*args, **kwargs)
+        user_id = self.kwargs['user_id']
+        kwargs['user'] = User.objects.get(id=user_id)
+        return kwargs
+
+    def form_valid(self, form):
+        process_user_booking_updates(form, self.request)
+        return HttpResponse(
+            render_to_string(
+                'studioadmin/includes/user-booking-add-success.html'
+            )
+        )
+
+
+def process_user_booking_updates(form, request):
+    if form.is_valid():
+        if form.has_changed():
+            if form.changed_data == ['send_confirmation']:
+                messages.info(
+                    request,  "'Send confirmation' checked for '{}' "
+                    "but no changes were made; email has not been "
+                    "sent to user.".format(form.instance.event))
+            else:
+                extra_msgs = [] # these will be displayed as a list in the email to the user
+
+                booking = form.save(commit=False)
+                event_was_full = booking.event.spaces_left == 0
+                action = 'updated' if form.instance.id else 'created'
+                transfer_block_created = False
+                block_removed = False
+
+                if 'status' in form.changed_data and action == 'updated':
+                    if booking.status == 'CANCELLED':
+                        if booking.block:
+                            booking.block = None
+                            block_removed = True
+                        elif booking.paid \
+                                and booking.event.event_type.event_type != 'EV':
+                            block_type, _ = BlockType.objects.get_or_create(
+                                event_type=booking.event.event_type,
+                                size=1, cost=0, duration=1,
+                                identifier='transferred',
+                                active=False
+                            )
+                            Block.objects.create(
+                                block_type=block_type, user=booking.user,
+                                transferred_booking_id=booking.id
+                            )
+                            transfer_block_created = True
+                        booking.deposit_paid = False
+                        booking.paid = False
+                        booking.payment_confirmed = False
+                        booking.free_class = False
+                        action = 'cancelled'
+                    elif booking.status == 'OPEN':
+                        action = 'reopened'
+
+                    extra_msgs.append("Booking status changed to {}".format(action))
+
+                elif 'no_show' in form.changed_data and action == 'updated' and booking.status == 'OPEN':
+                    action = 'cancelled' if booking.no_show else 'reopened'
+                    extra_msgs.append("Booking {} as 'no-show'".format(action))
+
+                if booking.block:
+                    booking.paid = True
+                    booking.payment_confirmed = True
+                elif 'block' in form.changed_data:
+                    booking.block = None
+                    booking.paid = False
+                    booking.payment_confirmed = False
+
+                # check for existence of free child block on pre-saved booking
+                has_free_block_pre_save = False
+                if booking.block and booking.block.children.exists():
+                    has_free_block_pre_save = True
+
+                if 'deposit_paid' in form.changed_data:
+                    if booking.deposit_paid:
+                        extra_msgs.append("Booking payment status changed to 'deposit paid'")
+
+                if 'paid' in form.changed_data:
+                    if booking.paid:
+                        # assume that if booking is being done via studioadmin, marking paid also
+                        # means payment is confirmed
+                        booking.payment_confirmed = True
+                        extra_msgs.append(
+                            "Booking payment status changed to 'fully paid and confirmed'"
+                        )
+                    else:
+                        booking.payment_confirmed = False
+
+                booking.save()
+
+                set_as_free = 'free_class' in form.changed_data and booking.free_class
+
+                if 'send_confirmation' in form.changed_data:
+                    try:
+                        # send confirmation email
+                        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                        # send email to studio
+                        ctx = {
+                            'host': host,
+                            'event': booking.event,
+                            'user': booking.user,
+                            'action': action,
+                            'set_as_free': set_as_free,
+                            'extra_msgs': extra_msgs
+                        }
+                        send_mail('{} Your booking for {} has been {}'.format(
+                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
+                            ),
+                            get_template('studioadmin/email/booking_change_confirmation.txt').render(ctx),
+                            settings.DEFAULT_FROM_EMAIL,
+                            [booking.user.email],
+                            html_message=get_template(
+                                'studioadmin/email/booking_change_confirmation.html'
+                                ).render(ctx),
+                            fail_silently=False)
+                        send_confirmation_msg = "and confirmation " \
+                        "email sent to user"
+                    except Exception as e:
+                        # send mail to tech support with Exception
+                        send_support_email(
+                            e,  __name__,  "user_booking_list - send confirmation email"
+                        )
+                        send_confirmation_msg = ". There was a problem sending the confirmation email to the " \
+                        "user.  Tech support has been notified."
+                else:
+                    send_confirmation_msg = ""
+
+                messages.success(
+                    request,
+                    'Booking for {} has been {} {}'.format(
+                        booking.event,  action,  send_confirmation_msg
+                    )
+                )
+                if set_as_free:
+                    extra_msg = "and marked as free class"
+                elif transfer_block_created:
+                    extra_msg = "and transfer block created as credit"
+                else:
+                    extra_msg = ''
+
+                ActivityLog.objects.create(
+                    log='Booking id {} (user {}) for "{}" {} by admin user {} {}'.format(
+                        booking.id,  booking.user.username,  booking.event,
+                        action,  request.user.username, extra_msg
+                    )
+                )
+
+                if not booking.block and 'block' in form.changed_data:
+                     messages.info(
+                         request,
+                         'Block removed for {}; booking is now marked as '
+                         'unpaid'.format(booking.event),
+                     )
+
+                if action == 'reopened':
+                    messages.info(
+                        request,
+                        mark_safe(
+                            'Note: this booking was previously cancelled and has now been reopened. '
+                            '<span class="cancel-warning">Payment status has not been automatically '
+                            'updated. Please review the booking and update if paid and/or block used.</span>'
+                        )
+                    )
+                elif action == 'cancelled':
+                    if transfer_block_created:
+                        messages.info(
+                            request,
+                            mark_safe(
+                                "Note: this booking has been cancelled. The booking has automatically been "
+                                "marked as unpaid and a transfer block has been created as credit.  If you wish to "
+                                "refund the user instead, go to the <a href={}>user's blocks</a> and delete "
+                                "the transfer block first.".format(
+                                    reverse('studioadmin:user_blocks_list', args=[booking.user.id])
+                                )
+                            )
+                        )
+                    elif block_removed:
+                        messages.info(
+                            request,
+                            'Note: this booking has been cancelled. The booking has automatically been marked as '
+                            'unpaid and the block used has been updated.'
+                        )
+                    else:
+                        messages.info(
+                            request,  'Note: this booking has been cancelled. The booking has automatically '
+                            'been marked as unpaid (refunded).')
+
+                    if event_was_full:
+                        waiting_list_users = WaitingListUser.objects.filter(
+                            event=booking.event
+                        )
+                        if waiting_list_users:
+                            try:
+                                send_waiting_list_email(
+                                    booking.event,
+                                    [wluser.user for \
+                                        wluser in waiting_list_users],
+                                    host='http://{}'.format(
+                                        request.META.get('HTTP_HOST')
+                                    )
+                                )
+                                ActivityLog.objects.create(
+                                    log='Waiting list email sent to '
+                                    'user(s) {} for event {}'.format(
+                                        ',  '.join(
+                                            [wluser.user.username \
+                                                for wluser in \
+                                                waiting_list_users]
+                                        ),
+                                        booking.event
+                                    )
+                                )
+                            except Exception as e:
+                                # send mail to tech support with Exception
+                                send_support_email(
+                                    e,  __name__,
+                                    "Studioadmin user booking list - waiting list email"
+                                )
+
+                if action == 'created' or action == 'reopened':
+                    try:
+                        waiting_list_user = WaitingListUser.objects.get(
+                            user=booking.user,  event=booking.event
+                        )
+                        waiting_list_user.delete()
+                        ActivityLog.objects.create(
+                            log='User {} has been removed from the waiting list for {}'.format(
+                                booking.user.username,  booking.event
+                            )
+                        )
+                    except WaitingListUser.DoesNotExist:
+                        pass
+
+                if booking.block and not booking.block.active_block():
+                    if booking.block.children.exists() \
+                            and not has_free_block_pre_save:
+                         messages.info(
+                             request,
+                            'You have added the last booking to a 10 class block; free class '
+                            'block has been created.'
+                         )
+        else:
+            messages.info(request, 'No changes made')
