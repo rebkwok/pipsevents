@@ -229,42 +229,56 @@ if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
                 'level': 'DEBUG',
                 'class': 'logging.StreamHandler',
                 'formatter': 'verbose'
-            }
+            },
+            'mail_admins': {
+                'level': 'ERROR',
+                'class': 'django.utils.log.AdminEmailHandler',
+                'include_html': True,
+            },
         },
         'loggers': {
             '': {
-                'handlers': ['console', 'file_app'],
-                'level': 'WARNING',
+                'handlers': ['console', 'file_app', 'mail_admins'],
+                'propagate': True,
+            },
+            'django.request': {
+                'handlers': ['console', 'file_app', 'mail_admins'],
                 'propagate': True,
             },
             'accounts': {
-                'handlers': ['console', 'file_app'],
+                'handlers': ['console', 'file_app', 'mail_admins'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'activitylog': {
+                'handlers': ['console', 'file_app', 'mail_admins'],
                 'level': 'INFO',
                 'propagate': False,
             },
             'booking': {
-                'handlers': ['console', 'file_app'],
+                'handlers': ['console', 'file_app', 'mail_admins'],
                 'level': 'INFO',
                 'propagate': False,
             },
             'payments': {
-                'handlers': ['console', 'file_app'],
+                'handlers': ['console', 'file_app', 'mail_admins'],
                 'level': 'INFO',
                 'propagate': False,
             },
             'studioadmin': {
-                'handlers': ['console', 'file_app'],
+                'handlers': ['console', 'file_app', 'mail_admins'],
                 'level': 'INFO',
                 'propagate': False,
             },
             'timetable': {
-                'handlers': ['console', 'file_app'],
+                'handlers': ['console', 'file_app', 'mail_admins'],
                 'level': 'INFO',
                 'propagate': False,
             },
         },
     }
 
+ADMINS = [SUPPORT_EMAIL]
 
 # ####HEROKU#######
 
