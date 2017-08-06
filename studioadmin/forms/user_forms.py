@@ -509,6 +509,11 @@ class AddBookingForm(forms.ModelForm):
             empty_label="--------None--------"
         ))
 
+        for field in self.fields:
+            self.fields[field].widget.attrs.update(
+                {'id': 'id_new_{}'.format(field)}
+            )
+
     def clean(self):
         """
         make sure that block selected is for the correct event type
