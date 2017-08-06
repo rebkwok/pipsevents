@@ -15,7 +15,7 @@
                     {% for field in form.visible_fields %}
                          <div class="form-group col-xs-12">
                              <div class="col-xs-3">{{ field.label_tag }}</div>
-                             <div class="col-xs-9">{{ field }}<label for='id_{{ field.name }}'></label></div>
+                             <div class="col-xs-9">{{ field }}<label for='id_new_{{ field.name }}'></label></div>
 
                             {% if field.errors %}
                                 <div class="form-error col-xs-9 col-xs-offset-3">
