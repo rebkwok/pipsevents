@@ -12,7 +12,7 @@ from django.utils import timezone
 from booking.models import Booking, Block, BlockType, EventType, \
     WaitingListUser
 from booking.tests.helpers import _create_session, format_content
-from studioadmin.views import user_bookings_view, user_past_bookings_view
+from studioadmin.views import user_bookings_view_old, user_modal_bookings_view
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -79,24 +79,26 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         return data
 
     def _get_response(self, user, user_id, booking_status='future'):
+        kwargs = {}
         if booking_status == 'future':
             url = reverse(
                 'studioadmin:user_bookings_list', kwargs={'user_id': user_id}
             )
-            view = user_bookings_view
+            view = user_bookings_view_old
         else:
             url = reverse(
                 'studioadmin:user_past_bookings_list',
                 kwargs={'user_id': user_id}
             )
-            view = user_past_bookings_view
+            view = user_modal_bookings_view
+            kwargs['past'] = True
         session = _create_session()
         request = self.factory.get(url)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return view(request, user_id)
+        return view(request, user_id, **kwargs)
 
     def _post_response(self, user, user_id, form_data):
         url = reverse(
@@ -108,7 +110,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return user_bookings_view(request, user_id)
+        return user_bookings_view_old(request, user_id)
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -1746,7 +1748,10 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
                 args=[self.booking.user.id]
             )
         )
-        self.assertIn('Saved!', str(resp.content))
+
+        self.assertIn(
+            'Booking for {} has been updated'.format(self.booking.event),
+            str(resp.content))
         self.booking.refresh_from_db()
         self.assertTrue(self.booking.attended)
 
