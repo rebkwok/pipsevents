@@ -443,7 +443,7 @@ class Booking(models.Model):
                 self.event.spaces_left == 0:
                     raise ValidationError(
                         _('Attempting to create booking for full '
-                          'event %s' % self.event.id)
+                          'event %s (id %s)' % (str(self.event), self.event.id))
                     )
 
         if self.attended and self.no_show:

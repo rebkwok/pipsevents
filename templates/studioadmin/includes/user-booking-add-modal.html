@@ -1,11 +1,10 @@
 <div class="modal-dialog modal-md">
     <div class="modal-content">
-        <form id="user-booking-add-form" method='post' class="form" role="form" action='{% url "studioadmin:bookingadd" user.id %}'>
+        <form id="user-booking-add-form" method='post' class="form" role="form" action='{% url "studioadmin:bookingadd" form_user.id %}'>
 
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                    <h4 class="modal-title" id="UserBookingAddModalLabel">Adding booking for {{ user.first_name }} {{ user.last_name}}</h4>
-                    <h4>{{ booking.event }} {% if booking.event.cancelled %}(CANCELLED){% endif %}</h4>
+                    <h4 class="modal-title" id="UserBookingAddModalLabel">Adding booking for {{ form_user.first_name }} {{ form_user.last_name}}</h4>
             </div>
 
             <div class="modal-body">

@@ -497,11 +497,17 @@ class BookingAddView(CreateView):
     template_name = 'studioadmin/includes/user-booking-add-modal.html'
     form_class = AddBookingForm
 
+    def get_form_user(self):
+        return User.objects.get(id=self.kwargs['user_id'])
+
+    def get_context_data(self, *args, **kwargs):
+        context = super(BookingAddView, self).get_context_data(*args, **kwargs)
+        context['form_user'] = self.get_form_user()
+        return context
 
     def get_form_kwargs(self, *args, **kwargs):
         kwargs = super(BookingAddView, self).get_form_kwargs(*args, **kwargs)
-        user_id = self.kwargs['user_id']
-        kwargs['user'] = User.objects.get(id=user_id)
+        kwargs['user'] = self.get_form_user()
         return kwargs
 
     def form_valid(self, form):
