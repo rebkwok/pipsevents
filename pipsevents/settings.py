@@ -415,8 +415,11 @@ if env('USE_MAILCATCHER'):  # pragma: no cover
 DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
+import sys
+TESTING = 'test' in sys.argv
+
 # TRAVIS and HEROKU logging
-if env('TRAVIS') or env('HEROKU'):  # pragma: no cover
+if env('TRAVIS') or env('HEROKU') or TESTING:  # pragma: no cover
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
