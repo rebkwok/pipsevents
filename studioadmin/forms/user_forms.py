@@ -494,6 +494,7 @@ class AddBookingForm(forms.ModelForm):
             ).filter(booking_open=True, cancelled=False).exclude(
                 id__in=already_booked).order_by('date'),
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            required=True
         )
 
         active_user_blocks = [
@@ -519,10 +520,6 @@ class AddBookingForm(forms.ModelForm):
         make sure that block selected is for the correct event type
         Add form validation for cancelled bookings
         """
-        super(AddBookingForm, self).clean()
-        if any(self.errors):
-            return
-
         block = self.cleaned_data.get('block')
         event = self.cleaned_data.get('event')
         free_class = self.cleaned_data.get('free_class')
@@ -530,7 +527,6 @@ class AddBookingForm(forms.ModelForm):
 
         if block and status == 'CANCELLED':
             error_msg = 'A cancelled booking cannot be assigned to a block.'
-            self.add_error('block', error_msg)
             raise forms.ValidationError(error_msg)
 
         if event.event_type.event_type == 'CL':
