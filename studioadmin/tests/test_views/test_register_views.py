@@ -287,7 +287,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         # block info is displayed
         self.assertIn(
-            'Event (2/3 left); expires {}'.format(
+            'Event (2/3 left); exp {}'.format(
                 block.expiry_date.strftime('%d %b %y')
             ),
             resp.rendered_content

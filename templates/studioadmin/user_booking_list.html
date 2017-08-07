@@ -39,10 +39,10 @@
                                     <th></th>
                                     <th>Date</th>
                                     <th>Class/Event</th>
-                                    <th class="table-center">Deposit Paid</th>
-                                    <th class="table-center">Fully Paid</th>
-                                    <th class="table-center">PayPal ID</th>
-                                    <th class="table-center">Free class?</th>
+                                    <th class="table-center">Deposit</br>Paid</th>
+                                    <th class="table-center">Fully</br>Paid</th>
+                                    <th class="table-center">PayPal</br>ID</th>
+                                    <th class="table-center">Free</br>class?</th>
                                     <th class="table-center">Block used</th>
                                     <th class="table-center">Booking status</th>
                                 {% else %}
@@ -66,7 +66,7 @@
 
                                 {% for booking in bookings %}
                                     <tr {% if booking.status == 'CANCELLED' or booking.no_show %} class='expired'{% endif %}>
-                                        <td>
+                                        <td class="studioadmin-tbl">
                                             <a class="bookingedit" href="#"
                                                {% if booking_status == 'future' %}
                                                    data-form="{% url 'studioadmin:bookingedit' booking.id %}"
@@ -74,8 +74,8 @@
                                                     data-form="{% url 'studioadmin:bookingeditpast' booking.id %}"
                                                 {% endif %}
                                                title="edit booking">Edit</a></td>
-                                        <td>{{ booking.event.date|date:"d/m/y H:i" }}</td>
-                                        <td>{{ booking.event.name }}</td>
+                                        <td class="studioadmin-tbl">{% if booking_status == 'future' %}{{ booking.event.date|date:"d M H:i" }}{% else %}{{ booking.event.date|date:"d M Y H:i" }}{% endif %}</td>
+                                        <td class="studioadmin-tbl">{{ booking.event.name }}</td>
                                         {% if booking_status == 'future' %}
                                             {% if booking.event.cost %}
                                                 <td class="table-center studioadmin-tbl">{% if booking.deposit_paid %}<span class="fa fa-check">{% endif %}</span></td>
