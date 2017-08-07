@@ -30,7 +30,7 @@
                             <tr>
                                 <td class="studioadmin-tbl">{{ wluser.user.first_name }} {{ wluser.user.last_name }}</td>
                                 <td class="studioadmin-tbl">
-                                    <a href="{% url 'studioadmin:user_bookings_list' wluser.user.id %}">
+                                    <a href="{% url 'studioadmin:user_upcoming_bookings_list' wluser.user.id %}">
                                     {{ wluser.user.username }}
                                     </a>
                                 </td>

@@ -11,8 +11,9 @@ from studioadmin.forms.ticketed_events_forms import PrintTicketsForm, \
     TicketedEventAdminForm, TicketedEventFormSet, TicketBookingInlineFormSet
 from studioadmin.forms.timetable_forms import SessionAdminForm, \
     TimetableSessionFormSet, UploadTimetableForm, DAY_CHOICES
-from studioadmin.forms.user_forms import EditBookingForm, UserBlockFormSet, \
-    UserBookingFormSet, UserListSearchForm
+from studioadmin.forms.user_forms import EditPastBookingForm, \
+    EditBookingForm, UserBlockFormSet, \
+    UserBookingFormSet, UserListSearchForm, AddBookingForm
 from studioadmin.forms.utils import StatusFilter
 from studioadmin.forms.voucher_forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
@@ -27,5 +28,6 @@ __all__ = [
     'TicketedEventFormSet', 'TicketBookingInlineFormSet',
     'TimetableSessionFormSet', 'UploadTimetableForm', 'UserBlockFormSet',
     'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',
-    'VoucherStudioadminForm', 'EditBookingForm'
+    'VoucherStudioadminForm', 'EditPastBookingForm', 'EditBookingForm',
+    'AddBookingForm'
 ]
