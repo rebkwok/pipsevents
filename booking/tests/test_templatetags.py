@@ -123,7 +123,7 @@ class BookingtagTests(TestSetupMixin, TestCase):
         )
 
         self.assertIn(
-            '{} (1/5 left); expires 01 Mar 15'.format(event.event_type.subtype),
+            '{} (1/5 left); exp 01 Mar 15'.format(event.event_type.subtype),
             resp.rendered_content
         )
 
