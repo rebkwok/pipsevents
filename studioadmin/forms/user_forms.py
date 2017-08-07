@@ -25,11 +25,9 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
         super(UserBookingInlineFormSet, self).add_fields(form, index)
 
         if form.instance.id:
-            ppbs = PaypalBookingTransaction.objects.filter(
-                booking_id=form.instance.id
-            )
-            ppbs_paypal =[True for ppb in ppbs if ppb.transaction_id]
-            form.paypal = True if ppbs_paypal else False
+            form.paypal = PaypalBookingTransaction.objects.filter(
+                booking_id=form.instance.id, transaction_id__isnull=False
+            ).exists()
 
             cancelled_class = 'expired' if \
                 form.instance.status == 'CANCELLED' else 'none'
@@ -433,16 +431,27 @@ class UserListSearchForm(forms.Form):
     )
 
 
-class EditBookingForm(forms.ModelForm):
+class AddBookingForm(forms.ModelForm):
+
+    send_confirmation = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+            }),
+            initial=False,
+            required=False
+        )
+
 
     class Meta:
         model = Booking
         fields = (
+            'user', 'event',
             'paid', 'status', 'no_show', 'attended', 'block',
             'free_class'
         )
 
         widgets = {
+            'user': forms.HiddenInput(),
             'paid': forms.CheckboxInput(
                 attrs={
                     'class': "form-control regular-checkbox",
@@ -469,7 +478,125 @@ class EditBookingForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(EditBookingForm, self).__init__(*args, **kwargs)
+        self.user = kwargs.pop('user')
+        super(AddBookingForm, self).__init__(*args, **kwargs)
+
+        self.fields['user'].initial = self.user.id
+
+        already_booked = [
+            booking.event.id for booking in
+            Booking.objects.select_related('user', 'event').filter(user=self.user)
+        ]
+
+        self.fields['event'] = forms.ModelChoiceField(
+            queryset=Event.objects.filter(
+                date__gte=timezone.now()
+            ).filter(booking_open=True, cancelled=False).exclude(
+                id__in=already_booked).order_by('date'),
+            widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            required=True
+        )
+
+        active_user_blocks = [
+            block.id for block in Block.objects.filter(user=self.user)
+            if block.active_block()
+        ]
+        self.has_available_block = True if active_user_blocks else False
+
+        self.fields['block'] = (UserBlockModelChoiceField(
+            queryset=Block.objects.filter(id__in=active_user_blocks),
+            widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            required=False,
+            empty_label="--------None--------"
+        ))
+
+        for field in self.fields:
+            self.fields[field].widget.attrs.update(
+                {'id': 'id_new_{}'.format(field)}
+            )
+
+    def clean(self):
+        """
+        make sure that block selected is for the correct event type
+        Add form validation for cancelled bookings
+        """
+        block = self.cleaned_data.get('block')
+        event = self.cleaned_data.get('event')
+        free_class = self.cleaned_data.get('free_class')
+        status = self.cleaned_data.get('status')
+
+        if block and status == 'CANCELLED':
+            error_msg = 'A cancelled booking cannot be assigned to a block.'
+            raise forms.ValidationError(error_msg)
+
+        if event.event_type.event_type == 'CL':
+            ev_type = "class"
+        elif event.event_type.event_type == 'EV':
+            ev_type = "event"
+
+        if block and event.event_type != block.block_type.event_type:
+            available_block_type = BlockType.objects.filter(
+                event_type=event.event_type
+            )
+            if not available_block_type:
+                error_msg = 'This {} type cannot be block-booked'.format(
+                    ev_type
+                )
+            else:
+                error_msg = 'This {} can only be block-booked with a "{}" ' \
+                            'block type.'.format(
+                    ev_type, available_block_type[0].event_type
+                )
+            self.add_error('block', error_msg)
+
+        if block and free_class and \
+                        block.block_type.identifier != 'free class':
+            error_msg = '"Free class" cannot be assigned to a block.'
+            self.add_error('free_class', error_msg)
+
+
+class EditPastBookingForm(forms.ModelForm):
+
+    class Meta:
+        model = Booking
+        fields = (
+            'deposit_paid', 'paid', 'status', 'no_show', 'attended', 'block',
+            'free_class'
+        )
+
+        widgets = {
+            'deposit_paid': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'paid': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'status': forms.Select(
+                attrs={'class': "form-control input-sm"}
+            ),
+            'no_show': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'attended': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            ),
+            'free_class': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    }
+            )
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(EditPastBookingForm, self).__init__(*args, **kwargs)
         # find all blocks for this user that are not full (i.e. that we could
         # use for this booking.  We allow admin users to change a past booking
         # to a block that is expired
@@ -494,6 +621,39 @@ class EditBookingForm(forms.ModelForm):
             required=False,
             empty_label="--------None--------"
         ))
+
+        attended_widget = self.fields['attended'].widget
+        paid_widget = self.fields['paid'].widget
+        deposit_paid_widget = self.fields['deposit_paid'].widget
+        free_class_widget = self.fields['free_class'].widget
+        no_show_widget = self.fields['no_show'].widget
+
+        all_widgets_to_disable = [
+            attended_widget, paid_widget, deposit_paid_widget,
+            free_class_widget, no_show_widget
+        ]
+
+        if self.instance.status == 'CANCELLED':
+            # disable all for cancelled
+            for widget in all_widgets_to_disable:
+                widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'OnClick': "javascript:return ReadOnlyCheckBox()"
+                })
+        elif self.instance.no_show:
+            # make checkboxes greyed out but still usable for no-shows
+            for widget in all_widgets_to_disable:
+                widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled'
+                })
+
+        if self.instance.block:
+            # also disable payment and free class fields for block bookings
+            for widget in [paid_widget, deposit_paid_widget, free_class_widget]:
+                widget.attrs.update({
+                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'OnClick': "javascript:return ReadOnlyCheckBox()"
+                })
 
     def clean(self):
         status = self.cleaned_data.get('status')
@@ -566,3 +726,36 @@ class EditBookingForm(forms.ModelForm):
                         'no_show',
                         'Booking cannot be both attended and no-show'
                     )
+
+class EditBookingForm(EditPastBookingForm):
+
+    def __init__(self, *args, **kwargs):
+        super(EditBookingForm, self).__init__(*args, **kwargs)
+
+        self.fields['send_confirmation'] = forms.BooleanField(
+            widget=forms.CheckboxInput(attrs={
+                'class': "regular-checkbox",
+            }),
+            initial=False,
+            required=False
+        )
+
+        active_user_blocks = [
+            block.id for block in Block.objects.filter(
+                user=self.instance.user,
+                block_type__event_type=self.instance.event.event_type)
+            if block.active_block()
+        ]
+        self.has_available_block = True if active_user_blocks else False
+
+        if self.instance.block is not None:
+            active_user_blocks.append(self.instance.block.id)
+
+        self.fields['block'] = (UserBlockModelChoiceField(
+            queryset=Block.objects.filter(id__in=active_user_blocks),
+            widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            required=False,
+            empty_label="--------None--------"
+        ))
+
+

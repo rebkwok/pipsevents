@@ -5,6 +5,6 @@ Your booking for {{ event }} has been {{ action }} by an administrator.
 - {{ msg }}
 {% endfor %}</ul>{% endif %}
 
-{% if set_as_free %}<p>This is your free class!</p>{% endif %}
+{% if set_as_free %}<p>This is a free class!</p>{% endif %}
 
 View your bookings: {{ host }}{% url 'booking:bookings' %}

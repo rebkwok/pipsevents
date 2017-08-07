@@ -2691,11 +2691,9 @@ class CreateFreeMonthlyBlocksTests(TestCase):
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
                 )
         )
-        self.assertEqual(
-            email.body,
-            'Free monthly class blocks not created for Test User1, Test User2 '
-            'as active free block already exists'
-        )
+        self.assertIn('Free monthly class blocks not created', email.body)
+        self.assertIn('Test User1', email.body)
+        self.assertIn('Test User2', email.body)
 
     def test_only_create_free_blocks_if_not_already_active(self):
         self.assertFalse(Block.objects.exists())

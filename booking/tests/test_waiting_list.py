@@ -12,7 +12,7 @@ from booking.views import BookingListView, BookingCreateView, \
     EventListView, EventDetailView
 from booking.tests.helpers import _create_session, TestSetupMixin
 from studioadmin.tests.test_views import TestPermissionMixin
-from studioadmin.views import user_bookings_view
+from studioadmin.views import user_bookings_view_old
 
 
 class WaitingListTests(TestSetupMixin, TestCase):
@@ -995,6 +995,8 @@ class WaitingListTests(TestSetupMixin, TestCase):
 class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
 
     def _post_response(self, user, user_id, form_data):
+        # helper function to create test bookings; uses the old
+        # admin user booking view
         url = reverse(
             'studioadmin:user_bookings_list',
             kwargs={'user_id': user_id}
@@ -1005,7 +1007,7 @@ class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return user_bookings_view(request, user_id)
+        return user_bookings_view_old(request, user_id)
 
     def test_cancel_booking_for_full_event(self):
         """

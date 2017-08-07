@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 from datetime import timedelta
 from unittest.mock import patch
 from model_mommy import mommy
@@ -12,7 +13,8 @@ from django.utils import timezone
 from booking.models import Booking, Block, BlockType, EventType, \
     WaitingListUser
 from booking.tests.helpers import _create_session, format_content
-from studioadmin.views import user_bookings_view, user_past_bookings_view
+from payments.helpers import create_booking_paypal_transaction
+from studioadmin.views import user_bookings_view_old, user_modal_bookings_view
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -79,24 +81,26 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         return data
 
     def _get_response(self, user, user_id, booking_status='future'):
+        kwargs = {}
         if booking_status == 'future':
             url = reverse(
                 'studioadmin:user_bookings_list', kwargs={'user_id': user_id}
             )
-            view = user_bookings_view
+            view = user_bookings_view_old
         else:
             url = reverse(
                 'studioadmin:user_past_bookings_list',
                 kwargs={'user_id': user_id}
             )
-            view = user_past_bookings_view
+            view = user_modal_bookings_view
+            kwargs['past'] = True
         session = _create_session()
         request = self.factory.get(url)
         request.session = session
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return view(request, user_id)
+        return view(request, user_id, **kwargs)
 
     def _post_response(self, user, user_id, form_data):
         url = reverse(
@@ -108,7 +112,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         request.user = user
         messages = FallbackStorage(request)
         request._messages = messages
-        return user_bookings_view(request, user_id)
+        return user_bookings_view_old(request, user_id)
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -1714,13 +1718,77 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(BookingEditViewTests, self).setUp()
+        event = mommy.make_recipe('booking.future_PC', cost=10)
+        self.booking = mommy.make_recipe(
+                'booking.booking', paid=True,
+                payment_confirmed=True, event=event, status='OPEN'
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        self.url = reverse('studioadmin:bookingedit', args=[self.booking.id])
+
+    def test_get_booking_edit_view(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_booking_with_changes(self):
+        self.assertFalse(self.booking.attended)
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': self.booking.status,
+            'block': '',
+            'free_class': self.booking.free_class,
+            'attended': True,
+            'no_show': self.booking.no_show
+        }
+        self.client.post(self.url, data=data)
+
+        # get the user's booking list again to check for messages
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_upcoming_bookings_list',
+                args=[self.booking.user.id]
+            )
+        )
+
+        self.assertIn(
+            'Booking for {} has been updated'.format(self.booking.event),
+            str(resp.content))
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+
+    def test_post_booking_no_changes(self):
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': self.booking.status,
+            'block': '',
+            'free_class': self.booking.free_class,
+            'attended': self.booking.attended,
+            'no_show': self.booking.no_show
+        }
+        self.client.post(self.url, data=data)
+        # get the user's booking list again to check for messages
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_upcoming_bookings_list',
+                args=[self.booking.user.id]
+            )
+        )
+        self.assertIn('No changes made', str(resp.content))
+
+
+class BookingEditPastViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super(BookingEditPastViewTests, self).setUp()
         past_class = mommy.make_recipe('booking.past_class')
         self.booking = mommy.make_recipe(
                 'booking.booking', paid=True,
                 payment_confirmed=True, event=past_class, status='OPEN'
         )
         self.client.login(username=self.staff_user.username, password='test')
-        self.url = reverse('studioadmin:bookingedit', args=[self.booking.id])
+        self.url = reverse('studioadmin:bookingeditpast', args=[self.booking.id], )
 
     def test_get_booking_edit_view(self):
         resp = self.client.get(self.url)
@@ -1746,6 +1814,7 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
                 args=[self.booking.user.id]
             )
         )
+
         self.assertIn('Saved!', str(resp.content))
         self.booking.refresh_from_db()
         self.assertTrue(self.booking.attended)
@@ -1771,5 +1840,198 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
         self.assertIn('No changes made', str(resp.content))
 
 
+class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super(UserBookingsModalViewTests, self).setUp()
+
+        past_classes1 = mommy.make_recipe('booking.past_class', _quantity=2)
+        past_classes2 = mommy.make_recipe('booking.past_class', _quantity=2)
+        future_classes1 = mommy.make_recipe('booking.future_PC', _quantity=2)
+        future_classes2 = mommy.make_recipe('booking.future_PC', _quantity=2)
+        future_classes3 = mommy.make_recipe('booking.future_PC', _quantity=2)
+
+        self.future_user_bookings = [
+                mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='OPEN',
+            ) for event in future_classes1
+        ]
+        self.past_user_bookings = [
+            mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='OPEN'
+            ) for event in past_classes1
+        ]
+        self.future_cancelled_bookings = [
+                mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='CANCELLED'
+            ) for event in future_classes2
+        ]
+        self.past_cancelled_bookings = [
+            mommy.make_recipe(
+                'booking.booking', user=self.user, paid=True,
+                payment_confirmed=True, event=event, status='CANCELLED'
+            ) for event in past_classes2
+        ]
+        [
+            mommy.make_recipe(
+                'booking.booking', paid=True,
+                payment_confirmed=True, event=event,
+            ) for event in future_classes3
+        ]
+
+    def test_cannot_access_if_not_logged_in(self):
+        """
+        test that the page redirects if user is not logged in
+        """
+        url = reverse(
+            'studioadmin:user_upcoming_bookings_list',
+            kwargs={'user_id': self.user.id}
+        )
+        resp = self.client.get(url)
+        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.assertEquals(resp.status_code, 302)
+        self.assertIn(redirected_url, resp.url)
+
+    def test_cannot_access_if_not_staff(self):
+        """
+        test that the page redirects if user is not a staff user
+        """
+        self.client.login(username=self.user.username, password='test')
+        url = reverse(
+            'studioadmin:user_upcoming_bookings_list',
+            kwargs={'user_id': self.user.id}
+        )
+        resp = self.client.get(url)
+        # resp = self._get_response(self.user, self.user.id)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_instructor_group_cannot_access(self):
+        """
+        test that the page redirects if user is in the instructor group but is
+        not a staff user
+        """
+        self.client.login(username=self.instructor_user.username, password='test')
+        url = reverse(
+            'studioadmin:user_upcoming_bookings_list',
+            kwargs={'user_id': self.user.id}
+        )
+        resp = self.client.get(url)
+        # resp = self._get_response(self.instructor_user, self.user.id)
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+
+    def test_can_access_as_staff_user(self):
+        """
+        test that the page can be accessed by a staff user
+        """
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:user_upcoming_bookings_list',
+            kwargs={'user_id': self.user.id}
+        )
+        resp = self.client.get(url)
+        # resp = self._get_response(self.staff_user, self.user.id)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_view_users_bookings(self):
+        """
+        Test only user's bookings for future events shown by default
+        """
+        self.assertEqual(Booking.objects.count(), 10)
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:user_upcoming_bookings_list',
+            kwargs={'user_id': self.user.id}
+        )
+        resp = self.client.get(url)
+        # resp = self._get_response(self.staff_user, self.user.id)
+        # get all but last form (last form is the empty extra one)
+        bookings = resp.context_data['bookings']
+        # show future bookings, both open and cancelled
+        self.assertEqual(
+            len(bookings),
+            len(self.future_user_bookings) + len(self.future_cancelled_bookings)
+        )
+
+        self.assertEqual(
+            sorted([booking.id for booking in bookings]),
+            sorted(
+                [bk.id for bk in
+                 self.future_user_bookings + self.future_cancelled_bookings]
+            )
+        )
+
+    def test_paypal_shown(self):
+        user = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_PC', cost=10)
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, paid=True,
+            payment_confirmed=True, event=event, status='OPEN'
+        )
+
+        url = reverse(
+            'studioadmin:user_upcoming_bookings_list',
+            kwargs={'user_id': user.id}
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(url)
+        soup = BeautifulSoup(resp.content, 'html.parser')
+        self.assertNotIn(
+            '<span class="fa fa-check"></span>',
+            [str(ch) for ch in soup.find(id = 'paypal-td').children]
+        )
+
+        ppbs = create_booking_paypal_transaction(booking=booking, user=user)
+        ppbs.transaction_id = 'foo'
+        ppbs.save()
+
+        resp = self.client.get(url)
+        soup = BeautifulSoup(resp.content, 'html.parser')
+        self.assertIn(
+            '<span class="fa fa-check"></span>',
+            [str(ch) for ch in soup.find(id = 'paypal-td').children]
+        )
 
 
+class BookingAddViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super(BookingAddViewTests, self).setUp()
+        self.event = mommy.make_recipe('booking.future_PC', cost=10)
+        self.client.login(username=self.staff_user.username, password='test')
+        self.url = reverse('studioadmin:bookingadd', args=[self.user.id])
+
+    def test_get_booking_add_view(self):
+        resp = self.client.get(self.url)
+        form = resp.context_data['form']
+
+        self.assertEqual(resp.status_code, 200)
+        # form's initial user is set to the user passed to the view
+        self.assertEqual(form.fields['user'].initial, self.user.id)
+
+    def test_post_new_booking(self):
+        self.assertFalse(Booking.objects.filter(user=self.user).exists())
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': True,
+            'status': 'OPEN',
+        }
+        self.client.post(self.url, data=data)
+
+        self.assertTrue(Booking.objects.filter(user=self.user).exists())
+        # get the user's booking list again to check for messages
+        resp = self.client.get(
+            reverse(
+                'studioadmin:user_bookings_list',
+                args=[self.user.id]
+            )
+        )
+
+        self.assertIn(
+            'Booking for {} has been created'.format(self.event),
+            str(resp.content))
