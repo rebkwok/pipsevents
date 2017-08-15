@@ -407,6 +407,7 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
                     )
                     if startutc == origstart:
                         form.changed_data.remove('start_date')
+                    form.instance.start_date = start
 
 
 UserBlockFormSet = inlineformset_factory(
