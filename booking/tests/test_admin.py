@@ -11,7 +11,7 @@ from django.utils import timezone
 import booking.admin as admin
 from booking.models import Event, Booking, Block, BlockType, TicketBooking, \
     Ticket, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
-from booking.tests.helpers import format_content
+from booking.tests.helpers import format_content, PatchRequestMixin
 
 
 class EventAdminTests(TestCase):
@@ -71,11 +71,11 @@ class EventAdminTests(TestCase):
         self.assertEqual(ev_admin.get_spaces_left(ev_query), 2)
 
 
-class BookingAdminTests(TestCase):
+class BookingAdminTests(PatchRequestMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = mommy.make_recipe(
+    def setUp(self):
+        super(BookingAdminTests, self).setUp()
+        self.user = mommy.make_recipe(
             'booking.user', first_name="Test", last_name="User",
             username="testuser"
         )
@@ -186,11 +186,11 @@ class BookingAdminTests(TestCase):
         )
 
 
-class BlockAdminTests(TestCase):
+class BlockAdminTests(PatchRequestMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.superuser = User.objects.create_superuser(
+    def setUp(self):
+        super(BlockAdminTests, self).setUp()
+        self.superuser = User.objects.create_superuser(
             username='test', email='test@test.com', password='test'
         )
 

@@ -3,6 +3,7 @@
 from model_mommy import mommy
 
 from django.test import TestCase
+from booking.tests.helpers import PatchRequestMixin
 from studioadmin.forms import ConfirmPaymentForm, StatusFilter
 
 
@@ -13,7 +14,7 @@ class StatusFilterTests(TestCase):
         self.assertTrue(form.is_valid())
 
 
-class ConfirmPaymentFormTests(TestCase):
+class ConfirmPaymentFormTests(PatchRequestMixin, TestCase):
 
     def test_form_valid(self):
         user = mommy.make_recipe('booking.user')

@@ -1,8 +1,12 @@
+from unittest.mock import patch
+
 from model_mommy import mommy
 
 from django.contrib.auth.models import Group, User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
+
+from booking.tests.helpers import assert_mailchimp_post_data
 
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -72,6 +76,8 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         self.client.get(reverse('studioadmin:unsubscribe', args=[ml_user.id]))
         ml_user.refresh_from_db()
         self.assertNotIn(self.subscribed, ml_user.groups.all())
+
+        assert_mailchimp_post_data(self.mock_request, ml_user, 'unsubscribed')
 
     def test_export_mailing_list(self):
         non_mailing_list_users = []

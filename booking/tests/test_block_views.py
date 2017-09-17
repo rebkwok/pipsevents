@@ -20,10 +20,9 @@ from booking.tests.helpers import _create_session, format_content, \
 
 class BlockCreateViewTests(TestSetupMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        super(BlockCreateViewTests, cls).setUpTestData()
-        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
+    def setUp(self):
+        super(BlockCreateViewTests, self).setUp()
+        self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _set_session(self, user, request, session_data=None):
         request.session = _create_session()
@@ -691,6 +690,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 class BlockDeleteViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
+        super(BlockDeleteViewTests, self).setUp()
         self.block = mommy.make_recipe('booking.block', user=self.user)
 
     def _set_session(self, user, request):

@@ -278,6 +278,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
             resp.rendered_content.count('table-shaded'), 2
         )
 
+
 class EventDetailViewTests(TestSetupMixin, TestCase):
 
     @classmethod
@@ -287,6 +288,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.future_CL', _quantity=3)
 
     def setUp(self):
+        super(EventDetailViewTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_EV')
 
     def _get_response(self, user, event, ev_type):

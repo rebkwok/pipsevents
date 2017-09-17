@@ -2,11 +2,12 @@ from model_mommy import mommy
 from django.test import TestCase
 
 from booking.context_helpers import get_paypal_dict
+from booking.tests.helpers import PatchRequestMixin
 from payments import helpers
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 
 
-class PayPalFormTests(TestCase):
+class PayPalFormTests(PatchRequestMixin, TestCase):
 
     def test_PayPalPaymentsListForm_renders_buy_it_now_button(self):
         booking = mommy.make_recipe('booking.booking')

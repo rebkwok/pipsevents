@@ -26,9 +26,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(EventListViewTests, cls).setUpTestData()
         mommy.make_recipe('booking.ticketed_event_max10', _quantity=3)
-        cls.staff_user = mommy.make_recipe('booking.user')
-        cls.staff_user.is_staff = True
-        cls.staff_user.save()
+
+    def setUp(self):
+        super(EventListViewTests, self).setUp()
+        self.staff_user = mommy.make_recipe('booking.user')
+        self.staff_user.is_staff = True
+        self.staff_user.save()
 
     def _get_response(self, user):
         url = reverse('booking:ticketed_events')
@@ -211,17 +214,14 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
 class TicketCreateViewTests(TestSetupMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        super(TicketCreateViewTests, cls).setUpTestData()
-        cls.staff_user = User.objects.create_user(
+    def setUp(self):
+        super(TicketCreateViewTests, self).setUp()
+        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.staff_user = User.objects.create_user(
             username='staff', password='test'
         )
-        cls.staff_user.is_staff = True
-        cls.staff_user.save()
-
-    def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.staff_user.is_staff = True
+        self.staff_user.save()
 
     def _post_response(self, user, ticketed_event, form_data={}):
         url = reverse(
@@ -1161,11 +1161,14 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
             'booking.ticketed_event_max10',
             extra_ticket_info_label="Name",
         )
-        cls.ticket_booking = mommy.make(
-            TicketBooking, user=cls.user, purchase_confirmed=True,
-            ticketed_event=cls.ticketed_event
+
+    def setUp(self):
+        super(TicketBookingViewTests, self).setUp()
+        self.ticket_booking = mommy.make(
+            TicketBooking, user=self.user, purchase_confirmed=True,
+            ticketed_event=self.ticketed_event
         )
-        mommy.make(Ticket, ticket_booking=cls.ticket_booking)
+        mommy.make(Ticket, ticket_booking=self.ticket_booking)
 
     def _get_response(self, user, ticket_booking):
         url = reverse(
@@ -1288,6 +1291,7 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
 class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
+        super(TicketBookingCancelViewTests, self).setUp()
         self.ticketed_event = mommy.make_recipe(
             'booking.ticketed_event_max10'
         )

@@ -100,7 +100,7 @@ block_10 = Recipe(Block,
                   block_type=foreign_key(blocktype10),
                   start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
 
-booking = Recipe(Booking)
+booking = Recipe(Booking, user__email=seq("test_user@test.com"))
 booking_with_user = Recipe(Booking, user=foreign_key(user))
 
 past_booking = Recipe(Booking,

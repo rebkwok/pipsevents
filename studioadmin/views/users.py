@@ -19,6 +19,7 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 
 from accounts.models import PrintDisclaimer
+from accounts.views import update_mailchimp
 
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
@@ -196,6 +197,13 @@ def toggle_subscribed(request,  user_id):
                 request.user.username
             )
         )
+        update_mailchimp(user_to_change, 'unsubscribe')
+        ActivityLog.objects.create(
+            log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
+                user_to_change.first_name, user_to_change.last_name,
+                user_to_change.username
+            )
+        )
     else:
         group.user_set.add(user_to_change)
         ActivityLog.objects.create(
@@ -205,6 +213,13 @@ def toggle_subscribed(request,  user_id):
                 user_to_change.last_name,
                 user_to_change.username,
                 request.user.username
+            )
+        )
+        update_mailchimp(user_to_change, 'subscribe')
+        ActivityLog.objects.create(
+            log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                user_to_change.first_name, user_to_change.last_name,
+                user_to_change.username
             )
         )
     return render_to_response(
@@ -455,6 +470,13 @@ def unsubscribe(request, user_id):
             )
     )
     user_to_change.save()
+    update_mailchimp(user_to_change, 'unsubscribe')
+    ActivityLog.objects.create(
+        log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
+            user_to_change.first_name, user_to_change.last_name,
+            user_to_change.username
+        )
+    )
     return HttpResponseRedirect(reverse('studioadmin:mailing_list'))
 
 

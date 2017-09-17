@@ -1,7 +1,9 @@
+from requests import HTTPError
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView
 from django.contrib.auth.models import User
@@ -9,9 +11,11 @@ from django.core.urlresolvers import reverse
 from django.template.response import TemplateResponse
 from django.utils.safestring import mark_safe
 
+from allauth.account.views import EmailView, LoginView
+
 from braces.views import LoginRequiredMixin
 
-from allauth.account.views import LoginView
+from mailchimp3 import MailChimp
 
 from .forms import DisclaimerForm
 from .utils import has_active_disclaimer, has_expired_disclaimer
@@ -43,6 +47,20 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('profile:profile')
 
+    def form_valid(self, form):
+        first_name_changed = 'first_name' in form.changed_data
+        last_name_changed = 'last_name' in form.changed_data
+
+        if first_name_changed or last_name_changed:
+            update_mailchimp(form.instance, 'update_profile')
+            ActivityLog.objects.create(
+                log='User profile changed for {} ({}); MailChimp list updated '
+                    'with new first/last name'.format(
+                    form.instance.username, form.instance.email
+                )
+            )
+        return super(ProfileUpdateView, self).form_valid(form)
+
 
 class CustomLoginView(LoginView):
 
@@ -55,6 +73,27 @@ class CustomLoginView(LoginView):
             ret = reverse('profile:profile')
 
         return ret
+
+
+class CustomEmailView(EmailView):
+
+    def post(self, request, *args, **kwargs):
+        old_email = request.user.email
+        res = super(CustomEmailView, self).post(request, *args, **kwargs)
+
+        if res.status_code == 302 and res.url == self.success_url and \
+                request.POST.get("email") and "action_primary" in request.POST:
+            update_mailchimp(request.user, 'update_email', old_email=old_email)
+            ActivityLog.objects.create(
+                log='Primary email changed to {} for {} {} ({}); MailChimp list '
+                    'updated.'.format(
+                    request.user.email, request.user.first_name,
+                    request.user.last_name, request.user.username
+                )
+            )
+        return res
+
+custom_email_view = login_required(CustomEmailView.as_view())
 
 
 class DisclaimerCreateView(LoginRequiredMixin, CreateView):
@@ -137,6 +176,13 @@ def subscribe_view(request):
                     request.user.username
                 )
             )
+            update_mailchimp(request.user, 'subscribe')
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                    request.user.first_name, request.user.last_name,
+                    request.user.username
+                )
+            )
         elif 'unsubscribe' in request.POST:
             group.user_set.remove(request.user)
             messages.success(request, 'You have been unsubscribed from the mailing list')
@@ -146,6 +192,62 @@ def subscribe_view(request):
                     request.user.username
                 )
             )
+            update_mailchimp(request.user, 'unsubscribe')
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
+                    request.user.first_name, request.user.last_name,
+                    request.user.username
+                )
+            )
+
     return TemplateResponse(
         request, 'account/mailing_list_subscribe.html'
+    )
+
+
+def update_mailchimp(user, action, old_email=None):
+    """
+    Update mailchimp mailing list
+    user: user to update
+    action: str - subscribe/unsubscribe/update_profile/update_email
+    old_email: if updating an email, this is the old email address
+    """
+    client = MailChimp(settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET)
+
+    status_mapping = {
+        'subscribe': 'subscribed',
+        'unsubscribe': 'unsubscribed',
+        'update_profile': 'subscribed' if user.subscribed() else 'unsubscribed',
+        'update_email': 'subscribed' if user.subscribed() else 'unsubscribed',
+    }
+
+    if action == 'update_email':
+        # Mailchimp API doesn't allow us to change a user's email address, so
+        # we need to unsubscribe the old one and create/update the new one
+        old_email_data = {
+            'email_address': old_email,
+             'status': 'unsubscribed',
+             'status_if_new': 'unsubscribed',
+             'merge_fields': {
+                 'FNAME': user.first_name,
+                 'LNAME': user.last_name
+             }
+        }
+        client.lists.update_members(
+            list_id=settings.MAILCHIMP_LIST_ID,
+            data={'members': [old_email_data],  'update_existing': True}
+        )
+
+    new_userdata = {
+        'email_address': user.email,
+         'status': status_mapping[action],
+         'status_if_new': status_mapping[action],
+         'merge_fields': {
+             'FNAME': user.first_name,
+             'LNAME': user.last_name
+         }
+    }
+    client.lists.update_members(
+        list_id=settings.MAILCHIMP_LIST_ID,
+        data={'members': [new_userdata],  'update_existing': True}
     )

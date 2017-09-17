@@ -4,8 +4,8 @@ from django.contrib import admin
 from django.views.generic import RedirectView
 from django.conf.urls.static import static
 
-from accounts.views import CustomLoginView, DisclaimerCreateView, \
-    data_protection, subscribe_view
+from accounts.views import custom_email_view, CustomLoginView, \
+    DisclaimerCreateView, data_protection, subscribe_view
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
@@ -16,6 +16,7 @@ urlpatterns = [
         r'^data-protection-statement/$', data_protection,
         name='data_protection'
     ),
+    url(r'^accounts/api/', include('accounts.api_urls', namespace='accounts_api')),
     url(r'^accounts/profile/', include('accounts.urls', namespace='profile')),
     url(r'^accounts/login/$', CustomLoginView.as_view(), name='login'),
     url(
@@ -23,6 +24,7 @@ urlpatterns = [
         name='disclaimer_form'
     ),
     url(r'^accounts/mailing-list/$', subscribe_view, name='subscribe'),
+    url(r'^accounts/email/$', custom_email_view, name="account_email"),
     url(r'^accounts/', include('allauth.urls')),
     url(r'^ckeditor/', include('ckeditor_uploader.urls')),
     url(r'^payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),
@@ -35,4 +37,3 @@ urlpatterns = [
 if settings.DEBUG:  # pragma: no cover
     import debug_toolbar
     urlpatterns.append(url(r'^__debug__/', include(debug_toolbar.urls)))
-

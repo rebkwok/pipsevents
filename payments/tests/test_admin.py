@@ -9,6 +9,7 @@ from django.test import TestCase
 from paypal.standard.ipn.models import PayPalIPN
 
 from booking.models import Ticket, TicketBooking, TicketedEvent
+from booking.tests.helpers import PatchRequestMixin
 
 from payments import helpers
 from payments import admin
@@ -17,7 +18,7 @@ from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
 
 
-class PaymentsAdminTests(TestCase):
+class PaymentsAdminTests(PatchRequestMixin, TestCase):
 
     def test_paypal_booking_admin_display(self):
         user = mommy.make_recipe(
@@ -122,14 +123,14 @@ class PaymentsAdminTests(TestCase):
         self.assertEqual(paypal_admin.buyer(query), 'Mickey Mouse')
 
 
-class PaymentsAdminFiltersTests(TestCase):
+class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = mommy.make_recipe(
+    def setUp(self):
+        super(PaymentsAdminFiltersTests, self).setUp()
+        self.user = mommy.make_recipe(
             'booking.user', first_name="Foo", last_name="Bar", username="foob"
         )
-        cls.user1 = mommy.make_recipe(
+        self.user1 = mommy.make_recipe(
             'booking.user', first_name="Donald", last_name="Duck", username="dd"
         )
         for user in User.objects.all():

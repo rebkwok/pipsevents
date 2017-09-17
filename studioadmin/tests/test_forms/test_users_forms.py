@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import Event, BlockType
+from booking.tests.helpers import PatchRequestMixin
 from studioadmin.forms import AddBookingForm, ChooseUsersFormSet, \
     EditBookingForm, EditPastBookingForm, \
     EmailUsersForm, UserFilterForm, UserBookingFormSet, UserBlockFormSet
@@ -124,9 +125,10 @@ class UserFilterFormTests(TestCase):
         self.assertEquals(event_type, set(['CL']))
 
 
-class UserBookingFormSetTests(TestCase):
+class UserBookingFormSetTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
+        super(UserBookingFormSetTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_EV')
         self.user = mommy.make_recipe('booking.user')
         self.block_type = mommy.make_recipe('booking.blocktype',
@@ -414,9 +416,10 @@ class UserBookingFormSetTests(TestCase):
             )
 
 
-class UserBlockFormSetTests(TestCase):
+class UserBlockFormSetTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
+        super(UserBlockFormSetTests, self).setUp()
         event_type = mommy.make_recipe('booking.event_type_PC')
         self.user = mommy.make_recipe('booking.user')
         self.block_type = mommy.make_recipe(
@@ -536,9 +539,10 @@ class UserBlockFormSetTests(TestCase):
                 self.assertIsNone(disabled)
 
 
-class EditPastBookingFormTests(TestCase):
+class EditPastBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
+        super(EditPastBookingFormTests, self).setUp()
         self.event = mommy.make_recipe('booking.past_event')
         self.cancelled_event = mommy.make_recipe(
             'booking.past_event', cancelled=True
@@ -858,9 +862,10 @@ class EditPastBookingFormTests(TestCase):
         )
 
 
-class EditBookingFormTests(TestCase):
+class EditBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
+        super(EditBookingFormTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_PC')
         self.cancelled_event = mommy.make_recipe(
             'booking.future_PC', cancelled=True
@@ -951,9 +956,10 @@ class EditBookingFormTests(TestCase):
         )
 
 
-class AddBookingFormTests(TestCase):
+class AddBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
+        super(AddBookingFormTests, self).setUp()
         self.event = mommy.make_recipe('booking.future_EV', cost=10)
         self.poleclass = mommy.make_recipe('booking.future_PC', cost=10)
         self.poleclass1 = mommy.make_recipe('booking.future_PC', cost=10)
