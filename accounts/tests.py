@@ -26,7 +26,8 @@ from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
 
 from booking.models import Booking
-from booking.tests.helpers import set_up_fb, _create_session, TestSetupMixin
+from booking.tests.helpers import _create_session, TestSetupMixin, \
+    PatchRequestMixin
 
 
 class SignUpFormTests(TestSetupMixin, TestCase):
@@ -61,6 +62,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
 class DisclaimerFormTests(TestSetupMixin, TestCase):
 
     def setUp(self):
+        super(DisclaimerFormTests, self).setUp()
         self.form_data = {
             'name': 'test', 'dob': '01 Jan 1990', 'address': '1 test st',
             'postcode': 'TEST1', 'home_phone': '123445', 'mobile_phone': '124566',
@@ -209,7 +211,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         """
         Test custom view to allow users to update their details
         """
-        user = mommy.make(User, username="test_user",
+        user = mommy.make_recipe('booking.user', username="test_user",
                           first_name="Test",
                           last_name="User",
                           )
@@ -220,7 +222,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         )
         request.user = user
         view = ProfileUpdateView.as_view()
-        resp = view(request)
+        view(request)
         updated_user = User.objects.get(username="test_user")
         self.assertEquals(updated_user.first_name, "Fred")
 
@@ -231,9 +233,12 @@ class ProfileTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(ProfileTests, cls).setUpTestData()
         Group.objects.get_or_create(name='instructors')
-        cls.user_with_online_disclaimer = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=cls.user_with_online_disclaimer)
-        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
+
+    def setUp(self):
+        super(ProfileTests, self).setUp()
+        self.user_with_online_disclaimer = mommy.make_recipe('booking.user')
+        mommy.make(OnlineDisclaimer, user=self.user_with_online_disclaimer)
+        self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _get_response(self, user):
         url = reverse('profile:profile')
@@ -263,13 +268,12 @@ class ProfileTests(TestSetupMixin, TestCase):
 
 class CustomLoginViewTests(TestSetupMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        super(CustomLoginViewTests, cls).setUpTestData()
-        cls.user = User.objects.create(username='test_user', is_active=True)
-        cls.user.set_password('password')
-        cls.user.save()
-        EmailAddress.objects.create(user=cls.user,
+    def setUp(self):
+        super(CustomLoginViewTests, self).setUp()
+        self.user = User.objects.create(username='test_user', is_active=True)
+        self.user.set_password('password')
+        self.user.save()
+        EmailAddress.objects.create(user=self.user,
                                     email='test@gmail.com',
                                     primary=True,
                                     verified=True)
@@ -396,6 +400,7 @@ class DisclaimerModelTests(TestCase):
 class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
+        super(DisclaimerCreateViewTests, self).setUp()
         self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
         self.form_data = {
@@ -538,27 +543,27 @@ class DataProtectionViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class DeleteExpiredDisclaimersTests(TestCase):
+class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user_online_only = mommy.make_recipe('booking.user')
+    def setUp(self):
+        super(DeleteExpiredDisclaimersTests, self).setUp()
+        self.user_online_only = mommy.make_recipe('booking.user')
         mommy.make(
-            OnlineDisclaimer, user=cls.user_online_only,
+            OnlineDisclaimer, user=self.user_online_only,
             date=timezone.now()-timedelta(370)
         )
-        cls.user_print_only = mommy.make_recipe('booking.user')
+        self.user_print_only = mommy.make_recipe('booking.user')
         mommy.make(
-            PrintDisclaimer, user=cls.user_print_only,
+            PrintDisclaimer, user=self.user_print_only,
             date=timezone.now()-timedelta(370)
         )
-        cls.user_both = mommy.make_recipe('booking.user')
+        self.user_both = mommy.make_recipe('booking.user')
         mommy.make(
-            OnlineDisclaimer, user=cls.user_both,
+            OnlineDisclaimer, user=self.user_both,
             date=timezone.now()-timedelta(370)
         )
         mommy.make(
-            PrintDisclaimer, user=cls.user_both,
+            PrintDisclaimer, user=self.user_both,
             date=timezone.now()-timedelta(370)
         )
 

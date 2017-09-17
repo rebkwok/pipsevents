@@ -1,4 +1,7 @@
 from importlib import import_module
+from requests.auth import HTTPBasicAuth
+from unittest.mock import patch
+
 from model_mommy import mommy
 
 from django.contrib.auth.models import User
@@ -42,10 +45,27 @@ class TestSetupMixin(object):
     def setUpTestData(cls):
         set_up_fb()
         cls.factory = RequestFactory()
-        cls.user = User.objects.create_user(
+
+    def setUp(self):
+        self.patcher = patch('requests.request')
+        self.mock_request = self.patcher.start()
+        self.user = User.objects.create_user(
             username='test', email='test@test.com', password='test'
         )
-        mommy.make(PrintDisclaimer, user=cls.user)
+        mommy.make(PrintDisclaimer, user=self.user)
+
+    def tearDown(self):
+        self.patcher.stop()
+
+
+class PatchRequestMixin(object):
+
+    def setUp(self):
+        self.patcher = patch('requests.request')
+        self.mock_request = self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
 
 
 def format_content(content):
@@ -54,3 +74,27 @@ def format_content(content):
         strip_tags(content).replace('\n', '').replace('\t', '').split()
     )
 
+
+def assert_mailchimp_post_data(mock_request, user, mailing_list_status):
+    mock_request.assert_called_with(
+        timeout=None,
+        hooks={'response': []},
+        method='POST',
+        url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
+            settings.MAILCHIMP_SECRET, settings.MAILCHIMP_LIST_ID
+        ),
+        auth=HTTPBasicAuth(
+            settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
+        ),
+        json={
+            'update_existing': True,
+            'members': [
+                {
+                    'email_address': user.email,
+                    'status': mailing_list_status,
+                    'status_if_new': mailing_list_status,
+                    'merge_fields': {'FNAME': user.first_name, 'LNAME': user.last_name}
+                }
+            ]
+        }
+    )

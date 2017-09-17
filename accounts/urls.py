@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from accounts.api_views import MailingListAPIView
 from accounts.views import ProfileUpdateView, profile
 
 urlpatterns = [

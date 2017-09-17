@@ -15,11 +15,10 @@ from booking.tests.helpers import TestSetupMixin, format_content
 
 class BookingtagTests(TestSetupMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        super(BookingtagTests, cls).setUpTestData()
-        cls.user.is_staff = True
-        cls.user.save()
+    def setUp(self):
+        super(BookingtagTests, self).setUp()
+        self.user.is_staff = True
+        self.user.save()
 
     def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])

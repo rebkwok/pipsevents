@@ -12,6 +12,7 @@ from model_mommy import mommy
 from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
     EventVoucher, UsedBlockVoucher, UsedEventVoucher
+from booking.tests.helpers import PatchRequestMixin
 
 now = timezone.now()
 
@@ -140,7 +141,7 @@ class EventTests(TestCase):
         self.assertEqual(str(event), 'Test event - 01 Jan 2015, 00:00')
 
 
-class BookingTests(TestCase):
+class BookingTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -148,6 +149,7 @@ class BookingTests(TestCase):
         cls.subscribed = mommy.make(Group, name='subscribed')
 
     def setUp(self):
+        super(BookingTests, self).setUp()
         mommy.make_recipe('booking.user', _quantity=15)
         self.users = User.objects.all()
         self.event_with_cost = mommy.make_recipe('booking.future_EV',
@@ -433,13 +435,14 @@ class BookingTests(TestCase):
         self.assertIn(self.subscribed, user.groups.all())
 
 
-class BlockTests(TestCase):
+class BlockTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
         mommy.make_recipe('booking.future_PC', _quantity=10)
 
     def setUp(self):
+        super(BlockTests, self).setUp()
         # note for purposes of testing, start_date is set to 1.1.15
         self.small_block = mommy.make_recipe('booking.block_5')
         self.large_block = mommy.make_recipe('booking.block_10')

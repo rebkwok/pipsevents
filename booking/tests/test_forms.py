@@ -5,9 +5,9 @@ from booking.forms import BookingCreateForm, BlockCreateForm, \
     TicketPurchaseForm, BlockAdminForm, BookingAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.models import Block, TicketBooking, Ticket
+from booking.tests.helpers import PatchRequestMixin
 
-
-class BookingCreateFormTests(TestCase):
+class BookingCreateFormTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -271,17 +271,17 @@ class TicketPurchaseFormTests(TestCase):
         self.assertEqual(quantity_widget.choices, choices)
 
 
-class AdminFormsTests(TestCase):
+class AdminFormsTests(PatchRequestMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = mommy.make_recipe(
+    def setUp(self):
+        super(AdminFormsTests, self).setUp()
+        self.user = mommy.make_recipe(
             'booking.user', first_name="c", last_name='b', username='a'
         )
-        cls.user1 =  mommy.make_recipe(
+        self.user1 =  mommy.make_recipe(
            'booking.user', first_name="a", last_name='b', username='c'
         )
-        cls.user2=  mommy.make_recipe(
+        self.user2=  mommy.make_recipe(
            'booking.user', first_name="b", last_name='a', username='b'
         )
 

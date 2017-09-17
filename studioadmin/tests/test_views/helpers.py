@@ -1,7 +1,6 @@
-from model_mommy import mommy
+from unittest.mock import patch
 
 from django.test import RequestFactory
-from django.test.client import Client
 from django.contrib.auth.models import Permission, Group, User
 
 from booking.tests.helpers import set_up_fb
@@ -30,3 +29,8 @@ class TestPermissionMixin(object):
         group.permissions.add(perm)
         self.instructor_user.groups.add(group)
 
+        self.patcher = patch('requests.request')
+        self.mock_request = self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()

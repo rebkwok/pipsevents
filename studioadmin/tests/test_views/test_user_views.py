@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
@@ -7,7 +9,7 @@ from django.contrib.auth.models import Group, User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.tests.helpers import _create_session
+from booking.tests.helpers import _create_session, assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import UserListView
 from studioadmin.views.users import NAME_FILTERS
@@ -499,27 +501,31 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
     def test_change_mailing_list(self):
         subscribed_user = mommy.make_recipe('booking.user')
-        unscubscribed_user = mommy.make_recipe('booking.user')
+        unsubscribed_user = mommy.make_recipe('booking.user')
         subscribed = mommy.make(Group, name='subscribed')
         subscribed.user_set.add(subscribed_user)
 
         self.assertIn(subscribed, subscribed_user.groups.all())
         self.client.login(username=self.staff_user.username, password='test')
+        # unsubscribing user
         self.client.get(
             reverse('studioadmin:toggle_subscribed', args=[subscribed_user.id])
         )
+        assert_mailchimp_post_data(self.mock_request, subscribed_user, 'unsubscribed')
 
         subscribed_user.refresh_from_db()
         self.assertNotIn(subscribed, subscribed_user.groups.all())
 
-        self.assertNotIn(subscribed, unscubscribed_user.groups.all())
+        self.mock_request.reset_mock()
+        self.assertNotIn(subscribed, unsubscribed_user.groups.all())
         self.client.get(
             reverse(
-                'studioadmin:toggle_subscribed', args=[unscubscribed_user.id]
+                'studioadmin:toggle_subscribed', args=[unsubscribed_user.id]
             )
         )
-        unscubscribed_user.refresh_from_db()
-        self.assertIn(subscribed, unscubscribed_user.groups.all())
+        unsubscribed_user.refresh_from_db()
+        self.assertIn(subscribed, unsubscribed_user.groups.all())
+        assert_mailchimp_post_data(self.mock_request, unsubscribed_user, 'subscribed')
 
     def test_instructor_cannot_change_mailing_list(self):
         subscribed_user = mommy.make_recipe('booking.user')

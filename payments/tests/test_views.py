@@ -4,10 +4,10 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 
 from paypal.standard.ipn.models import PayPalIPN
-from booking.tests.helpers import set_up_fb
+from booking.tests.helpers import PatchRequestMixin, set_up_fb
 
 
-class TestViews(TestCase):
+class TestViews(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):

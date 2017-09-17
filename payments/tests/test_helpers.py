@@ -4,12 +4,13 @@ from model_mommy import mommy
 from django.test import TestCase, Client
 from django.utils import timezone
 
+from booking.tests.helpers import PatchRequestMixin
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
 
 
-class TestHelpers(TestCase):
+class TestHelpers(PatchRequestMixin, TestCase):
 
     def test_create_booking_transaction(self):
         user = mommy.make_recipe('booking.user', username="testuser")

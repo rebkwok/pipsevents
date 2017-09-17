@@ -10,12 +10,13 @@ django-environ==0.4.3
 django-extensions==1.7.8
 django-migration-testcase==0.0.11
 django-paypal==0.3.6
+djangorestframework==3.6.4
 django-suit==0.2.25
 dj-static==0.0.6
 psycopg2==2.7.1
 python-dateutil==2.6.0
 PyYAML==3.12
-mailchimp3==2.0.15
+mailchimp3==2.0.17
 model-mommy==1.2.6
 mock==2.0.0
 django-ckeditor==5.2.2

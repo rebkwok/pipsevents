@@ -7,10 +7,10 @@ from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, Client, override_settings
-from django.utils import timezone
 
 from booking.models import Booking, BlockVoucher, EventVoucher, \
     UsedBlockVoucher, UsedEventVoucher
+from booking.tests.helpers import PatchRequestMixin
 
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
@@ -65,7 +65,7 @@ IPN_POST_PARAMS = {
 
 
 @override_settings(DEFAULT_PAYPAL_EMAIL=TEST_RECEIVER_EMAIL)
-class PaypalSignalsTests(TestCase):
+class PaypalSignalsTests(PatchRequestMixin, TestCase):
 
     def paypal_post(self, params):
         """

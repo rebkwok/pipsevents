@@ -39,10 +39,13 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             mommy.make_recipe('booking.future_PC',  name="Scnd Event"),
             mommy.make_recipe('booking.future_RH',  name="Third Event")
         ]
+
+    def setUp(self):
+        super(BookingListViewTests, self).setUp()
         [mommy.make_recipe(
-            'booking.booking', user=cls.user,
-            event=event) for event in cls.events]
-        mommy.make_recipe('booking.past_booking', user=cls.user)
+            'booking.booking', user=self.user,
+            event=event) for event in self.events]
+        mommy.make_recipe('booking.past_booking', user=self.user)
 
     def _get_response(self, user):
         url = reverse('booking:bookings')
@@ -286,12 +289,15 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(BookingHistoryListViewTests, cls).setUpTestData()
-        event = mommy.make_recipe('booking.future_EV')
-        cls.booking = mommy.make_recipe(
-            'booking.booking', user=cls.user, event=event
+        cls.event = mommy.make_recipe('booking.future_EV')
+
+    def setUp(self):
+        super(BookingHistoryListViewTests, self).setUp()
+        self.booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=self.event
         )
-        cls.past_booking = mommy.make_recipe(
-            'booking.past_booking', user=cls.user
+        self.past_booking = mommy.make_recipe(
+            'booking.past_booking', user=self.user
         )
 
     def _get_response(self, user):
@@ -347,7 +353,10 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
-        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
+
+    def setUp(self):
+        super(BookingCreateViewTests, self).setUp()
+        self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _post_response(self, user, event, form_data={}):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
@@ -2539,7 +2548,10 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
-        cls.user_no_disclaimer = mommy.make_recipe('booking.user')
+
+    def setUp(self):
+        super(BookingUpdateViewTests, self).setUp()
+        self.user_no_disclaimer = mommy.make_recipe('booking.user')
 
     def _get_response(self, user, booking):
         url = reverse('booking:update_booking', args=[booking.id])

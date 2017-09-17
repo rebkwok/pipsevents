@@ -66,6 +66,7 @@ INSTALLED_APPS = (
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
+    'rest_framework',
     'django_extensions',
     'crispy_forms',
     'debug_toolbar',
@@ -489,8 +490,19 @@ AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 8000
 
 # MAILCHIMP
-MAILCHIMP_USER = env('MAILCHIMP_USER')
-MAILCHIMP_SECRET = env('MAILCHIMP_SECRET')
+if TESTING:
+    MAILCHIMP_USER = 'mailchimp'
+    MAILCHIMP_SECRET = 'mailchimp_secret'
+    MAILCHIMP_LIST_ID = 'mailchimplistdummyid'
+else:
+    MAILCHIMP_USER = env('MAILCHIMP_USER')
+    MAILCHIMP_SECRET = env('MAILCHIMP_SECRET')
+    MAILCHIMP_LIST_ID = env('MAILCHIMP_LIST_ID')
 
-if MAILCHIMP_USER is None or MAILCHIMP_SECRET is None:  # pragma: no cover
-    print("You must set the MAILCHIMP_USER and MAILCHIMP_SECRET")
+
+if MAILCHIMP_USER is None or MAILCHIMP_SECRET is None \
+        or MAILCHIMP_LIST_ID is None:  # pragma: no cover
+    print(
+        "You must set the MAILCHIMP_USER, MAILCHIMP_SECRET and "
+        "MAILCHIMP_LIST_ID"
+    )

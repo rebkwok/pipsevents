@@ -20,6 +20,7 @@ from django_extensions.db.fields import AutoSlugField
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
+from accounts.views import update_mailchimp
 from activitylog.models import ActivityLog
 
 
@@ -559,6 +560,13 @@ def add_to_mailing_list(sender, instance, **kwargs):
                         instance.user.last_name,
                         instance.user.username
                     )
+            )
+            update_mailchimp(instance.user, 'subscribe')
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                    instance.user.first_name, instance.user.last_name,
+                    instance.user.username
+                )
             )
 
 

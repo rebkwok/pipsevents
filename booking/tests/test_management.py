@@ -18,6 +18,7 @@ from allauth.socialaccount.models import SocialApp
 from activitylog.models import ActivityLog
 from booking.models import Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
+from booking.tests.helpers import PatchRequestMixin
 from common.utils import _add_user_email_addresses
 from payments.models import PaypalBookingTransaction
 
@@ -2053,7 +2054,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         )
 
 
-class BlockBookingsReportTests(TestCase):
+class BlockBookingsReportTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         """
@@ -2063,6 +2064,7 @@ class BlockBookingsReportTests(TestCase):
         Report unpaid/paid/paid with paypal
         Ignore free
         """
+        super(BlockBookingsReportTests, self).setUp()
         self.user1 = mommy.make_recipe('booking.user')
         self.user2 = mommy.make_recipe('booking.user')
 
@@ -2116,6 +2118,7 @@ class BlockBookingsReportTests(TestCase):
     def tearDown(self):
         self.output.close()
         sys.stdout = self.saved_stdout
+        super(BlockBookingsReportTests, self).tearDown()
 
     def test_block_booking_report(self):
         management.call_command('block_bookings_report')
@@ -2552,7 +2555,7 @@ class ActivateSaleTests(TestCase):
         )
 
 
-class CreateFreeMonthlyBlocksTests(TestCase):
+class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -2699,9 +2702,9 @@ class CreateFreeMonthlyBlocksTests(TestCase):
         self.assertFalse(Block.objects.exists())
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
-        user1 = mommy.make(User, first_name='Test', last_name='User1')
-        user2 = mommy.make(User, first_name='Test', last_name='User2')
-        user3 = mommy.make(User, first_name='Test', last_name='User3')
+        user1 = mommy.make_recipe('booking.user', first_name='Test', last_name='User1')
+        user2 = mommy.make_recipe('booking.user', first_name='Test', last_name='User2')
+        user3 = mommy.make_recipe('booking.user', first_name='Test', last_name='User3')
         user1.groups.add(group5)
         user2.groups.add(group7)
         user3.groups.add(group7)
