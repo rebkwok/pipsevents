@@ -9,14 +9,14 @@ from django.core import mail
 from django.core import management
 from django.core.urlresolvers import reverse
 from django.http.response import Http404
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.views import TicketedEventListView, TicketCreateView, \
     TicketBookingListView, TicketBookingHistoryListView, TicketBookingView, \
     TicketBookingCancelView
-from booking.tests.helpers import _create_session, format_content, \
+from common.tests.helpers import _create_session, format_content, \
     TestSetupMixin
 
 

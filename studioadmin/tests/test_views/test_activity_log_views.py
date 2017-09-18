@@ -7,7 +7,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from activitylog.models import ActivityLog
-from booking.tests.helpers import _create_session
+from common.tests.helpers import _create_session
 from studioadmin.views import ActivityLogListView
 
 from studioadmin.tests.test_views.helpers import TestPermissionMixin

@@ -18,8 +18,7 @@ from allauth.socialaccount.models import SocialApp
 from activitylog.models import ActivityLog
 from booking.models import Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
-from booking.tests.helpers import PatchRequestMixin
-from common.utils import _add_user_email_addresses
+from common.tests.helpers import _add_user_email_addresses, PatchRequestMixin
 from payments.models import PaypalBookingTransaction
 
 

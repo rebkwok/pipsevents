@@ -3,14 +3,14 @@ from model_mommy import mommy
 
 from django.contrib.auth.models import Group
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 from django.utils import timezone
 
 from activitylog.models import ActivityLog
 
 from booking.models import Ticket, TicketBooking
 from booking.views import EventDetailView
-from booking.tests.helpers import TestSetupMixin, format_content
+from common.tests.helpers import TestSetupMixin, format_content
 
 
 class BookingtagTests(TestSetupMixin, TestCase):

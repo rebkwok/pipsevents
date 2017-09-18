@@ -1,12 +1,10 @@
-from unittest.mock import patch
-
 from model_mommy import mommy
 
 from django.contrib.auth.models import Group, User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from booking.tests.helpers import assert_mailchimp_post_data
+from common.tests.helpers import assert_mailchimp_post_data
 
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 

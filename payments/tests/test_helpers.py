@@ -1,10 +1,10 @@
 from datetime import datetime
 from model_mommy import mommy
 
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.utils import timezone
 
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction

@@ -11,7 +11,7 @@ from django.utils import timezone
 import booking.admin as admin
 from booking.models import Event, Booking, Block, BlockType, TicketBooking, \
     Ticket, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
-from booking.tests.helpers import format_content, PatchRequestMixin
+from common.tests.helpers import format_content, PatchRequestMixin
 
 
 class EventAdminTests(TestCase):

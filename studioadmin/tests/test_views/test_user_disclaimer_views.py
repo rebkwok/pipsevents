@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 
 from accounts.models import OnlineDisclaimer
-from booking.tests.helpers import _create_session, format_content
+from common.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
     user_disclaimer,

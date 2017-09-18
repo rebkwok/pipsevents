@@ -3,7 +3,7 @@
 from model_mommy import mommy
 
 from django.test import TestCase
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 from studioadmin.forms import ConfirmPaymentForm, StatusFilter
 
 

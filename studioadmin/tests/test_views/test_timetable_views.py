@@ -9,7 +9,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Event
-from booking.tests.helpers import _create_session, format_content
+from common.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     timetable_admin_list,
     TimetableSessionUpdateView,

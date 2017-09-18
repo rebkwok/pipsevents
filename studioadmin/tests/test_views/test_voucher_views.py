@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
-from booking.tests.helpers import format_content
+from common.tests.helpers import format_content
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 

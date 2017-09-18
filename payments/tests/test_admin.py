@@ -9,7 +9,7 @@ from django.test import TestCase
 from paypal.standard.ipn.models import PayPalIPN
 
 from booking.models import Ticket, TicketBooking, TicketedEvent
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 
 from payments import helpers
 from payments import admin

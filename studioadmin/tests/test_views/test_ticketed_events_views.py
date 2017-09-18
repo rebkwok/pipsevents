@@ -13,8 +13,9 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
-from booking.tests.helpers import _create_session, format_content
-from common.utils import _add_user_email_addresses
+from common.tests.helpers import (
+    _add_user_email_addresses, _create_session, format_content
+)
 
 from studioadmin.views import (
     ConfirmTicketBookingRefundView,

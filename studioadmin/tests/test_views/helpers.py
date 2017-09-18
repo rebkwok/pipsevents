@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import RequestFactory
 from django.contrib.auth.models import Permission, Group, User
 
-from booking.tests.helpers import set_up_fb
+from common.tests.helpers import set_up_fb
 
 
 class TestPermissionMixin(object):

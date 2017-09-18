@@ -7,7 +7,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Block
-from booking.tests.helpers import _create_session, format_content
+from common.tests.helpers import _create_session, format_content
 from studioadmin.views import user_blocks_view
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
