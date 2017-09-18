@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
 from model_mommy import mommy
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.test import Client, TestCase, RequestFactory
+from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -14,7 +13,7 @@ from accounts.models import OnlineDisclaimer
 from booking.forms import BlockCreateForm
 from booking.models import Block, BlockVoucher, UsedBlockVoucher
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
-from booking.tests.helpers import _create_session, format_content, \
+from common.tests.helpers import _create_session, format_content, \
     setup_view, TestSetupMixin
 
 

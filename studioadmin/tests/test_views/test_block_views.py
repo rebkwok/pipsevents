@@ -7,7 +7,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Block
-from booking.tests.helpers import _create_session
+from common.tests.helpers import _create_session
 from studioadmin.views import BlockListView
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -125,7 +125,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, form_data={'block_status': 'all'}
         )
-        self.assertEqual(
+        self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.all().order_by('user__first_name'))
         )
@@ -134,7 +134,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             self.staff_user, form_data={'block_status': 'active'}
         )
         active = active_blocks + transferred_blocks1 + transferred_blocks2
-        self.assertEqual(
+        self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(
                 Block.objects.filter(
@@ -148,7 +148,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, form_data={'block_status': 'unpaid'}
         )
-        self.assertEqual(
+        self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(
                 Block.objects.filter(
@@ -161,7 +161,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, form_data={'block_status': 'current'}
         )
-        self.assertEqual(
+        self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.filter(
                 id__in=[block.id for block in current_blocks]
@@ -174,7 +174,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             self.staff_user, form_data={'block_status': 'expired'}
         )
         expired = expired_blocks + unpaid_expired_blocks + full_blocks
-        self.assertEqual(
+        self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(
                 Block.objects.filter(
@@ -188,7 +188,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             self.staff_user, form_data={'block_status': 'transfers'}
         )
         transfers = transferred_blocks1 + transferred_blocks2
-        self.assertEqual(
+        self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(
                 Block.objects.filter(

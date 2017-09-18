@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from model_mommy import mommy
 
 from django.core.urlresolvers import reverse
@@ -9,7 +7,7 @@ from django.contrib.auth.models import Group, User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.tests.helpers import _create_session, assert_mailchimp_post_data
+from common.tests.helpers import _create_session, assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import UserListView
 from studioadmin.views.users import NAME_FILTERS

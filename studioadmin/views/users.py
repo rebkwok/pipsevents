@@ -19,10 +19,11 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 
 from accounts.models import PrintDisclaimer
-from accounts.views import update_mailchimp
 
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
+
+from common.mailchimp_utils import update_mailchimp
 
 from studioadmin.forms import AddBookingForm, EditPastBookingForm, \
     EditBookingForm, UserBookingFormSet,  \

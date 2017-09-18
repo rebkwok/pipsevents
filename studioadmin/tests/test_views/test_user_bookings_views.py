@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from booking.models import Booking, Block, BlockType, EventType, \
     WaitingListUser
-from booking.tests.helpers import _create_session, format_content
+from common.tests.helpers import _create_session, format_content
 from payments.helpers import create_booking_paypal_transaction
 from studioadmin.views import user_bookings_view_old, user_modal_bookings_view
 from studioadmin.tests.test_views.helpers import TestPermissionMixin

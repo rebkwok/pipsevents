@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import Event, BlockType
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 from studioadmin.forms import AddBookingForm, ChooseUsersFormSet, \
     EditBookingForm, EditPastBookingForm, \
     EmailUsersForm, UserFilterForm, UserBookingFormSet, UserBlockFormSet

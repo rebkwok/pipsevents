@@ -2,7 +2,7 @@ from model_mommy import mommy
 from django.test import TestCase
 
 from booking.context_helpers import get_paypal_dict
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 from payments import helpers
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 

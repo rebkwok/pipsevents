@@ -1,18 +1,18 @@
 from model_mommy import mommy
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import patch
 
 
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 from django.utils import timezone
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
+from accounts.models import PrintDisclaimer
 
-from booking.models import Event, Booking, Block
+from booking.models import Booking
 from booking.views import EventDetailView, BlockListView
-from booking.tests.helpers import _create_session, format_content, \
+from common.tests.helpers import _create_session, format_content, \
     TestSetupMixin
 
 

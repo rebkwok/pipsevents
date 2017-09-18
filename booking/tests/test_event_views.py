@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory, override_settings
+from django.test import TestCase
 from django.contrib.auth.models import Permission
 from django.utils import timezone
 
@@ -15,7 +15,7 @@ from accounts.models import PrintDisclaimer, OnlineDisclaimer
 
 from booking.models import Event, Booking
 from booking.views import EventListView, EventDetailView
-from booking.tests.helpers import TestSetupMixin, format_content
+from common.tests.helpers import TestSetupMixin, format_content
 
 
 class EventListViewTests(TestSetupMixin, TestCase):

@@ -7,7 +7,6 @@ https://docs.djangoproject.com/en/1.7/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
-import dj_database_url
 import environ
 import os
 import sys
@@ -490,18 +489,16 @@ AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 8000
 
 # MAILCHIMP
+MAILCHIMP_USER = env('MAILCHIMP_USER', default='')
+MAILCHIMP_SECRET = env('MAILCHIMP_SECRET', default='')
+MAILCHIMP_LIST_ID = env('MAILCHIMP_LIST_ID', default='')
 if TESTING or env('TRAVIS'):
     MAILCHIMP_USER = 'mailchimp'
     MAILCHIMP_SECRET = 'mailchimp_secret'
     MAILCHIMP_LIST_ID = 'mailchimplistdummyid'
-else:
-    MAILCHIMP_USER = env('MAILCHIMP_USER')
-    MAILCHIMP_SECRET = env('MAILCHIMP_SECRET')
-    MAILCHIMP_LIST_ID = env('MAILCHIMP_LIST_ID')
 
 
-if MAILCHIMP_USER is None or MAILCHIMP_SECRET is None \
-        or MAILCHIMP_LIST_ID is None:  # pragma: no cover
+if not (MAILCHIMP_USER and MAILCHIMP_SECRET and MAILCHIMP_LIST_ID):  # pragma: no cover
     print(
         "You must set the MAILCHIMP_USER, MAILCHIMP_SECRET and "
         "MAILCHIMP_LIST_ID"

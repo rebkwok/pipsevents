@@ -1,7 +1,6 @@
 from unittest.mock import patch
 from model_mommy import mommy
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.test import TestCase
@@ -10,9 +9,8 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 
 from activitylog.models import ActivityLog
 from booking.models import Booking
-from booking.tests.helpers import _create_session
+from common.tests.helpers import _create_session
 from studioadmin.views import (
-    choose_users_to_email,
     email_users_view,
 )
 from studioadmin.views.helpers import url_with_querystring

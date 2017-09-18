@@ -20,8 +20,8 @@ from django_extensions.db.fields import AutoSlugField
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
-from accounts.views import update_mailchimp
 from activitylog.models import ActivityLog
+from common.mailchimp_utils import update_mailchimp
 
 
 logger = logging.getLogger(__name__)

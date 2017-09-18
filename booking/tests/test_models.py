@@ -11,8 +11,8 @@ from model_mommy import mommy
 
 from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
-    EventVoucher, UsedBlockVoucher, UsedEventVoucher
-from booking.tests.helpers import PatchRequestMixin
+    EventVoucher
+from common.tests.helpers import PatchRequestMixin
 
 now = timezone.now()
 

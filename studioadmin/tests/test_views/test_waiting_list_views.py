@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 
-from booking.tests.helpers import _create_session
+from common.tests.helpers import _create_session
 from studioadmin.views import (
     event_waiting_list_view,
 )

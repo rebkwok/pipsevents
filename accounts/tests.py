@@ -26,7 +26,7 @@ from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
 
 from booking.models import Booking
-from booking.tests.helpers import _create_session, TestSetupMixin, \
+from common.tests.helpers import _create_session, TestSetupMixin, \
     PatchRequestMixin
 
 

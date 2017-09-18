@@ -6,11 +6,11 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, override_settings
 
 from booking.models import Booking, BlockVoucher, EventVoucher, \
     UsedBlockVoucher, UsedEventVoucher
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \

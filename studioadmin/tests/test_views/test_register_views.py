@@ -11,8 +11,8 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.models import Event, Booking, Block, BlockType
-from booking.tests.helpers import _create_session, format_content
+from booking.models import Event, Booking, BlockType
+from common.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     EventRegisterListView,
     register_view,

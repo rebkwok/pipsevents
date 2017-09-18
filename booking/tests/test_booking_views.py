@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from model_mommy import mommy
 
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 from django.contrib.auth.models import Permission, User
@@ -14,13 +14,13 @@ from django.contrib.auth.models import Permission, User
 from activitylog.models import ActivityLog
 from accounts.models import OnlineDisclaimer
 
-from booking.models import Block, BlockType, Event, EventType, Booking, \
+from booking.models import BlockType, Event, EventType, Booking, \
     Block, EventVoucher,UsedEventVoucher,  WaitingListUser
 from booking.views import BookingListView, BookingHistoryListView, \
     BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
-from booking.tests.helpers import _create_session, TestSetupMixin, \
+from common.tests.helpers import _create_session, TestSetupMixin, \
     format_content
 
 from payments.helpers import create_booking_paypal_transaction

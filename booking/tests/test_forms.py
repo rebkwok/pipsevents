@@ -5,7 +5,7 @@ from booking.forms import BookingCreateForm, BlockCreateForm, \
     TicketPurchaseForm, BlockAdminForm, BookingAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.models import Block, TicketBooking, Ticket
-from booking.tests.helpers import PatchRequestMixin
+from common.tests.helpers import PatchRequestMixin
 
 class BookingCreateFormTests(PatchRequestMixin, TestCase):
 
