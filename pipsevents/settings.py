@@ -490,7 +490,7 @@ AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 8000
 
 # MAILCHIMP
-if TESTING:
+if TESTING or env('TRAVIS'):
     MAILCHIMP_USER = 'mailchimp'
     MAILCHIMP_SECRET = 'mailchimp_secret'
     MAILCHIMP_LIST_ID = 'mailchimplistdummyid'
