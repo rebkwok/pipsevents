@@ -216,7 +216,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
 
     def test_transferred_from_display_with_valid_booking(self):
 
-        booking = mommy.make('booking.booking', status='CANCELLED')
+        booking = mommy.make_recipe('booking.booking', status='CANCELLED')
 
         mommy.make_recipe(
             'booking.block', paid=True,
