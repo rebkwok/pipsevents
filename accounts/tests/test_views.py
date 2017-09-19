@@ -1,6 +1,8 @@
+import logging
 from model_mommy import mommy
 from requests.auth import HTTPBasicAuth
-from unittest.mock import call
+from requests.exceptions import HTTPError
+from unittest.mock import call, Mock
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
@@ -27,34 +29,29 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(ProfileUpdateViewTests, self).setUp()
-        self.user = mommy.make_recipe('booking.user', username="test_user",
-                          first_name="Test",
-                          last_name="User",
-                          )
+        self.user.first_name="Test"
+        self.user.last_name="User"
+        self.user.save()
 
     def test_updating_user_data(self):
         """
         Test custom view to allow users to update their details
         """
-        request = self.factory.post(
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(
             self.url, {'username': self.user.username,
                   'first_name': 'Fred', 'last_name': self.user.last_name}
         )
-        request.user = self.user
-        view = ProfileUpdateView.as_view()
-        view(request)
         self.user.refresh_from_db()
         self.assertEquals(self.user.first_name, "Fred")
 
 
     def test_updates_mailchimp_with_first_name(self):
-        request = self.factory.post(
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(
             self.url, {'username': self.user.username,
                   'first_name': 'Fred', 'last_name': self.user.last_name}
         )
-        request.user = self.user
-        view = ProfileUpdateView.as_view()
-        view(request)
         self.user.refresh_from_db()
         self.assertFalse(self.user.subscribed())
         assert_mailchimp_post_data(
@@ -62,20 +59,19 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_updates_mailchimp_with_last_name(self):
-        request = self.factory.post(
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(
             self.url, {'username': self.user.username,
                   'first_name': self.user.first_name, 'last_name': 'New'}
         )
-        request.user = self.user
-        view = ProfileUpdateView.as_view()
-        view(request)
         self.user.refresh_from_db()
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'unsubscribed'
         )
 
     def test_mailchimp_updated_with_existing_subscription_status(self):
-        request = self.factory.post(
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(
             self.url,
             {
                 'username': self.user.username,
@@ -83,9 +79,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                 'last_name': self.user.last_name
             }
         )
-        request.user = self.user
-        view = ProfileUpdateView.as_view()
-        view(request)
+
         self.user.refresh_from_db()
         self.assertFalse(self.user.subscribed())
         assert_mailchimp_post_data(
@@ -111,7 +105,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_username_changes_do_not_update_mailchimp(self):
-        request = self.factory.post(
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(
             self.url,
             {
                 'username': 'foo',
@@ -119,13 +114,59 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                 'last_name': self.user.last_name
             }
         )
-        request.user = self.user
-        view = ProfileUpdateView.as_view()
-        view(request)
         self.user.refresh_from_db()
 
         self.assertEqual(self.user.username, 'foo')
         self.assertEqual(self.mock_request.call_count, 0)
+
+    @override_settings(MAILCHIMP_LIST_ID='fake')
+    def test_invalid_mailchimp_list_id(self):
+        self.mock_request.side_effect = HTTPError(
+            Mock(return_value={'status': 404}), 'not found'
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        with self.assertLogs(level='ERROR') as cm:
+            resp = self.client.post(self.url,
+            {
+                'username': self.user.username,
+                'first_name': 'Foo',
+                'last_name': self.user.last_name
+            })
+
+        self.assertEqual(len(cm.output), 1)
+        self.assertIn('Error updating mailchimp', cm.output[0])
+        # post succeeds, even though calls to mailchimp raise 404
+        self.assertEqual(resp.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, 'Foo')
+
+        # called with the invalid id
+        self.mock_request.assert_called_with(
+            timeout=None,
+            hooks={'response': []},
+            method='POST',
+            url='https://{}.api.mailchimp.com/3.0/lists/fake'.format(
+                settings.MAILCHIMP_SECRET
+            ),
+            auth=HTTPBasicAuth(
+                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
+            ),
+            json={
+                'update_existing': True,
+                'members': [
+                    {
+                        'email_address': self.user.email,
+                        'status': 'unsubscribed',
+                        'status_if_new': 'unsubscribed',
+                        'merge_fields': {
+                            'FNAME': self.user.first_name,
+                            'LNAME': self.user.last_name
+                        }
+                    }
+                ]
+            }
+        )
 
 
 class CustomEmailViewTests(TestSetupMixin, TestCase):
@@ -321,6 +362,58 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             EmailAddress.objects.filter(user=self.user).count(), 1
         )
         self.assertEqual(self.mock_request.call_count, 0)
+
+    @override_settings(MAILCHIMP_LIST_ID='fake')
+    def test_invalid_mailchimp_list_id(self):
+        self.mock_request.side_effect = HTTPError(
+            Mock(return_value={'status': 404}), 'not found'
+        )
+        # create another email address for this user
+        EmailAddress.objects.create(
+            user=self.user, email='new@test.com', primary=False, verified=True
+        )
+        self.client.login(username=self.user.username, password='test')
+        self.assertFalse(self.user.subscribed())
+        data = {'email': 'new@test.com', 'action_primary': True}
+        with self.assertLogs(level='ERROR') as cm:
+            resp = self.client.post(self.url, data=data)
+        self.assertEqual(len(cm.output), 1)
+        self.assertIn('Error updating mailchimp', cm.output[0])
+        # post succeds, even though calls to mailchimp raise 404
+        self.assertEqual(resp.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, 'new@test.com')
+        # only attempted to call mailchimp once
+        self.assertEqual(self.mock_request.call_count, 1)
+
+        # called with the invalid id; only called to try to unsubscribe old
+        # email
+        self.mock_request.assert_called_with(
+            timeout=None,
+            hooks={'response': []},
+            method='POST',
+            url='https://{}.api.mailchimp.com/3.0/lists/fake'.format(
+                settings.MAILCHIMP_SECRET
+            ),
+            auth=HTTPBasicAuth(
+                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
+            ),
+            json={
+                'update_existing': True,
+                'members': [
+                    {
+                        'email_address': 'test@test.com',
+                        'status': 'unsubscribed',
+                        'status_if_new': 'unsubscribed',
+                        'merge_fields': {
+                            'FNAME': self.user.first_name,
+                            'LNAME': self.user.last_name
+                        }
+                    }
+                ]
+            }
+        )
+
 
 class ProfileTests(TestSetupMixin, TestCase):
 
