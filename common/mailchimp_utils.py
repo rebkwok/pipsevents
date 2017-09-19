@@ -1,6 +1,12 @@
+import logging
+
 from mailchimp3 import MailChimp
+from requests.exceptions import HTTPError
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
 
 def update_mailchimp(user, action, old_email=None):
     """
@@ -30,10 +36,14 @@ def update_mailchimp(user, action, old_email=None):
                  'LNAME': user.last_name
              }
         }
-        client.lists.update_members(
-            list_id=settings.MAILCHIMP_LIST_ID,
-            data={'members': [old_email_data],  'update_existing': True}
-        )
+        try:
+            client.lists.update_members(
+                list_id=settings.MAILCHIMP_LIST_ID,
+                data={'members': [old_email_data],  'update_existing': True}
+            )
+        except HTTPError as e:
+            logger.error('Error updating mailchimp: {}'.format(e))
+            return
 
     new_userdata = {
         'email_address': user.email,
@@ -44,7 +54,10 @@ def update_mailchimp(user, action, old_email=None):
              'LNAME': user.last_name
          }
     }
-    client.lists.update_members(
-        list_id=settings.MAILCHIMP_LIST_ID,
-        data={'members': [new_userdata],  'update_existing': True}
-    )
+    try:
+        client.lists.update_members(
+            list_id=settings.MAILCHIMP_LIST_ID,
+            data={'members': [new_userdata],  'update_existing': True}
+        )
+    except HTTPError as e:
+        logger.error('Error updating mailchimp: {}'.format(e))

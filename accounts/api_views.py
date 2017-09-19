@@ -1,5 +1,6 @@
 import time
 
+from django.conf import settings
 from django.contrib.auth.models import User, Group
 
 from allauth.account.models import EmailAddress
@@ -94,6 +95,13 @@ class MailingListAPIView(APIView):
         NOTE: for an email change, BOTH profile and email updates are sent
 
         """
+        list_id = request.data['data[list_id]']
+        if list_id != settings.MAILCHIMP_LIST_ID:
+            return Response(
+                'Unexpected List ID',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         action = request.data['type']
 
         if action == 'profile':
