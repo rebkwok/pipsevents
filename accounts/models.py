@@ -174,15 +174,17 @@ class OnlineDisclaimer(models.Model):
                 log="Online disclaimer created: {}".format(self.__str__())
             )
         super(OnlineDisclaimer, self).save()
-
         # cache disclaimer
         if self.is_active:
             cache.set(
-                active_disclaimer_cache_key(self.user), True, timeout=6000
+                active_online_disclaimer_cache_key(self.user), True, timeout=600
+            )
+            cache.set(
+                active_disclaimer_cache_key(self.user), True, timeout=600
             )
         else:
             cache.set(
-                expired_disclaimer_cache_key(self.user), True, timeout=6000
+                expired_disclaimer_cache_key(self.user), True, timeout=600
             )
 
     def delete(self, using=None, keep_parents=False):

@@ -23,7 +23,7 @@ def has_active_disclaimer(user):
 
         if not has_disclaimer:
             has_disclaimer = has_active_print_disclaimer(user)
-        cache.set(key, has_disclaimer, timeout=6000)
+        cache.set(key, has_disclaimer, timeout=600)
     else:
         has_disclaimer = bool(cache.get(key))
     return has_disclaimer
@@ -38,7 +38,7 @@ def has_active_online_disclaimer(user):
                 if od.is_active
             ]
         )
-        cache.set(key, has_disclaimer, timeout=6000)
+        cache.set(key, has_disclaimer, timeout=600)
     else:
         has_disclaimer = bool(cache.get(key))
     return has_disclaimer
@@ -50,9 +50,9 @@ def has_active_print_disclaimer(user):
         try:
             pd = user.print_disclaimer
             has_disclaimer = pd.is_active
-            cache.set(key, has_disclaimer, timeout=6000)
+            cache.set(key, has_disclaimer, timeout=600)
         except ObjectDoesNotExist:
-            cache.set(key, False, timeout=6000)
+            cache.set(key, False, timeout=600)
             has_disclaimer = False
     else:
         has_disclaimer = bool(cache.get(key))
@@ -71,7 +71,7 @@ def has_expired_disclaimer(user):
                 ]
             )
 
-            cache.set(key, has_disclaimer, timeout=6000)
+            cache.set(key, has_disclaimer, timeout=600)
     else:
         has_disclaimer = bool(cache.get(key))
     return has_disclaimer
