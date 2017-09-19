@@ -143,7 +143,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
         # called with the invalid id
         self.mock_request.assert_called_with(
-            timeout=None,
+            timeout=20,
             hooks={'response': []},
             method='POST',
             url='https://{}.api.mailchimp.com/3.0/lists/fake'.format(
@@ -202,7 +202,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
         # email added/updated with user's current status
         self.assertEqual(self.mock_request.call_count, 2)
         first_call = call(
-            timeout=None,
+            timeout=20,
             hooks={'response': []},
             method='POST',
             url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
@@ -227,7 +227,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             }
         )
         second_call = call(
-            timeout=None,
+            timeout=20,
             hooks={'response': []},
             method='POST',
             url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
@@ -275,7 +275,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
         # email added/updated with user's current status
         self.assertEqual(self.mock_request.call_count, 2)
         first_call = call(
-            timeout=None,
+            timeout=20,
             hooks={'response': []},
             method='POST',
             url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
@@ -300,7 +300,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             }
         )
         second_call = call(
-            timeout=None,
+            timeout=20,
             hooks={'response': []},
             method='POST',
             url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
@@ -389,7 +389,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
         # called with the invalid id; only called to try to unsubscribe old
         # email
         self.mock_request.assert_called_with(
-            timeout=None,
+            timeout=20,
             hooks={'response': []},
             method='POST',
             url='https://{}.api.mailchimp.com/3.0/lists/fake'.format(

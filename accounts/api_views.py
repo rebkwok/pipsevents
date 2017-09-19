@@ -32,9 +32,12 @@ class MailingListAPIView(APIView):
         self.group, _ = Group.objects.get_or_create(name='subscribed')
 
     def get(self, request, format=None):
-        list_users = self.group.user_set.all().order_by('first_name', 'last_name')
-        serializer = UserSerializer(list_users, many=True)
-        return Response(serializer.data)
+        if request.user.is_staff or request.user.is_superuser:
+            list_users = self.group.user_set.all().order_by('first_name', 'last_name')
+            serializer = UserSerializer(list_users, many=True)
+            return Response(serializer.data)
+        else:
+            return Response('Log in as admin user to see mailing list')
 
     def post(self, request, format=None):
         """
@@ -95,27 +98,36 @@ class MailingListAPIView(APIView):
         NOTE: for an email change, BOTH profile and email updates are sent
 
         """
-        list_id = request.data['data[list_id]']
+        secret = request.GET.get('mcsecret')
+        if secret != settings.MAILCHIMP_WEBHOOK_SECRET:
+            return Response(
+                'Invalid MAILCHIMP_WBHOOK_SECRET',
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        list_id = request.POST.get('data[list_id]')
         if list_id != settings.MAILCHIMP_LIST_ID:
             return Response(
                 'Unexpected List ID',
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_FORBIDDEN
             )
 
-        action = request.data['type']
+        action = request.POST['type']
 
         if action == 'profile':
-            email = request.data.get('data[email]')
+            email = request.POST.get('data[email]')
             # delay for 5 secs in case we have email update at the same time
             # If we update the email before the profile update is processed,
             # we won't be able to retrieve the user
             time.sleep(5)
         elif action == 'upemail':
-            email = request.data.get('data[old_email]')
+            email = request.POST.get('data[old_email]')
         else:
-            email = request.data.get('data[email]')
+            email = request.POST.get('data[email]')
 
-        logger.info('Mailchimp request: Email: {}, Action: {}'.format(email, action))
+        logger.info(
+            'Mailchimp request: Email: {}, Action: {}'.format(email, action)
+        )
 
         try:
             user = User.objects.get(email=email)
@@ -143,8 +155,8 @@ class MailingListAPIView(APIView):
             )
         elif action == 'profile':
             # update first and last name from Mailchimp
-            first_name = request.data['data[merges][FNAME]']
-            last_name = request.data['data[merges][LNAME]']
+            first_name = request.POST.get('data[merges][FNAME]')
+            last_name = request.POST.get('data[merges][LNAME]')
             changed = []
             if user.first_name != first_name:
                 user.first_name = first_name
@@ -163,7 +175,7 @@ class MailingListAPIView(APIView):
                 )
         elif action == 'upemail':
             # update email address for user
-            new_email = request.data.get('data[new_email]')
+            new_email = request.POST.get('data[new_email]')
 
             # check if an email address exists for this email
             try:

@@ -492,14 +492,18 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 8000
 MAILCHIMP_USER = env('MAILCHIMP_USER', default='')
 MAILCHIMP_SECRET = env('MAILCHIMP_SECRET', default='')
 MAILCHIMP_LIST_ID = env('MAILCHIMP_LIST_ID', default='')
+MAILCHIMP_WEBHOOK_SECRET = env('MAILCHIMP_WEBHOOK_SECRET', default='')
+
 if TESTING or env('TRAVIS'):
     MAILCHIMP_USER = 'mailchimp'
     MAILCHIMP_SECRET = 'mailchimp_secret'
     MAILCHIMP_LIST_ID = 'mailchimplistdummyid'
+    MAILCHIMP_WEBHOOK_SECRET = 'dummywebhooksecret'
 
 
-if not (MAILCHIMP_USER and MAILCHIMP_SECRET and MAILCHIMP_LIST_ID):  # pragma: no cover
+if not (MAILCHIMP_USER and MAILCHIMP_SECRET and MAILCHIMP_LIST_ID
+        and MAILCHIMP_WEBHOOK_SECRET):  # pragma: no cover
     print(
-        "You must set the MAILCHIMP_USER, MAILCHIMP_SECRET and "
-        "MAILCHIMP_LIST_ID"
+        "You must set the MAILCHIMP_USER, MAILCHIMP_SECRET, "
+        "MAILCHIMP_LIST_ID and MAILCHIMP_WEBHOOK_SECRET"
     )

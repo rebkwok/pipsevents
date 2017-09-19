@@ -1,21 +1,16 @@
 from model_mommy import mommy
-from requests.auth import HTTPBasicAuth
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.urlresolvers import reverse
 from django.test import TestCase, override_settings
 
 from allauth.account.models import EmailAddress
 
-from accounts.models import OnlineDisclaimer
-from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
 from activitylog.models import ActivityLog
 
-from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin
+from common.tests.helpers import TestSetupMixin
 
 
 class ApiViewTests(TestSetupMixin, TestCase):
@@ -27,7 +22,8 @@ class ApiViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(ApiViewTests, cls).setUpTestData()
-        cls.url = reverse('accounts_api:mailing_list_api')
+        cls.url = reverse('accounts_api:mailing_list_api') + '?mcsecret=' \
+                  + settings.MAILCHIMP_WEBHOOK_SECRET
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
 
     def get_data_dict(
@@ -92,7 +88,23 @@ class ApiViewTests(TestSetupMixin, TestCase):
         }
         return DATA_DICTS[action]
 
-    def test_get_mailing_list(self):
+    def test_get_mailing_list_not_logged_in(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(
+            resp.json(), 'Log in as admin user to see mailing list'
+        )
+
+    def test_get_mailing_list_non_staff_user(self):
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(
+            resp.json(), 'Log in as admin user to see mailing list'
+        )
+
+    def test_get_mailing_list_staff_user(self):
+        self.user.is_staff = True
+        self.user.save()
+        self.client.login(username=self.user.username, password='test')
         # No mailing list users
         resp = self.client.get(self.url)
         self.assertEqual(resp.json(), [])
@@ -111,6 +123,19 @@ class ApiViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(User.objects.count(), 2)
         # still just one mailing list user shown
+        resp = self.client.get(self.url)
+        self.assertEqual(
+            resp.json(),
+            [
+                {'email': 'test@test.com', 'first_name': '', 'last_name': ''}
+            ]
+        )
+
+    def test_get_mailing_list_superuser(self):
+        self.user.is_superuser = True
+        self.user.save()
+        self.client.login(username=self.user.username, password='test')
+        self.group.user_set.add(self.user)
         resp = self.client.get(self.url)
         self.assertEqual(
             resp.json(),
@@ -288,6 +313,14 @@ class ApiViewTests(TestSetupMixin, TestCase):
             first_name=self.user.first_name, last_name=self.user.last_name
         )
         resp = self.client.post(self.url, data=data)
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.status_code, 403)
 
+    def test_request_from_mailchimp_invalid_mcsecret(self):
+        data = self.get_data_dict(
+            'subscribe', email=self.user.email,
+            first_name=self.user.first_name, last_name=self.user.last_name
+        )
+        url = reverse('accounts_api:mailing_list_api') + '?mcsecret=foo'
+        resp = self.client.post(url, data=data)
+        self.assertEqual(resp.status_code, 403)
 
