@@ -15,7 +15,9 @@ def update_mailchimp(user, action, old_email=None):
     action: str - subscribe/unsubscribe/update_profile/update_email
     old_email: if updating an email, this is the old email address
     """
-    client = MailChimp(settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET)
+    client = MailChimp(
+        settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET, timeout=20
+    )
 
     status_mapping = {
         'subscribe': 'subscribed',

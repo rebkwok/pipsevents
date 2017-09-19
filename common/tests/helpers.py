@@ -86,7 +86,7 @@ def format_content(content):
 
 def assert_mailchimp_post_data(mock_request, user, mailing_list_status):
     mock_request.assert_called_with(
-        timeout=None,
+        timeout=20,
         hooks={'response': []},
         method='POST',
         url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
