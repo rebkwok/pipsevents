@@ -102,7 +102,9 @@ def assert_mailchimp_post_data(mock_request, user, mailing_list_status):
                     'email_address': user.email,
                     'status': mailing_list_status,
                     'status_if_new': mailing_list_status,
-                    'merge_fields': {'FNAME': user.first_name, 'LNAME': user.last_name}
+                    'merge_fields': {
+                        'FNAME': user.first_name, 'LNAME': user.last_name
+                    }
                 }
             ]
         }

@@ -1,6 +1,3 @@
-from requests import HTTPError
-
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.contrib import messages
@@ -80,8 +77,10 @@ class CustomEmailView(EmailView):
         old_email = request.user.email
         res = super(CustomEmailView, self).post(request, *args, **kwargs)
 
-        if res.status_code == 302 and res.url == self.success_url and \
-                request.POST.get("email") and "action_primary" in request.POST:
+        # update mailchimp only for a change in primary email, and only if
+        # the change succeeded
+        if request.POST.get("email") and "action_primary" in request.POST \
+                and request.user.email != old_email:
             update_mailchimp(request.user, 'update_email', old_email=old_email)
             ActivityLog.objects.create(
                 log='Primary email changed to {} for {} {} ({}); MailChimp list '

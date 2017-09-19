@@ -509,7 +509,9 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.client.get(
             reverse('studioadmin:toggle_subscribed', args=[subscribed_user.id])
         )
-        assert_mailchimp_post_data(self.mock_request, subscribed_user, 'unsubscribed')
+        assert_mailchimp_post_data(
+            self.mock_request, subscribed_user, 'unsubscribed'
+        )
 
         subscribed_user.refresh_from_db()
         self.assertNotIn(subscribed, subscribed_user.groups.all())
@@ -523,7 +525,9 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
         unsubscribed_user.refresh_from_db()
         self.assertIn(subscribed, unsubscribed_user.groups.all())
-        assert_mailchimp_post_data(self.mock_request, unsubscribed_user, 'subscribed')
+        assert_mailchimp_post_data(
+            self.mock_request, unsubscribed_user, 'subscribed'
+        )
 
     def test_instructor_cannot_change_mailing_list(self):
         subscribed_user = mommy.make_recipe('booking.user')

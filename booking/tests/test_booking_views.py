@@ -7,9 +7,9 @@ from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase
+from django.contrib.auth.models import Group, Permission, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
-from django.contrib.auth.models import Permission, User
 
 from activitylog.models import ActivityLog
 from accounts.models import OnlineDisclaimer
@@ -20,8 +20,8 @@ from booking.views import BookingListView, BookingHistoryListView, \
     BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
-from common.tests.helpers import _create_session, TestSetupMixin, \
-    format_content
+from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
+    TestSetupMixin, format_content
 
 from payments.helpers import create_booking_paypal_transaction
 
@@ -353,6 +353,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
+        cls.group, _ = Group.objects.get_or_create(name='subscribed')
 
     def setUp(self):
         super(BookingCreateViewTests, self).setUp()
@@ -1524,6 +1525,55 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    def test_added_to_mailing_list_on_first_pole_class_booking(self):
+        event = mommy.make_recipe('booking.future_PC')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+        self.assertFalse(self.user.subscribed())
+        self.assertFalse(Booking.objects.filter(user=self.user).exists())
+
+        self.client.post(url, {'event': event.id})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.subscribed())
+        assert_mailchimp_post_data(self.mock_request, self.user, 'subscribed')
+
+    def test_not_added_to_mailing_list_on_subsequent_pole_class_booking(self):
+        event = mommy.make_recipe('booking.future_PC')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+        self.assertFalse(self.user.subscribed())
+        self.assertFalse(Booking.objects.filter(user=self.user).exists())
+
+        # First booking subscribes
+        self.client.post(url, {'event': event.id})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.subscribed())
+        assert_mailchimp_post_data(self.mock_request, self.user, 'subscribed')
+
+        # Unsubscribe user
+        self.group.user_set.remove(self.user)
+        self.assertFalse(self.user.subscribed())
+
+        # Second booking
+        self.mock_request.reset_mock()
+        event1 = mommy.make_recipe('booking.future_PC')
+        url = reverse('booking:book_event', kwargs={'event_slug': event1.slug})
+        self.client.post(url, {'event': event1.id})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.subscribed())
+        self.assertEqual(self.mock_request.call_count, 0)
+
+    def test_not_added_to_mailing_list_on_event_booking(self):
+        event = mommy.make_recipe('booking.future_EV')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        self.client.login(username=self.user.username, password='test')
+        self.assertFalse(self.user.subscribed())
+        self.assertFalse(Booking.objects.filter(user=self.user).exists())
+
+        self.client.post(url, {'event': event.id})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.subscribed())
+        self.assertEqual(self.mock_request.call_count, 0)
 
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 

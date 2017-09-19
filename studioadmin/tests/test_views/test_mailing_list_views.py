@@ -75,6 +75,7 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         ml_user.refresh_from_db()
         self.assertNotIn(self.subscribed, ml_user.groups.all())
 
+        # Updates mailchimp subscription
         assert_mailchimp_post_data(self.mock_request, ml_user, 'unsubscribed')
 
     def test_export_mailing_list(self):
