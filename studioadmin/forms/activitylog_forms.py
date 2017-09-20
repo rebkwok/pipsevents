@@ -28,5 +28,6 @@ class ActivityLogSearchForm(forms.Form):
             'class': "regular-checkbox",
             'id': 'hide_empty_cronjobs_id'
         }),
-        initial='on'
+        initial='on',
+        required=False
     )
