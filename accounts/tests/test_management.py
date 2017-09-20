@@ -24,17 +24,22 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(DeleteExpiredDisclaimersTests, self).setUp()
-        self.user_online_only = mommy.make_recipe('booking.user')
+        self.user_online_only = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User')
         mommy.make(
             OnlineDisclaimer, user=self.user_online_only,
             date=timezone.now()-timedelta(370)
         )
-        self.user_print_only = mommy.make_recipe('booking.user')
+        self.user_print_only = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User1'
+        )
         mommy.make(
             PrintDisclaimer, user=self.user_print_only,
             date=timezone.now()-timedelta(370)
         )
-        self.user_both = mommy.make_recipe('booking.user')
+        self.user_both = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User2'
+        )
         mommy.make(
             OnlineDisclaimer, user=self.user_both,
             date=timezone.now()-timedelta(370)

@@ -48,31 +48,27 @@ class Command(BaseCommand):
                 if not recent_bookings:
                     expired_users.append(user)
 
-        old_print_disclaimers = PrintDisclaimer.objects.filter(
-            date__lt=expire_date
-        )
-        old_online_disclaimers = OnlineDisclaimer.objects.filter(
-            Q(date__lt=expire_date) &
-            (Q(date_updated__isnull=True) | Q(date_updated__lt=expire_date))
-        )
-        print_disclaimer_users_to_delete = old_print_disclaimers.filter(
-            user__in=expired_users
+        old_print_disclaimers_to_delete = PrintDisclaimer.objects\
+            .select_related('user').filter(
+            date__lt=expire_date, user__in=expired_users
         )
         print_disclaimer_users = [
             '{} {}'.format(disc.user.first_name, disc.user.last_name)
-            for disc in print_disclaimer_users_to_delete
+            for disc in old_print_disclaimers_to_delete
             ]
 
-        online_disclaimer_users_to_delete = old_online_disclaimers.filter(
-            user__in=expired_users
+        old_online_disclaimers_to_delete = OnlineDisclaimer.objects\
+            .select_related('user').filter(
+            Q(date__lt=expire_date) &
+            (Q(date_updated__isnull=True) | Q(date_updated__lt=expire_date)) &
+            Q(user__in=expired_users)
         )
         online_disclaimer_users = [
             '{} {}'.format(disc.user.first_name, disc.user.last_name)
-            for disc in online_disclaimer_users_to_delete
+            for disc in old_online_disclaimers_to_delete
             ]
-
-        print_disclaimer_users_to_delete.delete()
-        online_disclaimer_users_to_delete.delete()
+        old_print_disclaimers_to_delete.delete()
+        old_online_disclaimers_to_delete.delete()
 
         if print_disclaimer_users or online_disclaimer_users:
             # email studio
@@ -101,16 +97,18 @@ class Command(BaseCommand):
                     e, __name__, "Automatic disclaimer deletion - studio email"
                 )
 
-            ActivityLog.objects.create(
-                log='Print disclaimers deleted for expired users: {}'.format(
-                    ', '.format(print_disclaimer_users)
+            if print_disclaimer_users:
+                ActivityLog.objects.create(
+                    log='Print disclaimers deleted for expired users: {}'.format(
+                        ', '.join(print_disclaimer_users)
+                    )
                 )
-            )
-            ActivityLog.objects.create(
-                log='Online disclaimers deleted for expired users: {}'.format(
-                    ', '.format(online_disclaimer_users)
+            if online_disclaimer_users:
+                ActivityLog.objects.create(
+                    log='Online disclaimers deleted for expired users: {}'.format(
+                        ', '.join(online_disclaimer_users)
+                    )
                 )
-            )
         else:
             self.stdout.write('No disclaimers to delete')
             ActivityLog.objects.create(
