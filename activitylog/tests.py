@@ -85,7 +85,7 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
 
     def test_delete_all_empty_logs(self):
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
-        management.call_command('delete_empty_job_logs', before='now')
+        management.call_command('delete_empty_job_logs', 'now')
         # only the 3 non-empty logs remain
         self.assertEqual(ActivityLog.objects.count(), 3)
 
@@ -94,7 +94,7 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
 
         # now - 30 days: deletes only empty 60-day-ago logs
         before_date = (timezone.now() - timedelta(30)).strftime('%Y%m%d')
-        management.call_command('delete_empty_job_logs', before=before_date)
+        management.call_command('delete_empty_job_logs', before_date)
         # empty messages for 60 days ago deleted
         self.assertEqual(
             ActivityLog.objects.count(),
@@ -103,7 +103,7 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
 
         # now - 20 days: deletes only empty 60-day-ago logs
         before_date = (timezone.now() - timedelta(20)).strftime('%Y%m%d')
-        management.call_command('delete_empty_job_logs', before=before_date)
+        management.call_command('delete_empty_job_logs', before_date)
         # empty messages for 60 days ago deleted; assuming now is > 00:00,
         # messages created at now - 20 days will not be deleted
         self.assertEqual(
@@ -113,7 +113,7 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
 
         # now - 19 days: deletes only 20 and 60-day-ago logs
         before_date = (timezone.now() - timedelta(19)).strftime('%Y%m%d')
-        management.call_command('delete_empty_job_logs', before=before_date)
+        management.call_command('delete_empty_job_logs', before_date)
         self.assertEqual(
             ActivityLog.objects.count(),
             self.total_setup_logs - (self.total_empty_msg_count * 2)
@@ -122,7 +122,7 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
     def test_before_date_in_future(self):
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
         before_date = (timezone.now() + timedelta(1)).strftime('%Y%m%d')
-        management.call_command('delete_empty_job_logs', before=before_date)
+        management.call_command('delete_empty_job_logs', before_date)
 
         self.assertEqual(
             self.output.getvalue(),
@@ -135,13 +135,13 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
     def test_invalid_before_date(self):
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
 
-        management.call_command('delete_empty_job_logs', before='foo')
+        management.call_command('delete_empty_job_logs', 'foo')
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
 
-        management.call_command('delete_empty_job_logs', before='170901')
+        management.call_command('delete_empty_job_logs', '170901')
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
 
-        management.call_command('delete_empty_job_logs', before='01092017')
+        management.call_command('delete_empty_job_logs', '01092017')
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
 
         self.assertEqual(

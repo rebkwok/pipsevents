@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--before',
+            'before',
             help='Date in format YYYYMMDD before which empty logs will be '
                  'deleted. Logs dated prior to 00:00 UTC on the specified '
                  'date will be deleted.  Enter "now" to delete all empty job '
