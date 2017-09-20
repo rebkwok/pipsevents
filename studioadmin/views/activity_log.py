@@ -17,6 +17,14 @@ from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
+EMPTY_JOB_TEXT = [
+    'email_warnings job run; no unpaid booking warnings to send',
+    'cancel_unpaid_bookings job run; no bookings to cancel',
+    'deleted_unconfirmed_bookings job run; no bookings to cancel',
+    'email_ticket_booking_warnings job run; no unpaid booking warnings to send',
+    'cancel_unpaid_ticket_bookings job run; no bookings to cancel',
+    'Delete disclaimers job run; no expired users',
+]
 
 class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
@@ -27,15 +35,8 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
     def get_queryset(self):
 
-        empty_text = [
-            'email_warnings job run; no unpaid booking warnings to send',
-            'cancel_unpaid_bookings job run; no bookings to cancel',
-            'deleted_unconfirmed_bookings job run; no bookings to cancel',
-            'email_ticket_booking_warnings job run; no unpaid booking warnings to send',
-            'cancel_unpaid_ticket_bookings job run; no bookings to cancel'
-        ]
         queryset = ActivityLog.objects.exclude(
-            log__in=empty_text
+            log__in=EMPTY_JOB_TEXT
         ).order_by('-timestamp')
 
         reset = self.request.GET.get('reset')

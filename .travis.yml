@@ -28,7 +28,7 @@ before_script:
   - python manage.py migrate
 
 script:
-  - coverage run --source=pipsevents,booking,timetable,accounts,payments,studioadmin,common --omit=booking/management/commands/upload_data.py,../*migrations*,../*tests*,../*wsgi*,../*__init__* manage.py test
+  - coverage run --source=pipsevents,booking,timetable,accounts,payments,studioadmin,common,activitylog --omit=booking/management/commands/upload_data.py,../*migrations*,../*tests*,../*wsgi*,../*__init__* manage.py test
 
 after_success:
   coveralls
