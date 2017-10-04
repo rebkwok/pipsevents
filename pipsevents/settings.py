@@ -485,6 +485,8 @@ DEBUG_TOOLBAR_CONFIG = {
 
 AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 WATCHLIST = env('WATCHLIST', default=[])
+if isinstance(WATCHLIST, str):
+    WATCHLIST = WATCHLIST.split(',')
 
 # Increase this to deal with the bulk emails.  Currently just under 2000
 # users, posts 2 fields per user
