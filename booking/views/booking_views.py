@@ -423,9 +423,12 @@ class BookingCreateView(
             messages.error(self.request, "An error occured, please contact "
                 "the studio for information")
         # send email to studio if flagged for the event or if previously
-        # cancelled and direct paid
-        if (booking.event.email_studio_when_booked or
-                previously_cancelled_and_direct_paid):
+        # cancelled and direct paid OR for specific users being watched
+        if (
+            booking.event.email_studio_when_booked or
+            previously_cancelled_and_direct_paid or
+            booking.user.email in settings.WATCHLIST
+        ):
             additional_subject = ""
             if previously_cancelled_and_direct_paid:
                 additional_subject = "ACTION REQUIRED!"
