@@ -22,6 +22,7 @@ env = environ.Env(DEBUG=(bool, False),
                   HEROKU=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
+                  WACTHLIST=(list, []),
                   LOCAL=(bool, False)
                   )
 
@@ -483,6 +484,7 @@ DEBUG_TOOLBAR_CONFIG = {
 }
 
 AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
+WATCHLIST = env('WATCHLIST', default=[])
 
 # Increase this to deal with the bulk emails.  Currently just under 2000
 # users, posts 2 fields per user

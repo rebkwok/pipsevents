@@ -6,7 +6,7 @@ from model_mommy import mommy
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.test import override_settings, TestCase, RequestFactory
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
@@ -580,6 +580,27 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Booking.objects.all().count(), 1)
         # email to student and studio
         self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(WATCHLIST=['foo@test.com', 'bar@test.com'])
+    def test_create_booking_sends_email_to_studio_for_users_on_watchlist(self):
+        event = mommy.make_recipe(
+            'booking.future_EV', max_participants=3,
+            email_studio_when_booked=False
+        )
+        self._post_response(self.user, event)
+        self.assertEqual(Booking.objects.count(), 1)
+        # email to student only
+        self.assertEqual(len(mail.outbox), 1)
+
+        # create watched user and book
+        watched_user = User.objects.create(
+            username='foo', email='foo@test.com', password='test'
+        )
+        mommy.make(OnlineDisclaimer, user=watched_user)
+        self._post_response(watched_user, event)
+        self.assertEqual(Booking.objects.count(), 2)
+        # 2 addition emails in mailbox for this booking, to student and studio
+        self.assertEqual(len(mail.outbox), 3)
 
     @patch('booking.views.booking_views.send_mail')
     def test_create_booking_with_email_error(self, mock_send_emails):
@@ -1574,6 +1595,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.user.refresh_from_db()
         self.assertFalse(self.user.subscribed())
         self.assertEqual(self.mock_request.call_count, 0)
+
 
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
