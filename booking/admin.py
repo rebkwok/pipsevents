@@ -313,11 +313,10 @@ class BlockFilter(admin.SimpleListFilter):
 
 class BlockAdmin(admin.ModelAdmin):
     fields = ('user', 'block_type', 'parent', 'transferred_booking_id', 'formatted_cost', 'start_date',
-              'paid', 'formatted_expiry_date')
+              'paid', 'extended_expiry_date', 'formatted_expiry_date')
     readonly_fields = ('formatted_cost', 'formatted_expiry_date')
     list_display = ('get_user', 'block_type', 'block_size', 'active_block',
-                    'get_full', 'paid', 'formatted_start_date',
-                    'formatted_expiry_date')
+                    'get_full', 'paid', 'formatted_start_date', 'formatted_expiry_date')
     list_editable = ('paid', )
     list_filter = (UserFilter, 'block_type__event_type', BlockFilter,)
 

@@ -7,8 +7,10 @@
 
 {% if open_bookings %}
     {%if transfer_direct_paid %}
-        {% if open_direct_paid_bookings or open_free_block_bookings %}
-            <p>Transfer credits have been created for users who paid directly in full for their bookings (i.e. not with a block) or users who were manually assigned this as a free {{ event_type }}.</p>
+        {% if open_direct_paid_bookings or open_free_non_block_bookings or open_expired_block_bookings %}
+            <p>Transfer credits have been created for users who paid directly in full for their bookings
+                (i.e. not with a block), users who were manually assigned this as a free {{ event_type }}
+                and users who paid with a block that is now expired.</p>
         {% endif %}
         {% if  open_deposit_only_paid_bookings %}
             <p>Some booking may require manual refunds.  When the payment has been refunded or credited,
@@ -48,6 +50,9 @@
             {% endfor %}
             {% for booking in open_block_bookings %}
                 <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid by block) - no action required</li>
+            {% endfor %}
+            {% for booking in open_expired_block_bookings %}
+                <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid by expired block) - no action required</li>
             {% endfor %}
             {% for booking in open_free_block_bookings %}
                 <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (free class - block) - no action required</li>
