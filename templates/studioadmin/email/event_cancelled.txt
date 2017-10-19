@@ -2,5 +2,5 @@
 
 We regret to inform you that {{ event_type }} {{ event }} has been cancelled.
 
-Your booking has been cancelled{% if block_paid %} and your {% if free_block %}(free) {% endif %}block has been updated{% elif transfer_block_created %}.  A transfer block has been created as credit for your cancelled {{ event_type }}.  You can use this block to book another {{ event_type }} of the same type within the next month.{% elif direct_paid %} and we will be in touch shortly regarding your payment.{% endif %}</p>
+Your booking has been cancelled{% if block_paid %} and your {% if free_block %}(free) {% endif %}block has been updated{% if block_expires_soon %}. YOUR BLOCK EXPIRES ON {{ block_expiry_date|upper }}.  Book your replacement class before this date to ensure you use your credited block.{% endif %}{% elif transfer_block_created %}.  A transfer block has been created as credit for your cancelled {{ event_type }}.  You can use this block to book another {{ event_type }} of the same type within the next month.{% elif direct_paid %} and we will be in touch shortly regarding your payment.{% endif %}</p>
 View your bookings: {{ host }}{% url 'booking:bookings' %}

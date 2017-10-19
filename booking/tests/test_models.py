@@ -460,7 +460,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.small_block = mommy.make_recipe('booking.block_5')
         self.large_block = mommy.make_recipe('booking.block_10')
 
-    def test_block_not_expiry_date(self):
+    def test_block_expiry_date(self):
         """
         Test that block expiry dates are populated correctly
         """
@@ -470,6 +470,58 @@ class BlockTests(PatchRequestMixin, TestCase):
                          datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc))
         self.assertEqual(self.large_block.expiry_date,
                  datetime(2015, 5, 1, 23, 59, 59, tzinfo=timezone.utc))
+
+    def test_block_extended_expiry_date_set_to_end_of_day(self):
+        """
+        Test that extended expiry dates are set to end of day on save
+        """
+        self.assertIsNone(self.small_block.extended_expiry_date)
+
+        self.small_block.extended_expiry_date = datetime(
+            2016, 2, 1, 18, 30, tzinfo=timezone.utc
+        )
+        self.small_block.save()
+        self.assertEqual(
+            self.small_block.extended_expiry_date,
+            datetime(2016, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
+
+    def test_block_expiry_date_with_extended_date(self):
+        """
+        Test that expiry_date shows extended expiry date if set AND only if >
+        date calculated by block duration
+        """
+        # expiry date calculated based on start data and duration
+        self.assertEqual(
+            self.small_block.expiry_date,
+            datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
+
+        self.small_block.extended_expiry_date = datetime(
+            2016, 2, 1, 18, 30, tzinfo=timezone.utc
+        )
+        self.small_block.save()
+        # expiry date is now extended expiry date
+        self.assertEqual(
+            self.small_block.expiry_date,
+            datetime(2016, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
+
+        # set extended exipry date to a date < the expiry date calculated by
+        # start date and duration
+        self.small_block.extended_expiry_date = datetime(
+            2015, 2, 1, 18, 30, tzinfo=timezone.utc
+        )
+        self.small_block.save()
+        self.assertEqual(
+            self.small_block.extended_expiry_date,
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
+        # earlier extended expiry date now ignored
+        self.assertEqual(
+            self.small_block.expiry_date,
+            datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
 
     @patch.object(timezone, 'now',
                   return_value=datetime(2015, 2, 1, tzinfo=timezone.utc))

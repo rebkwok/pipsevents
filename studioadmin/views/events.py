@@ -2,7 +2,6 @@ import logging
 
 from datetime import timedelta
 
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -17,6 +16,7 @@ from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
+from dateutil.relativedelta import relativedelta
 
 from booking.models import Block, BlockType, Booking, Event
 from booking.email_helpers import send_support_email
@@ -296,7 +296,10 @@ def cancel_event_view(request, slug):
     )
     no_shows = [bk for bk in no_shows_all if bk.paid or bk.deposit_paid]
     open_block_bookings = [
-        bk for bk in open_bookings if bk.block and not bk.free_class
+        bk for bk in open_bookings if bk.block and not bk.free_class and not bk.block.expired
+        ]
+    open_expired_block_bookings = [
+        bk for bk in open_bookings if bk.block and not bk.free_class and bk.block.expired
         ]
     open_unpaid_bookings = [
         bk for bk in open_bookings if not bk.deposit_paid and not bk.paid]
@@ -319,27 +322,32 @@ def cancel_event_view(request, slug):
 
             for booking in open_bookings:
                 transfer_block_created = False
-                block_paid = bool(booking.block)  # block paid and free blocks
-                free_block = bool(booking.block and booking.free_class)
+                block_expires_soon = False
+                block_paid = booking in open_block_bookings
+                free_block = booking in open_free_block
+                expired_block = booking in open_expired_block_bookings
                 direct_paid = booking in open_direct_paid or \
                               booking in open_free_non_block
                 deposit_only_paid = booking in open_direct_paid_deposit_only
+                block_expiry_date = booking.block.expiry_date if booking.block else None
 
-                if booking.block:
+                if booking.block and not booking.block.expired:
+                    one_month_ahead = timezone.now() + relativedelta(months=1)
+                    if booking.block.expiry_date < one_month_ahead:
+                        block_expires_soon = True
+
                     booking.block = None
                     booking.deposit_paid = False
                     booking.paid = False
                     booking.payment_confirmed = False
                     # in case this was paid with a free class block
                     booking.free_class = False
-                elif direct_paid and transfer_direct_paid:
+
+                elif (direct_paid and transfer_direct_paid) \
+                        or (booking.block and booking.block.expired):
                     # direct paid = paypal and free non-block paid
                     # create transfer block and make this booking unpaid
                     if booking.event.event_type.event_type != 'EV':
-                        booking.deposit_paid = False
-                        booking.paid = False
-                        booking.payment_confirmed = False
-                        booking.free_class = False
                         block_type, _ = BlockType.objects.get_or_create(
                             event_type=booking.event.event_type,
                             size=1, cost=0, duration=1,
@@ -351,6 +359,13 @@ def cancel_event_view(request, slug):
                             transferred_booking_id=booking.id
                         )
                         transfer_block_created = True
+
+                        booking.block = None  # need to reset block if booked
+                        # with block that's now expired
+                        booking.deposit_paid = False
+                        booking.paid = False
+                        booking.payment_confirmed = False
+                        booking.free_class = False
 
                 booking.status = "CANCELLED"
                 booking.save()
@@ -364,6 +379,9 @@ def cancel_event_view(request, slug):
                         'block_paid': block_paid,
                         'direct_paid': direct_paid or deposit_only_paid,
                         'free_block': free_block,
+                        'expired_block': expired_block,
+                        'block_expires_soon': block_expires_soon,
+                        'block_expiry_date': block_expiry_date.strftime('%d %b %Y'),
                         'transfer_block_created': transfer_block_created,
                         'event': event,
                         'user': booking.user,
@@ -407,6 +425,7 @@ def cancel_event_view(request, slug):
                     'open_bookings': open_bookings,
                     'open_direct_paid_bookings': open_direct_paid,
                     'open_block_bookings': open_block_bookings,
+                    'open_expired_block_bookings': open_expired_block_bookings,
                     'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
                     'open_unpaid_bookings': open_unpaid_bookings,
                     'open_free_non_block_bookings': open_free_non_block,
@@ -486,6 +505,7 @@ def cancel_event_view(request, slug):
         'open_bookings': bool(open_bookings),
         'open_direct_paid_bookings': open_direct_paid,
         'open_block_bookings': open_block_bookings,
+        'open_expired_block_bookings': open_expired_block_bookings,
         'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
         'open_unpaid_bookings': open_unpaid_bookings,
         'open_free_non_block_bookings': open_free_non_block,

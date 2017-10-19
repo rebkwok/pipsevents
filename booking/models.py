@@ -250,6 +250,7 @@ class Block(models.Model):
         'self', blank=True, null=True, related_name='children'
     )
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
+    extended_expiry_date = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ['user__username']
@@ -265,6 +266,13 @@ class Block(models.Model):
             self.start_date.strftime('%d %b %Y')
         )
 
+    def _get_end_of_day(self, input_datetime):
+        next_day = (input_datetime + timedelta(
+            days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        return next_day - timedelta(seconds=1)
+
     @property
     def expiry_date(self):
         # replace block expiry date with very end of day
@@ -278,11 +286,15 @@ class Block(models.Model):
 
         expiry_datetime = self.start_date + relativedelta(
             months=duration)
-        next_day = (expiry_datetime + timedelta(
-            days=1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        return next_day - timedelta(seconds=1)
+
+        # if a manual extended expiry date has been set, use that instead
+        # (unless it's been set to be earlier than the calculated expiry date)
+        # extended_expiry_date is set to end of day on save, so just return it
+        if self.extended_expiry_date and \
+                self.extended_expiry_date > expiry_datetime:
+            return self.extended_expiry_date
+
+        return self._get_end_of_day(expiry_datetime)
 
     @property
     def expired(self):
@@ -333,6 +345,13 @@ class Block(models.Model):
             self.start_date = self.parent.start_date
         if self.block_type.cost == 0:
             self.paid = True
+
+        # make extended expiry date end of day
+        if self.extended_expiry_date:
+            self.extended_expiry_date = self._get_end_of_day(
+                self.extended_expiry_date
+            )
+
         super(Block, self).save(*args, **kwargs)
 
 

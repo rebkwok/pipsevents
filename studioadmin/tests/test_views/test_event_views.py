@@ -1971,3 +1971,146 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         emails = mail.outbox
         # emails sent to users plus studio for deposit paid
         self.assertEqual(len(emails), cancelled_bookings + 1)
+
+    def test_booking_with_expired_block(self):
+        """
+        Test that transfer credit is created for bookings booked with block
+        that's now expired
+        """
+        pole_class = mommy.make_recipe('booking.future_PC')
+
+        # block
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user
+        )
+        self.assertFalse(block.expired)
+        block_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        self.assertEqual(block.bookings_made(), 1)
+
+        # expired block
+        user1 = mommy.make_recipe('booking.user')
+        expired_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user1, start_date=timezone.now() - timedelta(100),
+            block_type__duration=1
+        )
+        self.assertTrue(expired_block.expired)
+        expired_block_paid = mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            block=expired_block,
+            paid=True, user=user1, payment_confirmed=True
+        )
+        self.assertEqual(expired_block.bookings_made(), 1)
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        transfer_btypes = BlockType.objects.filter(identifier='transferred')
+        self.assertEqual(transfer_btypes.count(), 1)
+
+        # transfer block made for the expired block booking only
+        transfer_blocks = Block.objects.filter(block_type=transfer_btypes[0])
+        self.assertEquals(transfer_blocks.count(), 1)
+
+        block.refresh_from_db()
+        expired_block.refresh_from_db()
+        self.assertEqual(block.bookings_made(), 0)
+        self.assertEqual(expired_block.bookings_made(), 0)
+
+        block_paid.refresh_from_db()
+        expired_block_paid.refresh_from_db()
+
+        self.assertFalse(block_paid.paid)
+        self.assertFalse(block_paid.deposit_paid)
+        self.assertFalse(block_paid.payment_confirmed)
+
+        self.assertFalse(expired_block_paid.paid)
+        self.assertFalse(expired_block_paid.deposit_paid)
+        self.assertFalse(expired_block_paid.payment_confirmed)
+
+        self.assertEquals(
+            Booking.objects.filter(event=pole_class, status='OPEN').count(), 0
+        )
+
+    def test_booking_with_block_that_expires_in_less_than_one_month(self):
+        """
+        Test that blocks that expire in <1 month show a warning in the email to
+        users
+        """
+        pole_class = mommy.make_recipe('booking.future_PC')
+
+        # block
+        user = mommy.make_recipe('booking.user', email='block@user.com')
+        block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user
+        )
+        self.assertFalse(block.expired)
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN", block=block,
+            paid=True, user=user, payment_confirmed=True
+        )
+        self.assertEqual(block.bookings_made(), 1)
+
+        # block expiring soon
+        user1 = mommy.make_recipe('booking.user', email='expiringblock@user.com')
+        expiring_block = mommy.make_recipe(
+            'booking.block', block_type__event_type=pole_class.event_type,
+            user=user1, start_date=timezone.now() - timedelta(25),
+            block_type__duration=1
+        )
+        self.assertFalse(expiring_block.expired)
+        mommy.make_recipe(
+            'booking.booking', event=pole_class, status="OPEN",
+            block=expiring_block,
+            paid=True, user=user1, payment_confirmed=True
+        )
+        self.assertEqual(expiring_block.bookings_made(), 1)
+
+        self.client.login(username=self.staff_user.username, password='test')
+        url = reverse(
+            'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
+        )
+        self.client.post(
+            url,
+            {
+                'direct_paid_action': 'transfer',
+                'confirm': 'Yes, cancel this event'
+            }
+        )
+
+        self.assertFalse(BlockType.objects.filter(identifier='transferred').exists())
+
+        block.refresh_from_db()
+        expiring_block.refresh_from_db()
+        self.assertEqual(block.bookings_made(), 0)
+        self.assertEqual(expiring_block.bookings_made(), 0)
+
+        emails = mail.outbox
+        email_dict = {email.to[0]: email for email in emails}
+        block_user_email = email_dict['block@user.com']
+        expiringblock_user_email = email_dict['expiringblock@user.com']
+
+        self.assertIn(
+            'YOUR BLOCK EXPIRES ON {}'.format(
+                expiring_block.expiry_date.strftime('%d %b %Y').upper()
+            ),
+            expiringblock_user_email.body
+        )
+        self.assertNotIn(
+            'YOUR BLOCK EXPIRES ON', block_user_email.body
+        )

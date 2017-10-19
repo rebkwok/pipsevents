@@ -1,6 +1,10 @@
 {{ event_type|title }} {{ event }} has been cancelled.
 
-{% if open_bookings %}{%if transfer_direct_paid %}{% if open_direct_paid_bookings or open_free_block_bookings %}Transfer credits have been created for users who paid directly in full for their bookings (i.e. not with a block) or users who were manually assigned this as a free {{ event_type }}.{% endif %}
+        {% if open_direct_paid_bookings or open_free_non_block_bookings or open_expired_block_bookings %}
+            <p>Transfer credits have been created for users who paid directly in full for their bookings (i.e. not with a block), users who were manually assigned this as a free {{ event_type }} and users who paid with a block that is now expired.</p>
+        {% endif %}
+
+{% if open_bookings %}{%if transfer_direct_paid %}{% if open_direct_paid_bookings or open_free_non_block_bookings or open_expired_block_bookings %}Transfer credits have been created for users who paid directly in full for their bookings (i.e. not with a block), users who were manually assigned this as a free {{ event_type }} and users who paid with a block that is now expired.{% endif %}
 {% if  open_deposit_only_paid_bookings %}
 Some booking may require manual refunds.  When the payment has been refunded or credited, use the links below to confirm and update the payment status on the booking site.{% endif %}
 {% else %}
@@ -18,6 +22,8 @@ The following open bookings for this {{ event_type }} were cancelled (users have
 {% for booking in open_free_non_block_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} (free class - assigned manually) {% if not transfer_direct_paid %}{{ host }}/studioadmin/confirm-refunded/{{ booking.id }}{% else %}- no action required{% endif %}
 {% endfor %}
 {% for booking in open_block_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} (paid by block) - no action required
+{% endfor %}
+{% for booking in open_expired_block_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} (paid by expired block) - no action required
 {% endfor %}
 {% for booking in open_free_block_bookings %}- {{ booking.user.first_name }} {{ booking.user.last_name }} (free class - block) - no action required
 {% endfor %}

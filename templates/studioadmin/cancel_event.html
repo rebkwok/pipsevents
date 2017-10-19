@@ -20,6 +20,12 @@
                 {% endfor %}
             {% endif %}
 
+            {% if open_expired_block_bookings %}
+                {% for booking in open_block_bookings %}
+                <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (paid by block - now expired)</li>
+                {% endfor %}
+            {% endif %}
+
             {% if open_free_non_block_bookings %}
                 {% for booking in open_free_non_block_bookings %}
                 <li>{{ booking.user.first_name }} {{ booking.user.last_name }} (free class - assigned manually)</li>
@@ -86,7 +92,8 @@
 
     <form action="" method="post">{% csrf_token %}
         {% if open_bookings %}
-            <p><strong>Blocks will be updated for any bookings made with blocks.</strong></p>
+            <p><strong>Blocks will be updated for any bookings made with blocks.
+                Bookings made with expired blocks will be assigned transfer credit.</strong></p>
         {% endif %}
         {% if open_direct_paid_bookings or open_free_non_block_bookings %}
             <span>
