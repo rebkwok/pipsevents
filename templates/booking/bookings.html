@@ -70,8 +70,16 @@
                                                 <div type="button" id="rebook_button_disabled" class="btn btn-success table-btn booking-btn disabled">Rebook</div>
                                             {% endif %}
                                         {% else %}
+                                            {% if bookingform.booking.auto_cancelled %}
+                                                <div
+                                                        id="rebook_button_auto_cancelled_disabled"
+                                                        class="btn btn-success table-btn booking-btn disabled"
+                                                        title="Contact {{ bookingform.booking.event.contact_email }} directly to rebook"
+                                                >Rebook</div>
+                                            {% else %}
                                             <a href="{% url 'booking:book_event' bookingform.booking.event.slug %}">
                                                 <div type="button" id="rebook_button" class="btn btn-success table-btn booking-btn">Rebook</div></a>
+                                            {% endif %}
                                         {% endif %}
                                     </td>
                                 {% endif %}

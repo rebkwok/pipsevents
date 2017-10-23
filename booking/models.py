@@ -376,6 +376,9 @@ class Booking(models.Model):
     warning_sent = models.BooleanField(default=False)
     free_class_requested = models.BooleanField(default=False)
     free_class = models.BooleanField(default=False)
+    # Flag to note if booking was autocancelled due to non-payment - use to
+    # disable rebooking
+    auto_cancelled = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'event')
@@ -455,12 +458,14 @@ class Booking(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         rebooking = self._is_rebooking()
-        new_booking = self._is_new_booking()
         cancellation = self._is_cancellation()
         orig = self._old_booking()
 
         if rebooking:
             self.date_rebooked = timezone.now()
+            # reset auto_cancelled so user can rebook if they manually cancelled
+            # later
+            self.auto_cancelled = False
 
         if (cancellation and orig.block) or \
                 (orig and orig.block and not self.block ):

@@ -50,15 +50,17 @@ class EventListView(ListView):
         context = super(EventListView, self).get_context_data(**kwargs)
         if not self.request.user.is_anonymous():
             # Add in the booked_events
-            user_booked_events = Booking.objects.select_related()\
+            booked_events = Booking.objects.select_related()\
                 .filter(user=self.request.user, status='OPEN', no_show=False)\
                 .values_list('event__id', flat=True)
-            booked_events = Event.objects.select_related()\
-                .filter(id__in=user_booked_events).values_list('id', flat=True)
+            auto_cancelled_events = Booking.objects.select_related() \
+                .filter(user=self.request.user, status='CANCELLED', auto_cancelled=True) \
+                .values_list('event__id', flat=True)
             waiting_list_events = WaitingListUser.objects\
                 .filter(user=self.request.user)\
                 .values_list('event__id', flat=True)
             context['booked_events'] = booked_events
+            context['auto_cancelled_events'] = auto_cancelled_events
             context['waiting_list_events'] = waiting_list_events
             context['is_regular_student'] = self.request.user.has_perm(
                 "booking.is_regular_student"

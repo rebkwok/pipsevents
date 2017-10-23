@@ -698,8 +698,9 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             event=event,
             user=self.user,
         )
+        # make block with free spaces
         block = mommy.make_recipe(
-            'booking.block', block_type__event_type=event.event_type,
+            'booking.block_5', block_type__event_type=event.event_type,
             user=self.user
         )
         self.assertFalse(booking.block)
