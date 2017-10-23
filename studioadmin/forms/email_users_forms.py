@@ -59,6 +59,7 @@ ChooseUsersFormSet = modelformset_factory(
     fields=('id',),
     formset=ChooseUsersBaseFormSet,
     extra=0,
+    max_num=2000,
     can_delete=False)
 
 
