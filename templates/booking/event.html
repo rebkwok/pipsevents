@@ -99,11 +99,17 @@
                         {% else %}
                             <h5>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
-                                    <a {% if not disclaimer %}class='disabled'{% endif %}
-                                       {% if not event.booking_open and not unbookable_pole_practice %}class='disabled'{% endif %}
-                                       href="{% url 'booking:book_event' event.slug %}">
-                                        <div id='book_button' class="btn btn-success table-btn {% if not disclaimer %}disabled{% endif %}">
-                                        {% if cancelled %}Rebook{% else %}Book{% endif %}</div></a>
+                                    {% if not disclaimer %}
+                                        <div class="btn btn-success table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                                    {% elif not event.booking_open and not unbookable_pole_practice %}
+                                        <div class="btn btn-success table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                                    {% elif auto_cancelled %}
+                                        <div class="btn btn-success table-btn disabled" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+                                    {% else %}
+                                        <a href="{% url 'booking:book_event' event.slug %}">
+                                            <div id='book_button' class="btn btn-success table-btn">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                                        </a>
+                                    {% endif %}
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
                                     <div id='book_button_disabled' class="disabled btn btn-success table-btn">
                                         {% if cancelled %}Rebook{% else %}Book{% endif %}</div>

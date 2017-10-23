@@ -4,4 +4,4 @@ Your payment has not been received for {{ event }} and your booking has now been
 {% if booking.block %}
 You used a block to make this booking; your block has been updated.
 {% endif %}
-For further information please contact {{ booking.event.contact_person }} at {{ booking.event.contact_email }}
+If you wish to rebook, or for any further information please contact {{ booking.event.contact_person }} at {{ booking.event.contact_email }}

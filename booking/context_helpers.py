@@ -52,6 +52,9 @@ def get_event_context(context, event, user):
     user_cancelled = Booking.objects.filter(
         event=event, user=user, status='CANCELLED'
     ).exists()
+    auto_cancelled = Booking.objects.filter(
+        event=event, user=user, status='CANCELLED', auto_cancelled=True
+    ).exists()
     user_no_show = Booking.objects.filter(
         event=event, user=user, status='OPEN', no_show=True
     ).exists()
@@ -85,7 +88,7 @@ def get_event_context(context, event, user):
                                     reverse('disclaimer_form')
                                 )
     elif event.event_type.subtype == "Pole practice" \
-        and not user.has_perm("booking.is_regular_student"):
+            and not user.has_perm("booking.is_regular_student"):
         context['bookable'] = False
         context['unbookable_pole_practice'] = True
         booking_info_text = "<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>" \
@@ -96,7 +99,14 @@ def get_event_context(context, event, user):
                             "<a href='mailto:{}' target=_blank>{}</a> to have your account " \
                             "upgraded.</span>".format(event.contact_email, event.contact_email)
     else:
-        if cancelled:
+        if auto_cancelled:
+            context['auto_cancelled'] = True
+            booking_info_text_cancelled = "To rebook this {} please contact " \
+                                          "{} directly.".format(
+                                            event_type_str, event.contact_email
+                                            )
+            context['booking_info_text_cancelled'] = booking_info_text_cancelled
+        elif cancelled:
             context['cancelled'] = True
             booking_info_text_cancelled = "You have previously booked for " \
                                           "this {} and your booking has been " \

@@ -103,6 +103,7 @@ class Command(BaseCommand):
                 )
             booking.status = 'CANCELLED'
             booking.block = None
+            booking.auto_cancelled = True
             booking.save()
             ActivityLog.objects.create(
                 log='Unpaid booking id {} for event {}, user {} '

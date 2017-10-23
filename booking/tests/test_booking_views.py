@@ -459,11 +459,15 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             follow=True
         )
         self.assertEqual(Booking.objects.all().count(), 1)
+
+        auto_cancel_warning = \
+            'Please make your payment as soon as possible. Note that if ' \
+            'payment has not been received {}, your ' \
+            'booking will be automatically cancelled and you will need to ' \
+            'contact the studio directly to rebook.'
         # event has cancellation period
         self.assertIn(
-            'Please make your payment as soon as possible. Note that if '
-            'payment has not been received by the cancellation period, your '
-            'booking will be automatically cancelled.',
+            auto_cancel_warning.format('by the cancellation period'),
             format_content(resp.rendered_content)
         )
 
@@ -477,9 +481,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertIn(
-            'Please make your payment as soon as possible. Note that if '
-            'payment has not been received by the payment due date, your '
-            'booking will be automatically cancelled.',
+            auto_cancel_warning.format('by the payment due date'),
             format_content(resp.rendered_content)
         )
 
@@ -494,9 +496,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertIn(
-            'Please make your payment as soon as possible. Note that if '
-            'payment has not been received by the payment due date, your '
-            'booking will be automatically cancelled.',
+            auto_cancel_warning.format('by the payment due date'),
             format_content(resp.rendered_content)
         )
 
@@ -509,9 +509,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertIn(
-            'Please make your payment as soon as possible. Note that if '
-            'payment has not been received within 8 hours, your '
-            'booking will be automatically cancelled.',
+            auto_cancel_warning.format('within 8 hours'),
             format_content(resp.rendered_content)
         )
 

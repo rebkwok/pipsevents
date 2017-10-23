@@ -491,7 +491,9 @@ class BookingCreateView(
 
                     cancellation_warning = "Note that if payment " \
                         "has not been received {}, " \
-                        "your booking will be automatically cancelled.".format(
+                        "your booking will be automatically cancelled and you " \
+                        "will need to contact the studio directly to " \
+                        "rebook.".format(
                             cancel_str
                         )
                 extra_msg = 'Please make your payment as soon as possible. ' \

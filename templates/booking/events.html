@@ -63,8 +63,12 @@
                                             {% elif event.event_type.subtype == "Pole practice" and not is_regular_student %}
                                                 <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                                              {% elif event.bookable %}
-                                                    <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
-                                            {% elif event.external_instructor %}
+                                                    {% if event.id in auto_cancelled_events %}
+                                                        <div class="disabled btn btn-success table-btn" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+                                                    {% else %}
+                                                        <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
+                                                    {% endif %}
+                                                {% elif event.external_instructor %}
                                                 {% if type == 'events' %}
                                                     <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
                                                 {% elif type == 'lessons' %}
