@@ -218,7 +218,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             cancellation_period=24, cost=10
         )
-        booking = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.booking', user=self.user, event=event
         )
         resp = self._get_response(self.user)
@@ -277,11 +277,32 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
 
         booking.delete()
-        booking = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.booking', user=self.user, event=event_without_cost,
         )
         resp = self._get_response(self.user)
         self.assertIn('<strong>N/A</strong>', resp.rendered_content)
+
+    def test_auto_cancelled_booking(self):
+        """
+        Test that auto_cancelled bookings for this user are listed with rebook
+        button disabled
+        """
+        ev = mommy.make_recipe('booking.future_EV', name="future event")
+        mommy.make_recipe(
+            'booking.booking', user=self.user, event=ev,
+            status='CANCELLED', auto_cancelled=True
+        )
+        # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
+        self.assertEquals(Booking.objects.all().count(), 5)
+        resp = self._get_response(self.user)
+
+        # booking listing should show this user's future bookings,
+        # including the cancelled one
+        self.assertEquals(resp.context_data['bookings'].count(), 4)
+        self.assertIn(
+            'rebook_button_auto_cancelled_disabled', resp.rendered_content
+        )
 
 
 class BookingHistoryListViewTests(TestSetupMixin, TestCase):

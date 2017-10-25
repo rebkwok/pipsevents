@@ -538,6 +538,19 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
             'you will not be eligible for any refund or credit.', content
         )
 
+    def test_autocancelled_booking(self):
+        self.event.cost = 10
+        self.event.advance_payment_required = True
+        self.event.save()
+
+        mommy.make(
+            Booking, user=self.user, event=self.event, status='CANCELLED',
+            auto_cancelled=True
+        )
+        resp = self._get_response(self.user, self.event, 'event')
+        self.assertIn('auto_cancelled', resp.context_data.keys())
+        self.assertIn('book_button_autocancel_disabled', resp.rendered_content)
+
 
 class LessonListViewTests(TestSetupMixin, TestCase):
     """
@@ -547,10 +560,10 @@ class LessonListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(LessonListViewTests, cls).setUpTestData()
-        mommy.make_recipe('booking.future_EV', _quantity=1)
-        mommy.make_recipe('booking.future_PC', _quantity=3)
-        mommy.make_recipe('booking.future_CL', _quantity=3)
-        mommy.make_recipe('booking.future_WS', _quantity=1)
+        mommy.make_recipe('booking.future_EV', cost=5, _quantity=1)
+        mommy.make_recipe('booking.future_PC', cost=5, _quantity=3)
+        mommy.make_recipe('booking.future_CL', cost=5, _quantity=3)
+        mommy.make_recipe('booking.future_WS', cost=5, _quantity=1)
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:lessons')
@@ -650,6 +663,31 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
 
+    def test_autocancelled_booking(self):
+        events = Event.objects.filter(event_type__event_type="CL")
+        event1, event2 = events[0:2]
+
+        # create auto cancelled booking for this user
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event2, status='CANCELLED',
+            auto_cancelled=True
+        )
+
+        resp = self._get_response(self.user, 'lessons')
+        self.assertEqual(
+            list(resp.context_data['auto_cancelled_events']), [event2.id]
+        )
+        self.assertIn('autocancelled_button', resp.rendered_content)
+
+        booking.auto_cancelled = False
+        booking.save()
+        resp = self._get_response(self.user, 'lessons')
+        self.assertEqual(
+            list(resp.context_data['auto_cancelled_events']), []
+        )
+        self.assertIn('book_button', resp.rendered_content)
+        self.assertNotIn('autocancelled_button', resp.rendered_content)
+
 
 class RoomHireListViewTests(TestSetupMixin, TestCase):
     """
@@ -681,7 +719,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(resp.context_data['type'], 'room_hires')
         self.assertTrue('booked_events' in resp.context_data)
 
-    def test_lesson_list_with_anonymous_user(self):
+    def test_room_hire_list_with_anonymous_user(self):
         """
         Test that no booked_events in context
         """
@@ -691,7 +729,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         # event listing should still only show future events
         self.assertFalse('booked_events' in resp.context)
 
-    def test_lesson_list(self):
+    def test_room_hire_list(self):
         """
         Test that only room hires are listed
         """
@@ -703,7 +741,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(resp.context['events'].count(), 4)
         self.assertEquals(resp.context['type'], 'room_hire')
 
-    def test_filter_lessons(self):
+    def test_filter_room_hire(self):
         """
         Test that we can filter the room hires by name
         """
@@ -716,7 +754,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(url, {'name': 'test_name1'})
         self.assertEquals(resp.context['events'].count(), 4)
 
-    def test_lesson_list_shows_only_current_user_bookings(self):
+    def test_room_hire_list_shows_only_current_user_bookings(self):
         """
         Test that only user's booked room hires are shown as booked
         """
@@ -741,7 +779,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
 
-    def test_lesson_list_only_shows_open_bookings(self):
+    def test_room_hire_list_only_shows_open_bookings(self):
         events = Event.objects.filter(event_type__event_type="RH")
         event1,  event2 = events[0:2]
 

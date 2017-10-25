@@ -434,6 +434,19 @@ class BookingTests(PatchRequestMixin, TestCase):
         mommy.make(Booking, user=user, event__event_type__event_type='CL')
         self.assertIn(self.subscribed, user.groups.all())
 
+    def test_booking_autocancelled(self):
+        # new booking set to auto_cancelled = False
+        booking = mommy.make(Booking, user=self.users[0])
+        self.assertFalse(booking.auto_cancelled)
+        booking.status = 'CANCELLED'
+        booking.auto_cancelled = True
+        booking.save()
+
+        # changing booking to open again resets autocancelled
+        booking.status = 'OPEN'
+        booking.save()
+        self.assertFalse(booking.auto_cancelled)
+
 
 class BlockTests(PatchRequestMixin, TestCase):
 

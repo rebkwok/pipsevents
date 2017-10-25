@@ -465,7 +465,14 @@ class Booking(models.Model):
             self.date_rebooked = timezone.now()
             # reset auto_cancelled so user can rebook if they manually cancelled
             # later
-            self.auto_cancelled = False
+            if self.auto_cancelled == True:
+                ActivityLog.objects.create(
+                    log="Auto_cancelled booking {} for {} has been "
+                        "reopened".format(
+                            self.id, self.user.username,
+                        )
+                )
+                self.auto_cancelled = False
 
         if (cancellation and orig.block) or \
                 (orig and orig.block and not self.block ):
