@@ -485,7 +485,7 @@ DEBUG_TOOLBAR_CONFIG = {
 
 AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 WATCHLIST = env('WATCHLIST', default=[])
-if isinstance(WATCHLIST, str):
+if isinstance(WATCHLIST, str):  # pragma: no cover
     WATCHLIST = WATCHLIST.split(',')
 
 # Increase this to deal with the bulk emails.  Currently just under 2000

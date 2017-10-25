@@ -635,6 +635,10 @@ class CancelUnpaidBookingsTests(TestCase):
             paid_booking.status, 'OPEN', paid_booking.status
         )
 
+        # auto_cancelled set to True on cancelled bookings
+        self.assertTrue(unpaid_booking.auto_cancelled)
+        self.assertFalse(paid_booking.auto_cancelled)
+
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_dont_cancel_if_advance_payment_not_required(self, mock_tz):
         """
@@ -667,6 +671,9 @@ class CancelUnpaidBookingsTests(TestCase):
         self.assertEquals(
             paid_booking.status, 'OPEN', paid_booking.status
         )
+        # auto_cancelled set to True only on cancelled bookings
+        self.assertFalse(unpaid_booking.auto_cancelled)
+        self.assertFalse(paid_booking.auto_cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_dont_cancel_for_events_with_no_cost(self, mock_tz):
@@ -698,6 +705,10 @@ class CancelUnpaidBookingsTests(TestCase):
             paid_booking.status, 'OPEN', paid_booking.status
         )
 
+        # auto_cancelled set to True only on cancelled bookings
+        self.assertFalse(unpaid_booking.auto_cancelled)
+        self.assertFalse(paid_booking.auto_cancelled)
+
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_dont_cancel_for_events_in_the_past(self, mock_tz):
         """
@@ -726,6 +737,10 @@ class CancelUnpaidBookingsTests(TestCase):
             paid_booking.status, 'OPEN', paid_booking.status
         )
 
+        # auto_cancelled set to True only on cancelled bookings
+        self.assertFalse(unpaid_booking.auto_cancelled)
+        self.assertFalse(paid_booking.auto_cancelled)
+
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_dont_cancel_for_already_cancelled(self, mock_tz):
         """
@@ -747,6 +762,10 @@ class CancelUnpaidBookingsTests(TestCase):
         self.assertEquals(
             unpaid_booking.status, 'CANCELLED', unpaid_booking.status
         )
+
+        # auto_cancelled set to True only on cancelled bookings
+        self.assertFalse(unpaid_booking.auto_cancelled)
+        self.assertFalse(self.paid.auto_cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_dont_cancel_bookings_created_within_past_6_hours(self, mock_tz):
@@ -785,6 +804,10 @@ class CancelUnpaidBookingsTests(TestCase):
         unpaid_more_than_6_hrs.refresh_from_db()
         self.assertEquals(unpaid_within_6_hrs.status, 'OPEN')
         self.assertEquals(unpaid_more_than_6_hrs.status, 'CANCELLED')
+
+        # auto_cancelled set to True only on cancelled bookings
+        self.assertFalse(unpaid_within_6_hrs.auto_cancelled)
+        self.assertTrue(unpaid_more_than_6_hrs.auto_cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_only_send_one_email_to_studio(self, mock_tz):

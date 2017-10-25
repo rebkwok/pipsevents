@@ -64,7 +64,7 @@
                                                 <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                                              {% elif event.bookable %}
                                                     {% if event.id in auto_cancelled_events %}
-                                                        <div class="disabled btn btn-success table-btn" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+                                                        <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                                     {% else %}
                                                         <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
                                                     {% endif %}

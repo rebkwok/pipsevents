@@ -252,6 +252,40 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             "been cancelled."
         )
 
+    def test_auto_cancelled_booking(self):
+        """
+        Test correct context returned for an auto_cancelled booking
+        """
+        event = mommy.make_recipe(
+            'booking.future_PC', name='Pole', cost=10, booking_open=True,
+            contact_email='staff@test.com'
+        )
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event, status='CANCELLED',
+            auto_cancelled=True
+        )
+
+        resp = self._get_response(self.user, event, 'lesson')
+
+        self.assertTrue('auto_cancelled' in resp.context_data.keys())
+        self.assertEquals(
+            resp.context_data['booking_info_text_cancelled'],
+            "To rebook this class please contact staff@test.com directly."
+        )
+
+        # if we somehow have a booking that's OPEN but still has auto_cancelled
+        # set, it should still show booked event context
+        booking.status = 'OPEN'
+        booking.save()
+        booking.auto_cancelled = True
+        booking.save()
+        self.assertTrue(booking.auto_cancelled)
+        resp = self._get_response(self.user, event, 'lesson')
+        self.assertFalse('auto_cancelled' in resp.context_data.keys())
+        self.assertFalse('cancelled' in resp.context_data.keys())
+        self.assertTrue('booked' in resp.context_data.keys())
+
+
     def test_external_instructor_class(self):
         """
         Test correct context returned for a cancelled event
