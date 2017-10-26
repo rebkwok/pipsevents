@@ -17,7 +17,7 @@ def update_location(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('booking', '0051_auto_20161103_0739'),
+        ('booking', '0053_block_extended_expiry_date'),
     ]
 
     operations = [
