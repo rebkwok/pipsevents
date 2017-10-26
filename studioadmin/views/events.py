@@ -329,7 +329,8 @@ def cancel_event_view(request, slug):
                 direct_paid = booking in open_direct_paid or \
                               booking in open_free_non_block
                 deposit_only_paid = booking in open_direct_paid_deposit_only
-                block_expiry_date = booking.block.expiry_date if booking.block else None
+                block_expiry_date = booking.block.expiry_date.strftime('%d %b %Y') \
+                    if booking.block else None
 
                 if booking.block and not booking.block.expired:
                     one_month_ahead = timezone.now() + relativedelta(months=1)
@@ -381,7 +382,7 @@ def cancel_event_view(request, slug):
                         'free_block': free_block,
                         'expired_block': expired_block,
                         'block_expires_soon': block_expires_soon,
-                        'block_expiry_date': block_expiry_date.strftime('%d %b %Y'),
+                        'block_expiry_date': block_expiry_date,
                         'transfer_block_created': transfer_block_created,
                         'event': event,
                         'user': booking.user,
