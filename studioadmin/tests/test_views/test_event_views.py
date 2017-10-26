@@ -1713,6 +1713,11 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             deposit_paid=True
         )
 
+        open_booking_user_emails = [
+            booking.user.email for booking in Booking.objects.filter(
+                event=self.event, status='OPEN'
+            )
+         ]
         self.client.login(username=self.staff_user.username, password='test')
         url = reverse(
             'studioadmin:cancel_event', kwargs={'slug': self.event.slug}
@@ -1753,6 +1758,10 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEquals(
             Booking.objects.filter(event=self.event, status='OPEN').count(), 0
         )
+
+        emails_to = open_booking_user_emails + [settings.DEFAULT_STUDIO_EMAIL]
+        # check emails sent correctly
+        self.assertCountEqual(emails_to, [email.to[0] for email in mail.outbox])
 
     def test_cancel_CL_with_refund_option(self):
         """
