@@ -531,4 +531,22 @@ class EventRegisterListView(
         context['type'] = self.kwargs['ev_type']
         context['sidenav_selection'] = '{}_register'.format(
             self.kwargs['ev_type'])
+
+        location_events = [{
+            'index': 0,
+            'queryset': self.get_queryset(),
+            'location': 'All locations'
+        }]
+        for i, location in enumerate(
+                [lc[0] for lc in Event.LOCATION_CHOICES], 1
+        ):
+            location_obj = {
+                'index': i,
+                'queryset': self.get_queryset().filter(location=location),
+                'location': location
+            }
+            if location_obj['queryset']:
+                location_events.append(location_obj)
+        context['location_events'] = location_events
+
         return context

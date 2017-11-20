@@ -979,14 +979,13 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('select_events', form.fields)
         selected_events = form.fields['select_events'].choices
 
-        self.assertEqual(
+        self.assertCountEqual(
             [ev[0] for ev in selected_events],
             [event.id for event in events]
         )
 
     def test_show_events_by_selected_date_for_instructor(self):
-
-        events = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
