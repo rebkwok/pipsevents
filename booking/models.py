@@ -70,8 +70,8 @@ class EventType(models.Model):
 
 class Event(models.Model):
     LOCATION_CHOICES = (
-        ('Beaverbank Place', 'The Watermelon Studio - Beaverbank Place'),
-        ('New Location', 'The Watermelon Studio - New Location')
+        ("Beaverbank Place", "The Watermelon Studio - Beaverbank Place"),
+        ("Davidson's Mains", "The Watermelon Studio - Davidson's Mains")
     )
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType)
