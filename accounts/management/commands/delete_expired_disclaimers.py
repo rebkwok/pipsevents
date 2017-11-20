@@ -70,46 +70,19 @@ class Command(BaseCommand):
         old_print_disclaimers_to_delete.delete()
         old_online_disclaimers_to_delete.delete()
 
-        if print_disclaimer_users or online_disclaimer_users:
-            # email studio
-            ctx = {
-                'print_disclaimer_users': print_disclaimer_users,
-                'online_disclaimer_users': online_disclaimer_users
-            }
-
-            # send mail to studio
-            try:
-                send_mail('{} Disclaimers deleted for expired users'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                ),
-                    get_template(
-                        'account/email/delete_disclaimers.txt'
-                    ).render(ctx),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.DEFAULT_STUDIO_EMAIL],
-                    html_message=get_template(
-                        'account/email/delete_disclaimers.html'
-                        ).render(ctx),
-                    fail_silently=False)
-            except Exception as e:
-                # send mail to tech support with Exception
-                send_support_email(
-                    e, __name__, "Automatic disclaimer deletion - studio email"
+        if print_disclaimer_users:
+            ActivityLog.objects.create(
+                log='Print disclaimers deleted for expired users: {}'.format(
+                    ', '.join(print_disclaimer_users)
                 )
-
-            if print_disclaimer_users:
-                ActivityLog.objects.create(
-                    log='Print disclaimers deleted for expired users: {}'.format(
-                        ', '.join(print_disclaimer_users)
-                    )
+            )
+        if online_disclaimer_users:
+            ActivityLog.objects.create(
+                log='Online disclaimers deleted for expired users: {}'.format(
+                    ', '.join(online_disclaimer_users)
                 )
-            if online_disclaimer_users:
-                ActivityLog.objects.create(
-                    log='Online disclaimers deleted for expired users: {}'.format(
-                        ', '.join(online_disclaimer_users)
-                    )
-                )
-        else:
+            )
+        if not print_disclaimer_users or online_disclaimer_users:
             self.stdout.write('No disclaimers to delete')
             ActivityLog.objects.create(
                 log='Delete disclaimers job run; no expired users'
