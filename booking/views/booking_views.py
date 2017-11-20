@@ -179,10 +179,13 @@ class BookingCreateView(
 
         if self.event.event_type.event_type == 'CL':
             self.ev_type = 'lessons'
+            self.ev_type_str = 'class'
         elif self.event.event_type.event_type == 'EV':
             self.ev_type = 'events'
+            self.ev_type_str = 'workshop/event'
         else:
             self.ev_type = 'room_hires'
+            self.ev_type_str = 'room hire'
 
         if self.event.cancelled:
             return HttpResponseRedirect(reverse('booking:permission_denied'))
@@ -404,7 +407,7 @@ class BookingCreateView(
               'prev_cancelled_and_direct_paid':
               previously_cancelled_and_direct_paid,
               'claim_free': True if "claim_free" in form.data else False,
-              'ev_type': self.ev_type[:-1]
+              'ev_type': self.ev_type_str
         }
         try:
             send_mail('{} Booking for {}'.format(

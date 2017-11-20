@@ -30,16 +30,16 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
 
         cls.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
-                                            "this event.",
+                                            "this workshop/event.",
             'payment_text_cost_not_open':   "Online payments are not open. ",
             'payment_text_cost_open':       "Online payments are open. ",
             'booking_info_text_not_booked': "",
             'booking_info_text_not_open':   "Bookings are not open for this "
-                                            "event.",
-            'booking_info_text_booked':     "You have booked for this event.",
-            'booking_info_text_full':       "This event is now full.",
+                                            "workshop/event.",
+            'booking_info_text_booked':     "You have booked for this workshop/event.",
+            'booking_info_text_full':       "This workshop/event is now full.",
             'booking_info_payment_date_past': "The payment due date has "
-                                              "passed for this event.  Please "
+                                              "passed for this workshop/event.  Please "
                                               "make your payment as soon as "
                                               "possible to secure your place.",
         }
@@ -129,7 +129,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
 
         resp.render()
         # check the content for the past text
-        self.assertIn("This event is now past.", str(resp.content))
+        self.assertIn("This workshop/event is now past.", str(resp.content))
         # and check that the payment_text is not there
         self.assertNotIn(resp.context_data['payment_text'], str(resp.content))
 

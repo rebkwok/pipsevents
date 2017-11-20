@@ -326,7 +326,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, self.event, 'event')
         self.assertTrue(resp.context_data['booked'])
         self.assertEquals(resp.context_data['booking_info_text'],
-                          'You have booked for this event.')
+                          'You have booked for this workshop/event.')
         self.assertNotIn('pay_button', resp.rendered_content)
 
         # make booking unpaid
@@ -336,7 +336,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, self.event, 'event')
         self.assertTrue(resp.context_data['booked'])
         self.assertEquals(resp.context_data['booking_info_text'],
-                          'You have booked for this event.')
+                          'You have booked for this workshop/event.')
         self.assertIn('pay_button', resp.rendered_content)
 
     def test_with_booked_event_for_different_user(self):
@@ -502,7 +502,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         content = soup.text
         # show cancellation period and due date text
         self.assertIn(
-            'Cancellation is allowed up to 24 hours prior to the event',
+            'Cancellation is allowed up to 24 hours prior to the workshop/event',
             content
         )
         self.assertIn('(payment due ', content)
