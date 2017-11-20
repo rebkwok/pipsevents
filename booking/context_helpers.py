@@ -23,7 +23,7 @@ def get_event_context(context, event, user):
         event_type_str = "class"
     elif event.event_type.event_type == 'EV':
         context['type'] = "event"
-        event_type_str = "event"
+        event_type_str = "workshop/event"
     else:
         context['type'] = "room_hire"
         event_type_str = "room hire"
@@ -164,7 +164,7 @@ def get_booking_create_context(event, request, context):
         context['active_user_block_unpaid'] = True
 
     if event.event_type.event_type == 'EV':
-        ev_type = 'event'
+        ev_type = 'workshop/event'
     elif event.event_type.event_type == 'CL':
         ev_type = 'class'
     else:
