@@ -178,28 +178,6 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         self.assertEqual(
             OnlineDisclaimer.objects.first().user, self.user_online_only
         )
-        
-    def test_email_sent_to_studio(self):
-        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
-        self.assertEqual(PrintDisclaimer.objects.count(), 2)
-
-        # make one paid booking for self.user_online_only in past 365 days; this
-        # user's disclaimer should not be deleted
-        mommy.make_recipe(
-            'booking.booking',
-            user=self.user_online_only,
-            event__date=timezone.now()-timedelta(360),
-            paid=True
-        )
-        management.call_command('delete_expired_disclaimers')
-        self.assertEqual(len(mail.outbox), 1)
-
-    @patch('accounts.management.commands.delete_expired_disclaimers.send_mail')
-    def test_email_errors_sending_to_studio(self, mock_send_mail):
-        mock_send_mail.side_effect = Exception('Error sending mail')
-        management.call_command('delete_expired_disclaimers')
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
 
     @patch('accounts.management.commands.delete_expired_disclaimers.send_mail')
     @patch('booking.email_helpers.send_mail')
