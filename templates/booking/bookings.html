@@ -30,7 +30,8 @@
                             {% endif %}
                             <th>Date</th>
                             <th>Booking</th>
-                            <th>Status</th>
+                            <th class="table-center">Location</th>
+                            <th class="table-center">Status</th>
                             <th class="hidden-sm hidden-xs table-center">Cost</th>
                             <th class="table-center">Paid</th>
                             <th class="table-center">Payment due</th>
@@ -38,7 +39,7 @@
                             <th class="hidden-sm hidden-xs table-center">Place confirmed</th>
                         </tr>
                         {% for bookingform in bookingformlist %}
-                            <tr {% if bookingform.booking_status == 'CANCELLED' %}class='expired'{% endif %}>
+                            <tr class='{% if bookingform.booking_status == 'CANCELLED' %}expired {% endif %}compress'>
 
                                 {% if not history %}
                                     <td>
@@ -46,7 +47,7 @@
                                         <div class="inc-btm-space">
                                             {% if bookingform.booking_status == 'OPEN' %}
                                              <a {% if not bookingform.booking.event.payment_open %}class="disabled"{% endif %}href="{% url 'booking:update_booking' bookingform.booking.pk %}">
-                                                 <div type="button" {% if not bookingform.booking.event.payment_open %}disabled{% endif %} id="payment_options_button" class="btn btn-success table-btn booking-btn">Payment options</div>
+                                                 <div type="button" {% if not bookingform.booking.event.payment_open %}disabled{% endif %} id="payment_options_button" class="btn btn-success table-btn">Payment options</div>
                                              </a>
                                             {% endif %}
 
@@ -54,7 +55,7 @@
                                         {% endif %}
                                         {% if bookingform.booking_status == 'OPEN'%}
                                         <a href="{% url 'booking:delete_booking' bookingform.booking.pk %}">
-                                            <div class="btn btn-danger table-btn booking-btn">Cancel booking</div>
+                                            <div class="btn btn-danger table-btn">Cancel booking</div>
                                         </a>
                                         {% elif bookingform.booking.event.cancelled %}
                                             {% if bookingform.ev_type == 'EV' %}EVENT{% elif bookingform.ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
@@ -89,7 +90,7 @@
                                     </td>
                                 {% endif %}
 
-                                <td>{{ bookingform.booking.event.date |  date:"D d M H:i" }}</td>
+                                <td class="date">{{ bookingform.booking.event.date |  date:"D d M H:i" }}</td>
                                 <td>
                                     {% if bookingform.ev_type == 'EV' %}
                                     <a href="{% url 'booking:event_detail' bookingform.booking.event.slug %}">
@@ -101,8 +102,8 @@
                                     <a href="{% url 'booking:room_hire_detail' bookingform.booking.event.slug %}">
                                         {{ bookingform.booking.event.name }}</a>
                                     {% endif %}
-                                    <span class="studioadmin-help">({{ bookingform.booking.event.location }})</span>
                                 </td>
+                                <td class="table-center"><span class="label label-location label-location-{{ bookingform.booking.event.location_index }} label-rounded">{{ bookingform.booking.event.location }}</span></td>
                                 <td class="table-center">{{ bookingform.booking_status }}</td>
                                 <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
                                 <td class="table-center">{{ bookingform.booking|format_paid_status }}</td>
