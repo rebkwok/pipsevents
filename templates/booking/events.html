@@ -29,8 +29,7 @@
                     <strong>Filter by: {{ form.name }}</strong>
                 </form>
 
-                <p>Click on {% if type == 'events' %}workshop{% elif type == 'lessons' %}class{% endif %} name for more details</p>
-                        {% if user.is_authenticated %}
+                {% if user.is_authenticated %}
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                 {% endif %}
                         <div class="panel with-nav-tabs panel-success">
@@ -60,7 +59,9 @@
                                                     <th></th>
                                                 {% endif %}
                                                 <th>Date</th>
-                                                <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% elif type == 'room_hire' %}Room Hire{% endif %}</th>
+                                                <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% elif type == 'room_hire' %}Room Hire{% endif %}<br/>
+                                                    <span class="studioadmin-help">Click for details</span>
+                                                </th>
                                                 {% if location_obj.index == 0 %}
                                                     <th class="table-center">Location</th>
                                                 {% endif %}
