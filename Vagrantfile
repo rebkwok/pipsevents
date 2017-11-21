@@ -35,6 +35,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # set up synced folders
     config.vm.synced_folder ".", "/src/pipsevents"
 
+    config.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    end
+
     #config.vm.provider "virtualbox" do |vb|
     #  vb.gui = true
     #end
