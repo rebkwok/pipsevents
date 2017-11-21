@@ -8,10 +8,6 @@
 
         <h1>The Watermelon Studio {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hire' %}Room Hire{% endif %}</h1>
 
-        {% if user.is_authenticated %}
-            <a class="btn btn-info-link btn-sm pull-right" href="{% url 'booking:bookings' %}">My bookings</a>
-        {% endif %}
-
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
@@ -29,6 +25,10 @@
                 <form class="filter-row" action="" method="get">
                     <strong>Filter by: {{ form.name }}</strong>
                 </form><br>
+
+                {% if user.is_authenticated %}
+                    <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+                {% endif %}
                 <div class="panel panel-success">
 
                     <div class="table-responsive">
