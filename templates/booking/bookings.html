@@ -7,10 +7,15 @@
 
 <div class="container-fluid row">
     {% if history %}
-        <h1>Your past bookings</h1>
+        <h1>My past bookings</h1>
     {% else %}
-        <h1>Your bookings</h1>
+        <h1>My bookings</h1>
     {% endif %}
+    <div class="btn-group btn-group-sm pull-right" role="group">
+        <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+    </div>
+
 
     {% if bookingformlist %}
     <p>Click on booking title for more class/event details.</p>

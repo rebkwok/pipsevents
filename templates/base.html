@@ -71,12 +71,12 @@
                         {% if request.user.is_authenticated %}
 
                             <li class="hidden-sm dropdown">
-                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Your Bookings and Blocks<b class="caret"></b></a>
+                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">My Bookings and Blocks<b class="caret"></b></a>
                                   <ul class="dropdown-menu">
-                                    <li class="active-nav"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>
+                                    <li class="active-nav"><a href="{% url 'booking:bookings' %}">My bookings</a></li>
+                                    <li class="active-nav"><a href="{% url 'booking:block_list' %}">My blocks</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">Your ticket bookings</a></li>
+                                    <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a></li>
                                   </ul>
                                 </li>
@@ -84,10 +84,10 @@
                             <li class="visible-sm dropdown">
                                   <a href="#" class="dropdown-toggle" data-toggle="dropdown">More<b class="caret"></b></a>
                                   <ul class="dropdown-menu">
-                                    <li class="active-nav"><a href="{% url 'booking:bookings' %}">Your bookings</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:block_list' %}">Your blocks</a></li>
+                                    <li class="active-nav"><a href="{% url 'booking:bookings' %}">My bookings</a></li>
+                                    <li class="active-nav"><a href="{% url 'booking:block_list' %}">My blocks</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">Your ticket bookings</a></li>
+                                    <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a></li>
                                   </ul>
                                 </li>
