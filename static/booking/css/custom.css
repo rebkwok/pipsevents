@@ -421,6 +421,19 @@ a:visited>.btn, a:link>.btn {
     text-decoration: none;
 }
 
+.btn-info-link {
+    background-color: #FF6666;
+}
+
+.btn-info-link, .btn-new-block {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.btn-group > .btn-info-link {
+  border-color: whitesmoke;
+}
+
 .confirmed {
     color: green;
 }
@@ -467,9 +480,15 @@ td {
 	padding-left: 0;
 	padding-right: 0;
     font-size: 90%;
-	width: 9.2em;
+	width: 8.5em;
 	color: #fff !important;
     }
+
+@media(max-width:767px) {
+  .table-btn, .disabled .btn .btn-success .table-btn {
+    font-size: 80%;
+  }
+}
 
 .register-table-btn {
     width: 8em;
@@ -844,15 +863,18 @@ a > span.fa.fa-print {
 		word-wrap: normal !important;
 		white-space: normal !important;
     }
-	tr.compress>th {
+	tr.compress>th, tr.compress.table-tab>th {
 		font-size: 0.8em;
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
-    tr.compress>td {
-		font-size: 0.8em;
+  tr.compress>td, tr.compress.table-tab>td {
+		font-size: 0.8em !important;
 		word-wrap: normal !important;
 		white-space: normal !important;
+	}
+  tr.compress>td.date, tr.compress.table-tab>td.date {
+    white-space: nowrap !important;
 	}
 }
 
@@ -1045,13 +1067,36 @@ td span.label.label-rounded.label-spaces{
     text-align:center;
 }
 
+.label.label-rounded.label-location {
+    display: block;
+    border-radius: 25px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+td span.label.label-rounded.label-location{
+    display:inline-block;
+    text-align:center;
+    font-weight: normal;
+}
+
+.label-location-1 {
+  background-color: #4000FF
+  /*#F5A9A9;*/
+}
+
+.label-location-2 {
+  background-color: #FE2EF7
+  /*#A9BCF5;*/
+}
+
 tr.table-shaded{
     background-color: rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 768px) { /* use the max to specify at each container level */
     td.table-event > a {
-        width:200px;  /* adjust to desired wrapping */
+        width:150px;  /* adjust to desired wrapping */
         display:table;
         white-space: pre-wrap; /* css-3 */
         white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
@@ -1061,3 +1106,75 @@ tr.table-shaded{
     }
 }
 
+.panel.with-nav-tabs .panel-heading{
+    padding: 5px 5px 0 5px;
+}
+.panel.with-nav-tabs .nav-tabs{
+	border-bottom: none;
+}
+.panel.with-nav-tabs .nav-justified{
+	margin-bottom: -1px;
+}
+
+.panel.with-nav-tabs .panel-body{
+    padding: 5px;
+}
+
+/********************************************************************/
+/*** PANEL SUCCESS ***/
+.with-nav-tabs.panel-success .nav-tabs > li > a,
+.with-nav-tabs.panel-success .nav-tabs > li > a:hover,
+.with-nav-tabs.panel-success .nav-tabs > li > a:focus {
+	color: #3c763d;
+  background-color: #E6F8E0;
+}
+
+.with-nav-tabs.panel-success .nav-tabs > .open > a,
+.with-nav-tabs.panel-success .nav-tabs > .open > a:hover,
+.with-nav-tabs.panel-success .nav-tabs > .open > a:focus,
+.with-nav-tabs.panel-success .nav-tabs > li > a:hover,
+.with-nav-tabs.panel-success .nav-tabs > li > a:focus {
+	background-color: #d6e9c6;
+	border-color: transparent;
+}
+
+.with-nav-tabs.panel-success .nav-tabs > li.active > a,
+.with-nav-tabs.panel-success .nav-tabs > li.active > a:hover,
+.with-nav-tabs.panel-success .nav-tabs > li.active > a:focus {
+	background-color: #fff;
+	border-color: #d6e9c6;
+	border-bottom-color: transparent;
+}
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu {
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu > li > a {
+    color: #3c763d;
+}
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu > li > a:hover,
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu > li > a:focus {
+    background-color: #d6e9c6;
+}
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu > .active > a,
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu > .active > a:hover,
+.with-nav-tabs.panel-success .nav-tabs > li.dropdown .dropdown-menu > .active > a:focus {
+    color: #fff;
+    background-color: #3c763d;
+}
+
+tr.table-tab-header {
+    border-top: none;
+    border-bottom: solid darkgreen;
+}
+
+.location {
+    color: red;
+    font-size: x-large;
+}
+
+@media (max-width: 767px) {
+	.location {
+		font-size: medium;
+	}
+}
