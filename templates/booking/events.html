@@ -18,13 +18,12 @@
                         <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before booking.</p>
                     {% endif %}
                 {% endif %}
-                <p>Click on name for more details</p>
                 {% if not user.is_authenticated %}
                     <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
                 {% endif %}
-                <form class="filter-row" action="" method="get">
+                <form class="filter-row pull-right" action="" method="get">
                     <strong>Filter by: {{ form.name }}</strong>
-                </form><br>
+                </form>
 
                 {% if user.is_authenticated %}
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
@@ -38,7 +37,9 @@
                                     <th></th>
                                 {% endif %}
                                 <th>Date</th>
-                                <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% elif type == 'room_hire' %}Room Hire{% endif %}</th>
+                                <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% elif type == 'room_hire' %}Room Hire{% endif %}<br/>
+                                    <span class="studioadmin-help">Click for details</span>
+                                </th>
                                 {% if type == 'events' %}
                                     <th class="hidden-sm hidden-xs">Location</th>
                                 {% endif %}
