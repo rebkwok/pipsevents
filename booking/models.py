@@ -73,6 +73,10 @@ class Event(models.Model):
         ("Beaverbank Place", "The Watermelon Studio - Beaverbank Place"),
         ("Davidson's Mains", "The Watermelon Studio - Davidson's Mains")
     )
+    LOCATION_INDEX_MAP = {
+        "Beaverbank Place": 1,
+        "Davidson's Mains": 2
+    }
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType)
     description = models.TextField(blank=True, default="")
@@ -80,6 +84,7 @@ class Event(models.Model):
     location = models.CharField(
         max_length=255, choices=LOCATION_CHOICES, default="Beaverbank Place"
     )
+    location_index = models.PositiveIntegerField(default=1)
     max_participants = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Leave blank if no max number of participants"
@@ -159,6 +164,7 @@ class Event(models.Model):
         )
 
     def save(self, *args, **kwargs):
+        self.location_index = self.LOCATION_INDEX_MAP[self.location]
         if not self.cost:
             self.advance_payment_required = False
             self.payment_open = False

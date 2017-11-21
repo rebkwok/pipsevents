@@ -95,8 +95,7 @@ class EventListView(ListView):
                 'queryset': self.get_queryset().filter(location=location),
                 'location': location
             }
-            if location_obj['queryset']:
-                location_events.append(location_obj)
+            location_events.append(location_obj)
         context['location_events'] = location_events
         return context
 

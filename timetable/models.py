@@ -34,6 +34,7 @@ class Session(models.Model):
         max_length=255, choices=Event.LOCATION_CHOICES,
         default="Beaverbank Place"
     )
+    location_index = models.PositiveIntegerField(default=1)
     max_participants = models.PositiveIntegerField(
         null=True, blank=True, default=10,
         help_text="Leave blank if no max number of participants"
@@ -73,6 +74,7 @@ class Session(models.Model):
 
 @receiver(pre_save, sender=Session)
 def session_pre_save(sender, instance, *args, **kwargs):
+    instance.location_index = Event.LOCATION_INDEX_MAP[instance.location]
     if not instance.cost:
         instance.advance_payment_required = False
         instance.payment_open = False

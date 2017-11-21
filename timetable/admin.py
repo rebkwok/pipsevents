@@ -6,7 +6,7 @@ from ckeditor.widgets import CKEditorWidget
 
 
 class SessionForm(forms.ModelForm):
-    description = forms.CharField(widget=CKEditorWidget())
+    description = forms.CharField(widget=CKEditorWidget(), required=False)
 
     class Meta:
         widgets = {
