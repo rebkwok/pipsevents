@@ -59,7 +59,7 @@
                                     {% endif %}
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
                                 </td>
-                                <td class="table-center studioadmin-tbl">{{ event.instance.location }}</td>
+                                <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.instance.location_index }} label-rounded">{{ event.instance.location }}</span></td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">
