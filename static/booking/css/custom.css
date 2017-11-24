@@ -90,47 +90,6 @@ body {
     right: 0;
 }
 
-
-/* Half Page Height Carousel Customization */
-.carousel {
-	height: 60%;
-}
-
-.item,
-.active,
-.carousel-inner {
-	height: 100%;
-}
-
-.fill {
-	width: 100%;
-	height: 100%;
-	background-position: center;
-	background-size: cover;
-}
-
-/* Responsive Styles */
-@media (max-width: 767px) {
-
-	.carousel {
-		height: 100%;
-		/* increases the carousel height so it looks good on phones */
-	}
-	.caption-img {
-	    height: 20px;
-	}
-    .carousel-cap-text {
-    font-size: 100%;
-    }
-}
-
-/* carousel top caption */
-.caption-top {
-	top: 0;
-	right: 0;
-	bottom: auto;
-}
-
 .grid_ul {
 	padding: 0 0 0 0;
 	margin: 0 0 0 0;
@@ -471,7 +430,7 @@ a:visited>.btn, a:link>.btn {
 
 td {
     font-size: 85%;
-	padding: 4 !important;
+	padding: 4px !important;
 }
 
 .table-btn, .disabled .btn .btn-success .table-btn {
@@ -480,7 +439,7 @@ td {
 	padding-left: 0;
 	padding-right: 0;
     font-size: 90%;
-	width: 8.5em;
+	width: 8.75em;
 	color: #fff !important;
     }
 
@@ -530,6 +489,8 @@ td {
     padding-bottom: 0;
     margin-bottom: 0
 }
+
+
 a.disabled {
     color: #D8F6CE;
 	pointer-events: none;
@@ -1072,6 +1033,9 @@ td span.label.label-rounded.label-spaces{
     border-radius: 25px;
     padding-top: 4px;
     padding-bottom: 4px;
+    border-style: solid;
+    border-width: 2px;
+    background-color: #ffffff;
 }
 
 td span.label.label-rounded.label-location{
@@ -1081,13 +1045,13 @@ td span.label.label-rounded.label-location{
 }
 
 .label-location-1 {
-  background-color: #4000FF
-  /*#F5A9A9;*/
+  color: #FF6666;
+  border-color: #FF6666;
 }
 
 .label-location-2 {
-  background-color: #FE2EF7
-  /*#A9BCF5;*/
+  color: #5cb85c;
+  border-color: #5cb85c;
 }
 
 tr.table-shaded{
@@ -1105,6 +1069,7 @@ tr.table-shaded{
         word-wrap: break-word; /* Internet Explorer 5.5+ */
     }
 }
+
 
 .panel.with-nav-tabs .panel-heading{
     padding: 5px 5px 0 5px;
