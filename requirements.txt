@@ -1,7 +1,7 @@
-Django==1.11
+Django==1.11.7
 coverage==4.3.4
 dj-database-url==0.4.2
-django-allauth==0.32.0
+django-allauth==0.34.0
 django-braces==1.11.0
 django-crispy-forms==1.6.1
 django-datetime-widget==0.9.3
