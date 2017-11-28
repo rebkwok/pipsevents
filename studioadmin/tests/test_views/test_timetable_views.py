@@ -1,3 +1,5 @@
+import pytz
+
 from datetime import datetime
 from unittest.mock import patch
 from model_mommy import mommy
@@ -565,3 +567,50 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         self.assertEqual(Session.objects.count(), 7)
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 7)
+
+    @patch('studioadmin.forms.timetable_forms.timezone')
+    def test_upload_timetable_with_duplicate_existing_classes(self, mock_tz):
+        """
+        add duplicates to context for warning display
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 6, 1, 0, 0, tzinfo=timezone.utc
+        )
+        session = mommy.make_recipe('booking.tue_session', name='test')
+
+        # create date in Europe/London, convert to UTC
+        localtz = pytz.timezone('Europe/London')
+        local_ev_date = localtz.localize(datetime.combine(
+            datetime(2015, 6, 2, 0, 0, tzinfo=timezone.utc),
+            session.time)
+        )
+        converted_ev_date = local_ev_date.astimezone(pytz.utc)
+
+        # create duplicate existing classes for (tues) 2/6/15
+        mommy.make_recipe(
+            'booking.future_PC', name='test', event_type=session.event_type,
+            location=session.location,
+            date=converted_ev_date,
+            _quantity=2)
+        self.assertEqual(Event.objects.count(), 2)
+        form_data = {
+            'start_date': 'Mon 01 Jun 2015',
+            'end_date': 'Wed 03 Jun 2015',
+            'sessions': [session.id]
+        }
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:upload_timetable'), data=form_data
+        )
+        # no new classes created
+        self.assertEqual(Event.objects.count(), 2)
+
+        # duplicates in context for template warning
+        self.assertEqual(len(resp.context['duplicate_classes']), 1)
+        self.assertEqual(resp.context['duplicate_classes'][0]['count'], 2)
+        self.assertEqual(
+            resp.context['duplicate_classes'][0]['class'].name, 'test'
+        )
+        # existing in context for template warning (shows first of duplicates only)
+        self.assertEqual(len(resp.context['existing_classes']), 1)
+        self.assertEqual(resp.context['existing_classes'][0].name, 'test')
