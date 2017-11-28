@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User,  Permission
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -19,6 +20,7 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 
 from accounts.models import PrintDisclaimer
+from accounts.utils import active_print_disclaimer_cache_key
 
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
@@ -156,6 +158,9 @@ def toggle_print_disclaimer(request,  user_id):
     disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
     if disclaimer:
         disclaimer.delete()
+        cache.set(
+            active_print_disclaimer_cache_key(user_to_change), False, timeout=600
+        )
         ActivityLog.objects.create(
             log="Print disclaimer has been removed for "
             "{} {} ({}) by admin user {}".format(
@@ -167,6 +172,9 @@ def toggle_print_disclaimer(request,  user_id):
         )
     else:
         PrintDisclaimer.objects.create(user=user_to_change)
+        cache.set(
+            active_print_disclaimer_cache_key(user_to_change), True, timeout=600
+        )
         ActivityLog.objects.create(
             log="Print disclaimer recorded for {} {} ({}) "
             "by admin user {}".format(
