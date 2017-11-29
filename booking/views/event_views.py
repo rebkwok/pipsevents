@@ -82,6 +82,21 @@ class EventListView(ListView):
                 self.request.user
             )
 
+        location_events = [{
+            'index': 0,
+            'queryset': self.get_queryset(),
+            'location': 'All locations'
+        }]
+        for i, location in enumerate(
+                [lc[0] for lc in Event.LOCATION_CHOICES], 1
+        ):
+            location_obj = {
+                'index': i,
+                'queryset': self.get_queryset().filter(location=location),
+                'location': location
+            }
+            location_events.append(location_obj)
+        context['location_events'] = location_events
         return context
 
 

@@ -69,11 +69,22 @@ class EventType(models.Model):
 
 
 class Event(models.Model):
+    LOCATION_CHOICES = (
+        ("Beaverbank Place", "The Watermelon Studio - Beaverbank Place"),
+        ("Davidson's Mains", "The Watermelon Studio - Davidson's Mains")
+    )
+    LOCATION_INDEX_MAP = {
+        "Beaverbank Place": 1,
+        "Davidson's Mains": 2
+    }
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType)
     description = models.TextField(blank=True, default="")
     date = models.DateTimeField()
-    location = models.CharField(max_length=255, default="Watermelon Studio")
+    location = models.CharField(
+        max_length=255, choices=LOCATION_CHOICES, default="Beaverbank Place"
+    )
+    location_index = models.PositiveIntegerField(default=1)
     max_participants = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Leave blank if no max number of participants"
@@ -144,14 +155,16 @@ class Event(models.Model):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 
     def __str__(self):
-        return '{} - {}'.format(
+        return '{} - {} ({})'.format(
             str(self.name),
             self.date.astimezone(
                 pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M')
+            ).strftime('%d %b %Y, %H:%M'),
+            self.location
         )
 
     def save(self, *args, **kwargs):
+        self.location_index = self.LOCATION_INDEX_MAP[self.location]
         if not self.cost:
             self.advance_payment_required = False
             self.payment_open = False

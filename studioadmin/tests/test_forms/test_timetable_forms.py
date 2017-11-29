@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
-from booking.models import EventType
+from booking.models import Event, EventType
 
 from studioadmin.forms import DAY_CHOICES, TimetableSessionFormSet, \
     SessionAdminForm, UploadTimetableForm
@@ -84,7 +84,7 @@ class SessionAdminFormTests(TestCase):
             'contact_email': 'test@test.com',
             'contact_person': 'test',
             'cancellation_period': 24,
-            'location': 'Watermelon Studio',
+            'location': Event.LOCATION_CHOICES[0][0],
             'allow_booking_cancellation': True,
             'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }

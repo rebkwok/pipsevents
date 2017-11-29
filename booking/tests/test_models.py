@@ -138,7 +138,9 @@ class EventTests(TestCase):
             name='Test event',
             date=datetime(2015, 1, 1, tzinfo=timezone.utc)
         )
-        self.assertEqual(str(event), 'Test event - 01 Jan 2015, 00:00')
+        self.assertEqual(
+            str(event), 'Test event - 01 Jan 2015, 00:00 (Beaverbank Place)'
+        )
 
 
 class BookingTests(PatchRequestMixin, TestCase):

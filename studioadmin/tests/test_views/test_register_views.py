@@ -128,10 +128,10 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         mommy.make_recipe('booking.booking', event=event, no_show=True)
         resp = self._get_response(self.staff_user, 'events')
         self.assertIn(
-            '{} {} 2'.format(
+            '{} {} {} 2'.format(
                 event.date.astimezone(
                     pytz.timezone('Europe/London')
-                ).strftime('%a %d %b, %H:%M'), event.name
+                ).strftime('%a %d %b, %H:%M'), event.name, event.location
             ),
             format_content(resp.rendered_content)
         )
@@ -979,14 +979,13 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('select_events', form.fields)
         selected_events = form.fields['select_events'].choices
 
-        self.assertEqual(
+        self.assertCountEqual(
             [ev[0] for ev in selected_events],
             [event.id for event in events]
         )
 
     def test_show_events_by_selected_date_for_instructor(self):
-
-        events = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,

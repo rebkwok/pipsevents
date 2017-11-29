@@ -273,9 +273,10 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         url = reverse('booking:events')
         resp = self.client.get(url)
-        # Mon and Wed events are shaded
+        # Mon and Wed events are shaded, on the All locations and specific
+        # location tabs
         self.assertEqual(
-            resp.rendered_content.count('table-shaded'), 2
+            resp.rendered_content.count('table-shaded'), 4
         )
 
 

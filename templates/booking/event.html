@@ -35,7 +35,7 @@
                         <p>{{ event.description | safe }}</p>
                         </li>
                     {% endif %}
-                    <li class="list-group-item"><strong>Location:</strong>  {{ event.location }}</li>
+                    <li class="list-group-item"><strong>Location:</strong>  {{ event.location|full_location }}</li>
                     <li class="list-group-item"><strong>Date and time:</strong> {{ event.date |  date:"D d F, g:i a" }}</li>
                     {% if not past %}
                         {% if not event.cancelled %}

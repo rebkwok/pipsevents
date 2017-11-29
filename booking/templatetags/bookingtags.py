@@ -3,18 +3,16 @@ import pytz
 
 from datetime import datetime
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from accounts.utils import has_active_disclaimer, \
-    has_active_online_disclaimer, has_active_print_disclaimer, \
+from accounts.models import OnlineDisclaimer
+from accounts.utils import has_active_disclaimer, has_active_online_disclaimer, \
     has_expired_disclaimer
-from booking.models import Booking, EventVoucher, UsedBlockVoucher, \
+from booking.models import Booking, Event, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
 from payments.models import PaypalBookingTransaction
 from studioadmin.utils import int_str, chaffify
@@ -113,6 +111,7 @@ def abbr_username(user):
         return mark_safe("{}-</br>{}".format(user[:12], user[12:]))
     return user
 
+
 @register.filter
 def abbr_name(name):
     if len(name) > 8 and '-' in name:
@@ -124,11 +123,13 @@ def abbr_name(name):
         return mark_safe("{}-</br>{}".format(name[:8], name[8:]))
     return name
 
+
 @register.filter
 def abbr_email(email):
     if len(email) > 25:
         return "{}...".format(email[:22])
     return email
+
 
 @register.inclusion_tag('booking/sale.html')
 def sale_text():
@@ -311,6 +312,7 @@ def voucher_expired(voucher):
 
     return False
 
+
 @register.inclusion_tag('booking/includes/payment_button.html')
 def get_payment_button(event, user):
     booking = Booking.objects.get(event=event, user=user)
@@ -339,3 +341,9 @@ def has_paypal(booking):
         )
         return ppbs.exists()
     return False
+
+
+@register.filter
+def full_location(location):
+    locations = dict(Event.LOCATION_CHOICES)
+    return locations[location]
