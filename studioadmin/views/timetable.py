@@ -220,7 +220,7 @@ def upload_timetable_view(request,
             end_date = form.cleaned_data['end_date']
             session_ids = form.cleaned_data['sessions']
 
-            created_classes, existing_classes = \
+            created_classes, existing_classes, duplicate_classes = \
                 utils.upload_timetable(
                     start_date, end_date, session_ids, request.user
                 )
@@ -228,6 +228,7 @@ def upload_timetable_view(request,
                        'end_date': end_date,
                        'created_classes': created_classes,
                        'existing_classes': existing_classes,
+                       'duplicate_classes': duplicate_classes,
                        'sidenav_selection': 'upload_timetable'}
             return render(
                 request, 'studioadmin/upload_timetable_confirmation.html',

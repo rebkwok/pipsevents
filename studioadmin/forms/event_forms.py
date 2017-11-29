@@ -294,7 +294,7 @@ class EventAdminForm(forms.ModelForm):
                 attrs={'class': 'form-control container-fluid'},
                 config_name='studioadmin_min',
             ),
-            'location': forms.TextInput(
+            'location': forms.Select(
                 attrs={'class': "form-control"}
             ),
             'max_participants': forms.TextInput(

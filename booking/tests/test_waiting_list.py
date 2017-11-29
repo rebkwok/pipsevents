@@ -782,7 +782,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         self.assertEqual(
             mail.outbox[0].subject,
             "{} Booking for {} cancelled".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event.name
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
             )
         )
         self.assertIn(
@@ -849,7 +849,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         self.assertEqual(
             mail.outbox[0].subject,
             "{} Booking for {} cancelled".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event.name
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
             )
         )
         self.assertEqual(
@@ -920,7 +920,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         self.assertEqual(
             mail.outbox[0].subject,
             "{} Booking for {} cancelled".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event.name
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
             )
         )
         self.assertEqual(

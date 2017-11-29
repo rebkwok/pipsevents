@@ -15,7 +15,7 @@
                     <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                     {% else %}
                     <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
-                    {% endif %}
+                    {% endif %} ({{ event.location }})
                     on {{ event.date | date:"D d F, g:i a" }}</h2>
             </div>
             <div class="panel-body">

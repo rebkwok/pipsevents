@@ -153,7 +153,10 @@ class EventTypeListFilter(admin.SimpleListFilter):
 
 class EventForm(forms.ModelForm):
 
-    description = forms.CharField(widget=CKEditorWidget(attrs={'class':'container-fluid'}))
+    description = forms.CharField(
+        widget=CKEditorWidget(attrs={'class':'container-fluid'}),
+        required=False
+    )
 
     class Meta:
         widgets = {
@@ -178,8 +181,8 @@ class EventAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Event details', {
             'fields': (
-                'name', 'date', 'location', 'event_type', 'max_participants',
-                'description')
+                'name', 'date', 'location', 'location_index', 'event_type',
+                'max_participants', 'description')
         }),
         ('Contacts', {
             'fields': ('contact_person', 'contact_email', 'email_studio_when_booked')
