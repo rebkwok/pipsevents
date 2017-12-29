@@ -134,8 +134,20 @@ def abbr_email(email):
 @register.inclusion_tag('booking/sale.html')
 def sale_text():
     now = timezone.now()
+    sale_title = os.environ.get('SALE_TITLE')
     sale_start = os.environ.get('SALE_ON')
     sale_end = os.environ.get('SALE_OFF')
+    sale_code = os.environ.get('SALE_CODE')
+
+    active_sale_code = None
+    if sale_code:
+        try:
+            voucher = EventVoucher.objects.get(code=sale_code)
+            if voucher.has_started and not voucher.has_expired:
+                active_sale_code = sale_code
+        except EventVoucher.DoesNotExist:
+            pass
+
     if sale_start and sale_end:
         sale_start = datetime.strptime(sale_start, '%d-%b-%Y').replace(
             tzinfo=timezone.utc
@@ -146,8 +158,10 @@ def sale_text():
         if now > sale_start and now < sale_end:
             return {
                 'is_sale_period': True,
+                'sale_title': sale_title,
                 'sale_start': sale_start,
-                'sale_end': sale_end
+                'sale_end': sale_end,
+                'active_sale_code': active_sale_code
             }
     return {'is_sale_period': False}
 

@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from accounts.models import PrintDisclaimer, OnlineDisclaimer
 
-from booking.models import Event, Booking
+from booking.models import Event, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content
 
@@ -26,6 +26,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
+
+    def tearDown(self):
+        sale_env_vars = ['SALE_ON', 'SALE_OFF', 'SALE_CODE', 'SALE_TITLE']
+        for var in sale_env_vars:
+            if var in os.environ:
+                del os.environ[var]
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:events')
@@ -200,7 +206,109 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_OFF'] = '15-Jan-2015'
         resp = self.client.get(reverse('booking:events'))
 
-        self.assertIn('JANUARY SALE NOW ON', resp.rendered_content)
+        self.assertIn('SALE NOW ON', resp.rendered_content)
+        # no valid voucher
+        self.assertNotIn('Use code', resp.rendered_content)
+
+        # with a sale title
+        os.environ['SALE_TITLE'] = 'Test'
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('TEST SALE NOW ON', resp.rendered_content)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    def test_sale_message_template_tag_sale_off(self, mock_tz):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        os.environ['SALE_ON'] = '04-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+        resp = self.client.get(reverse('booking:events'))
+
+        self.assertNotIn('SALE NOW ON', resp.rendered_content)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    @patch('booking.models.timezone')
+    def test_sale_message_template_tag_voucher_code(self, mock_tz, mock_tz1):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz1.utc=timezone.utc
+
+        voucher = mommy.make(
+            EventVoucher, code='testcode',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2015, 1, 15, tzinfo=timezone.utc)
+        )
+        os.environ['SALE_ON'] = '01-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('SALE NOW ON', resp.rendered_content)
+
+        # valid code but no env var set
+        self.assertFalse(voucher.has_expired)
+        self.assertTrue(voucher.has_started)
+        self.assertNotIn('Use code testcode', resp.rendered_content)
+
+        # set env var
+        os.environ['SALE_CODE'] = 'testcode'
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('Use code testcode', resp.rendered_content)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    @patch('booking.models.timezone')
+    def test_sale_message_template_tag_expired_voucher_code(
+            self, mock_tz, mock_tz1
+    ):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz1.utc=timezone.utc
+
+        voucher = mommy.make(
+            EventVoucher, code='testcode',
+            start_date=datetime(2014, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2014, 1, 15, tzinfo=timezone.utc)
+        )
+        os.environ['SALE_ON'] = '01-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+        os.environ['SALE_CODE'] = 'testcode'
+
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('SALE NOW ON', resp.rendered_content)
+
+        self.assertTrue(voucher.has_expired)
+        self.assertTrue(voucher.has_started)
+        self.assertNotIn('Use code testcode', resp.rendered_content)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    @patch('booking.models.timezone')
+    def test_sale_message_template_tag_not_started_voucher_code(
+            self, mock_tz, mock_tz1
+    ):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz1.utc=timezone.utc
+
+        voucher = mommy.make(
+            EventVoucher, code='testcode',
+            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2016, 1, 15, tzinfo=timezone.utc)
+        )
+        os.environ['SALE_ON'] = '01-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+        os.environ['SALE_CODE'] = 'testcode'
+
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('SALE NOW ON', resp.rendered_content)
+
+        self.assertFalse(voucher.has_expired)
+        self.assertFalse(voucher.has_started)
+        self.assertNotIn('Use code testcode', resp.rendered_content)
 
     def test_users_disclaimer_status_in_context(self):
         user = mommy.make_recipe('booking.user')
