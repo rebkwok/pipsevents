@@ -8,45 +8,46 @@
 <div class="container-fluid row">
     <h1>My blocks</h1>
 
+    <div>
+        {% if not disclaimer %}
+            {% if expired_disclaimer %}
+                Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before buying a block.
+            {% else %}
+                Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
+            {% endif %}
+        {% elif can_book_block %}
+            <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
+        {% endif %}
+    </div>
+    <div class="btn-group btn-group-sm pull-right">
+        <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+        {% show_shopping_basket request.user %}
+    </div>
+
+    {% if has_unpaid_block %}
+        <div>
+            {% if not valid_voucher %}
+                <form name="voucher_form" class="form-inline" method="post" action="">
+                    {% csrf_token %}
+                        <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
+                        <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
+                        {% if voucher_error %}
+                            <p class="errorlist">{{ voucher_error }}</p>
+                        {% endif %}
+                </form>
+            {% else %}
+                <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
+                    <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
+                <p class="errorlist">Note: Voucher has been applied to all qualifying blocks below; it can be used a maximum of {{ voucher.max_per_user }}
+                {% if voucher.max_per_user == 1 %}time{% else %}times{% endif %}
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+
     <div class="row>">
         <div class="col-sm-12">
-            <div>
-                <p>
-                    {% if not disclaimer %}
-                        {% if expired_disclaimer %}
-                            Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before buying a block.</p>
-                        {% else %}
-                            Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
-                        {% endif %}
-                    {% elif can_book_block %}
-                        <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
-                    {% endif %}
-                    <span class="btn-group btn-group-sm pull-right">
-                        <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
-                        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
-                    </span>
-                </p>
-            </div>
-            <div>
-                {% if has_unpaid_block %}
-                    {% if not valid_voucher %}
-                        <form name="voucher_form" class="form-inline" method="post" action="">
-                            {% csrf_token %}
-                                <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
-                                <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
-                                {% if voucher_error %}
-                                    <p class="errorlist">{{ voucher_error }}</p>
-                                {% endif %}
-                        </form>
-                    {% else %}
-                        <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
-                            <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
-                        <p class="errorlist">Note: Voucher has been applied to all qualifying blocks below; it can be used a maximum of {{ voucher.max_per_user }}
-                        {% if voucher.max_per_user == 1 %}time{% else %}times{% endif %}
-                        </p>
-                    {% endif %}
-                {% endif %}
-            </div>
             {% if blockformlist %}
                 <div class="panel panel-success">
                     <div class="table-responsive">

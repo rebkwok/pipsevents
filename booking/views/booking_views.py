@@ -740,9 +740,12 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
                              'class which has been added to ' \
                              '<a href="/blocks">your blocks</a>!  '
             else:
-                msg += 'Go to <a href="/blocks">Your Blocks</a> to ' \
+                msg += 'Go to <a href="/blocks">My Blocks</a> to ' \
                              'buy a new one.'
             messages.info(self.request, mark_safe(msg))
+
+        if 'shopping_basket' in form.data:
+            return HttpResponseRedirect(reverse('booking:shopping_basket'))
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1156,3 +1159,72 @@ def disclaimer_required(request):
         'booking/disclaimer_required.html',
         {'has_expired_disclaimer': has_expired_disclaimer(request.user)}
     )
+
+
+def shopping_basket(request):
+
+    unpaid_bookings = Booking.objects.filter(
+        user=request.user, event__payment_open=True, paid=False, status='OPEN',
+        event__date__gte=timezone.now(),
+        no_show=False
+    )
+    include_warning = bool([True for bk in unpaid_bookings if not bk.can_cancel])
+    block_booking_available = bool(
+        [True for booking in unpaid_bookings if booking.has_available_block]
+    )
+    return render(
+        request,
+        'booking/shopping_basket.html',
+        {
+            'unpaid_bookings': unpaid_bookings,
+            'include_warning': include_warning,
+            'block_booking_available': block_booking_available
+        }
+    )
+
+
+def update_block_bookings(request):
+    unpaid_bookings = Booking.objects.filter(
+        user=request.user, event__payment_open=True, paid=False, status='OPEN',
+        event__date__gte=timezone.now(),
+        no_show=False
+    )
+    block_booked = []
+    for booking in unpaid_bookings:
+        active_block = _get_active_user_block(request.user, booking)
+        if active_block:
+            booking.block = active_block
+            booking.paid = True
+            booking.payment_confirmed = True
+
+            # check for existence of free child block on pre-saved booking
+            has_free_block_pre_save = False
+            if booking.block and booking.block.children.exists():
+                has_free_block_pre_save = True
+
+            booking.save()
+            block_booked.append(booking)
+            _get_block_status(booking, request)
+
+            if not booking.block.active_block():
+                if booking.block.children.exists() \
+                        and not has_free_block_pre_save:
+                    msg = 'You have just used the last space in your block and ' \
+                          'have qualified for a extra free class '
+                else:
+                    msg = 'You have just used the last space in your block. Go ' \
+                          'to <a href="/blocks">My Blocks</a> to buy a new one.'
+                messages.info(request, mark_safe(msg))
+
+    if block_booked:
+        messages.info(request, "Blocks used for {} bookings".format(len(block_booked)))
+    else:
+        messages.info(
+            request,
+            mark_safe('No blocks available to use for these bookings. Go to '
+            '<a href="/blocks">My Blocks</a> to buy a block.')
+        )
+
+    return HttpResponseRedirect(reverse('booking:shopping_basket'))
+
+

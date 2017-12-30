@@ -10,7 +10,8 @@ from booking.views import already_cancelled, already_paid, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
     TicketBookingView, TicketBookingCancelView, update_booking_cancelled, \
     cancellation_period_past, duplicate_booking, fully_booked, \
-    has_active_block, permission_denied, ticket_purchase_expired
+    has_active_block, permission_denied, ticket_purchase_expired, \
+    shopping_basket, update_block_bookings
 
 urlpatterns = [
     url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
@@ -23,6 +24,8 @@ urlpatterns = [
         name='update_booking_cancelled'),
     url(r'^booking/update/(?P<pk>\d+)/paid/$',
         already_paid, name='already_paid'),
+    url(r'^booking/update-block-bookings/$',
+        update_block_bookings, name='update_block_bookings'),
     url(r'^booking/cancel/(?P<pk>\d+)/$', BookingDeleteView.as_view(),
         name='delete_booking'),
     url(r'^booking/cancel/(?P<pk>\d+)/already_cancelled/$',
@@ -96,6 +99,10 @@ urlpatterns = [
     url(
         r'^disclaimer-required/$', disclaimer_required,
         name='disclaimer_required'
+    ),
+    url(
+        r'^bookings/shopping-basket$', shopping_basket,
+        name='shopping_basket'
     ),
     url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

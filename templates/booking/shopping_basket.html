@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block content %}
+
+
+<div class="container-fluid row">
+        <h1>Shopping Basket</h1>
+
+    <div class="btn-group btn-group-sm pull-right" role="group">
+        <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+    </div>
+
+
+    {% if unpaid_bookings %}
+    {% if block_booking_available %}
+        <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="block_book_all" value="True"/>
+            <input type="hidden" name="shopping_basket" value="True"/>
+            <input class="btn btn-success" type="submit" value="Use blocks for all classes"/><span class="studioadmin-help">
+                If you have valid blocks, this will pay for all applicable classes with available blocks.
+        </span>
+        </form>
+    {% else %}
+        You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.
+    {% endif %}
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-success">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            <th>Booking</th>
+                            <th class="table-center">Cost</th>
+                            <th></th>
+                        </tr>
+                        {% for booking in unpaid_bookings %}
+                            <tr class='compress'>
+                                <td>
+                                    {% if booking.event.event_type.event_type == 'EV' %}
+                                    <a href="{% url 'booking:event_detail' booking.event.slug %}">
+                                        {{ booking.event.name }}</a>
+                                    {% elif booking.event.event_type.event_type == 'CL' %}
+                                    <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
+                                        {{ booking.event.name }}</a>
+                                    {% else %}
+                                    <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
+                                        {{ booking.event.name }}</a>
+                                    {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                                    {% if not booking.can_cancel %}**{% endif %}
+                                </td>
+                                <td class="table-center">£{{ booking.event.cost }}</td>
+                                <td>
+                                    {% if booking.has_available_block %}
+                                    <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="block_book" value="True"/>
+                                        <input type="hidden" name="shopping_basket" value="True"/>
+                                        <input class="btn btn-success table-btn" type="submit" value="Use block"/>
+                                    </form>
+                                    {% endif %}
+                                    </td>
+                            </tr>
+                        {% endfor %}
+                        {% if include_warning %}
+                        <tr><td colspan="3">** Note these bookings will not be eligible for refunds or transfer credit once paid</td></tr>
+                        {% endif %}
+                        <tr><td colspan="3">
+                            <h3>Total: £ {{ unpaid_bookings | total_cost}}</h3>
+                            {% if block_booking_available %}
+                                Note: This total include ALL unpaid bookings. You have blocks available;
+                                use the button above to apply blocks.
+                            {% endif %}
+                        </td></tr>
+                    </table>
+
+                    <table>
+                        <tr></tr>
+                    </table>
+                </div>
+
+
+        </div>
+        </div>
+    </div>
+    {% else %}
+        Your basket is empty
+    {% endif %}
+
+</div>
+
+{% endblock content %}

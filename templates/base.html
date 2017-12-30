@@ -22,14 +22,14 @@
       {% if is_debug_on %}
             <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap.min.css' %}">
             <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
-            <link rel="stylesheet" href="{% static 'booking/bootstrap/font-awesome.min.css' %}">
+          <script defer src="https://use.fontawesome.com/releases/v5.0.2/js/all.js"></script>
         {% else %}
             <!-- Bootstrap core CSS -->
             <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
             <!-- Bootstrap theme -->
             <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
            <!-- Font awesome -->
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+          <script defer src="https://use.fontawesome.com/releases/v5.0.2/js/all.js"></script>
         {% endif %}
 
         <!-- Custom styles --->
@@ -69,7 +69,6 @@
                         <li class="active-nav"><a href="{% url 'booking:room_hires' %}">Room Hire</a></li>
                         <li class="active-nav"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
                         {% if request.user.is_authenticated %}
-
                             <li class="hidden-sm dropdown">
                                   <a href="#" class="dropdown-toggle" data-toggle="dropdown">My Bookings and Blocks<b class="caret"></b></a>
                                   <ul class="dropdown-menu">
@@ -91,6 +90,7 @@
                                     <li class="active-nav"><a href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a></li>
                                   </ul>
                                 </li>
+                            {% show_shopping_basket_menu request.user %}
                         {% endif %}
                         {% endblock %}
                     </ul>

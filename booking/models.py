@@ -444,6 +444,27 @@ class Booking(models.Model):
             or self.payment_confirmed
     space_confirmed.boolean = True
 
+    @property
+    def can_cancel(self):
+        if not self.event.allow_booking_cancellation:
+            return False
+        if self.event.cancellation_period and \
+            self.event.date < (timezone.now() + timedelta(hours=self.event.cancellation_period)):
+            return False
+        return True
+
+    @property
+    def has_available_block(self):
+        available_blocks = [
+            block for block in
+            Block.objects.filter(
+                user=self.user, block_type__event_type=self.event.event_type
+            )
+            if block.active_block()
+        ]
+        return bool(available_blocks)
+
+
     def _old_booking(self):
         if self.pk:
             return Booking.objects.get(pk=self.pk)

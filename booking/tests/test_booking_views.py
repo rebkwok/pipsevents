@@ -272,7 +272,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         booking.save()
         resp = self._get_response(self.user)
         self.assertIn(
-            '<span class="not-confirmed fa fa-close"></span>',
+            '<span class="not-confirmed fa fa-times"></span>',
             resp.rendered_content
         )
 

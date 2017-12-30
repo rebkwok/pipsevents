@@ -449,6 +449,16 @@ td {
   }
 }
 
+.table-cancel-btn{
+  width: 6em;
+}
+
+.table-pay-btn {
+  width: 2.75em;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
 .table-form {
   margin-bottom: 0;
 }
@@ -1146,4 +1156,19 @@ tr.table-tab-header {
 	.location {
 		font-size: medium;
 	}
+}
+
+a.basket-icon:link, a.basket-icon:visited {
+  color: grey;
+}
+
+span.basket-count {
+  color: white;
+  font-size: x-small;
+  border-radius: 15%;
+  padding-left: 3px;
+  padding-right: 3px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  background-color: red;
 }
