@@ -4,24 +4,42 @@
 
 {% block studioadmincontent %}
 
-{{ form.media }}
+<h2>Upload timetable</h2>
 
-<div class="extra-top-margin container-fluid row">
+<div class="row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
+
+        <div class="panel with-nav-tabs panel-success">
+
+{#                    location_forms is a list of objs passed from view: #}
+{#                    [#}
+{#                        {form: form, location: 'Beaverbank Place', index: 0}#}
+{#                        {form: form, location: 'Other', index: 1}#}
+{#                    ]  #}
             <div class="panel-heading">
-                <h2 class="panel-title">Upload timetable</h2>
+                <ul class="nav nav-tabs">
+                    {% for location_obj in location_forms %}
+                        <li class="nav-tab {%  if location_obj.index == 0 %}active{%  endif %}"><a href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a></li>
+                    {%  endfor %}
+                </ul>
             </div>
+
+
             <div class="panel-body">
-                {% if form.errors %}
-                    <div class="form-error">
-                        <p>The operation could not be performed because one or more error(s) occurred.<br />Please resubmit the form after making the following changes:</p>
-                        <ul>
-                        {% for field in form %}
-                        {% if field.errors %}<li>{{ field.name|format_field_name }}: {{ field.errors|striptags }}</li>{% endif %}
-                        {% endfor %}
-                        </ul>
-                    </div>
+                <div class="tab-content">
+                {% for location_obj in location_forms %}
+                    <div class="tab-pane fade {%  if location_obj.index == 0 %}in active{% endif %}" id="tab{{ location_obj.index }}">
+
+                    {{ location_obj.form.media }}
+                    {% if location_obj.form.errors %}
+                        <div class="form-error">
+                            <p>The operation could not be performed because one or more error(s) occurred.<br />Please resubmit the form after making the following changes:</p>
+                            <ul>
+                            {% for field in location_obj.form %}
+                            {% if field.errors %}<li>{{ field.name|format_field_name }}: {{ field.errors|striptags }}</li>{% endif %}
+                            {% endfor %}
+                            </ul>
+                        </div>
                     {% endif %}
 
                     <div>Upload classes from the current timetable for the following date range:</div>
@@ -31,7 +49,7 @@
 
                     <div class="form-group-sm">
 
-                        {% for field in form %}
+                        {% for field in location_obj.form %}
 
                         <div class="form-group">
                                 <label class="control-label col-sm-2" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
@@ -50,13 +68,6 @@
                         {% endfor %}
                     </div>
 
-                    <div class="form-group">
-                        <div class="col-sm-10">
-                            <input checked="checked" id="select-all" type="checkbox">
-                            <label for="select-all"><span class="header-not-bold">Select/deselect all</span></label>
-                        </div>
-
-                    </div>
 
                     <div class="form-group">
                         <div class="col-sm-offset-2 col-sm-10">
@@ -65,6 +76,17 @@
                     </div>
                 </form>
             </div>
+            {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <input checked="checked" id="select-all" type="checkbox">
+                    <label for="select-all"><span class="header-not-bold">Select/deselect all</span></label>
+                </div>
+
+            </div>
+            </div>
+        </div>
+
 
         </div>
     </div>
