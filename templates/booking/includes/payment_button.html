@@ -1,4 +1,7 @@
 {% if unpaid %}
 <a {% if not payment_open %} class="disabled"{% endif %} href="{% url 'booking:update_booking' booking.id %}"><div id='pay_button' class="btn btn-info table-btn {% if not payment_open %}disabled{% endif %}">Pay now</div></a>
 {% endif %}<div class="inc-btm-space"></div>
-<a href="{% url 'booking:delete_booking' booking.id %}"><div class="btn btn-danger table-btn">Cancel booking</div></a>
+<form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="get">
+    <input class="btn btn-danger table-btn" type="submit" value="Cancel booking"/>
+    <input class="hide" type="text" name="next" value="{{ ev_type }}" />
+</form>
