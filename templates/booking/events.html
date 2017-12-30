@@ -94,7 +94,13 @@
                                                                     {% if event.id in auto_cancelled_events %}
                                                                         <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                                                     {% else %}
-                                                                        <a href="{% url 'booking:book_event' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>
+                                                                        <form class="table-form" action="{% url 'booking:create_booking' event.slug %}" method="post">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="event" value={{event.id}}>
+                                                                            <input type="hidden" name="filter" value="{{ request.GET.name }}">
+                                                                            <input id="book_button" class="btn btn-success table-btn" type="submit" value="Book"/>
+                                                                        </form>
+                                                                        <!--<a href="{% url 'booking:create_booking' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>-->
                                                                     {% endif %}
                                                             {% elif event.external_instructor %}
                                                                 {% if type == 'events' %}
