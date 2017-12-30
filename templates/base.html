@@ -142,7 +142,7 @@
           </div>
         {% endif %}
 
-      {% sale_text %}
+    {% block sale %}{% sale_text %}{% endblock sale %}
 
     {% block body %}
         {% block content %}
