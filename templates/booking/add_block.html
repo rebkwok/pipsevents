@@ -19,7 +19,7 @@
                 {% for type in block_types %}
                     <p>{{ type.event_type.subtype }}</p>
                     <ul>
-                        <li>Cost: £{{ type.cost }}</li>
+                        <li>Cost: £{{ type.cost }} (incl VAT)</li>
                         <li>Number of classes in block: {{ type.size }}</li>
                         <li>Time until block expires: {{ type.duration }} months</li>
                     </ul>
