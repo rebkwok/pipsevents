@@ -1,0 +1,12 @@
+{% if bookings %}
+    {% if menu %}
+        <li><a href="{% url 'booking:shopping_basket' %}">
+            <i class="fa fa-shopping-basket fa-lg"></i><span class="basket-count">{{ count }}</span>
+        </a></li>
+    {% else %}
+        <a href="{% url 'booking:shopping_basket' %}" class="basket-icon">
+            <i class="fa fa-shopping-basket fa-2x"></i><span class="basket-count">{{ count }}</span>
+            View basket
+        </a>
+    {% endif %}
+{% endif %}

@@ -2,6 +2,7 @@ import os
 import pytz
 
 from datetime import datetime
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -284,7 +285,9 @@ def format_paid_status(booking):
     elif booking.event.cost and booking.paid:
         return mark_safe('<span class="confirmed fa fa-check"></span>')
     elif booking.event.cost and not booking.paid:
-        return mark_safe('<span class="not-confirmed fa fa-close"></span>')
+        if booking.paypal_pending:
+            return mark_safe('<span class="not-confirmed">PayPal pending</span>')
+        return mark_safe('<span class="not-confirmed fa fa-times"></span>')
     else:
         return mark_safe('<strong>N/A</strong>')
 
@@ -337,7 +340,7 @@ def get_payment_button(event, user, type):
             'payment_open': booking.event.payment_open,
             'ev_type': type
         }
-    return {'booking': booking}
+    return {'booking': booking, 'unpaid': False, 'ev_type': type}
 
 
 @register.assignment_tag
@@ -362,3 +365,25 @@ def has_paypal(booking):
 def full_location(location):
     locations = dict(Event.LOCATION_CHOICES)
     return locations[location]
+
+
+def get_shopping_basket_icon(user, menu=False):
+    bookings = Booking.objects.filter(
+        user=user, paid=False, status='OPEN',
+        event__date__gte=timezone.now(),
+        no_show=False, paypal_pending=False
+    )
+
+    return {'bookings': bookings, 'count': bookings.count(), 'menu': menu}
+
+@register.inclusion_tag('booking/includes/shopping_basket_icon.html')
+def show_shopping_basket_menu(user):
+    return get_shopping_basket_icon(user, menu=True)
+
+@register.inclusion_tag('booking/includes/shopping_basket_icon.html')
+def show_shopping_basket(user):
+    return get_shopping_basket_icon(user)
+
+@register.filter
+def voucher_applied_cost(cost, discount):
+    return Decimal(float(cost) * ((100 - discount) / 100)).quantize(Decimal('.05'))

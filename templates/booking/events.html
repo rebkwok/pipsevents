@@ -31,6 +31,7 @@
 
                 {% if user.is_authenticated %}
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+                    {% show_shopping_basket request.user %}
                 {% endif %}
                         <div class="panel with-nav-tabs panel-success">
 
