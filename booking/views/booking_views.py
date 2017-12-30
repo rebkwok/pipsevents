@@ -1077,9 +1077,12 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                     messages.error(self.request, "An error occured, please contact "
                         "the studio for information")
 
-        return HttpResponseRedirect(self.get_success_url())
+        next = request.GET.get('next')
+        return HttpResponseRedirect(self.get_success_url(next))
 
-    def get_success_url(self):
+    def get_success_url(self, next):
+        if next:
+            return reverse('booking:{}'.format(next))
         return reverse('booking:bookings')
 
 

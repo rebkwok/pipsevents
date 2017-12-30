@@ -78,7 +78,7 @@
                                                 {% if user.is_authenticated %}
                                                     <td class="table-center">
                                                         {% if event.id in booked_events %}
-                                                            {% get_payment_button event user %}
+                                                            {% get_payment_button event user type %}
                                                         {% elif event not in booked_events %}
                                                             {% if not disclaimer %}
                                                                 {% if type == 'lessons' %}
@@ -100,7 +100,6 @@
                                                                             <input type="hidden" name="filter" value="{{ request.GET.name }}">
                                                                             <input id="book_button" class="btn btn-success table-btn" type="submit" value="Book"/>
                                                                         </form>
-                                                                        <!--<a href="{% url 'booking:create_booking' event.slug %}"><div id="book_button" class="btn btn-success table-btn">Book</div></a>-->
                                                                     {% endif %}
                                                             {% elif event.external_instructor %}
                                                                 {% if type == 'events' %}
