@@ -449,6 +449,10 @@ td {
   }
 }
 
+.table-form {
+  margin-bottom: 0;
+}
+
 .register-table-btn {
     width: 8em;
 }

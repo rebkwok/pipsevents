@@ -73,7 +73,7 @@
                                                     </form>
                                                 {% endif %}
                                             {% elif bookingform.booking_status == 'CANCELLED' %}
-                                                <div type="button" id="rebook_button_disabled" class="btn btn-success table-btn booking-btn disabled">Rebook</div>
+                                                <div type="button" id="rebook_button_disabled" class="btn btn-success table-btn disabled">Rebook</div>
                                             {% endif %}
                                         {% else %}
                                             {% if bookingform.booking.auto_cancelled %}
@@ -84,7 +84,7 @@
                                                 >Rebook</div>
                                             {% else %}
                                             <a href="{% url 'booking:book_event' bookingform.booking.event.slug %}">
-                                                <div type="button" id="rebook_button" class="btn btn-success table-btn booking-btn">Rebook</div></a>
+                                                <div type="button" id="rebook_button" class="btn btn-success table-btn">Rebook</div></a>
                                             {% endif %}
                                         {% endif %}
                                     </td>

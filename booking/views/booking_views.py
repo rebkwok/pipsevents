@@ -235,7 +235,7 @@ class BookingCreateView(
                 )
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
-        except Booking.DoesNotExist:
+        except (Booking.DoesNotExist):
             return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_initial(self):
@@ -546,6 +546,19 @@ class BookingCreateView(
                 reverse('booking:update_booking', args=[booking.id])
             )
         return HttpResponseRedirect(reverse('booking:bookings'))
+
+
+class BookingMultiCreateView(BookingCreateView):
+
+    def form_valid(self, form):
+        super(BookingMultiCreateView, self).form_valid(form)
+        filter = form.data.get('filter')
+        if filter:
+            return HttpResponseRedirect(
+                reverse('booking:{}'.format(self.ev_type))
+                + '?name={}'.format(filter)
+            )
+        return HttpResponseRedirect(reverse('booking:{}'.format(self.ev_type)))
 
 
 class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView):

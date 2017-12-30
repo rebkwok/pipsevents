@@ -3,7 +3,8 @@ from django.views.generic import RedirectView
 from booking.views import already_cancelled, already_paid, \
     disclaimer_required, \
     EventListView, EventDetailView, BookingListView, \
-    BookingHistoryListView, BookingCreateView, BookingUpdateView, \
+    BookingHistoryListView, BookingCreateView, BookingMultiCreateView, \
+    BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockDeleteView, \
     BlockListView, TicketBookingListView, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
@@ -35,6 +36,8 @@ urlpatterns = [
         name='fully_booked'),
     url(r'^events/(?P<event_slug>[\w-]+)/book/$', BookingCreateView.as_view(),
         name='book_event'),
+    url(r'^events/(?P<event_slug>[\w-]+)/create-booking/$', BookingMultiCreateView.as_view(),
+        name='create_booking'),
     url(
         r'^events/(?P<slug>[\w-]+)/$', EventDetailView.as_view(),
         {'ev_type': 'event'}, name='event_detail'
