@@ -614,3 +614,81 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         # existing in context for template warning (shows first of duplicates only)
         self.assertEqual(len(resp.context['existing_classes']), 1)
         self.assertEqual(resp.context['existing_classes'][0].name, 'test')
+
+    def test_get_upload_timetable_multiple_locations(self):
+        session_bp = mommy.make_recipe(
+            'booking.tue_session', name='test', location="Beaverbank Place"
+        )
+        session_dm = mommy.make_recipe(
+            'booking.tue_session', name='test1', location="Davidson's Mains"
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(reverse('studioadmin:upload_timetable'))
+
+        # returns 3 location form with all locations, BP and DM
+        self.assertEqual(
+            len(resp.context['location_forms']), 3
+        )
+        self.assertEqual(
+            resp.context['location_forms'][0]['location'], "All locations"
+        )
+        self.assertEqual(
+            resp.context['location_forms'][1]['location'], "Beaverbank Place"
+        )
+        self.assertEqual(
+            resp.context['location_forms'][2]['location'], "Davidson's Mains"
+        )
+
+        self.assertCountEqual(
+            [
+                sess.id for sess in
+                resp.context['location_forms'][0]['form'].fields['sessions'].queryset
+            ],
+            [session_bp.id, session_dm.id]
+        )
+        self.assertCountEqual(
+            [
+                sess.id for sess in
+                resp.context['location_forms'][1]['form'].fields['sessions'].queryset
+            ],
+            [session_bp.id]
+        )
+        self.assertCountEqual(
+            [
+                sess.id for sess in
+                resp.context['location_forms'][2]['form'].fields['sessions'].queryset
+            ],
+            [session_dm.id]
+        )
+
+    def test_upload_timetable_with_invalid_form_returns_all_locations(self):
+        mommy.make_recipe(
+            'booking.tue_session', name='test', location="Beaverbank Place"
+        )
+        session_dm = mommy.make_recipe(
+            'booking.tue_session', name='test1', location="Davidson's Mains"
+        )
+
+        form_data = {
+            'start_date': 'invalid date',
+            'end_date': 'Wed 03 Jun 2015',
+            'sessions': [session_dm.id]
+        }
+
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(
+            reverse('studioadmin:upload_timetable'), data=form_data
+        )
+
+        # returns one location form with all locations
+        self.assertEqual(
+            len(resp.context['location_forms']), 1
+        )
+        self.assertEqual(
+            resp.context['location_forms'][0]['location'], 'All locations'
+        )
+        # checked sessions are retained
+        self.assertEqual(
+            resp.context['location_forms'][0]['form'].data['sessions'],
+            str(session_dm.id)
+        )

@@ -11,7 +11,7 @@ from django.utils.safestring import mark_safe
 from braces.views import LoginRequiredMixin
 
 from booking import utils
-
+from booking.models import Event
 from timetable.models import Session
 from studioadmin.forms import TimetableSessionFormSet, SessionAdminForm, \
     DAY_CHOICES, UploadTimetableForm
@@ -234,7 +234,33 @@ def upload_timetable_view(request,
                 request, 'studioadmin/upload_timetable_confirmation.html',
                 context
             )
+        else:
+            location_forms = [{
+                'index': 0,
+                'form': form,
+                'location': 'All locations'
+            }]
     else:
-        form = UploadTimetableForm()
-    return render(request, template_name,
-                  {'form': form, 'sidenav_selection': 'upload_timetable'})
+        location_forms = [{
+            'index': 0,
+            'form': UploadTimetableForm(location='all'),
+            'location': 'All locations'
+        }]
+        for i, location in enumerate(
+                [lc[0] for lc in Event.LOCATION_CHOICES], 1
+        ):
+            if Session.objects.filter(location=location).exists():
+                location_obj = {
+                    'index': i,
+                    'form': UploadTimetableForm(location=location),
+                    'location': location
+                }
+                location_forms.append(location_obj)
+
+    return render(
+        request, template_name,
+        {
+            'location_forms': location_forms,
+            'sidenav_selection': 'upload_timetable'
+        }
+    )
