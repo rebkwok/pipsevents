@@ -316,6 +316,27 @@ class UploadTimetableFormTests(TestCase):
         form = UploadTimetableForm(data=self.form_data())
         self.assertTrue(form.is_valid())
 
+    def test_form_valid_with_location(self):
+        session1 = mommy.make_recipe(
+            'booking.mon_session', location="Davidson's Mains"
+        )
+
+        # no location specified, show all
+        form = UploadTimetableForm()
+
+        self.assertCountEqual(
+            [sess.id for sess in form.fields['sessions'].queryset],
+            [self.session.id, session1.id]
+        )
+
+        # location specified
+        form = UploadTimetableForm(location="Beaverbank Place")
+        # location specified, show only sessions for that location
+        self.assertCountEqual(
+            [sess.id for sess in form.fields['sessions'].queryset],
+            [self.session.id]
+        )
+
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_start_and_end_date_required(self, mock_tz):
         mock_tz.now.return_value = datetime(

@@ -285,6 +285,25 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     @patch('booking.models.timezone')
+    def test_sale_message_template_tag_no_voucher_code(
+            self, mock_tz, mock_tz1
+    ):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz1.utc=timezone.utc
+
+        os.environ['SALE_ON'] = '01-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+        os.environ['SALE_CODE'] = 'testcode'
+
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('SALE NOW ON', resp.rendered_content)
+        self.assertNotIn('Use code testcode', resp.rendered_content)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    @patch('booking.models.timezone')
     def test_sale_message_template_tag_not_started_voucher_code(
             self, mock_tz, mock_tz1
     ):

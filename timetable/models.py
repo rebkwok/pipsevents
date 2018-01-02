@@ -66,9 +66,9 @@ class Session(models.Model):
     )
 
     def __str__(self):
-        return "{} - {} - {}".format(
+        return "{} - {} - {} ({})".format(
             dict(self.DAY_CHOICES)[self.day], self.time.strftime("%H:%M"),
-            self.name
+            self.name, self.location
         )
 
 

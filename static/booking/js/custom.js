@@ -66,27 +66,29 @@ jQuery(document).ready(function () {
         scrollInput: false,
     });
 
-    jQuery('#datepicker_startdate').datetimepicker({
-        format:'ddd DD MMM YYYY',
-        formatTime:'HH:mm',
-        timepicker: false,
-        minDate: 0,
-        closeOnDateSelect: true,
-        scrollMonth: false,
-        scrollTime: false,
-        scrollInput: false,
-    });
+    for(var i = 0; i < 5; i++) {
+        jQuery('#datepicker_startdate_' + i).datetimepicker({
+            format:'ddd DD MMM YYYY',
+            formatTime:'HH:mm',
+            timepicker: false,
+            minDate: 0,
+            closeOnDateSelect: true,
+            scrollMonth: false,
+            scrollTime: false,
+            scrollInput: false
+        });
 
-    jQuery('#datepicker_enddate').datetimepicker({
-        format:'ddd DD MMM YYYY',
-        formatTime:'HH:mm',
-        timepicker: false,
-        minDate: 0,
-        closeOnDateSelect: true,
-        scrollMonth: false,
-        scrollTime: false,
-        scrollInput: false,
-    });
+        jQuery('#datepicker_enddate_' + i).datetimepicker({
+            format:'ddd DD MMM YYYY',
+            formatTime:'HH:mm',
+            timepicker: false,
+            minDate: 0,
+            closeOnDateSelect: true,
+            scrollMonth: false,
+            scrollTime: false,
+            scrollInput: false
+        });
+    }
 
     jQuery('#datepicker_registerdate').datetimepicker({
         format:'ddd DD MMM YYYY',
