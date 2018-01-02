@@ -412,6 +412,8 @@ class Booking(models.Model):
     # disable rebooking
     auto_cancelled = models.BooleanField(default=False)
 
+    paypal_pending = models.BooleanField(default=False)
+
     class Meta:
         unique_together = ('user', 'event')
         permissions = (

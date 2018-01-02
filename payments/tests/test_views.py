@@ -28,7 +28,9 @@ class TestViews(PatchRequestMixin, TestCase):
         )
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context_data['obj_type'], 'booking')
-        self.assertEquals(resp.context_data['obj'], booking)
+        self.assertEquals(
+            [obj for obj in resp.context_data['objs']], [booking]
+        )
 
         block = mommy.make_recipe('booking.block')
 
@@ -42,7 +44,9 @@ class TestViews(PatchRequestMixin, TestCase):
         )
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context_data['obj_type'], 'block')
-        self.assertEquals(resp.context_data['obj'], block)
+        self.assertEquals(
+            [obj for obj in resp.context_data['objs']], [block]
+        )
 
         ticket_booking = mommy.make_recipe('booking.ticket_booking')
 
@@ -56,7 +60,9 @@ class TestViews(PatchRequestMixin, TestCase):
         )
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context_data['obj_type'], 'ticket_booking')
-        self.assertEquals(resp.context_data['obj'], ticket_booking)
+        self.assertEquals(
+            [obj for obj in resp.context_data['objs']], [ticket_booking]
+        )
 
     def test_confirm_return_with_unknown_obj(self):
         block = mommy.make_recipe('booking.block')

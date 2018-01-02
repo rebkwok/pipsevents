@@ -7,9 +7,19 @@
 
 <p>Your payment to <strong>{{ paypal_email }}</strong> has now been processed.</p>
 
-<p><strong>{{ obj_type }}:</strong> {% if obj_type == "Booking" %}{{ obj.event }}
-    {% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}
-    {% else %}{{ obj.block_type }}{% endif %}</p>
+<p><strong>{{ obj_type }}:</strong>
+     <ul>
+    {% for obj in objs %}
+        <li>{% if obj_type == "Booking" %}
+            {{ obj.event }}
+        {% elif obj_type == "Ticket Booking" %}
+            {{ obj.ticketed_event }}
+        {% else %}
+            {{ obj.block_type }}
+        {% endif %}</li>
+    {% endfor %}
+    </ul>
+</p>
 <p><strong>Invoice number:</strong> {{ invoice_id }}</p>
 
 </div>

@@ -1,5 +1,6 @@
+import hashlib
 import random
-from django.db import IntegrityError
+
 
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
@@ -42,6 +43,32 @@ def create_booking_paypal_transaction(user, booking):
         invoice_id=invoice_id, booking=booking
     )
     return pbt
+
+
+def create_multibooking_paypal_transaction(user, bookings):
+    # invoice number is a hash of bookings so we can make sure the same cart
+    # has the same invoice number (i.e. user doesn't paypal and then return to
+    # the cart before paypal has update and resubmit
+    username = user.username[:50]
+    bookings_hash = hashlib.md5(
+        ', '.join([str(booking) for booking in bookings]).encode('utf-8')
+    ).hexdigest()
+    invoice_id = '{}-{}'.format(username, bookings_hash)
+
+    for booking in bookings:
+        # check for existing PBT without transaction id stored and delete
+        # so we replace with this one
+        PaypalBookingTransaction.objects.filter(
+            booking=booking, transaction_id__isnull=True
+        ).exclude(invoice_id=invoice_id).delete()
+        # TODO make sure to reject paypal payments if a booking is already paid
+        # get_or_create in case we're going back to this same shopping basket
+        # again; PBT is created when the shopping basket view is called
+        PaypalBookingTransaction.objects.get_or_create(
+            invoice_id=invoice_id, booking=booking
+        )
+
+    return invoice_id
 
 
 def create_block_paypal_transaction(user, block):

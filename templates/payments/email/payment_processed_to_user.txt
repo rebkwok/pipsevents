@@ -4,5 +4,7 @@ Dear {{ user }},
 
 Your payment to {{ paypal_email }} has now been processed.
 
-{{ obj_type }}: {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %}
+{{ obj_type }}: {% for obj in objs %}
+  - {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %}
+{% endfor %}
 Invoice number: {{ invoice_id }}
