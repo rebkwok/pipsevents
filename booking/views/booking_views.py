@@ -10,9 +10,10 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import (
     ListView, CreateView, UpdateView, DeleteView
@@ -38,7 +39,9 @@ import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.views_utils import DisclaimerRequiredMixin
 
-from payments.helpers import create_booking_paypal_transaction
+from payments.helpers import (
+    create_booking_paypal_transaction, create_multibooking_paypal_transaction
+)
 from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
@@ -553,12 +556,14 @@ class BookingMultiCreateView(BookingCreateView):
     def form_valid(self, form):
         super(BookingMultiCreateView, self).form_valid(form)
         filter = form.data.get('filter')
+        # redirect to specified next page, or to ev_type (lessons/events/roomhires)
+        next = form.data.get('next', self.ev_type)
         if filter:
             return HttpResponseRedirect(
-                reverse('booking:{}'.format(self.ev_type))
+                reverse('booking:{}'.format(next))
                 + '?name={}'.format(filter)
             )
-        return HttpResponseRedirect(reverse('booking:{}'.format(self.ev_type)))
+        return HttpResponseRedirect(reverse('booking:{}'.format(next)))
 
 
 class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView):
@@ -630,32 +635,18 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         context["paypalform"] = paypal_form
         context["paypal_cost"] = paypal_cost
 
+        # set cart items so we can set paypal_pending
+        self.request.session['cart_items'] = str(self.object.id)
+
         return context_helpers.get_booking_create_context(
             self.object.event, self.request, context
         )
 
-    def validate_voucher_code(self, voucher, user, event):
-        if not voucher.check_event_type(event.event_type):
-            return 'Voucher code is not valid for this event/class type'
-        elif voucher.has_expired:
-            return 'Voucher code has expired'
-        elif voucher.max_vouchers and \
-            UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
-                voucher.max_vouchers:
-            return 'Voucher has limited number of total uses and has now expired'
-        elif not voucher.has_started:
-            return 'Voucher code is not valid until {}'.format(
-                voucher.start_date.strftime("%d %b %y")
-            )
-        elif voucher.max_per_user and UsedEventVoucher.objects.filter(
-                voucher=voucher, user=user
-        ).count() >= voucher.max_per_user:
-            return 'Voucher code has already been used the maximum number ' \
-                   'of times ({})'.format(
-                    voucher.max_per_user
-                    )
-
     def form_valid(self, form):
+        # posting the form means we're not using paypal,
+        # so remove the cart items from the session
+        if self.request.session.get('cart_items'):
+            del self.request.session['cart_items']
 
         if "apply_voucher" in form.data:
             code = form.data['code'].strip()
@@ -666,7 +657,7 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
                 voucher_error = 'Invalid code' if code else 'No code provided'
 
             if voucher:
-                voucher_error = self.validate_voucher_code(
+                voucher_error = validate_voucher_code(
                     voucher, self.request.user, self.object.event
                 )
             context = self.get_context_data(
@@ -733,20 +724,30 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         )
 
         if booking.block and not booking.block.active_block():
-            msg = 'You have just used the last space in your block. '
             if booking.block.children.exists() \
                     and not has_free_block_pre_save:
-                msg += 'You have qualified for a extra free ' \
-                             'class which has been added to ' \
-                             '<a href="/blocks">your blocks</a>!  '
-            else:
-                msg += 'Go to <a href="/blocks">My Blocks</a> to ' \
-                             'buy a new one.'
-            messages.info(self.request, mark_safe(msg))
+                messages.info(
+                    self.request,
+                    mark_safe(
+                        'You have just used the last space in your block and '
+                        'have qualified for a extra free class which has '
+                        'been added to <a href="/blocks">your blocks</a>!  '
+                    )
+                )
+            elif not booking.has_available_block:
+                messages.info(
+                    self.request,
+                    mark_safe(
+                        'You have just used the last space in your block. '
+                       'Go to <a href="/blocks">My Blocks</a> to buy a new one.'
+                    )
+                )
 
         if 'shopping_basket' in form.data:
-            return HttpResponseRedirect(reverse('booking:shopping_basket'))
-
+            url = reverse('booking:shopping_basket')
+            if 'code' in form.data:
+                url += '?code={}'.format(form.data['code'])
+            return HttpResponseRedirect(url)
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -835,6 +836,28 @@ def _get_block_status(booking, request):
         )
 
     return blocks_used, total_blocks
+
+
+def validate_voucher_code(voucher, user, event=None):
+    if event and not voucher.check_event_type(event.event_type):
+        return 'Voucher code is not valid for this event/class type'
+    elif voucher.has_expired:
+        return 'Voucher code has expired'
+    elif voucher.max_vouchers and \
+        UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
+            voucher.max_vouchers:
+        return 'Voucher has limited number of total uses and has now expired'
+    elif not voucher.has_started:
+        return 'Voucher code is not valid until {}'.format(
+            voucher.start_date.strftime("%d %b %y")
+        )
+    elif voucher.max_per_user and UsedEventVoucher.objects.filter(
+            voucher=voucher, user=user
+    ).count() >= voucher.max_per_user:
+        return 'Voucher code has already been used the maximum number ' \
+               'of times ({})'.format(
+                voucher.max_per_user
+                )
 
 
 class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView):
@@ -1081,7 +1104,10 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                         "the studio for information")
 
         next = request.GET.get('next')
-        return HttpResponseRedirect(self.get_success_url(next))
+        url = self.get_success_url(next)
+        if 'code' in request.GET:
+            url += '?code={}'.format(request.GET['code'])
+        return HttpResponseRedirect(url)
 
     def get_success_url(self, next):
         if next:
@@ -1161,25 +1187,193 @@ def disclaimer_required(request):
     )
 
 
+@login_required
 def shopping_basket(request):
+    template_name = 'booking/shopping_basket.html'
 
-    unpaid_bookings = Booking.objects.filter(
-        user=request.user, event__payment_open=True, paid=False, status='OPEN',
+    unpaid_bookings_all = Booking.objects.filter(
+        user=request.user, paid=False, status='OPEN',
         event__date__gte=timezone.now(),
-        no_show=False
+        no_show=False, paypal_pending=False
     )
-    include_warning = bool([True for bk in unpaid_bookings if not bk.can_cancel])
+    unpaid_bookings_all_open = unpaid_bookings_all.filter(event__payment_open=True)
+    unpaid_bookings_payment_not_open = unpaid_bookings_all.filter(event__payment_open=False)
+
+    unpaid_bookings = unpaid_bookings_all_open.filter(
+        event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+    )
+    unpaid_bookings_non_default_paypal = set(unpaid_bookings_all_open) - set(unpaid_bookings)
+
+
+    include_warning = bool([True for bk in unpaid_bookings_all_open if not bk.can_cancel])
     block_booking_available = bool(
         [True for booking in unpaid_bookings if booking.has_available_block]
     )
-    return render(
+
+    code = request.GET.get('code', None)
+
+    total_agg = unpaid_bookings.aggregate(Sum('event__cost'))
+    # pop item from the aggregate dict
+    _, total = total_agg.popitem()
+
+    context = {
+        'unpaid_bookings': unpaid_bookings,
+        'unpaid_bookings_non_default_paypal': unpaid_bookings_non_default_paypal,
+        'unpaid_bookings_payment_not_open': unpaid_bookings_payment_not_open,
+        'include_warning': include_warning,
+        'block_booking_available': block_booking_available,
+        'voucher_form': VoucherForm(initial={'code': code}),
+        'total_cost': total
+    }
+
+    voucher_applied_bookings = []
+
+    if "code" in request.GET:
+        code = request.GET['code'].strip()
+        try:
+            voucher = EventVoucher.objects.get(code=code)
+        except EventVoucher.DoesNotExist:
+            voucher = None
+            context['voucher_error'] = 'Invalid code' if code else 'No code provided'
+
+        if voucher:
+            voucher_error = validate_voucher_code(voucher, request.user)
+            context['voucher_error'] =  voucher_error
+
+            times_used = UsedEventVoucher.objects.filter(
+                voucher=voucher, user=request.user
+            ).count()
+            context['times_voucher_used'] = times_used
+
+            valid = not bool(voucher_error)
+            context['valid_voucher'] = valid
+
+            if valid:
+                total = 0
+
+                # calculate new total
+                check_max_per_user = False
+                check_max_total = False
+                if voucher.max_per_user:
+                    check_max_per_user = True
+                    uses_per_user_left = voucher.max_per_user - times_used
+
+                if voucher.max_vouchers:
+                    check_max_total = True
+                    max_voucher_uses_left = (
+                        voucher.max_vouchers -
+                        UsedEventVoucher.objects.filter(voucher=voucher).count()
+                    )
+
+                invalid_event_types = []
+                max_per_user_exceeded = False
+                max_total_exceeded = False
+
+                for booking in unpaid_bookings:
+                    can_use = True
+                    if check_max_per_user and uses_per_user_left <= 0:
+                        can_use = False
+                        max_per_user_exceeded = True
+                    if check_max_total and max_voucher_uses_left <= 0:
+                        can_use = False
+                        max_total_exceeded = True
+
+                    if can_use:
+                        if voucher.check_event_type(booking.event.event_type):
+                            total += Decimal(
+                                float(booking.event.cost) * ((100 - voucher.discount) / 100)
+                            ).quantize(Decimal('.05'))
+                            voucher_applied_bookings.append(booking.id)
+                            if check_max_per_user:
+                                uses_per_user_left -= 1
+                            if check_max_total:
+                                max_voucher_uses_left -= 1
+                        else:
+                            invalid_event_types.append(booking.event.event_type.subtype)
+                            total += booking.event.cost
+
+                voucher_msg = []
+                if invalid_event_types:
+                    voucher_msg.append(
+                        'Voucher cannot be used for some bookings '
+                        '({})'.format(', '.join(set(invalid_event_types)))
+                    )
+                if max_per_user_exceeded:
+                    voucher_msg.append(
+                        'Voucher not applied to some bookings; you can '
+                        'only use this voucher a total of {} times.'.format(
+                            voucher.max_per_user
+                        )
+                    )
+                if max_total_exceeded:
+                    voucher_msg.append(
+                        'Voucher not applied to some bookings; voucher '
+                        'has limited number of total uses.'.format(
+                            voucher.max_vouchers
+                        )
+                    )
+
+                context['voucher_applied_bookings'] = voucher_applied_bookings
+                context['total_cost'] = total
+                context['voucher_msg'] = voucher_msg
+
+            context.update({
+                'voucher': voucher,
+                'code': code,
+            })
+
+        if "remove_voucher" in request.GET:
+            pass
+
+    # TODO need invoice for multiple bookings - new MultipleBookingPaypalTransaction model?
+    if unpaid_bookings:
+        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+
+        if len(unpaid_bookings) == 1:
+            booking = unpaid_bookings[0]
+            invoice_id = create_booking_paypal_transaction(
+                request.user, booking
+            ).invoice_id
+
+            paypal_form = PayPalPaymentsUpdateForm(
+            initial=context_helpers.get_paypal_dict(
+                host,
+                context['total_cost'],
+                booking.event,
+                invoice_id,
+                '{} {}{}'.format(
+                    'booking', booking.id,
+                    ' {}'.format(voucher.code) if context.get('valid_voucher') else ''
+                ),
+                paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            )
+        )
+
+        else:
+            invoice_id = create_multibooking_paypal_transaction(
+                request.user, unpaid_bookings
+            )
+            paypal_form = PayPalPaymentsUpdateForm(
+                initial=context_helpers.get_paypal_cart_dict(
+                    host,
+                    unpaid_bookings,
+                    invoice_id,
+                    voucher_applied_bookings=voucher_applied_bookings,
+                    voucher = voucher if context.get('valid_voucher') else None,
+                    paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+                )
+            )
+
+        context["paypalform"] = paypal_form
+        # add cart booking ids to the session so we can set paypal pending
+        request.session['cart_items'] = ','.join(
+            [str(booking.id) for booking in unpaid_bookings]
+        )
+
+    return TemplateResponse(
         request,
-        'booking/shopping_basket.html',
-        {
-            'unpaid_bookings': unpaid_bookings,
-            'include_warning': include_warning,
-            'block_booking_available': block_booking_available
-        }
+        template_name,
+        context
     )
 
 
@@ -1206,15 +1400,25 @@ def update_block_bookings(request):
             block_booked.append(booking)
             _get_block_status(booking, request)
 
+
             if not booking.block.active_block():
                 if booking.block.children.exists() \
                         and not has_free_block_pre_save:
-                    msg = 'You have just used the last space in your block and ' \
-                          'have qualified for a extra free class '
-                else:
-                    msg = 'You have just used the last space in your block. Go ' \
-                          'to <a href="/blocks">My Blocks</a> to buy a new one.'
-                messages.info(request, mark_safe(msg))
+                    messages.info(
+                        request,
+                        mark_safe(
+                            'You have just used the last space in your block and '
+                            'have qualified for a extra free class'
+                        )
+                    )
+                elif not booking.has_available_block:
+                    messages.info(
+                        request,
+                        mark_safe(
+                            'You have just used the last space in your block. '
+                           'Go to <a href="/blocks">My Blocks</a> to buy a new one.'
+                        )
+                    )
 
     if block_booked:
         messages.info(request, "Blocks used for {} bookings".format(len(block_booked)))
@@ -1225,6 +1429,7 @@ def update_block_bookings(request):
             '<a href="/blocks">My Blocks</a> to buy a block.')
         )
 
-    return HttpResponseRedirect(reverse('booking:shopping_basket'))
-
-
+    url = reverse('booking:shopping_basket')
+    if 'code' in request.POST:
+        url += '?code={}'.format(request.POST['code'])
+    return HttpResponseRedirect(url)

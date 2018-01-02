@@ -439,13 +439,13 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         self.assertTrue(booking.payment_confirmed)
         self.assertTrue(booking.paid)
 
-        # 3 emails sent - studio, user, support to notify about missing inv
+        # 3 emails sent - support to notify about missing inv, studio, user
         self.assertEqual(
             len(mail.outbox), 3,
             "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
         )
         self.assertEqual(
-            mail.outbox[2].subject,
+            mail.outbox[0].subject,
             '{} No invoice number on paypal ipn for booking id {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id
             )

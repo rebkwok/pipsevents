@@ -6,41 +6,54 @@
 <div>
     {% if obj_unknown %}
         <h3>PayPal Payment</h3>
-        <p>Everything is probably fine...  </p>
-        <p>...but we could not retrieve all your data on return from paypal.
-            You (or PayPal) may have inadvertently re-requested this page.  This
-           is not likely to have affected the processing of your payment.
-            Please check your email for
-        payment confirmations from PayPal and from the studio.</p>
-        <p>If you have not received payment confirmation within a
-            few hours, please check your spam folder and contact
-        <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
-            {{ organiser_email }}</a> if you need any further information.</p>
-    {% elif obj == 'paypal_test' %}
-        <h3>Test Payment {% if test_ipn_complete %}for {{ test_paypal_email }}{% endif %}</h3>
-        {% if test_ipn_complete %}
-            <p>The test payment has completed successfully.</p>
+        {% if cart_items %}
+            Your payment for the following items is being processed:
+            {% for item in cart_items %}
+                <ul>
+                    <li>{{ item.event }}</li>
+                </ul>
+            {% endfor %}
+            You should receive an email notification of status shortly.
         {% else %}
-            <p>The test payment is being processed.  You should receive an email notification of status shortly.</p>
+            <p>Everything is probably fine...  </p>
+            <p>...but we could not retrieve all your data on return from paypal.
+                You (or PayPal) may have inadvertently re-requested this page.  This
+               is not likely to have affected the processing of your payment.
+                Please check your email for
+            payment confirmations from PayPal and from the studio.</p>
+            <p>If you have not received payment confirmation within a
+                few hours, please check your spam folder and contact
+            <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
+                {{ organiser_email }}</a> if you need any further information.</p>
         {% endif %}
     {% else %}
-        <h3>Payment for {{ purchase }}</h3>
+        {% for obj in objs %}
+            {% if obj == 'paypal_test' %}
+                <h3>Test Payment {% if test_ipn_complete %}for {{ test_paypal_email }}{% endif %}</h3>
+                {% if test_ipn_complete %}
+                    <p>The test payment has completed successfully.</p>
+                {% else %}
+                    <p>The test payment is being processed.  You should receive an email notification of status shortly.</p>
+                {% endif %}
+            {% else %}
+                <h3>Payment for {{ purchase }}</h3>
+            {% endif %}
+            {% if payment_status == 'Completed' and obj.paid %}
+                <p>Your payment has been successfully completed.</p>
+            {% elif payment_status == 'Completed' or payment_status == 'Pending' %}
+                <p>Your payment is being processed.
+            {% endif %}
+        {% endfor %}
 
+            <p>You should receive payment confirmations from PayPal and from the
+        studio shortly.</p>
 
-        {% if payment_status == 'Completed' and obj.paid %}
-            <p>Your payment has been successfully completed.</p>
-        {% elif payment_status == 'Completed' or payment_status == 'Pending' %}
-            <p>Your payment is being processed.
-        {% endif %}
+            <p>If you
+            have not received payment confirmation within a few hours, please check
+            your spam folder and contact
+            <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
+                {{ organiser_email }}</a> if you need any further information.</p>
 
-        <p>You should receive payment confirmations from PayPal and from the
-    studio shortly.</p>
-
-        <p>If you
-        have not received payment confirmation within a few hours, please check
-        your spam folder and contact
-        <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
-            {{ organiser_email }}</a> if you need any further information.</p>
     {% endif %}
 </div>
 

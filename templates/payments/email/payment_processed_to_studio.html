@@ -4,7 +4,19 @@
 <div style="font-family: sans-serif;">
 
 <p><strong>User: {{ user }}</strong></p>
-<p><strong>Purchased:</strong> {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %} ({{ obj_type }})</p>
+<p><strong>Purchased:</strong>
+    <ul>
+    {% for obj in objs %}
+        <li>{% if obj_type == "Booking" %}
+            {{ obj.event }}
+        {% elif obj_type == "Ticket Booking" %}
+            {{ obj.ticketed_event }}
+        {% else %}
+            {{ obj.block_type }}
+        {% endif %} ({{ obj_type }})</li>
+    {% endfor %}
+    </ul>
+</p>
 <p><strong>Invoice number:</strong> {{ invoice_id }}</p>
 <p><strong>Paypal Transaction id:</strong> {{ paypal_transaction_id }}</p>
 <p><strong>Paypal Email:</strong> {{ paypal_email }}</p>

@@ -33,22 +33,24 @@ def view_that_asks_for_money(request):
 
 @csrf_exempt
 def paypal_confirm_return(request):
-    obj = 'unknown'
+    objs = ['unknown']
     test_ipn_complete = False
-    custom = request.POST.get('custom', '').split()
+    custom = request.POST.get('custom', '')
+    custom = custom.replace('+', ' ').split()
 
     if custom:
         obj_type = custom[0]
-        obj_id = int(custom[1])
+        ids = custom[1]
+        obj_ids = [int(id) for id in ids.split(',')]
 
-        if obj_type == "booking":
-            obj = Booking.objects.get(id=obj_id)
+        if obj_type in ["booking", "bookings"]:
+            objs = Booking.objects.filter(id__in=obj_ids)
         elif obj_type == "block":
-            obj = Block.objects.get(id=obj_id)
+            objs = Block.objects.filter(id__in=obj_ids)
         elif obj_type == "ticket_booking":
-            obj = TicketBooking.objects.get(id=obj_id)
+            objs = TicketBooking.objects.filter(id__in=obj_ids)
         elif obj_type == "paypal_test":
-            obj = "paypal_test"
+            objs = ["paypal_test"]
             # custom in a test payment is in form
             # 'test 0 <invoice_id> <paypal email being tested> <user's email>'
             test_ipn_complete = bool(
@@ -56,8 +58,6 @@ def paypal_confirm_return(request):
                     invoice=custom[2], payment_status='Completed'
                 )
             )
-        else:
-            obj = 'unknown'
 
         # Possible payment statuses:
         # Canceled_, Reversal, Completed, Denied, Expired, Failed, Pending,
@@ -66,20 +66,35 @@ def paypal_confirm_return(request):
         # information in the template, but we can only confirm payment if the
         # booking or block has already been set to paid (i.e. the post from
         # paypal has been successfully processed
-        context = {'obj': obj,
+        context = {'objs': objs,
                    'obj_type': obj_type,
                    'payment_status': request.POST.get('payment_status'),
                    'purchase': request.POST.get('item_name'),
                    'sender_email': settings.DEFAULT_FROM_EMAIL,
                    'organiser_email': settings.DEFAULT_STUDIO_EMAIL,
                    'test_ipn_complete': test_ipn_complete,
-                   'test_paypal_email': custom[3] if obj == 'paypal_test'
+                   'test_paypal_email': custom[3] if objs[0] == 'paypal_test'
                    else ''
                    }
 
-    if not custom or obj == 'unknown':
+    if not custom or objs == ['unknown']:
+        # find cart items; check they're not paid yet set and paypal pending
+        # we should get here if there was a successful return from paypal, so
+        # should be safe to assume these items are just
+        # awaiting paypal confirmation
+        cart_items = request.session.get('cart_items', [])
+        if cart_items:
+            ids = cart_items.split(',')
+            del request.session['cart_items']
+            obj_ids = [int(id) for id in ids]
+            cart_items = Booking.objects.filter(id__in=obj_ids)
+        for booking in cart_items:
+            if not booking.paid:  # in case payment is processed during this view
+                booking.paypal_pending=True
+                booking.save()
         context = {
             'obj_unknown': True,
+            'cart_items':  cart_items,
             'organiser_email': settings.DEFAULT_STUDIO_EMAIL
         }
     return TemplateResponse(request, 'payments/confirmed_payment.html', context)
@@ -87,5 +102,7 @@ def paypal_confirm_return(request):
 
 @csrf_exempt
 def paypal_cancel_return(request):
+    if request.session.get('cart_items'):
+        del request.session['cart_items']
     return render(request, 'payments/cancelled_payment.html')
 

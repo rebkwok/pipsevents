@@ -4,6 +4,8 @@ Helper functions to return context and reduce logic in templates
 import pytz
 
 from datetime import timedelta
+from decimal import Decimal
+
 from django.conf import settings
 from django.utils import timezone
 from django.core.urlresolvers import reverse
@@ -201,7 +203,7 @@ def get_paypal_dict(
     paypal_dict = {
         "business": paypal_email,
         "amount": cost,
-        "item_name": item_name,
+        "item_name": str(item_name)[:127],
         "custom": custom,
         "invoice": invoice_id,
         "currency_code": "GBP",
@@ -211,6 +213,46 @@ def get_paypal_dict(
         "cancel_return": host + reverse('payments:paypal_cancel'),
 
     }
+    return paypal_dict
+
+
+def get_paypal_cart_dict(
+        host, bookings, invoice_id, voucher_applied_bookings=None,
+        voucher=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+    ):
+    booking_ids_str = ','.join([str(booking.id) for booking in bookings])
+    custom = '{} {}{}'.format(
+        'booking', booking_ids_str,
+        ' {}'.format(voucher.code) if  voucher_applied_bookings else ''
+    )
+
+    paypal_dict = {
+        "cmd": "_cart",
+        "upload": 1,
+        "business": paypal_email,
+        "custom": custom,
+        "invoice": invoice_id,
+        "currency_code": "GBP",
+        "notify_url": host + reverse('paypal-ipn'),
+        "return_url": host + reverse('payments:paypal_confirm'),
+        "cancel_return": host + reverse('payments:paypal_cancel'),
+    }
+
+    for i, booking in enumerate(bookings):
+        if booking.id in voucher_applied_bookings:
+            amount = Decimal(
+                float(booking.event.cost) * ((100 - voucher.discount) / 100)
+            ).quantize(Decimal('.05'))
+        else:
+            amount = booking.event.cost
+        paypal_dict.update(
+            {
+                'item_name_{}'.format(i + 1): str(booking.event),
+                'amount_{}'.format(i + 1): amount,
+                'quantity_{}'.format(i + 1): 1,
+            }
+        )
+
     return paypal_dict
 
 

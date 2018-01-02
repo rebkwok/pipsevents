@@ -26,9 +26,9 @@ class PayPalTransactionError(Exception):
 
 
 class PaypalBookingTransaction(models.Model):
-    invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    invoice_id = models.CharField(max_length=255, null=True, blank=True)
     booking = models.ForeignKey(Booking, null=True)
-    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
@@ -63,21 +63,26 @@ def get_paypal_email(obj, obj_type):
         return obj.block_type.paypal_email
 
 
-def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
+def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list):
+    user = obj_list[0].user
+    paypal_email = get_paypal_email(obj_list[0], obj_type)
+    transaction_id = paypal_trans_list[0].transaction_id
+    invoice_id = paypal_trans_list[0].invoice_id
+
     ctx = {
         'user': " ".join([user.first_name, user.last_name]),
         'obj_type': obj_type.title().replace('_', ' '),
-        'obj': obj,
-        'invoice_id': paypal_trans.invoice_id,
-        'paypal_transaction_id': paypal_trans.transaction_id,
-        'paypal_email': get_paypal_email(obj, obj_type)
+        'objs': obj_list,
+        'invoice_id': invoice_id,
+        'paypal_transaction_id': transaction_id,
+        'paypal_email': paypal_email
     }
 
     # send email to studio
     if settings.SEND_ALL_STUDIO_EMAILS:
         send_mail(
             '{} Payment processed for {} id {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_ids),
             get_template(
                 'payments/email/payment_processed_to_studio.txt').render(ctx),
             settings.DEFAULT_FROM_EMAIL,
@@ -89,7 +94,7 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
     # send email to user
     send_mail(
         '{} Payment processed for {} id {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_ids),
         get_template(
             'payments/email/payment_processed_to_user.txt').render(ctx),
         settings.DEFAULT_FROM_EMAIL,
@@ -99,20 +104,25 @@ def send_processed_payment_emails(obj_type, obj_id, paypal_trans, user, obj):
         fail_silently=False)
 
 
-def send_processed_refund_emails(obj_type, obj_id, paypal_trans, user, obj):
+def send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list):
+    user = obj_list[0].user
+    paypal_email = get_paypal_email(obj_list[0], obj_type)
+    transaction_id = paypal_trans_list[0].transaction_id
+    invoice_id = paypal_trans_list[0].invoice_id
+
     ctx = {
         'user': " ".join([user.first_name, user.last_name]),
         'obj_type': obj_type.title().replace('_', ' '),
-        'obj': obj,
-        'invoice_id': paypal_trans.invoice_id,
-        'paypal_transaction_id': paypal_trans.transaction_id,
-        'paypal_email': get_paypal_email(obj, obj_type)
+        'objs': obj_list,
+        'invoice_id': invoice_id,
+        'paypal_transaction_id': transaction_id,
+        'paypal_email': paypal_email
     }
     # send email to studio only and to support for checking;
     # user will have received automated paypal payment
     send_mail(
         '{} Payment refund processed for {} id {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_id),
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type, obj_ids),
         get_template(
             'payments/email/payment_refund_processed_to_studio.txt'
         ).render(ctx),
@@ -209,59 +219,66 @@ def send_processed_test_unexpected_status_emails(additional_data, status):
 def get_obj(ipn_obj):
     from payments import helpers
     additional_data = {}
+
     try:
         # occasionally paypal sends back the custom field with the space
         # replaced with '+'. i.e. "booking+1" instead of "booking 1"
         custom = ipn_obj.custom.replace('+', ' ').split()
         obj_type = custom[0]
-        obj_id = int(custom[1])
+        ids = custom[1]
+        obj_ids = [int(id) for id in ids.split(',')]
         voucher_code = custom[2] if len(custom) == 3 and \
             obj_type != 'test' else None
     except IndexError:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')
 
+    obj_list = []
+    paypal_trans_list = []
+
     if obj_type == 'paypal_test':
         # a test payment for paypal email
         # custom in a test payment is in form
         # 'test 0 <invoice_id> <paypal email being tested> <user's email>'
-        obj = None
-        paypal_trans = None
+
         additional_data['test_invoice'] = custom[2]
         additional_data['test_paypal_email'] = custom[3]
         additional_data['user_email'] = custom[4]
 
     elif obj_type == 'booking':
-        try:
-            obj = Booking.objects.get(id=obj_id)
-        except Booking.DoesNotExist:
-            raise PayPalTransactionError(
-                'Booking with id {} does not exist'.format(obj_id)
-            )
-
-        paypal_trans = PaypalBookingTransaction.objects.filter(booking=obj)
-        if not paypal_trans:
-            paypal_trans = helpers.create_booking_paypal_transaction(
-                user=obj.user, booking=obj
-            )
-        elif paypal_trans.count() > 1:
-            # we may have two ppb transactions created if user changed their
-            # username between booking and paying (invoice_id is created and
-            # retrieved using username)
-            if ipn_obj.invoice:
-                paypal_trans = PaypalBookingTransaction.objects.get(
-                    booking=obj, invoice_id=ipn_obj.invoice
+        for id in obj_ids:
+            try:
+                obj = Booking.objects.get(id=id)
+            except Booking.DoesNotExist:
+                raise PayPalTransactionError(
+                    'Booking with id {} does not exist'.format(id)
                 )
-            else:
-                paypal_trans = paypal_trans.latest('id')
-        else:  # we got one paypaltrans, as we should have
-            paypal_trans = paypal_trans[0]
+            paypal_trans = PaypalBookingTransaction.objects.filter(booking=obj)
+            if not paypal_trans:
+                paypal_trans = helpers.create_booking_paypal_transaction(
+                    user=obj.user, booking=obj
+                )
+            elif paypal_trans.count() > 1:
+                # we may have two ppb transactions created if user changed their
+                # username between booking and paying (invoice_id is created and
+                # retrieved using username)
+                if ipn_obj.invoice:
+                    paypal_trans = PaypalBookingTransaction.objects.get(
+                        booking=obj, invoice_id=ipn_obj.invoice
+                    )
+                else:
+                    paypal_trans = paypal_trans.latest('id')
+            else:  # we got one paypaltrans, as we should have
+                paypal_trans = paypal_trans[0]
+
+            obj_list.append(obj)
+            paypal_trans_list.append(paypal_trans)
 
     elif obj_type == 'block':
         try:
-            obj = Block.objects.get(id=obj_id)
+            obj = Block.objects.get(id=obj_ids[0])
         except Block.DoesNotExist:
             raise PayPalTransactionError(
-                'Block with id {} does not exist'.format(obj_id)
+                'Block with id {} does not exist'.format(obj_ids[0])
             )
 
         paypal_trans = PaypalBlockTransaction.objects.filter(block=obj)
@@ -282,12 +299,15 @@ def get_obj(ipn_obj):
         else:  # we got one paypaltrans, as we should have
             paypal_trans = paypal_trans[0]
 
+        obj_list.append(obj)
+        paypal_trans_list.append(paypal_trans)
+
     elif obj_type == 'ticket_booking':
         try:
-            obj = TicketBooking.objects.get(id=obj_id)
+            obj = TicketBooking.objects.get(id=obj_ids[0])
         except TicketBooking.DoesNotExist:
             raise PayPalTransactionError(
-                'Ticket Booking with id {} does not exist'.format(obj_id)
+                'Ticket Booking with id {} does not exist'.format(obj_ids[0])
             )
 
         paypal_trans = PaypalTicketBookingTransaction.objects.filter(
@@ -310,13 +330,16 @@ def get_obj(ipn_obj):
         else:  # we got one paypaltrans, as we should have
             paypal_trans = paypal_trans[0]
 
+        obj_list.append(obj)
+        paypal_trans_list.append(paypal_trans)
+
     else:
         raise PayPalTransactionError('Unknown object type for payment')
 
     return {
         'obj_type': obj_type,
-        'obj': obj,
-        'paypal_trans': paypal_trans,
+        'obj_list': obj_list,
+        'paypal_trans_list': paypal_trans_list,
         'voucher_code': voucher_code,
         'additional_data': additional_data
     }
@@ -345,20 +368,23 @@ def payment_received(sender, **kwargs):
         )
         return
 
-    obj = obj_dict['obj']
+    # obj and paypal_trans is a list for bookings
+    obj_list = obj_dict['obj_list']
     obj_type = obj_dict['obj_type']
-    paypal_trans = obj_dict['paypal_trans']
+    paypal_trans_list = obj_dict['paypal_trans_list']
     voucher_code = obj_dict.get('voucher_code')
     additional_data = obj_dict.get('additional_data')
+    obj_ids = ', '.join([str(obj.id) for obj in obj_list])
 
     try:
-        if obj_type != 'paypal_test' \
-                and get_paypal_email(obj, obj_type) != ipn_obj.business:
-            ipn_obj.set_flag(
-                "Invalid business email (%s)" % ipn_obj.business
-            )
-            ipn_obj.save()
-            raise PayPalTransactionError(ipn_obj.flag_info)
+        if obj_type != 'paypal_test':
+            for obj in obj_list:
+                if get_paypal_email(obj, obj_type) != ipn_obj.business:
+                    ipn_obj.set_flag(
+                        "Invalid business email (%s)" % ipn_obj.business
+                    )
+                    ipn_obj.save()
+                    raise PayPalTransactionError(ipn_obj.flag_info)
 
         if ipn_obj.payment_status == ST_PP_REFUNDED:
             if obj_type == 'paypal_test':
@@ -375,42 +401,42 @@ def payment_received(sender, **kwargs):
 
             else:
                 voucher_refunded = False
-                if paypal_trans.voucher_code:
-                    # check for voucher on paypal trans object; delete first
-                    # UsedEventVoucher/UsedBlockVoucher if applicable
-                    used_voucher = None
-                    if obj_type == 'block':
-                        used_voucher = UsedBlockVoucher.objects.filter(
-                            voucher__code=paypal_trans.voucher_code,
-                            user=obj.user
-                        ).first()
-                    elif obj_type == 'booking':
-                        used_voucher = UsedEventVoucher.objects.filter(
-                            voucher__code=paypal_trans.voucher_code,
-                            user=obj.user
-                        ).first()
-                        voucher_refunded = True
-                    if used_voucher:
-                        voucher_refunded = True
-                        used_voucher.delete()
+                for obj, paypal_trans in zip(obj_list, paypal_trans_list):
+                    if paypal_trans.voucher_code:
+                        # check for voucher on paypal trans object; delete first
+                        # UsedEventVoucher/UsedBlockVoucher if applicable
+                        used_voucher = None
+                        if obj_type == 'block':
+                            used_voucher = UsedBlockVoucher.objects.filter(
+                                voucher__code=paypal_trans.voucher_code,
+                                user=obj.user
+                            ).first()
+                        elif obj_type == 'booking':
+                            used_voucher = UsedEventVoucher.objects.filter(
+                                voucher__code=paypal_trans.voucher_code,
+                                user=obj.user
+                            ).first()
+                            voucher_refunded = True
+                        if used_voucher:
+                            voucher_refunded = True
+                            used_voucher.delete()
 
-                if obj_type == 'booking':
-                    obj.payment_confirmed = False
-                obj.paid = False
-                obj.save()
+                    if obj_type == 'booking':
+                        obj.payment_confirmed = False
+                    obj.paid = False
+                    obj.save()
 
-                ActivityLog.objects.create(
-                    log='{} id {} for user {} has been refunded from paypal; '
-                        'paypal transaction id {}, invoice id {}.{}'.format(
-                            obj_type.title(), obj.id, obj.user.username,
-                            ipn_obj.txn_id, paypal_trans.invoice_id,
-                            ' Used voucher deleted.' if voucher_refunded
-                            else ''
-                        )
-                )
+                    ActivityLog.objects.create(
+                        log='{} id {} for user {} has been refunded from paypal; '
+                            'paypal transaction id {}, invoice id {}.{}'.format(
+                                obj_type.title(), obj.id, obj.user.username,
+                                ipn_obj.txn_id, paypal_trans.invoice_id,
+                                ' Used voucher deleted.' if voucher_refunded
+                                else ''
+                            )
+                    )
                 if settings.SEND_ALL_STUDIO_EMAILS:
-                    send_processed_refund_emails(obj_type, obj.id, paypal_trans,
-                                                  obj.user, obj)
+                    send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list)
 
         elif ipn_obj.payment_status == ST_PP_PENDING:
             if obj_type == 'paypal_test':
@@ -428,14 +454,14 @@ def payment_received(sender, **kwargs):
                 ActivityLog.objects.create(
                     log='PayPal payment returned with status PENDING for {} {}; '
                         'ipn obj id {} (txn id {})'.format(
-                         obj_type, obj.id, ipn_obj.id, ipn_obj.txn_id
+                         obj_type, obj_ids, ipn_obj.id, ipn_obj.txn_id
                         )
                 )
                 raise PayPalTransactionError(
                     'PayPal payment returned with status PENDING for {} {}; '
                     'ipn obj id {} (txn id {}).  This is usually due to an '
                     'unrecognised or unverified paypal email address.'.format(
-                        obj_type, obj.id, ipn_obj.id, ipn_obj.txn_id
+                        obj_type, obj_ids, ipn_obj.id, ipn_obj.txn_id
                     )
                 )
 
@@ -457,82 +483,96 @@ def payment_received(sender, **kwargs):
                 )
                 send_processed_test_confirmation_emails(additional_data)
             else:
-                if obj_type == 'booking':
-                    obj.payment_confirmed = True
-                    obj.date_payment_confirmed = timezone.now()
-                obj.paid = True
-                obj.save()
-
-                # do this AFTER saving the booking as paid; in the edge case that a
-                # user re-requests the page with the paypal button on it in between
-                # booking and the paypal transaction being saved, this prevents a
-                # second invoice number being generated
-                # SCENARIO 1 (how we did it before): paypal trans id saved first;
-                # user requests page when booking still marked as unpaid -->
-                # renders paypal button and generates new invoice # because
-                # retrieved paypal trans already has a txn_id stored against it.
-                # Paypal will allow the booking to be paid twice because the
-                # invoice number is different
-                # SCENARIO: booking saved first; user requests page when paypal
-                # trans not updated yet --> booking is marked as paid so doesn't
-                # render the paypal button at all
-                paypal_trans.transaction_id = ipn_obj.txn_id
-                paypal_trans.save()
-
-                ActivityLog.objects.create(
-                    log='{} id {} for user {} paid by PayPal; paypal '
-                        '{} id {}'.format(
-                        obj_type.title(), obj.id, obj.user.username, obj_type,
-                        paypal_trans.id,
-                        '(paypal email {})'.format(
-                            get_paypal_email(obj, obj_type)
-                        )
-                    )
-                )
-
-                send_processed_payment_emails(obj_type, obj.id, paypal_trans,
-                                              obj.user, obj)
-
-                if voucher_code:
+                voucher_error = None
+                for obj, paypal_trans in zip(obj_list, paypal_trans_list):
                     if obj_type == 'booking':
-                        voucher = EventVoucher.objects.get(code=voucher_code)
-                        UsedEventVoucher.objects.create(
-                            voucher=voucher, user=obj.user
-                        )
-                    elif obj_type == 'block':
-                        voucher = BlockVoucher.objects.get(code=voucher_code)
-                        UsedBlockVoucher.objects.create(
-                            voucher=voucher, user=obj.user
-                        )
-                    paypal_trans.voucher_code = voucher_code
+                        obj.payment_confirmed = True
+                        obj.date_payment_confirmed = timezone.now()
+                        obj.paypal_pending=False
+                    obj.paid = True
+                    obj.save()
+
+                    # do this AFTER saving the booking as paid; in the edge case that a
+                    # user re-requests the page with the paypal button on it in between
+                    # booking and the paypal transaction being saved, this prevents a
+                    # second invoice number being generated
+                    # SCENARIO 1 (how we did it before): paypal trans id saved first;
+                    # user requests page when booking still marked as unpaid -->
+                    # renders paypal button and generates new invoice # because
+                    # retrieved paypal trans already has a txn_id stored against it.
+                    # Paypal will allow the booking to be paid twice because the
+                    # invoice number is different
+                    # SCENARIO: booking saved first; user requests page when paypal
+                    # trans not updated yet --> booking is marked as paid so doesn't
+                    # render the paypal button at all
+                    paypal_trans.transaction_id = ipn_obj.txn_id
                     paypal_trans.save()
 
                     ActivityLog.objects.create(
-                        log='Voucher code {} used for {} id {} by user {}'.format(
-                            voucher_code, obj_type, obj.id, obj.user.username
+                        log='{} id {} for user {} paid by PayPal; paypal '
+                            '{} id {}'.format(
+                            obj_type.title(), obj.id, obj.user.username, obj_type,
+                            paypal_trans.id,
+                            '(paypal email {})'.format(
+                                get_paypal_email(obj, obj_type)
+                            )
                         )
                     )
 
-                if not ipn_obj.invoice:
-                    # sometimes paypal doesn't send back the invoice id -
-                    # everything should be ok but email to check
-                    ipn_obj.invoice = paypal_trans.invoice_id
-                    ipn_obj.save()
-                    send_mail(
-                        '{} No invoice number on paypal ipn for '
-                        '{} id {}'.format(
-                            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type,
-                            obj.id
-                        ),
-                        'Please check booking and paypal records for '
-                        'paypal transaction id {}.  No invoice number on paypal'
-                        ' IPN.  Invoice number has been set to {}.'.format(
-                            ipn_obj.txn_id, paypal_trans.invoice_id
-                        ),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [settings.SUPPORT_EMAIL],
-                        fail_silently=False
-                    )
+                    if voucher_code:
+                        try:
+                            if obj_type == 'booking':
+                                voucher = EventVoucher.objects.get(code=voucher_code)
+                                UsedEventVoucher.objects.create(
+                                    voucher=voucher, user=obj.user
+                                )
+                            elif obj_type == 'block':
+                                voucher = BlockVoucher.objects.get(code=voucher_code)
+                                UsedBlockVoucher.objects.create(
+                                    voucher=voucher, user=obj.user
+                                )
+                            paypal_trans.voucher_code = voucher_code
+                            paypal_trans.save()
+
+                            ActivityLog.objects.create(
+                                log='Voucher code {} used for {} id {} by user {}'.format(
+                                    voucher_code, obj_type, obj.id, obj.user.username
+                                )
+                            )
+                        except (
+                                EventVoucher.DoesNotExist, BlockVoucher.DoesNotExist
+                        ) as e:
+                            voucher_error = e
+
+                    if not ipn_obj.invoice:
+                        # sometimes paypal doesn't send back the invoice id -
+                        # everything should be ok but email to check
+                        ipn_obj.invoice = paypal_trans.invoice_id
+                        ipn_obj.save()
+                        send_mail(
+                            '{} No invoice number on paypal ipn for '
+                            '{} id {}'.format(
+                                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type,
+                                obj.id
+                            ),
+                            'Please check booking and paypal records for '
+                            'paypal transaction id {}.  No invoice number on paypal'
+                            ' IPN.  Invoice number has been set to {}.'.format(
+                                ipn_obj.txn_id, paypal_trans.invoice_id
+                            ),
+                            settings.DEFAULT_FROM_EMAIL,
+                            [settings.SUPPORT_EMAIL],
+                            fail_silently=False
+                        )
+
+                send_processed_payment_emails(
+                    obj_type, obj_ids, obj_list, paypal_trans_list
+                )
+
+                if voucher_error:
+                    # raise error from invalid voucher here so emails for
+                    # payments are still sent
+                    raise voucher_error
 
         else:  # any other status
             if obj_type == 'paypal_test':
@@ -554,14 +594,14 @@ def payment_received(sender, **kwargs):
                 ActivityLog.objects.create(
                     log='Unexpected payment status {} for {} {}; '
                         'ipn obj id {} (txn id {})'.format(
-                         obj_type, obj.id,
+                         obj_type, obj_ids,
                          ipn_obj.payment_status.upper(), ipn_obj.id, ipn_obj.txn_id
                         )
                 )
                 raise PayPalTransactionError(
                     'Unexpected payment status {} for {} {}; ipn obj id {} '
                     '(txn id {})'.format(
-                        ipn_obj.payment_status.upper(), obj_type, obj.id,
+                        ipn_obj.payment_status.upper(), obj_type, obj_ids,
                         ipn_obj.id, ipn_obj.txn_id
                     )
                 )
@@ -581,7 +621,7 @@ def payment_received(sender, **kwargs):
             logger.warning(
                 'Problem processing payment for {} {}; invoice_id {}, transaction '
                 'id: {}.  Exception: {}'.format(
-                    obj_type.title(), obj.id, ipn_obj.invoice, ipn_obj.txn_id, e
+                    obj_type.title(), obj_ids, ipn_obj.invoice, ipn_obj.txn_id, e
                     )
             )
 
@@ -592,7 +632,7 @@ def payment_received(sender, **kwargs):
                 'payment to paypal email {}'.format(
                     additional_data['test_paypal_email']
                 ) if obj_type == 'paypal_test' else
-                'id {}'.format(obj.id)
+                'id {}'.format(obj_ids)
             ),
             'Please check your booking and paypal records for '
             'invoice # {}, paypal transaction id {}.\n\nThe exception '
@@ -606,7 +646,6 @@ def payment_received(sender, **kwargs):
 
 def payment_not_received(sender, **kwargs):
     ipn_obj = sender
-
     try:
         obj_dict = get_obj(ipn_obj)
     except PayPalTransactionError as e:
@@ -626,18 +665,19 @@ def payment_not_received(sender, **kwargs):
         return
 
     try:
-        obj = obj_dict.get('obj')
-        obj_type = obj_dict.get('obj_type')
+        obj_list = obj_dict['obj_list']
+        obj_type = obj_dict['obj_type']
         additional_data = obj_dict.get('additional_data')
+        obj_ids = ', '.join([str(obj.id) for obj in obj_list])
 
-        if obj:
+        if obj_list:
             logger.warning('Invalid Payment Notification received from PayPal '
                            'for {} {}'.format(
                 obj_type.title(),
                 'payment to paypal email {}'.format(
                     additional_data['test_paypal_email']
                     ) if obj_type == 'paypal_test' else
-                    'id {}'.format(obj.id)
+                    'id {}'.format(obj_ids)
                 )
             )
             send_mail(
@@ -648,44 +688,44 @@ def payment_not_received(sender, **kwargs):
                     obj_type.title(),
                     'payment to paypal email {}'.format(
                         additional_data['test_paypal_email']
-                    ) if obj_type == 'paypal_test' else 'id {}'.format(obj.id),
+                    ) if obj_type == 'paypal_test' else 'id {}'.format(obj_ids),
                     ipn_obj.flag_info
                 ),
                 settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
                 fail_silently=False)
 
     except Exception as e:
-            # if anything else goes wrong, send a warning email
-            logger.warning(
-                'Problem processing payment_not_received for {} {}; invoice_'
-                'id {}, transaction id: {}. Exception: {}'.format(
-                    obj_type.title(),
-                    'payment to paypal email {}'.format(
-                        additional_data['test_paypal_email']
-                    ) if obj_type == 'paypal_test' else
-                    'id {}'.format(obj.id),
-                    ipn_obj.invoice,
-                    ipn_obj.txn_id, e
-                    )
-            )
-            send_mail(
-                '{} There was some problem processing payment_not_received for '
-                '{} {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type,
-                    'payment to paypal email {}'.format(
-                        additional_data['test_paypal_email']
-                    ) if obj_type == 'paypal_test' else
-                    'id {}'.format(obj.id)
-                ),
-                'Please check your booking and paypal records for '
-                'invoice # {}, paypal transaction id {}.\n\nThe exception '
-                'raised was "{}".\n\nNOTE: this error occurred during '
-                'processing of the payment_not_received signal'.format(
-                    ipn_obj.invoice, ipn_obj.txn_id, e
-                ),
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.SUPPORT_EMAIL],
-                fail_silently=False)
+        # if anything else goes wrong, send a warning email
+        logger.warning(
+            'Problem processing payment_not_received for {} {}; invoice_'
+            'id {}, transaction id: {}. Exception: {}'.format(
+                obj_type.title(),
+                'payment to paypal email {}'.format(
+                    additional_data['test_paypal_email']
+                ) if obj_type == 'paypal_test' else
+                'id {}'.format(obj_ids),
+                ipn_obj.invoice,
+                ipn_obj.txn_id, e
+                )
+        )
+        send_mail(
+            '{} There was some problem processing payment_not_received for '
+            '{} {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type,
+                'payment to paypal email {}'.format(
+                    additional_data['test_paypal_email']
+                ) if obj_type == 'paypal_test' else
+                'id {}'.format(obj_ids)
+            ),
+            'Please check your booking and paypal records for '
+            'invoice # {}, paypal transaction id {}.\n\nThe exception '
+            'raised was "{}".\n\nNOTE: this error occurred during '
+            'processing of the payment_not_received signal'.format(
+                ipn_obj.invoice, ipn_obj.txn_id, e
+            ),
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.SUPPORT_EMAIL],
+            fail_silently=False)
 
 valid_ipn_received.connect(payment_received)
 invalid_ipn_received.connect(payment_not_received)
