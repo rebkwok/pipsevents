@@ -25,7 +25,10 @@ from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from braces.views import LoginRequiredMixin
 
-from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
+from payments.forms import (
+    PayPalPaymentsListForm, PayPalPaymentsShoppingBasketForm,
+    PayPalPaymentsUpdateForm
+)
 from payments.models import PaypalBookingTransaction
 
 from accounts.utils import has_expired_disclaimer
@@ -169,12 +172,6 @@ class BookingCreateView(
     model = Booking
     template_name = 'booking/create_booking.html'
     success_message = 'Your booking has been made for {}.'
-    info_message = mark_safe(
-        '<span style="color: red;">PLEASE NOTE: </span>'
-        'If you are late and/or miss the warm up, you will not be allowed to attend for '
-        'safety reasons and to avoid disruption to the class. <strong>Please arrive at least '
-        '5 mins before your class to allow time to change.</strong>'
-    )
     form_class = BookingCreateForm
 
     def dispatch(self, request, *args, **kwargs):
@@ -528,7 +525,6 @@ class BookingCreateView(
                 self.success_message.format(booking.event),
                 extra_msg))
         )
-        messages.info(self.request, self.info_message)
 
         try:
             waiting_list_user = WaitingListUser.objects.get(
@@ -553,6 +549,9 @@ class BookingCreateView(
 
 class BookingMultiCreateView(BookingCreateView):
 
+    success_message = "Booking for {} created and added to " \
+                      "<a href='/bookings/shopping-basket'>basket</a>.<br/>"
+
     def form_valid(self, form):
         super(BookingMultiCreateView, self).form_valid(form)
         filter = form.data.get('filter')
@@ -563,6 +562,11 @@ class BookingMultiCreateView(BookingCreateView):
                 reverse('booking:{}'.format(next))
                 + '?name={}'.format(filter)
             )
+        # get rid of base class messages and just show the add to basket one
+        list(messages.get_messages(self.request))
+        messages.success(
+            self.request, mark_safe(self.success_message.format(form.instance.event))
+        )
         return HttpResponseRedirect(reverse('booking:{}'.format(next)))
 
 
@@ -1335,7 +1339,7 @@ def shopping_basket(request):
                 request.user, booking
             ).invoice_id
 
-            paypal_form = PayPalPaymentsUpdateForm(
+            paypal_form = PayPalPaymentsShoppingBasketForm(
             initial=context_helpers.get_paypal_dict(
                 host,
                 context['total_cost'],
@@ -1422,6 +1426,7 @@ def update_block_bookings(request):
 
     if block_booked:
         messages.info(request, "Blocks used for {} bookings".format(len(block_booked)))
+        # TODO email user one email for all blocks used
     else:
         messages.info(
             request,

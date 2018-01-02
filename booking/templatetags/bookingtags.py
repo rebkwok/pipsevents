@@ -373,8 +373,12 @@ def get_shopping_basket_icon(user, menu=False):
         event__date__gte=timezone.now(),
         no_show=False, paypal_pending=False
     )
-
     return {'bookings': bookings, 'count': bookings.count(), 'menu': menu}
+
+@register.assignment_tag
+def has_shopping_basket_items(user):
+    return get_shopping_basket_icon(user)['bookings'].exists()
+
 
 @register.inclusion_tag('booking/includes/shopping_basket_icon.html')
 def show_shopping_basket_menu(user):
