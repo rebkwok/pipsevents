@@ -332,13 +332,14 @@ class BookingTests(PatchRequestMixin, TestCase):
         Test that attempting to create new cancelled booking for full event
         does not raise error
         """
+        new_user = mommy.make_recipe('booking.user')
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
         mommy.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
         Booking.objects.create(
-            event=self.event_with_cost, user=self.users[0], status='CANCELLED'
+            event=self.event_with_cost, user=new_user, status='CANCELLED'
         )
         self.assertEqual(
             Booking.objects.filter(event=self.event_with_cost).count(), 4

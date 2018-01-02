@@ -11,6 +11,18 @@
             {% if events %}<span class="location">at <span id="location">All locations</span></span>{%  endif %}
         </h1>
 
+        {% if user.is_authenticated %}
+            {% has_shopping_basket_items user as items_in_shopping_basket %}
+            {% if items_in_shopping_basket %}
+            <p class="errorlist">
+                You have items in your shopping basket.  Note that if payment has
+                not been received within the required time (see individual class/workshop for details),
+                 your booking will be automatically cancelled and you
+                 will need to contact the studio directly to rebook.
+            </p>
+            {% endif %}
+        {% endif %}
+
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
