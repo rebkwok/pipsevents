@@ -9,7 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import EventType
+from booking.models import Event, EventType
 from timetable.models import Session
 from studioadmin.forms.utils import cancel_choices
 
@@ -314,39 +314,48 @@ class SessionAdminForm(forms.ModelForm):
 class UploadTimetableForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
+        location = kwargs.pop('location', 'all')
         super(UploadTimetableForm, self).__init__(*args, **kwargs)
+
+        if location == 'all':
+            qs = Session.objects.all().order_by('day', 'time')
+            self.location_index = 0
+        else:
+            qs = Session.objects.filter(location=location).order_by('day', 'time')
+            self.location_index = Event.LOCATION_INDEX_MAP[location]
+
+        self.fields['start_date'] = forms.DateField(
+            label="Start Date",
+            widget=forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': 'datepicker_startdate_{}'.format(self.location_index)},
+                format='%a %d %b %Y'
+            ),
+            required=True,
+            initial=date.today()
+        )
+
+        self.fields['end_date'] = forms.DateField(
+            label="End Date",
+            widget=forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': 'datepicker_enddate_{}'.format(self.location_index)},
+                format='%a %d %b %Y'
+            ),
+            required=True,
+        )
+
         self.fields['sessions'] = forms.ModelMultipleChoiceField(
             widget=forms.CheckboxSelectMultiple(
                 attrs={'class': 'select-checkbox'}
             ),
             label="Choose sessions to upload",
-            queryset=Session.objects.all().order_by('day', 'time'),
+            queryset=qs,
             initial=[session.pk for session in Session.objects.all()],
             required=True
         )
-
-    start_date = forms.DateField(
-        label="Start Date",
-        widget=forms.DateInput(
-            attrs={
-                'class': "form-control",
-                'id': 'datepicker_startdate'},
-            format='%a %d %b %Y'
-        ),
-        required=True,
-        initial=date.today()
-    )
-
-    end_date = forms.DateField(
-        label="End Date",
-        widget=forms.DateInput(
-            attrs={
-                'class': "form-control",
-                'id': 'datepicker_enddate'},
-            format='%a %d %b %Y'
-        ),
-        required=True,
-    )
 
     def clean(self):
         super(UploadTimetableForm, self).clean()
