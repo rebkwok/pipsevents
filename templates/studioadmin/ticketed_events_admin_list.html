@@ -48,7 +48,7 @@
                                 <td class="table-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{% if event.instance.max_tickets %}{{ event.instance.max_tickets }}{% else %}N/A{% endif %}</td>
                                 <td class="table-center studioadmin-tbl">{% if event.instance.tickets_left < 10000 %}{{ event.instance.tickets_left }}{% else %}N/A{% endif %}</td>
-                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fa fa-ticket fa-2x"></span></a></td>
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fas fa-ticket-alt fa-lg"></span></a></td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED

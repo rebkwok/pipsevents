@@ -46,9 +46,9 @@
                                 <span class="hide">{{ event.id }}</span>
                                 <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fa fa-pencil-square-o"></span>
+                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fas fa-edit"></span>
                                     {% elif type == 'lessons' %}</a>
-                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fa fa-pencil-square-o"></span>
+                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fas fa-edit"></span>
                                     {% endif %}</a>
                                 </td>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
