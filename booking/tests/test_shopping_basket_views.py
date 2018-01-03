@@ -1,30 +1,17 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 from decimal import Decimal
-from unittest.mock import patch
 from model_mommy import mommy
+from urllib.parse import urlsplit
 
-from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.test import override_settings, TestCase, RequestFactory
-from django.contrib.auth.models import Group, Permission, User
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from activitylog.models import ActivityLog
-from accounts.models import OnlineDisclaimer
-
-from booking.models import BlockType, Event, EventType, Booking, \
-    Block, EventVoucher,UsedEventVoucher,  WaitingListUser
-from booking.views import BookingListView, BookingHistoryListView, \
-    BookingCreateView, BookingDeleteView, BookingUpdateView, \
-    duplicate_booking, fully_booked, cancellation_period_past, \
-    update_booking_cancelled
-from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin, format_content
-
-from payments.helpers import create_booking_paypal_transaction
+from booking.models import Event, Booking, \
+    Block, EventVoucher, UsedEventVoucher
+from common.tests.helpers import TestSetupMixin
 
 
 class ShoppingBasketViewTests(TestSetupMixin, TestCase):
@@ -48,6 +35,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             event__date=timezone.now() + timedelta(3),
             event__cost=8,
             user=self.user, _quantity=3
+        )
+        self.voucher = mommy.make(
+            EventVoucher, code='foo', discount=10, max_per_user=10
         )
 
     def test_login_required(self):
@@ -227,8 +217,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         # valid voucher
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
-        voucher = mommy.make(EventVoucher, code='foo', discount=10)
-        voucher.event_types.add(ev_type)
+        self.voucher.event_types.add(ev_type)
         resp = self.client.get(self.url + '?code=foo')
         self.assertIsNone(resp.context['voucher_error'])
         self.assertTrue(resp.context['valid_voucher'])
@@ -252,31 +241,101 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         # expired voucher
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
-        voucher = mommy.make(EventVoucher, code='foo', discount=10)
-        voucher.event_types.add(ev_type)
-        voucher.start_date = timezone.now() - timedelta(4)
-        voucher.expiry_date = timezone.now() - timedelta(2)
-        voucher.save()
+        self.voucher.event_types.add(ev_type)
+        self.voucher.start_date = timezone.now() - timedelta(4)
+        self.voucher.expiry_date = timezone.now() - timedelta(2)
+        self.voucher.save()
         resp = self.client.get(self.url + '?code=foo')
         self.assertEqual(
             resp.context['voucher_error'], 'Voucher code has expired'
         )
 
-    def test_voucher_used_up(self):
+    def test_voucher_used_up_for_user(self):
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
-        voucher = mommy.make(EventVoucher, code='foo', discount=10)
-        voucher.event_types.add(ev_type)
-        voucher.max_per_user = 2
-        voucher.save()
+        self.voucher.event_types.add(ev_type)
+        self.voucher.max_per_user = 2
+        self.voucher.save()
         mommy.make(
-            UsedEventVoucher, user=self.user, voucher=voucher, _quantity=2
+            UsedEventVoucher, user=self.user, voucher=self.voucher, _quantity=2
         )
         resp = self.client.get(self.url + '?code=foo')
         self.assertEqual(
             resp.context['voucher_error'],
             'Voucher code has already been used the maximum number of times (2)'
         )
+
+    def test_voucher_will_be_used_up_for_user_with_basket_bookings(self):
+        booking = Booking.objects.first()
+        ev_type = booking.event.event_type
+        self.voucher.event_types.add(ev_type)
+        self.voucher.max_per_user = 3
+        self.voucher.save()
+        mommy.make(
+            UsedEventVoucher, user=self.user, voucher=self.voucher, _quantity=2
+        )
+        resp = self.client.get(self.url + '?code=foo')
+
+        # no voucher error b/c voucher is valid for at least one more use
+        self.assertIsNone(resp.context['voucher_error'])
+        self.assertEqual(
+            resp.context['voucher_msg'],
+            ['Voucher not applied to some bookings; you can only use this '
+             'voucher a total of 3 times.']
+        )
+        # 6 bookings, events each £8, only one with 10% discount applied
+        self.assertEqual(resp.context['total_cost'], Decimal('47.20'))
+
+    def test_voucher_used_max_total_times(self):
+        booking = Booking.objects.first()
+        ev_type = booking.event.event_type
+        self.voucher.event_types.add(ev_type)
+        self.voucher.max_vouchers = 4
+        self.voucher.save()
+        other_user = mommy.make_recipe('booking.user')
+        mommy.make(
+            UsedEventVoucher, user=other_user, voucher=self.voucher,
+            _quantity=4
+        )
+
+        resp = self.client.get(self.url + '?code=foo')
+        self.assertEqual(
+            resp.context['voucher_error'],
+            'Voucher has limited number of total uses and has now expired'
+        )
+
+    def test_voucher_will_be_used_max_total_times_with_basket_bookings(self):
+        ev_types = [
+            booking.event.event_type for booking in Booking.objects.all()
+        ]
+        for ev_type in ev_types:
+            self.voucher.event_types.add(ev_type)
+
+        resp = self.client.get(self.url + '?code=foo')
+
+        # 6 bookings, events each £8 with 10% discount applied
+        self.assertEqual(resp.context['total_cost'], Decimal('43.20'))
+
+        # add max total
+        self.voucher.max_vouchers = 10
+        self.voucher.save()
+
+        other_user = mommy.make_recipe('booking.user')
+        mommy.make(
+            UsedEventVoucher, user=other_user, voucher=self.voucher, _quantity=9
+        )
+
+        resp = self.client.get(self.url + '?code=foo')
+
+        # no voucher error b/c voucher is valid for at least one more use
+        self.assertIsNone(resp.context['voucher_error'])
+        self.assertEqual(
+            resp.context['voucher_msg'],
+            ['Voucher not applied to some bookings; voucher has limited '
+            'number of total uses.']
+        )
+        # 6 bookings, events each £8, only one with 10% discount applied
+        self.assertEqual(resp.context['total_cost'], Decimal('47.20'))
 
     def test_paypal_cart_form_created(self):
         resp = self.client.get(self.url)
@@ -296,11 +355,26 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 paypalform.initial['amount_{}'.format(i + 1)], 8
             )
 
+    def test_paypal_form_for_single_cart_item(self):
+        # single cart item uses a single paypal dict format
+        booking = Booking.objects.first()
+        Booking.objects.exclude(id=booking.id).delete()
+
+        resp = self.client.get(self.url)
+        self.assertEqual(len(resp.context['unpaid_bookings']), 1)
+        paypalform = resp.context['paypalform']
+
+        self.assertEqual(
+            paypalform.initial['custom'],'booking {}'.format(booking.id)
+        )
+        self.assertIn('item_name', paypalform.initial)
+        self.assertNotIn('item_name_1', paypalform.initial)
+        self.assertEqual(paypalform.initial['amount'], 8)
+
     def test_paypal_cart_form_created_with_voucher(self):
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
-        voucher = mommy.make(EventVoucher, code='foo', discount=10)
-        voucher.event_types.add(ev_type)
+        self.voucher.event_types.add(ev_type)
 
         resp = self.client.get(self.url + '?code=foo')
 
@@ -341,25 +415,198 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
 class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('booking:update_block_bookings')
+        cls.blocktype_cl_5 = mommy.make_recipe('booking.blocktype5')
+
+        # need to specify subtype for free block creation to happen
+        cls.blocktype_cl_10 = mommy.make_recipe(
+            'booking.blocktype10', event_type__subtype="Pole level class"
+        )
+        # create free block type associated with blocktype_cl_10
+        cls.free_blocktype = mommy.make_recipe(
+            'booking.blocktype', size=1, cost=0,
+            event_type=cls.blocktype_cl_10.event_type, identifier='free class'
+        )
+        cls.pc1 = mommy.make_recipe(
+            'booking.future_PC', event_type=cls.blocktype_cl_5.event_type,
+            cost=10
+        )
+        cls.pc2 = mommy.make_recipe(
+            'booking.future_PC', event_type=cls.blocktype_cl_5.event_type,
+            cost=10
+        )
+        cls.ev =  mommy.make_recipe('booking.future_EV', cost=10)
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password='test')
+
     def test_use_block_for_all_eligible_bookings(self):
-        pass
+        block = mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=self.blocktype_cl_5, paid=True
+        )
+        self.assertTrue(block.active_block())
+        for ev in Event.objects.all():
+            mommy.make_recipe('booking.booking', user=self.user, event=ev)
 
-    def test_use_block_for_all_eligible_bookings_with_voucher_code(self):
-        # redirects with code
-        pass
+        # block is eligible for 2 of the 3 bookings
+        resp = self.client.post(self.url)
+        self.assertEqual(
+            Booking.objects.get(user=self.user, event=self.pc1).block, block
+        )
+        self.assertEqual(
+            Booking.objects.get(user=self.user, event=self.pc2).block, block
+        )
+        self.assertIsNone(
+            Booking.objects.get(user=self.user, event=self.ev).block
+        )
 
-    def test_use_block_for_all_with_more_bookings_than_blocks(self):
-        pass
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(
+            split_redirect_url.path, reverse('booking:shopping_basket')
+        )
 
-    def test_use_block_for_all_uses_last_block(self):
-        pass
-
-    def test_use_block_for_all_uses_last_block_free_class_created(self):
-        # free class created and used
-        pass
+        # email sent
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [self.user.email])
+        self.assertIn('Blocks used for 2 bookings', email.subject)
 
     def test_use_block_for_all_with_no_eligible_booking(self):
-        pass
+        # redirects with code
+        for ev in Event.objects.all():
+            mommy.make_recipe('booking.booking', user=self.user, event=ev)
 
+        self.client.post(self.url)
 
+        # no valid blocks
+        for booking in Booking.objects.filter(user=self.user):
+            self.assertIsNone(booking.block)
 
+        # no email sent
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_use_block_for_all_with_voucher_code(self):
+        # redirects with code
+        for ev in Event.objects.all():
+            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+
+        resp = self.client.post(self.url, {'code': 'bar'})
+
+        # no valid blocks
+        for booking in Booking.objects.filter(user=self.user):
+            self.assertIsNone(booking.block)
+
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(
+            split_redirect_url.path, reverse('booking:shopping_basket')
+        )
+        self.assertEqual(split_redirect_url.query, 'code=bar')
+
+    def test_use_block_for_all_with_more_bookings_than_blocks(self):
+        mommy.make_recipe(
+            'booking.future_PC', event_type=self.blocktype_cl_5.event_type,
+            cost=10, _quantity=6
+        )
+        block = mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=self.blocktype_cl_5, paid=True
+        )
+        self.assertTrue(block.active_block())
+        for ev in Event.objects.all():
+            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+
+        self.assertEqual(Booking.objects.filter(user=self.user).count(), 9)
+        # 8 bookings are eligible for block booking
+        self.assertEqual(
+            Booking.objects.filter(
+                user=self.user, event__event_type=block.block_type.event_type
+            ).count(), 8
+        )
+        self.client.post(self.url)
+        # 5 bookings are updated with available blocks
+        self.assertEqual(
+            Booking.objects.filter(user=self.user, block__isnull=False).count(),
+            5
+        )
+
+    def test_use_block_for_all_uses_last_block_free_class_created(self):
+        mommy.make_recipe(
+            'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
+            cost=10, _quantity=11
+        )
+
+        # free class created and used
+        block = mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=self.blocktype_cl_10, paid=True
+        )
+        self.assertTrue(block.active_block())
+
+        for ev in Event.objects.all():
+            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+
+        self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
+        # 11 bookings are eligible for block booking
+        self.assertEqual(
+            Booking.objects.filter(
+                user=self.user, event__event_type=block.block_type.event_type
+            ).count(), 11
+        )
+        self.client.post(self.url)
+        # 10 bookings are updated with available blocks,
+        # 10 from existing block, 1 free block created and used
+        self.assertEqual(
+            Booking.objects.filter(user=self.user, block__isnull=False).count(),
+            11
+        )
+        self.assertEqual(
+            Block.objects.latest('id').block_type, self.free_blocktype
+        )
+
+    def test_uses_last_block_free_class_block_already_exists(self):
+        mommy.make_recipe(
+            'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
+            cost=10, _quantity=11
+        )
+
+        block = mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=self.blocktype_cl_10, paid=True
+        )
+        # free related block already exists
+        free_block = mommy.make_recipe(
+            'booking.block', user=self.user,
+            block_type=self.free_blocktype, paid=True, parent=block
+        )
+        self.assertTrue(block.active_block())
+        self.assertTrue(free_block.active_block())
+
+        for ev in Event.objects.all():
+            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+
+        self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
+        # 11 bookings are eligible for block booking with block or free block
+        self.assertEqual(
+            Booking.objects.filter(
+                user=self.user, event__event_type=block.block_type.event_type
+            ).count(), 11
+        )
+        self.assertEqual(
+            Booking.objects.filter(
+                user=self.user, event__event_type=free_block.block_type.event_type
+            ).count(), 11
+        )
+        self.client.post(self.url)
+        # 10 bookings are updated with available blocks,
+        # 10 from existing block, 1 free block used
+        self.assertEqual(
+            Booking.objects.filter(user=self.user, block__isnull=False).count(),
+            11
+        )
+        # no additional free block created
+        self.assertEqual(Block.objects.count(), 2)

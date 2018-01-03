@@ -450,6 +450,34 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking.save()
         self.assertFalse(booking.auto_cancelled)
 
+    @patch('booking.models.timezone')
+    def test_can_cancel(self, mock_tz):
+        mock_now = datetime(2015, 3, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+
+        event = mommy.make_recipe(
+            'booking.future_PC',
+            date=datetime(2015, 3, 3, tzinfo=timezone.utc),
+            cancellation_period=24
+        )
+        booking = mommy.make(Booking, user=self.users[0], event=event)
+
+        # event allows cancellation and outside cancellation period
+        self.assertTrue(booking.can_cancel)
+
+        event.allow_booking_cancellation = False
+        event.save()
+        self.assertFalse(booking.can_cancel)
+
+        event.allow_booking_cancellation = True
+        event.save()
+        self.assertTrue(booking.can_cancel)
+
+        mock_now = datetime(2015, 3, 2, 18, 0, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+        # event cancellation allowed but now we're within cancellation period
+        self.assertFalse(booking.can_cancel)
+
 
 class BlockTests(PatchRequestMixin, TestCase):
 

@@ -1301,8 +1301,14 @@ def shopping_basket(request):
                         if check_max_total:
                             max_voucher_uses_left -= 1
                     else:
-                        invalid_event_types.append(booking.event.event_type.subtype)
                         total += booking.event.cost
+                        # if we can't use the voucher but max_total and
+                        # max_per_user are not exceeded, it must be an invalid
+                        # event type
+                        if not (max_total_exceeded or max_per_user_exceeded):
+                            invalid_event_types.append(
+                                booking.event.event_type.subtype
+                            )
 
                 voucher_msg = []
                 if invalid_event_types:
@@ -1320,9 +1326,7 @@ def shopping_basket(request):
                 if max_total_exceeded:
                     voucher_msg.append(
                         'Voucher not applied to some bookings; voucher '
-                        'has limited number of total uses.'.format(
-                            voucher.max_vouchers
-                        )
+                        'has limited number of total uses.'
                     )
 
                 context['voucher_applied_bookings'] = voucher_applied_bookings

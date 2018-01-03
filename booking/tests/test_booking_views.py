@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 from model_mommy import mommy
 
+from urllib.parse import urlsplit
+
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
@@ -282,6 +284,16 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user)
         self.assertIn('<strong>N/A</strong>', resp.rendered_content)
+
+        booking.event=event_with_cost
+        booking.paid=False
+        booking.paypal_pending=True
+        booking.save()
+        resp = self._get_response(self.user)
+        self.assertIn(
+            '<span class="not-confirmed">PayPal pending</span>',
+            resp.rendered_content
+        )
 
     def test_auto_cancelled_booking(self):
         """
@@ -2750,6 +2762,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_pay_with_block_uses_last_of_10(self):
+        # block of 10 for 'CL' blocktype creates free block
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
@@ -2774,6 +2787,33 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
         self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
+
+    def test_pay_with_block_uses_last_and_no_free_block_created(self):
+        # block of 5 for 'CL' blocktype does not create free block
+        block = mommy.make_recipe(
+            'booking.block_5', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        event = mommy.make_recipe(
+            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
+        )
+
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=False
+        )
+
+        mommy.make_recipe(
+            'booking.booking', block=block, user=self.user, _quantity=4
+        )
+
+        self.assertEqual(Block.objects.count(), 1)
+        resp = self._post_response(self.user, booking, {'block_book': 'yes'})
+
+        self.assertEqual(block.bookings.count(), 5)
+        self.assertEqual(Block.objects.count(), 1)
+        self.assertEqual(Block.objects.latest('id'), block)
 
     def test_pay_with_block_uses_last_of_10_free_block_already_exists(self):
         block = mommy.make_recipe(
@@ -3237,10 +3277,10 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Booking.objects.all().count(), 1)
 
         self.client.login(username=self.user.username, password='test')
-        url = reverse('booking:update_booking', args=[booking.id]) \
-              + '?next=shopping_basket&code=foo'
+        url = reverse('booking:update_booking', args=[booking.id])
         resp = self.client.post(
-            url, data={'block_book': True, 'shopping_basket': True}
+            url,
+            data={'block_book': True, 'shopping_basket': True, 'code': 'foo'}
         )
 
         booking.refresh_from_db()
@@ -3249,6 +3289,104 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(booking.block, block)
 
         # redirects back to shopping basket with code
-        self.assertIn(
-            resp.url, reverse('booking:shopping_basket') + '?code=foo'
+        split = urlsplit(resp.url)
+        self.assertEqual(split.path, reverse('booking:shopping_basket'))
+        self.assertEqual(split.query, 'code=foo')
+
+    def test_cart_items_added_to_session(self):
+        block = mommy.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
         )
+        event = mommy.make_recipe(
+            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
+        )
+
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=False
+        )
+
+        self.client.login(username=self.user.username, password='test')
+
+        url = reverse('booking:update_booking', args=[booking.id])
+
+        self.client.get(url)
+
+        # booking added to cart_items on get
+        self.assertEqual(self.client.session['cart_items'], str(booking.id))
+
+        # posting means submitting for block payment, so cart_items deleted
+        self.client.post(url, data={'block_book': True})
+        self.assertNotIn('cart_items', self.client.session)
+
+
+class BookingMultiCreateViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.pc = mommy.make_recipe('booking.future_PC')
+        cls.ev = mommy.make_recipe('booking.future_EV')
+        cls.rh = mommy.make_recipe('booking.future_RH')
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password='test')
+
+    def test_create_returns_to_correct_events_page(self):
+        url = reverse('booking:create_booking', args=[self.pc.slug])
+        self.assertFalse(Booking.objects.exists())
+
+        resp = self.client.post(url, data={'event': self.pc.id})
+        self.assertTrue(
+            Booking.objects.filter(user=self.user, event=self.pc).exists()
+        )
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(split_redirect_url.path, reverse('booking:lessons'))
+
+        url = reverse('booking:create_booking', args=[self.ev.slug])
+        resp = self.client.post(url, data={'event': self.ev.id})
+
+        self.assertTrue(
+            Booking.objects.filter(user=self.user, event=self.ev).exists()
+        )
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(split_redirect_url.path, reverse('booking:events'))
+
+        url = reverse('booking:create_booking', args=[self.rh.slug])
+        resp = self.client.post(url, data={'event': self.rh.id})
+        self.assertTrue(
+            Booking.objects.filter(user=self.user, event=self.rh).exists()
+        )
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(split_redirect_url.path, reverse('booking:room_hires'))
+
+    def test_create_returns_to_requested_next_page(self):
+        url = reverse('booking:create_booking', args=[self.pc.slug])
+        self.assertFalse(Booking.objects.exists())
+
+        resp = self.client.post(
+            url, data={'event': self.pc.id, 'next': 'bookings'}
+        )
+        self.assertTrue(
+            Booking.objects.filter(user=self.user, event=self.pc).exists()
+        )
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(split_redirect_url.path, reverse('booking:bookings'))
+
+    def test_create_returns_to_events_page_with_filter(self):
+        self.pc.name = 'Level 1'
+        url = reverse('booking:create_booking', args=[self.pc.slug])
+        self.assertFalse(Booking.objects.exists())
+
+        resp = self.client.post(
+            url, data={'event': self.pc.id, 'filter': 'Level 1'}
+        )
+        self.assertTrue(
+            Booking.objects.filter(user=self.user, event=self.pc).exists()
+        )
+        split_redirect_url = urlsplit(resp.url)
+        self.assertEqual(split_redirect_url.path, reverse('booking:lessons'))
+        self.assertEqual(split_redirect_url.query, 'name=Level%201')
