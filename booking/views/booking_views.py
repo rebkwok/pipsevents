@@ -1232,7 +1232,7 @@ def shopping_basket(request):
 
     voucher_applied_bookings = []
 
-    if "code" in request.GET:
+    if "code" in request.GET and "remove_voucher" not in request.GET:
         code = request.GET['code'].strip()
         try:
             voucher = EventVoucher.objects.get(code=code)
@@ -1274,7 +1274,7 @@ def shopping_basket(request):
                 max_total_exceeded = False
 
                 for booking in unpaid_bookings:
-                    can_use = True
+                    can_use = voucher.check_event_type(booking.event.event_type)
                     if check_max_per_user and uses_per_user_left <= 0:
                         can_use = False
                         max_per_user_exceeded = True
@@ -1283,18 +1283,17 @@ def shopping_basket(request):
                         max_total_exceeded = True
 
                     if can_use:
-                        if voucher.check_event_type(booking.event.event_type):
-                            total += Decimal(
-                                float(booking.event.cost) * ((100 - voucher.discount) / 100)
-                            ).quantize(Decimal('.05'))
-                            voucher_applied_bookings.append(booking.id)
-                            if check_max_per_user:
-                                uses_per_user_left -= 1
-                            if check_max_total:
-                                max_voucher_uses_left -= 1
-                        else:
-                            invalid_event_types.append(booking.event.event_type.subtype)
-                            total += booking.event.cost
+                        total += Decimal(
+                            float(booking.event.cost) * ((100 - voucher.discount) / 100)
+                        ).quantize(Decimal('.05'))
+                        voucher_applied_bookings.append(booking.id)
+                        if check_max_per_user:
+                            uses_per_user_left -= 1
+                        if check_max_total:
+                            max_voucher_uses_left -= 1
+                    else:
+                        invalid_event_types.append(booking.event.event_type.subtype)
+                        total += booking.event.cost
 
                 voucher_msg = []
                 if invalid_event_types:
@@ -1325,9 +1324,6 @@ def shopping_basket(request):
                 'voucher': voucher,
                 'code': code,
             })
-
-        if "remove_voucher" in request.GET:
-            pass
 
     # TODO need invoice for multiple bookings - new MultipleBookingPaypalTransaction model?
     if unpaid_bookings:
@@ -1381,12 +1377,14 @@ def shopping_basket(request):
     )
 
 
+@login_required
 def update_block_bookings(request):
     unpaid_bookings = Booking.objects.filter(
         user=request.user, event__payment_open=True, paid=False, status='OPEN',
         event__date__gte=timezone.now(),
-        no_show=False
+        no_show=False, paypal_pending=False
     )
+
     block_booked = []
     for booking in unpaid_bookings:
         active_block = _get_active_user_block(request.user, booking)
