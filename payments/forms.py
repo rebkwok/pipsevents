@@ -59,7 +59,7 @@ class PayPalPaymentsShoppingBasketForm(PayPalPaymentsForm):
     def render(self):
         return format_html(
             """<form class="paypal-btn-form" action="{0}" method="post">
-            {1}<input type="image" style="height: 65%; width: width: 8em;"
+            {1}<input type="image" style="height: auto; width: 8em;"
             src="{2}" border="0" name="submit" alt="Checkout Now" />
             </form>""", self.get_endpoint(), self.as_p(), self.get_image()
        )
