@@ -540,6 +540,9 @@ class BookingCreateView(
         except WaitingListUser.DoesNotExist:
             pass
 
+        # keep the booking so we can use it in BookingMultiCreateView
+        self.booking = booking
+
         if not booking.paid and booking.event.cost:
             return HttpResponseRedirect(
                 reverse('booking:update_booking', args=[booking.id])
@@ -549,8 +552,7 @@ class BookingCreateView(
 
 class BookingMultiCreateView(BookingCreateView):
 
-    success_message = "Booking for {} created and added to " \
-                      "<a href='/bookings/shopping-basket'>basket</a>.<br/>"
+    success_message = "Booking for {} created"
 
     def form_valid(self, form):
         super(BookingMultiCreateView, self).form_valid(form)
@@ -564,9 +566,16 @@ class BookingMultiCreateView(BookingCreateView):
             )
         # get rid of base class messages and just show the add to basket one
         list(messages.get_messages(self.request))
-        messages.success(
-            self.request, mark_safe(self.success_message.format(form.instance.event))
-        )
+
+        msg = self.success_message.format(self.booking.event)
+
+        if not self.booking.paid:
+            # booking could still be paid if it's a rebooking for a cancelled
+            # free class or for a booking previously cancelled after allowed
+            # time
+            msg += " and added to <a href='/bookings/shopping-basket'>basket</a>"
+
+        messages.success(self.request, mark_safe(msg))
         return HttpResponseRedirect(reverse('booking:{}'.format(next)))
 
 
@@ -1325,7 +1334,6 @@ def shopping_basket(request):
                 'code': code,
             })
 
-    # TODO need invoice for multiple bookings - new MultipleBookingPaypalTransaction model?
     if unpaid_bookings:
         host = 'http://{}'.format(request.META.get('HTTP_HOST'))
 
@@ -1424,7 +1432,26 @@ def update_block_bookings(request):
 
     if block_booked:
         messages.info(request, "Blocks used for {} bookings".format(len(block_booked)))
-        # TODO email user one email for all blocks used
+
+        # send email to user
+        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+        ctx = {
+            'host': host,
+            'bookings': block_booked,
+        }
+        send_mail(
+            '{} Blocks used for {} bookings'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, len(block_booked)
+            ),
+            get_template('booking/email/multi_block_booking_updated.txt').render(ctx),
+            settings.DEFAULT_FROM_EMAIL,
+            [request.user.email],
+            html_message=get_template(
+                'booking/email/multi_block_booking_updated.html'
+            ).render(ctx),
+            fail_silently=True
+        )
+
     else:
         messages.info(
             request,

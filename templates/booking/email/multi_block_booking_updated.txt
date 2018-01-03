@@ -1,0 +1,8 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Thank you!
+
+You have used your block to pay for the following booking(s), which are now confirmed:
+{% for booking in bookings %}
+- {{ booking.event }}
+{% endfor %}
