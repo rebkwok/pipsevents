@@ -25,8 +25,8 @@
             {% if valid_voucher %}
                 <input type="hidden" name="code" value="{{ code }}"/>
             {% endif %}
-            <input class="btn btn-success" type="submit" value="Use blocks for all classes"/><span class="studioadmin-help">
-                If you have valid blocks, this will pay for all applicable classes with available blocks.
+            <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/><span class="studioadmin-help">
+                If you have valid blocks, this will pay for all eligible classes with available blocks.
         </span>
         </form>
     {% else %}
@@ -80,7 +80,8 @@
                                     {% endif %}
                                     </td>
                                 <td>
-                                   <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="get">
+                                   <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
+                                       {% csrf_token %}
                                         <input class="btn btn-danger table-btn" type="submit" value="Remove"/>
                                        {% if valid_voucher %}
                                             <input type="hidden" name="code" value="{{ code }}"/>
@@ -117,7 +118,7 @@
                                 <form class="form-inline" method="get" action="">
                                 <label><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong></label>
                                 <input class="btn btn-success table-btn" type="submit" name="remove_voucher" value="Remove" /><br/>
-                                <small>You have already used this voucher {% if times_voucher_used == 1 %}once{% else %}{{ times_voucher_used }} times{% endif %} (max {{ voucher.max_per_user }})</small>
+                                <small>You have already used this voucher for {% if times_voucher_used == 1 %}1 class/workshop{% else %}{{ times_voucher_used }} classes/workshops{% endif %} (max {{ voucher.max_per_user }})</small>
                                 {% for msg in voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                             {% endif %}
                         </td></tr>
