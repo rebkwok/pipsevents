@@ -867,7 +867,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(Event.objects.all().count(), 12)
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context['events'].count(), 4)
-        self.assertEquals(resp.context['type'], 'room_hire')
+        self.assertEquals(resp.context['type'], 'room_hires')
 
     def test_filter_room_hire(self):
         """

@@ -39,7 +39,8 @@ urlpatterns = [
         name='fully_booked'),
     url(r'^events/(?P<event_slug>[\w-]+)/book/$', BookingCreateView.as_view(),
         name='book_event'),
-    url(r'^events/(?P<event_slug>[\w-]+)/create-booking/$', BookingMultiCreateView.as_view(),
+    url(r'^events/(?P<event_slug>[\w-]+)/create-booking/$',
+        BookingMultiCreateView.as_view(),
         name='create_booking'),
     url(
         r'^events/(?P<slug>[\w-]+)/$', EventDetailView.as_view(),
@@ -60,7 +61,7 @@ urlpatterns = [
         r'^room-hire/(?P<slug>[\w-]+)/$',  EventDetailView.as_view(),
         {'ev_type': 'room_hire'}, name='room_hire_detail'),
     url(
-        r'^room-hire/$', EventListView.as_view(), {'ev_type': 'room_hire'},
+        r'^room-hire/$', EventListView.as_view(), {'ev_type': 'room_hires'},
         name='room_hires'
     ),
     url(r'^blocks/$', BlockListView.as_view(), name='block_list'),

@@ -125,4 +125,3 @@ class BookingtagTests(TestSetupMixin, TestCase):
             '{} (1/5 left); exp 01 Mar 15'.format(event.event_type.subtype),
             resp.rendered_content
         )
-
