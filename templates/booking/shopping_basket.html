@@ -5,220 +5,253 @@
 {% block content %}
 
 
-<div class="container-fluid row">
+<div class="container-fluid container-basket row">
         <h1>Shopping Basket</h1>
 
     <div class="btn-group btn-group-sm pull-right" role="group">
+        <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
         <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
         <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
     </div>
 
+ {% if unpaid_bookings or unpaid_bookings_non_default_paypal or unpaid_bookings_payment_not_open %}
 
     {% if unpaid_bookings %}
 
+        {% if not block_booking_available %}
+            You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.
+        {% endif %}
 
-    {% if block_booking_available %}
-        <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
-            {% csrf_token %}
-            <input type="hidden" name="block_book_all" value="True"/>
-            <input type="hidden" name="shopping_basket" value="True"/>
-            {% if valid_voucher %}
-                <input type="hidden" name="code" value="{{ code }}"/>
-            {% endif %}
-            <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/><span class="studioadmin-help">
-                If you have valid blocks, this will pay for all eligible classes with available blocks.
-        </span>
-        </form>
-    {% else %}
-        You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.
-    {% endif %}
-    <div class="row">
-        <div class="col-sm-12">
-            <div class="panel panel-success">
-                <div class="table-responsive">
-                    <table class="table">
-                        <tr class="success">
-                            <th>Booking</th>
-                            <th class="table-center">Cost</th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                        {% for booking in unpaid_bookings %}
-                            <tr class='compress'>
-                                <td>
-                                    {% if booking.event.event_type.event_type == 'EV' %}
-                                    <a href="{% url 'booking:event_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% elif booking.event.event_type.event_type == 'CL' %}
-                                    <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% else %}
-                                    <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
-                                    {% if not booking.can_cancel %}**{% endif %}
-                                </td>
-                                <td class="table-center">
-                                    {% if booking.id in voucher_applied_bookings %}
-                                        <s>£ {{ booking.event.cost }}</s>
-                                        £ {{ booking.event.cost|voucher_applied_cost:voucher.discount }}
-                                    {% else %}
-                                        £ {{ booking.event.cost }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if booking.has_available_block %}
-                                    <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="block_book" value="True"/>
-                                        {% if valid_voucher %}
-                                            <input type="hidden" name="code" value="{{ code }}"/>
-                                        {% endif %}
-                                        <input type="hidden" name="shopping_basket" value="True"/>
-                                        <input class="btn btn-success table-btn" type="submit" value="Use block"/>
-                                    </form>
-                                    {% endif %}
-                                    </td>
-                                <td>
-                                   <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
-                                       {% csrf_token %}
-                                        <input class="btn btn-danger table-btn" type="submit" value="Remove"/>
-                                       {% if valid_voucher %}
-                                            <input type="hidden" name="code" value="{{ code }}"/>
-                                        {% endif %}
-                                        <input class="hide" type="text" name="next" value="shopping_basket" />
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        <tr><td colspan="4" style="color: red;">
-                            PLEASE NOTE:
-                            If you are late and/or miss the warm up for any class, you will not be allowed to attend for
-                            safety reasons and to avoid disruption to the class. <strong>Please arrive at least
-                            5 mins before your class to allow time to change.</strong>
-                        </td></tr>
-                        {% if include_warning %}
-                        <tr><td colspan="4">** Note these bookings will not be eligible for refunds or transfer credit once paid</td></tr>
-                        {% endif %}
-                        <tr><td colspan="4">
-                            <h3>Total: £ {{ total_cost }} {% include 'payments/payment.html' %}</h3>
-                            {% if block_booking_available %}
-                                <p>Note: This total includes ALL unpaid bookings. You have blocks available;
-                                use the button above to apply blocks.</p>
-                            {% endif %}
-                            {% if not valid_voucher %}
-                                <form name="voucher_form" class="form-inline" method="get" action="">
-                                    <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
-                                    <input class="btn btn-success table-btn" type="submit" value="Apply"/>
-                                    {% if voucher_error %}
-                                        <p class="errorlist">{{ voucher_error }}</p>
-                                    {% endif %}
-                                </form>
-                            {% else %}
-                                <form class="form-inline" method="get" action="">
-                                <label><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong></label>
-                                <input class="btn btn-success table-btn" type="submit" name="remove_voucher" value="Remove" /><br/>
-                                <small>You have already used this voucher for {% if times_voucher_used == 1 %}1 class/workshop{% else %}{{ times_voucher_used }} classes/workshops{% endif %} (max {{ voucher.max_per_user }})</small>
-                                {% for msg in voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
-                            {% endif %}
-                        </td></tr>
-                    </table>
-                 </div>
+        <div class="col-xs-12 basket-section">
+            <div class="row">
+                <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
+                <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
             </div>
-        </div>
 
-
-
-        {% if unpaid_bookings_non_default_paypal %}
-        <div class="col-sm-12">
-            <h3>The following bookings cannot be paid for in a single transaction</h3>
-            <p>Please click on the Payment Options button to pay for each booking individually.</p>
-
-            <div class="panel panel-success">
-                <div class="table-responsive">
-                           <table class="table">
-                        <tr class="success">
-                            <th>Booking</th>
-                            <th class="table-center">Cost</th>
-                            <th></th>
-                        </tr>
-                        {% for booking in unpaid_bookings_non_default_paypal %}
-                            <tr class='compress'>
-                                <td>
-                                    {% if booking.event.event_type.event_type == 'EV' %}
-                                    <a href="{% url 'booking:event_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% elif booking.event.event_type.event_type == 'CL' %}
-                                    <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% else %}
-                                    <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
-                                    {% if not booking.can_cancel %}**{% endif %}
-                                </td>
-                                <td class="table-center"> £ {{ booking.event.cost }}</td>
-                                <td>
-                                    <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}">Payment options</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        {% if include_warning %}
-                        <tr><td colspan="4">** Note these bookings will not be eligible for refunds or transfer credit once paid</td></tr>
-                        {% endif %}
-                        </table>
-                    </div>
+            {% for booking in unpaid_bookings %}
+            <div class="row basket-row">
+                <div class="col-xs-7">
+                    {% if booking.event.event_type.event_type == 'EV' %}
+                    <a href="{% url 'booking:event_detail' booking.event.slug %}">
+                        {{ booking.event.name }}</a>
+                    {% elif booking.event.event_type.event_type == 'CL' %}
+                    <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
+                        {{ booking.event.name }}</a>
+                    {% else %}
+                    <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
+                        {{ booking.event.name }}</a>
+                    {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                    {% if not booking.can_cancel %}**{% endif %}
                 </div>
+                <div class="col-xs-2">
+                    {% if booking.id in voucher_applied_bookings %}
+                        <s>£{{ booking.event.cost }}</s>
+                        £{{ booking.event.cost|voucher_applied_cost:voucher.discount }}
+                    {% else %}
+                        £{{ booking.event.cost }}
+                    {% endif %}
+                </div>
+                <div class="col-xs-2 text-left">
+                    {% if booking.has_available_block %}
+                    <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="block_book" value="True"/>
+                        {% if valid_voucher %}
+                            <input type="hidden" name="code" value="{{ code }}"/>
+                        {% endif %}
+                        <input type="hidden" name="shopping_basket" value="True"/>
+                        <input class="btn btn-success table-btn basket-block-btn" type="submit" value="Use block"/>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="col-xs-1 text-left">
+                    <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
+                       {% csrf_token %}
+                        <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
+                       {% if valid_voucher %}
+                            <input type="hidden" name="code" value="{{ code }}"/>
+                        {% endif %}
+                        <input class="hide" type="text" name="next" value="shopping_basket" />
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="row basket-row">
+                <div class="col-xs-12 basket-note">
+                    PLEASE NOTE:
+                    If you are late and/or miss the warm up for any class, you will not be allowed to attend for
+                    safety reasons and to avoid disruption to the class. <strong>Please arrive at least
+                    5 mins before your class to allow time to change.</strong>
+                </div>
+            </div>
+
+        {% if include_warning %}
+            <div class="row basket-row">
+                <div class="col-xs-12">
+                    ** Note these bookings will not be eligible for refunds or transfer credit once paid
+                </div>
+
             </div>
         {% endif %}
 
-        {% if unpaid_bookings_payment_not_open %}
-        <div class="col-sm-12">
-            <h3>The following bookings cannot be paid for online</h3>
-            <p>Please click on the booking link for payment information.</p>
-
-            <div class="panel panel-success">
-                <div class="table-responsive">
-
-                        <table class="table">
-                        <tr class="success">
-                            <th>Booking</th>
-                            <th class="table-center">Cost</th>
-                            <th></th>
-                        </tr>
-                        {% for booking in unpaid_bookings_payment_not_open %}
-                            <tr class='compress'>
-                                <td>
-                                    {% if booking.event.event_type.event_type == 'EV' %}
-                                    <a href="{% url 'booking:event_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% elif booking.event.event_type.event_type == 'CL' %}
-                                    <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% else %}
-                                    <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
-                                        {{ booking.event.name }}</a>
-                                    {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
-                                    {% if not booking.can_cancel %}**{% endif %}
-                                </td>
-                                <td class="table-center"> £ {{ booking.event.cost }}</td>
-                                <td>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        {% if include_warning %}
-                        <tr><td colspan="4">** Note these bookings will not be eligible for refunds or transfer credit once paid</td></tr>
+        <div class="row basket-row">
+            <div class="col-xs-12">
+                {% if block_booking_available %}
+                        <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="block_book_all" value="True"/>
+                            <input type="hidden" name="shopping_basket" value="True"/>
+                            {% if valid_voucher %}
+                                <input type="hidden" name="code" value="{{ code }}"/>
+                            {% endif %}
+                            <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/>
+                            <p class="studioadmin-help">
+                            This will pay for all eligible classes with available blocks.
+                        </p>
+                        </form>
+                    {% endif %}
+                <h3>Total: £ {{ total_cost }}{% include 'payments/payment.html' %}</h3>
+                {% if block_booking_available %}
+                    <p>Note: This total includes ALL unpaid bookings. You have blocks available;
+                    use the button above to apply blocks.</p>
+                {% endif %}
+                {% if not valid_voucher %}
+                    <form name="voucher_form" class="form-inline" method="get" action="">
+                        <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
+                        <input class="btn btn-success table-btn" type="submit" value="Apply"/>
+                        {% if voucher_error %}
+                            <p class="errorlist">{{ voucher_error }}</p>
                         {% endif %}
-                        </table>
-                    </div>
-                </div>
+                    </form>
+                {% else %}
+                    <form class="form-inline" method="get" action="">
+                    <label><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong></label>
+                    <input class="btn btn-success table-btn" type="submit" name="remove_voucher" value="Remove" /><br/>
+                    <small>You have already used this voucher for {% if times_voucher_used == 1 %}1 class/workshop{% else %}{{ times_voucher_used }} classes/workshops{% endif %} (max {{ voucher.max_per_user }})</small>
+                    {% for msg in voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                {% endif %}
             </div>
-        {% endif %}
+        </div>
+    </div>
+    {% endif %}  <!-- main basket -->
+
+
+    {% if unpaid_bookings_non_default_paypal %}
+
+        <div class="row">
+            <div class="col-xs-12">
+                <h3>The following bookings require separate payment:</h3>
+                <p>Please click on the Payment Options button to pay for each booking individually.</p>
+            </div>
         </div>
 
-    {% else %}
-        Your basket is empty
+        <div class="col-xs-12 basket-section">
+        <div class="row">
+            <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
+            <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
+        </div>
+
+        {% for booking in unpaid_bookings_non_default_paypal %}
+        <div class="row basket-row">
+            <div class="col-xs-7">
+                {% if booking.event.event_type.event_type == 'EV' %}
+                <a href="{% url 'booking:event_detail' booking.event.slug %}">
+                    {{ booking.event.name }}</a>
+                {% elif booking.event.event_type.event_type == 'CL' %}
+                <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
+                    {{ booking.event.name }}</a>
+                {% else %}
+                <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
+                    {{ booking.event.name }}</a>
+                {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                {% if not booking.can_cancel %}**{% endif %}
+            </div>
+            <div class="col-xs-2">
+                {% if booking.id in voucher_applied_bookings %}
+                    <s>£ {{ booking.event.cost }}</s>
+                    £ {{ booking.event.cost|voucher_applied_cost:voucher.discount }}
+                {% else %}
+                    £ {{ booking.event.cost }}
+                {% endif %}
+            </div>
+            <div class="col-xs-2">
+                <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}">Payment options</a>
+            </div>
+            <div class="col-xs-1">
+                <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
+                   {% csrf_token %}
+                    <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
+                   {% if valid_voucher %}
+                        <input type="hidden" name="code" value="{{ code }}"/>
+                    {% endif %}
+                    <input class="hide" type="text" name="next" value="shopping_basket" />
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
     {% endif %}
+
+
+    {% if unpaid_bookings_payment_not_open %}
+        <div class="row">
+            <div class="col-xs-12">
+                <h3>The following bookings cannot be paid for online:</h3>
+                <p>Please click on the booking link for payment information.</p>
+            </div>
+        </div>
+
+       <div class="col-xs-12 basket-section">
+        <div class="row">
+            <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
+            <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
+        </div>
+
+        {% for booking in unpaid_bookings_payment_not_open %}
+        <div class="row basket-row">
+            <div class="col-xs-7">
+                {% if booking.event.event_type.event_type == 'EV' %}
+                <a href="{% url 'booking:event_detail' booking.event.slug %}">
+                    {{ booking.event.name }}</a>
+                {% elif booking.event.event_type.event_type == 'CL' %}
+                <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
+                    {{ booking.event.name }}</a>
+                {% else %}
+                <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
+                    {{ booking.event.name }}</a>
+                {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                {% if not booking.can_cancel %}**{% endif %}
+            </div>
+            <div class="col-xs-2">
+                {% if booking.id in voucher_applied_bookings %}
+                    <s>£ {{ booking.event.cost }}</s>
+                    £ {{ booking.event.cost|voucher_applied_cost:voucher.discount }}
+                {% else %}
+                    £ {{ booking.event.cost }}
+                {% endif %}
+            </div>
+            <div class="col-xs-2">
+            </div>
+            <div class="col-xs-1">
+                <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
+                   {% csrf_token %}
+                    <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
+                   {% if valid_voucher %}
+                        <input type="hidden" name="code" value="{{ code }}"/>
+                    {% endif %}
+                    <input class="hide" type="text" name="next" value="shopping_basket" />
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+     </div>
+    {% endif %}
+
+
+{% else %}
+    Your basket is empty
+{% endif %}
 
 </div>
 

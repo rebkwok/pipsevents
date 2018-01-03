@@ -1353,7 +1353,7 @@ def shopping_basket(request):
             invoice_id = create_multibooking_paypal_transaction(
                 request.user, unpaid_bookings
             )
-            paypal_form = PayPalPaymentsUpdateForm(
+            paypal_form = PayPalPaymentsShoppingBasketForm(
                 initial=context_helpers.get_paypal_cart_dict(
                     host,
                     unpaid_bookings,
