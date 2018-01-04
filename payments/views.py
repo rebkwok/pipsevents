@@ -44,7 +44,7 @@ def paypal_confirm_return(request):
         ids = custom[1]
         obj_ids = [int(id) for id in ids.split(',')]
 
-        if obj_type in ["booking", "bookings"]:
+        if obj_type == "booking":
             objs = Booking.objects.filter(id__in=obj_ids)
         elif obj_type == "block":
             objs = Block.objects.filter(id__in=obj_ids)
@@ -97,10 +97,10 @@ def paypal_confirm_return(request):
                 cart_item_names = [block.block_type for block in cart_items]
             else:
                 # we can't identify the item type
-                cart_items = None
+                cart_items = []
         for item in cart_items:
             if not item.paid:  # in case payment is processed during this view
-                item.paypal_pending=True
+                item.paypal_pending = True
                 item.save()
         context = {
             'obj_unknown': True,
