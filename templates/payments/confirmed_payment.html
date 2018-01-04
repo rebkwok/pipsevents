@@ -7,13 +7,14 @@
     {% if obj_unknown %}
         <h3>PayPal Payment</h3>
         {% if cart_items %}
-            Your payment for the following items is being processed:
+            <p>Your payment for the following item(s) is being processed:</p>
             {% for item in cart_items %}
                 <ul>
-                    <li>{{ item.event }}</li>
+                    <li>{{ item }}</li>
                 </ul>
             {% endfor %}
-            You should receive an email notification of status shortly.
+            <p>You should receive payment confirmations from PayPal and from the
+            studio shortly.</p>
         {% else %}
             <p>Everything is probably fine...  </p>
             <p>...but we could not retrieve all your data on return from paypal.
@@ -21,11 +22,11 @@
                is not likely to have affected the processing of your payment.
                 Please check your email for
             payment confirmations from PayPal and from the studio.</p>
-            <p>If you have not received payment confirmation within a
-                few hours, please check your spam folder and contact
-            <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
-                {{ organiser_email }}</a> if you need any further information.</p>
         {% endif %}
+        <p>If you have not received payment confirmation within a
+                few hours, please check your spam folder and contact
+            <a href="mailto:{{ organiser_email }}?subject=Payment enquiry">
+                {{ organiser_email }}</a> if you need any further information.</p>
     {% else %}
         {% for obj in objs %}
             {% if obj == 'paypal_test' %}
@@ -36,22 +37,22 @@
                     <p>The test payment is being processed.  You should receive an email notification of status shortly.</p>
                 {% endif %}
             {% else %}
-                <h3>Payment for {{ purchase }}</h3>
+                <h3>Payment for {{ obj }}</h3>
             {% endif %}
             {% if payment_status == 'Completed' and obj.paid %}
                 <p>Your payment has been successfully completed.</p>
             {% elif payment_status == 'Completed' or payment_status == 'Pending' %}
-                <p>Your payment is being processed.
+                <p>Your payment is being processed.  You should receive payment confirmations from PayPal and from the
+        studio shortly.</p>
             {% endif %}
         {% endfor %}
 
-            <p>You should receive payment confirmations from PayPal and from the
-        studio shortly.</p>
+
 
             <p>If you
             have not received payment confirmation within a few hours, please check
             your spam folder and contact
-            <a href="mailto:{{ organiser_email }}?subject=Payment for {{ purchase }}">
+            <a href="mailto:{{ organiser_email }}?subject=Payment enquiry">
                 {{ organiser_email }}</a> if you need any further information.</p>
 
     {% endif %}

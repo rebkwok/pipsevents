@@ -36,9 +36,9 @@ class PaypalBookingTransaction(models.Model):
 
 
 class PaypalBlockTransaction(models.Model):
-    invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    invoice_id = models.CharField(max_length=255, null=True, blank=True)
     block = models.ForeignKey(Block, null=True)
-    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
@@ -274,33 +274,34 @@ def get_obj(ipn_obj):
             paypal_trans_list.append(paypal_trans)
 
     elif obj_type == 'block':
-        try:
-            obj = Block.objects.get(id=obj_ids[0])
-        except Block.DoesNotExist:
-            raise PayPalTransactionError(
-                'Block with id {} does not exist'.format(obj_ids[0])
-            )
-
-        paypal_trans = PaypalBlockTransaction.objects.filter(block=obj)
-        if not paypal_trans:
-            paypal_trans = helpers.create_block_paypal_transaction(
-                user=obj.user, block=obj
-            )
-        elif paypal_trans.count() > 1:
-            # we may have two ppb transactions created if user changed their
-            # username between booking block and paying (invoice_id is created and
-            # retrieved using username)
-            if ipn_obj.invoice:
-                paypal_trans = PaypalBlockTransaction.objects.get(
-                    block=obj, invoice_id=ipn_obj.invoice
+        for id in obj_ids:
+            try:
+                obj = Block.objects.get(id=id)
+            except Block.DoesNotExist:
+                raise PayPalTransactionError(
+                    'Block with id {} does not exist'.format(obj_ids[0])
                 )
-            else:
-                paypal_trans = paypal_trans.latest('id')
-        else:  # we got one paypaltrans, as we should have
-            paypal_trans = paypal_trans[0]
 
-        obj_list.append(obj)
-        paypal_trans_list.append(paypal_trans)
+            paypal_trans = PaypalBlockTransaction.objects.filter(block=obj)
+            if not paypal_trans:
+                paypal_trans = helpers.create_block_paypal_transaction(
+                    user=obj.user, block=obj
+                )
+            elif paypal_trans.count() > 1:
+                # we may have two ppb transactions created if user changed their
+                # username between booking block and paying (invoice_id is created and
+                # retrieved using username)
+                if ipn_obj.invoice:
+                    paypal_trans = PaypalBlockTransaction.objects.get(
+                        block=obj, invoice_id=ipn_obj.invoice
+                    )
+                else:
+                    paypal_trans = paypal_trans.latest('id')
+            else:  # we got one paypaltrans, as we should have
+                paypal_trans = paypal_trans[0]
+
+            obj_list.append(obj)
+            paypal_trans_list.append(paypal_trans)
 
     elif obj_type == 'ticket_booking':
         try:
@@ -488,6 +489,7 @@ def payment_received(sender, **kwargs):
                     if obj_type == 'booking':
                         obj.payment_confirmed = True
                         obj.date_payment_confirmed = timezone.now()
+                    if obj_type in ['booking', 'block']:
                         obj.paypal_pending=False
                     obj.paid = True
                     obj.save()

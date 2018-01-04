@@ -649,7 +649,9 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
         context["paypal_cost"] = paypal_cost
 
         # set cart items so we can set paypal_pending
-        self.request.session['cart_items'] = str(self.object.id)
+        self.request.session['cart_items'] = 'booking {}'.format(
+            str(self.object.id)
+        )
 
         return context_helpers.get_booking_create_context(
             self.object.event, self.request, context
@@ -1368,9 +1370,10 @@ def shopping_basket(request):
             paypal_form = PayPalPaymentsShoppingBasketForm(
                 initial=context_helpers.get_paypal_cart_dict(
                     host,
+                    'booking',
                     unpaid_bookings,
                     invoice_id,
-                    voucher_applied_bookings=voucher_applied_bookings,
+                    voucher_applied_items=voucher_applied_bookings,
                     voucher = voucher if context.get('valid_voucher') else None,
                     paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
                 )
@@ -1378,8 +1381,8 @@ def shopping_basket(request):
 
         context["paypalform"] = paypal_form
         # add cart booking ids to the session so we can set paypal pending
-        request.session['cart_items'] = ','.join(
-            [str(booking.id) for booking in unpaid_bookings]
+        request.session['cart_items'] = 'booking {}'.format(
+            ','.join([str(booking.id) for booking in unpaid_bookings])
         )
 
     return TemplateResponse(

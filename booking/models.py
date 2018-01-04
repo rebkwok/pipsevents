@@ -264,6 +264,7 @@ class Block(models.Model):
     )
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
+    paypal_pending = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['user__username']

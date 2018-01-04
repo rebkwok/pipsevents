@@ -37,6 +37,7 @@ def paypal_confirm_return(request):
     test_ipn_complete = False
     custom = request.POST.get('custom', '')
     custom = custom.replace('+', ' ').split()
+    context = {}
 
     if custom:
         obj_type = custom[0]
@@ -69,7 +70,6 @@ def paypal_confirm_return(request):
         context = {'objs': objs,
                    'obj_type': obj_type,
                    'payment_status': request.POST.get('payment_status'),
-                   'purchase': request.POST.get('item_name'),
                    'sender_email': settings.DEFAULT_FROM_EMAIL,
                    'organiser_email': settings.DEFAULT_STUDIO_EMAIL,
                    'test_ipn_complete': test_ipn_complete,
@@ -84,17 +84,27 @@ def paypal_confirm_return(request):
         # awaiting paypal confirmation
         cart_items = request.session.get('cart_items', [])
         if cart_items:
-            ids = cart_items.split(',')
+            item_type, item_ids = cart_items.split(' ', 1)
+            ids = item_ids.split(',')
             del request.session['cart_items']
             obj_ids = [int(id) for id in ids]
-            cart_items = Booking.objects.filter(id__in=obj_ids)
-        for booking in cart_items:
-            if not booking.paid:  # in case payment is processed during this view
-                booking.paypal_pending=True
-                booking.save()
+
+            if item_type == 'booking':
+                cart_items = Booking.objects.filter(id__in=obj_ids)
+                cart_item_names = [bk.event for bk in cart_items]
+            elif item_type == 'block':
+                cart_items = Block.objects.filter(id__in=obj_ids)
+                cart_item_names = [block.block_type for block in cart_items]
+            else:
+                # we can't identify the item type
+                cart_items = None
+        for item in cart_items:
+            if not item.paid:  # in case payment is processed during this view
+                item.paypal_pending=True
+                item.save()
         context = {
             'obj_unknown': True,
-            'cart_items':  cart_items,
+            'cart_items':  cart_item_names if cart_items else [],
             'organiser_email': settings.DEFAULT_STUDIO_EMAIL
         }
     return TemplateResponse(request, 'payments/confirmed_payment.html', context)

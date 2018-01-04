@@ -10,6 +10,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from accounts.models import OnlineDisclaimer
+from activitylog.models import ActivityLog
 from booking.forms import BlockCreateForm
 from booking.models import Block, BlockVoucher, UsedBlockVoucher
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
@@ -80,25 +81,6 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
             settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
             )
         )
-
-    def test_create_block_with_last_available_blocktype_sets_flag(self):
-        """
-        Test creating a block
-        """
-        block_type = mommy.make_recipe('booking.blocktype5')
-        block_type1 = mommy.make_recipe('booking.blocktype5')
-        self.assertEqual(Block.objects.count(), 0)
-
-        self.client.login(username=self.user.username, password='test')
-        form_data={'block_type': block_type.id}
-        self.client.post(reverse('booking:add_block'), form_data)
-        self.assertEqual(Block.objects.count(), 1)
-        self.assertNotIn('no_available_block', self.client.session.keys())
-
-        form_data={'block_type': block_type1.id}
-        self.client.post(reverse('booking:add_block'), form_data)
-        self.assertEqual(Block.objects.count(), 2)
-        self.assertIn('no_available_block', self.client.session.keys())
 
     def test_create_block_if_no_blocktypes_available(self):
         """
@@ -265,23 +247,6 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context_data['block_types']), 1)
         self.assertEqual(resp.context_data['block_types'][0], active_block_type)
 
-    def test_create_block_redirects_if_no_available_block_flag_on_session(self):
-        """
-        when a block is created, and there are no more possible blocks to book,
-        "no_available_block" flag is set on the session so that if the user
-        clicks the back button they get returned to the block list page
-        instead of the create block page
-        """
-        mommy.make_recipe('booking.blocktype5')
-        resp = self._get_response(
-            self.user, session_data={'no_available_block': True}
-        )
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn(resp.url, reverse('booking:block_list'))
-
-        resp = self._get_response(self.user)
-        self.assertEqual(resp.status_code, 200)
-
     def test_try_to_create_block_with_unavailable_blocktype(self):
         """
         when a block is created, and there are no more possible blocks to book,
@@ -300,6 +265,37 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         resp = self._post_response(self.user, data)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:has_active_block'))
+
+    def test_cart_items_deleted_from_session_on_get(self):
+        self.client.login(username=self.user.username, password='test')
+        session = self.client.session
+        session['cart_items'] = 'block test'
+        session.save()
+
+        url = reverse('booking:add_block')
+        self.assertIsNotNone(self.client.session.get('cart_items'))
+
+        self.client.get(url)
+        self.assertIsNone(self.client.session.get('cart_items'))
+
+    def test_redirect_to_block_list_if_no_available_blocktype_to_add(self):
+        self.client.login(username=self.user.username, password='test')
+
+        # no blocktypes
+        resp = self.client.get(reverse('booking:add_block'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:block_list'))
+
+        # available blocktype
+        block_type = mommy.make_recipe('booking.blocktype5')
+        resp = self.client.get(reverse('booking:add_block'))
+        self.assertEqual(resp.status_code, 200)
+
+        # user has block for all available blocktypes
+        mommy.make_recipe('booking.block', block_type=block_type, user=self.user)
+        resp = self.client.get(reverse('booking:add_block'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:block_list'))
 
 
 class BlockListViewTests(TestSetupMixin, TestCase):
@@ -334,12 +330,52 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.all().count(), 4)
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
+    def test_cart_items_stored_on_session(self):
+        self.client.login(username=self.user.username, password='test')
+        mommy.make_recipe(
+            'booking.block_5', user=self.user, paid=True,
+            start_date=timezone.now() - timedelta(1)
+        )
+        self.client.get(self.url)
+
+        # Block is paid, so no cart items
+        self.assertIsNone(self.client.session.get('cart_items'))
+
+        unpaid = mommy.make_recipe(
+            'booking.block_5', user=self.user,
+            start_date=timezone.now() - timedelta(10)
+        )
+        self.client.get(self.url)
+
+        # Block is unpaid
+        self.assertEqual(
+            self.client.session['cart_items'], 'block {}'.format(unpaid.id)
+        )
+
+    def test_cart_items_removed_from_session_if_no_unpaid_blocks(self):
+        self.client.login(username=self.user.username, password='test')
+        unpaid = mommy.make_recipe(
+            'booking.block_5', user=self.user,
+            start_date=timezone.now() - timedelta(10)
+        )
+        self.client.get(self.url)
+
+        self.assertEqual(
+            self.client.session['cart_items'], 'block {}'.format(unpaid.id)
+        )
+
+        # make block paid and get again
+        unpaid.paid = True
+        unpaid.save()
+        self.client.get(self.url)
+        self.assertIsNone(self.client.session.get('cart_items'))
+
     def test_paid_and_expired_blocks_do_not_show_paypal_form(self):
         mommy.make_recipe(
             'booking.block_5', user=self.user,
             start_date=timezone.now() - timedelta(365)
         )
-        mommy.make_recipe(
+        unpaid = mommy.make_recipe(
             'booking.block_5', user=self.user,
             start_date=timezone.now() - timedelta(10)
         )
@@ -350,15 +386,10 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 
         resp = self._get_response(self.user)
         self.assertEqual(resp.status_code, 200)
-        blocklist = resp.context_data['blockformlist']
-
-        # blocks are ordered in reverse by start date
-        paid_fm = blocklist[0]
-        unpaid_fm = blocklist[1]
-        expired_fm = blocklist[2]
-        self.assertIsNone(expired_fm['paypalform'])
-        self.assertIsNone(paid_fm['paypalform'])
-        self.assertIsNotNone(unpaid_fm['paypalform'])
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(
+            paypal_form.initial['custom'], 'block {}'.format(unpaid.id)
+        )
 
     def test_disclaimer_messages(self):
         mommy.make_recipe('booking.blocktype5')
@@ -485,26 +516,18 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 
         # On get, show standard costs
         resp = self.client.get(self.url)
-        self.assertIn('£ 30.00', resp.rendered_content)
-        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
-        self.assertEqual(paypal_form.initial['amount'], 30.00)
-        self.assertEqual(
-            paypal_form.initial['custom'], 'block {}'.format(block.id)
-        )
+        self.assertIn('£30.00', resp.rendered_content)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount_1'], 30.00)
         self.assertNotIn('voucher', resp.context_data)
 
         # On post, show discounted costs
         form_data = {'apply_voucher': 'Apply', 'code': 'test'}
         resp = self.client.post(self.url, form_data)
-        self.assertIn('£ 27.00', resp.rendered_content)
+        self.assertIn('£27.00', resp.rendered_content)
 
-        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
-        self.assertEqual(paypal_form.initial['amount'], 27.00)
-        self.assertEqual(
-            paypal_form.initial['custom'], 'block {} {}'.format(
-                block.id, voucher.code
-            )
-        )
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount_1'], 27.00)
         self.assertEqual(resp.context_data['voucher'], voucher)
 
     def test_no_voucher_code(self):
@@ -626,41 +649,58 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         )
         form_data = {'apply_voucher': 'Apply', 'code': 'test'}
         resp = self.client.post(self.url, form_data)
-        self.assertIn('£ 27.00', resp.rendered_content)
-        self.assertIn('£ 50.00', resp.rendered_content)
+        self.assertIn('£27.00', resp.rendered_content)
+        self.assertIn('£50.00', resp.rendered_content)
 
-        paypal_form2 = resp.context_data['blockformlist'][0]['paypalform']
-        self.assertEqual(paypal_form2.initial['amount'], 50.00)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount_1'], 50.00)
+        self.assertEqual(paypal_form.initial['amount_2'], 27.00)
         self.assertEqual(
-            paypal_form2.initial['custom'], 'block {} {}'.format(
-                block2.id, voucher.code
-            )
-        )
-
-        paypal_form1 = resp.context_data['blockformlist'][1]['paypalform']
-        self.assertEqual(paypal_form1.initial['amount'], 27.00)
-        self.assertEqual(
-            paypal_form1.initial['custom'], 'block {} {}'.format(
-                block1.id, voucher.code
-            )
+            paypal_form.initial['custom'],
+            'block {} test'.format(','.join([str(id) for id in [block2.id, block1.id]]))
         )
 
     def test_voucher_no_valid_block_types(self):
         self.client.login(username=self.user.username, password='test')
-        voucher = mommy.make(BlockVoucher, code='test', discount=10)
-        block1 = mommy.make(
+        mommy.make(BlockVoucher, code='test', discount=10)
+        mommy.make(
             'booking.block', block_type=self.block_type, user=self.user
         )
         form_data = {'apply_voucher': 'Apply', 'code': 'test'}
         resp = self.client.post(self.url, form_data)
 
         # paypal form has non-discounted amount
-        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
-        self.assertEqual(paypal_form.initial['amount'], 30.00)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount_1'], 30.00)
 
         self.assertEqual(
             resp.context_data['voucher_error'],
             'Code is not valid for any of your currently unpaid blocks'
+        )
+
+    def test_voucher_not_valid_for_some_block_types(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(BlockVoucher, code='test', discount=10)
+        voucher.block_types.add(self.block_type)
+
+        invalid_block_type = mommy.make_recipe('booking.blocktype5', cost=30)
+
+        mommy.make('booking.block', block_type=self.block_type, user=self.user)
+        mommy.make(
+            'booking.block', block_type=invalid_block_type, user=self.user
+        )
+
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+
+        self.assertIsNone(resp.context_data.get('voucher_error'))
+        self.assertEqual(
+            resp.context_data['voucher_msg'],
+            [
+                'Voucher cannot be used for some blocks ({})'.format(
+                    invalid_block_type.event_type.subtype
+                )
+            ]
         )
 
     def test_remove_extra_spaces_from_voucher_code(self):
@@ -676,13 +716,62 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 
         form_data = {'apply_voucher': 'Apply', 'code': '  test '}
         resp = self.client.post(self.url, form_data)
-        self.assertIn('£ 27.00', resp.rendered_content)
-        paypal_form = resp.context_data['blockformlist'][0]['paypalform']
-        self.assertEqual(paypal_form.initial['amount'], 27.00)
+        self.assertIn('£27.00', resp.rendered_content)
+        paypal_form = resp.context_data['paypalform']
+        self.assertEqual(paypal_form.initial['amount_1'], 27.00)
+
         self.assertEqual(
             paypal_form.initial['custom'], 'block {} {}'.format(
                 block.id, voucher.code
             )
+        )
+
+    def test_voucher_will_be_used_max_total_times_with_basket_blocks(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(
+            BlockVoucher, code='test', discount=10,
+            max_vouchers=3, max_per_user=10
+        )
+        voucher.block_types.add(self.block_type)
+        users = mommy.make_recipe('booking.user', _quantity=2)
+        for user in users:
+            UsedBlockVoucher.objects.create(voucher=voucher, user=user)
+
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user,
+            _quantity=2
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertIsNone(resp.context_data.get('voucher_error'))
+        self.assertEqual(
+            resp.context_data['voucher_msg'],
+            ['Voucher not applied to some blocks; voucher '
+            'has limited number of total uses.']
+        )
+
+    def test_voucher_will_be_used_up_for_user_with_basket_blocks(self):
+        self.client.login(username=self.user.username, password='test')
+        voucher = mommy.make(
+            BlockVoucher, code='test', discount=10,
+            max_per_user=3
+        )
+        voucher.block_types.add(self.block_type)
+        mommy.make(
+            UsedBlockVoucher, voucher=voucher, user=self.user, _quantity=2
+        )
+
+        mommy.make(
+            'booking.block', block_type=self.block_type, user=self.user,
+            _quantity=2
+        )
+        form_data = {'apply_voucher': 'Apply', 'code': 'test'}
+        resp = self.client.post(self.url, form_data)
+        self.assertIsNone(resp.context_data.get('voucher_error'))
+        self.assertEqual(
+            resp.context_data['voucher_msg'],
+            ['Voucher not applied to some blocks; you can only use this '
+             'voucher a total of 3 times.']
         )
 
 
@@ -690,31 +779,13 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(BlockDeleteViewTests, self).setUp()
+        self.client.login(username=self.user.username, password='test')
         self.block = mommy.make_recipe('booking.block', user=self.user)
-
-    def _set_session(self, user, request):
-        request.session = _create_session()
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-    def _get_response(self, user, block_id):
-        url = reverse('booking:delete_block', args=[block_id])
-        request = self.factory.get(url)
-        self._set_session(user, request)
-        view = BlockDeleteView.as_view()
-        return view(request, pk=block_id)
-
-    def _post_response(self, user, block_id):
-        url = reverse('booking:delete_block', args=[block_id])
-        request = self.factory.post(url)
-        self._set_session(user, request)
-        view = BlockDeleteView.as_view()
-        return view(request, pk=block_id)
+        self.url = reverse('booking:delete_block', args=[self.block.id])
 
     def test_cannot_get_delete_page_if_not_logged_in(self):
-        url = reverse('booking:delete_block', args=[self.block.id])
-        resp = self.client.get(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(
             resp.url,
@@ -722,26 +793,26 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
         )
 
     def test_can_get_delete_block_page(self):
-        resp = self._get_response(self.user, self.block.id)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.context_data['block_to_delete'], self.block)
 
     def test_cannot_get_delete_block_page_if_block_paid(self):
         self.block.paid = True
         self.block.save()
-        resp = self._get_response(self.user, self.block.id)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_cannot_get_delete_block_page_if_block_has_bookings(self):
         mommy.make_recipe('booking.booking', block=self.block)
-        resp = self._get_response(self.user, self.block.id)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_cannot_post_delete_block_page_if_block_paid(self):
         self.block.paid = True
         self.block.save()
-        resp = self._post_response(self.user, self.block.id)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
@@ -749,31 +820,20 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
 
     def test_cannot_post_delete_block_page_if_block_has_bookings(self):
         mommy.make_recipe('booking.booking', block=self.block)
-        resp = self._post_response(self.user, self.block.id)
+        resp = self.client.post(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
         self.assertEqual(Block.objects.first(), self.block)
 
-    def test_delete_block_with_no_available_block_flag_set(self):
-        """
-        If a user created a block and has no more available blocktypes, the
-        flag is set on the session.  If the block is then deleted, it needs
-        to be removed otherwise they'll won't be able to re-create one
-        """
-        block_type = mommy.make_recipe('booking.blocktype5')
-        self.assertEqual(Block.objects.count(), 1)
+    def test_delete_block(self):
+        self.client.post(self.url)
+        self.assertFalse(Block.objects.exists())
 
-        self.client.login(username=self.user.username, password='test')
-        form_data = {'block_type': block_type.id}
-        self.client.post(reverse('booking:add_block'), form_data)
-        self.assertEqual(Block.objects.count(), 2)
-        self.assertIn('no_available_block', self.client.session.keys())
-
-        block = Block.objects.latest('id')
-        form_data = {'block_type': block_type.id}
-        self.client.post(
-            reverse('booking:delete_block', args=[block.id]), form_data
+        log = ActivityLog.objects.latest('id')
+        self.assertEqual(
+            log.log,
+            'User {} deleted unpaid and unused block {} ({})'.format(
+                self.user.username, self.block.id, self.block.block_type
+            )
         )
-        self.assertEqual(Block.objects.count(), 1)
-        self.assertNotIn('no_available_block', self.client.session.keys())
