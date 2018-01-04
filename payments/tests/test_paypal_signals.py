@@ -256,6 +256,125 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_complete_status_multiple_bookings(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        user = mommy.make_recipe('booking.user')
+        bookings = mommy.make_recipe(
+            'booking.booking', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            _quantity=3
+        )
+        invoice = helpers.create_multibooking_paypal_transaction(
+            user, bookings
+        )
+        self.assertEqual(PaypalBookingTransaction.objects.count(), 3)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(
+                    ','.join([str(booking.id) for booking in bookings])
+                )),
+                'invoice': b(invoice),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        for pptrans in PaypalBookingTransaction.objects.all():
+            self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans objs are updated
+        for pptrans in PaypalBookingTransaction.objects.all():
+            self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        for booking in bookings:
+            booking.refresh_from_db()
+            self.assertTrue(booking.paid)
+            self.assertTrue(booking.payment_confirmed)
+            self.assertFalse(booking.paypal_pending)
+
+        # 2 emails sent, to user and studio
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
+        for email in mail.outbox:
+            self.assertIn(
+                'Payment processed for booking id {}'.format(
+                    ', '.join([str(booking.id) for booking in bookings])
+                ),
+                email.subject
+            )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_complete_status_multiple_blocks(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        user = mommy.make_recipe('booking.user')
+        blocks = mommy.make_recipe(
+            'booking.block', user=user,
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            _quantity=3
+        )
+        invoice = helpers.create_multiblock_paypal_transaction(
+            user, blocks
+        )
+        self.assertEqual(PaypalBlockTransaction.objects.count(), 3)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block {}'.format(
+                    ','.join([str(block.id) for block in blocks])
+                )),
+                'invoice': b(invoice),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        for pptrans in PaypalBlockTransaction.objects.all():
+            self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans objs are updated
+        for pptrans in PaypalBlockTransaction.objects.all():
+            self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        for block in blocks:
+            block.refresh_from_db()
+            self.assertTrue(block.paid)
+            self.assertFalse(block.paypal_pending)
+
+        # 2 emails sent, to user and studio
+        self.assertEqual(
+            len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
+        for email in mail.outbox:
+            self.assertIn(
+                'Payment processed for block id {}'.format(
+                    ', '.join([str(block.id) for block in blocks])
+                ),
+                email.subject
+            )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_ipn_obj_with_space_replaced(self, mock_postback):
         # occasionally paypal sends back the custom field with the space
         # replaced with '+'. i.e. "booking+1" instead of "booking 1"
