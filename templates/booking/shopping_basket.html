@@ -18,7 +18,7 @@
 
     {% if unpaid_bookings %}
 
-        {% if not block_booking_available %}
+        {% if not block_booking_available and block_types_available %}
             You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.
         {% endif %}
 
@@ -96,8 +96,8 @@
         {% endif %}
 
         <div class="row basket-row">
+            {% if block_booking_available %}
             <div class="col-xs-12">
-                {% if block_booking_available %}
                     <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
                         {% csrf_token %}
                         <input type="hidden" name="block_book_all" value="True"/>
@@ -110,12 +110,12 @@
                         This will pay for all eligible classes with available blocks.
                     </p>
                     </form>
+                </div>
                 {% endif %}
-                <h3>Total: £ {{ total_cost }}{% include 'payments/payment.html' %}</h3>
-                {% if block_booking_available %}
-                    <p>Note: This total includes ALL unpaid bookings. You have blocks available;
-                    use the button above to apply blocks.</p>
-                {% endif %}
+            <div class="col-xs-6 col-sm-4 col-md-3">
+                <h3 class="checkout-total">Total: £ {{ total_cost }}{% include 'payments/payment.html' %}</h3>
+            </div>
+            <div class="col-xs-6 col-sm-8 col-md-9">
                 {% if not valid_voucher %}
                     <form name="voucher_form" class="form-inline" method="get" action="">
                         <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
@@ -126,10 +126,17 @@
                     </form>
                 {% else %}
                     <form class="form-inline" method="get" action="">
-                    <label><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong></label>
-                    <input class="btn btn-success table-btn" type="submit" name="remove_voucher" value="Remove" /><br/>
-                    <small>You have already used this voucher for {% if times_voucher_used == 1 %}1 class/workshop{% else %}{{ times_voucher_used }} classes/workshops{% endif %} (max {{ voucher.max_per_user }})</small>
-                    {% for msg in voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                        <label><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong></label>
+                        <input class="btn btn-success table-btn" type="submit" name="remove_voucher" value="Remove" /><br/>
+                        <small>You have already used this voucher for {% if times_voucher_used == 1 %}1 class/workshop{% else %}{{ times_voucher_used }} classes/workshops{% endif %} (max {{ voucher.max_per_user }})</small>
+                        {% for msg in voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                    </form>
+                {% endif %}
+            </div>
+            <div class="col-xs-12">
+                {% if block_booking_available %}
+                    <p>Note: This total includes ALL unpaid bookings. You have blocks available;
+                    use the button above to apply blocks.</p>
                 {% endif %}
             </div>
         </div>

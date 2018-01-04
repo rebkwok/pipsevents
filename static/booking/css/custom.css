@@ -880,6 +880,10 @@ a > span.fa.fa-print {
   tr.compress>td.date, tr.compress.table-tab>td.date {
     white-space: nowrap !important;
 	}
+
+  .message {
+    font-size: 95%;
+  }
 }
 
 @media (max-width: 675px) {
@@ -1192,14 +1196,15 @@ a.basket-icon:link, a.basket-icon:visited {
 }
 
 span.basket-count {
-  color: white;
+  color: red;
   font-size: x-small;
   border-radius: 15%;
+  border: red solid 1px;
   padding-left: 3px;
   padding-right: 3px;
   padding-top: 1px;
   padding-bottom: 1px;
-  background-color: red;
+  background-color: white;
 }
 
 
@@ -1241,5 +1246,6 @@ div .basket-row > div, div .basket-heading {
 
 }
 
-
-
+.checkout-total {
+  margin-top: 0;
+}

@@ -1219,10 +1219,16 @@ def shopping_basket(request):
     )
     unpaid_bookings_non_default_paypal = set(unpaid_bookings_all_open) - set(unpaid_bookings)
 
-
     include_warning = bool([True for bk in unpaid_bookings_all_open if not bk.can_cancel])
     block_booking_available = bool(
         [True for booking in unpaid_bookings if booking.has_available_block]
+    )
+    block_types_available = bool(
+        [
+            True for booking in unpaid_bookings if BlockType.objects.filter(
+            active=True, event_type=booking.event.event_type
+            ).exists()
+        ]
     )
 
     code = request.GET.get('code', None)
@@ -1237,6 +1243,7 @@ def shopping_basket(request):
         'unpaid_bookings_payment_not_open': unpaid_bookings_payment_not_open,
         'include_warning': include_warning,
         'block_booking_available': block_booking_available,
+        'block_types_available': block_types_available,
         'voucher_form': VoucherForm(initial={'code': code}),
         'total_cost': total
     }
@@ -1433,7 +1440,7 @@ def update_block_bookings(request):
                         request,
                         mark_safe(
                             'You have just used the last space in your block. '
-                           'Go to <a href="/blocks">My Blocks</a> to buy a new one.'
+                           '<a href="/blocks/new">Buy a new one</a>.'
                         )
                     )
 
@@ -1463,7 +1470,7 @@ def update_block_bookings(request):
         messages.info(
             request,
             mark_safe('No blocks available to use for these bookings. Go to '
-            '<a href="/blocks">My Blocks</a> to buy a block.')
+            '<a href="/blocks/new"> to buy a block.')
         )
 
     url = reverse('booking:shopping_basket')

@@ -3,7 +3,16 @@
 
 {% block content %}
 
-<div>
+<div class="row container-fluid">
+    <div class="col-xs-12">
+    <div class="btn-group btn-group-sm pull-right" role="group">
+        <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+        <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+    </div>
+    </div>
+
+    <div class="col-xs-12">
     {% if obj_unknown %}
         <h3>PayPal Payment</h3>
         {% if cart_items %}
@@ -56,6 +65,7 @@
                 {{ organiser_email }}</a> if you need any further information.</p>
 
     {% endif %}
+    </div>
 </div>
 
 {% endblock %}
