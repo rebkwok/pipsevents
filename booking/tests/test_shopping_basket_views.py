@@ -402,14 +402,15 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 )
 
     def test_cart_items_added_to_session(self):
-        resp = self.client.get(self.url)
+        self.client.get(self.url)
         booking_ids_str = ','.join(
             [
                 str(id) for id in Booking.objects.values_list('id', flat=True)
             ]
         )
         self.assertEqual(
-            self.client.session['cart_items'], booking_ids_str
+            self.client.session['cart_items'],
+            'booking {}'.format(booking_ids_str)
         )
 
 

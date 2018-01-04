@@ -3294,7 +3294,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(split.query, 'code=foo')
 
     def test_cart_items_added_to_session(self):
-        block = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
             paid=True, start_date=timezone.now()
@@ -3315,7 +3315,10 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.client.get(url)
 
         # booking added to cart_items on get
-        self.assertEqual(self.client.session['cart_items'], str(booking.id))
+        self.assertEqual(
+            self.client.session['cart_items'],
+            'booking {}'.format(str(booking.id))
+        )
 
         # posting means submitting for block payment, so cart_items deleted
         self.client.post(url, data={'block_book': True})

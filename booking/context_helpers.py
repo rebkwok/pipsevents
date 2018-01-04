@@ -217,13 +217,13 @@ def get_paypal_dict(
 
 
 def get_paypal_cart_dict(
-        host, bookings, invoice_id, voucher_applied_bookings=None,
+        host, item_type, items, invoice_id, voucher_applied_items=None,
         voucher=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
     ):
-    booking_ids_str = ','.join([str(booking.id) for booking in bookings])
+    item_ids_str = ','.join([str(item.id) for item in items])
     custom = '{} {}{}'.format(
-        'booking', booking_ids_str,
-        ' {}'.format(voucher.code) if  voucher_applied_bookings else ''
+        item_type, item_ids_str,
+        ' {}'.format(voucher.code) if voucher_applied_items else ''
     )
 
     paypal_dict = {
@@ -238,16 +238,17 @@ def get_paypal_cart_dict(
         "cancel_return": host + reverse('payments:paypal_cancel'),
     }
 
-    for i, booking in enumerate(bookings):
-        if booking.id in voucher_applied_bookings:
+    for i, item in enumerate(items):
+        amount = item.event.cost if item_type == 'booking' else item.block_type.cost
+        item_name = str(item.event) if item_type == 'booking' else str(item.block_type)
+        if voucher_applied_items and item.id in voucher_applied_items:
             amount = Decimal(
-                float(booking.event.cost) * ((100 - voucher.discount) / 100)
+                float(amount) * ((100 - voucher.discount) / 100)
             ).quantize(Decimal('.05'))
-        else:
-            amount = booking.event.cost
+
         paypal_dict.update(
             {
-                'item_name_{}'.format(i + 1): str(booking.event),
+                'item_name_{}'.format(i + 1): item_name,
                 'amount_{}'.format(i + 1): amount,
                 'quantity_{}'.format(i + 1): 1,
             }

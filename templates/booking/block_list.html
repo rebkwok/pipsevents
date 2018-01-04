@@ -6,6 +6,14 @@
 
 
 <div class="container-fluid row">
+    <div class="row">
+        <div class="btn-group btn-group-sm pull-right">
+            <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+            <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+            {% show_shopping_basket request.user %}
+        </div>
+    </div>
+
     <h1>My blocks</h1>
 
     <div>
@@ -17,16 +25,22 @@
             {% endif %}
         {% elif can_book_block %}
             <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
+            <p>You can only have one block of each available type at a time.  You can add multiple blocks (if available)
+                and checkout for all when you are done.</p>
+        {% else %}
+            <div class="btn btn-success btn-new-block" disabled="disabled">Get a new block!</div><br/>
+            <small class="errorlist">You currently have a block of each available type.  When your block is used up or has expired, you will be able to add another.</small><br/><br/>
         {% endif %}
     </div>
-    <div class="btn-group btn-group-sm pull-right">
-        <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
-        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
-        {% show_shopping_basket request.user %}
-    </div>
+
 
     {% if has_unpaid_block %}
-        <div>
+    <div class="row">
+        <div class="col-xs-6">
+            <h4>Payment outstanding: £{{ total_cost }}</h4>
+            <h3>{% include 'payments/payment.html' %}</h3>
+        </div>
+        <div class="col-xs-6">
             {% if not valid_voucher %}
                 <form name="voucher_form" class="form-inline" method="post" action="">
                     {% csrf_token %}
@@ -39,11 +53,17 @@
             {% else %}
                 <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
                     <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
-                <p class="errorlist">Note: Voucher has been applied to all qualifying blocks below; it can be used a maximum of {{ voucher.max_per_user }}
-                {% if voucher.max_per_user == 1 %}time{% else %}times{% endif %}
+                <p>
+                    <small>You have already used this voucher for {% if times_voucher_used == 1 %}
+                        1 block{% else %}{{ times_voucher_used }} blocks{% endif %} (max {{ voucher.max_per_user }})</small><br/>
+                    <span class="errorlist">Note: Voucher has been applied to all qualifying blocks below
+                {% for msg in voucher_msg %}<br/>- {{ msg }}{% endfor %}</span>
                 </p>
+
             {% endif %}
         </div>
+
+    </div>
     {% endif %}
 
     <div class="row>">
@@ -67,20 +87,29 @@
                                     <td>{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
                                         {% elif blockform.expired %}
                                             <span class="fa fa-times" aria-label="No"></span>
+                                        {% elif blockform.block.paypal_pending %}
+                                            <span class="not-confirmed">PayPal pending</span>
                                         {% else %}
-                                            {% include 'payments/blocklistpayment.html' %}
-                                            <a href="{% url 'booking:delete_block' blockform.block.id%}"><span class="btn table-btn btn-danger">Delete</span></a>
+                                            <a href="{% url 'booking:delete_block' blockform.block.id%}"><span class="btn table-btn basket-block-btn btn-danger">Delete</span></a>
                                         {% endif %}
                                     </td>
                                     <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
                                     <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
                                     <td>{% if blockform.block_cost %}
-                                        £ {{ blockform.block_cost }}{% if blockform.voucher_applied %}<br/><span class="studioadmin-help">Voucher applied</span>{% endif %}
-                                        {% else %}-{% endif %}</td>
+                                            {% if blockform.block.id in voucher_applied_items %}
+                                                <s>£{{ blockform.block_cost }}</s>
+                                                £{{ blockform.block_cost|voucher_applied_cost:voucher.discount }}
+                                            {% else %}
+                                                £{{ blockform.block_cost }}
+                                            {% endif %}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
                                     <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                     <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
                                     <td class="table-center">{{ blockform.block.block_type.size }}</td>
-                                    <td class="table-center">{{ blockform.block.bookings_made }}</td>
+                                    <td class="table-center">{{ blockform.block.bookings_made  }}</td>
                                 </tr>
                             {% endfor %}
                         </table>

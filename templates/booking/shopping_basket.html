@@ -98,19 +98,19 @@
         <div class="row basket-row">
             <div class="col-xs-12">
                 {% if block_booking_available %}
-                        <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="block_book_all" value="True"/>
-                            <input type="hidden" name="shopping_basket" value="True"/>
-                            {% if valid_voucher %}
-                                <input type="hidden" name="code" value="{{ code }}"/>
-                            {% endif %}
-                            <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/>
-                            <p class="studioadmin-help">
-                            This will pay for all eligible classes with available blocks.
-                        </p>
-                        </form>
-                    {% endif %}
+                    <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="block_book_all" value="True"/>
+                        <input type="hidden" name="shopping_basket" value="True"/>
+                        {% if valid_voucher %}
+                            <input type="hidden" name="code" value="{{ code }}"/>
+                        {% endif %}
+                        <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/>
+                        <p class="studioadmin-help">
+                        This will pay for all eligible classes with available blocks.
+                    </p>
+                    </form>
+                {% endif %}
                 <h3>Total: £ {{ total_cost }}{% include 'payments/payment.html' %}</h3>
                 {% if block_booking_available %}
                     <p>Note: This total includes ALL unpaid bookings. You have blocks available;

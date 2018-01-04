@@ -61,11 +61,36 @@ def create_multibooking_paypal_transaction(user, bookings):
         PaypalBookingTransaction.objects.filter(
             booking=booking, transaction_id__isnull=True
         ).exclude(invoice_id=invoice_id).delete()
-        # TODO make sure to reject paypal payments if a booking is already paid
         # get_or_create in case we're going back to this same shopping basket
         # again; PBT is created when the shopping basket view is called
         PaypalBookingTransaction.objects.get_or_create(
             invoice_id=invoice_id, booking=booking
+        )
+
+    return invoice_id
+
+
+def create_multiblock_paypal_transaction(user, blocks):
+    # invoice number is a hash of block id and block so we can make sure the same cart
+    # has the same invoice number (i.e. user doesn't paypal and then return to
+    # the cart before paypal has update and resubmit
+    # need to use id here as well as a block might be deleted and re-added
+    username = user.username[:50]
+    bookings_hash = hashlib.md5(
+        ', '.join(['{}{}'.format(block.id, block) for block in blocks]).encode('utf-8')
+    ).hexdigest()
+    invoice_id = '{}-{}'.format(username, bookings_hash)
+
+    for block in blocks:
+        # check for existing PBT without transaction id stored and delete
+        # so we replace with this one
+        PaypalBlockTransaction.objects.filter(
+            block=block, transaction_id__isnull=True
+        ).exclude(invoice_id=invoice_id).delete()
+        # get_or_create in case we're going back to this same shopping basket
+        # again; PBT is created when the shopping basket view is called
+        PaypalBlockTransaction.objects.get_or_create(
+            invoice_id=invoice_id, block=block
         )
 
     return invoice_id
