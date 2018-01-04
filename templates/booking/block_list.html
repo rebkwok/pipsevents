@@ -36,11 +36,11 @@
 
     {% if has_unpaid_block %}
     <div class="row">
-        <div class="col-xs-6">
-            <h4>Payment outstanding: £{{ total_cost }}</h4>
+        <div class="col-xs-6 col-md-3 col-sm-4">
+            <h4 class="checkout-total">Payment outstanding: £{{ total_cost }}</h4>
             <h3>{% include 'payments/payment.html' %}</h3>
         </div>
-        <div class="col-xs-6">
+        <div class="col-xs-6 col-md-9 col-sm-8">
             {% if not valid_voucher %}
                 <form name="voucher_form" class="form-inline" method="post" action="">
                     {% csrf_token %}
