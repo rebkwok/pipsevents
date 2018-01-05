@@ -1126,7 +1126,7 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                     messages.error(self.request, "An error occured, please contact "
                         "the studio for information")
 
-        next = request.GET.get('next')
+        next = request.GET.get('next') or request.POST.get('next')
         params = {}
         if request.GET.get('code'):
             params['code'] = request.GET['code']
