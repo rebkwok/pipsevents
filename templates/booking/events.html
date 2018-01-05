@@ -4,7 +4,8 @@
 
 {% block content %}
 
-    <div class="container-fluid row">
+    <div class="row">
+        <div class="col-xs-12">
 
         <h1>The Watermelon Studio
             {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}</br>
@@ -22,9 +23,8 @@
             </p>
             {% endif %}
         {% endif %}
-
+        </div>
         {% if events %}
-        <div class="row">
             <div class="col-xs-12">
                 {% if not disclaimer and user.is_authenticated %}
                     {% if expired_disclaimer %}
@@ -47,7 +47,6 @@
                 {% endif %}
             </div>
 
-            <div class="row">
             <div class="col-xs-12">
 
                 <div class="panel with-nav-tabs panel-success">
@@ -185,14 +184,11 @@
                     </div> <!-- panel body -->
                 </div>
             </div>
-         </div>
-            </div>
         {% else %}
             <p>There are currently no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} available to book.</p>
         {% endif %}
 
     </div>
-
 
 
 {% endblock content %}
