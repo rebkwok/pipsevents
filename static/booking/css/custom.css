@@ -40,26 +40,19 @@ body {
 	min-height: 100%;
 	height: auto !important;
 	/* Negative indent footer by its height plus top padding? */
-	margin: 0 auto -70px;
+	margin: 0 auto -80px;
 }
 
 /* Set the fixed height of the footer here */
 .push,
 .footer {
-	height: 70px;
+	height: 50px;
 }
 
-.panel {
-    margin-top: 10px;
-    margin-bottom: 50px
-}
 .footer {
 	background-color: transparent;
 }
 
-.container-basket {
-  margin-bottom: 50px;
-}
 
 /* Lastly, apply responsive CSS fixes as necessary */
 @media (max-width: 767px) {
@@ -437,14 +430,6 @@ td {
 	padding: 4px !important;
 }
 
-.basket-table {
-  max-width: 100%;
-}
-
-td.basket-event {
-  white-space: normal;
-  max-width: 20px;
-}
 
 .table-btn, .disabled .btn .btn-success .table-btn {
     padding-top: 0;
@@ -467,16 +452,7 @@ td.basket-event {
   .table-btn, .disabled .btn .btn-success .table-btn {
     font-size: 80%;
   }
-  .basket-table {
-    max-width: 760px;
-  }
 }
-@media(max-width:475px) {
-  .basket-table {
-    max-width: 470px;
-  }
-}
-
 
 .table-cancel-btn{
   width: 6em;

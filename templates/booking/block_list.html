@@ -5,121 +5,116 @@
 {% block content %}
 
 
-<div class="container-fluid row">
-    <div class="row">
-        <div class="col-xs-12">
+<div class="row">
+    <div class="col-xs-12">
         <div class="btn-group btn-group-sm pull-right">
             <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
             <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
             {% show_shopping_basket request.user %}
         </div>
-        </div>
+    </div>
+    <div class="col-xs-12">
+        <h1>My blocks</h1>
+
+            {% if not disclaimer %}
+                {% if expired_disclaimer %}
+                    Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before buying a block.
+                {% else %}
+                    Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
+                {% endif %}
+            {% elif can_book_block %}
+                <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
+                <p>You can only have one block of each available type at a time.  You can add multiple blocks (if available)
+                    and checkout for all when you are done.</p>
+            {% else %}
+                <div class="btn btn-success btn-new-block" disabled="disabled">Get a new block!</div><br/>
+                <small class="errorlist">You currently have a block of each available type.  When your block is used up or has expired, you will be able to add another.</small><br/><br/>
+            {% endif %}
     </div>
 
-    <h1>My blocks</h1>
+    <div class="col-xs-12">
+        {% if has_unpaid_block %}
+            <div class="col-xs-6 col-md-3 col-sm-4">
+                <h4 class="checkout-total">Payment outstanding: £{{ total_cost }}<span class="vat">(incl. VAT)</span></h4>
+                <h3>{% include 'payments/payment.html' %}</h3>
+            </div>
+            <div class="col-xs-6 col-md-9 col-sm-8">
+                {% if not valid_voucher %}
+                    <form name="voucher_form" class="form-inline" method="post" action="">
+                        {% csrf_token %}
+                            <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
+                            <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
+                            {% if voucher_error %}
+                                <p class="errorlist">{{ voucher_error }}</p>
+                            {% endif %}
+                    </form>
+                {% else %}
+                    <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
+                        <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
+                    <p>
+                        Note: Voucher has been applied to all qualifying blocks below<br/>
+                        <small>You have already used this voucher for {% if times_voucher_used == 1 %}
+                            1 block{% else %}{{ times_voucher_used }} blocks{% endif %} (max {{ voucher.max_per_user }})</small>
+                    {% for msg in voucher_msg %}<span class="errorlist"><br/>- {{ msg }}</span>{% endfor %}
+                    </p>
 
-    <div>
-        {% if not disclaimer %}
-            {% if expired_disclaimer %}
-                Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before buying a block.
-            {% else %}
-                Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
-            {% endif %}
-        {% elif can_book_block %}
-            <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
-            <p>You can only have one block of each available type at a time.  You can add multiple blocks (if available)
-                and checkout for all when you are done.</p>
-        {% else %}
-            <div class="btn btn-success btn-new-block" disabled="disabled">Get a new block!</div><br/>
-            <small class="errorlist">You currently have a block of each available type.  When your block is used up or has expired, you will be able to add another.</small><br/><br/>
+                {% endif %}
+            </div>
+
         {% endif %}
     </div>
 
-
-    {% if has_unpaid_block %}
-    <div class="row">
-        <div class="col-xs-6 col-md-3 col-sm-4">
-            <h4 class="checkout-total">Payment outstanding: £{{ total_cost }}</h4>
-            <h3>{% include 'payments/payment.html' %}</h3>
-        </div>
-        <div class="col-xs-6 col-md-9 col-sm-8">
-            {% if not valid_voucher %}
-                <form name="voucher_form" class="form-inline" method="post" action="">
-                    {% csrf_token %}
-                        <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
-                        <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
-                        {% if voucher_error %}
-                            <p class="errorlist">{{ voucher_error }}</p>
-                        {% endif %}
-                </form>
-            {% else %}
-                <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
-                    <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
-                <p>
-                    Note: Voucher has been applied to all qualifying blocks below<br/>
-                    <small>You have already used this voucher for {% if times_voucher_used == 1 %}
-                        1 block{% else %}{{ times_voucher_used }} blocks{% endif %} (max {{ voucher.max_per_user }})</small>
-                {% for msg in voucher_msg %}<span class="errorlist"><br/>- {{ msg }}</span>{% endfor %}
-                </p>
-
-            {% endif %}
-        </div>
-
-    </div>
-    {% endif %}
-
-    <div class="row>">
-        <div class="col-sm-12">
-            {% if blockformlist %}
-                <div class="panel panel-success">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <tr class="success">
-                                <th>Paid</th>
-                                <th>Block Status</th>
-                                <th>Block Type</th>
-                                <th>Cost</th>
-                                <th class="hidden-sm hidden-xs">Start date</th>
-                                <th>Expiry Date</th>
-                                <th class="table-center" >Block size</th>
-                                <th class="table-center">Bookings made</th>
+    <div class="col-xs-12">
+        {% if blockformlist %}
+            <div class="panel panel-success">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            <th>Paid</th>
+                            <th>Block Status</th>
+                            <th>Block Type</th>
+                            <th>Cost <span class="vat">(incl. VAT)</span></th>
+                            <th class="hidden-sm hidden-xs">Start date</th>
+                            <th>Expiry Date</th>
+                            <th class="table-center" >Block size</th>
+                            <th class="table-center">Bookings made</th>
+                        </tr>
+                        {% for blockform in blockformlist %}
+                            <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
+                                <td>{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
+                                    {% elif blockform.expired %}
+                                        <span class="fa fa-times" aria-label="No"></span>
+                                    {% elif blockform.block.paypal_pending %}
+                                        <span class="not-confirmed">PayPal pending</span>
+                                    {% else %}
+                                        <a href="{% url 'booking:delete_block' blockform.block.id%}"><span class="btn table-btn basket-block-btn btn-danger">Delete</span></a>
+                                    {% endif %}
+                                </td>
+                                <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
+                                <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
+                                <td>{% if blockform.block_cost %}
+                                        {% if blockform.block.id in voucher_applied_items %}
+                                            <s>£{{ blockform.block_cost }}</s>
+                                            £{{ blockform.block_cost|voucher_applied_cost:voucher.discount }}
+                                        {% else %}
+                                            £{{ blockform.block_cost }}
+                                        {% endif %}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
+                                <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
+                                <td class="table-center">{{ blockform.block.block_type.size }}</td>
+                                <td class="table-center">{{ blockform.block.bookings_made  }}</td>
                             </tr>
-                            {% for blockform in blockformlist %}
-                                <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
-                                    <td>{% if blockform.block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
-                                        {% elif blockform.expired %}
-                                            <span class="fa fa-times" aria-label="No"></span>
-                                        {% elif blockform.block.paypal_pending %}
-                                            <span class="not-confirmed">PayPal pending</span>
-                                        {% else %}
-                                            <a href="{% url 'booking:delete_block' blockform.block.id%}"><span class="btn table-btn basket-block-btn btn-danger">Delete</span></a>
-                                        {% endif %}
-                                    </td>
-                                    <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
-                                    <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
-                                    <td>{% if blockform.block_cost %}
-                                            {% if blockform.block.id in voucher_applied_items %}
-                                                <s>£{{ blockform.block_cost }}</s>
-                                                £{{ blockform.block_cost|voucher_applied_cost:voucher.discount }}
-                                            {% else %}
-                                                £{{ blockform.block_cost }}
-                                            {% endif %}
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </td>
-                                    <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
-                                    <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
-                                    <td class="table-center">{{ blockform.block.block_type.size }}</td>
-                                    <td class="table-center">{{ blockform.block.bookings_made  }}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    </div>
+                        {% endfor %}
+                    </table>
                 </div>
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
     </div>
+
 </div>
 
 {% endblock content %}
