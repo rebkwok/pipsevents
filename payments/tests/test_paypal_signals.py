@@ -160,7 +160,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             'PayPal sent an invalid transaction notification while '
             'attempting to process payment;.\n\nThe flag '
             'info was "{}"\n\nAn additional error was raised: {}'.format(
-                ppipn.flag_info, 'Booking with id 1 does not exist'
+                ppipn.flag_info, 'Booking(s) with id(s) 1 does not exist'
             )
         )
 
@@ -186,7 +186,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             'PayPal sent an invalid transaction notification while '
             'attempting to process payment;.\n\nThe flag '
             'info was "{}"\n\nAn additional error was raised: {}'.format(
-                ppipn.flag_info, 'Block with id 1 does not exist'
+                ppipn.flag_info, 'Block(s) with id(s) 1 does not exist'
             )
         )
 
@@ -316,6 +316,50 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_complete_status_multiple_bookings_some_invalid(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        user = mommy.make_recipe('booking.user')
+        bookings = mommy.make_recipe(
+            'booking.booking', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            _quantity=3
+        )
+        invoice = helpers.create_multibooking_paypal_transaction(
+            user, bookings
+        )
+        self.assertEqual(PaypalBookingTransaction.objects.count(), 3)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {},0'.format(
+                    ','.join([str(booking.id) for booking in bookings])
+                )),
+                'invoice': b(invoice),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        for pptrans in PaypalBookingTransaction.objects.all():
+            self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # support emails sent
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(email.subject, 'WARNING! Error processing PayPal IPN')
+        self.assertIn(
+            'Error raised: Booking(s) with id(s) 0 does not exist', email.body)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status_multiple_blocks(
             self, mock_postback
     ):
@@ -373,6 +417,52 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
                 ),
                 email.subject
             )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_complete_status_multiple_blocks_some_invalid(
+            self, mock_postback
+    ):
+        mock_postback.return_value = b"VERIFIED"
+        user = mommy.make_recipe('booking.user')
+        blocks = mommy.make_recipe(
+            'booking.block', user=user,
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            _quantity=3
+        )
+        invoice = helpers.create_multiblock_paypal_transaction(
+            user, blocks
+        )
+        self.assertEqual(PaypalBlockTransaction.objects.count(), 3)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('block 0,{},99999'.format(
+                    ','.join([str(block.id) for block in blocks])
+                )),
+                'invoice': b(invoice),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        for pptrans in PaypalBlockTransaction.objects.all():
+            self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # support emails sent
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+        self.assertEqual(email.subject, 'WARNING! Error processing PayPal IPN')
+        self.assertIn(
+            'Error raised: Block(s) with id(s) 0, 99999 does not exist',
+            email.body
+        )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_ipn_obj_with_space_replaced(self, mock_postback):
@@ -446,7 +536,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             mail.outbox[0].body,
             'Valid Payment Notification received from PayPal but an error '
             'occurred during processing.\n\nTransaction id {}\n\nThe flag info '
-            'was "{}"\n\nError raised: Booking with id 1 does not exist'.format(
+            'was "{}"\n\nError raised: Booking(s) with id(s) 1 does not exist'.format(
                 ppipn.txn_id, ppipn.flag_info,
             )
         )

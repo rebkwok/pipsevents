@@ -7,10 +7,12 @@
 
 <div class="container-fluid row">
     <div class="row">
+        <div class="col-xs-12">
         <div class="btn-group btn-group-sm pull-right">
             <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
             <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
             {% show_shopping_basket request.user %}
+        </div>
         </div>
     </div>
 
@@ -54,10 +56,10 @@
                 <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
                     <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
                 <p>
+                    Note: Voucher has been applied to all qualifying blocks below<br/>
                     <small>You have already used this voucher for {% if times_voucher_used == 1 %}
-                        1 block{% else %}{{ times_voucher_used }} blocks{% endif %} (max {{ voucher.max_per_user }})</small><br/>
-                    <span class="errorlist">Note: Voucher has been applied to all qualifying blocks below
-                {% for msg in voucher_msg %}<br/>- {{ msg }}{% endfor %}</span>
+                        1 block{% else %}{{ times_voucher_used }} blocks{% endif %} (max {{ voucher.max_per_user }})</small>
+                {% for msg in voucher_msg %}<span class="errorlist"><br/>- {{ msg }}</span>{% endfor %}
                 </p>
 
             {% endif %}
