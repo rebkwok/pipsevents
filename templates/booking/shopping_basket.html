@@ -7,11 +7,12 @@
 
 <div class="container-fluid container-basket row">
         <h1>Shopping Basket</h1>
-
+    <div class="col-xs-12">
     <div class="btn-group btn-group-sm pull-right" role="group">
         <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
         <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
         <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+    </div>
     </div>
 
  {% if unpaid_bookings or unpaid_bookings_non_default_paypal or unpaid_bookings_payment_not_open %}
@@ -19,9 +20,16 @@
     {% if unpaid_bookings %}
 
         {% if not block_booking_available and block_types_available %}
-            You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.
+            <p>You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.</p>
         {% endif %}
 
+        {% if unpaid_block_booking_available %}
+            <p><strong class="basket-note">You have an unpaid block!</strong>  Once paid,
+            you will be able to use this block. Go to
+                <a href="{% url 'booking:block_list' %}">My blocks</a>
+                to complete your payment.
+            </strong></p>
+        {% endif %}
         <div class="col-xs-12 basket-section">
             <div class="row">
                 <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
@@ -52,7 +60,7 @@
                     {% endif %}
                 </div>
                 <div class="col-xs-2 text-left">
-                    {% if booking.has_available_block %}
+                    {% if booking.has_available_block or booking.has_unpaid_block %}
                     <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="block_book" value="True"/>
@@ -60,7 +68,11 @@
                             <input type="hidden" name="code" value="{{ code }}"/>
                         {% endif %}
                         <input type="hidden" name="shopping_basket" value="True"/>
-                        <input class="btn btn-success table-btn basket-block-btn" type="submit" value="Use block"/>
+                        {% if booking.has_available_block %}
+                            <input class="btn btn-success table-btn basket-block-btn" type="submit" value="Use block"/>
+                        {% else %}
+                            <div class="btn btn-success table-btn basket-block-btn disabled">Use block</div>
+                        {% endif %}
                     </form>
                     {% endif %}
                 </div>
@@ -97,7 +109,7 @@
 
         <div class="row basket-row">
             {% if block_booking_available %}
-            <div class="col-xs-12">
+                <div class="col-xs-12">
                     <form class="table-form" method="post" action="{% url 'booking:update_block_bookings' %}">
                         {% csrf_token %}
                         <input type="hidden" name="block_book_all" value="True"/>
@@ -111,7 +123,12 @@
                     </p>
                     </form>
                 </div>
-                {% endif %}
+            {% elif unpaid_block_booking_available %}
+                <div class="btn btn-success disabled">Use blocks for all eligible classes</div>
+                <p class="studioadmin-help"> This will pay for all eligible classes with available blocks.<br/>
+                Complete your payment <a href="{% url 'booking:block_list' %}">here</a> in order to use blocks.
+                </p>
+            {% endif %}
             <div class="col-xs-6 col-sm-4 col-md-3">
                 <h3 class="checkout-total">Total: £ {{ total_cost }}{% include 'payments/payment.html' %}</h3>
             </div>

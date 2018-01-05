@@ -1239,6 +1239,9 @@ def shopping_basket(request):
     block_booking_available = bool(
         [True for booking in unpaid_bookings if booking.has_available_block]
     )
+    unpaid_block_booking_available = bool(
+        [True for booking in unpaid_bookings if booking.has_unpaid_block]
+    )
     block_types_available = bool(
         [
             True for booking in unpaid_bookings if BlockType.objects.filter(
@@ -1260,6 +1263,7 @@ def shopping_basket(request):
         'include_warning': include_warning,
         'block_booking_available': block_booking_available,
         'block_types_available': block_types_available,
+        'unpaid_block_booking_available': unpaid_block_booking_available,
         'voucher_form': VoucherForm(initial={'code': code}),
         'total_cost': total
     }
