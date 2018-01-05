@@ -8,6 +8,8 @@ from datetime import timedelta
 
 from operator import itemgetter
 
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -559,11 +561,8 @@ class BookingMultiCreateView(BookingCreateView):
         filter = form.data.get('filter')
         # redirect to specified next page, or to ev_type (lessons/events/roomhires)
         next = form.data.get('next', self.ev_type)
-        if filter:
-            return HttpResponseRedirect(
-                reverse('booking:{}'.format(next))
-                + '?name={}'.format(filter)
-            )
+        tab = form.data.get('tab')
+
         # get rid of base class messages and just show the add to basket one
         list(messages.get_messages(self.request))
 
@@ -576,7 +575,16 @@ class BookingMultiCreateView(BookingCreateView):
             msg += " and added to <a href='/bookings/shopping-basket'>basket</a>"
 
         messages.success(self.request, mark_safe(msg))
-        return HttpResponseRedirect(reverse('booking:{}'.format(next)))
+
+        url = reverse('booking:{}'.format(next))
+        params = {}
+        if tab:
+            params['tab'] = tab
+        if filter:
+            params['name'] = filter
+        if params:
+            url += '?{}'.format(urlencode(params))
+        return HttpResponseRedirect(url)
 
 
 class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView):
@@ -1119,9 +1127,17 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
                         "the studio for information")
 
         next = request.GET.get('next')
+        params = {}
+        if request.GET.get('code'):
+            params['code'] = request.GET['code']
+        if request.GET.get('filter'):
+            params['name'] = request.GET['filter']
+        if request.GET.get('tab'):
+            params['tab'] = request.GET['tab']
+
         url = self.get_success_url(next)
-        if 'code' in request.GET:
-            url += '?code={}'.format(request.GET['code'])
+        if params:
+            url += '?{}'.format(urlencode(params))
         return HttpResponseRedirect(url)
 
     def get_success_url(self, next):

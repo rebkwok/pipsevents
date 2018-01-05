@@ -57,10 +57,13 @@
 {#                        {events: queryset, location: 'Beaverbank Place', index: 1}#}
 {#                        {events: queryset, location: 'Other', index: 2}#}
 {#                    ]  #}
+
                     <div class="panel-heading">
                         <ul class="nav nav-tabs">
                             {% for location_obj in location_events %}
-                                <li class="nav-tab {%  if location_obj.index == 0 %}active{%  endif %}"><a class="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a></li>
+                                <li class="nav-tab {{ location_obj.index|get_active_class:tab }}">
+                                    <a class="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a>
+                                </li>
                             {%  endfor %}
                         </ul>
                     </div>
@@ -68,7 +71,7 @@
                     <div class="panel-body">
                         <div class="tab-content">
                         {% for location_obj in location_events %}
-                            <div class="tab-pane fade {% if location_obj.index == 0 %}in active{% endif %}" id="tab{{ location_obj.index }}">
+                            <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
                                 <div class="table-responsive">
                                     {% if location_obj.queryset %}
                                         <table class="table">
@@ -96,7 +99,7 @@
                                                 {% if user.is_authenticated %}
                                                     <td class="table-center">
                                                         {% if event.id in booked_events %}
-                                                            {% get_payment_button event user type %}
+                                                            {% get_payment_button event user type location_obj.index request.GET.name %}
                                                         {% elif event not in booked_events %}
                                                             {% if not disclaimer %}
                                                                 {% if type == 'lessons' %}
@@ -116,6 +119,7 @@
                                                                             {% csrf_token %}
                                                                             <input type="hidden" name="event" value={{event.id}}>
                                                                             <input type="hidden" name="filter" value="{{ request.GET.name }}">
+                                                                            <input type="hidden" name="tab" value="{{ location_obj.index }}">
                                                                             <input id="book_button" class="btn btn-success table-btn" type="submit" value="Book"/>
                                                                         </form>
                                                                     {% endif %}
