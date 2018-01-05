@@ -3392,4 +3392,4 @@ class BookingMultiCreateViewTests(TestSetupMixin, TestCase):
         )
         split_redirect_url = urlsplit(resp.url)
         self.assertEqual(split_redirect_url.path, reverse('booking:lessons'))
-        self.assertEqual(split_redirect_url.query, 'name=Level%201')
+        self.assertEqual(split_redirect_url.query, 'name=Level+1')

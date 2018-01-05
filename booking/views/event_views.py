@@ -97,6 +97,9 @@ class EventListView(ListView):
             }
             location_events.append(location_obj)
         context['location_events'] = location_events
+
+        context['tab'] = self.request.GET.get('tab')
+
         return context
 
 

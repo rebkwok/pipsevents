@@ -331,16 +331,17 @@ def voucher_expired(voucher):
 
 
 @register.inclusion_tag('booking/includes/payment_button.html')
-def get_payment_button(event, user, type):
+def get_payment_button(event, user, type, tab, filter):
     booking = Booking.objects.get(event=event, user=user)
-    if not (booking.paid and booking.payment_confirmed):
-        return {
-            'unpaid': True,
-            'booking': booking,
-            'payment_open': booking.event.payment_open,
-            'ev_type': type
-        }
-    return {'booking': booking, 'unpaid': False, 'ev_type': type}
+
+    return {
+        'unpaid': not (booking.paid and booking.payment_confirmed),
+        'booking': booking,
+        'payment_open': booking.event.payment_open,
+        'ev_type': type,
+        'tab': tab,
+        'filter': filter
+    }
 
 
 @register.assignment_tag
@@ -375,6 +376,7 @@ def get_shopping_basket_icon(user, menu=False):
     )
     return {'bookings': bookings, 'count': bookings.count(), 'menu': menu}
 
+
 @register.assignment_tag
 def has_shopping_basket_items(user):
     return get_shopping_basket_icon(user)['bookings'].exists()
@@ -384,10 +386,32 @@ def has_shopping_basket_items(user):
 def show_shopping_basket_menu(user):
     return get_shopping_basket_icon(user, menu=True)
 
+
 @register.inclusion_tag('booking/includes/shopping_basket_icon.html')
 def show_shopping_basket(user):
     return get_shopping_basket_icon(user)
 
+
 @register.filter
 def voucher_applied_cost(cost, discount):
     return Decimal(float(cost) * ((100 - discount) / 100)).quantize(Decimal('.05'))
+
+
+def is_active(location_index, tab):
+    if tab:
+        if str(location_index) == tab:
+            return True
+    elif location_index == 0:
+        return True
+    return False
+
+
+@register.filter
+def get_active_class(location_index, tab):
+    return 'active' if is_active(location_index, tab) else ''
+
+
+@register.filter
+def get_active_in_class(location_index, tab):
+    return 'active in' if is_active(location_index, tab) else ''
+
