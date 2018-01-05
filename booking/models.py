@@ -467,6 +467,16 @@ class Booking(models.Model):
         ]
         return bool(available_blocks)
 
+    @property
+    def has_unpaid_block(self):
+        available_blocks = [
+            block for block in
+            Block.objects.filter(
+                user=self.user, block_type__event_type=self.event.event_type
+            )
+            if not block.full and not block.expired and not block.paid
+        ]
+        return bool(available_blocks)
 
     def _old_booking(self):
         if self.pk:
