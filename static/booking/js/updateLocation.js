@@ -4,8 +4,8 @@ jQuery(document).ready(function () {
 
   Array.from(navtabs).forEach(function (navtab) {
     navtab.addEventListener('click', function () {
-      console.log(navtab.firstChild.text);
-      document.getElementById('location').textContent = navtab.firstChild.text
+      console.log(navtab.firstElementChild.text);
+      document.getElementById('location').textContent = navtab.firstElementChild.text
     })
   });
 
