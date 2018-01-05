@@ -40,19 +40,18 @@ body {
 	min-height: 100%;
 	height: auto !important;
 	/* Negative indent footer by its height plus top padding? */
-	margin: 0 auto -80px;
+	margin: 0 auto -120px;
 }
 
 /* Set the fixed height of the footer here */
 .push,
 .footer {
-	height: 80px;
+	height: 70px;
 }
 
 .footer {
 	background-color: transparent;
 }
-
 
 /* Lastly, apply responsive CSS fixes as necessary */
 @media (max-width: 767px) {
@@ -1224,4 +1223,9 @@ div .basket-row > div, div .basket-heading {
 
 .checkout-total {
   margin-top: 0;
+}
+
+.vat {
+  font-size: small;
+  font-weight: normal;
 }
