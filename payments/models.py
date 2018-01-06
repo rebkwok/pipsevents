@@ -576,7 +576,7 @@ def payment_received(sender, **kwargs):
                     # raise error from invalid voucher here so emails for
                     # payments are still sent
                     raise voucher_error
-                else:
+                elif voucher_code:
                     ActivityLog.objects.create(
                         log='Voucher code {} used for paypal txn {} ({} id(s) '
                             '{}) by user {}'.format(
