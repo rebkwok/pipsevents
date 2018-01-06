@@ -1,10 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.models import User
-from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
-    PaypalTicketBookingTransaction
+from django.db.models import Q
 
 from paypal.standard.ipn.models import PayPalIPN
 from paypal.standard.ipn.admin import PayPalIPNAdmin
+
+from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
+    PaypalTicketBookingTransaction
 
 
 class PaypalBookingUserFilter(admin.SimpleListFilter):
@@ -29,6 +31,71 @@ class PaypalBookingUserFilter(admin.SimpleListFilter):
         return queryset
 
 
+class PaypalCheckFilter(admin.SimpleListFilter):
+
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = 'Show unpaid with transaction ID'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'unpaid_with_txn'
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        return (
+            ('all', 'all'),
+            ('open', 'open only'),
+            ('cancelled', 'cancelled and no-show'),
+            ('autocancelled', 'autocancelled only'),
+        )
+
+
+class PaypalBookingCheckFilter(PaypalCheckFilter):
+
+    def queryset(self, request, queryset):
+        if self.value() == 'all':
+            return queryset.filter(
+                transaction_id__isnull=False, booking__paid=False
+            )
+        elif self.value() == 'open':
+            return queryset.filter(
+                transaction_id__isnull=False, booking__paid=False,
+                booking__status='OPEN', booking__no_show=False
+            )
+        elif self.value() == 'cancelled':
+            return queryset.filter(
+                Q(transaction_id__isnull=False, booking__paid=False) &
+                (Q(booking__status='OPEN', booking__no_show=True) | Q(booking__status='CANCELLED'))
+            )
+        elif self.value() == 'autocancelled':
+            return queryset.filter(
+                transaction_id__isnull=False, booking__paid=False,
+                booking__status='CANCELLED', booking__auto_cancelled=True
+            )
+        else:
+            return queryset
+
+
+class PaypalBlockCheckFilter(PaypalCheckFilter):
+
+    def lookups(self, request, model_admin):
+        return (('yes', 'yes'),)
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.filter(
+                transaction_id__isnull=False, block__paid=False
+            )
+        else:
+            return queryset
+
+
 class PaypalBlockUserFilter(PaypalBookingUserFilter):
 
     def queryset(self, request, queryset):
@@ -48,10 +115,12 @@ class PaypalTicketBookingUserFilter(PaypalBookingUserFilter):
 class PaypalBookingTransactionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'get_user', 'get_event', 'invoice_id',
-                    'transaction_id', 'get_booking_id', 'paid', 'paid_by_block')
+                    'transaction_id', 'get_booking_id', 'paid', 'paid_by_block',
+                    'booking_status'
+                    )
     readonly_fields = ('id', 'booking', 'get_user', 'get_event', 'invoice_id',
                        'get_booking_id', 'cost', 'voucher_code')
-    list_filter = (PaypalBookingUserFilter, 'booking__event')
+    list_filter = (PaypalBookingUserFilter, PaypalBookingCheckFilter, 'booking__event')
 
     def get_booking_id(self, obj):
         return obj.booking.id
@@ -78,6 +147,13 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
         return bool(obj.booking.block)
     paid_by_block.boolean = True
 
+    def booking_status(self, obj):
+        if obj.booking.status == 'CANCELLED' and obj.booking.auto_cancelled:
+            return 'AUTOCANCELLED'
+        elif obj.booking.no_show:
+            return 'NO SHOW'
+        else:
+            return obj.booking.status
 
 class PaypalBlockTransactionAdmin(admin.ModelAdmin):
 
@@ -86,7 +162,7 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
     readonly_fields = ('block', 'id', 'get_user', 'get_blocktype', 'invoice_id',
                     'get_block_id', 'cost', 'block_start',
                     'block_expiry')
-    list_filter = (PaypalBlockUserFilter,)
+    list_filter = (PaypalBlockUserFilter, PaypalBlockCheckFilter)
 
     def get_block_id(self, obj):
         return obj.block.id

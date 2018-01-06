@@ -576,6 +576,17 @@ def payment_received(sender, **kwargs):
                     # raise error from invalid voucher here so emails for
                     # payments are still sent
                     raise voucher_error
+                else:
+                    ActivityLog.objects.create(
+                        log='Voucher code {} used for paypal txn {} ({} id(s) '
+                            '{}) by user {}'.format(
+                            voucher_code,
+                            ipn_obj.txn_id,
+                            obj_type,
+                            obj_ids,
+                            obj_list[0].user.username,
+                        )
+                    )
 
         else:  # any other status
             if obj_type == 'paypal_test':
