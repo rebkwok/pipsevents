@@ -200,7 +200,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertFalse(resp.context['block_booking_available'])
 
         ev_type = Booking.objects.first().event.event_type
-        block = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.block_5', block_type__event_type=ev_type,
             user=self.user, paid=True, start_date=timezone.now() - timedelta(1)
         )
@@ -211,31 +211,31 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
     def test_total_displayed(self):
         resp = self.client.get(self.url)
         # 6 bookings, events each £8
-        self.assertEqual(resp.context['total_cost'], 48)
+        self.assertEqual(resp.context['total_unpaid_booking_cost'], 48)
 
     def test_voucher_code(self):
         # valid voucher
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
         self.voucher.event_types.add(ev_type)
-        resp = self.client.get(self.url + '?code=foo')
-        self.assertIsNone(resp.context['voucher_error'])
-        self.assertTrue(resp.context['valid_voucher'])
-        self.assertEqual(resp.context['times_voucher_used'], 0)
+        resp = self.client.get(self.url + '?booking_code=foo')
+        self.assertIsNone(resp.context.get('booking_voucher_error'))
+        self.assertTrue(resp.context['valid_booking_voucher'])
+        self.assertEqual(resp.context['times_booking_voucher_used'], 0)
 
         # 6 bookings, events each £8, one with 10% discount
-        self.assertEqual(resp.context['total_cost'], Decimal('47.20'))
+        self.assertEqual(resp.context['total_unpaid_booking_cost'], Decimal('47.20'))
         self.assertEqual(
             resp.context['voucher_applied_bookings'], [booking.id]
         )
         self.assertIn(
             'Voucher cannot be used for some bookings',
-            resp.context['voucher_msg'][0]
+            resp.context['booking_voucher_msg'][0]
         )
 
         # invalid voucher code
-        resp = self.client.get(self.url + '?code=bar')
-        self.assertEqual(resp.context['voucher_error'], 'Invalid code')
+        resp = self.client.get(self.url + '?booking_code=bar')
+        self.assertEqual(resp.context['booking_voucher_error'], 'Invalid code')
 
     def test_voucher_code_expired(self):
         # expired voucher
@@ -245,9 +245,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.voucher.start_date = timezone.now() - timedelta(4)
         self.voucher.expiry_date = timezone.now() - timedelta(2)
         self.voucher.save()
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
         self.assertEqual(
-            resp.context['voucher_error'], 'Voucher code has expired'
+            resp.context['booking_voucher_error'], 'Voucher code has expired'
         )
 
     def test_voucher_used_up_for_user(self):
@@ -259,9 +259,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         mommy.make(
             UsedEventVoucher, user=self.user, voucher=self.voucher, _quantity=2
         )
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
         self.assertEqual(
-            resp.context['voucher_error'],
+            resp.context['booking_voucher_error'],
             'Voucher code has already been used the maximum number of times (2)'
         )
 
@@ -274,17 +274,17 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         mommy.make(
             UsedEventVoucher, user=self.user, voucher=self.voucher, _quantity=2
         )
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
 
         # no voucher error b/c voucher is valid for at least one more use
-        self.assertIsNone(resp.context['voucher_error'])
+        self.assertIsNone(resp.context.get('booking_voucher_error'))
         self.assertEqual(
-            resp.context['voucher_msg'],
+            resp.context['booking_voucher_msg'],
             ['Voucher not applied to some bookings; you can only use this '
              'voucher a total of 3 times.']
         )
         # 6 bookings, events each £8, only one with 10% discount applied
-        self.assertEqual(resp.context['total_cost'], Decimal('47.20'))
+        self.assertEqual(resp.context['total_unpaid_booking_cost'], Decimal('47.20'))
 
     def test_voucher_used_max_total_times(self):
         booking = Booking.objects.first()
@@ -298,9 +298,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             _quantity=4
         )
 
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
         self.assertEqual(
-            resp.context['voucher_error'],
+            resp.context['booking_voucher_error'],
             'Voucher has limited number of total uses and has now expired'
         )
 
@@ -311,10 +311,10 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         for ev_type in ev_types:
             self.voucher.event_types.add(ev_type)
 
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
 
         # 6 bookings, events each £8 with 10% discount applied
-        self.assertEqual(resp.context['total_cost'], Decimal('43.20'))
+        self.assertEqual(resp.context['total_unpaid_booking_cost'], Decimal('43.20'))
 
         # add max total
         self.voucher.max_vouchers = 10
@@ -325,21 +325,21 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             UsedEventVoucher, user=other_user, voucher=self.voucher, _quantity=9
         )
 
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
 
         # no voucher error b/c voucher is valid for at least one more use
-        self.assertIsNone(resp.context['voucher_error'])
+        self.assertIsNone(resp.context['booking_voucher_error'])
         self.assertEqual(
-            resp.context['voucher_msg'],
+            resp.context['booking_voucher_msg'],
             ['Voucher not applied to some bookings; voucher has limited '
             'number of total uses.']
         )
         # 6 bookings, events each £8, only one with 10% discount applied
-        self.assertEqual(resp.context['total_cost'], Decimal('47.20'))
+        self.assertEqual(resp.context['total_unpaid_booking_cost'], Decimal('47.20'))
 
     def test_paypal_cart_form_created(self):
         resp = self.client.get(self.url)
-        paypalform = resp.context['paypalform']
+        paypalform = resp.context['bookings_paypalform']
 
         booking_ids_str = ','.join(
             [
@@ -364,7 +364,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
         resp = self.client.get(self.url)
         self.assertEqual(len(resp.context['unpaid_bookings']), 1)
-        paypalform = resp.context['paypalform']
+        paypalform = resp.context['bookings_paypalform']
 
         self.assertEqual(
             paypalform.initial['custom'],'booking {} {}'.format(
@@ -380,9 +380,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         ev_type = booking.event.event_type
         self.voucher.event_types.add(ev_type)
 
-        resp = self.client.get(self.url + '?code=foo')
+        resp = self.client.get(self.url + '?booking_code=foo')
 
-        paypalform = resp.context['paypalform']
+        paypalform = resp.context['bookings_paypalform']
         booking_ids_str = ','.join(
             [
                 str(id) for id in Booking.objects.values_list('id', flat=True)
@@ -404,20 +404,6 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 self.assertEqual(
                     paypalform.initial['amount_{}'.format(i + 1)], 8
                 )
-
-    def test_cart_items_added_to_session(self):
-        self.client.get(self.url)
-        booking_ids_str = ','.join(
-            [
-                str(id) for id in Booking.objects.values_list('id', flat=True)
-            ]
-        )
-        self.assertEqual(
-            self.client.session['cart_items'],
-            'booking {} {}'.format(
-                booking_ids_str, Booking.objects.first().user.email
-            )
-        )
 
 
 class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
@@ -497,12 +483,14 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         # no email sent
         self.assertEqual(len(mail.outbox), 0)
 
-    def test_use_block_for_all_with_voucher_code(self):
+    def test_use_block_for_all_with_voucher_codes(self):
         # redirects with code
         for ev in Event.objects.all():
             mommy.make_recipe('booking.booking', user=self.user, event=ev)
 
-        resp = self.client.post(self.url, {'code': 'bar'})
+        resp = self.client.post(
+            self.url, {'booking_code': 'bar', 'block_code': 'foo'}
+        )
 
         # no valid blocks
         for booking in Booking.objects.filter(user=self.user):
@@ -512,7 +500,8 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         self.assertEqual(
             split_redirect_url.path, reverse('booking:shopping_basket')
         )
-        self.assertEqual(split_redirect_url.query, 'code=bar')
+        self.assertIn('booking_code=bar', split_redirect_url.query)
+        self.assertIn('block_code=foo', split_redirect_url.query)
 
     def test_use_block_for_all_with_more_bookings_than_blocks(self):
         mommy.make_recipe(

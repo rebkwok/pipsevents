@@ -330,28 +330,6 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.all().count(), 4)
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
-    def test_cart_items_stored_on_session(self):
-        self.client.login(username=self.user.username, password='test')
-        mommy.make_recipe(
-            'booking.block_5', user=self.user, paid=True,
-            start_date=timezone.now() - timedelta(1)
-        )
-        self.client.get(self.url)
-
-        # Block is paid, so no cart items
-        self.assertIsNone(self.client.session.get('cart_items'))
-
-        unpaid = mommy.make_recipe(
-            'booking.block_5', user=self.user,
-            start_date=timezone.now() - timedelta(10)
-        )
-        self.client.get(self.url)
-
-        # Block is unpaid
-        self.assertEqual(
-            self.client.session['cart_items'],
-            'block {} {}'.format(unpaid.id, self.user.email)
-        )
 
     def test_cart_items_removed_from_session_if_no_unpaid_blocks(self):
         self.client.login(username=self.user.username, password='test')
@@ -359,8 +337,9 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             'booking.block_5', user=self.user,
             start_date=timezone.now() - timedelta(10)
         )
-        self.client.get(self.url)
-
+        session = self.client.session
+        session['cart_items'] = 'block {}'.format(unpaid.id)
+        session.save()
         self.assertEqual(
             self.client.session['cart_items'],
             'block {} {}'.format(unpaid.id, self.user.email)
@@ -703,8 +682,8 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             resp.context_data['voucher_msg'],
             [
-                'Voucher cannot be used for some blocks ({})'.format(
-                    invalid_block_type.event_type.subtype
+                'Voucher cannot be used for some block types ({})'.format(
+                    str(invalid_block_type)
                 )
             ]
         )

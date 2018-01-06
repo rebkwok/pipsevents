@@ -3304,7 +3304,11 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:update_booking', args=[booking.id])
         resp = self.client.post(
             url,
-            data={'block_book': True, 'shopping_basket': True, 'code': 'foo'}
+            data={
+                'block_book': True,
+                'shopping_basket': True,
+                'booking_code': 'foo'
+            }
         )
 
         booking.refresh_from_db()
@@ -3315,7 +3319,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         # redirects back to shopping basket with code
         split = urlsplit(resp.url)
         self.assertEqual(split.path, reverse('booking:shopping_basket'))
-        self.assertEqual(split.query, 'code=foo')
+        self.assertEqual(split.query, 'booking_code=foo')
 
     def test_cart_items_added_to_session(self):
         mommy.make_recipe(

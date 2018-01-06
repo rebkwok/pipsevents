@@ -5,7 +5,7 @@
 {% block content %}
 
 
-<div class="container-fluid container-basket row">
+<div class="container container-basket row">
         <h1>Shopping Basket</h1>
     <div class="col-xs-12">
     <div class="btn-group btn-group-sm pull-right" role="group">
@@ -15,22 +15,102 @@
     </div>
     </div>
 
- {% if unpaid_bookings or unpaid_bookings_non_default_paypal or unpaid_bookings_payment_not_open %}
+ {% if unpaid_blocks or unpaid_bookings or unpaid_bookings_non_default_paypal or unpaid_bookings_payment_not_open %}
+
+    {% if unpaid_blocks %}
+        <div class="row">
+            <div class="col-xs-12">
+                <h2>Blocks</h2>
+                <p class="basket-note"><strong>Pay for your blocks first; you will then be able to use them
+                    to pay for eligible class bookings.</strong></p>
+            </div>
+        </div>
+
+        <div class="col-xs-12 basket-section">
+            <div class="row">
+                <div class="col-xs-7 basket-heading"><h4>Block</h4></div>
+                <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
+            </div>
+
+            {% for block in unpaid_blocks %}
+            <div class="row basket-row">
+                <div class="col-xs-7">
+                    {{ block.block_type }}
+                </div>
+                <div class="col-xs-2">
+                    {% if block.id in voucher_applied_blocks %}
+                        <s>£{{ booking.event.cost }}</s>
+                        £{{ block.block_type.cost|voucher_applied_cost:block_voucher.discount }}
+                    {% else %}
+                        £{{ block.block_type.cost }}
+                    {% endif %}
+                </div>
+                <div class="col-xs-3 text-left">
+                    <form class="table-form" action="{% url 'booking:delete_block' block.id %}" method="post">
+                       {% csrf_token %}
+                        <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
+                       {% if valid_block_voucher %}
+                            <input type="hidden" name="block_code" value="{{ block_code }}"/>
+                       {% endif %}
+                        {% if valid_booking_voucher %}
+                            <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+                       {% endif %}
+                        <input class="hidden" name="next" value="shopping_basket" />
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="row basket-row">
+                <div class="col-xs-6 col-sm-4 col-md-3">
+                    <h3 class="checkout-total">Total: £ {{ total_unpaid_block_cost }} {% include 'payments/shopping_cart_block_payment.html' %}</h3>
+                </div>
+                <div class="col-xs-6 col-sm-8 col-md-9">
+                    {% if not valid_block_voucher %}
+                        <form name="block_voucher_form" class="form-inline" method="get" action="">
+                        <label for="block_code_id">{{ block_voucher_form.block_code.label }}</label> {{ block_voucher_form.block_code }}
+                        {% if booking_code %}
+                            <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+                       {% endif %}
+                        <input class="btn btn-success table-btn" type="submit" value="Apply"/>
+                        {% if block_voucher_error %}
+                            <p class="errorlist">{{ block_voucher_error }}</p>
+                        {% endif %}
+                    </form>
+                    {% else %}
+                        <form class="form-inline" method="get" action="">
+                            <label><strong>Voucher applied: {{ block_voucher.code }} ({{ block_voucher.discount }}% discount)</strong></label>
+                            {% if booking_code %}
+                                <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+                            {% endif %}
+                            <input class="btn btn-success table-btn" type="submit" name="remove_block_voucher" value="Remove" /><br/>
+                            <small>You have already used this voucher for {{ times_booking_voucher_used }} block{% if times_block_voucher_used != 1 %}s{% endif %} (max {{block_voucher.max_per_user }})</small>
+                            {% for msg in block_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
     {% if unpaid_bookings %}
 
-        {% if not block_booking_available and block_types_available %}
-            <p>You do not have any valid blocks; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.</p>
-        {% endif %}
+        <div class="row">
+            <div class="col-xs-12">
+                <h2>Bookings</h2>
+            </div>
+        </div>
 
-        {% if unpaid_block_booking_available %}
-            <p><strong class="basket-note">You have an unpaid block!</strong>  Once paid,
-            you will be able to use this block. Go to
-                <a href="{% url 'booking:block_list' %}">My blocks</a>
-                to complete your payment.
-            </strong></p>
-        {% endif %}
         <div class="col-xs-12 basket-section">
+            {% if not block_booking_available and block_types_available %}
+            <p>You do not have any valid blocks for these bookings; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.</p>
+            {% endif %}
+
+            {% if unpaid_block_booking_available %}
+                <p><strong class="basket-note">You have an unpaid block!</strong>  Once paid,
+                you will be able to use this block to pay for bookings.</p>
+            {% endif %}
+
             <div class="row">
                 <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
                 <div class="col-xs-5 basket-heading"><h4>Cost <span class="vat">(incl. VAT)</span></h4></div>
@@ -54,7 +134,7 @@
                 <div class="col-xs-2">
                     {% if booking.id in voucher_applied_bookings %}
                         <s>£{{ booking.event.cost }}</s>
-                        £{{ booking.event.cost|voucher_applied_cost:voucher.discount }}
+                        £{{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
                     {% else %}
                         £{{ booking.event.cost }}
                     {% endif %}
@@ -64,8 +144,11 @@
                     <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="block_book" value="True"/>
-                        {% if valid_voucher %}
-                            <input type="hidden" name="code" value="{{ code }}"/>
+                        {% if valid_booking_voucher %}
+                            <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+                        {% endif %}
+                        {% if valid_block_voucher %}
+                            <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
                         <input type="hidden" name="shopping_basket" value="True"/>
                         {% if booking.has_available_block %}
@@ -80,8 +163,11 @@
                     <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
                        {% csrf_token %}
                         <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
-                       {% if valid_voucher %}
-                            <input type="hidden" name="code" value="{{ code }}"/>
+                       {% if valid_booking_voucher %}
+                            <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+                        {% endif %}
+                        {% if valid_block_voucher %}
+                            <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
                         <input class="hidden" name="next" value="shopping_basket" />
                     </form>
@@ -114,8 +200,11 @@
                         {% csrf_token %}
                         <input type="hidden" name="block_book_all" value="True"/>
                         <input type="hidden" name="shopping_basket" value="True"/>
-                        {% if valid_voucher %}
-                            <input type="hidden" name="code" value="{{ code }}"/>
+                        {% if valid_booking_voucher %}
+                            <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+                        {% endif %}
+                        {% if valid_block_voucher %}
+                            <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
                         <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/>
                         <p class="studioadmin-help">
@@ -126,27 +215,33 @@
             {% elif unpaid_block_booking_available %}
                 <div class="btn btn-success disabled">Use blocks for all eligible classes</div>
                 <p class="studioadmin-help"> This will pay for all eligible classes with available blocks.<br/>
-                Complete your payment <a href="{% url 'booking:block_list' %}">here</a> in order to use blocks.
+                Complete your payment above in order to use blocks.
                 </p>
             {% endif %}
             <div class="col-xs-6 col-sm-4 col-md-3">
-                <h3 class="checkout-total">Total: £ {{ total_cost }} <span class="vat">(incl. VAT)</span>{% include 'payments/payment.html' %}</h3>
+                <h3 class="checkout-total">Total: £ {{ total_unpaid_booking_cost }} <span class="vat">(incl. VAT)</span>{% include 'payments/shopping_cart_booking_payment.html' %}</h3>
             </div>
             <div class="col-xs-6 col-sm-8 col-md-9">
-                {% if not valid_voucher %}
-                    <form name="voucher_form" class="form-inline" method="get" action="">
-                        <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
+                {% if not valid_booking_voucher %}
+                    <form name="booking_voucher_form" class="form-inline" method="get" action="">
+                        <label for="booking_code_id">{{ booking_voucher_form.booking_code.label }}</label> {{ booking_voucher_form.booking_code }}
+                        {% if block_code %}
+                            <input type="hidden" name="block_code" value="{{ block_code }}"/>
+                        {% endif %}
                         <input class="btn btn-success table-btn" type="submit" value="Apply"/>
-                        {% if voucher_error %}
-                            <p class="errorlist">{{ voucher_error }}</p>
+                        {% if booking_voucher_error %}
+                            <p class="errorlist">{{ booking_voucher_error }}</p>
                         {% endif %}
                     </form>
                 {% else %}
                     <form class="form-inline" method="get" action="">
-                        <label><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong></label>
-                        <input class="btn btn-success table-btn" type="submit" name="remove_voucher" value="Remove" /><br/>
-                        <small>You have already used this voucher for {% if times_voucher_used == 1 %}1 class/workshop{% else %}{{ times_voucher_used }} classes/workshops{% endif %} (max {{ voucher.max_per_user }})</small>
-                        {% for msg in voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                        <label><strong>Voucher applied: {{booking_voucher.code }} ({{booking_voucher.discount}}% discount)</strong></label>
+                        {% if block_code %}
+                            <input type="hidden" name="block_code" value="{{ block_code }}"/>
+                        {% endif %}
+                        <input class="btn btn-success table-btn" type="submit" name="remove_booking_voucher" value="Remove" /><br/>
+                        <small>You have already used this voucher for {% if times_booking_voucher_used == 1 %}1 class/workshop{% else %}{{ times_booking_voucher_used }} classes/workshops{% endif %} (max {{booking_voucher.max_per_user }})</small>
+                        {% for msg in booking_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                     </form>
                 {% endif %}
             </div>
@@ -194,7 +289,7 @@
             <div class="col-xs-2">
                 {% if booking.id in voucher_applied_bookings %}
                     <s>£ {{ booking.event.cost }}</s>
-                    £ {{ booking.event.cost|voucher_applied_cost:voucher.discount }}
+                    £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
                 {% else %}
                     £ {{ booking.event.cost }}
                 {% endif %}
@@ -206,7 +301,7 @@
                 <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
                    {% csrf_token %}
                     <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
-                   {% if valid_voucher %}
+                   {% if valid_booking_voucher %}
                         <input type="hidden" name="code" value="{{ code }}"/>
                     {% endif %}
                     <input class="hide" type="text" name="next" value="shopping_basket" />
@@ -250,7 +345,7 @@
             <div class="col-xs-2">
                 {% if booking.id in voucher_applied_bookings %}
                     <s>£ {{ booking.event.cost }}</s>
-                    £ {{ booking.event.cost|voucher_applied_cost:voucher.discount }}
+                    £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
                 {% else %}
                     £ {{ booking.event.cost }}
                 {% endif %}
@@ -261,7 +356,7 @@
                 <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="post">
                    {% csrf_token %}
                     <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>
-                   {% if valid_voucher %}
+                   {% if valid_booking_voucher %}
                         <input type="hidden" name="code" value="{{ code }}"/>
                     {% endif %}
                     <input class="hide" type="text" name="next" value="shopping_basket" />
