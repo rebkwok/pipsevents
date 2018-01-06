@@ -13,8 +13,8 @@ from django.utils.safestring import mark_safe
 from accounts.models import OnlineDisclaimer
 from accounts.utils import has_active_disclaimer, has_active_online_disclaimer, \
     has_expired_disclaimer
-from booking.models import Booking, Event, EventVoucher, UsedBlockVoucher, \
-    UsedEventVoucher
+from booking.models import Block, Booking, Event, EventVoucher, \
+    UsedBlockVoucher, UsedEventVoucher
 from payments.models import PaypalBookingTransaction
 from studioadmin.utils import int_str, chaffify
 
@@ -375,12 +375,19 @@ def get_shopping_basket_icon(user, menu=False):
         event__date__gte=timezone.now(),
         no_show=False, paypal_pending=False
     )
-    return {'bookings': bookings, 'count': bookings.count(), 'menu': menu}
+    blocks = [block for block in Block.objects.filter(
+        user=user, paid=False, paypal_pending=False
+    ) if not block.expired and not block.full]
+    return {
+        'has_unpaid_bookings': bookings.exists(),
+        'count': bookings.count() + len(blocks),
+        'menu': menu
+    }
 
 
 @register.assignment_tag
 def has_shopping_basket_items(user):
-    return get_shopping_basket_icon(user)['bookings'].exists()
+    return get_shopping_basket_icon(user)['has_unpaid_bookings']
 
 
 @register.inclusion_tag('booking/includes/shopping_basket_icon.html')

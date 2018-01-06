@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import requests
 
 from django.conf import settings
+
 from django.core.exceptions import MultipleObjectsReturned
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponseRedirect
+
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -88,18 +91,22 @@ def paypal_confirm_return(request):
         # awaiting paypal confirmation
         cart_items = request.session.get('cart_items', [])
         if cart_items:
-            cart_items, _, cart_item_names, _ = get_cart_item_names(cart_items)
+            cart_items, item_type, cart_item_names = get_cart_item_names(cart_items)
+            # cart items will be the same as custom, will be split to 2 or 3
+            # depending on whether voucher code is applied
             del request.session['cart_items']
+            if item_type in ["booking", "block"]:
+                for item in cart_items:
+                    if not item.paid:  # in case payment is processed during this view
+                        item.paypal_pending = True
+                        item.save()
 
-        for item in cart_items:
-            if not item.paid:  # in case payment is processed during this view
-                item.paypal_pending = True
-                item.save()
         context = {
             'obj_unknown': True,
             'cart_items':  cart_item_names if cart_items else [],
             'organiser_email': settings.DEFAULT_STUDIO_EMAIL
         }
+
     return TemplateResponse(request, 'payments/confirmed_payment.html', context)
 
 
@@ -197,3 +204,16 @@ def get_cart_item_names(cart_items):
         cart_item_names = []
 
     return cart_items, item_type, cart_item_names, user_email
+
+
+@csrf_exempt
+def paypal_form_post(request):
+    """
+    interim view to add cart items to session before redirecting to the paypal
+    endpoint
+    """
+    # add cart booking ids to the session so we can set paypal pending
+    request.session['cart_items'] = request.POST['custom']
+    endpoint = request.POST['endpoint']
+    resp = requests.post(endpoint, request.POST)
+    return HttpResponseRedirect(resp.url)

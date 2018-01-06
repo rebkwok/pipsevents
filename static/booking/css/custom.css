@@ -1221,6 +1221,10 @@ div .basket-row > div, div .basket-heading {
 
 }
 
+.container-basket {
+  margin-bottom: 40px;
+}
+
 .checkout-total {
   margin-top: 0;
 }

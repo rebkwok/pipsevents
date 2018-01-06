@@ -252,3 +252,24 @@ class VoucherForm(forms.Form):
             attrs={"class": "form-control input-xs voucher"}
         ),
     )
+
+
+class BookingVoucherForm(forms.Form):
+
+    booking_code = forms.CharField(
+        label='Got a voucher code?',
+        widget=forms.TextInput(
+            attrs={"class": "form-control input-xs voucher"}
+        ),
+    )
+
+
+class BlockVoucherForm(forms.Form):
+
+    block_code = forms.CharField(
+        label='Got a voucher code?',
+        widget=forms.TextInput(
+            attrs={"class": "form-control input-xs voucher"}
+        ),
+    )
+

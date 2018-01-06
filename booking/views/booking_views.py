@@ -6,13 +6,10 @@ from decimal import Decimal
 
 from datetime import timedelta
 
-from operator import itemgetter
-
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Sum
@@ -27,10 +24,7 @@ from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from braces.views import LoginRequiredMixin
 
-from payments.forms import (
-    PayPalPaymentsListForm, PayPalPaymentsShoppingBasketForm,
-    PayPalPaymentsUpdateForm
-)
+from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
 from accounts.utils import has_expired_disclaimer
@@ -42,11 +36,10 @@ from booking.models import (
 from booking.forms import BookingCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
-from booking.views.views_utils import DisclaimerRequiredMixin
+from booking.views.views_utils import DisclaimerRequiredMixin,\
+    _get_active_user_block, _get_block_status, validate_voucher_code
 
-from payments.helpers import (
-    create_booking_paypal_transaction, create_multibooking_paypal_transaction
-)
+from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
@@ -769,30 +762,20 @@ class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView)
 
         if 'shopping_basket' in form.data:
             url = reverse('booking:shopping_basket')
-            if 'code' in form.data:
-                url += '?code={}'.format(form.data['code'])
+            params = {}
+            if 'booking_code' in self.request.POST:
+                params['booking_code'] = self.request.POST['booking_code']
+            if 'block_code' in self.request.POST:
+                params['block_code'] = self.request.POST['block_code']
+
+            if params:
+                url += '?{}'.format(urlencode(params))
             return HttpResponseRedirect(url)
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('booking:bookings')
-
-
-def _get_active_user_block(user, booking):
-    """
-    return the active block for this booking with the soonest expiry date
-    """
-    blocks = user.blocks.all()
-    active_blocks = [
-        (block, block.expiry_date)
-        for block in blocks if block.active_block()
-        and block.block_type.event_type == booking.event.event_type
-    ]
-    # use the block with the soonest expiry date
-    if active_blocks:
-        return min(active_blocks, key=itemgetter(1))[0]
-    else:
-        return None
 
 
 def _email_free_class_request(request, booking, booking_status):
@@ -843,45 +826,6 @@ def _email_free_class_request(request, booking, booking_status):
         send_support_email(e, __name__, "UpdateBookingView - claim free class email")
         messages.error(request, "An error occured, please contact "
             "the studio for information")
-
-
-def _get_block_status(booking, request):
-    blocks_used = None
-    total_blocks = None
-    if booking.block:
-        blocks_used = booking.block.bookings_made()
-        total_blocks = booking.block.block_type.size
-        ActivityLog.objects.create(
-            log='Block used for booking id {} (for {}). Block id {}, '
-            'by user {}'.format(
-                booking.id, booking.event, booking.block.id,
-                request.user.username
-            )
-        )
-
-    return blocks_used, total_blocks
-
-
-def validate_voucher_code(voucher, user, event=None):
-    if event and not voucher.check_event_type(event.event_type):
-        return 'Voucher code is not valid for this event/class type'
-    elif voucher.has_expired:
-        return 'Voucher code has expired'
-    elif voucher.max_vouchers and \
-        UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
-            voucher.max_vouchers:
-        return 'Voucher has limited number of total uses and has now expired'
-    elif not voucher.has_started:
-        return 'Voucher code is not valid until {}'.format(
-            voucher.start_date.strftime("%d %b %y")
-        )
-    elif voucher.max_per_user and UsedEventVoucher.objects.filter(
-            voucher=voucher, user=user
-    ).count() >= voucher.max_per_user:
-        return 'Voucher code has already been used the maximum number ' \
-               'of times ({})'.format(
-                voucher.max_per_user
-                )
 
 
 class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView):
@@ -1129,8 +1073,10 @@ class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView)
 
         next = request.GET.get('next') or request.POST.get('next')
         params = {}
-        if request.GET.get('code'):
-            params['code'] = request.GET['code']
+        if request.GET.get('booking_code'):
+            params['booking_code'] = request.GET['booking_code']
+        if request.GET.get('block_code'):
+            params['block_code'] = request.GET['block_code']
         if request.GET.get('filter'):
             params['name'] = request.GET['filter']
         if request.GET.get('tab'):
@@ -1217,287 +1163,3 @@ def disclaimer_required(request):
         'booking/disclaimer_required.html',
         {'has_expired_disclaimer': has_expired_disclaimer(request.user)}
     )
-
-
-@login_required
-def shopping_basket(request):
-    template_name = 'booking/shopping_basket.html'
-
-    unpaid_bookings_all = Booking.objects.filter(
-        user=request.user, paid=False, status='OPEN',
-        event__date__gte=timezone.now(),
-        no_show=False, paypal_pending=False
-    )
-    unpaid_bookings_all_open = unpaid_bookings_all.filter(event__payment_open=True)
-    unpaid_bookings_payment_not_open = unpaid_bookings_all.filter(event__payment_open=False)
-
-    unpaid_bookings = unpaid_bookings_all_open.filter(
-        event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
-    )
-    unpaid_bookings_non_default_paypal = set(unpaid_bookings_all_open) - set(unpaid_bookings)
-
-    include_warning = bool([True for bk in unpaid_bookings_all_open if not bk.can_cancel])
-    block_booking_available = bool(
-        [True for booking in unpaid_bookings if booking.has_available_block]
-    )
-    unpaid_block_booking_available = bool(
-        [True for booking in unpaid_bookings if booking.has_unpaid_block]
-    )
-    block_types_available = bool(
-        [
-            True for booking in unpaid_bookings if BlockType.objects.filter(
-            active=True, event_type=booking.event.event_type
-            ).exists()
-        ]
-    )
-
-    code = request.GET.get('code', None)
-
-    total_agg = unpaid_bookings.aggregate(Sum('event__cost'))
-    # pop item from the aggregate dict
-    _, total = total_agg.popitem()
-
-    context = {
-        'unpaid_bookings': unpaid_bookings,
-        'unpaid_bookings_non_default_paypal': unpaid_bookings_non_default_paypal,
-        'unpaid_bookings_payment_not_open': unpaid_bookings_payment_not_open,
-        'include_warning': include_warning,
-        'block_booking_available': block_booking_available,
-        'block_types_available': block_types_available,
-        'unpaid_block_booking_available': unpaid_block_booking_available,
-        'voucher_form': VoucherForm(initial={'code': code}),
-        'total_cost': total
-    }
-
-    voucher_applied_bookings = []
-
-    if "code" in request.GET and "remove_voucher" not in request.GET:
-        code = request.GET['code'].strip()
-        try:
-            voucher = EventVoucher.objects.get(code=code)
-        except EventVoucher.DoesNotExist:
-            voucher = None
-            context['voucher_error'] = 'Invalid code' if code else 'No code provided'
-
-        if voucher:
-            voucher_error = validate_voucher_code(voucher, request.user)
-            context['voucher_error'] =  voucher_error
-
-            times_used = UsedEventVoucher.objects.filter(
-                voucher=voucher, user=request.user
-            ).count()
-            context['times_voucher_used'] = times_used
-
-            valid = not bool(voucher_error)
-            context['valid_voucher'] = valid
-
-            if valid:
-                total = 0
-
-                # calculate new total
-                check_max_per_user = False
-                check_max_total = False
-                if voucher.max_per_user:
-                    check_max_per_user = True
-                    uses_per_user_left = voucher.max_per_user - times_used
-
-                if voucher.max_vouchers:
-                    check_max_total = True
-                    max_voucher_uses_left = (
-                        voucher.max_vouchers -
-                        UsedEventVoucher.objects.filter(voucher=voucher).count()
-                    )
-
-                invalid_event_types = []
-                max_per_user_exceeded = False
-                max_total_exceeded = False
-
-                for booking in unpaid_bookings:
-                    can_use = voucher.check_event_type(booking.event.event_type)
-                    if check_max_per_user and uses_per_user_left <= 0:
-                        can_use = False
-                        max_per_user_exceeded = True
-                    if check_max_total and max_voucher_uses_left <= 0:
-                        can_use = False
-                        max_total_exceeded = True
-
-                    if can_use:
-                        total += Decimal(
-                            float(booking.event.cost) * ((100 - voucher.discount) / 100)
-                        ).quantize(Decimal('.05'))
-                        voucher_applied_bookings.append(booking.id)
-                        if check_max_per_user:
-                            uses_per_user_left -= 1
-                        if check_max_total:
-                            max_voucher_uses_left -= 1
-                    else:
-                        total += booking.event.cost
-                        # if we can't use the voucher but max_total and
-                        # max_per_user are not exceeded, it must be an invalid
-                        # event type
-                        if not (max_total_exceeded or max_per_user_exceeded):
-                            invalid_event_types.append(
-                                booking.event.event_type.subtype
-                            )
-
-                voucher_msg = []
-                if invalid_event_types:
-                    voucher_msg.append(
-                        'Voucher cannot be used for some bookings '
-                        '({})'.format(', '.join(set(invalid_event_types)))
-                    )
-                if max_per_user_exceeded:
-                    voucher_msg.append(
-                        'Voucher not applied to some bookings; you can '
-                        'only use this voucher a total of {} times.'.format(
-                            voucher.max_per_user
-                        )
-                    )
-                if max_total_exceeded:
-                    voucher_msg.append(
-                        'Voucher not applied to some bookings; voucher '
-                        'has limited number of total uses.'
-                    )
-
-                context['voucher_applied_bookings'] = voucher_applied_bookings
-                context['total_cost'] = total
-                context['voucher_msg'] = voucher_msg
-
-            context.update({
-                'voucher': voucher,
-                'code': code,
-            })
-
-    if unpaid_bookings:
-        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-
-        item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
-        custom = context_helpers.get_paypal_custom(
-            item_type='booking',
-            item_ids=item_ids_str,
-            voucher_code=voucher.code if context.get('valid_voucher') else '',
-            user_email=request.user.email
-        )
-        if len(unpaid_bookings) == 1:
-            booking = unpaid_bookings[0]
-            invoice_id = create_booking_paypal_transaction(
-                request.user, booking
-            ).invoice_id
-
-            paypal_form = PayPalPaymentsShoppingBasketForm(
-            initial=context_helpers.get_paypal_dict(
-                host,
-                context['total_cost'],
-                booking.event,
-                invoice_id,
-                custom,
-                paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
-            )
-        )
-
-        else:
-            invoice_id = create_multibooking_paypal_transaction(
-                request.user, unpaid_bookings
-            )
-            paypal_form = PayPalPaymentsShoppingBasketForm(
-                initial=context_helpers.get_paypal_cart_dict(
-                    host,
-                    'booking',
-                    unpaid_bookings,
-                    invoice_id,
-                    custom,
-                    voucher_applied_items=voucher_applied_bookings,
-                    voucher = voucher if context.get('valid_voucher') else None,
-                    paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
-                )
-            )
-
-        context["paypalform"] = paypal_form
-        # add cart booking ids to the session so we can set paypal pending
-        request.session['cart_items'] = custom
-
-    return TemplateResponse(
-        request,
-        template_name,
-        context
-    )
-
-
-@login_required
-def update_block_bookings(request):
-    unpaid_bookings = Booking.objects.filter(
-        user=request.user, event__payment_open=True, paid=False, status='OPEN',
-        event__date__gte=timezone.now(),
-        no_show=False, paypal_pending=False
-    )
-
-    block_booked = []
-    for booking in unpaid_bookings:
-        active_block = _get_active_user_block(request.user, booking)
-        if active_block:
-            booking.block = active_block
-            booking.paid = True
-            booking.payment_confirmed = True
-
-            # check for existence of free child block on pre-saved booking
-            has_free_block_pre_save = False
-            if booking.block and booking.block.children.exists():
-                has_free_block_pre_save = True
-
-            booking.save()
-            block_booked.append(booking)
-            _get_block_status(booking, request)
-
-
-            if not booking.block.active_block():
-                if booking.block.children.exists() \
-                        and not has_free_block_pre_save:
-                    messages.info(
-                        request,
-                        mark_safe(
-                            'You have just used the last space in your block and '
-                            'have qualified for a extra free class'
-                        )
-                    )
-                elif not booking.has_available_block:
-                    messages.info(
-                        request,
-                        mark_safe(
-                            'You have just used the last space in your block. '
-                           '<a href="/blocks/new">Buy a new one</a>.'
-                        )
-                    )
-
-    if block_booked:
-        messages.info(request, "Blocks used for {} bookings".format(len(block_booked)))
-
-        # send email to user
-        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-        ctx = {
-            'host': host,
-            'bookings': block_booked,
-        }
-        send_mail(
-            '{} Blocks used for {} bookings'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, len(block_booked)
-            ),
-            get_template('booking/email/multi_block_booking_updated.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [request.user.email],
-            html_message=get_template(
-                'booking/email/multi_block_booking_updated.html'
-            ).render(ctx),
-            fail_silently=True
-        )
-
-    else:
-        messages.info(
-            request,
-            mark_safe('No blocks available to use for these bookings. Go to '
-            '<a href="/blocks/new"> to buy a block.')
-        )
-
-    url = reverse('booking:shopping_basket')
-    if 'code' in request.POST:
-        url += '?code={}'.format(request.POST['code'])
-    return HttpResponseRedirect(url)
