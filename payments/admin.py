@@ -48,7 +48,7 @@ class PaypalTicketBookingUserFilter(PaypalBookingUserFilter):
 class PaypalBookingTransactionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'get_user', 'get_event', 'invoice_id',
-                    'transaction_id', 'get_booking_id')
+                    'transaction_id', 'get_booking_id', 'paid', 'paid_by_block')
     readonly_fields = ('id', 'booking', 'get_user', 'get_event', 'invoice_id',
                        'get_booking_id', 'cost', 'voucher_code')
     list_filter = (PaypalBookingUserFilter, 'booking__event')
@@ -70,11 +70,19 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
     def cost(self, obj):
         return u"\u00A3{:.2f}".format(obj.booking.event.cost)
 
+    def paid(self, obj):
+        return obj.booking.paid
+    paid.boolean = True
+
+    def paid_by_block(self, obj):
+        return bool(obj.booking.block)
+    paid_by_block.boolean = True
+
 
 class PaypalBlockTransactionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'get_user', 'get_blocktype', 'invoice_id',
-                    'transaction_id', 'get_block_id')
+                    'transaction_id', 'get_block_id', 'paid')
     readonly_fields = ('block', 'id', 'get_user', 'get_blocktype', 'invoice_id',
                     'get_block_id', 'cost', 'block_start',
                     'block_expiry')
@@ -105,12 +113,16 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
     def cost(self, obj):
         return u"\u00A3{:.2f}".format(obj.block.block_type.cost)
 
+    def paid(self, obj):
+        return obj.block.paid
+    paid.boolean = True
+
 
 class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'get_user', 'get_ticketed_event', 'invoice_id',
                     'get_ticket_booking_id', 'ticket_cost',
-                       'number_of_tickets', 'total_cost')
+                       'number_of_tickets', 'total_cost', 'paid')
     readonly_fields = ('id', 'ticket_booking', 'get_user', 'get_ticketed_event',
                        'invoice_id', 'transaction_id', 'get_ticket_booking_id',
                        'ticket_cost', 'number_of_tickets', 'total_cost')
@@ -145,6 +157,10 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
             obj.ticket_booking.ticketed_event.ticket_cost *
             obj.ticket_booking.tickets.count()
         )
+
+    def paid(self, obj):
+        return obj.ticket_booking.paid
+    paid.boolean = True
 
 
 class PayPalAdmin(PayPalIPNAdmin):
