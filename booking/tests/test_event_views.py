@@ -406,6 +406,42 @@ class EventListViewTests(TestSetupMixin, TestCase):
             resp.rendered_content.count('table-shaded'), 4
         )
 
+    def test_event_list_tab_parameter(self):
+        """
+        Test that events are coloured on alt days
+        """
+        events = Event.objects.filter(event_type__event_type='EV')
+        ev = events[0]
+        ev.location = "Davidson's Mains"
+        ev.save()
+
+        url = reverse('booking:events')
+        resp = self.client.get(url)
+
+        # 3 loc events, 1 for all and 1 for each location
+        self.assertEqual(
+            len(resp.context_data['location_events']), 3
+        )
+        self.assertIsNone(resp.context_data['tab'])
+        # tab 0 is active and open by default
+        self.assertIn(
+            '<div class="tab-pane fade active in" id="tab0">',
+            resp.rendered_content
+        )
+
+        url += '?tab=1'
+        resp = self.client.get(url)
+        self.assertEqual(resp.context_data['tab'], '1')
+        # tab 0 is active and open by default
+        self.assertIn(
+            '<div class="tab-pane fade active in" id="tab1">',
+            resp.rendered_content
+        )
+        self.assertNotIn(
+            '<div class="tab-pane fade active in" id="tab0">',
+            resp.rendered_content
+        )
+
 
 class EventDetailViewTests(TestSetupMixin, TestCase):
 
