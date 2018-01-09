@@ -299,19 +299,25 @@ class BlockListView(LoginRequiredMixin, ListView):
             invoice_id = create_multiblock_paypal_transaction(
                 self.request.user, unpaid_blocks
             )
+            item_ids_str = ','.join(str(block.id) for block in unpaid_blocks)
+            custom = context_helpers.get_paypal_custom(
+                item_type='block',
+                item_ids=item_ids_str,
+                voucher_code=voucher.code if context.get('valid_voucher') else '',
+                user_email=self.request.user.email
+            )
             context['paypalform'] = PayPalPaymentsShoppingBasketForm(
                 initial=context_helpers.get_paypal_cart_dict(
                     host,
                     'block',
                     unpaid_blocks,
                     invoice_id,
+                    custom,
                     voucher_applied_items=voucher_applied_items,
                     voucher=voucher,
                 )
             )
-            self.request.session['cart_items'] = 'block {}'.format(
-                ','.join(str(block.id) for block in unpaid_blocks)
-            )
+            self.request.session['cart_items'] = custom
             context['total_cost'] = total_cost
         else:
             if self.request.session.get('cart_items'):

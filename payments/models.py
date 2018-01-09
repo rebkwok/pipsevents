@@ -229,7 +229,7 @@ def get_obj(ipn_obj):
         obj_type = custom[0]
         ids = custom[1]
         obj_ids = [int(id) for id in ids.split(',')]
-        voucher_code = custom[2] if len(custom) == 3 and \
+        voucher_code = custom[2] if len(custom) >= 3 and \
             obj_type != 'test' else None
     else:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')

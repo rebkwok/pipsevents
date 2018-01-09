@@ -347,7 +347,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             ]
         )
         self.assertEqual(
-            paypalform.initial['custom'], 'booking {}'.format(booking_ids_str)
+            paypalform.initial['custom'], 'booking {} {}'.format(
+                booking_ids_str, Booking.objects.first().user.email
+            )
         )
         for i, booking in enumerate(Booking.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1) , paypalform.initial)
@@ -365,7 +367,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         paypalform = resp.context['paypalform']
 
         self.assertEqual(
-            paypalform.initial['custom'],'booking {}'.format(booking.id)
+            paypalform.initial['custom'],'booking {} {}'.format(
+                booking.id, booking.user.email
+            )
         )
         self.assertIn('item_name', paypalform.initial)
         self.assertNotIn('item_name_1', paypalform.initial)
@@ -386,7 +390,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(
             paypalform.initial['custom'],
-            'booking {} foo'.format(booking_ids_str)
+            'booking {} foo {}'.format(booking_ids_str, booking.user.email)
         )
         for i, booking in enumerate(Booking.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1) , paypalform.initial)
@@ -410,7 +414,9 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(
             self.client.session['cart_items'],
-            'booking {}'.format(booking_ids_str)
+            'booking {} {}'.format(
+                booking_ids_str, Booking.objects.first().user.email
+            )
         )
 
 
