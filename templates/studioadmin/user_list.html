@@ -45,8 +45,8 @@
                                 {% if request.user.is_staff %}<th class="table-center">Regular student</th>{% endif %}
                                 {% if request.user.is_superuser %}<th class="table-center">Paper Disclaimer</th>{% endif %}
                                 <th class="table-center">Online Disclaimer</br><span class="studioadmin-help">Click to view/print disclaimer</span></th>
+                                <th class="table-center">Email</th>
                                 {% if request.user.is_staff %}
-                                    <th class="table-center">Email</th>
                                     <th class="table-center">Subscribed</th>
                                 {% endif %}
                             </tr>
