@@ -337,6 +337,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         result = bk_check_filter.queryset(
             None, PaypalBookingTransaction.objects.all()
         )
+
         # no unpaid with completed ipns, return none
         self.assertEqual(result.count(), 0)
 
@@ -410,6 +411,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
             unpaid_cancelled_with_txn,
             unpaid_autocancelled_with_txn, unpaid_no_show_with_txn
         ]
+
         bk_check_filter = admin.PaypalBookingCheckFilter(
             None, {'unpaid_with_txn': 'cancelled'}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
