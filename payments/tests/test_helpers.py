@@ -25,8 +25,13 @@ class TestHelpers(PatchRequestMixin, TestCase):
                 booking.event.date.strftime("%d%m%y%H%M")
             )
         )
-        # str returns invoice id
-        self.assertEqual(str(booking_txn), booking_txn.invoice_id)
+        # str returns invoice id and booking id
+        self.assertEqual(
+            str(booking_txn),
+            '{} - booking {}'.format(
+                booking_txn.invoice_id, booking_txn.booking.id
+            )
+        )
 
     def test_create_existing_booking_transaction(self):
         user = mommy.make_recipe('booking.user', username="testuser")
@@ -92,9 +97,13 @@ class TestHelpers(PatchRequestMixin, TestCase):
                 block.start_date.strftime("%d%m%y%H%M")
             )
         )
-        # str returns invoice id
-        self.assertEqual(str(block_txn), block_txn.invoice_id)
-
+        # str returns invoice id and block id
+        self.assertEqual(
+            str(block_txn),
+            '{} - block {}'.format(
+                block_txn.invoice_id, block_txn.block.id
+            )
+        )
 
     def test_create_existing_block_transaction(self):
         user = mommy.make_recipe('booking.user', username="testuser")
@@ -128,8 +137,13 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(
             tbooking_txn.invoice_id, '{}001'.format(tbooking.booking_reference)
         )
-        # str returns invoice id
-        self.assertEqual(str(tbooking_txn), tbooking_txn.invoice_id)
+        # str returns invoice id and ticket booking id
+        self.assertEqual(
+            str(tbooking_txn),
+            '{} - tkt booking {}'.format(
+                tbooking_txn.invoice_id, tbooking_txn.ticket_booking.id
+            )
+        )
 
     def test_create_existing_ticket_booking_transaction(self):
         user = mommy.make_recipe('booking.user', username="testuser")

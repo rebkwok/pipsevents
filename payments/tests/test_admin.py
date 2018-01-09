@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from paypal.standard.ipn.models import PayPalIPN
 
-from booking.models import Ticket, TicketBooking, TicketedEvent
+from booking.models import Booking, Block, Ticket, TicketBooking, TicketedEvent
 from common.tests.helpers import PatchRequestMixin
 
 from payments import helpers
@@ -23,7 +23,7 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
     def test_paypal_booking_admin_display(self):
         user = mommy.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        booking = mommy.make_recipe('booking.booking', user=user)
+        booking = mommy.make_recipe('booking.booking', user=user, status='OPEN')
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -46,12 +46,42 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
             ppbooking_admin.cost(ppbooking_query),
             u"\u00A3{}.00".format(booking.event.cost)
         )
+        self.assertEqual(
+            ppbooking_admin.paid(ppbooking_query), booking.paid
+        )
+        self.assertEqual(
+            ppbooking_admin.paid_by_block(ppbooking_query), bool(booking.block)
+        )
+
+        self.assertEqual(
+            ppbooking_admin.booking_status(ppbooking_query), 'OPEN'
+        )
+
+        booking.no_show = True
+        booking.save()
+        ppbooking_query = ppbooking_admin.get_queryset(None)[0]
+        self.assertEqual(
+            ppbooking_admin.booking_status(ppbooking_query), 'NO SHOW'
+        )
+        booking.no_show = False
+        booking.status = 'CANCELLED'
+        booking.save()
+        ppbooking_query = ppbooking_admin.get_queryset(None)[0]
+        self.assertEqual(
+            ppbooking_admin.booking_status(ppbooking_query), 'CANCELLED'
+        )
+        booking.auto_cancelled = True
+        booking.save()
+        ppbooking_query = ppbooking_admin.get_queryset(None)[0]
+        self.assertEqual(
+            ppbooking_admin.booking_status(ppbooking_query), 'AUTOCANCELLED'
+        )
 
     def test_paypal_block_admin_display(self):
         user = mommy.make_recipe(
             'booking.user', first_name='Test', last_name='User')
         block = mommy.make_recipe('booking.block_5', user=user)
-        pptrans = helpers.create_block_paypal_transaction(
+        helpers.create_block_paypal_transaction(
             block.user, block
         )
 
@@ -80,6 +110,10 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
         self.assertEqual(
             ppblock_admin.block_expiry(ppblock_query),
             block.expiry_date.strftime('%d %b %Y, %H:%M')
+        )
+        self.assertEqual(
+            ppblock_admin.paid(ppblock_query),
+            block.paid
         )
 
     def test_paypal_ticket_admin_display(self):
@@ -115,6 +149,9 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
             ticket_booking.tickets.count()
         )
         self.assertEqual(pptbooking_admin.total_cost(query), "£20.00")
+        self.assertEqual(
+            pptbooking_admin.paid(query), ticket_booking.paid
+        )
 
     def test_paypaladmin_display(self):
         mommy.make(PayPalIPN, first_name='Mickey', last_name='Mouse')
@@ -264,3 +301,182 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
                 PaypalBlockTransaction.objects.filter(block__user=self.user)
             ]
         )
+
+    def test_paypal_booking_check_filter_choices(self):
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+
+        self.assertEqual(
+            bk_check_filter.lookup_choices,
+            [
+                ('all', 'all'),
+                ('open', 'open only'),
+                ('cancelled', 'cancelled and no-show'),
+                ('autocancelled', 'autocancelled only'),
+            ]
+        )
+        
+    def test_paypal_booking_check_filter_queryset(self):
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+        result = bk_check_filter.queryset(
+            None, PaypalBookingTransaction.objects.all()
+        )
+        # with no filter parameters, return all
+        self.assertEqual(PaypalBookingTransaction.objects.count(), 10)
+        self.assertEqual(result.count(), 10)
+
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {'unpaid_with_txn': 'all'}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+        result = bk_check_filter.queryset(
+            None, PaypalBookingTransaction.objects.all()
+        )
+        # no unpaid with completed ipns, return none
+        self.assertEqual(result.count(), 0)
+
+        pptrans = PaypalBookingTransaction.objects.all()
+
+        unpaid_with_txn = pptrans[0]
+        unpaid_with_txn.transaction_id = 'txn'
+        unpaid_with_txn.save()
+        self.assertFalse(unpaid_with_txn.booking.paid)
+        self.assertEqual(unpaid_with_txn.booking.status, 'OPEN')
+
+        unpaid_cancelled_with_txn = pptrans[1]
+        unpaid_cancelled_with_txn.transaction_id = 'txn'
+        unpaid_cancelled_with_txn.save()
+        self.assertFalse(unpaid_cancelled_with_txn.booking.paid)
+        unpaid_cancelled_with_txn.booking.status = 'CANCELLED'
+        unpaid_cancelled_with_txn.booking.save()
+
+        unpaid_autocancelled_with_txn = pptrans[2]
+        unpaid_autocancelled_with_txn.transaction_id = 'txn'
+        unpaid_autocancelled_with_txn.save()
+        self.assertFalse(unpaid_autocancelled_with_txn.booking.paid)
+        unpaid_autocancelled_with_txn.booking.status = 'CANCELLED'
+        unpaid_autocancelled_with_txn.booking.auto_cancelled = True
+        unpaid_autocancelled_with_txn.booking.save()
+
+        unpaid_no_show_with_txn = pptrans[2]
+        unpaid_no_show_with_txn.transaction_id = 'txn'
+        unpaid_no_show_with_txn.save()
+        unpaid_no_show_with_txn.booking.no_show = True
+        unpaid_no_show_with_txn.booking.save()
+        self.assertFalse(unpaid_no_show_with_txn.booking.paid)
+        self.assertEqual(unpaid_no_show_with_txn.booking.status, 'OPEN')
+
+        # One paid booking with transaction id on ppt obj should NOT be
+        # included in filter
+        paid_with_txn = pptrans[3]
+        paid_with_txn.transaction_id = 'txn'
+        paid_with_txn.save()
+        paid_with_txn.booking.paid = True
+        paid_with_txn.booking.save()
+
+        all_unpaid_with_txn = [
+            unpaid_with_txn, unpaid_cancelled_with_txn,
+            unpaid_autocancelled_with_txn, unpaid_no_show_with_txn
+        ]
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {'unpaid_with_txn': 'all'}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+        result = bk_check_filter.queryset(
+            None, PaypalBookingTransaction.objects.all()
+        )        # 4 unpaid with completed ipns
+        self.assertEqual(result.count(), 4)
+        self.assertEqual(
+            sorted([res.id for res in result]),
+            sorted([ppt.id for ppt in all_unpaid_with_txn])
+        )
+
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {'unpaid_with_txn': 'open'}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+        result = bk_check_filter.queryset(
+            None, PaypalBookingTransaction.objects.all()
+        )        # open only shows open AND not no-show
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result[0].id, unpaid_with_txn.id)
+
+        cancelled_unpaid_with_txn = [
+            unpaid_cancelled_with_txn,
+            unpaid_autocancelled_with_txn, unpaid_no_show_with_txn
+        ]
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {'unpaid_with_txn': 'cancelled'}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+        result = bk_check_filter.queryset(
+            None, PaypalBookingTransaction.objects.all()
+        )        # cancelled shows cancelled, autocancelled and no-show
+        self.assertEqual(result.count(), 3)
+        self.assertEqual(
+            sorted([res.id for res in result]),
+            sorted([ppt.id for ppt in cancelled_unpaid_with_txn])
+        )
+
+        bk_check_filter = admin.PaypalBookingCheckFilter(
+            None, {'unpaid_with_txn': 'autocancelled'}, PaypalBookingTransaction,
+            admin.PaypalBookingTransactionAdmin
+        )
+        result = bk_check_filter.queryset(
+            None, PaypalBookingTransaction.objects.all()
+        )
+        # auto_cancelled shows ONLY the one autocancelled
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result[0].id, unpaid_autocancelled_with_txn.id)
+
+    def test_paypal_block_check_filter_choices(self):
+        block_check_filter = admin.PaypalBlockCheckFilter(
+            None, {}, PaypalBlockTransaction,
+            admin.PaypalBlockTransactionAdmin
+        )
+        self.assertEqual(block_check_filter.lookup_choices, [('yes', 'yes'),])
+
+    def test_paypal_block_check_filter_queryset(self):
+        block_check_filter = admin.PaypalBlockCheckFilter(
+            None, {}, PaypalBlockTransaction,
+            admin.PaypalBlockTransactionAdmin
+        )
+        result = block_check_filter.queryset(
+            None, PaypalBlockTransaction.objects.all()
+        )
+        # with no filter parameters, return all
+        self.assertEqual(PaypalBlockTransaction.objects.count(), 10)
+        self.assertEqual(result.count(), 10)
+
+        block_check_filter = admin.PaypalBlockCheckFilter(
+            None, {'unpaid_with_txn': 'yes'}, PaypalBlockTransaction,
+            admin.PaypalBlockTransactionAdmin
+        )
+        result = block_check_filter.queryset(
+            None, PaypalBlockTransaction.objects.all()
+        )
+        # no unpaid with completed ipns, return none
+        self.assertEqual(result.count(), 0)
+
+        pptrans = PaypalBlockTransaction.objects.all()
+
+        unpaid_with_txn = pptrans[0]
+        unpaid_with_txn.transaction_id = 'txn'
+        unpaid_with_txn.save()
+        self.assertFalse(unpaid_with_txn.block.paid)
+
+        paid_with_txn = pptrans[0]
+        paid_with_txn.block.paid = True
+        paid_with_txn.save()
+
+        result = block_check_filter.queryset(
+            None, PaypalBlockTransaction.objects.all()
+        )
+        # now returns 1 pptrans with unpaid and transaction id
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result[0].id, unpaid_with_txn.id)
