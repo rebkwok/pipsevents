@@ -65,11 +65,10 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
     def test_can_access_class_registers_if_instructor(self):
         """
         test that the page can be accessed by a non staff user if in the
-        instructors group and event type is not events
+        instructors group for both classes and events
         """
         resp = self._get_response(self.instructor_user, 'events')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEquals(resp.status_code, 200)
 
         resp = self._get_response(self.instructor_user, 'lessons')
         self.assertEquals(resp.status_code, 200)
@@ -915,14 +914,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
 
     @patch('studioadmin.forms.register_forms.date')
     @patch('studioadmin.views.register.datetime')
-    def test_events_excluded_from_form_for_instructors(
+    def test_events_and_classes_in_form_for_instructors(
             self, mock_tz, mock_date
     ):
         mock_tz.now.return_value = datetime(
             year=2015, month=9, day=7, hour=10, tzinfo=timezone.utc
         )
         mock_date.today.return_value = date(year=2015, month=9, day=7)
-        mommy.make_recipe(
+        events = mommy.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -941,10 +940,12 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.instructor_user)
 
         form = resp.context_data['form']
-        self.assertEqual(len(form.events), 3)
+        self.assertEqual(len(form.events), 6)
+
+        all_events = events + pole_classes
         self.assertEqual(
             sorted([ev.id for ev in form.events]),
-            sorted([ev.id for ev in pole_classes])
+            sorted([ev.id for ev in all_events])
         )
 
     def test_show_events_by_selected_date(self):
@@ -985,7 +986,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_show_events_by_selected_date_for_instructor(self):
-        mommy.make_recipe(
+        events = mommy.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -1031,9 +1032,10 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('select_events', form.fields)
         selected_events = form.fields['select_events'].choices
 
+        selected = pole_classes + events
         self.assertEqual(
             sorted([ev[0] for ev in selected_events]),
-            sorted([event.id for event in pole_classes])
+            sorted([event.id for event in selected])
         )
 
     def test_no_events_on_selected_date(self):
