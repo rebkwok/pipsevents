@@ -217,14 +217,10 @@ def get_paypal_dict(
 
 
 def get_paypal_cart_dict(
-        host, item_type, items, invoice_id, voucher_applied_items=None,
+        host, item_type, items, invoice_id, custom,
+        voucher_applied_items=None,
         voucher=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
     ):
-    item_ids_str = ','.join([str(item.id) for item in items])
-    custom = '{} {}{}'.format(
-        item_type, item_ids_str,
-        ' {}'.format(voucher.code) if voucher_applied_items else ''
-    )
 
     paypal_dict = {
         "cmd": "_cart",
@@ -266,4 +262,13 @@ def get_blocktypes_available_to_book(user):
                                    and not block.full]
     return BlockType.objects.filter(active=True).exclude(
         event_type__in=available_block_event_types
+    )
+
+
+def get_paypal_custom(item_type, item_ids, voucher_code, user_email):
+    return '{} {}{}{}'.format(
+        item_type,
+        item_ids,
+        ' {}'.format(voucher_code) if voucher_code else '',
+        ' {}'.format(user_email)
     )

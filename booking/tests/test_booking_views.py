@@ -3071,7 +3071,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         paypal_form = resp.context_data['paypalform']
         self.assertEqual(paypal_form.initial['amount'], 10.00)
         self.assertEqual(
-            paypal_form.initial['custom'], 'booking {}'.format(booking.id)
+            paypal_form.initial['custom'],
+            'booking {} {}'.format(booking.id, booking.user.email)
         )
         self.assertNotIn('voucher', resp.context_data)
 
@@ -3081,8 +3082,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         paypal_form = resp.context_data['paypalform']
         self.assertEqual(paypal_form.initial['amount'], 9.00)
         self.assertEqual(
-            paypal_form.initial['custom'], 'booking {} {}'.format(
-                booking.id, voucher.code
+            paypal_form.initial['custom'], 'booking {} {} {}'.format(
+                booking.id, voucher.code, booking.user.email
             )
         )
         self.assertEqual(resp.context_data['voucher'], voucher)
@@ -3238,8 +3239,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         paypal_form = resp.context_data['paypalform']
         self.assertEqual(paypal_form.initial['amount'], 9.00)
         self.assertEqual(
-            paypal_form.initial['custom'], 'booking {} {}'.format(
-                booking.id, voucher.code
+            paypal_form.initial['custom'], 'booking {} {} {}'.format(
+                booking.id, voucher.code, booking.user.email
             )
         )
 
@@ -3340,7 +3341,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         # booking added to cart_items on get
         self.assertEqual(
             self.client.session['cart_items'],
-            'booking {}'.format(str(booking.id))
+            'booking {} {}'.format(str(booking.id), booking.user.email)
         )
 
         # posting means submitting for block payment, so cart_items deleted

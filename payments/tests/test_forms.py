@@ -1,7 +1,9 @@
 from model_mommy import mommy
 from django.test import TestCase
 
-from booking.context_helpers import get_paypal_dict, get_paypal_cart_dict
+from booking.context_helpers import (
+    get_paypal_dict, get_paypal_cart_dict, get_paypal_custom
+)
 from common.tests.helpers import PatchRequestMixin
 from payments import helpers
 from payments.forms import (
@@ -61,6 +63,9 @@ class PayPalPaymentsShoppingBasketFormTests(PatchRequestMixin, TestCase):
                         'booking',
                         [booking],
                         invoice_id,
+                        get_paypal_custom(
+                            'booking', str(booking.id), None, booking.user.email
+                        )
                     )
         )
         self.assertIn('Checkout Now', form.render())

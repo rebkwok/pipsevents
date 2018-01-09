@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.conf import settings
+from django.core.exceptions import MultipleObjectsReturned
 from django.shortcuts import render
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -8,6 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.ipn.models import PayPalIPN
 
 from booking.models import Block, Booking, TicketBooking
+from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
+    PaypalTicketBookingTransaction
+
 
 """
 def view_that_asks_for_money(request):
@@ -84,20 +88,9 @@ def paypal_confirm_return(request):
         # awaiting paypal confirmation
         cart_items = request.session.get('cart_items', [])
         if cart_items:
-            item_type, item_ids = cart_items.split(' ', 1)
-            ids = item_ids.split(',')
+            cart_items, _, cart_item_names = get_cart_item_names(cart_items)
             del request.session['cart_items']
-            obj_ids = [int(id) for id in ids]
 
-            if item_type == 'booking':
-                cart_items = Booking.objects.filter(id__in=obj_ids)
-                cart_item_names = [bk.event for bk in cart_items]
-            elif item_type == 'block':
-                cart_items = Block.objects.filter(id__in=obj_ids)
-                cart_item_names = [block.block_type for block in cart_items]
-            else:
-                # we can't identify the item type
-                cart_items = []
         for item in cart_items:
             if not item.paid:  # in case payment is processed during this view
                 item.paypal_pending = True
@@ -112,7 +105,87 @@ def paypal_confirm_return(request):
 
 @csrf_exempt
 def paypal_cancel_return(request):
-    if request.session.get('cart_items'):
-        del request.session['cart_items']
-    return render(request, 'payments/cancelled_payment.html')
+    cart_items = request.session.get('cart_items')
+    ppipn = None
+    already_paid = False
+    if cart_items and not request.user.is_anonymous():
+        # check for a paypal ipn with custom==cart_items and status completed
+        # if user resubmitted a paid invoice, the "Return to merchant" from
+        # paypal will return them here too
+        # set relevant bookings/blocks to paid and add transaction id to
+        # paypal transaction objects
+        # Display "already" to user instead of cancelled
+        try:
+            email = cart_items.split()[-1]
+            if email == request.user.email:
+                # make sure we got an email back in custom so the ppipn we
+                # retrieve definitely belongs to this user
+                ppipn = PayPalIPN.objects.get(
+                    payment_status='Completed', flag=False, custom=cart_items
+                )
+                already_paid = True
+        except (PayPalIPN.DoesNotExist, MultipleObjectsReturned):
+            # if we can't identify a single completed PPIPN that matches this
+            # user and items, don't risk updating
+            pass
 
+        if ppipn:
+            # update
+            cart_items, item_type, _ = get_cart_item_names(cart_items)
+            if item_type == 'booking':
+                PaypalBookingTransaction.objects.filter(
+                    invoice_id=ppipn.invoice, booking__in=cart_items
+                ).update(transaction_id=ppipn.txn_id)
+                for item in cart_items:
+                    item.paid = True
+                    item.payment_confirmed = True
+                    item.paypal_pending = False
+                    item.save()
+            elif item_type == 'block':
+                PaypalBlockTransaction.objects.filter(
+                    invoice_id=ppipn.invoice, block__in=cart_items
+                ).update(transaction_id=ppipn.txn_id)
+                for item in cart_items:
+                    item.paid = True
+                    item.paypal_pending = False
+                    item.save()
+            elif item_type == 'ticket_booking':
+                PaypalTicketBookingTransaction.objects.filter(
+                    invoice_id=ppipn.invoice, ticket_booking__in=cart_items
+                ).update(transaction_id=ppipn.txn_id)
+                for item in cart_items:
+                    item.paid = True
+                    item.save()
+
+        del request.session['cart_items']
+    return render(
+        request, 'payments/cancelled_payment.html',
+        {'already_paid': already_paid}
+    )
+
+
+def get_cart_item_names(cart_items):
+    items = cart_items.split(' ')
+    item_type = items[0]
+    item_ids = items[1]
+    ids = item_ids.split(',')
+    obj_ids = [int(id) for id in ids]
+
+    if item_type == 'booking':
+        cart_items = Booking.objects.filter(id__in=obj_ids)
+        cart_item_names = [bk.event for bk in cart_items]
+    elif item_type == 'block':
+        cart_items = Block.objects.filter(id__in=obj_ids)
+        cart_item_names = [block.block_type for block in cart_items]
+    elif item_type == 'ticket_booking':
+        cart_items = TicketBooking.objects.filter(id__in=obj_ids)
+        cart_item_names = [
+            '{} - {}'.format(bk.ticketed_event.name, bk.booking_reference)
+            for bk in cart_items
+            ]
+    else:
+        # we can't identify the item type
+        cart_items = []
+        cart_item_names = []
+
+    return cart_items, item_type, cart_item_names

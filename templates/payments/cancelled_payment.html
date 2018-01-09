@@ -4,7 +4,11 @@
 {% block content %}
 
 <div>
+    {% if already_paid %}
+    <h3>Your invoice has already been paid</h3>
+    {% else %}
     <h3>Your payment has been cancelled</h3>
+    {% endif %}
 </div>
 
 {% endblock %}

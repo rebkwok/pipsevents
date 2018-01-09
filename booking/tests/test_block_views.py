@@ -349,7 +349,8 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 
         # Block is unpaid
         self.assertEqual(
-            self.client.session['cart_items'], 'block {}'.format(unpaid.id)
+            self.client.session['cart_items'],
+            'block {} {}'.format(unpaid.id, self.user.email)
         )
 
     def test_cart_items_removed_from_session_if_no_unpaid_blocks(self):
@@ -361,7 +362,8 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.client.get(self.url)
 
         self.assertEqual(
-            self.client.session['cart_items'], 'block {}'.format(unpaid.id)
+            self.client.session['cart_items'],
+            'block {} {}'.format(unpaid.id, self.user.email)
         )
 
         # make block paid and get again
@@ -388,7 +390,8 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         paypal_form = resp.context_data['paypalform']
         self.assertEqual(
-            paypal_form.initial['custom'], 'block {}'.format(unpaid.id)
+            paypal_form.initial['custom'],
+            'block {} {}'.format(unpaid.id, self.user.email)
         )
 
     def test_disclaimer_messages(self):
@@ -657,7 +660,10 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(paypal_form.initial['amount_2'], 27.00)
         self.assertEqual(
             paypal_form.initial['custom'],
-            'block {} test'.format(','.join([str(id) for id in [block2.id, block1.id]]))
+            'block {} test {}'.format(
+                ','.join([str(id) for id in [block2.id, block1.id]]),
+                self.user.email
+            )
         )
 
     def test_voucher_no_valid_block_types(self):
@@ -721,8 +727,8 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(paypal_form.initial['amount_1'], 27.00)
 
         self.assertEqual(
-            paypal_form.initial['custom'], 'block {} {}'.format(
-                block.id, voucher.code
+            paypal_form.initial['custom'], 'block {} {} {}'.format(
+                block.id, voucher.code, self.user.email
             )
         )
 
