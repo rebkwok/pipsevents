@@ -13,7 +13,7 @@ class PayPalPaymentsBaseForm(PayPalPaymentsForm):
         )
 
     def get_image(self):
-        super(PayPalPaymentsUpdateForm, self).get_image()
+        super().get_image()
         return {
             (True, self.SUBSCRIBE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_subscribe_113x26.png',
             (True, self.BUY): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_cc_171x47.png',
@@ -23,7 +23,7 @@ class PayPalPaymentsBaseForm(PayPalPaymentsForm):
             (False, self.DONATE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_donate_pp_142x27.png',
         }[self.test_mode(), self.button_type]
 
-class PayPalPaymentsListForm(PayPalPaymentsForm):
+class PayPalPaymentsListForm(PayPalPaymentsBaseForm):
 
     def render(self):
         return format_html(
@@ -32,7 +32,7 @@ class PayPalPaymentsListForm(PayPalPaymentsForm):
             </form>""", "/payments/form/", self.as_p(), self.get_image()
        )
 
-class PayPalPaymentsUpdateForm(PayPalPaymentsForm):
+class PayPalPaymentsUpdateForm(PayPalPaymentsBaseForm):
 
     def render(self):
         return format_html(
@@ -42,7 +42,7 @@ class PayPalPaymentsUpdateForm(PayPalPaymentsForm):
        )
 
 
-class PayPalPaymentsShoppingBasketForm(PayPalPaymentsForm):
+class PayPalPaymentsShoppingBasketForm(PayPalPaymentsBaseForm):
 
     def get_image(self):
         super(PayPalPaymentsShoppingBasketForm, self).get_image()
