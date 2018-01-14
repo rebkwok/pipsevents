@@ -338,7 +338,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             start_date=timezone.now() - timedelta(10)
         )
         session = self.client.session
-        session['cart_items'] = 'block {}'.format(unpaid.id)
+        session['cart_items'] = 'block {} {}'.format(unpaid.id, self.user.email)
         session.save()
         self.assertEqual(
             self.client.session['cart_items'],

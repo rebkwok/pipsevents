@@ -162,6 +162,14 @@ def shopping_basket(request):
             _, total_booking_cost = total_agg.popitem()
             context['total_unpaid_booking_cost'] = total_booking_cost
 
+        item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
+        custom = context_helpers.get_paypal_custom(
+            item_type='booking',
+            item_ids=item_ids_str,
+            voucher_code=booking_voucher.code
+            if context.get('valid_booking_voucher') else '',
+            user_email=request.user.email
+        )
 
         if len(unpaid_bookings) == 1:
             booking = unpaid_bookings[0]
@@ -175,11 +183,7 @@ def shopping_basket(request):
                     context['total_unpaid_booking_cost'],
                     booking.event,
                     invoice_id,
-                    '{} {}{}'.format(
-                        'booking', booking.id,
-                        ' {}'.format(booking_voucher.code)
-                        if context.get('valid_booking_voucher') else ''
-                    ),
+                    custom,
                     paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
                 )
             )
@@ -194,6 +198,7 @@ def shopping_basket(request):
                     'booking',
                     unpaid_bookings,
                     invoice_id,
+                    custom,
                     voucher_applied_items=context.get('voucher_applied_bookings', []),
                     voucher = booking_voucher if context.get('valid_booking_voucher') else None,
                     paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
@@ -206,6 +211,15 @@ def shopping_basket(request):
         context['block_voucher_form'] = BlockVoucherForm(
             initial={'block_code': block_code}
         )
+        item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
+        custom = context_helpers.get_paypal_custom(
+            item_type='booking',
+            item_ids=item_ids_str,
+            voucher_code=booking_voucher.code
+            if context.get('valid_block_voucher') else '',
+            user_email=request.user.email
+        )
+
         # no voucher, or invalid voucher
         if not context.get('total_unpaid_block_cost'):
             context['total_unpaid_block_cost'] = sum(unpaid_block_costs)
@@ -218,6 +232,7 @@ def shopping_basket(request):
                 'block',
                 unpaid_blocks,
                 invoice_id,
+                custom,
                 voucher_applied_items=context.get('voucher_applied_blocks', []),
                 voucher = block_voucher if context.get('valid_block_voucher') else None,
                 paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
