@@ -3083,7 +3083,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(paypal_form.initial['amount'], 9.00)
         self.assertEqual(
             paypal_form.initial['custom'], 'booking {} {} {}'.format(
-                booking.id, voucher.code, booking.user.email
+                booking.id, booking.user.email, voucher.code
             )
         )
         self.assertEqual(resp.context_data['voucher'], voucher)
@@ -3240,7 +3240,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(paypal_form.initial['amount'], 9.00)
         self.assertEqual(
             paypal_form.initial['custom'], 'booking {} {} {}'.format(
-                booking.id, voucher.code, booking.user.email
+                booking.id, booking.user.email, voucher.code
             )
         )
 

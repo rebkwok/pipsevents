@@ -174,8 +174,9 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         bookings = mommy.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'booking {}'.format(
-            ','.join([str(booking.id) for booking in bookings])
+        session['cart_items'] = 'booking {} {}'.format(
+            ','.join([str(booking.id) for booking in bookings]),
+            bookings[0].user.email
         )
         session.save()
 
@@ -202,8 +203,9 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
 
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'booking {}'.format(
-            ','.join([str(booking.id) for booking in all_bookings])
+        session['cart_items'] = 'booking {} {}'.format(
+            ','.join([str(booking.id) for booking in all_bookings]),
+            all_bookings[0].user.email
         )
         session.save()
 
@@ -231,8 +233,9 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         blocks = mommy.make_recipe('booking.block', _quantity=2)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'block {}'.format(
-            ','.join([str(block.id) for block in blocks])
+        session['cart_items'] = 'block {} {}'.format(
+            ','.join([str(block.id) for block in blocks]),
+            blocks[0].user.email
         )
         session.save()
 
@@ -256,8 +259,10 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         bookings = mommy.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'unknown {}'.format(
-            ','.join([str(booking.id) for booking in bookings])
+        session['cart_items'] = 'unknown {} {}'.format(
+            ','.join([str(booking.id) for booking in bookings]),
+            bookings[0].user.email
+
         )
         session.save()
 

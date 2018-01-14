@@ -1747,7 +1747,9 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} {}'.format(booking.id, voucher.code)),
+                'custom': b('booking {} {} {}'.format(
+                    booking.id, booking.user.email, voucher.code
+                )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
             }
@@ -1790,7 +1792,9 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} invalid_code'.format(booking.id)),
+                'custom': b('booking {} {} invalid_code'.format(
+                    booking.id, booking.user.email
+                )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
             }
@@ -1841,7 +1845,9 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} {}'.format(block.id, voucher.code)),
+                'custom': b('block {} {} {}'.format(
+                    block.id, block.user.email, voucher.code
+                )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
             }
@@ -1885,7 +1891,9 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} invalid_code'.format(block.id)),
+                'custom': b('block {} {} invalid_code'.format(
+                    block.id, block.user.email
+                )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
             }

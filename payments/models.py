@@ -223,13 +223,15 @@ def get_obj(ipn_obj):
     additional_data = {}
 
     if ipn_obj.custom:
+        # custom format: 'obj_type obj_ids user_email voucher_code'
         # occasionally paypal sends back the custom field with the space
         # replaced with '+'. i.e. "booking+1" instead of "booking 1"
         custom = ipn_obj.custom.replace('+', ' ').split()
         obj_type = custom[0]
         ids = custom[1]
         obj_ids = [int(id) for id in ids.split(',')]
-        voucher_code = custom[2] if len(custom) >= 3 and \
+
+        voucher_code = custom[3] if len(custom) == 4 and \
             obj_type != 'test' else None
     else:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')

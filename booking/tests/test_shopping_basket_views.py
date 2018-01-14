@@ -390,7 +390,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(
             paypalform.initial['custom'],
-            'booking {} foo {}'.format(booking_ids_str, booking.user.email)
+            'booking {} {} foo'.format(booking_ids_str, booking.user.email)
         )
         for i, booking in enumerate(Booking.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1) , paypalform.initial)
