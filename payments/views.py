@@ -101,6 +101,8 @@ def paypal_confirm_return(request):
                         item.paypal_pending = True
                         item.save()
 
+            del request.session['cart_items']
+
         context = {
             'obj_unknown': True,
             'cart_items':  cart_item_names if cart_items else [],
