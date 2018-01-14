@@ -660,7 +660,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(paypal_form.initial['amount_2'], 27.00)
         self.assertEqual(
             paypal_form.initial['custom'],
-            'block {} test {}'.format(
+            'block {} {} test'.format(
                 ','.join([str(id) for id in [block2.id, block1.id]]),
                 self.user.email
             )
@@ -728,7 +728,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(
             paypal_form.initial['custom'], 'block {} {} {}'.format(
-                block.id, voucher.code, self.user.email
+                block.id, self.user.email, voucher.code
             )
         )
 

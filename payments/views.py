@@ -88,7 +88,7 @@ def paypal_confirm_return(request):
         # awaiting paypal confirmation
         cart_items = request.session.get('cart_items', [])
         if cart_items:
-            cart_items, _, cart_item_names = get_cart_item_names(cart_items)
+            cart_items, _, cart_item_names, _ = get_cart_item_names(cart_items)
             del request.session['cart_items']
 
         for item in cart_items:
@@ -105,23 +105,26 @@ def paypal_confirm_return(request):
 
 @csrf_exempt
 def paypal_cancel_return(request):
-    cart_items = request.session.get('cart_items')
+    cart_items_from_session = request.session.get('cart_items')
     ppipn = None
     already_paid = False
-    if cart_items and not request.user.is_anonymous():
+    if cart_items_from_session and not request.user.is_anonymous():
         # check for a paypal ipn with custom==cart_items and status completed
         # if user resubmitted a paid invoice, the "Return to merchant" from
         # paypal will return them here too
         # set relevant bookings/blocks to paid and add transaction id to
         # paypal transaction objects
         # Display "already" to user instead of cancelled
+        cart_items, item_type, _, user_email = get_cart_item_names(
+            cart_items_from_session
+        )
         try:
-            email = cart_items.split()[-1]
-            if email == request.user.email:
+            if user_email == request.user.email:
                 # make sure we got an email back in custom so the ppipn we
                 # retrieve definitely belongs to this user
                 ppipn = PayPalIPN.objects.get(
-                    payment_status='Completed', flag=False, custom=cart_items
+                    payment_status='Completed', flag=False,
+                    custom=cart_items_from_session
                 )
                 already_paid = True
         except (PayPalIPN.DoesNotExist, MultipleObjectsReturned):
@@ -131,7 +134,6 @@ def paypal_cancel_return(request):
 
         if ppipn:
             # update
-            cart_items, item_type, _ = get_cart_item_names(cart_items)
             if item_type == 'booking':
                 PaypalBookingTransaction.objects.filter(
                     invoice_id=ppipn.invoice, booking__in=cart_items
@@ -166,10 +168,16 @@ def paypal_cancel_return(request):
 
 def get_cart_item_names(cart_items):
     items = cart_items.split(' ')
-    item_type = items[0]
-    item_ids = items[1]
-    ids = item_ids.split(',')
-    obj_ids = [int(id) for id in ids]
+    if not (3 <= len(items) <= 4):
+        # incorrect cart_items format
+        item_type = 'unknown'
+        user_email = None
+    else:
+        item_type = items[0]
+        item_ids = items[1]
+        user_email = items[2]
+        ids = item_ids.split(',')
+        obj_ids = [int(id) for id in ids]
 
     if item_type == 'booking':
         cart_items = Booking.objects.filter(id__in=obj_ids)
@@ -188,4 +196,4 @@ def get_cart_item_names(cart_items):
         cart_items = []
         cart_item_names = []
 
-    return cart_items, item_type, cart_item_names
+    return cart_items, item_type, cart_item_names, user_email
