@@ -3307,7 +3307,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             data={
                 'block_book': True,
                 'shopping_basket': True,
-                'booking_code': 'foo'
+                'booking_code': 'foo',
+                'block_code': 'bar'
             }
         )
 
@@ -3319,7 +3320,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         # redirects back to shopping basket with code
         split = urlsplit(resp.url)
         self.assertEqual(split.path, reverse('booking:shopping_basket'))
-        self.assertEqual(split.query, 'booking_code=foo')
+        self.assertIn('booking_code=foo', split.query)
+        self.assertIn('block_code=bar', split.query)
 
     def test_cart_items_added_to_session(self):
         mommy.make_recipe(

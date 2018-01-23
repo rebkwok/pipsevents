@@ -91,7 +91,7 @@ def paypal_confirm_return(request):
         # awaiting paypal confirmation
         cart_items = request.session.get('cart_items', [])
         if cart_items:
-            cart_items, item_type, cart_item_names = get_cart_item_names(cart_items)
+            cart_items, item_type, cart_item_names, _ = get_cart_item_names(cart_items)
             # cart items will be the same as custom, will be split to 2 or 3
             # depending on whether voucher code is applied
             del request.session['cart_items']
@@ -100,8 +100,6 @@ def paypal_confirm_return(request):
                     if not item.paid:  # in case payment is processed during this view
                         item.paypal_pending = True
                         item.save()
-
-            del request.session['cart_items']
 
         context = {
             'obj_unknown': True,
