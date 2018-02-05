@@ -226,7 +226,11 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
         else:
             messages.info(self.request, 'No changes made')
-        return HttpResponseRedirect(self.get_success_url())
+
+        url = self.get_success_url()
+        if 'from_page' in self.request.POST:
+            url += '?page=' + self.request.POST['from_page']
+        return HttpResponseRedirect(url)
 
     def get_success_url(self):
         return reverse('studioadmin:{}'.format(self.kwargs["ev_type"] + 's'))

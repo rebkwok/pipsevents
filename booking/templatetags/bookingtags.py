@@ -62,8 +62,9 @@ def plural_format(value):
 
 
 @register.filter
-def get_range(value):
-    return range(value)
+def get_range(value, start=0):
+    # start: 0 or 1
+    return range(start, value + start)
 
 
 @register.filter

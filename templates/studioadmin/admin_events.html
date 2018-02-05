@@ -46,9 +46,9 @@
                                 <span class="hide">{{ event.id }}</span>
                                 <td class="table-center studioadmin-tbl">
                                     {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}"><span class="fas fa-edit"></span>
+                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% elif type == 'lessons' %}</a>
-                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}"><span class="fas fa-edit"></span>
+                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% endif %}</a>
                                 </td>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
@@ -95,9 +95,14 @@
                                             {% else %}
                                                 <a class="disabled" disabled=disabled href="#">Previous</a>
                                             {% endif %}
-                                            <span class="page-current">
-                                                --  Page {{ event_page.number }} of {{ event_page.paginator.num_pages }} --
-                                            </span>
+                                            --
+                                            {% for i in event_page.paginator.num_pages|get_range:1 %}
+                                                {% if i != event_page.number %}
+                                                    <a href="?page={{ i }}">{{ i }}</a>
+                                                {% else %}{{ i }}
+                                                {% endif %}
+                                            {% endfor %}
+                                            --
                                             {% if event_page.has_next %}
                                                 <a href="?page={{ event_page.next_page_number }}{% if show_past %}&past=true{% endif %}">Next</a>
                                             {% else %}

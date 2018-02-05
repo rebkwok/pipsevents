@@ -436,6 +436,15 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('studioadmin:lessons'))
 
+    def test_post_with_events_page(self):
+        form_data = self.form_data(event=self.event)
+        form_data['from_page'] = '2'
+        resp = self._post_response(
+            self.staff_user, self.event.slug, 'event', form_data
+        )
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp.url, reverse('studioadmin:events') + '?page=2')
+
     def test_no_changes(self):
         form_data = self.form_data(
             event=self.event, extra_data={
