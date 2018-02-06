@@ -2,77 +2,93 @@
 {% load static %}
 {% load bookingtags %}
 
+{% block head %}
+    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    <script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'admin/css/widgets.css' %}">
+{% endblock %}
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
+    <div class="container-fluid">
 
         <h2>Choose Students to Email </h2>
+        <p>Select by class, workshop/event and/or select specific students.</p>
+
+        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#userfilters">
+            <h4><span class="fa fa-plus-square"></span> View/hide selection options</h4>
+        </a>
         <div class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-success">
-                    <form method="post" action="">
+
+            <div class="panel panel-success">
+                <span id="userfilters" class="collapse {% if not showing_students %} in{% endif %}">
+
+                <div class="panel-body">
+                    {{ userfilterform.media }}
+                    <form action="" method="post">
                         {% csrf_token %}
-                        {{ usersformset.management_form }}
+                        <div>{{ userfilterform.lessons }}</div>
+                        <div>{{ userfilterform.events }}</div>
+                        <div>{{ userfilterform.students }}</div>
 
-                        <table class="table tablesorter" id="sortTable">
-                                <thead>
-                                <tr class="filter-row compress">
-                                    <td class="filter-row" colspan=5>
-                                    <form class="filter-row" action="" method="post">
-                                        <div class="form-group">
-                                            <div class="col-sm-6 col-md-5 col-lg-4"><strong>Show students booked for class(es):</strong> {{ userfilterform.lessons }}</div>
-                                        </div>
-                                        <div class="form-group">
-                                            <div class="col-sm-6 col-md-5 col-lg-4"><strong>Show students booked for workshop(s):</strong> {{ userfilterform.events }}</div>
-                                        </div>
-                                        <div class="form-group">
-                                            <div class="col-sm-12">
-                                                <input class="btn table-btn btn-info" name="filter" type="submit" value="Show Students" /><br/>
-                                                <a class="pull-right" href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success studioadmin-tbl">Email mailing list</div></a>
-                                                <span class="header-not-bold">Select/unselect all</span> <input checked="checked" class="regular-checkbox studioadmin-list" id="select-all" type="checkbox"><label for={{ "select-all" }}></label>
-                                            </div>
-
-                                        </div>
-
-                                    </form>
-                                    </td>
-                                </tr>
-
-                                <tr class="success compress">
-                                    <th class="table-center">Username <span class="fa fa-sort"></span></th>
-                                    <th class="table-center">First Name <span class="fa fa-sort"></span></th>
-                                    <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                    <th class="table-center">Email address</th>
-                                    <th class="table-center">Select students to email</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {% for userform in usersformset %}
-                                <tr class="compress">
-                                    <span class="hide">{{ userform.id }}</span>
-                                    <td class="table-center studioadmin-tbl">{{ userform.instance.username|abbr_username }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ userform.instance.first_name|abbr_name }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ userform.instance.last_name|abbr_name }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ userform.instance.email|abbr_email }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ userform.email_user }}<label for={{ userform.email_user_cbox_id }}></label></td>
-                                </tr>
-                                {% endfor %}
-                                <tr>
-                            </tbody>
-                                <td class="studioadmin-tbl" colspan="5">
-                                    <input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email selected students" />
-                                </td>
-                                </tr>
-                            </table>
+                        <div class="col-xs-12">
+                            <input class="btn table-btn btn-info" name="filter" type="submit" value="Show Students" /><br/>
                         </div>
-
-
                     </form>
                 </div>
-            </div>
-         </div>
+                </span>
+            {% if usersformset.forms %}
+                {% if usersformset.forms %}
+                    <div class="col-xs-12">
+                        <span class="header-not-bold">Select/unselect all</span> <input checked="checked" class="regular-checkbox studioadmin-list" id="select-all" type="checkbox"><label for={{ "select-all" }}></label>
+                    </div>
+                {% endif %}
+                <form method="post" action="">
+                    {% csrf_token %}
+                    {{ usersformset.management_form }}
 
+                    <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success compress">
+                                <th class="table-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="table-center">First Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Email address</th>
+                                <th class="table-center">Select students to email</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for userform in usersformset %}
+                            <tr class="compress">
+                                <span class="hide">{{ userform.id }}</span>
+                                <td class="table-center studioadmin-tbl">{{ userform.instance.username|abbr_username }}</td>
+                                <td class="table-center studioadmin-tbl">{{ userform.instance.first_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ userform.instance.last_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ userform.instance.email|abbr_email }}</td>
+                                <td class="table-center studioadmin-tbl">{{ userform.email_user }}<label for={{ userform.email_user_cbox_id }}></label></td>
+                            </tr>
+                            {% endfor %}
+                            <tr>
+                        </tbody>
+                            <tr>
+                            <td class="studioadmin-tbl" colspan="5">
+                                <input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email selected students" />
+                            </td>
+                            </tr>
+
+                        </table>
+                </form>
+            {% elif showing_students %}
+                <div>No students match selected options.</div>
+            {% endif %}
+                </div>
+        </div>
     </div>
 
 {% endblock studioadmincontent %}
+
+
+{% block extra_js %}
+    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+{% endblock %}

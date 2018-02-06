@@ -1229,3 +1229,219 @@ div .basket-row > div, div .basket-heading {
   font-size: small;
   font-weight: normal;
 }
+
+.selector {
+width: 900px !important;
+}
+
+.selector .selector-available h2, .selector .selector-chosen h2 {
+  border: none;
+  background: transparent !important;
+  margin-top: 10px !important;
+  margin-bottom: 5px !important;
+  color: #666;
+  font-size: small;
+}
+
+.selector select {
+  border-radius: 4px !important;
+  height: 10em !important;
+  width: 420px !important;
+  font-size: small;
+  padding: 0 2px !important;
+}
+
+.selector-chosen select {
+  border-top: 1px solid rgb(153, 153, 153) !important;
+  height: 10em !important;
+  margin-top: 1.5em !important;
+}
+
+.selector-available, .selector-chosen {
+width: 420px !important;
+}
+
+.selector .selector-filter {
+background: transparent !important;
+border: none !important;
+padding: 0 !important;
+}
+
+.selector .selector-available input {
+  margin-left: 0 !important;
+}
+
+.selector .selector-available .selector-filter input {
+  width: 402px !important;
+  border: 1px solid;
+  border-radius: 4px;
+}
+
+.selector ul.selector-chooser {
+  margin: 7em 3px 0 3px !important;
+}
+
+.selector .selector-filter label,
+.inline-group .aligned .selector .selector-filter label {
+  margin: 2px 0 0 !important;
+}
+
+a.selector-chooseall, a.selector-clearall {
+  font-size: smaller;
+}
+
+@media(max-width: 1040px) {
+  .selector {
+    width: 700px !important;
+  }
+
+  .selector select {
+    width: 325px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 325px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 302px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}
+
+@media(max-width: 930px) {
+  .selector {
+    width: 650px !important;
+  }
+
+  .selector select {
+    width: 275px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 275px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 232px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}
+
+@media(max-width: 775px) {
+  .selector {
+    width: 600px !important;
+  }
+
+  .selector select {
+    width: 285px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 285px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 182px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}
+
+@media(max-width: 700px) {
+  .selector {
+    width: 500px !important;
+  }
+
+  .selector select {
+    width: 225px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 220px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 202px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}
+
+@media(max-width: 570px) {
+  .selector {
+    width: 460px !important;
+  }
+
+  .selector select {
+    width: 200px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 200px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 182px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}
+
+
+@media(max-width: 520px) {
+  .selector {
+    width: 400px !important;
+  }
+
+  .selector select {
+    width: 180px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 180px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 162px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}
+
+
+@media(max-width: 490px) {
+  .selector {
+    width: 350px !important;
+  }
+
+  .selector select {
+    width: 155px !important;
+  }
+
+  .selector-available, .selector-chosen {
+    width: 155px !important;
+  }
+
+  .selector .selector-available .selector-filter input {
+    width: 136px !important;
+  }
+
+  .selector ul.selector-chooser {
+    margin: 5em 3px 0 3px !important;
+  }
+}

@@ -32,12 +32,17 @@ logger = logging.getLogger(__name__)
 
 @login_required
 @staff_required
-def choose_users_to_email(request,
-                          template_name='studioadmin/choose_users_form.html'):
+def choose_users_to_email(
+        request, template_name='studioadmin/choose_users_form.html'
+):
     userfilterform = UserFilterForm(prefix='filter')
+    showing_students = False
+
     if 'filter' in request.POST:
+        showing_students = True
         event_ids = request.POST.getlist('filter-events')
         lesson_ids = request.POST.getlist('filter-lessons')
+        student_ids = request.POST.getlist('filter-students')
 
         if event_ids == ['']:
             if request.session.get('events'):
@@ -57,15 +62,16 @@ def choose_users_to_email(request,
         else:
             request.session['lessons'] = lesson_ids
 
-        if not event_ids and not lesson_ids:
-            usersformset = ChooseUsersFormSet(
-                queryset=User.objects.all().order_by('first_name', 'last_name')
-            )
+        if not event_ids and not lesson_ids and not student_ids:
+            usersformset = ChooseUsersFormSet(queryset=User.objects.none())
         else:
             event_and_lesson_ids = event_ids + lesson_ids
             bookings = Booking.objects.filter(event__id__in=event_and_lesson_ids)
-            user_ids = set([booking.user.id for booking in bookings
-                            if booking.status == 'OPEN'])
+            user_ids_from_bookings = [booking.user.id for booking in bookings
+                            if booking.status == 'OPEN']
+            selected_student_ids = list(User.objects.filter(id__in=student_ids).values_list('id', flat=True))
+            user_ids = set(user_ids_from_bookings + selected_student_ids)
+
             usersformset = ChooseUsersFormSet(
                 queryset=User.objects.filter(id__in=user_ids)
                 .order_by('first_name', 'last_name')
@@ -94,7 +100,8 @@ def choose_users_to_email(request,
             request.session['users_to_email'] = users_to_email
 
             return HttpResponseRedirect(url_with_querystring(
-                reverse('studioadmin:email_users_view'), events=event_ids, lessons=lesson_ids)
+                reverse('studioadmin:email_users_view'),
+                events=event_ids, lessons=lesson_ids)
             )
 
     else:
@@ -103,15 +110,14 @@ def choose_users_to_email(request,
             del request.session['events']
         if request.session.get('lessons'):
             del request.session['lessons']
-        usersformset = ChooseUsersFormSet(
-            queryset=User.objects.all().order_by('first_name', 'last_name'),
-        )
+        usersformset = ChooseUsersFormSet(queryset=User.objects.none())
 
     return TemplateResponse(
         request, template_name, {
             'usersformset': usersformset,
             'userfilterform': userfilterform,
             'sidenav_selection': 'email_users',
+            'showing_students': showing_students
             }
     )
 

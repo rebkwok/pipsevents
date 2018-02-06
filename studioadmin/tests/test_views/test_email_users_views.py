@@ -138,8 +138,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
 
+        # usersformset only shows selected users
         usersformset = resp.context_data['usersformset']
-        self.assertEqual(len(usersformset.forms), 5)
+        self.assertEqual(len(usersformset.forms), 0)
 
     def test_filter_with_no_events_selected(self):
         mommy.make_recipe('booking.user', _quantity=2)
@@ -157,15 +158,13 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
 
+        # usersformset only shows selected users
         usersformset = resp.context_data['usersformset']
-        self.assertEqual(len(usersformset.forms), 5)
-
-        users = [form.instance for form in usersformset.forms]
-        self.assertEqual(set(users), set(User.objects.all()))
+        self.assertEqual(len(usersformset.forms), 0)
 
     def test_filter_users_by_multiple_events_and_classes(self):
         new_user1 = mommy.make_recipe('booking.user')
-        new_user2 = mommy.make_recipe('booking.user')
+        mommy.make_recipe('booking.user')
         event = mommy.make_recipe('booking.future_EV')
         pole_class = mommy.make_recipe('booking.future_PC')
         mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
@@ -175,38 +174,6 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
                 'filter': 'Show Students',
                 'filter-lessons': [pole_class.id],
                 'filter-events': [event.id]}
-        )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(self.url, form_data)
-
-        # incl user, staff_user, instructor_user
-        self.assertEqual(User.objects.count(), 5)
-
-        usersformset = resp.context_data['usersformset']
-        self.assertEqual(len(usersformset.forms), 2)
-
-        users = [form.instance for form in usersformset.forms]
-        self.assertEqual(set(users), {self.user, new_user1})
-
-    def test_filter_users_ignores_none_selected(self):
-        """
-        It is possible to select the "None selected" option as well as an
-        event/class.  Previously this caused an error because it tried to look
-        up bookings with an id of ''.  Particularly an issue on mobile where
-        the multiselect is replaced by checkboxes and the none box is not
-        unchecked when another option is selected.
-        """
-        new_user1 = mommy.make_recipe('booking.user')
-        new_user2 = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
-        mommy.make_recipe('booking.booking', user=new_user1, event=event)
-        form_data = self.formset_data(
-            {
-                'filter': 'Show Students',
-                'filter-lessons': ['', pole_class.id],
-                'filter-events': ['', event.id]}
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)

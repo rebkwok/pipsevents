@@ -2,6 +2,7 @@
 
 from django import forms
 from django.conf import settings
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.models import User
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils import timezone
@@ -16,26 +17,41 @@ def get_event_names(event_type):
         EVENT_CHOICES = [(event.id, str(event)) for event in Event.objects.filter(
             event_type__event_type=event_type, date__gte=timezone.now()
         ).order_by('date')]
-        EVENT_CHOICES.insert(0, ('', '--None selected--'))
         return tuple(EVENT_CHOICES)
 
     return callable
 
 
+def get_students():
+
+    def callable():
+        return tuple(
+            [
+                (user.id, '{} {} ({})'.format(
+                    user.first_name, user.last_name, user.username
+                )) for user in User.objects.all()
+                ]
+        )
+    return callable
+
+        
 class UserFilterForm(forms.Form):
 
     events = forms.MultipleChoiceField(
         choices=get_event_names('EV'),
-        widget=forms.SelectMultiple(
-            attrs={'class': 'form-control', 'style': 'font-size: smaller;'}
-        ),
+        widget=FilteredSelectMultiple('Events/Workshops', False),
+        required=False
     )
 
     lessons = forms.MultipleChoiceField(
         choices=get_event_names('CL'),
-        widget=forms.SelectMultiple(
-            attrs={'class': 'form-control', 'style': 'font-size: smaller;'}
-        ),
+        widget=FilteredSelectMultiple('Classes', False),
+        required=False
+    )
+    students = forms.MultipleChoiceField(
+        choices=get_students(),
+        widget=FilteredSelectMultiple('Students', False),
+        required=False
     )
 
 
