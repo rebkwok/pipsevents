@@ -96,11 +96,8 @@ class UserFilterFormTests(TestCase):
         event_choices = [
             choice for choice in event_field.widget.choices
             ]
-        # number of choices is one more than number of events, to account
-        # for the placeholder for None Selected
-        self.assertEquals(len(event_choices), 4)
-        # first id will be ('', '---None selected---')
-        event_ids = [id for (id, name) in event_choices][1:]
+        self.assertEquals(len(event_choices), 3)
+        event_ids = [id for (id, name) in event_choices]
         event_type = set([
             event.event_type.event_type
             for event in Event.objects.filter(id__in=event_ids)
@@ -113,11 +110,8 @@ class UserFilterFormTests(TestCase):
         lesson_choices = [
             choice for choice in lesson_field.widget.choices
             ]
-        # number of choices is one more than number of events, to account
-        # for the placeholder for None Selected
-        self.assertEquals(len(lesson_choices), 5)
-        # first id will be ('', '---None selected---')
-        lesson_ids = [id for (id, name) in lesson_choices][1:]
+        self.assertEquals(len(lesson_choices), 4)
+        lesson_ids = [id for (id, name) in lesson_choices]
         event_type = set([
             event.event_type.event_type
             for event in Event.objects.filter(id__in=lesson_ids)
