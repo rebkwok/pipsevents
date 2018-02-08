@@ -34,7 +34,7 @@ def get_students():
         )
     return callable
 
-        
+
 class UserFilterForm(forms.Form):
 
     events = forms.MultipleChoiceField(

@@ -1,5 +1,6 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
+from django.views.i18n import javascript_catalog as django_jsi18n
 from studioadmin.views import (BookingEditView,
                                BookingEditPastView,
                                ConfirmRefundView,
@@ -203,5 +204,6 @@ urlpatterns = [
         r'^bookingadd/(?P<user_id>\d+)/$', BookingAddView.as_view(),
         name='bookingadd'
     ),
+    url(r'^jsi18n', django_jsi18n, name='jsi18n'),
     url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     ]

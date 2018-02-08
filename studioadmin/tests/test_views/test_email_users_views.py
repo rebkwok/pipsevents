@@ -82,7 +82,12 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         event = mommy.make_recipe('booking.future_EV')
         mommy.make_recipe('booking.booking', user=self.user, event=event)
         form_data = self.formset_data(
-            {'filter': 'Show Students', 'filter-events': [event.id]}
+            {
+                'filter': 'Show Students',
+                'filter-events': [event.id],
+                'filter-lessons': [],
+                'filter-students': []
+            }
         )
 
         self.client.login(username=self.staff_user.username, password='test')
@@ -102,13 +107,49 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         pole_class = mommy.make_recipe('booking.future_PC')
         mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
         form_data = self.formset_data(
-            {'filter': 'Show Students', 'filter-lessons': [pole_class.id]}
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [pole_class.id],
+                'filter-events': [],
+                'filter-students': []
+            }
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)
 
         # incl user, staff_user, instructor_user
         self.assertEqual(User.objects.count(), 5)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 1)
+
+        user = usersformset.forms[0]
+        self.assertEqual(user.instance, self.user)
+
+    def test_filter_users_by_user(self):
+        mommy.make_recipe('booking.user', _quantity=2)
+        event = mommy.make_recipe('booking.future_EV')
+        lesson = mommy.make_recipe('booking.future_CL')
+        user1 = mommy.make_recipe('booking.user')
+        user2 = mommy.make_recipe('booking.user')
+
+        mommy.make_recipe('booking.booking', user=user1, event=event)
+        mommy.make_recipe('booking.booking', user=user2, event=lesson)
+
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-events': [],
+                'filter-lessons': [],
+                'filter-students': [self.user.id]
+            }
+        )
+
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
+
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 7)
 
         usersformset = resp.context_data['usersformset']
         self.assertEqual(len(usersformset.forms), 1)
@@ -129,8 +170,10 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
-                'filter-lessons': [''],
-                'filter-events': ['']}
+                'filter-lessons': [],
+                'filter-events': [],
+                'filter-students': []
+            }
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)
@@ -149,8 +192,10 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
-                'filter-lessons': [''],
-                'filter-events': ['']}
+                'filter-lessons': [],
+                'filter-events': [],
+                'filter-students': []
+            }
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)
@@ -173,7 +218,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             {
                 'filter': 'Show Students',
                 'filter-lessons': [pole_class.id],
-                'filter-events': [event.id]}
+                'filter-events': [event.id],
+                'filter-students': []
+            }
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)
@@ -187,6 +234,48 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         users = [form.instance for form in usersformset.forms]
         self.assertEqual(set(users), {self.user, new_user1})
 
+    def test_filter_users_by_multiple_events_and_classes_and_students(self):
+        new_user1 = mommy.make_recipe('booking.user')
+        new_user2 = mommy.make_recipe('booking.user')
+        new_user3 = mommy.make_recipe('booking.user')
+        new_user4 = mommy.make_recipe('booking.user')
+        event = mommy.make_recipe('booking.future_EV')
+        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class2 = mommy.make_recipe('booking.future_PC')
+        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+        mommy.make_recipe('booking.booking', user=new_user2, event=event)
+        mommy.make_recipe('booking.booking', user=new_user3, event=pole_class2)
+
+        # new user 2 is selected based on both filter-events and filter-students
+        # new user 1 is selected based on filter-events only
+        # self.user is selected based on filter-lessons only
+        # new user 4 is selected based on filter-students only
+        # new user 3 has a booking but not selected via filter-lessons
+        # staff user is not selected
+
+        form_data = self.formset_data(
+            {
+                'filter': 'Show Students',
+                'filter-lessons': [pole_class.id],
+                'filter-events': [event.id],
+                'filter-students': [new_user2.id, new_user4.id]
+            }
+        )
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, form_data)
+
+        # incl user, staff_user, instructor_user
+        self.assertEqual(User.objects.count(), 7)
+
+        usersformset = resp.context_data['usersformset']
+        self.assertEqual(len(usersformset.forms), 4)
+
+        users = [form.instance for form in usersformset.forms]
+        self.assertEqual(
+            set(users), {self.user, new_user1, new_user2, new_user4}
+        )
+
     def test_users_for_cancelled_bookings_not_shown(self):
         new_user = mommy.make_recipe('booking.user')
         event = mommy.make_recipe('booking.future_EV')
@@ -197,7 +286,10 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
-                'filter-events': [event.id]}
+                'filter-events': [event.id],
+                'filter-lessons': [],
+                'filter-students': []
+            }
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)
@@ -216,7 +308,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
-                'filter-events': [event.id for event in events]}
+                'filter-events': [event.id for event in events],
+                'filter-lessons': [],
+                'filter-students': []}
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, form_data)
@@ -250,7 +344,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             {
                 'filter': 'Show Students',
                 'filter-lessons': [old_pole_class.id],
-                'filter-events': [old_event.id]}
+                'filter-events': [old_event.id],
+                'filter-students': []
+            }
         )
         self.client.login(username=self.staff_user.username, password='test')
         self.client.post(self.url, form_data)
@@ -262,8 +358,10 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
-                'filter-lessons': [''],
-                'filter-events': ['']}
+                'filter-lessons': [],
+                'filter-events': [],
+                'filter-students': []
+            }
         )
         # Filter again without refreshing and with no selections;
         # need to remove old session data
@@ -283,7 +381,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             {
                 'filter': 'Show Students',
                 'filter-lessons': [pole_class.id],
-                'filter-events': [event.id]}
+                'filter-events': [event.id],
+                'filter-students': []
+            }
         )
 
         self.client.login(username=self.staff_user.username, password='test')
@@ -317,7 +417,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             {
                 'filter': 'Show Students',
                 'filter-lessons': [pole_class.id],
-                'filter-events': [event.id]}
+                'filter-events': [event.id],
+                'filter-students': []
+            }
         )
         self.client.post(self.url, filter_form_data)
 
