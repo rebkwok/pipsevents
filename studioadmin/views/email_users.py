@@ -43,22 +43,17 @@ def choose_users_to_email(
         event_ids = request.POST.getlist('filter-events')
         lesson_ids = request.POST.getlist('filter-lessons')
         student_ids = request.POST.getlist('filter-students')
-
-        if event_ids == ['']:
+        if not event_ids:
             if request.session.get('events'):
                 del request.session['events']
             event_ids = []
-        elif '' in event_ids:
-            event_ids.remove('')
         else:
             request.session['events'] = event_ids
 
-        if lesson_ids == ['']:
+        if not lesson_ids:
             if request.session.get('lessons'):
                 del request.session['lessons']
             lesson_ids = []
-        elif '' in lesson_ids:
-            lesson_ids.remove('')
         else:
             request.session['lessons'] = lesson_ids
 
