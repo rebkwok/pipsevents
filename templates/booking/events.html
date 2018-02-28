@@ -95,11 +95,17 @@
 
                                             {% for event in location_obj.queryset %}
                                                 {% get_weekday event.date.weekday as table_shaded %}
-                                                <tr class="{% if event.bookable %}active_block{% else %}inactive_block{% endif %} {{ table_shaded }} compress table-tab">
+                                                {% get_booking event user as booking %}
+                                                <tr class="
+                                                    {% if event.bookable %}active_block{% else %}inactive_block{% endif %}
+                                                    {{ table_shaded }}
+                                                    {% if booking and booking.status == 'OPEN' and not booking.paid %}unpaid-booking-row{% endif %}
+
+                                                    compress table-tab">
                                                 {% if user.is_authenticated %}
-                                                    <td class="table-center">
+                                                    <td class="table-center table-btns">
                                                         {% if event.id in booked_events %}
-                                                            {% get_payment_button event user type location_obj.index request.GET.name %}
+                                                            {% get_payment_button booking type location_obj.index request.GET.name %}
                                                         {% elif event not in booked_events %}
                                                             {% if not disclaimer %}
                                                                 {% if type == 'lessons' %}
