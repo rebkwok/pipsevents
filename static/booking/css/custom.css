@@ -447,20 +447,28 @@ td {
   width: 2em;
 }
 
-@media(max-width:767px) {
+.table-pay-btn {
+  width: 4em;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+@media(max-width:800px) {
   .table-btn, .disabled .btn .btn-success .table-btn {
     font-size: 80%;
   }
 }
 
-.table-cancel-btn{
-  width: 6em;
+td.table-btns {
+    min-width: 8.75em;
 }
 
-.table-pay-btn {
-  width: 2.75em;
-  padding-top: 2px;
-  padding-bottom: 2px;
+.table-cancel-btn{
+  width: 4.5em;
+}
+
+.table-events-cancel-btn{
+  width: 4.5em;
 }
 
 .table-form {
@@ -1078,6 +1086,10 @@ td span.label.label-rounded.label-location{
 
 tr.table-shaded{
     background-color: rgba(0, 0, 0, 0.08);
+}
+
+tr.unpaid-booking-row {
+    background: rgba(255, 0, 0, 0.15);
 }
 
 @media (max-width: 768px) { /* use the max to specify at each container level */

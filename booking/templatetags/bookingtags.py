@@ -331,9 +331,15 @@ def voucher_expired(voucher):
     return False
 
 
+@register.assignment_tag
+def get_booking(event, user):
+    if user.is_authenticated:
+        return Booking.objects.filter(event=event, user=user).first()
+    return None
+
+
 @register.inclusion_tag('booking/includes/payment_button.html')
-def get_payment_button(event, user, type, tab, filter):
-    booking = Booking.objects.get(event=event, user=user)
+def get_payment_button(booking, type, tab, filter):
 
     return {
         'unpaid': not (booking.paid and booking.payment_confirmed),
