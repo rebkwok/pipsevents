@@ -39,7 +39,7 @@
                 </div>
                 <div class="col-xs-2">
                     {% if block.id in voucher_applied_blocks %}
-                        <s>£{{ booking.event.cost }}</s>
+                        <s>£{{ block.block_type.cost }}</s>
                         £{{ block.block_type.cost|voucher_applied_cost:block_voucher.discount }}
                     {% else %}
                         £{{ block.block_type.cost }}

@@ -822,3 +822,29 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
                 self.user.username, self.block.id, self.block.block_type
             )
         )
+
+    def test_delete_block_with_booking_code(self):
+        """
+        Test deleting a block from basket with code returns with code in get
+        """
+        data = {'next': 'shopping_basket', 'booking_code': 'foo'}
+        resp = self.client.post(self.url, data)
+        self.assertFalse(Block.objects.exists())
+
+        # redirects back to shopping basket with code
+        self.assertIn(
+            resp.url, reverse('booking:shopping_basket') + '?booking_code=foo'
+        )
+
+    def test_delete_block_with_block_code(self):
+        """
+        Test deleting a block from basket with code returns with code in get
+        """
+        data = {'next': 'shopping_basket', 'block_code': 'foo'}
+        resp = self.client.post(self.url, data)
+        self.assertFalse(Block.objects.exists())
+
+        # redirects back to shopping basket with code
+        self.assertIn(
+            resp.url, reverse('booking:shopping_basket') + '?block_code=foo'
+        )

@@ -87,11 +87,6 @@ def shopping_basket(request):
         'unpaid_block_booking_available': unpaid_block_booking_available,
     }
 
-
-    # TODO
-    # check voucher and update total for unpaid blocks
-    # generate paypal form for blocks
-
     if "booking_code" in request.GET and "remove_booking_voucher" not in request.GET:
         booking_code = request.GET['booking_code'].strip()
         context['booking_code'] = booking_code
@@ -200,7 +195,7 @@ def shopping_basket(request):
                     invoice_id,
                     custom,
                     voucher_applied_items=context.get('voucher_applied_bookings', []),
-                    voucher = booking_voucher if context.get('valid_booking_voucher') else None,
+                    voucher=booking_voucher if context.get('valid_booking_voucher') else None,
                     paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
                 )
             )
@@ -211,11 +206,11 @@ def shopping_basket(request):
         context['block_voucher_form'] = BlockVoucherForm(
             initial={'block_code': block_code}
         )
-        item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
+        item_ids_str = ','.join([str(item.id) for item in unpaid_blocks])
         custom = context_helpers.get_paypal_custom(
-            item_type='booking',
+            item_type='block',
             item_ids=item_ids_str,
-            voucher_code=booking_voucher.code
+            voucher_code=block_voucher.code
             if context.get('valid_block_voucher') else '',
             user_email=request.user.email
         )
@@ -234,12 +229,11 @@ def shopping_basket(request):
                 invoice_id,
                 custom,
                 voucher_applied_items=context.get('voucher_applied_blocks', []),
-                voucher = block_voucher if context.get('valid_block_voucher') else None,
+                voucher=block_voucher if context.get('valid_block_voucher') else None,
                 paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
             )
         )
         context["blocks_paypalform"] = paypal_block_form
-
     return TemplateResponse(
         request,
         template_name,
@@ -342,7 +336,6 @@ def apply_voucher_to_unpaid_blocks(voucher, blocks, times_used):
             voucher.max_vouchers -
             UsedBlockVoucher.objects.filter(voucher=voucher).count()
         )
-
     for block in blocks:
         can_use = voucher.check_block_type(block.block_type)
         if check_max_per_user and uses_per_user_left <= 0:
@@ -390,7 +383,7 @@ def apply_voucher_to_unpaid_blocks(voucher, blocks, times_used):
 
     return {
         'voucher_applied_blocks': voucher_applied_blocks,
-        'total_block_cost': total_block_cost,
+        'total_unpaid_block_cost': total_block_cost,
         'block_voucher_msg': voucher_msg
     }
 
