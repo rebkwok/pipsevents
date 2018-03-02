@@ -188,7 +188,7 @@ class BlockListView(LoginRequiredMixin, ListView):
 
             context.update({
                 'voucher_applied_items': block_voucher_dict['voucher_applied_blocks'],
-                'total_cost': block_voucher_dict['total_block_cost'],
+                'total_cost': block_voucher_dict['total_unpaid_block_cost'],
                 'voucher_msg': block_voucher_dict['block_voucher_msg'],
             })
 
@@ -275,10 +275,6 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
             params['booking_code'] = request.POST['booking_code']
         if request.POST.get('block_code'):
             params['block_code'] = request.POST['block_code']
-        if request.GET.get('filter'):
-            params['name'] = request.POST['filter']
-        if request.GET.get('tab'):
-            params['tab'] = request.POST['tab']
 
         url = self.get_success_url(next)
         if params:

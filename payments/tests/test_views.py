@@ -6,10 +6,12 @@ from django.test import TestCase
 
 from paypal.standard.ipn.models import PayPalIPN
 
-from booking.context_helpers import get_paypal_custom
+from booking.context_helpers import get_paypal_custom, get_paypal_dict
 from booking.models import Block, Booking, TicketBooking
 from common.tests.helpers import PatchRequestMixin, set_up_fb
-from payments.helpers import create_multibooking_paypal_transaction, \
+from payments.forms import PayPalPaymentsShoppingBasketForm
+from payments.helpers import create_booking_paypal_transaction, \
+    create_multibooking_paypal_transaction, \
     create_multiblock_paypal_transaction, \
     create_ticket_booking_paypal_transaction
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
@@ -538,3 +540,53 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
         for pptrans in PaypalBookingTransaction.objects.all():
             self.assertIsNone(pptrans.transaction_id)
 
+
+class PaypalFormPostView(PatchRequestMixin, TestCase):
+    """
+    paypal_form_post view is called by the rendered PayPalPaymentsForms
+    """
+
+    def setUp(self):
+        super(PaypalFormPostView, self).setUp()
+        self.user = User.objects.create_user(
+            username='test', email='test@test.com', password='test'
+        )
+        self.url = reverse('payments:paypal_form_post')
+        self.client.login(username=self.user.username, password='test')
+
+    def test_paypal_form_post(self):
+        """
+        Test that custom from the form data is added to the session 'cart_items'
+        """
+        booking = mommy.make('booking.booking', paid=False, user=self.user)
+        invoice_id = create_booking_paypal_transaction(
+            self.user, booking
+        ).invoice_id
+        custom = get_paypal_custom(
+            item_type='booking',
+            item_ids=str(booking.id),
+            voucher_code='',
+            user_email=self.user.email
+        )
+
+        paypal_booking_form = PayPalPaymentsShoppingBasketForm(
+            initial=get_paypal_dict(
+                'http://test.test',
+                '20.00',
+                booking.event,
+                invoice_id,
+                custom,
+                paypal_email='testpaypal@test.com',
+            )
+        )
+
+        data = paypal_booking_form.initial
+        endpoint = paypal_booking_form.get_endpoint()
+        data['endpoint'] = endpoint
+
+        self.assertIsNone(self.client.session.get('cart_items'))
+        resp = self.client.post(self.url, data=data)
+
+        self.assertEqual(self.client.session['cart_items'], custom)
+        # forwards on to same endpoint
+        self.assertTrue(resp.url.startswith('https://www.sandbox.paypal.com'))

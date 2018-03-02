@@ -2659,7 +2659,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         # redirects back to shopping basket
         self.assertIn(resp.url, reverse('booking:shopping_basket'))
 
-    def test_cancel_booking_from_shopping_basket_with_voucher_code(self):
+    def test_cancel_booking_from_shopping_basket_with_booking_voucher_code(self):
         """
         Test deleting a booking from basket with code returns with code in get
         """
@@ -2670,7 +2670,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         self.client.login(username=self.user.username, password='test')
         url = reverse('booking:delete_booking', args=[booking.id]) \
-              + '?next=shopping_basket&code=foo'
+              + '?next=shopping_basket&booking_code=foo'
         resp = self.client.post(url)
         # after cancelling, the booking is still there, but status has changed
         self.assertEqual(Booking.objects.all().count(), 1)
@@ -2679,12 +2679,36 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # redirects back to shopping basket with code
         self.assertIn(
-            resp.url, reverse('booking:shopping_basket') + '?code=foo'
+            resp.url, reverse('booking:shopping_basket') + '?booking_code=foo'
+        )
+
+    def test_cancel_booking_from_shopping_basket_with_block_voucher_code(self):
+        """
+        Test deleting a booking from basket with code returns with code in get
+        """
+        event = mommy.make_recipe('booking.future_EV')
+        booking = mommy.make_recipe('booking.booking', event=event,
+                                    user=self.user, paid=True)
+        self.assertEqual(Booking.objects.all().count(), 1)
+
+        self.client.login(username=self.user.username, password='test')
+        url = reverse('booking:delete_booking', args=[booking.id]) \
+              + '?next=shopping_basket&block_code=foo'
+        resp = self.client.post(url)
+        # after cancelling, the booking is still there, but status has changed
+        self.assertEqual(Booking.objects.all().count(), 1)
+        booking.refresh_from_db()
+        self.assertEqual('CANCELLED', booking.status)
+
+        # redirects back to shopping basket with code
+        self.assertIn(
+            resp.url, reverse('booking:shopping_basket') + '?block_code=foo'
         )
 
     def test_cancel_booking_with_filter_and_tab(self):
         """
-        Test deleting a booking from basket with code returns with code in get
+        Test deleting a booking from events with filter and tab returns with
+        params
         """
         event = mommy.make_recipe('booking.future_EV')
         booking = mommy.make_recipe('booking.booking', event=event,
