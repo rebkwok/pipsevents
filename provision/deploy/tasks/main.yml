@@ -1,9 +1,20 @@
 ---
-- name: Setup Virtualenv
-  pip: virtualenv={{ virtualenv_path }} requirements={{ project_root_path }}/requirements.txt virtualenv_python=python3.4
+- name: Setup Virtualenv and upgrade setuptools and pip
+  pip:
+    name: "{{ item }}"
+    state: latest
+    virtualenv: "{{ virtualenv_path }}"
+    virtualenv_python: "{{ python3_path }}"
+  with_items:
+    - setuptools
+    - pip
+
+- name: Install requirements
+  pip:
+    virtualenv: "{{ virtualenv_path }}"
+    requirements: "{{ project_root_path }}/requirements.txt"
 
 - name: Install some dev tools
-  become: true
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
     - ipdb
@@ -18,10 +29,10 @@
   with_items:
     - migrate
 
-#- name: Populate database
-#  django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
-#  with_items:
-#    - setup_fb
+- name: Populate database
+  django_manage: command={{ item }} app_path={{ project_root_path }} virtualenv={{ virtualenv_path }}
+  with_items:
+    - setup_fb
 #    - load_users
 #    - create_event_and_blocktypes
 #    - create_timetable

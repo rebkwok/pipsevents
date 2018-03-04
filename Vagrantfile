@@ -8,9 +8,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vm.hostname = "pips"
 
-    # define the box (Ubuntu Trusty 64 to allow python3.4)
-    config.vm.box = "ubuntu/trusty64"
-    #config.vm.box = "chef/ubuntu-14.04"
+    # define the box
+    config.vm.box = "bento/ubuntu-16.04"
 
     config.vm.hostname = "pipsevents"
 
@@ -46,7 +45,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # ansible provisioning
     config.vm.provision "ansible" do |ansible|
       ansible.playbook = "provision/vagrant.yml"
-
+      ansible.vault_password_file = "provision/.vaultpass"
     end
 
 # For setting up heroku push

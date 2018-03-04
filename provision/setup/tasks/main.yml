@@ -21,17 +21,23 @@
   become: true
   apt: pkg={{ item }} state=installed
   with_items:
-      - postgresql
-      - libpq-dev # Required for Ansible to interact with postgres
-      - python-psycopg2 # Required for Ansible to interact with postgres
+    - postgresql-9.5
+    - postgresql-contrib-9.5
+    - postgresql-server-dev-9.5
+    - libpq-dev # Required for Ansible to interact with postgres
+    - python-psycopg2 # Required for Ansible to interact with postgres
 
 - name: Install packages for pillow
-  become: true
+  become: yes
   apt: pkg={{ item }} state=installed
   with_items:
       - libjpeg-dev
       - zlib1g-dev
       - libpng12-dev
+      - libtiff5-dev
+      - libjpeg8-dev
+      - libfreetype6-dev
+      - libwebp-dev
 
 - name: Add vagrant user to www-data
   become: true
@@ -48,7 +54,7 @@
 
 - name: Allow password authentication for local socket users and allow connections other than localhost
   become: true
-  copy: src={{ item }} dest=/etc/postgresql/9.3/main/{{ item }} force=yes
+  copy: src={{ item }} dest=/etc/postgresql/9.5/main/{{ item }} force=yes
   with_items:
     - pg_hba.conf
     - postgresql.conf
@@ -61,7 +67,7 @@
 
 - name: Allow password authentication for local socket users
   become: true
-  copy: src=pg_hba.conf dest=/etc/postgresql/9.3/main/pg_hba.conf force=yes
+  copy: src=pg_hba.conf dest=/etc/postgresql/9.5/main/pg_hba.conf force=yes
   notify:
       - Restart Postgres
 
