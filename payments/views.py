@@ -9,6 +9,7 @@ from django.shortcuts import render, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.models import PayPalIPN
 
 from booking.models import Block, Booking, TicketBooking
@@ -215,5 +216,17 @@ def paypal_form_post(request):
     # add cart booking ids to the session so we can set paypal pending
     request.session['cart_items'] = request.POST['custom']
     endpoint = request.POST['endpoint']
-    resp = requests.post(endpoint, request.POST)
+    data = request.POST.copy()
+
+    # add default hidden fields from form if they weren't specified
+    if 'cmd' not in data:  # cmd will be included for cart
+        data['cmd'] = PayPalPaymentsForm.CMD_CHOICES[0][0]
+    if 'currency_code' not in data:
+        data['currency_code'] = 'GBP'
+    if 'charset' not in data:
+        data['charset'] = 'utf-8'
+    if 'no_shipping' not in data:
+        data['no_shipping'] = PayPalPaymentsForm.SHIPPING_CHOICES[0][0]
+
+    resp = requests.post(endpoint, data)
     return HttpResponseRedirect(resp.url)

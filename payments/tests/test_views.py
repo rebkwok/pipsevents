@@ -6,10 +6,10 @@ from django.test import TestCase
 
 from paypal.standard.ipn.models import PayPalIPN
 
-from booking.context_helpers import get_paypal_custom, get_paypal_dict
+from booking.context_helpers import get_paypal_custom, get_paypal_dict, get_paypal_cart_dict
 from booking.models import Block, Booking, TicketBooking
 from common.tests.helpers import PatchRequestMixin, set_up_fb
-from payments.forms import PayPalPaymentsShoppingBasketForm
+from payments.forms import PayPalPaymentsShoppingBasketForm, PayPalPaymentsUpdateForm
 from payments.helpers import create_booking_paypal_transaction, \
     create_multibooking_paypal_transaction, \
     create_multiblock_paypal_transaction, \
@@ -554,7 +554,45 @@ class PaypalFormPostView(PatchRequestMixin, TestCase):
         self.url = reverse('payments:paypal_form_post')
         self.client.login(username=self.user.username, password='test')
 
-    def test_paypal_form_post(self):
+    def test_paypal_form_post_with_shopping_basket_form(self):
+        """
+        Test that custom from the form data is added to the session 'cart_items'
+        """
+        booking = mommy.make(
+            'booking.booking', paid=False, user=self.user, event__cost=20
+        )
+        invoice_id = create_multibooking_paypal_transaction(
+            self.user, [booking]
+        )
+        custom = get_paypal_custom(
+            item_type='booking',
+            item_ids=str(booking.id),
+            voucher_code='',
+            user_email=self.user.email
+        )
+
+        paypal_booking_form = PayPalPaymentsShoppingBasketForm(
+            initial=get_paypal_cart_dict(
+                'http://test.test',
+                'booking',
+                [booking],
+                invoice_id,
+                custom,
+                paypal_email='testpaypal@test.com',
+            )
+        )
+        data = paypal_booking_form.initial
+        endpoint = paypal_booking_form.get_endpoint()
+        data['endpoint'] = endpoint
+
+        self.assertIsNone(self.client.session.get('cart_items'))
+        resp = self.client.post(self.url, data=data)
+
+        self.assertEqual(self.client.session['cart_items'], custom)
+        # forwards on to paypal with token
+        self.assertTrue(resp.url.startswith('https://www.sandbox.paypal.com/webapps/hermes?token='))
+
+    def test_paypal_form_post_with_update_form(self):
         """
         Test that custom from the form data is added to the session 'cart_items'
         """
@@ -569,7 +607,7 @@ class PaypalFormPostView(PatchRequestMixin, TestCase):
             user_email=self.user.email
         )
 
-        paypal_booking_form = PayPalPaymentsShoppingBasketForm(
+        paypal_booking_form = PayPalPaymentsUpdateForm(
             initial=get_paypal_dict(
                 'http://test.test',
                 '20.00',
@@ -588,5 +626,38 @@ class PaypalFormPostView(PatchRequestMixin, TestCase):
         resp = self.client.post(self.url, data=data)
 
         self.assertEqual(self.client.session['cart_items'], custom)
-        # forwards on to same endpoint
-        self.assertTrue(resp.url.startswith('https://www.sandbox.paypal.com'))
+        # forwards on to paypal with token
+        self.assertTrue(resp.url.startswith('https://www.sandbox.paypal.com/webapps/hermes?token='))
+
+    def test_paypal_form_post_with_no_currency_code(self):
+        """
+        Test that default currency code is added
+        """
+        booking = mommy.make('booking.booking', paid=False, user=self.user)
+        invoice_id = create_booking_paypal_transaction(
+            self.user, booking
+        ).invoice_id
+        custom = get_paypal_custom(
+            item_type='booking',
+            item_ids=str(booking.id),
+            voucher_code='',
+            user_email=self.user.email
+        )
+        initial = get_paypal_dict(
+                'http://test.test',
+                '20.00',
+                booking.event,
+                invoice_id,
+                custom,
+                paypal_email='testpaypal@test.com',
+            )
+        del initial['currency_code']
+        paypal_booking_form = PayPalPaymentsUpdateForm(initial=initial)
+        data = paypal_booking_form.initial
+        endpoint = paypal_booking_form.get_endpoint()
+        data['endpoint'] = endpoint
+
+        self.assertIsNone(self.client.session.get('cart_items'))
+        resp = self.client.post(self.url, data=data)
+        # successfully forwards on to paypal with token
+        self.assertTrue(resp.url.startswith('https://www.sandbox.paypal.com/webapps/hermes?token='))
