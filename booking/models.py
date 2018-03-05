@@ -8,7 +8,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -78,7 +78,7 @@ class Event(models.Model):
         "Davidson's Mains": 2
     }
     name = models.CharField(max_length=255)
-    event_type = models.ForeignKey(EventType)
+    event_type = models.ForeignKey(EventType, on_delete=models.CASCADE)
     description = models.TextField(blank=True, default="")
     date = models.DateTimeField()
     location = models.CharField(
@@ -204,7 +204,7 @@ class BlockType(models.Model):
                   "(e.g. sale blocks)"
     )
     size = models.PositiveIntegerField(help_text="Number of classes in block")
-    event_type = models.ForeignKey(EventType)
+    event_type = models.ForeignKey(EventType, on_delete=models.CASCADE)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     duration = models.PositiveIntegerField(
         help_text="Number of months until block expires")
@@ -251,8 +251,8 @@ class Block(models.Model):
     Block booking
     """
 
-    user = models.ForeignKey(User, related_name='blocks')
-    block_type = models.ForeignKey(BlockType)
+    user = models.ForeignKey(User, related_name='blocks', on_delete=models.CASCADE)
+    block_type = models.ForeignKey(BlockType, on_delete=models.CASCADE)
     start_date = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(
         verbose_name='Paid',
@@ -260,7 +260,8 @@ class Block(models.Model):
         help_text='Payment has been made by user'
     )
     parent = models.ForeignKey(
-        'self', blank=True, null=True, related_name='children'
+        'self', blank=True, null=True, related_name='children',
+        on_delete=models.CASCADE
     )
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
@@ -375,8 +376,12 @@ class Booking(models.Model):
         ('CANCELLED', 'Cancelled')
     )
 
-    user = models.ForeignKey(User, related_name='bookings')
-    event = models.ForeignKey(Event, related_name='bookings')
+    user = models.ForeignKey(
+        User, related_name='bookings', on_delete=models.CASCADE
+    )
+    event = models.ForeignKey(
+        Event, related_name='bookings', on_delete=models.CASCADE
+    )
     paid = models.BooleanField(
         default=False,
         help_text='Payment has been made by user'
@@ -652,8 +657,12 @@ class WaitingListUser(models.Model):
     """
     A model to represent a single user on a waiting list for an event
     """
-    user = models.ForeignKey(User, related_name='waitinglists')
-    event = models.ForeignKey(Event, related_name='waitinglistusers')
+    user = models.ForeignKey(
+        User, related_name='waitinglists', on_delete=models.CASCADE
+    )
+    event = models.ForeignKey(
+        Event, related_name='waitinglistusers', on_delete=models.CASCADE
+    )
     # date user joined the waiting list
     date_joined = models.DateTimeField(default=timezone.now)
 
@@ -779,8 +788,10 @@ class TicketedEvent(models.Model):
 
 
 class TicketBooking(models.Model):
-    user = models.ForeignKey(User)
-    ticketed_event = models.ForeignKey(TicketedEvent, related_name="ticket_bookings")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    ticketed_event = models.ForeignKey(
+        TicketedEvent, related_name="ticket_bookings", on_delete=models.CASCADE
+    )
     date_booked = models.DateTimeField(default=timezone.now)
     paid = models.BooleanField(default=False)
 
@@ -817,7 +828,9 @@ class TicketBooking(models.Model):
 class Ticket(models.Model):
     extra_ticket_info = models.TextField(blank=True, default='')
     extra_ticket_info1 = models.TextField(blank=True, default='')
-    ticket_booking = models.ForeignKey(TicketBooking, related_name="tickets")
+    ticket_booking = models.ForeignKey(
+        TicketBooking, related_name="tickets", on_delete=models.CASCADE
+    )
 
     def save(self, *args, **kwargs):
         # raise error for each ticket creation also if we try to book for a
@@ -894,10 +907,10 @@ class BlockVoucher(BaseVoucher):
 
 
 class UsedEventVoucher(models.Model):
-    voucher = models.ForeignKey(EventVoucher)
-    user = models.ForeignKey(User)
+    voucher = models.ForeignKey(EventVoucher, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class UsedBlockVoucher(models.Model):
-    voucher = models.ForeignKey(BlockVoucher)
-    user = models.ForeignKey(User)
+    voucher = models.ForeignKey(BlockVoucher, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)

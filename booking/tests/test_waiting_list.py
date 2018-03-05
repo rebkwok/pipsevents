@@ -3,7 +3,7 @@ from model_mommy import mommy
 from django.conf import settings
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from booking.models import Booking, WaitingListUser

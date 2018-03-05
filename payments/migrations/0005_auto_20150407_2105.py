@@ -19,6 +19,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='paypalblocktransaction',
             name='block',
-            field=models.ForeignKey(null=True, to='booking.Block'),
+            field=models.ForeignKey(null=True, to='booking.Block', on_delete=models.SET_NULL),
         ),
     ]

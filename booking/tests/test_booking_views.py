@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import override_settings, TestCase, RequestFactory
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.messages.storage.fallback import FallbackStorage

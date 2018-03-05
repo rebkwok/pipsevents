@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core import management
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http.response import Http404
 from django.test import TestCase
 from django.utils import timezone

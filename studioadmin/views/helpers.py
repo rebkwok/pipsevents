@@ -4,7 +4,7 @@ from functools import wraps
 
 from django.core.cache import cache
 from django.contrib.auth.models import Group
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
 
 

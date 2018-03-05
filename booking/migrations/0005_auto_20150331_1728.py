@@ -14,13 +14,13 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='block',
             name='block_type',
-            field=models.ForeignKey(to='booking.BlockType'),
+            field=models.ForeignKey(to='booking.BlockType', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='blocktype',
             name='event_type',
-            field=models.ForeignKey(to='booking.EventType'),
+            field=models.ForeignKey(to='booking.EventType', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterField(
@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='event',
             name='event_type',
-            field=models.ForeignKey(to='booking.EventType'),
+            field=models.ForeignKey(to='booking.EventType', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterField(

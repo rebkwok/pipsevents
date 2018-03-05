@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 from django.utils import timezone
 

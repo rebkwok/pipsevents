@@ -48,7 +48,7 @@ class EventListView(ListView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(EventListView, self).get_context_data(**kwargs)
-        if not self.request.user.is_anonymous():
+        if not self.request.user.is_anonymous:
             # Add in the booked_events
             booked_events = Booking.objects.select_related()\
                 .filter(user=self.request.user, status='OPEN', no_show=False)\
@@ -76,7 +76,7 @@ class EventListView(ListView):
             form = RoomHireFilter(initial={'name': event_name})
         context['form'] = form
 
-        if not self.request.user.is_anonymous():
+        if not self.request.user.is_anonymous:
             context['disclaimer'] = has_active_disclaimer(self.request.user)
             context['expired_disclaimer'] = has_expired_disclaimer(
                 self.request.user

@@ -7,7 +7,7 @@ from unittest.mock import call, Mock
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from allauth.account.models import EmailAddress

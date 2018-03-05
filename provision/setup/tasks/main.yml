@@ -52,14 +52,14 @@
   become: true
   apt: pkg=git state=installed
 
-#- name: Allow password authentication for local socket users and allow connections other than localhost
-#  become: true
-#  copy: src={{ item }} dest=/etc/postgresql/9.5/main/{{ item }} force=yes
-#  with_items:
-#    - pg_hba.conf
-#    - postgresql.conf
-#  notify:
-#      - Restart Postgres
+- name: Allow password authentication for local socket users and allow connections other than localhost
+  become: true
+  copy: src={{ item }} dest=/etc/postgresql/9.5/main/{{ item }} force=yes
+  with_items:
+    - pg_hba.conf
+    - postgresql.conf
+  notify:
+      - Restart Postgres
 
 - name: Ensure postgres running
   become: true

@@ -10,7 +10,7 @@ from django.views.generic import (
 )
 from django.template.response import TemplateResponse
 from django.core.mail import send_mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from braces.views import LoginRequiredMixin
@@ -41,7 +41,7 @@ class TicketedEventListView(ListView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(TicketedEventListView, self).get_context_data(**kwargs)
-        if not self.request.user.is_anonymous():
+        if not self.request.user.is_anonymous:
             # Add in the booked events
 
             tickets_booked_events = [
@@ -77,7 +77,7 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
                 cancelled=False
             )
 
-        if not request.user.is_anonymous():
+        if not request.user.is_anonymous:
             if request.method.lower() == 'get':
                 # get non-cancelled and unconfirmed ticket bookings
                 user_unconfirmed_ticket_bookings = TicketBooking.objects.filter(
@@ -382,7 +382,7 @@ class TicketBookingView(LoginRequiredMixin, TemplateView):
     template_name = 'booking/ticket_booking.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_anonymous():
+        if not request.user.is_anonymous:
             self.ticket_booking = get_object_or_404(
                 TicketBooking, booking_reference=kwargs['ref'],
                 purchase_confirmed=True,

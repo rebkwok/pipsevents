@@ -116,7 +116,7 @@ def paypal_cancel_return(request):
     cart_items_from_session = request.session.get('cart_items')
     ppipn = None
     already_paid = False
-    if cart_items_from_session and not request.user.is_anonymous():
+    if cart_items_from_session and not request.user.is_anonymous:
         # check for a paypal ipn with custom==cart_items and status completed
         # if user resubmitted a paid invoice, the "Return to merchant" from
         # paypal will return them here too

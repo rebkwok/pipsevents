@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponseRedirect, get_object_or_404

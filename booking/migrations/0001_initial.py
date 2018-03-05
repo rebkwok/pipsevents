@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                 ('payment_confirmed', models.BooleanField(help_text='Payment confirmed by admin/organiser', default=False)),
                 ('date_payment_confirmed', models.DateTimeField(null=True, blank=True)),
                 ('date_space_confirmed', models.DateTimeField(null=True, blank=True)),
-                ('block', models.ForeignKey(to='booking.Block', related_name='bookings', null=True)),
+                ('block', models.ForeignKey(to='booking.Block', related_name='bookings', null=True, on_delete=models.SET_NULL)),
             ],
             options={
             },
@@ -83,13 +83,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='booking',
             name='event',
-            field=models.ForeignKey(to='booking.Event', related_name='bookings'),
+            field=models.ForeignKey(to='booking.Event', related_name='bookings', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='booking',
             name='user',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='bookings'),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='bookings', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -99,13 +99,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='block',
             name='block_type',
-            field=models.ForeignKey(to='booking.BlockType', null=True),
+            field=models.ForeignKey(to='booking.BlockType', null=True, on_delete=models.SET_NULL),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='block',
             name='user',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='blocks'),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='blocks', on_delete=models.CASCADE),
             preserve_default=True,
         ),
     ]

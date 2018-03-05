@@ -89,7 +89,9 @@ class OnlineDisclaimer(models.Model):
         'date'
     )
 
-    user = models.ForeignKey(User, related_name='online_disclaimer')
+    user = models.ForeignKey(
+        User, related_name='online_disclaimer', on_delete=models.CASCADE
+    )
     date = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(null=True, blank=True)
 
@@ -195,7 +197,9 @@ class OnlineDisclaimer(models.Model):
 
 
 class PrintDisclaimer(models.Model):
-    user = models.OneToOneField(User, related_name='print_disclaimer')
+    user = models.OneToOneField(
+        User, related_name='print_disclaimer', on_delete=models.CASCADE
+    )
     date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

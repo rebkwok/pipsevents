@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import path
 from django.views.generic import RedirectView
 from booking.views import already_cancelled, already_paid, \
     disclaimer_required, \
@@ -13,97 +13,103 @@ from booking.views import already_cancelled, already_paid, \
     has_active_block, permission_denied, ticket_purchase_expired, \
     shopping_basket, update_block_bookings
 
+
+app_name = 'booking'
+
+
 urlpatterns = [
-    url(r'^bookings/$', BookingListView.as_view(), name='bookings'),
-    url(r'^booking-history/$', BookingHistoryListView.as_view(),
-        name='booking_history'),
-    url(r'^booking/update/(?P<pk>\d+)/$', BookingUpdateView.as_view(),
+    path('bookings/', BookingListView.as_view(), name='bookings'),
+    path(
+        'booking-history/', BookingHistoryListView.as_view(),
+        name='booking_history'
+    ),
+    path('booking/update/<int:pk>/', BookingUpdateView.as_view(),
         name='update_booking'),
-    url(r'^booking/update/(?P<pk>\d+)/cancelled/$',
+    path('booking/update/<int:pk>/cancelled/',
         update_booking_cancelled,
         name='update_booking_cancelled'),
-    url(r'^booking/update/(?P<pk>\d+)/paid/$',
+    path('booking/update/<int:pk>/paid/',
         already_paid, name='already_paid'),
-    url(r'^booking/update-block-bookings/$',
+    path('booking/update-block-bookings/',
         update_block_bookings, name='update_block_bookings'),
-    url(r'^booking/cancel/(?P<pk>\d+)/$', BookingDeleteView.as_view(),
+    path('booking/cancel/<int:pk>/', BookingDeleteView.as_view(),
         name='delete_booking'),
-    url(r'^booking/cancel/(?P<pk>\d+)/already_cancelled/$',
+    path('booking/cancel/<int:pk>/already_cancelled/',
         already_cancelled,
         name='already_cancelled'),
-    url(r'^events/(?P<event_slug>[\w-]+)/cancellation-period-past/$',
+    path('events/<slug:event_slug>/cancellation-period-past/',
         cancellation_period_past, name='cancellation_period_past'),
-    url(r'^events/(?P<event_slug>[\w-]+)/duplicate/$',
+    path('events/<slug:event_slug>/duplicate/',
         duplicate_booking, name='duplicate_booking'),
-    url(r'^events/(?P<event_slug>[\w-]+)/full/$', fully_booked,
+    path('events/<slug:event_slug>/full/', fully_booked,
         name='fully_booked'),
-    url(r'^events/(?P<event_slug>[\w-]+)/book/$', BookingCreateView.as_view(),
+    path('events/<slug:event_slug>/book/', BookingCreateView.as_view(),
         name='book_event'),
-    url(r'^events/(?P<event_slug>[\w-]+)/create-booking/$',
+    path('events/<slug:event_slug>/create-booking/',
         BookingMultiCreateView.as_view(),
         name='create_booking'),
-    url(
-        r'^events/(?P<slug>[\w-]+)/$', EventDetailView.as_view(),
+    path(
+        'events/<slug:slug>/', EventDetailView.as_view(),
         {'ev_type': 'event'}, name='event_detail'
     ),
-    url(
-        r'^events/$', EventListView.as_view(), {'ev_type': 'events'},
+    path(
+        'events/', EventListView.as_view(), {'ev_type': 'events'},
         name='events'
     ),
-    url(
-        r'^classes/(?P<slug>[\w-]+)/$',  EventDetailView.as_view(),
+    path(
+        'classes/<slug:slug>/',  EventDetailView.as_view(),
         {'ev_type': 'lesson'}, name='lesson_detail'),
-    url(
-        r'^classes/$', EventListView.as_view(), {'ev_type': 'lessons'},
+    path(
+        'classes/', EventListView.as_view(), {'ev_type': 'lessons'},
         name='lessons'
     ),
-    url(
-        r'^room-hire/(?P<slug>[\w-]+)/$',  EventDetailView.as_view(),
+    path(
+        'room-hire/<slug:slug>/',  EventDetailView.as_view(),
         {'ev_type': 'room_hire'}, name='room_hire_detail'),
-    url(
-        r'^room-hire/$', EventListView.as_view(), {'ev_type': 'room_hires'},
+    path(
+        'room-hire/', EventListView.as_view(), {'ev_type': 'room_hires'},
         name='room_hires'
     ),
-    url(r'^blocks/$', BlockListView.as_view(), name='block_list'),
-    url(r'^blocks/new/$', BlockCreateView.as_view(), name='add_block'),
-    url(r'^blocks/(?P<pk>\d+)/delete/$', BlockDeleteView.as_view(),
+    path('blocks/', BlockListView.as_view(), name='block_list'),
+    path('blocks/new/', BlockCreateView.as_view(), name='add_block'),
+    path('blocks/<int:pk>/delete/', BlockDeleteView.as_view(),
         name='delete_block'),
-    url(r'^blocks/existing/$', has_active_block,
+    path('blocks/existing/', has_active_block,
         name='has_active_block'),
-    url(r'^not-available/$', permission_denied,
+    path('not-available/', permission_denied,
         name='permission_denied'),
-    url(
-        r'^ticketed-events/$', TicketedEventListView.as_view(),
+    path(
+        'ticketed-events/', TicketedEventListView.as_view(),
         name='ticketed_events'
     ),
-    url(r'^ticketed-events/(?P<event_slug>[\w-]+)/purchase/$',
+    path('ticketed-events/(<slug:event_slug>/purchase/',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
-    url(
-        r'^ticket-bookings/$', TicketBookingListView.as_view(),
+    path(
+        'ticket-bookings/', TicketBookingListView.as_view(),
         name='ticket_bookings'
     ),
-    url(
-        r'^ticket-bookings/(?P<ref>[\w-]+)/$', TicketBookingView.as_view(),
+    path(
+        'ticket-bookings/<str:ref>/', TicketBookingView.as_view(),
         name='ticket_booking'
     ),
-    url(
-        r'^ticket-bookings/(?P<pk>\d+)/cancel/$',
+    path(
+        'ticket-bookings/<int:pk>/cancel/',
         TicketBookingCancelView.as_view(), name='cancel_ticket_booking'
     ),
-    url(
-        r'^ticket-bookings/(?P<slug>[\w-]+)/expired/$',
+    path(
+        'ticket-bookings/<slug:slug>/expired/',
         ticket_purchase_expired, name='ticket_purchase_expired'
     ),
-    url(r'^ticket-booking-history/$', TicketBookingHistoryListView.as_view(),
+    path('ticket-booking-history/', TicketBookingHistoryListView.as_view(),
         name='ticket_booking_history'),
-    url(
-        r'^disclaimer-required/$', disclaimer_required,
+    path(
+        'disclaimer-required/', disclaimer_required,
         name='disclaimer_required'
     ),
-    url(
-        r'^bookings/shopping-basket$', shopping_basket,
+    path(
+        'bookings/shopping-basket/', shopping_basket,
         name='shopping_basket'
     ),
-    url(r'^$', RedirectView.as_view(url='/classes/', permanent=True)),
+    path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]
