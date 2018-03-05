@@ -73,16 +73,16 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='ticketbooking',
             name='ticketed_event',
-            field=models.ForeignKey(related_name='ticket_bookings', to='booking.TicketedEvent'),
+            field=models.ForeignKey(related_name='ticket_bookings', to='booking.TicketedEvent', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='ticketbooking',
             name='user',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='ticket',
             name='ticket_booking',
-            field=models.ForeignKey(related_name='tickets', to='booking.TicketBooking'),
+            field=models.ForeignKey(related_name='tickets', to='booking.TicketBooking', on_delete=models.CASCADE),
         ),
     ]

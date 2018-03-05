@@ -28,7 +28,7 @@ class Session(models.Model):
     name=models.CharField(max_length=255)
     day = models.CharField(max_length=5, choices=DAY_CHOICES)
     time = models.TimeField()
-    event_type = models.ForeignKey(EventType, null=True)
+    event_type = models.ForeignKey(EventType, null=True, on_delete=models.SET_NULL)
     description = models.TextField(blank=True, default="")
     location = models.CharField(
         max_length=255, choices=Event.LOCATION_CHOICES,

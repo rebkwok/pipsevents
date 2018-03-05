@@ -19,8 +19,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now)),
-                ('event', models.ForeignKey(related_name='waitinglistusers', to='booking.Event')),
-                ('user', models.ForeignKey(related_name='waitinglists', to=settings.AUTH_USER_MODEL)),
+                ('event', models.ForeignKey(related_name='waitinglistusers', to='booking.Event', on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(related_name='waitinglists', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
         ),
     ]

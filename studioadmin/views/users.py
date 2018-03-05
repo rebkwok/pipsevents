@@ -6,12 +6,12 @@ from django.contrib.auth.models import Group, User,  Permission
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Q
 from django.template.loader import get_template, render_to_string
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponse, HttpResponseRedirect, \
-    get_object_or_404, render_to_response
+    get_object_or_404, render
 from django.views.generic import CreateView, ListView, UpdateView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -145,7 +145,8 @@ def toggle_regular_student(request,  user_id):
                     )
             )
     # get the user again, otherwise permissions are cached
-    return render_to_response(
+    return render(
+        request,
         "studioadmin/includes/regular_student_button.txt",
         {"user": User.objects.get(id=user_to_change.id)}
     )
@@ -184,7 +185,8 @@ def toggle_print_disclaimer(request,  user_id):
                     request.user.username
                 )
         )
-    return render_to_response(
+    return render(
+        request,
         "studioadmin/includes/print_disclaimer_button.txt",
         {"user": user_to_change}
     )
@@ -231,7 +233,8 @@ def toggle_subscribed(request,  user_id):
                 user_to_change.username
             )
         )
-    return render_to_response(
+    return render(
+        request,
         "studioadmin/includes/subscribed_button.txt",
         {"user": user_to_change}
     )

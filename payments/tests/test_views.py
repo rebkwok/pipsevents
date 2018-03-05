@@ -1,21 +1,20 @@
 from model_mommy import mommy
 
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 
 from paypal.standard.ipn.models import PayPalIPN
 
 from booking.context_helpers import get_paypal_custom, get_paypal_dict, get_paypal_cart_dict
-from booking.models import Block, Booking, TicketBooking
+from booking.models import Block, Booking
 from common.tests.helpers import PatchRequestMixin, set_up_fb
 from payments.forms import PayPalPaymentsShoppingBasketForm, PayPalPaymentsUpdateForm
 from payments.helpers import create_booking_paypal_transaction, \
     create_multibooking_paypal_transaction, \
     create_multiblock_paypal_transaction, \
     create_ticket_booking_paypal_transaction
-from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
-    PaypalTicketBookingTransaction
+from payments.models import PaypalBookingTransaction, PaypalBlockTransaction
 
 
 class ConfirmReturnViewTests(PatchRequestMixin, TestCase):

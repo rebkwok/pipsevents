@@ -1,6 +1,6 @@
-from django.conf.urls import url
+from django.urls import path, re_path
 from django.views.generic import RedirectView
-from django.views.i18n import javascript_catalog as django_jsi18n
+from django.views.i18n import JavaScriptCatalog
 from studioadmin.views import (BookingEditView,
                                BookingEditPastView,
                                ConfirmRefundView,
@@ -53,157 +53,185 @@ from studioadmin.views import (BookingEditView,
                                BookingAddView
                                )
 
+app_name = 'studioadmin'
+
 
 urlpatterns = [
-    url(r'^confirm-payment/(?P<pk>\d+)/$', ConfirmPaymentView.as_view(),
+    path('confirm-payment/<int:pk>/', ConfirmPaymentView.as_view(),
         name='confirm-payment'),
-    url(r'^confirm-refunded/(?P<pk>\d+)/$', ConfirmRefundView.as_view(),
+    path('confirm-refunded/<int:pk>/', ConfirmRefundView.as_view(),
         name='confirm-refund'),
-    url(r'^events/(?P<slug>[\w-]+)/edit$', EventAdminUpdateView.as_view(),
+    path('events/<slug:slug>/edit', EventAdminUpdateView.as_view(),
         {'ev_type': 'event'}, name='edit_event'),
-    url(r'^events/$', event_admin_list,
+    path('events/', event_admin_list,
         {'ev_type': 'events'}, name='events'),
-    url(r'^events/(?P<slug>[\w-]+)/cancel', cancel_event_view,
+    path('events/<slug:slug>/cancel', cancel_event_view,
         name='cancel_event'),
-    url(r'^event-registers/$', EventRegisterListView.as_view(),
+    path('event-registers/', EventRegisterListView.as_view(),
         {'ev_type': 'events'}, name='event_register_list'),
-    url(r'^event-registers/(?P<event_slug>[\w-]+)/(?P<status_choice>[\w-]+)$',
+    path('event-registers/<slug:event_slug>/<str:status_choice>/',
         register_view, name='event_register'),
-    url(r'^event-registers/(?P<event_slug>[\w-]+)/(?P<status_choice>[\w-]+)/print/$',
+    path('event-registers/<slug:event_slug>/<str:status_choice>/print/',
         register_view, {'print_view': True}, name='event_register_print'),
-    url(r'^event-registers/print-registers-by-date/$', register_print_day,
+    path('event-registers/print-registers-by-date/', register_print_day,
         name='register-day'),
-    url(r'^events/new/$', EventAdminCreateView.as_view(),
+    path('events/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'event'}, name='add_event'),
-    url(r'^classes/(?P<slug>[\w-]+)/edit$', EventAdminUpdateView.as_view(),
+    path('classes/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
         {'ev_type': 'lesson'}, name='edit_lesson'),
-    url(r'^classes/$', event_admin_list,
+    path('classes/', event_admin_list,
         {'ev_type': 'lessons'}, name='lessons'),
-    url(r'^class-registers/$', EventRegisterListView.as_view(),
+    path('class-registers/', EventRegisterListView.as_view(),
         {'ev_type': 'lessons'}, name='class_register_list'),
-    url(r'^class-registers/(?P<event_slug>[\w-]+)/(?P<status_choice>[\w-]+)$',
+    path('class-registers/<slug:event_slug>/<str:status_choice>/',
         register_view, name='class_register'),
-    url(r'^class-registers/(?P<event_slug>[\w-]+)/(?P<status_choice>[\w-]+)/print/$',
+    path('class-registers/<slug:event_slug>/<str:status_choice>/print/',
         register_view, {'print_view': True}, name='class_register_print'),
-    url(r'^classes/new/$', EventAdminCreateView.as_view(),
+    path('classes/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'lesson'}, name='add_lesson'),
-    url(r'^timetable/$', timetable_admin_list, name='timetable'),
-    url(
-        r'^timetable/session/(?P<pk>\d+)/edit$',
+    path('timetable', timetable_admin_list, name='timetable'),
+    path('timetable/session/<int:pk>/edit/',
         TimetableSessionUpdateView.as_view(), name='edit_session'
     ),
-    url(
-        r'^timetable/session/new$',
+    path(
+        'timetable/session/new/',
         TimetableSessionCreateView.as_view(), name='add_session'
     ),
-    url(r'^timetable/upload/$', upload_timetable_view,
+    path('timetable/upload/', upload_timetable_view,
         name='upload_timetable'),
-    url(r'^users/$', UserListView.as_view(), name="users"),
-    url(r'^blocks/$', BlockListView.as_view(), name="blocks"),
-    url(r'^users/email/$', choose_users_to_email,
+    path('users/', UserListView.as_view(), name="users"),
+    path('blocks/', BlockListView.as_view(), name="blocks"),
+    path('users/email/', choose_users_to_email,
         name="choose_email_users"),
-    url(r'^users/email/emailform/$', email_users_view,
+    path('users/email/emailform/', email_users_view,
         name="email_users_view"),
-    url(r'^users/email/mailing-list-email/$', email_users_view,
+    path('users/email/mailing-list-email/', email_users_view,
         {'mailing_list': True}, name="mailing_list_email"),
-    url(r'^users/mailing-list/$', MailingListView.as_view(), name='mailing_list'),
-    url(
-        r'^users/mailing-list/export/$', export_mailing_list,
+    path(
+        'users/mailing-list/', MailingListView.as_view(),
+         name='mailing_list'
+    ),
+    path('users/mailing-list/export/', export_mailing_list,
         name='export_mailing_list'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/mailing-list/unsubscribe$',
+    path('users/<int:user_id>/mailing-list/unsubscribe/',
         unsubscribe, name='unsubscribe'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/bookings/old/$',
+    path('users/<int:user_id>/bookings/old/',
         user_bookings_view_old, name='user_bookings_list'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/bookings/$',
-        user_modal_bookings_view, {'past': False}, name='user_upcoming_bookings_list'
+    path(
+        'users/<int:user_id>/bookings/',
+        user_modal_bookings_view, {'past': False},
+        name='user_upcoming_bookings_list'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/bookings/past/$',
-        user_modal_bookings_view, {'past': True}, name='user_past_bookings_list'
+    path(
+        'users/<int:user_id>/bookings/past/',
+        user_modal_bookings_view, {'past': True},
+        name='user_past_bookings_list'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/blocks/$',
+    path('users/<int:user_id>/blocks/',
         user_blocks_view, name='user_blocks_list'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/toggle_regular_student/$',
+    path(
+        'users/<int:user_id>/toggle_regular_student/',
         toggle_regular_student, name='toggle_regular_student'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/toggle_print_disclaimer/$',
+    path(
+        'users/<int:user_id>/toggle_print_disclaimer/',
         toggle_print_disclaimer, name='toggle_print_disclaimer'
     ),
-    url(
-        r'^users/(?P<user_id>\d+)/toggle_subscribed/$',
+    path(
+        'users/<int:user_id>/toggle_subscribed/',
         toggle_subscribed, name='toggle_subscribed'
     ),
-    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/$',
-        user_disclaimer,
-        name='user_disclaimer'),
-    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/update/$',
+    path(
+        'users/<str:encoded_user_id>/disclaimer/',
+        user_disclaimer, name='user_disclaimer'
+    ),
+    path(
+        'users/<str:encoded_user_id>/disclaimer/update/',
         DisclaimerUpdateView.as_view(),
         name='update_user_disclaimer'),
-    url(r'^users/(?P<encoded_user_id>[\w-]+)/disclaimer/delete/$',
-        DisclaimerDeleteView.as_view(),
-        name='delete_user_disclaimer'),
-    url(
-        r'activitylog/$', ActivityLogListView.as_view(), name='activitylog'
+    path(
+        'users/<str:encoded_user_id>/disclaimer/delete/',
+        DisclaimerDeleteView.as_view(), name='delete_user_disclaimer'
     ),
-    url(
-        r'^waitinglists/(?P<event_id>\d+)$',
+    path(
+        'activitylog/', ActivityLogListView.as_view(), name='activitylog'
+    ),
+    path(
+        'waitinglists/<int:event_id>/',
         event_waiting_list_view, name='event_waiting_list'
     ),
-    url(r'^ticketed-events/$', TicketedEventAdminListView.as_view(),
-        name='ticketed_events'),
-    url(r'^ticketed-events/new/$', TicketedEventAdminCreateView.as_view(),
-        name='add_ticketed_event'),
-    url(r'^ticketed-events/(?P<slug>[\w-]+)/edit$',
-        TicketedEventAdminUpdateView.as_view(),
-        name='edit_ticketed_event'),
-    url(r'^ticketed-events/(?P<slug>[\w-]+)/ticket-bookings$',
+    path(
+        'ticketed-events/', TicketedEventAdminListView.as_view(),
+        name='ticketed_events'
+    ),
+    path(
+        'ticketed-events/new/', TicketedEventAdminCreateView.as_view(),
+        name='add_ticketed_event'
+    ),
+    path(
+        'ticketed-events/<slug:slug>/edit/',
+        TicketedEventAdminUpdateView.as_view(), name='edit_ticketed_event'
+    ),
+    path(
+        'ticketed-events/<slug:slug>/ticket-bookings/',
         TicketedEventBookingsListView.as_view(),
-        name='ticketed_event_bookings'),
-    url(r'^ticketed-events/(?P<slug>[\w-]+)/cancel',
-        cancel_ticketed_event_view,
-        name='cancel_ticketed_event'),
-    url(r'^confirm-ticket-booking-refunded/(?P<pk>\d+)/$',
+        name='ticketed_event_bookings'
+    ),
+    path(
+        'ticketed-events/<slug:slug>/cancel/',
+        cancel_ticketed_event_view, name='cancel_ticketed_event'
+    ),
+    path(
+        'confirm-ticket-booking-refunded/<int:pk>/',
         ConfirmTicketBookingRefundView.as_view(),
-        name='confirm_ticket_booking_refund'),
-    url(r'^ticketed-events/print-tickets-list/$', print_tickets_list,
-        name='print_tickets_list'),
-    url(r'^vouchers/$', VoucherListView.as_view(), name='vouchers'),
-    url(r'^vouchers/new/$', VoucherCreateView.as_view(), name='add_voucher'),
-    url(r'^vouchers/(?P<pk>\d+)/edit/$', VoucherUpdateView.as_view(), name='edit_voucher'),
-    url(r'^block-vouchers/$', BlockVoucherListView.as_view(), name='block_vouchers'),
-    url(r'^block-vouchers/new/$', BlockVoucherCreateView.as_view(), name='add_block_voucher'),
-    url(r'^block-vouchers/(?P<pk>\d+)/edit/$', BlockVoucherUpdateView.as_view(), name='edit_block_voucher'),
-    url(r'^test-paypal-email/$', test_paypal_view, name='test_paypal_email'),
-    url(
-        r'^voucher/(?P<pk>\d+)/uses/$', EventVoucherDetailView.as_view(),
+        name='confirm_ticket_booking_refund'
+    ),
+    path(
+        'ticketed-events/print-tickets-list/', print_tickets_list,
+        name='print_tickets_list'
+    ),
+    path('vouchers/', VoucherListView.as_view(), name='vouchers'),
+    path('vouchers/new/', VoucherCreateView.as_view(), name='add_voucher'),
+    path(
+        'vouchers/<int:pk>/edit/', VoucherUpdateView.as_view(),
+        name='edit_voucher'
+    ),
+    path(
+        'block-vouchers/', BlockVoucherListView.as_view(), name='block_vouchers'
+    ),
+    path(
+        'block-vouchers/new/', BlockVoucherCreateView.as_view(),
+        name='add_block_voucher'
+    ),
+    path(
+        'block-vouchers/<int:pk>/edit/', BlockVoucherUpdateView.as_view(),
+        name='edit_block_voucher'
+    ),
+    path('test-paypal-email/', test_paypal_view, name='test_paypal_email'),
+    path(
+        'voucher/<int:pk>/uses/', EventVoucherDetailView.as_view(),
         name='voucher_uses'
     ),
-    url(
-        r'^block-voucher/(?P<pk>\d+)/uses/$', BlockVoucherDetailView.as_view(),
+    path(
+        'block-voucher/<int:pk>/uses/', BlockVoucherDetailView.as_view(),
         name='block_voucher_uses'
     ),
-    url(
-        r'^bookingeditpast/(?P<pk>\d+)/$', BookingEditPastView.as_view(),
+    path(
+        'bookingeditpast/<int:pk>/', BookingEditPastView.as_view(),
         name='bookingeditpast'
     ),
-        url(
-        r'^bookingedit/(?P<pk>\d+)/$', BookingEditView.as_view(),
+    path(
+        'bookingedit/<int:pk>/', BookingEditView.as_view(),
         name='bookingedit'
     ),
-    url(
-        r'^bookingadd/(?P<user_id>\d+)/$', BookingAddView.as_view(),
+    path(
+        'bookingadd/<int:user_id>/', BookingAddView.as_view(),
         name='bookingadd'
     ),
-    url(r'^jsi18n', django_jsi18n, name='jsi18n'),
-    url(r'^$', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
+    path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
+    path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
     ]

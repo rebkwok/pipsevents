@@ -25,13 +25,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='blocktype',
             name='eventtype',
-            field=models.ForeignKey(null=True, to='booking.EventType'),
+            field=models.ForeignKey(null=True, to='booking.EventType', on_delete=models.SET_NULL),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='event',
             name='eventtype',
-            field=models.ForeignKey(null=True, to='booking.EventType'),
+            field=models.ForeignKey(null=True, to='booking.EventType', on_delete=models.SET_NULL),
             preserve_default=True,
         ),
         migrations.AlterField(

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(primary_key=True, verbose_name='ID', serialize=False, auto_created=True)),
                 ('invoice_id', models.CharField(max_length=255, unique=True, blank=True, null=True)),
                 ('transaction_id', models.CharField(max_length=255, unique=True, blank=True, null=True)),
-                ('booking', models.ForeignKey(to='booking.Booking', null=True)),
+                ('booking', models.ForeignKey(to='booking.Booking', null=True, on_delete=models.SET_NULL)),
             ],
         ),
         migrations.RemoveField(

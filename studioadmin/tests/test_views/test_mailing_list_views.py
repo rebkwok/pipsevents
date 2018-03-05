@@ -1,7 +1,7 @@
 from model_mommy import mommy
 
 from django.contrib.auth.models import Group, User
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 
 from common.tests.helpers import assert_mailchimp_post_data

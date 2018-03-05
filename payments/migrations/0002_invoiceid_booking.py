@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='invoiceid',
             name='booking',
-            field=models.ForeignKey(null=True, to='booking.Booking'),
+            field=models.ForeignKey(null=True, to='booking.Booking', on_delete=models.SET_NULL)
         ),
     ]

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(serialize=False, verbose_name='ID', primary_key=True, auto_created=True)),
                 ('invoice_id', models.CharField(max_length=255, unique=True, blank=True, null=True)),
                 ('transaction_id', models.CharField(max_length=255, unique=True, blank=True, null=True)),
-                ('ticket_booking', models.ForeignKey(null=True, to='booking.TicketBooking')),
+                ('ticket_booking', models.ForeignKey(null=True, to='booking.TicketBooking', on_delete=models.SET_NULL)),
             ],
         ),
     ]

@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('terms_accepted', models.BooleanField()),
-                ('user', models.OneToOneField(related_name='disclaimer', to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(related_name='disclaimer', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
         ),
     ]

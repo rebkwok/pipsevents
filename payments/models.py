@@ -27,7 +27,7 @@ class PayPalTransactionError(Exception):
 
 class PaypalBookingTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True)
-    booking = models.ForeignKey(Booking, null=True)
+    booking = models.ForeignKey(Booking, null=True, on_delete=models.SET_NULL)
     transaction_id = models.CharField(max_length=255, null=True, blank=True)
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
@@ -37,7 +37,7 @@ class PaypalBookingTransaction(models.Model):
 
 class PaypalBlockTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True)
-    block = models.ForeignKey(Block, null=True)
+    block = models.ForeignKey(Block, null=True, on_delete=models.SET_NULL)
     transaction_id = models.CharField(max_length=255, null=True, blank=True)
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
@@ -47,7 +47,7 @@ class PaypalBlockTransaction(models.Model):
 
 class PaypalTicketBookingTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
-    ticket_booking = models.ForeignKey(TicketBooking, null=True)
+    ticket_booking = models.ForeignKey(TicketBooking, null=True, on_delete=models.SET_NULL)
     transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     def __str__(self):

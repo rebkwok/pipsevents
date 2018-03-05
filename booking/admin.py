@@ -8,7 +8,7 @@ from django.template.loader import get_template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django import forms
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 

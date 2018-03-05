@@ -9,7 +9,7 @@ from django.contrib.auth.models import Group, User
 
 from django.contrib import messages
 from django.core.mail.message import EmailMultiAlternatives
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse

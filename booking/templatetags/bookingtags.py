@@ -307,12 +307,12 @@ def transferred_from(block):
     return ''
 
 
-@register.assignment_tag
+@register.simple_tag
 def check_debug():
     return settings.DEBUG
 
 
-@register.assignment_tag
+@register.simple_tag
 def voucher_expired(voucher):
     # voucher has expired if expiry date passed or has been used max times
     if voucher.expiry_date and voucher.expiry_date < timezone.now():
@@ -331,7 +331,7 @@ def voucher_expired(voucher):
     return False
 
 
-@register.assignment_tag
+@register.simple_tag
 def get_booking(event, user):
     if user.is_authenticated:
         return Booking.objects.filter(event=event, user=user).first()
@@ -351,7 +351,7 @@ def get_payment_button(booking, type, tab, filter):
     }
 
 
-@register.assignment_tag
+@register.simple_tag
 def get_weekday(weekday_num):
     if weekday_num in [0, 2, 4]:
         return 'table-shaded'
@@ -391,7 +391,7 @@ def get_shopping_basket_icon(user, menu=False):
     }
 
 
-@register.assignment_tag
+@register.simple_tag
 def has_shopping_basket_items(user):
     return get_shopping_basket_icon(user)['has_unpaid_bookings']
 

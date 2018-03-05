@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='booking',
             name='block',
-            field=models.ForeignKey(to='booking.Block', null=True, blank=True, related_name='bookings'),
+            field=models.ForeignKey(to='booking.Block', null=True, blank=True, related_name='bookings', on_delete=models.CASCADE),
         ),
     ]

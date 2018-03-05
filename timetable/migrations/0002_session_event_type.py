@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='session',
             name='event_type',
-            field=models.ForeignKey(null=True, to='booking.EventType'),
+            field=models.ForeignKey(null=True, to='booking.EventType', on_delete=models.SET_NULL),
             preserve_default=True,
         ),
     ]

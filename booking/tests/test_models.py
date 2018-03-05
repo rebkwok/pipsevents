@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from datetime import timedelta, datetime
 from unittest.mock import patch
