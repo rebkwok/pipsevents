@@ -1,6 +1,6 @@
 from importlib import import_module
 from requests.auth import HTTPBasicAuth
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from model_mommy import mommy
 
@@ -56,7 +56,9 @@ class TestSetupMixin(object):
         cls.factory = RequestFactory()
 
     def setUp(self):
-        self.patcher = patch('requests.request')
+        mockresponse = Mock()
+        mockresponse.status_code = 200
+        self.patcher = patch('requests.request', return_value = mockresponse)
         self.mock_request = self.patcher.start()
         self.user = User.objects.create_user(
             username='test', email='test@test.com', password='test'
@@ -70,7 +72,9 @@ class TestSetupMixin(object):
 class PatchRequestMixin(object):
 
     def setUp(self):
-        self.patcher = patch('requests.request')
+        mockresponse = Mock()
+        mockresponse.status_code = 200
+        self.patcher = patch('requests.request', return_value = mockresponse)
         self.mock_request = self.patcher.start()
 
     def tearDown(self):
@@ -84,14 +88,23 @@ def format_content(content):
     )
 
 
-def assert_mailchimp_post_data(mock_request, user, mailing_list_status):
+def assert_mailchimp_post_data(
+        mock_request, user, mailing_list_status, email=None,
+        list_id=settings.MAILCHIMP_LIST_ID
+):
+    if email is None:
+        # allows for testing when changing emails
+        email = user.email
+
     mock_request.assert_called_with(
         timeout=20,
         hooks={'response': []},
         method='POST',
-        url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
-            settings.MAILCHIMP_SECRET, settings.MAILCHIMP_LIST_ID
-        ),
+        headers={
+            'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
+            'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
+        },
+        url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(list_id),
         auth=HTTPBasicAuth(
             settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
         ),
@@ -99,7 +112,7 @@ def assert_mailchimp_post_data(mock_request, user, mailing_list_status):
             'update_existing': True,
             'members': [
                 {
-                    'email_address': user.email,
+                    'email_address': email,
                     'status': mailing_list_status,
                     'status_if_new': mailing_list_status,
                     'merge_fields': {

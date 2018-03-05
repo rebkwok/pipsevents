@@ -16,7 +16,7 @@ def update_mailchimp(user, action, old_email=None):
     old_email: if updating an email, this is the old email address
     """
     client = MailChimp(
-        settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET, timeout=20
+        settings.MAILCHIMP_SECRET, settings.MAILCHIMP_USER, timeout=20
     )
 
     status_mapping = {
