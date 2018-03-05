@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import RequestFactory
 from django.contrib.auth.models import Permission, Group, User
@@ -29,7 +29,9 @@ class TestPermissionMixin(object):
         group.permissions.add(perm)
         self.instructor_user.groups.add(group)
 
-        self.patcher = patch('requests.request')
+        mockresponse = Mock()
+        mockresponse.status_code = 200
+        self.patcher = patch('requests.request', return_value = mockresponse)
         self.mock_request = self.patcher.start()
 
     def tearDown(self):

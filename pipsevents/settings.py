@@ -500,7 +500,8 @@ MAILCHIMP_WEBHOOK_SECRET = env('MAILCHIMP_WEBHOOK_SECRET', default='')
 
 if TESTING or env('TRAVIS'):
     MAILCHIMP_USER = 'mailchimp'
-    MAILCHIMP_SECRET = 'mailchimp_secret'
+    # has to be a valid mailchimp api key pattern
+    MAILCHIMP_SECRET = 'abcdef0123456789abcdef0123456789-us6'
     MAILCHIMP_LIST_ID = 'mailchimplistdummyid'
     MAILCHIMP_WEBHOOK_SECRET = 'dummywebhooksecret'
 

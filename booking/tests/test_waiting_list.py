@@ -993,7 +993,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
 
 
 class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
-
+        
     def _post_response(self, user, user_id, form_data):
         # helper function to create test bookings; uses the old
         # admin user booking view

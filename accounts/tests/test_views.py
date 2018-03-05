@@ -142,30 +142,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(self.user.first_name, 'Foo')
 
         # called with the invalid id
-        self.mock_request.assert_called_with(
-            timeout=20,
-            hooks={'response': []},
-            method='POST',
-            url='https://{}.api.mailchimp.com/3.0/lists/fake'.format(
-                settings.MAILCHIMP_SECRET
-            ),
-            auth=HTTPBasicAuth(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
-            ),
-            json={
-                'update_existing': True,
-                'members': [
-                    {
-                        'email_address': self.user.email,
-                        'status': 'unsubscribed',
-                        'status_if_new': 'unsubscribed',
-                        'merge_fields': {
-                            'FNAME': self.user.first_name,
-                            'LNAME': self.user.last_name
-                        }
-                    }
-                ]
-            }
+        assert_mailchimp_post_data(
+            self.mock_request, self.user, 'unsubscribed', list_id='fake'
         )
 
 
@@ -205,12 +183,16 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             timeout=20,
             hooks={'response': []},
             method='POST',
-            url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_SECRET, settings.MAILCHIMP_LIST_ID
+            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
+                settings.MAILCHIMP_LIST_ID
             ),
             auth=HTTPBasicAuth(
                 settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
             ),
+            headers={
+                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
+                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
+            },
             json={
                 'update_existing': True,
                 'members': [
@@ -230,12 +212,16 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             timeout=20,
             hooks={'response': []},
             method='POST',
-            url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_SECRET, settings.MAILCHIMP_LIST_ID
+            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
+                settings.MAILCHIMP_LIST_ID
             ),
             auth=HTTPBasicAuth(
                 settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
             ),
+            headers={
+                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
+                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
+            },
             json={
                 'update_existing': True,
                 'members': [
@@ -278,12 +264,16 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             timeout=20,
             hooks={'response': []},
             method='POST',
-            url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_SECRET, settings.MAILCHIMP_LIST_ID
+            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
+                settings.MAILCHIMP_LIST_ID
             ),
             auth=HTTPBasicAuth(
                 settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
             ),
+            headers={
+                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
+                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
+            },
             json={
                 'update_existing': True,
                 'members': [
@@ -303,12 +293,16 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             timeout=20,
             hooks={'response': []},
             method='POST',
-            url='https://{}.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_SECRET, settings.MAILCHIMP_LIST_ID
+            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
+                settings.MAILCHIMP_LIST_ID
             ),
             auth=HTTPBasicAuth(
                 settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
             ),
+            headers={
+                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
+                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
+            },
             json={
                 'update_existing': True,
                 'members': [
@@ -388,30 +382,9 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
 
         # called with the invalid id; only called to try to unsubscribe old
         # email
-        self.mock_request.assert_called_with(
-            timeout=20,
-            hooks={'response': []},
-            method='POST',
-            url='https://{}.api.mailchimp.com/3.0/lists/fake'.format(
-                settings.MAILCHIMP_SECRET
-            ),
-            auth=HTTPBasicAuth(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
-            ),
-            json={
-                'update_existing': True,
-                'members': [
-                    {
-                        'email_address': 'test@test.com',
-                        'status': 'unsubscribed',
-                        'status_if_new': 'unsubscribed',
-                        'merge_fields': {
-                            'FNAME': self.user.first_name,
-                            'LNAME': self.user.last_name
-                        }
-                    }
-                ]
-            }
+        assert_mailchimp_post_data(
+            self.mock_request, self.user, 'unsubscribed', email='test@test.com',
+            list_id='fake'
         )
 
 

@@ -1468,7 +1468,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         self.assertEqual(
             ppipn.flag_info,
             'Invalid form. (payment_date: Invalid date format '
-            '2015-10-25 01:21:32: need more than 2 values to unpack)'
+            '2015-10-25 01:21:32: not enough values to unpack (expected 5, got 2))'
         )
 
         self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
@@ -1481,7 +1481,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             'PayPal sent an invalid transaction notification while attempting '
             'to process payment;.\n\nThe flag info was "Invalid form. '
             '(payment_date: Invalid date format '
-            '2015-10-25 01:21:32: need more than 2 values to unpack)"'
+            '2015-10-25 01:21:32: not enough values to unpack (expected 5, got 2))"'
             '\n\nAn additional error was raised: Unknown object type for '
             'payment'
         )
@@ -1571,7 +1571,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         self.assertEqual(
             ppipn.flag_info,
             "Invalid form. (payment_date: Invalid date format "
-            "01:28 Jan 25 2015 PDT: need more than 2 values to unpack)"
+            "01:28 Jan 25 2015 PDT: not enough values to unpack (expected 3, got 2))"
         )
 
         # Can be split and day/month/year parts converted but invalid date so
