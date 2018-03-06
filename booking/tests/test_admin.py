@@ -440,6 +440,28 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
             content
         )
 
+    def test_booking_inline_event_choices(self):
+        self.client.login(username=self.superuser.username, password='test')
+
+        user = mommy.make_recipe('booking.user')
+        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
+        event = mommy.make_recipe(
+            'booking.future_PC', event_type=block.block_type.event_type
+        )
+        event1 = mommy.make_recipe('booking.future_EV')
+        mommy.make_recipe(
+            'booking.booking', user=user, event=event, block=block,
+            status='OPEN'
+        )
+
+        url = reverse('admin:booking_block_change', args=[block.id])
+        resp = self.client.get(url)
+
+        booking_inline_formset = resp.context_data['inline_admin_formsets'][0].formset
+        event_field = booking_inline_formset.forms[0].fields['event']
+        ev_choices_ids = [choice[0] for choice in event_field.choices]
+        self.assertIn(event.id, ev_choices_ids)
+        self.assertNotIn(event1.id, ev_choices_ids)
 
 class BlockTypeAdminTests(TestCase):
 

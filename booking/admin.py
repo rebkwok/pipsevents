@@ -272,14 +272,12 @@ class BookingInLine(admin.TabularInline):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "event":
-            try:
-                parent_obj_id = request.resolver_match.args[0]
-                block = Block.objects.get(id=parent_obj_id)
+            parent_obj_id = request.resolver_match.kwargs['object_id']
+            if parent_obj_id:
+                block = Block.objects.get(id=str(parent_obj_id))
                 kwargs["queryset"] = Event.objects.filter(
                     event_type=block.block_type.event_type
                 )
-            except IndexError:  # pragma: no cover
-                pass
         return super(
             BookingInLine, self
         ).formfield_for_foreignkey(db_field, request, **kwargs)
