@@ -13,7 +13,7 @@ class Command(BaseCommand):
         this_week_mon = today - timedelta(days=today.weekday())
         next_week_mon = this_week_mon + timedelta(7)
 
-        if not Session.objects.all():
+        if not Session.objects.exists():
             self.stdout.write('No timetable sessions in system yet.  Creating sessions.')
             management.call_command('create_timetable')
 

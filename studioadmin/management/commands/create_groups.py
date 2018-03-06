@@ -6,14 +6,15 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        self.stdout.write("Creating group 'instructors'...")
+        groups = ['instructors', 'free_5monthly_blocks', 'free_7monthly_blocks']
+        for group in groups:
+            self.stdout.write("Creating group {}...".format(group))
+            _, created = Group.objects.get_or_create(name=group)
+            if created:
+                self.stdout.write("created")
+            else:
+                self.stdout.write("already exists")
 
-        group, new = Group.objects.get_or_create(name="instructors")
-
-        if new:
-            self.stdout.write("Group 'instructors' created")
-        else:
-            self.stdout.write("Group 'instructors' already exists")
-
+        instructors = Group.objects.get(name='instructors')
         perm = Permission.objects.get(codename="can_view_registers")
-        group.permissions.add(perm)
+        instructors.permissions.add(perm)
