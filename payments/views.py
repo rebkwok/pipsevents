@@ -205,28 +205,3 @@ def get_cart_item_names(cart_items):
         cart_item_names = []
 
     return cart_items, item_type, cart_item_names, user_email
-
-
-@csrf_exempt
-def paypal_form_post(request):
-    """
-    interim view to add cart items to session before redirecting to the paypal
-    endpoint
-    """
-    # add cart booking ids to the session so we can set paypal pending
-    request.session['cart_items'] = request.POST['custom']
-    endpoint = request.POST['endpoint']
-    data = request.POST.copy()
-
-    # add default hidden fields from form if they weren't specified
-    if 'cmd' not in data:  # cmd will be included for cart
-        data['cmd'] = PayPalPaymentsForm.CMD_CHOICES[0][0]
-    if 'currency_code' not in data:
-        data['currency_code'] = 'GBP'
-    if 'charset' not in data:
-        data['charset'] = 'utf-8'
-    if 'no_shipping' not in data:
-        data['no_shipping'] = PayPalPaymentsForm.SHIPPING_CHOICES[0][0]
-
-    resp = requests.post(endpoint, data)
-    return HttpResponseRedirect(resp.url)
