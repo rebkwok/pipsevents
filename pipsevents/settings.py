@@ -46,7 +46,10 @@ if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
 else:  # pragma: no cover
     DEBUG = False
 
-ALLOWED_HOSTS = ['booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk']
+ALLOWED_HOSTS = [
+    'booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk',
+    'vagrant.pipsevents.co.uk'
+]
 if env('LOCAL'):  # pragma: no cover
     ALLOWED_HOSTS = ['*']
 
