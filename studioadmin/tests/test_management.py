@@ -5,24 +5,35 @@ from django.test import TestCase
 
 class CreateGroupTests(TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        cls.expected_group_names = [
+            'instructors', 'free_5monthly_blocks', 'free_7monthly_blocks'
+        ]
+
     def test_create_groups(self):
         self.assertFalse(Group.objects.exists())
         management.call_command('create_groups')
-        self.assertEqual(Group.objects.count(), 1)
-        self.assertEqual(Group.objects.first().name, 'instructors')
-        group = Group.objects.first()
+        self.assertEqual(Group.objects.count(), 3)
+
+        group_names = Group.objects.values_list('name', flat=True)
+        self.assertCountEqual(group_names, self.expected_group_names)
+
+        instructors = Group.objects.get(name='instructors')
         perm = Permission.objects.get(codename='can_view_registers')
-        self.assertIn(perm, group.permissions.all())
+        self.assertIn(perm, instructors.permissions.all())
 
     def test_group_not_overwritten_if_already_exists(self):
         management.call_command('create_groups')
-        self.assertEqual(Group.objects.count(), 1)
-        group = Group.objects.first()
-        self.assertEqual(group.name, 'instructors')
+        self.assertEqual(Group.objects.count(), 3)
+
+        group_names = Group.objects.values_list('name', flat=True)
+        group_ids = Group.objects.values_list('id', flat=True)
+        self.assertCountEqual(group_names, self.expected_group_names)
 
         management.call_command('create_groups')
-        self.assertEqual(Group.objects.count(), 1)
-        group1 = Group.objects.first()
-        self.assertEqual(group.name, 'instructors')
-        self.assertEqual(group.id, group1.id)
+        self.assertEqual(Group.objects.count(), 3)
 
+        new_group_ids = Group.objects.values_list('id', flat=True)
+
+        self.assertCountEqual(list(group_ids), list(new_group_ids))

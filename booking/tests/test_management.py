@@ -15,22 +15,25 @@ from django.utils import timezone
 
 from allauth.socialaccount.models import SocialApp
 
+from accounts.models import OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.models import Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
 from common.tests.helpers import _add_user_email_addresses, PatchRequestMixin
 from payments.models import PaypalBookingTransaction
+from timetable.models import Session
 
-
-class ManagementCommandsTests(TestCase):
+class ManagementCommandsTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
+        super().setUp()
         # redirect stdout so we can test it
         self.output = StringIO()
         self.saved_stdout = sys.stdout
         sys.stdout = self.output
 
     def tearDown(self):
+        super().tearDown()
         self.output.close()
         sys.stdout = self.saved_stdout
 
@@ -40,9 +43,30 @@ class ManagementCommandsTests(TestCase):
         self.assertEquals(SocialApp.objects.all().count(), 1)
 
     def test_load_users(self):
-        self.assertEquals(User.objects.all().count(), 0)
+        self.assertEquals(User.objects.count(), 0)
         management.call_command('load_users')
-        self.assertEquals(User.objects.all().count(), 6)
+        self.assertEqual(User.objects.count(), 6)
+        # Disclaimers created for non superusers
+        self.assertEqual(OnlineDisclaimer.objects.count(), 5)
+
+        user_ids = list(
+            User.objects.values_list('id', flat=True)
+        )
+        disclaimer_ids = list(
+            OnlineDisclaimer.objects.values_list('id', flat=True)
+        )
+
+        # users and disclaimers are not overwritten
+        management.call_command('load_users')
+        new_user_ids = list(
+            User.objects.values_list('id', flat=True)
+        )
+        new_disclaimer_ids = list(
+            OnlineDisclaimer.objects.values_list('id', flat=True)
+        )
+
+        self.assertCountEqual(user_ids, new_user_ids)
+        self.assertCountEqual(disclaimer_ids, new_disclaimer_ids)
 
     def test_load_users_existing_superuser(self):
         suser = mommy.make_recipe(
@@ -55,10 +79,15 @@ class ManagementCommandsTests(TestCase):
         self.assertEquals(User.objects.all().count(), 6)
 
         self.assertEqual(
-            self.output.getvalue(),
-            'Trying to create superuser...\n'
+            'Create superuser...\n'
             'Superuser with username "admin" already exists\n'
             'Creating 5 test users\n'
+            'Disclaimer created for user test_1\n'
+            'Disclaimer created for user test_2\n'
+            'Disclaimer created for user test_3\n'
+            'Disclaimer created for user test_4\n'
+            'Disclaimer created for user test_5\n',
+             self.output.getvalue()
         )
 
     def test_create_events(self):
@@ -146,6 +175,35 @@ class ManagementCommandsTests(TestCase):
         management.call_command('create_event_and_blocktypes')
         self.assertEquals(EventType.objects.all().count(), 10)
         self.assertEquals(BlockType.objects.all().count(), 7)
+
+    def test_setup_test_data(self):
+        self.assertFalse(SocialApp.objects.exists())
+        self.assertFalse(User.objects.exists())
+        self.assertFalse(Group.objects.exists())
+        self.assertFalse(EventType.objects.exists())
+        self.assertFalse(BlockType.objects.exists())
+        self.assertFalse(Event.objects.exists())
+        self.assertFalse(Booking.objects.exists())
+        self.assertFalse(Session.objects.exists())
+
+        management.call_command('setup_test_data')
+
+        self.assertEqual(SocialApp.objects.count(), 1)
+
+        # create_groups creates instructors, free5 and free7 blocks;
+        # creating users creates the subscribed group
+        self.assertEqual(Group.objects.all().count(), 4)
+
+        # This command just calls a bunch of othere; their content is tested
+        # separately; just test relevent objects have been created
+        self.assertTrue(User.objects.exists())
+        self.assertTrue(OnlineDisclaimer.objects.exists())
+        self.assertTrue(Group.objects.exists())
+        self.assertTrue(EventType.objects.exists())
+        self.assertTrue(BlockType.objects.exists())
+        self.assertTrue(Event.objects.exists())
+        self.assertTrue(Booking.objects.exists())
+        self.assertTrue(Session.objects.exists())
 
 
 class EmailReminderAndWarningTests(TestCase):
