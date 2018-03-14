@@ -64,12 +64,12 @@
                                 <td class="table-center studioadmin-tbl">
                                     {% if bookingform.instance.user.id in users_with_online_disclaimers %}
                                         <a href="{% url 'studioadmin:user_disclaimer' bookingform.instance.user.id|encode %}" target="_blank">
-                                            <span id="disclaimer" class="fa fa-file-text-o">{% if bookingform.instance.user|disclaimer_medical_info %}*{% endif %}</span></a>
+                                            <span id="disclaimer" class="far fa-file-alt"></span>{% if bookingform.instance.user|disclaimer_medical_info %} *{% endif %}</a>
                                         {% if not bookingform.instance.user|has_online_disclaimer %}<span class="studioadmin-help">(expired)</span>{% endif %}
                                     {% elif bookingform.instance.user.id in users_with_print_disclaimers %}
-                                        <span id="disclaimer" class="fa fa-check"></span>
+                                        <span id="disclaimer" class="fas fa-check"></span>
                                     {% else %}
-                                        <span id="disclaimer" class="fa fa-times"></span>
+                                        <span id="disclaimer" class="fas fa-times"></span>
                                     {% endif %}
                                 </td>
 
@@ -77,13 +77,13 @@
                                     <td class="table-center studioadmin-tbl">
                                         <span class="hide">{{ bookingform.deposit_paid }}</span>
                                         {% if bookingform.instance.deposit_paid %}
-                                            <span class="fa fa-check"></span>
+                                            <span class="fas fa-check"></span>
                                         {% endif %}
                                     </td>
                                     <td class="table-center studioadmin-tbl {% if bookingform.instance.id and not bookingform.instance.paid and not print %}register-unpaid{% endif %}">
                                         {% if bookingform.instance.paid %}
                                             {% if bookingform.instance.id in bookings_paid_by_paypal or bookingform.instance.block %}
-                                                <span class="fa fa-check"></span>
+                                                <span class="fas fa-check"></span>
                                                 <span class="hide">{{ bookingform.paid }}</span>
                                             {% else %}
                                                 {{ bookingform.paid }}<label for={{ bookingform.checkbox_paid_id }}></label>
@@ -92,7 +92,7 @@
                                             {% if not print %}
                                                 {{ bookingform.paid }}<label for={{ bookingform.checkbox_paid_id }}></label>
                                             {% else %}
-                                            <span class="fa fa-times"></span>
+                                            <span class="fas fa-times"></span>
                                             {% endif %}
                                         {% endif %}
                                     </td>

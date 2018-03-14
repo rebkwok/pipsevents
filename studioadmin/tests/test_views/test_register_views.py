@@ -810,17 +810,17 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.get(url)
         # User has no disclaimers
-        self.assertIn('<span id="disclaimer" class="fa fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-check">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-file-text-o"></span></a>', resp.rendered_content)
+        self.assertIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-check">', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
 
         mommy.make(PrintDisclaimer, user=user)
         user.refresh_from_db()
         resp = self.client.get(url)
         # User has print disclaimers; no disclaimer link
-        self.assertNotIn('<span id="disclaimer" class="fa fa-times">', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="fa fa-check"></span>', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-file-text-o"></span></a>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
+        self.assertIn('<span id="disclaimer" class="fas fa-check"></span>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
 
         PrintDisclaimer.objects.get(user=user).delete()
         # online disclaimer with no medical info ticked
@@ -832,9 +832,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         user.refresh_from_db()
         resp = self.client.get(url)
         # User has online disclaimer; shows disclaimer link; no *
-        self.assertNotIn('<span id="disclaimer" class="fa fa-times">', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="fa fa-file-text-o"></span></a>', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-file-text-o">*</span></a>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
+        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
 
         # shows * if any of medical_conditions, joint_problems or allergies
         # ticked
@@ -842,17 +842,17 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         disclaimer.save()
         resp = self.client.get(url)
         # User has online disclaimer; shows disclaimer link with *
-        self.assertNotIn('<span id="disclaimer" class="fa fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-check"></span></a>', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="fa fa-file-text-o">*</span></a>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-check"></span></a>', resp.rendered_content)
+        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
 
         disclaimer.joint_problems = True
         disclaimer.save()
         resp = self.client.get(url)
         # User has online disclaimer; shows disclaimer link with *
-        self.assertNotIn('<span id="disclaimer" class="fa fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-check"></span></a>', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="fa fa-file-text-o">*</span></a>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-check"></span></a>', resp.rendered_content)
+        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
 
         disclaimer.medical_conditions = False
         disclaimer.joint_problems = False
@@ -860,9 +860,9 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         disclaimer.save()
         resp = self.client.get(url)
         # User has online disclaimer; shows disclaimer link with *
-        self.assertNotIn('<span id="disclaimer" class="fa fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fa fa-check"></span></a>', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="fa fa-file-text-o">*</span></a>', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
+        self.assertNotIn('<span id="disclaimer" class="fas fa-check"></span></a>', resp.rendered_content)
+        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
 
 
 class RegisterByDateTests(TestPermissionMixin, TestCase):
