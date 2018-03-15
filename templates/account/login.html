@@ -12,7 +12,7 @@
 {% get_providers as socialaccount_providers %}
 
 {% if socialaccount_providers  %}
-<p>{% blocktrans with site.name as site_name %}Please <strong>sign in</strong>. Or, <a href="{{ signup_url }}"><strong>sign up</strong></a>
+<p>{% blocktrans with site.name as site_name %}Please <strong>sign in</strong> below. Or, <a class='btn btn-success' href="{{ signup_url }}">sign up</a>
 for a new account.{% endblocktrans %}</p></br>
 
 <div class="socialaccount_ballot">

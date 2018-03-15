@@ -81,25 +81,34 @@ MEDICAL_TREATMENT_TERMS = "I give permission for myself to receive medical " \
 BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
 
 
-
 @has_readonly_fields
-class DataProtectionContent(models.Model):
-    read_only_fields = ('data_protection_statement', 'version')
+class DataProtectionPolicy(models.Model):
+    read_only_fields = ('content', 'version')
 
-    data_protection_statement = models.CharField(max_length=2048)
+    content = models.CharField(max_length=2048)
     version = models.PositiveIntegerField(unique=True)
 
     @classmethod
     def current_version(cls):
-        current_version = DataProtectionContent.objects.all().aggregate(
+        current_version = DataProtectionPolicy.objects.all().aggregate(
             models.Max('version')
         )
-        return current_version['max__version']
+        current_version = current_version['version__max']
+        if current_version is None:
+            return 0
+        return current_version
+
+    @classmethod
+    def current(cls):
+        return DataProtectionPolicy.objects.order_by('version').last()
+
+    def __str__(self):
+        return 'Version {}'.format(self.version)
 
     def save(self, **kwargs):
         if not self.id:
-            self.version = DataProtectionContent.current_version() + 1
-        super(DataProtectionContent, self).save(**kwargs)
+            self.version = DataProtectionPolicy.current_version() + 1
+        super(DataProtectionPolicy, self).save(**kwargs)
 
 
 class SignedDataProtection(models.Model):
@@ -109,14 +118,17 @@ class SignedDataProtection(models.Model):
         User, related_name='data_protection_agreement', on_delete=models.CASCADE
     )
     date_signed = models.DateTimeField(default=timezone.now)
-    content_version = models.PositiveIntegerField(unique=True)
+    content_version = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ('user', 'content_version')
 
     def __str__(self):
         return '{} - V{}'.format(self.user.username, self.content_version)
 
     @property
     def is_active(self):
-        return self.content_version == DataProtectionContent.current_version()
+        return self.content_version == DataProtectionPolicy.current_version()
 
     def save(self, **kwargs):
         if not self.id:

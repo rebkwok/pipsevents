@@ -13,6 +13,7 @@ from allauth.account.views import EmailView, LoginView
 from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm
+from .models import DataProtectionPolicy
 from .utils import has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from common.mailchimp_utils import update_mailchimp
@@ -155,7 +156,10 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
 
 def data_protection(request):
-    return render(request, 'account/data_protection_statement.html')
+    return render(
+        request, 'account/data_protection_statement.html',
+        {'data_protection_policy': DataProtectionPolicy.current()}
+    )
 
 
 @login_required

@@ -1,7 +1,10 @@
 from django.contrib import admin
+from django import forms
+
+from ckeditor.widgets import CKEditorWidget
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer, \
-    DataProtectionContent, SignedDataProtection
+    DataProtectionPolicy, SignedDataProtection
 
 
 class OnlineDisclaimerAdmin(admin.ModelAdmin):
@@ -25,11 +28,31 @@ class PrintDisclaimerAdmin(admin.ModelAdmin):
     readonly_fields = ('user', 'date')
 
 
+class DataProtectionPolicyAdminForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super(DataProtectionPolicyAdminForm, self).__init__(*args, **kwargs)
+        self.fields['content'].widget = forms.Textarea()
+        if not self.instance.id:
+            current_dp = DataProtectionPolicy.current()
+            if current_dp:
+                self.fields['content'].initial = current_dp.content
+
+    class Meta:
+        model = DataProtectionPolicy
+        fields = '__all__'
+
+
+class DataProtectionPolicyAdmin(admin.ModelAdmin):
+    readonly_fields = ('version',)
+    form = DataProtectionPolicyAdminForm
+
+
 class SignedDataProtectionAdmin(admin.ModelAdmin):
     readonly_fields = ('user', 'date_signed', 'content_version')
 
 
 admin.site.register(OnlineDisclaimer, OnlineDisclaimerAdmin)
 admin.site.register(PrintDisclaimer, PrintDisclaimerAdmin)
-admin.site.register(DataProtectionContent)
+admin.site.register(DataProtectionPolicy, DataProtectionPolicyAdmin)
 admin.site.register(SignedDataProtection, SignedDataProtectionAdmin)
