@@ -205,3 +205,17 @@ def get_cart_item_names(cart_items):
         cart_item_names = []
 
     return cart_items, item_type, cart_item_names, user_email
+
+
+@csrf_exempt
+def paypal_form_post(request):
+    """
+    interim view to add cart items to session before redirecting to the paypal
+    endpoint
+    """
+    # add cart booking ids to the session so we can set paypal pending
+    request.session['cart_items'] = request.POST['custom']
+    endpoint = request.POST['endpoint']
+    data = request.POST.copy()
+    resp = requests.post(endpoint, data)
+    return HttpResponseRedirect(resp.url)

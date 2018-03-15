@@ -8,6 +8,9 @@ class PayPalPaymentsBaseForm(PayPalPaymentsForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['endpoint'] = forms.CharField(
+            widget = forms.HiddenInput(), initial = self.get_endpoint()
+        )
 
     def get_image(self):
         super().get_image()
@@ -26,7 +29,7 @@ class PayPalPaymentsListForm(PayPalPaymentsBaseForm):
         return format_html(
             """<form class="paypal-btn-form" action="{0}" method="post">
             {1}<input type="image" style="height: 75%; width: width: 8em;" src="{2}" border="0" name="submit" alt="Buy it Now" />
-            </form>""", self.get_endpoint(), self.as_p(), self.get_image()
+            </form>""", "/payments/form/", self.as_p(), self.get_image()
        )
 
 class PayPalPaymentsUpdateForm(PayPalPaymentsBaseForm):
@@ -35,7 +38,7 @@ class PayPalPaymentsUpdateForm(PayPalPaymentsBaseForm):
         return format_html(
             """<form class="paypal-btn-form" action="{0}" method="post">
             {1}<input type="image" src="{2}" border="0" name="submit" alt="Buy it Now" />
-            </form>""", self.get_endpoint(), self.as_p(), self.get_image()
+            </form>""", "/payments/form/", self.as_p(), self.get_image()
        )
 
 
@@ -57,5 +60,5 @@ class PayPalPaymentsShoppingBasketForm(PayPalPaymentsBaseForm):
             """<form class="paypal-btn-form" action="{0}" method="post">
             {1}<input type="image" style="height: auto; width: 8em;"
             src="{2}" border="0" name="submit" alt="Checkout Now" />
-            </form>""", self.get_endpoint(), self.as_p(), self.get_image()
+            </form>""", "/payments/form/", self.as_p(), self.get_image()
        )
