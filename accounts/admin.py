@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
+from accounts.models import OnlineDisclaimer, PrintDisclaimer, \
+    DataProtectionContent, SignedDataProtection
 
 
 class OnlineDisclaimerAdmin(admin.ModelAdmin):
@@ -24,5 +25,11 @@ class PrintDisclaimerAdmin(admin.ModelAdmin):
     readonly_fields = ('user', 'date')
 
 
+class SignedDataProtectionAdmin(admin.ModelAdmin):
+    readonly_fields = ('user', 'date_signed', 'content_version')
+
+
 admin.site.register(OnlineDisclaimer, OnlineDisclaimerAdmin)
 admin.site.register(PrintDisclaimer, PrintDisclaimerAdmin)
+admin.site.register(DataProtectionContent)
+admin.site.register(SignedDataProtection, SignedDataProtectionAdmin)

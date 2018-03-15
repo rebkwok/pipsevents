@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from accounts.utils import active_disclaimer_cache_key, \
     active_print_disclaimer_cache_key, active_online_disclaimer_cache_key, \
-    expired_disclaimer_cache_key
+    active_data_protection_cache_key, expired_disclaimer_cache_key
 from activitylog.models import ActivityLog
 
 
@@ -79,6 +79,62 @@ MEDICAL_TREATMENT_TERMS = "I give permission for myself to receive medical " \
                           "treatment in the event of an accident"
 
 BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
+
+
+
+@has_readonly_fields
+class DataProtectionContent(models.Model):
+    read_only_fields = ('data_protection_statement', 'version')
+
+    data_protection_statement = models.CharField(max_length=2048)
+    version = models.PositiveIntegerField(unique=True)
+
+    @classmethod
+    def current_version(cls):
+        current_version = DataProtectionContent.objects.all().aggregate(
+            models.Max('version')
+        )
+        return current_version['max__version']
+
+    def save(self, **kwargs):
+        if not self.id:
+            self.version = DataProtectionContent.current_version() + 1
+        super(DataProtectionContent, self).save(**kwargs)
+
+
+class SignedDataProtection(models.Model):
+    read_only_fields = ('date_signed', 'content_version')
+
+    user = models.ForeignKey(
+        User, related_name='data_protection_agreement', on_delete=models.CASCADE
+    )
+    date_signed = models.DateTimeField(default=timezone.now)
+    content_version = models.PositiveIntegerField(unique=True)
+
+    def __str__(self):
+        return '{} - V{}'.format(self.user.username, self.content_version)
+
+    @property
+    def is_active(self):
+        return self.content_version == DataProtectionContent.current_version()
+
+    def save(self, **kwargs):
+        if not self.id:
+            ActivityLog.objects.create(
+                log="Signed data protection agreement created: {}".format(self.__str__())
+            )
+        super(SignedDataProtection, self).save()
+        # cache agreement
+        if self.is_active:
+            cache.set(
+                active_data_protection_cache_key(self.user), True, timeout=600
+            )
+
+    def delete(self, using=None, keep_parents=False):
+        # clear cache if this is the active signed agreement
+        if self.is_active:
+            cache.delete(active_data_protection_cache_key(self.user))
+        super(SignedDataProtection, self).delete(using, keep_parents)
 
 
 @has_readonly_fields
