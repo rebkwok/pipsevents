@@ -470,6 +470,16 @@ if 'test' in sys.argv:  # use local cache for tests
     }
 
 
+# Session cookies
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 172800  # 2 days
+
+if env('LOCAL') or TESTING:
+    SESSION_COOKIE_SECURE = False
+else:
+    SESSION_COOKIE_SECURE = True
+
+
 def show_toolbar(request):  # pragma: no cover
     return env('SHOW_DEBUG_TOOLBAR')
 
