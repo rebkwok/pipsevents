@@ -6,6 +6,8 @@
 {% block head_title %}{% trans "Signup" %}{% endblock %}
 
 {% block content %}
+<div class="container row account-content">
+
 <h1>{% trans "Sign Up" %}</h1>
 
 <p>Already have an account? Then please <a href="{{ login_url }}">sign in</a>.</p>
@@ -26,12 +28,37 @@
 
 <form class="signup mock-bs-form" id="signup_form" method="post" action="{% url 'account_signup' %}">
   {% csrf_token %}
-  {{ form.as_p }}
+
+    {% for field in form %}
+        <div class="form-group">
+            {% if field.name  == 'data_protection_content' %}
+                <span class="hide">{{ field }}</span>
+                <h2>Data Protection and Privacy Policy</h2>
+                {{ field.initial | linebreaks }}
+            {% elif field.name  == 'data_protection_confirmation' %}
+                {{ field.errors }}
+                <div class="vspace {% if field.errors %}ticket-error{% endif %}">
+                   {{ field }}<label for='{{ field.name }}_id'></label>
+                     <label class="control-label" for='{{ field.name }}_id'>{{ field.label }}{% if field.field.required %}*{% endif %}</label>
+                    {% if field.errors %} {{ field.errors }}{% endif %}
+               </div>
+            {% else %}
+                <label class="control-label" for="{{ field.name }}_id">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
+                    <div {% if field.errors %}class="ticket-error control-group"{% endif %}>
+                        {{ field }}
+                    </div>
+                    <div class="studioadmin-help">{{ field.help_text }}</div>
+                    {% if field.errors %}<div>{{ field.errors }}</div>{% endif %}
+            {%  endif %}
+        </div>
+    {% endfor %}
+
   {% if redirect_field_value %}
   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
   {% endif %}
   <button class="btn btn-success" type="submit">{% trans "Sign Up" %} &raquo;</button>
 </form>
 
+</div>
 
 {% endblock %}

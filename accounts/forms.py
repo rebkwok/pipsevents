@@ -3,20 +3,46 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django import forms
+from django.utils import timezone
 
 from accounts import validators as account_validators
 from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
-    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS
+    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataProtectionPolicy, \
+    SignedDataProtection
 from accounts.utils import has_expired_disclaimer
+
 
 class SignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label='First name')
     last_name = forms.CharField(max_length=30, label='Last name')
 
+    def __init__(self, *args, **kwargs):
+        super(SignupForm, self).__init__(*args, **kwargs)
+        # get the current version here to make sure we always display and save
+        # with the same version, even if it changed while the form was being
+        # completed
+        if DataProtectionPolicy.current():
+            self.data_protection_version = DataProtectionPolicy.current_version()
+            self.fields['data_protection_content'] = forms.CharField(
+                initial=DataProtectionPolicy.current().content,
+                required=False
+            )
+            self.fields['data_protection_confirmation'] = forms.BooleanField(
+                initial=False,
+                label='I confirm I have read and agree to the terms of the '
+                      'data protection and privacy policy',
+                required=True,
+            )
+
     def signup(self, request, user):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.save()
+        if hasattr(self, 'data_protection_version'):
+            SignedDataProtection.objects.create(
+                user=user, content_version=self.data_protection_version,
+                date_signed=timezone.now()
+            )
 
 
 class DisclaimerForm(forms.ModelForm):

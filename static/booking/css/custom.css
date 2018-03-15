@@ -68,6 +68,10 @@ body {
   height: 60px;
 }
 
+div .account-content {
+    margin-bottom: 50px;
+};
+
 .box {
 	border: 1px dashed red;
 }
