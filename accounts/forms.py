@@ -243,3 +243,31 @@ class DisclaimerForm(forms.ModelForm):
                 self.add_error(
                     'dob', 'You must be over 18 years in order to register')
         return super(DisclaimerForm, self).clean()
+
+
+class DataProtectionAgreementForm(forms.Form):
+
+    confirm = forms.BooleanField(
+        widget=forms.CheckboxInput(attrs={'class': "regular-checkbox"}),
+        required=False,
+        label='I confirm I have read and agree to the terms of the data ' \
+              'protection and privacy policy'
+    )
+
+    mailing_list = forms.CharField(
+        widget=forms.RadioSelect(choices=BOOL_CHOICES),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.next_url = kwargs.pop('next_url')
+        user = kwargs.pop('user')
+        super(DataProtectionAgreementForm, self).__init__(*args, **kwargs)
+        self.data_protection_policy = DataProtectionPolicy.current()
+        if user.subscribed:
+            self.fields['mailing_list'].initial = True
+
+    def clean_confirm(self):
+        confirm = self.cleaned_data.get('confirm')
+        if not confirm:
+            self.add_error('confirm', 'You must check this box to continue')
+        return
