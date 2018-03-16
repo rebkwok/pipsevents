@@ -10,7 +10,7 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.utils.html import strip_tags
 
-from accounts.models import PrintDisclaimer
+from accounts.models import PrintDisclaimer, SignedDataProtection
 
 
 def set_up_fb():
@@ -64,6 +64,7 @@ class TestSetupMixin(object):
             username='test', email='test@test.com', password='test'
         )
         mommy.make(PrintDisclaimer, user=self.user)
+        mommy.make(SignedDataProtection, user=self.user)
 
     def tearDown(self):
         self.patcher.stop()

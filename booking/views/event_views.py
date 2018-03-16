@@ -13,12 +13,12 @@ from accounts.utils import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Booking, Event, WaitingListUser
 from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers
-
+from booking.views.views_utils import DataProtectionRequiredMixin
 
 logger = logging.getLogger(__name__)
 
 
-class EventListView(ListView):
+class EventListView(DataProtectionRequiredMixin, ListView):
     model = Event
     context_object_name = 'events'
     template_name = 'booking/events.html'
@@ -126,7 +126,7 @@ class EventListView(ListView):
         return context
 
 
-class EventDetailView(LoginRequiredMixin, DetailView):
+class EventDetailView(LoginRequiredMixin, DataProtectionRequiredMixin, DetailView):
 
     model = Event
     context_object_name = 'event'

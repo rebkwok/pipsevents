@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h2>Data Protection and Privacy Policy</h2>
+
+        <h4>Please review our {% if update_needed %}updated {% endif %}data
+            protection and privacy policy before proceeding.</h4>
+
+
+        <form action="" method="post">{% csrf_token %}
+
+            <p>
+                {{ form.data_protection_policy.content | linebreaks }}
+            </p>
+
+            <div class="form-group">
+               <div class="col-xs-12 vspace {% if form.confirm.errors %}ticket-error{% endif %}">
+                   {{ form.confirm }}<label for='id_confirm'></label>
+                     <label class="control-label" for='id_confirm'>{{ form.confirm.label }}</label>
+                    {% if form.confirm.errors %} {{ form.confirm.errors }}{% endif %}
+               </div>
+               <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.confirm.help_text }}</div>
+           </div>
+
+            <div class="form-group">
+           <label class="control-label col-xs-12" for="id_mailing_list">{{ form.mailing_list.label }}</label>
+            <p>{% if request.user.subscribed %}
+                You are currently subscribed to our mailing list. Please confirm if you want to continue to
+                suscribe.
+                {% else %}
+                Please confirm if you would like to subscribe to our mailing list.
+            {% endif %}</p>
+              <div class="col-xs-12 {% if form.mailing_list.errors %}ticket-error{% endif %}">
+                  {% for choice in form.mailing_list %}
+                    {{ choice }}
+                  {% endfor %}
+               </div>
+               <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.mailing_list.help_text }}</div>
+           </div>
+            <input type="hidden" name="next_url" value={{ form.next_url }}/>
+            <div><input class="btn btn-success" type="submit" value="Submit" /></div>
+        </form>
+</div>
+
+{% endblock content %}
