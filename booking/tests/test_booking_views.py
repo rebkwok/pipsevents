@@ -14,7 +14,8 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from activitylog.models import ActivityLog
-from accounts.models import OnlineDisclaimer
+from accounts.models import OnlineDisclaimer, SignedDataProtection, \
+    DataProtectionPolicy
 
 from booking.models import BlockType, Event, EventType, Booking, \
     Block, EventVoucher,UsedEventVoucher,  WaitingListUser
@@ -23,7 +24,7 @@ from booking.views import BookingListView, BookingHistoryListView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
 from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin, format_content
+    TestSetupMixin, format_content, make_dataprotection_agreement
 
 from payments.helpers import create_booking_paypal_transaction
 
@@ -391,6 +392,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
     def setUp(self):
         super(BookingCreateViewTests, self).setUp()
         self.user_no_disclaimer = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(self.user_no_disclaimer)
 
     def _post_response(self, user, event, form_data={}):
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
@@ -431,6 +433,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
     def test_cannot_access_if_expired_disclaimer(self):
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
         user = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user)
         disclaimer = mommy.make_recipe(
            'booking.online_disclaimer', user=user,
             date=datetime(2015, 2, 1, tzinfo=timezone.utc)
@@ -628,6 +631,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
             username='foo', email='foo@test.com', password='test'
         )
         mommy.make(OnlineDisclaimer, user=watched_user)
+        make_dataprotection_agreement(watched_user)
         self._post_response(watched_user, event)
         self.assertEqual(Booking.objects.count(), 2)
         # 2 addition emails in mailbox for this booking, to student and studio
@@ -1213,6 +1217,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
 
         user = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user)
         mommy.make(OnlineDisclaimer, user=user)
         perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
@@ -2452,6 +2457,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # unpaid
         user = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user)
         mommy.make_recipe('booking.online_disclaimer', user=user)
         unpaid_booking = mommy.make_recipe(
             'booking.booking', user=user, event=event, paid=False,
@@ -2465,6 +2471,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
         # block paid
         user1 = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user1)
         mommy.make_recipe('booking.online_disclaimer', user=user1)
         block = mommy.make_recipe(
             'booking.block', block_type__event_type=event.event_type,
@@ -2485,6 +2492,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # free (with block)
         user3 = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user3)
         mommy.make_recipe('booking.online_disclaimer', user=user3)
         free_block = mommy.make_recipe(
             'booking.block', block_type__event_type=event.event_type,
@@ -2506,6 +2514,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # deposit only paid
         user4 = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user4)
         mommy.make_recipe('booking.online_disclaimer', user=user4)
         dep_paid_booking = mommy.make_recipe(
             'booking.booking', user=user4, event=event, paid=False,
@@ -2521,6 +2530,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # free (without block) DOES create transfer
         user2 = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user2)
         mommy.make_recipe('booking.online_disclaimer', user=user2)
         free_booking = mommy.make_recipe(
             'booking.booking', user=user2, event=event, free_class=True,
@@ -2541,6 +2551,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # and finally, direct paid
         user5 = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user5)
         mommy.make_recipe('booking.online_disclaimer', user=user5)
         direct_paid_booking = mommy.make_recipe(
             'booking.booking', user=user5, event=event, paid=True,
@@ -2569,6 +2580,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         # PC expired block paid
         user1 = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user1)
         mommy.make_recipe('booking.online_disclaimer', user=user1)
         block_pc = mommy.make_recipe(
             'booking.block', block_type__event_type=pc.event_type,
@@ -2746,6 +2758,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
     def setUp(self):
         super(BookingUpdateViewTests, self).setUp()
         self.user_no_disclaimer = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(self.user_no_disclaimer)
 
     def _get_response(self, user, booking):
         url = reverse('booking:update_booking', args=[booking.id])

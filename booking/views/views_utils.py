@@ -3,6 +3,7 @@ from operator import itemgetter
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
 
+from accounts.models import DataProtectionPolicy
 from accounts.utils import has_active_disclaimer, has_active_data_protection_agreement
 from activitylog.models import ActivityLog
 from booking.models import Block, UsedBlockVoucher, UsedEventVoucher
@@ -20,7 +21,7 @@ class DataProtectionRequiredMixin(object):
 
     def dispatch(self, request, *args, **kwargs):
         # check if the user has an active disclaimer
-        if request.user.is_authenticated() \
+        if DataProtectionPolicy.current_version() > 0 and request.user.is_authenticated() \
                 and not has_active_data_protection_agreement(request.user):
             return HttpResponseRedirect(
                 reverse('profile:data_protection_review') + '?next=' + self.request.path

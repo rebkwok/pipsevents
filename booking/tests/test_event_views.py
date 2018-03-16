@@ -15,7 +15,8 @@ from accounts.models import PrintDisclaimer, OnlineDisclaimer
 
 from booking.models import Event, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView
-from common.tests.helpers import TestSetupMixin, format_content
+from common.tests.helpers import TestSetupMixin, format_content, \
+    make_dataprotection_agreement
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -165,6 +166,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         user = mommy.make_recipe('booking.user')
         mommy.make(PrintDisclaimer, user=user)
+        make_dataprotection_agreement(user)
 
         response = self._get_response(user, 'lessons')
         response.render()
@@ -179,6 +181,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
@@ -331,7 +334,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_users_disclaimer_status_in_context(self):
         user = mommy.make_recipe('booking.user')
-
+        make_dataprotection_agreement(user)
         resp = self._get_response(user, 'events')
         # user has no disclaimer
         self.assertFalse(resp.context_data.get('disclaimer'))
@@ -635,6 +638,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user)
         mommy.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
@@ -652,6 +656,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        make_dataprotection_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
