@@ -16,7 +16,7 @@ from accounts.models import OnlineDisclaimer
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
 
 from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin
+    TestSetupMixin, make_dataprotection_agreement
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
