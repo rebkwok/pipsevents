@@ -633,33 +633,6 @@ def update_free_blocks(sender, instance, **kwargs):
                 )
 
 
-@receiver(pre_save, sender=Booking)
-def add_to_mailing_list(sender, instance, **kwargs):
-    if instance.event.event_type.event_type == 'CL':
-        # check if this is the user's first class booking
-        user_class_bookings = Booking.objects.filter(
-            user=instance.user, event__event_type__event_type='CL'
-        ).exists()
-        if not user_class_bookings:
-            group, _ = Group.objects.get_or_create(name='subscribed')
-            group.user_set.add(instance.user)
-            ActivityLog.objects.create(
-                log='First class booking created; {} {} ({}) has been '
-                    'added to subscribed group for mailing list.'.format(
-                        instance.user.first_name,
-                        instance.user.last_name,
-                        instance.user.username
-                    )
-            )
-            update_mailchimp(instance.user, 'subscribe')
-            ActivityLog.objects.create(
-                log='User {} {} ({}) has been subscribed to MailChimp'.format(
-                    instance.user.first_name, instance.user.last_name,
-                    instance.user.username
-                )
-            )
-
-
 class WaitingListUser(models.Model):
     """
     A model to represent a single user on a waiting list for an event

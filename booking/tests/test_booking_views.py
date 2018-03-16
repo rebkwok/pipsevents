@@ -14,8 +14,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from activitylog.models import ActivityLog
-from accounts.models import OnlineDisclaimer, SignedDataProtection, \
-    DataProtectionPolicy
+from accounts.models import OnlineDisclaimer
 
 from booking.models import BlockType, Event, EventType, Booking, \
     Block, EventVoucher,UsedEventVoucher,  WaitingListUser
@@ -1582,7 +1581,9 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
-    def test_added_to_mailing_list_on_first_pole_class_booking(self):
+    def test_not_added_to_mailing_list_on_first_pole_class_booking(self):
+        # functionality to add user to mailing list on first class has been
+        # removed
         event = mommy.make_recipe('booking.future_PC')
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
         self.client.login(username=self.user.username, password='test')
@@ -1591,24 +1592,15 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         self.client.post(url, {'event': event.id})
         self.user.refresh_from_db()
-        self.assertTrue(self.user.subscribed())
-        assert_mailchimp_post_data(self.mock_request, self.user, 'subscribed')
+        self.assertFalse(self.user.subscribed())
+        self.assertEqual(self.mock_request.call_count, 0)
 
     def test_not_added_to_mailing_list_on_subsequent_pole_class_booking(self):
         event = mommy.make_recipe('booking.future_PC')
         url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
         self.client.login(username=self.user.username, password='test')
-        self.assertFalse(self.user.subscribed())
-        self.assertFalse(Booking.objects.filter(user=self.user).exists())
 
-        # First booking subscribes
-        self.client.post(url, {'event': event.id})
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.subscribed())
-        assert_mailchimp_post_data(self.mock_request, self.user, 'subscribed')
-
-        # Unsubscribe user
-        self.group.user_set.remove(self.user)
+        # Unsubscribes user
         self.assertFalse(self.user.subscribed())
 
         # Second booking
