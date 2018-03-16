@@ -32,7 +32,7 @@ class DataProtectionPolicyAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(DataProtectionPolicyAdminForm, self).__init__(*args, **kwargs)
-        self.fields['content'].widget = forms.Textarea()
+        self.fields['content'].widget = CKEditorWidget()
         if not self.instance.id:
             current_dp = DataProtectionPolicy.current()
             if current_dp:

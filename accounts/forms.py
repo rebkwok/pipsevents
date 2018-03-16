@@ -11,6 +11,8 @@ from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
     SignedDataProtection
 from accounts.utils import has_expired_disclaimer
 
+from common.mailchimp_utils import update_mailchimp
+
 
 class SignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label='First name')
@@ -28,11 +30,19 @@ class SignupForm(forms.Form):
                 required=False
             )
             self.fields['data_protection_confirmation'] = forms.BooleanField(
-                initial=False,
-                label='I confirm I have read and agree to the terms of the '
-                      'data protection and privacy policy',
-                required=True,
+                widget=forms.CheckboxInput(attrs={'class': "regular-checkbox"}),
+                required=False,
+                label='I confirm I have read and agree to the terms of the data ' \
+                      'protection and privacy policy'
             )
+        self.fields['mailing_list'] = forms.CharField(
+            widget=forms.RadioSelect(
+                choices=(
+                    (True, 'Yes, subscribe me'),
+                    (False, "No, I don't want to subscribe")
+                )
+            )
+        )
 
     def signup(self, request, user):
         user.first_name = self.cleaned_data['first_name']
@@ -43,6 +53,8 @@ class SignupForm(forms.Form):
                 user=user, content_version=self.data_protection_version,
                 date_signed=timezone.now()
             )
+        if self.cleaned_data.get('mailing_list'):
+            update_mailchimp(user, 'subscribe')
 
 
 class DisclaimerForm(forms.ModelForm):
@@ -255,7 +267,12 @@ class DataProtectionAgreementForm(forms.Form):
     )
 
     mailing_list = forms.CharField(
-        widget=forms.RadioSelect(choices=BOOL_CHOICES),
+        widget=forms.RadioSelect(
+            choices=(
+                (True, 'Yes, subscribe me'),
+                (False, "No, I don't want to subscribe")
+            )
+        )
     )
 
     def __init__(self, *args, **kwargs):
