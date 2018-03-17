@@ -249,10 +249,10 @@ class SignedDataProtectionCreateView(LoginRequiredMixin, FormView):
             user=user, content_version=form.data_protection_policy.version
         )
 
-        mailing_list = form.cleaned_data.get('mailing_list')
+        mailing_list = form.cleaned_data.get('mailing_list') == 'yes'
 
         group = Group.objects.get(name='subscribed')
-        if mailing_list and not user.subscribed:
+        if mailing_list and not user.subscribed():
             # add user to mailing list
             group.user_set.add(user)
             ActivityLog.objects.create(
@@ -269,7 +269,7 @@ class SignedDataProtectionCreateView(LoginRequiredMixin, FormView):
                 )
             )
 
-        if not mailing_list and user.subscribed:
+        if not mailing_list and user.subscribed():
             # remove subscribed user from mailing list
             group.user_set.remove(user)
             ActivityLog.objects.create(

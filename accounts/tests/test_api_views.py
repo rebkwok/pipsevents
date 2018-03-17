@@ -195,6 +195,7 @@ class ApiViewTests(TestSetupMixin, TestCase):
     def test_update_profile_request_no_change(self, mock_sleep):
         # patch sleep() to avoid test delays
         self.assertFalse(self.user.subscribed())
+        activity_log_count = ActivityLog.objects.count()
         data = self.get_data_dict(
             'update_profile', email=self.user.email,
             first_name=self.user.first_name,
@@ -205,17 +206,13 @@ class ApiViewTests(TestSetupMixin, TestCase):
 
         self.user.refresh_from_db()
         self.assertFalse(self.user.subscribed())
-        self.assertEqual(self.user.first_name, self.user.first_name,)
-        self.assertEqual(self.user.last_name, self.user.last_name,)
-        activity_log = ActivityLog.objects.latest('id')
+        self.assertEqual(self.user.first_name, self.user.first_name)
+        self.assertEqual(self.user.last_name, self.user.last_name)
 
         # no activity log for this because no change
-        self.assertEqual(
-            activity_log.log,
-            'New user registered: {} {}, username {}'.format(
-            self.user.first_name, self.user.last_name, self.user.username
-            )
-        )
+        new_activity_log_count = ActivityLog.objects.count()
+        self.assertEqual(activity_log_count, new_activity_log_count)
+
         # sleep for 5 secs is called with update_profile in case we got an
         # update email at the same time (to ensure email is updated before
         # profile)

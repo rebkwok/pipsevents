@@ -14,15 +14,43 @@ from common.tests.helpers import TestSetupMixin
 class SignUpFormTests(TestSetupMixin, TestCase):
 
     def test_signup_form(self):
-        form_data = {'first_name': 'Test',
-                     'last_name': 'User'}
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'mailing_list': False,
+            'data_protection_confirmation' : True
+        }
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_signup_form_with_invalid_data(self):
         # first_name must have 30 characters or fewer
-        form_data = {'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
-                     'last_name': 'User'}
+        form_data = {
+            'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
+             'last_name': 'User',
+             'mailing_list': 'no',
+             'data_protection_confirmation': True
+         }
+        form = SignupForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_signup_mailing_list_response_required(self):
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'data_protection_confirmation': True
+        }
+        form = SignupForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_signup_dataprotection_confirmation_required(self):
+        # first_name must have 30 characters or fewer
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'mailing_list': 'no',
+            'data_protection_confirmation': False
+        }
         form = SignupForm(data=form_data)
         self.assertFalse(form.is_valid())
 
@@ -31,8 +59,12 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         url = reverse('account_signup')
         request = self.factory.get(url)
         request.user = user
-        form_data = {'first_name': 'New',
-                     'last_name': 'Name'}
+        form_data = {
+            'first_name': 'New',
+            'last_name': 'Name',
+            'mailing_list': 'no',
+            'data_protection_confirmation': True
+        }
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
         form.signup(request, user)
