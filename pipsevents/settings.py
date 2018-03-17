@@ -480,7 +480,7 @@ SESSION_COOKIE_AGE = 172800  # 2 days
 
 if env('LOCAL') or TESTING:
     SESSION_COOKIE_SECURE = False
-else:
+else:  # pragma: no cover
     SESSION_COOKIE_SECURE = True
 
 

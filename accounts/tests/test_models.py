@@ -3,12 +3,17 @@ import pytz
 from datetime import date, datetime, timedelta
 from model_mommy import mommy
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
+from accounts.models import DataProtectionPolicy, SignedDataProtection, \
+    PrintDisclaimer, OnlineDisclaimer, \
     DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
+from accounts.utils import has_active_data_protection_agreement, \
+    active_data_protection_cache_key
+from common.tests.helpers import make_dataprotection_agreement
 
 
 class DisclaimerModelTests(TestCase):
@@ -71,3 +76,52 @@ class DisclaimerModelTests(TestCase):
         # can't make new disclaimer when one is already active
         with self.assertRaises(ValidationError):
             mommy.make(OnlineDisclaimer, user=user)
+
+
+class DataProtectionPolicyModelTests(TestCase):
+
+    def test_no_policy_version(self):
+        self.assertEqual(DataProtectionPolicy.current_version(), 0)
+
+    def test_policy_versioning(self):
+        self.assertEqual(DataProtectionPolicy.current_version(), 0)
+        DataProtectionPolicy.objects.create(content='Foo')
+
+        self.assertEqual(DataProtectionPolicy.current_version(), 1)
+        DataProtectionPolicy.objects.create(content='Bar')
+        self.assertEqual(DataProtectionPolicy.current_version(), 2)
+
+        self.assertEqual(DataProtectionPolicy.current().version, 2)
+
+    def test_policy_str(self):
+        dp = DataProtectionPolicy.objects.create(content='Foo')
+        self.assertEqual(
+            str(dp), 'Version {}'.format(dp.version)
+        )
+
+
+class SignedDataProtectionModelTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        DataProtectionPolicy.objects.create(content='Foo')
+
+    def setUp(self):
+        self.user = mommy.make_recipe('booking.user')
+
+    def test_cached_on_save(self):
+        make_dataprotection_agreement(self.user)
+        self.assertTrue(cache.get(active_data_protection_cache_key(self.user)))
+
+        cache.clear()
+        DataProtectionPolicy.objects.create(content='Bar')
+        self.assertFalse(has_active_data_protection_agreement(self.user))
+
+    def test_delete(self):
+        make_dataprotection_agreement(self.user)
+        self.assertTrue(cache.get(active_data_protection_cache_key(self.user)))
+
+        SignedDataProtection.objects.get(user=self.user).delete()
+        self.assertIsNone(cache.get(active_data_protection_cache_key(self.user)))
+
+
