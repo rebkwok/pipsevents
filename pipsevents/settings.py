@@ -65,6 +65,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.humanize',
+    'cookielaw',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

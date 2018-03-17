@@ -1,6 +1,7 @@
 {% load staticfiles %}
 {% load socialaccount %}
 {% load bookingtags %}
+{% load cookielaw_tags %}
 
 <!DOCTYPE html>
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
@@ -118,7 +119,7 @@
                 </div><!--/.nav-collapse -->
             </div>
         </div>
-
+        {% cookielaw_banner %}
       {% block sale %}{% sale_text %}{% endblock sale %}
 
         {% if messages %}
@@ -178,6 +179,8 @@
 <script src="{% static 'booking/js/jquery.cookie.js' %}"></script>
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'booking/js/custom.js' %}"></script>
+<script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
+  
 
 {% block extra_js %}{% endblock %}
 
