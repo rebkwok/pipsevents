@@ -9,6 +9,8 @@ Date.prototype.dateFormat = function( format ){
 
 jQuery(document).ready(function () {
 
+    $.scrollTrack();
+
     jQuery('form.dirty-check').areYouSure();
 
     jQuery('#datetimepicker').datetimepicker({
