@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
         if created:
             client = MailChimp(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET, timeout=20
+                settings.MAILCHIMP_SECRET, settings.MAILCHIMP_USER, timeout=20
             )
             mailchimp_members = client.lists.members.all(
                 settings.MAILCHIMP_LIST_ID,
