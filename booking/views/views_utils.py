@@ -21,7 +21,7 @@ class DataProtectionRequiredMixin(object):
 
     def dispatch(self, request, *args, **kwargs):
         # check if the user has an active disclaimer
-        if DataProtectionPolicy.current_version() > 0 and request.user.is_authenticated() \
+        if DataProtectionPolicy.current_version() > 0 and request.user.is_authenticated \
                 and not has_active_data_protection_agreement(request.user):
             return HttpResponseRedirect(
                 reverse('profile:data_protection_review') + '?next=' + self.request.path
