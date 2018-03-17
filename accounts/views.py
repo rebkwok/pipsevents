@@ -248,6 +248,7 @@ class SignedDataProtectionCreateView(LoginRequiredMixin, FormView):
         SignedDataProtection.objects.create(
             user=user, content_version=form.data_protection_policy.version
         )
+
         mailing_list = form.cleaned_data.get('mailing_list')
 
         group = Group.objects.get(name='subscribed')

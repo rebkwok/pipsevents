@@ -3,6 +3,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django import forms
+from django.contrib.auth.models import Group
 from django.utils import timezone
 
 from accounts import validators as account_validators
@@ -10,7 +11,7 @@ from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
     OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataProtectionPolicy, \
     SignedDataProtection
 from accounts.utils import has_expired_disclaimer
-
+from activitylog.models import ActivityLog
 from common.mailchimp_utils import update_mailchimp
 
 
@@ -54,7 +55,21 @@ class SignupForm(forms.Form):
                 date_signed=timezone.now()
             )
         if self.cleaned_data.get('mailing_list'):
+            group = Group.objects.get_or_create(name='subscribed')
+            group.user_set.add(user)
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has subscribed to the mailing list'.format(
+                    user.first_name, user.last_name,
+                    user.username
+                )
+            )
             update_mailchimp(user, 'subscribe')
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                    user.first_name, user.last_name,
+                    user.username
+                )
+            )
 
 
 class DisclaimerForm(forms.ModelForm):

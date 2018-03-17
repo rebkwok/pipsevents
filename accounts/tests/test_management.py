@@ -424,7 +424,9 @@ class EmailDuplicateUsersTests(TestCase):
 
 class CreateMailingListTests(TestSetupMixin, TestCase):
 
-    def test_group_created(self):
+    @patch('mailchimp3.entities.listmembers.ListMembers.all')
+    def test_group_created(self, mock_listmembers):
+
         self.assertFalse(Group.objects.filter(name='subscribed').exists())
         self.assertFalse(Booking.objects.exists())
         self.assertTrue(User.objects.count(), 3)
@@ -433,51 +435,81 @@ class CreateMailingListTests(TestSetupMixin, TestCase):
         groups = Group.objects.filter(name='subscribed')
         self.assertEqual(groups.count(), 1)
 
+        # no users on mailing list from mailchimp, so none added to group
         self.assertFalse(groups[0].user_set.exists())
 
-    def test_group_and_mailing_list_created(self):
+    @patch('mailchimp3.entities.listmembers.ListMembers.all')
+    def test_group_and_mailing_list_created(self, mock_listmembers):
         """
-        Add users to mailing list only if they have booked a CL event type
+        Add users to mailing list only if they are on mailchimp
         """
-        book_cl_users = mommy.make_recipe(
-            'booking.booking', event__event_type__event_type='CL', _quantity=3
-        )
-        mommy.make_recipe(
-            'booking.booking', event__event_type__event_type='EV', _quantity=3
-        )
-        # group was created on model pre-save when bookings created; delete it
-        Group.objects.get(name='subscribed').delete()
+        mock_listmembers.return_value = {
+            'members': [
+                {'status': 'subscribed', 'email_address': 'mailchimptest@test.com'}
+            ]
+        }
+
+        mommy.make_recipe('booking.user', email='mailchimptest@test.com')
+        mommy.make_recipe('booking.user', email='test1@test.com')
 
         management.call_command('create_mailing_list')
         group = Group.objects.get(name='subscribed')
-        self.assertEqual(group.user_set.count(), 3)
-        self.assertEqual(
-            sorted(user.id for user in group.user_set.all()),
-            sorted(booking.user.id for booking in book_cl_users)
-        )
-
-    def test_mailing_list_not_created_if_group_exists(self):
-        self.assertFalse(Group.objects.filter(name='subscribed').exists())
-        management.call_command('create_mailing_list')
-
-        book_cl_users = mommy.make_recipe(
-            'booking.booking', event__event_type__event_type='CL', _quantity=3
-        )
-        mommy.make_recipe(
-            'booking.booking', event__event_type__event_type='EV', _quantity=3
-        )
-        # group is created on model pre-save when bookings created
-        self.assertTrue(Group.objects.filter(name='subscribed').exists())
-        group = Group.objects.get(name='subscribed')
-        self.assertEqual(group.user_set.count(), 3)
-
-        # remove users from mailing list
-        for booking in book_cl_users:
-            group.user_set.remove(booking.user)
-
-        management.call_command('create_mailing_list')
-        self.assertFalse(group.user_set.exists())
-
-        group.user_set.add(book_cl_users[0].user)
-        management.call_command('create_mailing_list')
         self.assertEqual(group.user_set.count(), 1)
+
+    @patch('mailchimp3.entities.listmembers.ListMembers.all')
+    def test_mailing_list_not_created_if_group_exists(self, mock_listmembers):
+        mock_listmembers.return_value = {
+            'members': [
+                {'status': 'subscribed',
+                 'email_address': 'mailchimptest@test.com'}
+            ]
+        }
+        user = mommy.make_recipe('booking.user', email='mailchimptest@test.com')
+        user1 = mommy.make_recipe('booking.user', email='test1@test.com')
+
+        self.assertFalse(Group.objects.filter(name='subscribed').exists())
+        group = Group.objects.create(name='subscribed')
+        group.user_set.add(user1)
+
+        management.call_command('create_mailing_list')
+        group.refresh_from_db()
+
+        self.assertEqual(group.user_set.count(), 1)
+        susbscribed = group.user_set.all()
+        self.assertNotIn(user, susbscribed)
+        self.assertIn(user1, susbscribed)
+
+    @patch('mailchimp3.entities.listmembers.ListMembers.all')
+    def test_force_recreate_mailing_list(self, mock_listmembers):
+        mock_listmembers.return_value = {
+            'members': [
+                {'status': 'subscribed', 'email_address': 'mailchimptest@test.com'},
+                {'status': 'unsubscribed', 'email_address': 'mailchimptest1@test.com'},
+                {'status': 'subscribed', 'email_address': 'mailchimptest2@test.com'},
+                {'status': 'subscribed', 'email_address': 'doesnotexist@test.com'}
+            ]
+        }
+
+        self.assertFalse(Group.objects.filter(name='subscribed').exists())
+        group = Group.objects.create(name='subscribed')
+        group_id = group.id
+        # subscribed on both
+        user1 = mommy.make_recipe('booking.user', email='mailchimptest@test.com')
+        group.user_set.add(user1)
+        # subscribed on site, unsubscribed on mailchimp
+        user2 = mommy.make_recipe('booking.user', email='mailchimptest1@test.com')
+        group.user_set.add(user2)
+        # subscribed on mailchimp, unsubscribed on site
+        user3 = mommy.make_recipe('booking.user', email='mailchimptest2@test.com')
+
+        management.call_command('create_mailing_list', recreate=True)
+        group_after = Group.objects.get(name='subscribed')
+
+        # group was recreated
+        self.assertNotEqual(group_id, group_after.id)
+        self.assertEqual(group_after.user_set.count(), 2)
+
+        susbscribed = group_after.user_set.all()
+        self.assertIn(user1, susbscribed)
+        self.assertNotIn(user2, susbscribed)
+        self.assertIn(user3, susbscribed)
