@@ -11,12 +11,13 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialApp, SocialAccount
 
 from accounts.models import OnlineDisclaimer
 from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
 
 from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin, make_dataprotection_agreement
+    TestSetupMixin, set_up_fb
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
@@ -632,4 +633,29 @@ class MailingListSubscribeViewTests(TestSetupMixin, TestCase):
         # mailchimp updated
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'unsubscribed'
+        )
+
+
+class SocialAccountViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+
+    def test_connect_social_account(self):
+        # only shows fb link if user doesn't have an account connected already
+        user = User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+        resp = self.client.get(reverse('socialaccount_connections'))
+
+        self.assertIn(
+            "socialaccount_provider facebook btn btn-primary",
+            resp.rendered_content
+        )
+
+        SocialAccount.objects.create(user=user, provider='facebook')
+        resp = self.client.get(reverse('socialaccount_connections'))
+
+        self.assertNotIn(
+            "socialaccount_provider facebook btn btn-primary",
+            resp.rendered_content
         )
