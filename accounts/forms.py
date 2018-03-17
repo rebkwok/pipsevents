@@ -39,11 +39,20 @@ class SignupForm(forms.Form):
         self.fields['mailing_list'] = forms.CharField(
             widget=forms.RadioSelect(
                 choices=(
-                    (True, 'Yes, subscribe me'),
-                    (False, "No, I don't want to subscribe")
+                    ('yes', 'Yes, subscribe me'),
+                    ('no', "No, I don't want to subscribe")
                 )
             )
         )
+
+    def clean_data_protection_confirmation(self):
+        dp = self.cleaned_data.get('data_protection_confirmation')
+        if not dp:
+            self.add_error(
+                'data_protection_confirmation',
+                'You must check this box to continue'
+            )
+        return
 
     def signup(self, request, user):
         user.first_name = self.cleaned_data['first_name']
@@ -54,8 +63,8 @@ class SignupForm(forms.Form):
                 user=user, content_version=self.data_protection_version,
                 date_signed=timezone.now()
             )
-        if self.cleaned_data.get('mailing_list'):
-            group = Group.objects.get_or_create(name='subscribed')
+        if self.cleaned_data.get('mailing_list') == 'yes':
+            group, _ = Group.objects.get_or_create(name='subscribed')
             group.user_set.add(user)
             ActivityLog.objects.create(
                 log='User {} {} ({}) has subscribed to the mailing list'.format(
@@ -284,8 +293,8 @@ class DataProtectionAgreementForm(forms.Form):
     mailing_list = forms.CharField(
         widget=forms.RadioSelect(
             choices=(
-                (True, 'Yes, subscribe me'),
-                (False, "No, I don't want to subscribe")
+                ('yes', 'Yes, subscribe me'),
+                ('no', "No, I don't want to subscribe")
             )
         )
     )

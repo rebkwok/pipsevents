@@ -176,70 +176,8 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(self.user.email, 'new@test.com')
 
-        # mailchimp called twice, to ensure old email is unsubscribed and new
-        # email added/updated with user's current status
-        self.assertEqual(self.mock_request.call_count, 2)
-        first_call = call(
-            timeout=20,
-            hooks={'response': []},
-            method='POST',
-            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_LIST_ID
-            ),
-            auth=HTTPBasicAuth(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
-            ),
-            headers={
-                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-            },
-            json={
-                'update_existing': True,
-                'members': [
-                    {
-                        'email_address': 'test@test.com',
-                        'status': 'unsubscribed',
-                        'status_if_new': 'unsubscribed',
-                        'merge_fields': {
-                            'FNAME': self.user.first_name,
-                            'LNAME': self.user.last_name
-                        }
-                    }
-                ]
-            }
-        )
-        second_call = call(
-            timeout=20,
-            hooks={'response': []},
-            method='POST',
-            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_LIST_ID
-            ),
-            auth=HTTPBasicAuth(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
-            ),
-            headers={
-                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-            },
-            json={
-                'update_existing': True,
-                'members': [
-                    {
-                        'email_address': 'new@test.com',
-                        'status': 'unsubscribed',
-                        'status_if_new': 'unsubscribed',
-                        'merge_fields': {
-                            'FNAME': self.user.first_name,
-                            'LNAME': self.user.last_name
-                        }
-                    }
-                ]
-            }
-        )
-        self.assertEqual(
-            self.mock_request.call_args_list, [first_call, second_call]
-        )
+       # mailchimp not called b/c user unsubscribed
+        self.assertEqual(self.mock_request.call_count, 0)
 
     def test_change_primary_email_subscribed_user(self):
         # create another email address for this user
@@ -367,7 +305,9 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             user=self.user, email='new@test.com', primary=False, verified=True
         )
         self.client.login(username=self.user.username, password='test')
-        self.assertFalse(self.user.subscribed())
+        # user is subscribed
+        self.group.user_set.add(self.user)
+
         data = {'email': 'new@test.com', 'action_primary': True}
         with self.assertLogs(level='ERROR') as cm:
             resp = self.client.post(self.url, data=data)
