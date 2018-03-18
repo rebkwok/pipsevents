@@ -1,6 +1,5 @@
 {% load staticfiles %}
 {% load socialaccount %}
-{% providers_media_js %}
 {% load bookingtags %}
 
 <!DOCTYPE html>
@@ -15,24 +14,24 @@
         {% endblock %}
 
         <link rel="shortcut icon" href="{% static 'booking/images/favicon.ico' %}" type="image/vnd.microsoft.icon">
-        <link rel="icon" type="image/png" href="{% static 'booking/images/icon.png' %}">
+        <link rel="shortcut icon" type="image/png" href="{% static 'booking/images/icon.png' %}">
 
       {% check_debug as is_debug_on %}
 
       {% if is_debug_on %}
             <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap.min.css' %}">
             <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
-          <script defer src="https://use.fontawesome.com/releases/v5.0.2/js/all.js"></script>
         {% else %}
             <!-- Bootstrap core CSS -->
             <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
             <!-- Bootstrap theme -->
             <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-           <!-- Font awesome -->
-          <script defer src="https://use.fontawesome.com/releases/v5.0.2/js/all.js"></script>
         {% endif %}
 
-        <!-- Custom styles --->
+       <!-- Font awesome -->
+        <link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>
+
+       <!-- Custom styles --->
         <link href="{% static 'booking/css/custom.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
       <link rel="stylesheet" type="text/css" href="{% static 'booking/css/jquery.datetimepicker.css' %}"/ >
@@ -44,8 +43,7 @@
 
     </head>
 
-{% block bodytag %}<body>{% endblock %}
-
+    <body>
       <div class="wrap">
         <!-- Fixed navbar -->
         <div class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -195,14 +193,7 @@
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'booking/js/custom.js' %}"></script>
 
-
-<!--<script src="{% static 'booking/js/bootstrap-switch.js' %}"></script>-->
-<!--<script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>-->
-
 {% block extra_js %}{% endblock %}
 
 
 </html>
-
-
-<!--<div id="fb-root"></div>-->
