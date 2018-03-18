@@ -16,51 +16,56 @@
 	background-color: #fff;
 }
 
+
+/*For footer always at bottom of page*/
+/*body contains 2 top-level divs */
+/*<body>*/
+  /*<div class="wrap">*/
+    /*All content goes here*/
+  /*</div>*/
+  /*<div class="footer">*/
+    /*Footer content here*/
+  /*</div>*/
+/*</body>*/
+
+html {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
 body {
-	background-color: transparent;
-	padding-left: 15px;
-	margin-right: 15px;
+  background-color: transparent;
+  position: relative;
+  margin: 0;
+  padding-bottom: 6rem;
+  min-height: 100%;
+  font-family: "Helvetica Neue", Arial, sans-serif;
 }
 
-@media (max-width: 979px) {
-	body {
-		padding-top: 0px;
-	}
-}
-
-html,
-body {
-	height: 100%;
-	/* The html and body elements cannot have any padding or margin. */
-}
-
-/* Wrapper for page content to push down footer */
 .wrap {
-	padding-top: 50px;
-	min-height: 100%;
-	height: auto !important;
-	/* Negative indent footer by its height plus top padding? */
-	margin: 0 auto -120px;
+  margin: 0 auto;
+  padding-top: 60px;
+  width: 94%;
 }
 
-/* Set the fixed height of the footer here */
-.push,
-.footer {
-	height: 70px;
-}
+/**
+ * Footer Styles
+ */
 
 .footer {
-	background-color: transparent;
-}
-
-/* Lastly, apply responsive CSS fixes as necessary */
-@media (max-width: 767px) {
-	.footer {
-		margin-left: -20px;
-		margin-right: -20px;
-		padding-left: 20px;
-		padding-right: 20px;
-	}
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 1rem;
+  background-color: transparent;
+  height: 60px;
 }
 
 .box {

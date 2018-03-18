@@ -149,52 +149,32 @@
           </div>
         {% endif %}
 
-    {% block body %}
-        {% block content %}
-            <div class="container-fluid">
-                <p>You need to define a content block!</p>
-            </div>
+        {% block body %}
+            {% block content %}
+                <div class="container-fluid">
+                    <p>You need to define a content block!</p>
+                </div>
+            {% endblock %}
+
         {% endblock %}
 
-    {% endblock %}
+    </div>  <!-- end .wrap-->
 
-    </div>
-  </body>
-
-
-<!--/.footer -->
-        <div class="push"></div>
-    </div> <!--/end of page .wrap -->
-<!--
     <div class="footer">
-        <div class="container-fluid">
-            <div class="row footer_box">
-                <div class="col-sm-6 footer-fb pull-left">
-                    <div class="fb-like"
-                         data-layout="standard"
-                         data-action="like" data-show-faces="true" data-share="true">
-                    </div>
-                    <div class="footer-credit">Site developed by <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a></div>
-                </div>
-                <!--
-            </div>
-        </div>
+    {% block extra_footer %}
+      <div class="footer-credit col-xs-8 pull-left">
+          All prices are inclusive of VAT (VAT number 281 6986 56)<br/>
+          Terms and conditions apply to all purchases, including sale items; for full T&C <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
+         <a href="{% url 'data_protection' %}">Data protection and privacy policy</a>
+      </div>
+    {% endblock %}
+      <div class="pull-right">
+         <div class="footer-credit">Site developed by <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a><br/>
+         </div>
+      </div>
     </div>
--->
-<div>
-{% block extra_footer %}
-  <div class="footer-tc col-xs-8">
-      All prices are inclusive of VAT (VAT number 281 6986 56)<br/>
-      Terms and conditions apply to all purchases, including sale items; for full T&C <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
-  </div>
-{% endblock %}
-  <div class="pull-right">
-     <div class="footer-tc"><a href="{% url 'data_protection' %}">Data protection and privacy policy</a></div>
-     <div class="footer-credit">Site developed by <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a><br/>
-     </div>
-  </div>
-</div>
 
+</body>
 {% if is_debug_on %}
   <script src="{% static 'booking/bootstrap/jquery.min.js' %}"></script>
   <script src="{% static 'booking/bootstrap/bootstrap.min.js' %}"></script>
@@ -225,4 +205,4 @@
 </html>
 
 
-<div id="fb-root"></div>
+<!--<div id="fb-root"></div>-->
