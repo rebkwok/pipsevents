@@ -6,6 +6,7 @@
 <div class="container row">
 
     <h1>Data Protection and Privacy Policy</h1>
+        <h4>Version: {{ data_protection_policy.version }}.  Issue date: {{ data_protection_policy.issue_date | date:'d M Y' }}.</h4>
 
         <p>Please review our {% if update_needed %}updated {% endif %}data
             protection and privacy policy before proceeding.</p>

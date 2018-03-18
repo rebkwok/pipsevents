@@ -25,9 +25,9 @@ class SignupForm(forms.Form):
         # with the same version, even if it changed while the form was being
         # completed
         if DataProtectionPolicy.current():
-            self.data_protection_version = DataProtectionPolicy.current_version()
+            self.data_protection_policy = DataProtectionPolicy.current()
             self.fields['data_protection_content'] = forms.CharField(
-                initial=DataProtectionPolicy.current().content,
+                initial=self.data_protection_policy.content,
                 required=False
             )
             self.fields['data_protection_confirmation'] = forms.BooleanField(
@@ -60,7 +60,7 @@ class SignupForm(forms.Form):
         user.save()
         if hasattr(self, 'data_protection_version'):
             SignedDataProtection.objects.create(
-                user=user, content_version=self.data_protection_version,
+                user=user, content_version=self.data_protection_policy.version,
                 date_signed=timezone.now()
             )
         if self.cleaned_data.get('mailing_list') == 'yes':
