@@ -88,6 +88,9 @@ class DataProtectionPolicy(models.Model):
     content = models.CharField(max_length=2048)
     version = models.PositiveIntegerField(unique=True)
 
+    class Meta:
+        verbose_name_plural = "Data Protection Policies"
+
     @classmethod
     def current_version(cls):
         current_version = DataProtectionPolicy.objects.all().aggregate(
