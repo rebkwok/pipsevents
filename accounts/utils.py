@@ -77,16 +77,16 @@ def has_expired_disclaimer(user):
     return has_disclaimer
 
 
-def active_data_protection_cache_key(user):
-    return 'user_{}_active_data_protection_agreement'.format(user.id)
+def active_data_privacy_cache_key(user):
+    return 'user_{}_active_data_privacy_agreement'.format(user.id)
 
 
-def has_active_data_protection_agreement(user):
-    key = active_data_protection_cache_key(user)
+def has_active_data_privacy_agreement(user):
+    key = active_data_privacy_cache_key(user)
     if cache.get(key) is None:
         has_active_agreement = bool(
             [
-                True for dp in user.data_protection_agreement.all()
+                True for dp in user.data_privacy_agreement.all()
                 if dp.is_active
             ]
         )

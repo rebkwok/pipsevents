@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Delete online disclaimers over 3 years old and print disclaimers " \
-           "for users who haven't booked in past year"
+    help = "Delete any disclaimers over 3 years old"
 
     def handle(self, *args, **options):
 

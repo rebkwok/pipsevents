@@ -1,15 +1,20 @@
     {% for field in form %}
-        {% if field.name  == 'data_protection_content' %}
+        {% if field.name  == 'data_privacy_content' %}
             <span class="hide">{{ field }}</span>
-            <div class="dp-box pre-scrollable"><h2>Data Protection and Privacy Policy</h2>
-            <h5>Version: {{ form.data_protection_policy.version }}.  Issue date: {{ form.data_protection_policy.issue_date | date:'d M Y' }}.</h5>
-                {{ form.data_protection_policy.content | safe }}
+            <div class="dp-box pre-scrollable"><h2>Data Privacy & Cookie Policy</h2>
+            <h5>Version: {{ form.data_privacy_policy.version }}.  Issue date: {{ form.data_privacy_policy.issue_date | date:'d M Y' }}.</h5>
+                <h3>Data Privacy</h3>
+                {{ form.data_privacy_policy.data_privacy_content | safe }}
+                <h3>Cookies</h3>
+                {{ form.data_privacy_policy.cookie_content | safe }}
             </div>
-        {% elif field.name  == 'data_protection_confirmation' %}
+        {% elif field.name  == 'cookie_content' %}
+            <span class="hide">{{ field }}</span>
+        {% elif field.name  == 'data_privacy_confirmation' %}
             <div class="form-group">
                <div class="vspace {% if field.errors %}ticket-error{% endif %}">
-                   {{ field }}<label for='id_data_protection_confirmation'></label>
-                     <label class="control-label" for='id_data_protection_confirmation'>{{ field.label }}</label>
+                   {{ field }}<label for='id_data_privacy_confirmation'></label>
+                     <label class="control-label" for='id_data_privacy_confirmation'>{{ field.label }}</label>
                     {% if field.errors %} {{ field.errors }}{% endif %}
                </div>
            </div>

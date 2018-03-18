@@ -1,6 +1,6 @@
 from django.urls import path
 from accounts.views import ProfileUpdateView, profile, \
-    SignedDataProtectionCreateView
+    SignedDataPrivacyCreateView
 
 
 app_name = 'profile'
@@ -9,8 +9,8 @@ app_name = 'profile'
 urlpatterns = [
     path('update/', ProfileUpdateView.as_view(), name='update_profile'),
     path(
-        'data-protection-review/', SignedDataProtectionCreateView.as_view(),
-         name='data_protection_review'
+        'data-privacy-review/', SignedDataPrivacyCreateView.as_view(),
+         name='data_privacy_review'
     ),
     path('', profile, name='profile'),
 ]

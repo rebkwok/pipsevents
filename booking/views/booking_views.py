@@ -40,7 +40,7 @@ from booking.forms import BookingCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.views_utils import DisclaimerRequiredMixin, \
-    DataProtectionRequiredMixin, \
+    DataPolicyAgreementRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
 
 from payments.helpers import create_booking_paypal_transaction
@@ -49,7 +49,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class BookingListView(DataProtectionRequiredMixin, LoginRequiredMixin, ListView):
+class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
 
     model = Booking
     context_object_name = 'bookings'
@@ -136,7 +136,7 @@ class BookingListView(DataProtectionRequiredMixin, LoginRequiredMixin, ListView)
         return context
 
 
-class BookingHistoryListView(DataProtectionRequiredMixin, LoginRequiredMixin, ListView):
+class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
 
     model = Booking
     context_object_name = 'bookings'
@@ -172,7 +172,7 @@ class BookingHistoryListView(DataProtectionRequiredMixin, LoginRequiredMixin, Li
 
 
 class BookingCreateView(
-    DataProtectionRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
+    DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     CreateView
 ):
 
@@ -590,7 +590,7 @@ class BookingMultiCreateView(BookingCreateView):
 
 
 class BookingUpdateView(
-    DataProtectionRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
+    DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     UpdateView
 ):
     model = Booking
@@ -841,7 +841,7 @@ def _email_free_class_request(request, booking, booking_status):
 
 
 class BookingDeleteView(
-    DataProtectionRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
+    DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     DeleteView
 ):
     model = Booking

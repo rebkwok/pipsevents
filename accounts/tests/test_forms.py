@@ -18,7 +18,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
             'first_name': 'Test',
             'last_name': 'User',
             'mailing_list': False,
-            'data_protection_confirmation' : True
+            'data_privacy_confirmation' : True
         }
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
@@ -29,7 +29,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
             'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
              'last_name': 'User',
              'mailing_list': 'no',
-             'data_protection_confirmation': True
+             'data_privacy_confirmation': True
          }
         form = SignupForm(data=form_data)
         self.assertFalse(form.is_valid())
@@ -38,7 +38,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form_data = {
             'first_name': 'Test',
             'last_name': 'User',
-            'data_protection_confirmation': True
+            'data_privacy_confirmation': True
         }
         form = SignupForm(data=form_data)
         self.assertFalse(form.is_valid())
@@ -49,7 +49,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
             'first_name': 'Test',
             'last_name': 'User',
             'mailing_list': 'no',
-            'data_protection_confirmation': False
+            'data_privacy_confirmation': False
         }
         form = SignupForm(data=form_data)
         self.assertFalse(form.is_valid())
@@ -63,7 +63,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
             'first_name': 'New',
             'last_name': 'Name',
             'mailing_list': 'no',
-            'data_protection_confirmation': True
+            'data_privacy_confirmation': True
         }
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())

@@ -12,9 +12,9 @@ from allauth.account.views import EmailView, LoginView
 
 from braces.views import LoginRequiredMixin
 
-from .forms import DisclaimerForm, DataProtectionAgreementForm
-from .models import DataProtectionPolicy, SignedDataProtection
-from .utils import has_active_data_protection_agreement, \
+from .forms import DisclaimerForm, DataPrivacyAgreementForm
+from .models import DataPrivacyPolicy, SignedDataPrivacy
+from .utils import has_active_data_privacy_agreement, \
     has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from common.mailchimp_utils import update_mailchimp
@@ -157,10 +157,17 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
         return reverse('profile:profile')
 
 
-def data_protection(request):
+def data_privacy_policy(request):
     return render(
-        request, 'account/data_protection_statement.html',
-        {'data_protection_policy': DataProtectionPolicy.current()}
+        request, 'account/data_privacy_policy.html',
+        {'data_privacy_policy': DataPrivacyPolicy.current()}
+    )
+
+
+def cookie_policy(request):
+    return render(
+        request, 'account/cookie_policy.html',
+        {'data_privacy_policy': DataPrivacyPolicy.current()}
     )
 
 
@@ -210,19 +217,19 @@ def subscribe_view(request):
 
 
 
-class SignedDataProtectionCreateView(LoginRequiredMixin, FormView):
-    template_name = 'account/data_protection_review.html'
-    form_class = DataProtectionAgreementForm
+class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
+    template_name = 'account/data_privacy_review.html'
+    form_class = DataPrivacyAgreementForm
 
     def dispatch(self, *args, **kwargs):
-        if has_active_data_protection_agreement(self.request.user):
+        if has_active_data_privacy_agreement(self.request.user):
             return HttpResponseRedirect(
                 self.request.GET.get('next', reverse('booking:lessons'))
             )
-        return super(SignedDataProtectionCreateView, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
     def get_form_kwargs(self):
-        kwargs = super(SignedDataProtectionCreateView, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         kwargs['next_url'] = self.request.GET.get('next')
         kwargs['user'] = self.request.user
         return kwargs
@@ -230,23 +237,23 @@ class SignedDataProtectionCreateView(LoginRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         update_needed = (
-            SignedDataProtection.objects.filter(
+            SignedDataPrivacy.objects.filter(
                 user=self.request.user,
-                content_version__lt=DataProtectionPolicy.current_version()
-            ).exists() and not has_active_data_protection_agreement(
+                version__lt=DataPrivacyPolicy.current_version()
+            ).exists() and not has_active_data_privacy_agreement(
                 self.request.user)
         )
 
         context.update({
-            'data_protection_policy': DataProtectionPolicy.current(),
+            'data_protection_policy': DataPrivacyPolicy.current(),
             'update_needed': update_needed
         })
         return context
 
     def form_valid(self, form):        
         user = self.request.user
-        SignedDataProtection.objects.create(
-            user=user, content_version=form.data_protection_policy.version
+        SignedDataPrivacy.objects.create(
+            user=user, version=form.data_privacy_policy.version
         )
 
         mailing_list = form.cleaned_data.get('mailing_list') == 'yes'

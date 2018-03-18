@@ -21,7 +21,7 @@ from booking.forms import BlockCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.views.shopping_basket_views import apply_voucher_to_unpaid_blocks
 from booking.views.views_utils import (
-    DisclaimerRequiredMixin, validate_block_voucher_code
+    DisclaimerRequiredMixin, DataPolicyAgreementRequiredMixin, validate_block_voucher_code
 )
 from payments.helpers import create_multiblock_paypal_transaction
 
@@ -30,7 +30,10 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
+class BlockCreateView(
+    DisclaimerRequiredMixin, DataPolicyAgreementRequiredMixin,
+    LoginRequiredMixin, CreateView
+):
 
     model = Block
     template_name = 'booking/add_block.html'
@@ -102,7 +105,9 @@ class BlockCreateView(DisclaimerRequiredMixin, LoginRequiredMixin, CreateView):
         return HttpResponseRedirect(block.get_absolute_url())
 
 
-class BlockListView(LoginRequiredMixin, ListView):
+class BlockListView(
+    DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView
+):
 
     model = Block
     context_object_name = 'blocks'

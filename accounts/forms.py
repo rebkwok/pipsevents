@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from accounts import validators as account_validators
 from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
-    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataProtectionPolicy, \
-    SignedDataProtection
+    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataPrivacyPolicy, \
+    SignedDataPrivacy
 from accounts.utils import has_expired_disclaimer
 from activitylog.models import ActivityLog
 from common.mailchimp_utils import update_mailchimp
@@ -24,17 +24,21 @@ class SignupForm(forms.Form):
         # get the current version here to make sure we always display and save
         # with the same version, even if it changed while the form was being
         # completed
-        if DataProtectionPolicy.current():
-            self.data_protection_policy = DataProtectionPolicy.current()
-            self.fields['data_protection_content'] = forms.CharField(
-                initial=self.data_protection_policy.content,
+        if DataPrivacyPolicy.current():
+            self.data_privacy_policy = DataPrivacyPolicy.current()
+            self.fields['data_privacy_content'] = forms.CharField(
+                initial=self.data_privacy_policy.data_privacy_content,
                 required=False
             )
-            self.fields['data_protection_confirmation'] = forms.BooleanField(
+            self.fields['cookie_content'] = forms.CharField(
+                initial=self.data_privacy_policy.cookie_content,
+                required=False
+            )
+            self.fields['data_privacy_confirmation'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={'class': "regular-checkbox"}),
                 required=False,
                 label='I confirm I have read and agree to the terms of the data ' \
-                      'protection and privacy policy'
+                      'privacy policy'
             )
         self.fields['mailing_list'] = forms.CharField(
             widget=forms.RadioSelect(
@@ -45,11 +49,11 @@ class SignupForm(forms.Form):
             )
         )
 
-    def clean_data_protection_confirmation(self):
-        dp = self.cleaned_data.get('data_protection_confirmation')
+    def clean_data_privacy_confirmation(self):
+        dp = self.cleaned_data.get('data_privacy_confirmation')
         if not dp:
             self.add_error(
-                'data_protection_confirmation',
+                'data_privacy_confirmation',
                 'You must check this box to continue'
             )
         return
@@ -58,9 +62,9 @@ class SignupForm(forms.Form):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.save()
-        if hasattr(self, 'data_protection_version'):
-            SignedDataProtection.objects.create(
-                user=user, content_version=self.data_protection_policy.version,
+        if hasattr(self, 'data_privacy_version'):
+            SignedDataPrivacy.objects.create(
+                user=user, version=self.data_privacy_policy.version,
                 date_signed=timezone.now()
             )
         if self.cleaned_data.get('mailing_list') == 'yes':
@@ -281,13 +285,13 @@ class DisclaimerForm(forms.ModelForm):
         return super(DisclaimerForm, self).clean()
 
 
-class DataProtectionAgreementForm(forms.Form):
+class DataPrivacyAgreementForm(forms.Form):
 
     confirm = forms.BooleanField(
         widget=forms.CheckboxInput(attrs={'class': "regular-checkbox"}),
         required=False,
         label='I confirm I have read and agree to the terms of the data ' \
-              'protection and privacy policy'
+              'privacy and cookie policy'
     )
 
     mailing_list = forms.CharField(
@@ -302,8 +306,8 @@ class DataProtectionAgreementForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.next_url = kwargs.pop('next_url')
         user = kwargs.pop('user')
-        super(DataProtectionAgreementForm, self).__init__(*args, **kwargs)
-        self.data_protection_policy = DataProtectionPolicy.current()
+        super(DataPrivacyAgreementForm, self).__init__(*args, **kwargs)
+        self.data_privacy_policy = DataPrivacyPolicy.current()
         if user.subscribed:
             self.fields['mailing_list'].initial = True
 
