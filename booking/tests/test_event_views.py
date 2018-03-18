@@ -14,13 +14,13 @@ from django.contrib.auth.models import Permission
 from django.utils import timezone
 
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
-    DataProtectionPolicy
-from accounts.utils import has_active_data_protection_agreement
+    DataPrivacyPolicy
+from accounts.utils import has_active_data_privacy_agreement
 
 from booking.models import Event, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content, \
-    make_dataprotection_agreement
+    make_data_privacy_agreement
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -56,12 +56,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(resp.context['events'].count(), 3)
 
     def test_event_list_logged_in_no_data_protection_policy(self):
-        DataProtectionPolicy.objects.all().delete()
+        DataPrivacyPolicy.objects.all().delete()
         user = User.objects.create_user(
             username='testnodp', email='testnodp@test.com', password='test'
         )
         mommy.make(PrintDisclaimer, user=user)
-        self.assertFalse(has_active_data_protection_agreement(user))
+        self.assertFalse(has_active_data_privacy_agreement(user))
 
         self.assertTrue(
             self.client.login(username=user.username, password='test')
@@ -69,17 +69,19 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
-        DataProtectionPolicy.objects.create(content='Foo')
+        DataPrivacyPolicy.objects.create(
+            data_privacy_content='Foo', cookie_content='Bar'
+        )
         cache.clear()
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(
-            reverse('profile:data_protection_review') + '?next=/events/',
+            reverse('profile:data_privacy_review') + '?next=/events/',
             resp.url
         )
 
         cache.clear()
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
@@ -195,7 +197,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         user = mommy.make_recipe('booking.user')
         mommy.make(PrintDisclaimer, user=user)
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
 
         response = self._get_response(user, 'lessons')
         response.render()
@@ -210,7 +212,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
@@ -363,7 +365,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_users_disclaimer_status_in_context(self):
         user = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
         resp = self._get_response(user, 'events')
         # user has no disclaimer
         self.assertFalse(resp.context_data.get('disclaimer'))
@@ -667,7 +669,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
         mommy.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
@@ -685,7 +687,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()

@@ -13,7 +13,7 @@ from accounts.models import PrintDisclaimer
 from booking.models import Booking
 from booking.views import EventDetailView, BlockListView
 from common.tests.helpers import _create_session, format_content, \
-    TestSetupMixin, make_dataprotection_agreement
+    TestSetupMixin, make_data_privacy_agreement
 
 
 class EventDetailContextTests(TestSetupMixin, TestCase):
@@ -312,11 +312,11 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
         )
         user_no_disclaimer = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user_no_disclaimer)
+        make_data_privacy_agreement(user_no_disclaimer)
         user_print_disclaimer = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user_print_disclaimer)
+        make_data_privacy_agreement(user_print_disclaimer)
         user_online_disclaimer = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user_online_disclaimer)
+        make_data_privacy_agreement(user_online_disclaimer)
         mommy.make_recipe(
             'booking.online_disclaimer', user=user_online_disclaimer
         )
@@ -360,7 +360,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
         )
         user = mommy.make_recipe('booking.user')
-        make_dataprotection_agreement(user)
+        make_data_privacy_agreement(user)
         disclaimer = mommy.make_recipe(
            'booking.online_disclaimer', user=user,
             date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)

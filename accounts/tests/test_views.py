@@ -575,11 +575,11 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
 
-class DataProtectionViewTests(TestSetupMixin, TestCase):
+class DataPrivacyViewTests(TestSetupMixin, TestCase):
 
-    def test_get_data_protection_view(self):
+    def test_get_data_privacy_view(self):
         # no need to be a logged in user to access
-        resp = self.client.get(reverse('data_protection'))
+        resp = self.client.get(reverse('data_privacy_policy'))
         self.assertEqual(resp.status_code, 200)
 
 

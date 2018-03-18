@@ -15,6 +15,9 @@ from django.template.response import TemplateResponse
 
 from payments.forms import PayPalPaymentsShoppingBasketForm
 
+from accounts.models import DataPrivacyPolicy
+from accounts.utils import has_active_data_privacy_agreement
+
 from booking.models import (
     Block, BlockType, BlockVoucher, Booking, EventVoucher, UsedBlockVoucher,
     UsedEventVoucher
@@ -32,6 +35,13 @@ from payments.helpers import (
 
 @login_required
 def shopping_basket(request):
+
+    if DataPrivacyPolicy.current_version() > 0 and request.user.is_authenticated \
+            and not has_active_data_privacy_agreement(request.user):
+        return HttpResponseRedirect(
+            reverse('profile:data_privacy_review') + '?next=' + request.path
+        )
+
     template_name = 'booking/shopping_basket.html'
 
     # bookings

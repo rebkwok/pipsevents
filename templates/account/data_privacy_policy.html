@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+    <h1>Data Privacy Policy</h1>
+    <h4>Version: {{ data_privacy_policy.version }}.  Issue date: {{ data_privacy_policy.issue_date | date:'d M Y' }}.</h4>
+
+    <p>
+        {{ data_privacy_policy.data_privacy_content | safe }}
+    </p>
+
+    <h1>Cookie Policy</h1>
+    <p>
+        {{ data_privacy_policy.cookie_content | safe }}
+    </p>
+
+    <p>For further information, please contact
+        <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a></p>
+</div>
+
+{% endblock content %}

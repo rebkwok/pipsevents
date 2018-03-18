@@ -3,8 +3,8 @@ from operator import itemgetter
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
 
-from accounts.models import DataProtectionPolicy
-from accounts.utils import has_active_disclaimer, has_active_data_protection_agreement
+from accounts.models import DataPrivacyPolicy
+from accounts.utils import has_active_disclaimer, has_active_data_privacy_agreement
 from activitylog.models import ActivityLog
 from booking.models import Block, UsedBlockVoucher, UsedEventVoucher
 
@@ -17,16 +17,16 @@ class DisclaimerRequiredMixin(object):
         return super(DisclaimerRequiredMixin, self).dispatch(request, *args, **kwargs)
 
 
-class DataProtectionRequiredMixin(object):
+class DataPolicyAgreementRequiredMixin(object):
 
     def dispatch(self, request, *args, **kwargs):
         # check if the user has an active disclaimer
-        if DataProtectionPolicy.current_version() > 0 and request.user.is_authenticated \
-                and not has_active_data_protection_agreement(request.user):
+        if DataPrivacyPolicy.current_version() > 0 and request.user.is_authenticated \
+                and not has_active_data_privacy_agreement(request.user):
             return HttpResponseRedirect(
-                reverse('profile:data_protection_review') + '?next=' + self.request.path
+                reverse('profile:data_privacy_review') + '?next=' + self.request.path
             )
-        return super(DataProtectionRequiredMixin, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 def validate_voucher_code(voucher, user, event=None):
