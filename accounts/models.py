@@ -83,10 +83,11 @@ BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
 
 @has_readonly_fields
 class DataProtectionPolicy(models.Model):
-    read_only_fields = ('content', 'version')
+    read_only_fields = ('content', 'version', 'issue_date')
 
     content = models.CharField(max_length=2048)
     version = models.PositiveIntegerField(unique=True)
+    issue_date = models.DateTimeField(default=timezone.now)
 
     class Meta:
         verbose_name_plural = "Data Protection Policies"

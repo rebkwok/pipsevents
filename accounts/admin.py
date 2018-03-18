@@ -44,7 +44,7 @@ class DataProtectionPolicyAdminForm(forms.ModelForm):
 
 
 class DataProtectionPolicyAdmin(admin.ModelAdmin):
-    readonly_fields = ('version',)
+    readonly_fields = ('version', 'issue_date')
     form = DataProtectionPolicyAdminForm
 
 
