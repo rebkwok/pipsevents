@@ -1,7 +1,7 @@
     {% for field in form %}
         {% if field.name  == 'data_protection_content' %}
             <span class="hide">{{ field }}</span>
-            <div class="dp-box"><h2>Data Protection and Privacy Policy</h2>
+            <div class="dp-box pre-scrollable"><h2>Data Protection and Privacy Policy</h2>
             <h5>Version: {{ form.data_protection_policy.version }}.  Issue date: {{ form.data_protection_policy.issue_date | date:'d M Y' }}.</h5>
                 {{ form.data_protection_policy.content | safe }}
             </div>
