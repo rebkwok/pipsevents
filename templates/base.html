@@ -18,15 +18,8 @@
 
       {% check_debug as is_debug_on %}
 
-      {% if is_debug_on %}
-            <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap.min.css' %}">
-            <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
-        {% else %}
-            <!-- Bootstrap core CSS -->
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-            <!-- Bootstrap theme -->
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-        {% endif %}
+        <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap.min.css' %}">
+        <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
 
        <!-- Font awesome -->
         <link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>
@@ -173,16 +166,9 @@
     </div>
 
 </body>
-{% if is_debug_on %}
-  <script src="{% static 'booking/bootstrap/jquery.min.js' %}"></script>
-  <script src="{% static 'booking/bootstrap/bootstrap.min.js' %}"></script>
-{% else %}
-    <script
-      src="https://code.jquery.com/jquery-2.2.4.min.js"
-      integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-      crossorigin="anonymous"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-{% endif %}
+
+<script src="{% static 'booking/js/jquery-2.2.4.min.js' %}"></script>
+<script src="{% static 'booking/bootstrap/bootstrap.min.js' %}"></script>
 <script src="{% static 'booking/js/moment.min.js' %}"></script>
 <script src="{% static 'booking/js/bootstrap-dropdown-multilevel.js' %}"></script>
 <script src="{% static 'booking/js/jquery.datetimepicker.js' %}"></script>
