@@ -497,10 +497,13 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         dt = datetime(2015, 1, 1, tzinfo=timezone.utc)
         self.assertEqual(self.small_block.start_date, dt)
+        # Times are in UTC, but converted from local (GMT/BST)
+        # No daylight savings
         self.assertEqual(self.small_block.expiry_date,
                          datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc))
+        # Daylight savings
         self.assertEqual(self.large_block.expiry_date,
-                 datetime(2015, 5, 1, 23, 59, 59, tzinfo=timezone.utc))
+                 datetime(2015, 5, 1, 22, 59, 59, tzinfo=timezone.utc))
 
     def test_block_extended_expiry_date_set_to_end_of_day(self):
         """
@@ -515,6 +518,16 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertEqual(
             self.small_block.extended_expiry_date,
             datetime(2016, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+        )
+
+        # with DST
+        self.small_block.extended_expiry_date = datetime(
+            2016, 5, 1, 18, 30, tzinfo=timezone.utc
+        )
+        self.small_block.save()
+        self.assertEqual(
+            self.small_block.extended_expiry_date,
+            datetime(2016, 5, 1, 22, 59, 59, tzinfo=timezone.utc)
         )
 
     def test_block_expiry_date_with_extended_date(self):
