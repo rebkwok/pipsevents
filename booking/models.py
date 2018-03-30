@@ -286,11 +286,15 @@ class Block(models.Model):
             days=1)).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        return next_day - timedelta(seconds=1)
+        end_of_day_utc = next_day - timedelta(seconds=1)
+        uktz = pytz.timezone('Europe/London')
+        end_of_day_uk = end_of_day_utc.astimezone(uktz)
+        utc_offset = end_of_day_uk.utcoffset()
+        return end_of_day_utc - utc_offset
 
     @property
     def expiry_date(self):
-        # replace block expiry date with very end of day
+        # replace block expiry date with very end of day in local time
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
         # For a with a parent block with a parent (free class block),
