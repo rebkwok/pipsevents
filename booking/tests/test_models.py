@@ -286,10 +286,11 @@ class BookingTests(PatchRequestMixin, TestCase):
     def test_str(self):
         booking = mommy.make_recipe(
             'booking.booking',
-            event=mommy.make_recipe('booking.future_EV', name='Test event'),
+            event=mommy.make_recipe(
+                'booking.future_EV', name='Test event', date=datetime(2015, 1, 1, 18, 0)),
             user=mommy.make_recipe('booking.user', username='Test user'),
             )
-        self.assertEqual(str(booking), 'Test event - Test user')
+        self.assertEqual(str(booking), 'Test event - Test user - 01Jan2015 18:00')
 
     def test_booking_full_event(self):
         """

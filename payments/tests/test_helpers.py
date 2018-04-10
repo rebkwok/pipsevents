@@ -33,6 +33,38 @@ class TestHelpers(PatchRequestMixin, TestCase):
             )
         )
 
+    def test_create_multi_booking_transaction(self):
+        # test that creating multibooking invoices with events with same names
+        # but different dates generates different invoice ids
+        user = mommy.make_recipe('booking.user', username="testuser")
+        booking = mommy.make_recipe(
+            'booking.booking', user=user, event__name='test event',
+            event__date=datetime(2016, 1, 1, 17, 30)
+        )
+        booking1 = mommy.make_recipe(
+            'booking.booking', user=user, event__name='test event1',
+            event__date=datetime(2016, 1, 2, 17, 30)
+        )
+
+        invoice1 = helpers.create_multibooking_paypal_transaction(
+            user, [booking, booking1]
+        )
+
+        booking2 = mommy.make_recipe(
+            'booking.booking', user=user, event__name='test event',
+            event__date=datetime(2016, 1, 3, 17, 30)
+        )
+        booking3 = mommy.make_recipe(
+            'booking.booking', user=user, event__name='test event1',
+            event__date=datetime(2016, 1, 4, 17, 30)
+        )
+
+        invoice2 = helpers.create_multibooking_paypal_transaction(
+            user, [booking2, booking3]
+        )
+
+        self.assertNotEqual(invoice1, invoice2)
+
     def test_create_existing_booking_transaction(self):
         user = mommy.make_recipe('booking.user', username="testuser")
         booking = mommy.make_recipe(

@@ -433,7 +433,10 @@ class Booking(models.Model):
         )
 
     def __str__(self):
-        return "{} - {}".format(str(self.event.name), str(self.user.username))
+        return "{} - {} - {}".format(
+            str(self.event.name), str(self.user.username),
+            self.event.date.strftime('%d%b%Y %H:%M')
+        )
 
     def confirm_space(self):
         if self.event.cost:
