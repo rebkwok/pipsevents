@@ -123,31 +123,35 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
     list_filter = (PaypalBookingUserFilter, PaypalBookingCheckFilter, 'booking__event')
 
     def get_booking_id(self, obj):
-        return obj.booking.id
+        return obj.booking.id if obj.booking else None
     get_booking_id.short_description = "Booking id"
 
     def get_user(self, obj):
         return "{} {}".format(
             obj.booking.user.first_name, obj.booking.user.last_name
-        )
+        ) if obj.booking else None
+
     get_user.short_description = "User"
 
     def get_event(self, obj):
-        return obj.booking.event
+        return obj.booking.event if obj.booking else None
     get_event.short_description = "Event"
 
     def cost(self, obj):
-        return u"\u00A3{:.2f}".format(obj.booking.event.cost)
+        return u"\u00A3{:.2f}".format(obj.booking.event.cost) if obj.booking else None
 
     def paid(self, obj):
-        return obj.booking.paid
+        return obj.booking.paid if obj.booking else None
     paid.boolean = True
 
     def paid_by_block(self, obj):
-        return bool(obj.booking.block)
+        return bool(obj.booking.block) if obj.booking else None
     paid_by_block.boolean = True
 
     def booking_status(self, obj):
+        if not obj.booking:
+            return None
+
         if obj.booking.status == 'CANCELLED' and obj.booking.auto_cancelled:
             return 'AUTOCANCELLED'
         elif obj.booking.no_show:
@@ -165,32 +169,32 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
     list_filter = (PaypalBlockUserFilter, PaypalBlockCheckFilter)
 
     def get_block_id(self, obj):
-        return obj.block.id
+        return obj.block.id if obj.block else None
     get_block_id.short_description = "Block id"
 
     def get_user(self, obj):
         return "{} {}".format(
             obj.block.user.first_name, obj.block.user.last_name
-        )
+        ) if obj.block else None
     get_user.short_description = "User"
 
     def get_blocktype(self, obj):
-        return obj.block.block_type
+        return obj.block.block_type if obj.block else None
     get_blocktype.short_description = "BlockType"
 
     def block_start(self, obj):
-        return obj.block.start_date.strftime('%d %b %Y, %H:%M')
+        return obj.block.start_date.strftime('%d %b %Y, %H:%M') if obj.block else None
     block_start.short_description = 'Start date'
 
     def block_expiry(self, obj):
-        return obj.block.expiry_date.strftime('%d %b %Y, %H:%M')
+        return obj.block.expiry_date.strftime('%d %b %Y, %H:%M') if obj.block else None
     block_expiry.short_description = 'Expiry date'
 
     def cost(self, obj):
-        return u"\u00A3{:.2f}".format(obj.block.block_type.cost)
+        return u"\u00A3{:.2f}".format(obj.block.block_type.cost) if obj.block else None
 
     def paid(self, obj):
-        return obj.block.paid
+        return obj.block.paid if obj.block else None
     paid.boolean = True
 
 
@@ -207,17 +211,17 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
     )
 
     def get_ticket_booking_id(self, obj):
-        return obj.ticket_booking.id
+        return obj.ticket_booking.id if obj.ticket_booking else None
     get_ticket_booking_id.short_description = "Ticket booking id"
 
     def get_user(self, obj):
         return "{} {}".format(
             obj.ticket_booking.user.first_name, obj.ticket_booking.user.last_name
-        )
+        ) if obj.ticket_booking else None
     get_user.short_description = "User"
 
     def get_ticketed_event(self, obj):
-        return obj.ticket_booking.ticketed_event
+        return obj.ticket_booking.ticketed_event if obj.ticket_booking else None
     get_ticketed_event.short_description = "Event"
 
     def ticket_cost(self, obj):
@@ -226,16 +230,16 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
         )
 
     def number_of_tickets(self, obj):
-        return obj.ticket_booking.tickets.count()
+        return obj.ticket_booking.tickets.count() if obj.ticket_booking else None
 
     def total_cost(self, obj):
         return u"\u00A3{:.2f}".format(
             obj.ticket_booking.ticketed_event.ticket_cost *
             obj.ticket_booking.tickets.count()
-        )
+        ) if obj.ticket_booking else None
 
     def paid(self, obj):
-        return obj.ticket_booking.paid
+        return obj.ticket_booking.paid if obj.ticket_booking else None
     paid.boolean = True
 
 

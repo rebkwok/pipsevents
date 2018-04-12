@@ -272,7 +272,7 @@ class BookingInLine(admin.TabularInline):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "event":
-            parent_obj_id = request.resolver_match.kwargs['object_id']
+            parent_obj_id = request.resolver_match.kwargs.get('object_id')
             if parent_obj_id:
                 block = Block.objects.get(id=str(parent_obj_id))
                 kwargs["queryset"] = Event.objects.filter(

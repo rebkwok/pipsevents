@@ -3446,8 +3446,9 @@ class BookingMultiCreateViewTests(TestSetupMixin, TestCase):
         )
         split_redirect_url = urlsplit(resp.url)
         self.assertEqual(split_redirect_url.path, reverse('booking:lessons'))
-        self.assertEqual(split_redirect_url.query, 'name=Level+1')
-
+        self.assertIn('page=', split_redirect_url.query)
+        self.assertIn('tab=0', split_redirect_url.query)
+        self.assertIn('name=Level+1', split_redirect_url.query)
 
     def test_create_returns_to_events_page_with_tab(self):
         self.pc.name = 'Level 1'
@@ -3462,7 +3463,9 @@ class BookingMultiCreateViewTests(TestSetupMixin, TestCase):
         )
         split_redirect_url = urlsplit(resp.url)
         self.assertEqual(split_redirect_url.path, reverse('booking:lessons'))
-        self.assertEqual(split_redirect_url.query, 'tab=0')
+        self.assertIn('page=', split_redirect_url.query)
+        self.assertIn('tab=0', split_redirect_url.query)
+        self.assertIn('name=', split_redirect_url.query)
 
     def test_create_returns_to_events_page_with_filter_and_tab(self):
         self.pc.name = 'Level 1'
@@ -3476,6 +3479,6 @@ class BookingMultiCreateViewTests(TestSetupMixin, TestCase):
             Booking.objects.filter(user=self.user, event=self.pc).exists()
         )
         split_redirect_url = urlsplit(resp.url)
-        self.assertEqual(split_redirect_url.path, reverse('booking:lessons'))
+        self.assertEqual(reverse('booking:lessons'), split_redirect_url.path)
         self.assertIn('name=Level+2', split_redirect_url.query)
         self.assertIn('tab=1', split_redirect_url.query)

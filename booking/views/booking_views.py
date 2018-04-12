@@ -11,6 +11,9 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
+from django.core.paginator import EmptyPage
+from django.core.paginator import PageNotAnInteger
 from django.urls import reverse
 from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -50,6 +53,7 @@ class BookingListView(LoginRequiredMixin, ListView):
     model = Booking
     context_object_name = 'bookings'
     template_name = 'booking/bookings.html'
+    paginate_by = 20
 
     def get_queryset(self):
         return Booking.objects.filter(
@@ -67,7 +71,9 @@ class BookingListView(LoginRequiredMixin, ListView):
         ]
 
         bookingformlist = []
-        for booking in self.object_list:
+        bookings = context['bookings']
+
+        for booking in bookings:
             if booking.event.event_type not in active_block_event_types \
                     and booking.status == 'OPEN' and not booking.paid:
                 # ONLY DO THIS IF PAYPAL BUTTON NEEDED
@@ -125,6 +131,7 @@ class BookingListView(LoginRequiredMixin, ListView):
                 }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
+
         return context
 
 
@@ -133,6 +140,7 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
     model = Booking
     context_object_name = 'bookings'
     template_name = 'booking/bookings.html'
+    paginate_by = 20
 
     def get_queryset(self):
         return Booking.objects.filter(
@@ -148,7 +156,9 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
         context['history'] = True
 
         bookingformlist = []
-        for booking in self.object_list:
+        bookings = context['bookings']
+
+        for booking in bookings:
             bookingform = {
                 'booking_status': 'CANCELLED' if
                 (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
@@ -553,8 +563,11 @@ class BookingMultiCreateView(BookingCreateView):
         super(BookingMultiCreateView, self).form_valid(form)
         filter = form.data.get('filter')
         # redirect to specified next page, or to ev_type (lessons/events/roomhires)
-        next = form.data.get('next', self.ev_type)
-        tab = form.data.get('tab')
+        params = {
+            'name': form.data.get('filter', ''),
+            'tab': form.data.get('tab', 0),
+            'page': form.data.get('page', '')
+        }
 
         # get rid of base class messages and just show the add to basket one
         list(messages.get_messages(self.request))
@@ -568,15 +581,9 @@ class BookingMultiCreateView(BookingCreateView):
             msg += " and added to <a href='/bookings/shopping-basket'>basket</a>"
 
         messages.success(self.request, mark_safe(msg))
-
+        next = form.data.get('next', self.ev_type)
         url = reverse('booking:{}'.format(next))
-        params = {}
-        if tab:
-            params['tab'] = tab
-        if filter:
-            params['name'] = filter
-        if params:
-            url += '?{}'.format(urlencode(params))
+        url += '?{}'.format(urlencode(params))
         return HttpResponseRedirect(url)
 
 

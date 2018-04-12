@@ -14,16 +14,16 @@
             
         {% if events %}
             {% if user.is_authenticated %}
-            {% has_shopping_basket_items user as items_in_shopping_basket %}
-            {% if items_in_shopping_basket %}
-            <p class="errorlist">
-                You have items in your shopping basket.  Note that if payment has
-                not been received within the required time (see individual class/workshop for details),
-                 your booking will be automatically cancelled and you
-                 will need to contact the studio directly to rebook.
-            </p>
+                {% has_shopping_basket_items user as items_in_shopping_basket %}
+                {% if items_in_shopping_basket %}
+                <p class="errorlist">
+                    You have items in your shopping basket.  Note that if payment has
+                    not been received within the required time (see individual class/workshop for details),
+                     your booking will be automatically cancelled and you
+                     will need to contact the studio directly to rebook.
+                </p>
+                {% endif %}
             {% endif %}
-        {% endif %}
         </div>
 
             <div class="col-xs-12">
@@ -38,9 +38,7 @@
                 {% if not user.is_authenticated %}
                     <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
                 {% endif %}
-                <form class="filter-row pull-right" action="" method="get">
-                    <strong>Filter by: {{ form.name }}</strong>
-                </form>
+
 
                 {% if user.is_authenticated %}
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
@@ -71,7 +69,10 @@
                     <div class="panel-body">
                         <div class="tab-content">
                         {% for location_obj in location_events %}
+
                             <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
+
+
                                 <div class="table-responsive">
                                     {% if location_obj.queryset %}
                                         <table class="table">
@@ -126,6 +127,7 @@
                                                                             <input type="hidden" name="event" value={{event.id}}>
                                                                             <input type="hidden" name="filter" value="{{ request.GET.name }}">
                                                                             <input type="hidden" name="tab" value="{{ location_obj.index }}">
+                                                                            <input type="hidden" name="page" value="{{ location_obj.queryset.number }}">
                                                                             <input id="book_button" class="btn btn-success table-btn" type="submit" value="Book"/>
                                                                         </form>
                                                                     {% endif %}
@@ -180,9 +182,26 @@
                                                         {% else %}N/A{% endif %}</td>
                                                 </tr>
                                             {% endfor %}
+                                                <tr>
+                                                    {% include 'booking/includes/event_pagination.html' %}
+                                                    <div class="pull-right">
+                                                        <form class="filter-row" action="" method="get">
+                                                            <strong>Filter by: {{ form.name }}</strong>
+                                                            <input type="hidden" name="tab" value="{{ location_obj.index }}">
+                                                        </form>
+                                                    </div>
+                                                </tr>
+
                                         </table>
+                                        {% include 'booking/includes/event_pagination.html' %}
                                     {% else %}
                                     <h3>Coming soon!</h3>
+                                    {% if location_obj.index != 0 %}
+                                        <a href="?name={{ request.GET.name }}&tab=0">
+                                        Show {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} at all locations
+                                        </a>
+                                    {% endif %}
+
                                     {% endif %}
                                 </div>
                             </div>
@@ -191,6 +210,7 @@
                     </div> <!-- panel body -->
                 </div>
             </div>
+
         {% else %}
             <p>There are currently no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} available to book.</p>
         {% endif %}
