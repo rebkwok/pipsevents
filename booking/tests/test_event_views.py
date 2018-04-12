@@ -422,7 +422,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             len(resp.context_data['location_events']), 3
         )
-        self.assertIsNone(resp.context_data['tab'])
+        # tab 0 by default
+        self.assertEqual(resp.context_data['tab'], 0)
         # tab 0 is active and open by default
         self.assertIn(
             '<div class="tab-pane fade active in" id="tab0">',

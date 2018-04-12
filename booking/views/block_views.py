@@ -107,6 +107,7 @@ class BlockListView(LoginRequiredMixin, ListView):
     model = Block
     context_object_name = 'blocks'
     template_name = 'booking/block_list.html'
+    paginate_by = 10
 
     def post(self, request):
         if "apply_voucher" in request.POST:
@@ -123,9 +124,12 @@ class BlockListView(LoginRequiredMixin, ListView):
                     voucher, self.request.user
                 )
 
-            context = {'blocks': self.get_queryset()}
+            paginator, page_obj, blocks, _ = self.paginate_queryset(
+                self.get_queryset(), self.paginate_by
+            )
+            context = {'blocks': blocks, 'paginator': paginator, 'page_obj': page_obj}
             extra_context = self.get_extra_context(
-                voucher=voucher, voucher_error=voucher_error, code=code,
+                context, voucher=voucher, voucher_error=voucher_error, code=code,
             )
             context.update(**extra_context)
             return TemplateResponse(self.request, self.template_name, context)
@@ -133,7 +137,7 @@ class BlockListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
-        extra_context = self.get_extra_context()
+        extra_context = self.get_extra_context(context)
         context.update(**extra_context)
         return context
 
@@ -142,8 +146,7 @@ class BlockListView(LoginRequiredMixin, ListView):
            Q(user=self.request.user)
         ).order_by('-start_date')
 
-    def get_extra_context(self, **kwargs):
-        context = {}
+    def get_extra_context(self, context, **kwargs):
         context['disclaimer'] = has_active_disclaimer(self.request.user)
         context['expired_disclaimer'] = has_expired_disclaimer(
             self.request.user
@@ -192,7 +195,7 @@ class BlockListView(LoginRequiredMixin, ListView):
                 'voucher_msg': block_voucher_dict['block_voucher_msg'],
             })
 
-        for block in self.get_queryset():
+        for block in context['blocks']:
             blockform = {
                 'block': block,
                 'block_cost': block.block_type.cost,
