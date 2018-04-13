@@ -77,6 +77,44 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
             ppbooking_admin.booking_status(ppbooking_query), 'AUTOCANCELLED'
         )
 
+    def test_paypal_booking_admin_display_no_booking(self):
+        # check eveerything works when booking is null
+        user = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User')
+        booking = mommy.make_recipe('booking.booking', user=user, status='OPEN')
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        booking.delete()
+
+        ppbooking_admin = admin.PaypalBookingTransactionAdmin(
+            PaypalBookingTransaction, AdminSite()
+        )
+        ppbooking_query = ppbooking_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            ppbooking_admin.get_booking_id(ppbooking_query), None
+        )
+        self.assertEqual(
+            ppbooking_admin.get_user(ppbooking_query), None
+        )
+        self.assertEqual(
+            ppbooking_admin.get_event(ppbooking_query), None
+        )
+        self.assertEqual(
+            ppbooking_admin.cost(ppbooking_query), None
+        )
+        self.assertEqual(
+            ppbooking_admin.paid(ppbooking_query), None
+        )
+        self.assertEqual(
+            ppbooking_admin.paid_by_block(ppbooking_query), None
+        )
+
+        self.assertEqual(
+            ppbooking_admin.booking_status(ppbooking_query), None
+        )
+
     def test_paypal_block_admin_display(self):
         user = mommy.make_recipe(
             'booking.user', first_name='Test', last_name='User')
@@ -116,6 +154,42 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
             block.paid
         )
 
+    def test_paypal_block_admin_display_no_block(self):
+        user = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User')
+        block = mommy.make_recipe('booking.block_5', user=user)
+        helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+        block.delete()
+
+        ppblock_admin = admin.PaypalBlockTransactionAdmin(
+            PaypalBlockTransaction, AdminSite()
+        )
+        ppblock_query = ppblock_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            ppblock_admin.get_block_id(ppblock_query), None
+        )
+        self.assertEqual(
+            ppblock_admin.get_user(ppblock_query), None
+        )
+        self.assertEqual(
+            ppblock_admin.get_blocktype(ppblock_query), None
+        )
+        self.assertEqual(
+            ppblock_admin.cost(ppblock_query), None
+        )
+        self.assertEqual(
+            ppblock_admin.block_start(ppblock_query), None
+        )
+        self.assertEqual(
+            ppblock_admin.block_expiry(ppblock_query), None
+        )
+        self.assertEqual(
+            ppblock_admin.paid(ppblock_query), None
+        )
+
     def test_paypal_ticket_admin_display(self):
         user = mommy.make_recipe(
             'booking.user', first_name='Test', last_name='User')
@@ -152,6 +226,41 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
         self.assertEqual(
             pptbooking_admin.paid(query), ticket_booking.paid
         )
+
+    def test_paypal_ticket_admin_display_no_ticket_booking(self):
+        user = mommy.make_recipe(
+            'booking.user', first_name='Test', last_name='User')
+        ticketed_event = mommy.make(TicketedEvent, ticket_cost=10)
+        ticket_booking = mommy.make(
+            TicketBooking, user=user, ticketed_event=ticketed_event
+        )
+        mommy.make(Ticket, ticket_booking=ticket_booking, _quantity=2)
+        pptrans = helpers.create_ticket_booking_paypal_transaction(
+            user, ticket_booking
+        )
+        ticket_booking.delete()
+
+        pptbooking_admin = admin.PaypalTicketBookingTransactionAdmin(
+            PaypalTicketBookingTransaction, AdminSite()
+        )
+        query = pptbooking_admin.get_queryset(None)[0]
+
+        self.assertEqual(
+            pptbooking_admin.get_ticket_booking_id(query), None
+        )
+        self.assertEqual(
+            pptbooking_admin.get_user(query), None
+        )
+        self.assertEqual(
+            pptbooking_admin.get_ticketed_event(query), None
+        )
+        self.assertEqual(pptbooking_admin.ticket_cost(query), None)
+        self.assertEqual(
+            pptbooking_admin.number_of_tickets(query), None
+        )
+        self.assertEqual(pptbooking_admin.total_cost(query), None)
+        self.assertEqual(pptbooking_admin.paid(query), None)
+
 
     def test_paypaladmin_display(self):
         mommy.make(PayPalIPN, first_name='Mickey', last_name='Mouse')

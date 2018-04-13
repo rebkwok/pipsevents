@@ -32,7 +32,9 @@ class PaypalBookingTransaction(models.Model):
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return '{} - booking {}'.format(self.invoice_id, self.booking.id)
+        return '{} - booking {}'.format(
+            self.invoice_id, self.booking.id if self.booking else None
+        )
 
 
 class PaypalBlockTransaction(models.Model):
@@ -42,7 +44,9 @@ class PaypalBlockTransaction(models.Model):
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return '{} - block {}'.format(self.invoice_id, self.block.id)
+        return '{} - block {}'.format(
+            self.invoice_id, self.block.id if self.block else None
+        )
 
 
 class PaypalTicketBookingTransaction(models.Model):
@@ -52,7 +56,7 @@ class PaypalTicketBookingTransaction(models.Model):
 
     def __str__(self):
         return '{} - tkt booking {}'.format(
-            self.invoice_id, self.ticket_booking.id
+            self.invoice_id, self.ticket_booking.id if self.ticket_booking else None
         )
 
 

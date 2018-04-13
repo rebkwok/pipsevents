@@ -1,0 +1,24 @@
+{% load bookingtags %}
+
+<div class="pagination">
+    <span class="page-links">
+        {% if location_obj.queryset.has_previous %}
+            <a href="?page={{ location_obj.queryset.previous_page_number }}&tab={{ location_obj.index }}&name={{ request.GET.name }}">Previous</a>
+        {% else %}
+            <a class="disabled" disabled=disabled href="#">Previous</a>
+        {% endif %}
+        --
+        {% for i in location_obj.queryset.paginator.num_pages|get_range:1 %}
+            {% if i != location_obj.queryset.number %}
+                <a href="?page={{ i }}&tab={{ location_obj.index }}&name={{ request.GET.name }}">{{ i }}</a>
+            {% else %}{{ i }}
+            {% endif %}
+        {% endfor %}
+        --
+        {% if location_obj.queryset.has_next %}
+            <a href="?page={{ location_obj.queryset.next_page_number }}&tab={{ location_obj.index }}&name={{ request.GET.name }}">Next</a>
+        {% else %}
+            <a class="disabled" href="#">Next</a>
+        {% endif %}
+    </span>
+</div>

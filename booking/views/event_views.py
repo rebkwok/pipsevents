@@ -1,6 +1,7 @@
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import Paginator
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import (
     ListView, DetailView
@@ -29,10 +30,9 @@ class EventListView(ListView):
             ev_abbr = 'CL'
         else:
             ev_abbr = 'RH'
-
         name = self.request.GET.get('name')
 
-        if name:
+        if name and name not in ['', 'all']:
             return Event.objects.select_related('event_type').filter(
                 event_type__event_type=ev_abbr,
                 date__gte=timezone.now(),
@@ -46,18 +46,25 @@ class EventListView(ListView):
         ).order_by('date')
 
     def get_context_data(self, **kwargs):
+        all_events = self.get_queryset()
+
         # Call the base implementation first to get a context
         context = super(EventListView, self).get_context_data(**kwargs)
+
         if not self.request.user.is_anonymous:
             # Add in the booked_events
-            booked_events = Booking.objects.select_related()\
-                .filter(user=self.request.user, status='OPEN', no_show=False)\
+            booked_events = Booking.objects.select_related('event', 'user')\
+                .filter(event__in=all_events, user=self.request.user, status='OPEN', no_show=False)\
                 .values_list('event__id', flat=True)
-            auto_cancelled_events = Booking.objects.select_related() \
-                .filter(user=self.request.user, status='CANCELLED', auto_cancelled=True) \
+            auto_cancelled_events = Booking.objects.select_related('event', 'user') \
+                .filter(
+                    event__in=all_events, user=self.request.user, status='CANCELLED',
+                    auto_cancelled=True
+                ) \
                 .values_list('event__id', flat=True)
             waiting_list_events = WaitingListUser.objects\
-                .filter(user=self.request.user)\
+                .select_related('event', 'user')\
+                .filter(event__in=all_events, user=self.request.user)\
                 .values_list('event__id', flat=True)
             context['booked_events'] = booked_events
             context['auto_cancelled_events'] = auto_cancelled_events
@@ -82,23 +89,39 @@ class EventListView(ListView):
                 self.request.user
             )
 
+        # paginate each queryset
+        tab = self.request.GET.get('tab', 0)
+        context['tab'] = tab
+
+        if not tab or tab == '0':
+            page = self.request.GET.get('page', 1)
+        else:
+            page = 1
+        all_paginator = Paginator(all_events, 30)
+
+        queryset = all_paginator.get_page(page)
+
         location_events = [{
             'index': 0,
-            'queryset': self.get_queryset(),
+            'queryset': queryset,
             'location': 'All locations'
         }]
-        for i, location in enumerate(
-                [lc[0] for lc in Event.LOCATION_CHOICES], 1
-        ):
+        for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):
+            location_qs = all_events.filter(location=location)
+            location_paginator = Paginator(location_qs, 30)
+            if tab and int(tab) == i:
+                page = self.request.GET.get('page', 1)
+            else:
+                page = 1
+            queryset = location_paginator.get_page(page)
+
             location_obj = {
                 'index': i,
-                'queryset': self.get_queryset().filter(location=location),
+                'queryset': queryset,
                 'location': location
             }
             location_events.append(location_obj)
         context['location_events'] = location_events
-
-        context['tab'] = self.request.GET.get('tab')
 
         return context
 
