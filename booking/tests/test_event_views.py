@@ -422,7 +422,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             len(resp.context_data['location_events']), 3
         )
-        self.assertIsNone(resp.context_data['tab'])
+        # tab 0 by default
+        self.assertEqual(resp.context_data['tab'], 0)
         # tab 0 is active and open by default
         self.assertIn(
             '<div class="tab-pane fade active in" id="tab0">',
@@ -440,6 +441,119 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertNotIn(
             '<div class="tab-pane fade active in" id="tab0">',
             resp.rendered_content
+        )
+
+    def test_event_list_default_pagination(self):
+        # make enough events that they will paginate
+        # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
+        mommy.make_recipe('booking.future_PC', _quantity=25)
+        url = reverse('booking:lessons')
+        resp = self.client.get(url)
+
+        # 3 loc events, 1 for all and 1 for each location
+        self.assertEqual(
+            len(resp.context_data['location_events']), 3
+        )
+        # Queryset contains first 30
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 30
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][1]['queryset']), 30
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][2]['queryset']), 0
+        )
+
+        # make some classes at second location
+        mommy.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=32)
+        resp = self.client.get(url)
+
+        # Queryset contains first 30
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 30
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][1]['queryset']), 30
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][2]['queryset']), 30
+        )
+
+    def test_event_list_default_pagination_with_page(self):
+        # make enough events that they will paginate
+        # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
+        mommy.make_recipe('booking.future_PC', _quantity=25)
+        # make some classes at second location
+        mommy.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=10)
+
+        # with specified page only, defaults to show all
+        url = reverse('booking:lessons') + '?page=2'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for all; 41 in all, paginated 30
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 11
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 2
+        )
+        # pagination for non-specified tabs defaults to 1
+        self.assertEqual(
+            len(resp.context_data['location_events'][1]['queryset']), 30
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][1]['queryset'].number, 1
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][2]['queryset']), 10
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][2]['queryset'].number, 1
+        )
+
+        # with tab
+        url = reverse('booking:lessons') + '?page=2&tab=1'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for tab 1 only
+        # tab 1 = beaverbank, 31 objs total
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 30
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 1
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][1]['queryset']), 1
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][1]['queryset'].number, 2
+        )
+        self.assertEqual(
+            len(resp.context_data['location_events'][2]['queryset']), 10
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][2]['queryset'].number, 1
+        )
+
+        # page out of range, defaults to last page
+        url = reverse('booking:lessons') + '?page=10'
+        resp = self.client.get(url)
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 11
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 2
+        )
+
+        # page not an int, defaults to 1
+        url = reverse('booking:lessons') + '?page=foo'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for all
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 30
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][1]['queryset'].number, 1
         )
 
 
