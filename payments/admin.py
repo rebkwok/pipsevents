@@ -227,7 +227,7 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
     def ticket_cost(self, obj):
         return u"\u00A3{:.2f}".format(
             obj.ticket_booking.ticketed_event.ticket_cost
-        )
+        ) if obj.ticket_booking else None
 
     def number_of_tickets(self, obj):
         return obj.ticket_booking.tickets.count() if obj.ticket_booking else None

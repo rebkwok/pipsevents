@@ -100,19 +100,13 @@ class EventListView(ListView):
         all_paginator = Paginator(all_events, 30)
 
         queryset = all_paginator.get_page(page)
-        try:
-            queryset = all_paginator.get_page(page)
-        except (PageNotAnInteger, EmptyPage):
-            queryset = all_paginator.get_page.page(1)
 
         location_events = [{
             'index': 0,
             'queryset': queryset,
             'location': 'All locations'
         }]
-        for i, location in enumerate(
-                [lc[0] for lc in Event.LOCATION_CHOICES], 1
-        ):
+        for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):
             location_qs = all_events.filter(location=location)
             location_paginator = Paginator(location_qs, 30)
             if tab and int(tab) == i:
@@ -120,10 +114,6 @@ class EventListView(ListView):
             else:
                 page = 1
             queryset = location_paginator.get_page(page)
-            try:
-                queryset = location_paginator.get_page(page)
-            except (PageNotAnInteger, EmptyPage):
-                queryset = location_paginator.get_page.page(1)
 
             location_obj = {
                 'index': i,
