@@ -24,7 +24,7 @@ class DataPolicyAgreementRequiredMixin(object):
         if DataPrivacyPolicy.current_version() > 0 and request.user.is_authenticated \
                 and not has_active_data_privacy_agreement(request.user):
             return HttpResponseRedirect(
-                reverse('profile:data_privacy_review') + '?next=' + self.request.path
+                reverse('profile:data_privacy_review') + '?next=' + request.path
             )
         return super().dispatch(request, *args, **kwargs)
 
