@@ -40,7 +40,7 @@
             <p>{% if request.user.subscribed %}
                 You are currently subscribed. Please confirm you wish to continue to subscribe.
                 {% else %}
-                Please not currently subscribed.  Please confirm if you would like to subscribe.
+                You are not currently subscribed.  Please confirm if you would like to subscribe.
             {% endif %}</p>
               <div class="col-xs-12 {% if form.mailing_list.errors %}ticket-error{% endif %}">
                   {% for choice in form.mailing_list %}
