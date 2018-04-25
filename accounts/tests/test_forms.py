@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from accounts.forms import SignupForm, DisclaimerForm
 from accounts.models import OnlineDisclaimer
-from common.tests.helpers import TestSetupMixin
+from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
 class SignUpFormTests(TestSetupMixin, TestCase):
@@ -44,7 +44,6 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         self.assertFalse(form.is_valid())
 
     def test_signup_dataprotection_confirmation_required(self):
-        # first_name must have 30 characters or fewer
         form_data = {
             'first_name': 'Test',
             'last_name': 'User',
@@ -70,6 +69,22 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form.signup(request, user)
         self.assertEquals('New', user.first_name)
         self.assertEquals('Name', user.last_name)
+
+    def test_signup_with_mailing_list(self):
+        user = mommy.make(User, email='test@mailinglist.com')
+        url = reverse('account_signup')
+        request = self.factory.get(url)
+        request.user = user
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'MailingListUser',
+            'mailing_list': 'yes',
+            'data_privacy_confirmation': True
+        }
+        form = SignupForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        form.signup(request, user)
+        assert_mailchimp_post_data(self.mock_request, user, 'subscribed')
 
 
 class DisclaimerFormTests(TestSetupMixin, TestCase):
@@ -216,3 +231,12 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
         # terms accepted NOT set to expired
         self.assertIsNone(form.fields['terms_accepted'].initial)
+
+
+class DataPrivacyAgreementFormTests(TestCase):
+
+    def test_confirm_required(self):
+        pass
+
+    def test_with_mailing_list(self):
+        pass

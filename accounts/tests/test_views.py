@@ -7,17 +7,18 @@ from unittest.mock import call, Mock
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.cache import cache
 from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp, SocialAccount
 
-from accounts.models import OnlineDisclaimer
-from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
-
+from ..models import DataPrivacyPolicy, OnlineDisclaimer, SignedDataPrivacy
+from ..utils import has_active_data_privacy_agreement
+from ..views import ProfileUpdateView, profile, DisclaimerCreateView
 from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin, set_up_fb
+    TestSetupMixin, set_up_fb, make_data_privacy_agreement
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
@@ -575,11 +576,19 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
 
-class DataPrivacyViewTests(TestSetupMixin, TestCase):
+class DataPrivacyViewTests(TestCase):
 
     def test_get_data_privacy_view(self):
         # no need to be a logged in user to access
         resp = self.client.get(reverse('data_privacy_policy'))
+        self.assertEqual(resp.status_code, 200)
+
+
+class CookiePolicyViewTests(TestCase):
+
+    def test_get_cookie_view(self):
+        # no need to be a logged in user to access
+        resp = self.client.get(reverse('cookie_policy'))
         self.assertEqual(resp.status_code, 200)
 
 
@@ -659,3 +668,31 @@ class SocialAccountViewTests(TestCase):
             "socialaccount_provider facebook btn btn-primary",
             resp.rendered_content
         )
+
+
+class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('profile:data_privacy_review')
+        cls.data_privacy_policy = mommy.make(DataPrivacyPolicy, version=None)
+
+    def setUp(self):
+        super(SignedDataPrivacyCreateViewTests, self).setUp()
+        self.client.login(username=self.user.username, password='test')
+
+    def test_user_already_has_active_signed_agreement(self):
+        # dp agreement is created in setup
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:lessons'))
+
+        # make new policy
+        cache.clear()
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
