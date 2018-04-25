@@ -54,7 +54,7 @@ def make_data_privacy_agreement(user):
         if DataPrivacyPolicy.current_version() == 0:
             mommy.make(
                 DataPrivacyPolicy, data_privacy_content='Foo',
-                cookie_content='Bar'
+                cookie_content='Bar', version=1
             )
         mommy.make(
             SignedDataPrivacy, user=user,

@@ -35,7 +35,6 @@ from payments.helpers import (
 
 @login_required
 def shopping_basket(request):
-
     if DataPrivacyPolicy.current_version() > 0 and request.user.is_authenticated \
             and not has_active_data_privacy_agreement(request.user):
         return HttpResponseRedirect(

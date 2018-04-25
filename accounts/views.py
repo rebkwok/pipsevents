@@ -216,7 +216,6 @@ def subscribe_view(request):
     )
 
 
-
 class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
     template_name = 'account/data_privacy_review.html'
     form_class = DataPrivacyAgreementForm
