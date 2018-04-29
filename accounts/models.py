@@ -61,7 +61,8 @@ DISCLAIMER_TERMS = "I recognise that I may be asked to participate in some " \
                    "I am in good physical condition can participate in the " \
                    "courses offered by The Watermelon Studio. I will not " \
                    "participate if pregnant or if I have given birth within " \
-                   "the previous 12 weeks and I will update my teacher on " \
+                   "the previous 12 weeks 6 weeks or C-section in 12 weeks " \
+                   "and I will update my teacher on " \
                    "any new medical condition/injury throughout my time at " \
                    "The Watermelon Studio.  I will not participate under the " \
                    "influence of drugs or alcohol. Other teachers/instructors " \
