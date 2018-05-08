@@ -4,12 +4,8 @@
             <div class="dp-box pre-scrollable"><h2>Data Privacy & Cookie Policy</h2>
             <h5>Version: {{ form.data_privacy_policy.version }}.  Issue date: {{ form.data_privacy_policy.issue_date | date:'d M Y' }}.</h5>
                 <h3>Data Privacy</h3>
-                {{ form.data_privacy_policy.data_privacy_content | safe }}
-                <h3>Cookies</h3>
-                {{ form.data_privacy_policy.cookie_content | safe }}
+                {{ form.data_privacy_policy.content | safe }}
             </div>
-        {% elif field.name  == 'cookie_content' %}
-            <span class="hide">{{ field }}</span>
         {% elif field.name  == 'data_privacy_confirmation' %}
             <div class="form-group">
                <div class="vspace {% if field.errors %}ticket-error{% endif %}">
