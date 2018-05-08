@@ -13,7 +13,7 @@ from allauth.account.views import EmailView, LoginView
 from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm, DataPrivacyAgreementForm
-from .models import DataPrivacyPolicy, SignedDataPrivacy
+from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy
 from .utils import has_active_data_privacy_agreement, \
     has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
@@ -160,14 +160,15 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 def data_privacy_policy(request):
     return render(
         request, 'account/data_privacy_policy.html',
-        {'data_privacy_policy': DataPrivacyPolicy.current()}
+        {'data_privacy_policy': DataPrivacyPolicy.current(),
+         'cookie_policy': CookiePolicy.current()}
     )
 
 
 def cookie_policy(request):
     return render(
         request, 'account/cookie_policy.html',
-        {'data_privacy_policy': DataPrivacyPolicy.current()}
+        {'cookie_policy': CookiePolicy.current()}
     )
 
 

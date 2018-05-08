@@ -84,11 +84,50 @@ BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
 
 
 @has_readonly_fields
-class DataPrivacyPolicy(models.Model):
-    read_only_fields = ('data_privacy_content', 'cookie_content', 'version', 'issue_date')
+class CookiePolicy(models.Model):
+    read_only_fields = ('content', 'version', 'issue_date')
 
-    data_privacy_content = models.TextField()
-    cookie_content = models.TextField()
+    content = models.TextField()
+    version = models.DecimalField(unique=True, decimal_places=1, max_digits=100)
+    issue_date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name_plural = "Cookie Policies"
+
+    @classmethod
+    def current_version(cls):
+        current_policy = CookiePolicy.current()
+        if current_policy is None:
+            return 0
+        return current_policy.version
+
+    @classmethod
+    def current(cls):
+        return CookiePolicy.objects.order_by('version').last()
+
+    def __str__(self):
+        return 'Cookie Policy - Version {}'.format(self.version)
+
+    def save(self, **kwargs):
+        if not self.id:
+            current = CookiePolicy.current()
+            if current and current.content == self.content:
+                raise ValidationError('No changes made to content; not saved')
+
+        if not self.id and not self.version:
+            # if no version specified, go to next major version
+            self.version = floor((CookiePolicy.current_version() + 1))
+        super(CookiePolicy, self).save(**kwargs)
+        ActivityLog.objects.create(
+            log='Cookie Policy version {} created'.format(self.version)
+        )
+
+
+@has_readonly_fields
+class DataPrivacyPolicy(models.Model):
+    read_only_fields = ('content', 'version', 'issue_date')
+
+    content = models.TextField()
     version = models.DecimalField(unique=True, decimal_places=1, max_digits=100)
     issue_date = models.DateTimeField(default=timezone.now)
 
@@ -97,27 +136,23 @@ class DataPrivacyPolicy(models.Model):
 
     @classmethod
     def current_version(cls):
-        current_version = DataPrivacyPolicy.objects.all().aggregate(
-            models.Max('version')
-        )
-        current_version = current_version['version__max']
-        if current_version is None:
+        current_policy = DataPrivacyPolicy.current()
+        if current_policy is None:
             return 0
-        return current_version
+        return current_policy.version
 
     @classmethod
     def current(cls):
         return DataPrivacyPolicy.objects.order_by('version').last()
 
     def __str__(self):
-        return 'Version {}'.format(self.version)
+        return 'Data Privacy Policy - Version {}'.format(self.version)
 
     def save(self, **kwargs):
 
         if not self.id:
             current = DataPrivacyPolicy.current()
-            if current and current.data_privacy_content == self.data_privacy_content \
-                and current.cookie_content == self.cookie_content:
+            if current and current.content == self.content:
                 raise ValidationError('No changes made to content; not saved')
 
         if not self.id and not self.version:

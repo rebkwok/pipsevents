@@ -69,9 +69,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
-        DataPrivacyPolicy.objects.create(
-            data_privacy_content='Foo', cookie_content='Bar'
-        )
+        DataPrivacyPolicy.objects.create(content='Foo')
         cache.clear()
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
