@@ -301,11 +301,8 @@ class DataPrivacyAgreementForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self.next_url = kwargs.pop('next_url')
-        user = kwargs.pop('user')
         super(DataPrivacyAgreementForm, self).__init__(*args, **kwargs)
         self.data_privacy_policy = DataPrivacyPolicy.current()
-        if user.subscribed:
-            self.fields['mailing_list'].initial = True
 
     def clean_confirm(self):
         confirm = self.cleaned_data.get('confirm')
