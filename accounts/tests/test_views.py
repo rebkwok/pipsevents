@@ -677,6 +677,8 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         super().setUpTestData()
         cls.url = reverse('profile:data_privacy_review')
         cls.data_privacy_policy = mommy.make(DataPrivacyPolicy, version=None)
+        cls.subscribed, _ = Group.objects.get_or_create(name='subscribed')
+
 
     def setUp(self):
         super(SignedDataPrivacyCreateViewTests, self).setUp()
@@ -696,3 +698,45 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
+    def test_create_new_agreement(self):
+        # make new policy
+        cache.clear()
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+
+        self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'no'}
+        )
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        self.assertFalse(self.user.subscribed())
+
+    def test_create_new_agreement_with_subscribe(self):
+        # make new policy
+        cache.clear()
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+
+        self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'yes'}
+        )
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        self.assertTrue(self.user.subscribed())
+        assert_mailchimp_post_data(
+            self.mock_request, self.user, 'subscribed'
+        )
+
+    def test_create_new_agreement_with_unsubscribe(self):
+        # make new policy
+        cache.clear()
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+
+        self.subscribed.user_set.add(self.user)
+        self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'no'}
+        )
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        self.assertFalse(self.user.subscribed())
+        assert_mailchimp_post_data(
+            self.mock_request, self.user, 'unsubscribed'
+        )
