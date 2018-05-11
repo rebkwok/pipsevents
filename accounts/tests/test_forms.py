@@ -6,8 +6,8 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.forms import SignupForm, DisclaimerForm
-from accounts.models import OnlineDisclaimer
+from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm
+from accounts.models import DataPrivacyPolicy, OnlineDisclaimer
 from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
@@ -235,8 +235,19 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
 class DataPrivacyAgreementFormTests(TestCase):
 
-    def test_confirm_required(self):
-        pass
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make(User)
+        mommy.make(DataPrivacyPolicy)
 
-    def test_with_mailing_list(self):
-        pass
+    def test_confirm_required(self):
+        form = DataPrivacyAgreementForm(
+            next_url='/', data={'mailing_list': False}
+        )
+        self.assertFalse(form.is_valid())
+
+        form = DataPrivacyAgreementForm(
+            next_url='/', data={'confirm': True, 'mailing_list': False}
+        )
+        self.assertTrue(form.is_valid())
+

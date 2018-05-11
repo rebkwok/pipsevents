@@ -231,7 +231,6 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['next_url'] = self.request.GET.get('next')
-        kwargs['user'] = self.request.user
         return kwargs
 
     def get_context_data(self, **kwargs):
