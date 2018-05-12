@@ -9,13 +9,13 @@
     <h4>Version: {{ data_privacy_policy.version }}.  Issue date: {{ data_privacy_policy.issue_date | date:'d M Y' }}.</h4>
 
     <p>
-        {{ data_privacy_policy.content | safe }}
+        {{ data_privacy_policy.content | linebreaks | safe }}
     </p>
 
     <h1>Cookie Policy</h1>
     <h4>Version: {{ cookie_policy.version }}.  Issue date: {{ cookie_policy.issue_date | date:'d M Y' }}.</h4>
     <p>
-        {{ cookie_policy.content | safe }}
+        {{ cookie_policy.content | linebreaks | safe }}
     </p>
 
     <p>For further information, please contact
