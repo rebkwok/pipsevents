@@ -1436,6 +1436,15 @@ div#CookielawBanner {
   margin: 5px;
 }
 
+.btn-cookie {
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  margin-top: 0;
+  font-size: small;
+}
+
 form.mock-bs-form > div.form-actions > div > input,
 form.mock-bs-form > p > input {
   display: block;
