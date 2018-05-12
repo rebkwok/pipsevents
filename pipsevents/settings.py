@@ -330,6 +330,8 @@ SUIT_CONFIG = {
                 'auth.user',
                 'account.emailaddress',
                 'account.emailconfirmation',
+                'accounts.cookiepolicy',
+                'accounts.dataprivacypolicy',
                 'accounts.onlinedisclaimer',
                 'accounts.printdisclaimer'),
             'icon': 'icon-user',

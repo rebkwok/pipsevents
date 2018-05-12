@@ -9,7 +9,7 @@
     <h4>Version: {{ cookie_policy.version }}.  Issue date: {{ cookie_policy.issue_date | date:'d M Y' }}.</h4>
 
     <p>
-        {{ cookie_policy.content | safe }}
+        {{ cookie_policy.content | linebreaks | safe }}
     </p>
 
 
