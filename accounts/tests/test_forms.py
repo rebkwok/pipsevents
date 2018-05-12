@@ -6,8 +6,9 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.admin import CookiePolicyAdminForm, DataPrivacyPolicyAdminForm
 from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm
-from accounts.models import DataPrivacyPolicy, OnlineDisclaimer
+from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer
 from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
@@ -251,3 +252,74 @@ class DataPrivacyAgreementFormTests(TestCase):
         )
         self.assertTrue(form.is_valid())
 
+
+class CookiePolicyAdminFormTests(TestCase):
+
+    def test_create_cookie_policy_version_help(self):
+        form = CookiePolicyAdminForm()
+        # version initial set to 1.0 for first policy
+        self.assertEqual(form.fields['version'].help_text, '')
+        self.assertEqual(form.fields['version'].initial, 1.0)
+
+        mommy.make(CookiePolicy, version=1.0)
+        # help text added if updating
+        form = CookiePolicyAdminForm()
+        self.assertEqual(
+            form.fields['version'].help_text,
+            'Current version is 1.0.  Leave blank for next major version'
+        )
+        self.assertIsNone(form.fields['version'].initial)
+
+    def test_validation_error_if_no_changes(self):
+        policy = mommy.make(CookiePolicy, version=1.0, content='Foo')
+        form = CookiePolicyAdminForm(
+            data={
+                'content': 'Foo',
+                'version': 1.5,
+                'issue_date': policy.issue_date
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            [
+                'No changes made from previous version; new version must '
+                'update policy content'
+            ]
+        )
+
+
+class DataPrivacyPolicyAdminFormTests(TestCase):
+
+    def test_create_data_privacy_policy_version_help(self):
+        form = DataPrivacyPolicyAdminForm()
+        # version initial set to 1.0 for first policy
+        self.assertEqual(form.fields['version'].help_text, '')
+        self.assertEqual(form.fields['version'].initial, 1.0)
+
+        mommy.make(DataPrivacyPolicy, version=1.0)
+        # help text added if updating
+        form = DataPrivacyPolicyAdminForm()
+        self.assertEqual(
+            form.fields['version'].help_text,
+            'Current version is 1.0.  Leave blank for next major version'
+        )
+        self.assertIsNone(form.fields['version'].initial)
+
+    def test_validation_error_if_no_changes(self):
+        policy = mommy.make(DataPrivacyPolicy, version=1.0, content='Foo')
+        form = DataPrivacyPolicyAdminForm(
+            data={
+                'content': 'Foo',
+                'version': 1.5,
+                'issue_date': policy.issue_date
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            [
+                'No changes made from previous version; new version must '
+                'update policy content'
+            ]
+        )
