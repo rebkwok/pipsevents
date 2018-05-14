@@ -6,7 +6,6 @@
 <div class="container row">
 
     <h1>Data Privacy Policy</h1>
-        <h4>Version: {{ form.data_privacy_policy.version }}.  Issue date: {{ form.data_privacy_policy.issue_date | date:'d M Y' }}.</h4>
 
         <p>Please review our {% if update_needed %}updated {% endif %}data privacy policy before proceeding.</p>
 
@@ -14,7 +13,7 @@
 
         <form action="" method="post">{% csrf_token %}
             <div class="dp-box">
-            <h2>Data Privacy</h2>
+            <h4>Version: {{ form.data_privacy_policy.version }}.  Issue date: {{ form.data_privacy_policy.issue_date | date:'d M Y' }}.</h4>
             <p>
                 {{ form.data_privacy_policy.content | safe }}
             </p>
