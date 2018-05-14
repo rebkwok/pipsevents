@@ -5,7 +5,6 @@ from model_mommy import mommy
 from urllib.parse import urlsplit
 
 from django.core import mail
-from django.core.cache import cache
 from django.urls import reverse
 from django.test import override_settings, TestCase, RequestFactory
 from django.utils import timezone
@@ -56,7 +55,6 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
     def test_data_privacy_required(self):
         # if one exists, user must have signed it
-        cache.clear()
         mommy.make(DataPrivacyPolicy, version=None)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)

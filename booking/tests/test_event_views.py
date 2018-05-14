@@ -6,7 +6,6 @@ from model_mommy import mommy
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
-from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.test import TestCase
@@ -70,7 +69,6 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
         DataPrivacyPolicy.objects.create(content='Foo')
-        cache.clear()
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(
@@ -78,7 +76,6 @@ class EventListViewTests(TestSetupMixin, TestCase):
             resp.url
         )
 
-        cache.clear()
         make_data_privacy_agreement(user)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)

@@ -153,7 +153,6 @@ class SignedDataPrivacyModelTests(TestCase):
         make_data_privacy_agreement(self.user)
         self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))
 
-        cache.clear()
         DataPrivacyPolicy.objects.create(content='New Foo')
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
