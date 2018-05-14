@@ -1,4 +1,3 @@
-import logging
 from model_mommy import mommy
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
@@ -7,7 +6,6 @@ from unittest.mock import call, Mock
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.core.cache import cache
 from django.urls import reverse
 from django.test import TestCase, override_settings
 
@@ -692,7 +690,6 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:lessons'))
 
         # make new policy
-        cache.clear()
         mommy.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
         resp = self.client.get(self.url)
@@ -700,7 +697,6 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_new_agreement(self):
         # make new policy
-        cache.clear()
         mommy.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
@@ -712,7 +708,6 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_new_agreement_with_subscribe(self):
         # make new policy
-        cache.clear()
         mommy.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
@@ -727,7 +722,6 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_new_agreement_with_unsubscribe(self):
         # make new policy
-        cache.clear()
         mommy.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
