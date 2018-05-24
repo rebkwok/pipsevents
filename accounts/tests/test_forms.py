@@ -6,23 +6,51 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.forms import SignupForm, DisclaimerForm
-from accounts.models import OnlineDisclaimer
-from common.tests.helpers import TestSetupMixin
+from accounts.admin import CookiePolicyAdminForm, DataPrivacyPolicyAdminForm
+from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm
+from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer
+from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
 class SignUpFormTests(TestSetupMixin, TestCase):
 
     def test_signup_form(self):
-        form_data = {'first_name': 'Test',
-                     'last_name': 'User'}
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'mailing_list': False,
+            'data_privacy_confirmation' : True
+        }
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_signup_form_with_invalid_data(self):
         # first_name must have 30 characters or fewer
-        form_data = {'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
-                     'last_name': 'User'}
+        form_data = {
+            'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
+             'last_name': 'User',
+             'mailing_list': 'no',
+             'data_privacy_confirmation': True
+         }
+        form = SignupForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_signup_mailing_list_response_required(self):
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'data_privacy_confirmation': True
+        }
+        form = SignupForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_signup_dataprotection_confirmation_required(self):
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'mailing_list': 'no',
+            'data_privacy_confirmation': False
+        }
         form = SignupForm(data=form_data)
         self.assertFalse(form.is_valid())
 
@@ -31,13 +59,33 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         url = reverse('account_signup')
         request = self.factory.get(url)
         request.user = user
-        form_data = {'first_name': 'New',
-                     'last_name': 'Name'}
+        form_data = {
+            'first_name': 'New',
+            'last_name': 'Name',
+            'mailing_list': 'no',
+            'data_privacy_confirmation': True
+        }
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
         form.signup(request, user)
         self.assertEquals('New', user.first_name)
         self.assertEquals('Name', user.last_name)
+
+    def test_signup_with_mailing_list(self):
+        user = mommy.make(User, email='test@mailinglist.com')
+        url = reverse('account_signup')
+        request = self.factory.get(url)
+        request.user = user
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'MailingListUser',
+            'mailing_list': 'yes',
+            'data_privacy_confirmation': True
+        }
+        form = SignupForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        form.signup(request, user)
+        assert_mailchimp_post_data(self.mock_request, user, 'subscribed')
 
 
 class DisclaimerFormTests(TestSetupMixin, TestCase):
@@ -184,3 +232,94 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
         # terms accepted NOT set to expired
         self.assertIsNone(form.fields['terms_accepted'].initial)
+
+
+class DataPrivacyAgreementFormTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = mommy.make(User)
+        mommy.make(DataPrivacyPolicy)
+
+    def test_confirm_required(self):
+        form = DataPrivacyAgreementForm(
+            next_url='/', data={'mailing_list': False}
+        )
+        self.assertFalse(form.is_valid())
+
+        form = DataPrivacyAgreementForm(
+            next_url='/', data={'confirm': True, 'mailing_list': False}
+        )
+        self.assertTrue(form.is_valid())
+
+
+class CookiePolicyAdminFormTests(TestCase):
+
+    def test_create_cookie_policy_version_help(self):
+        form = CookiePolicyAdminForm()
+        # version initial set to 1.0 for first policy
+        self.assertEqual(form.fields['version'].help_text, '')
+        self.assertEqual(form.fields['version'].initial, 1.0)
+
+        mommy.make(CookiePolicy, version=1.0)
+        # help text added if updating
+        form = CookiePolicyAdminForm()
+        self.assertEqual(
+            form.fields['version'].help_text,
+            'Current version is 1.0.  Leave blank for next major version'
+        )
+        self.assertIsNone(form.fields['version'].initial)
+
+    def test_validation_error_if_no_changes(self):
+        policy = mommy.make(CookiePolicy, version=1.0, content='Foo')
+        form = CookiePolicyAdminForm(
+            data={
+                'content': 'Foo',
+                'version': 1.5,
+                'issue_date': policy.issue_date
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            [
+                'No changes made from previous version; new version must '
+                'update policy content'
+            ]
+        )
+
+
+class DataPrivacyPolicyAdminFormTests(TestCase):
+
+    def test_create_data_privacy_policy_version_help(self):
+        form = DataPrivacyPolicyAdminForm()
+        # version initial set to 1.0 for first policy
+        self.assertEqual(form.fields['version'].help_text, '')
+        self.assertEqual(form.fields['version'].initial, 1.0)
+
+        mommy.make(DataPrivacyPolicy, version=1.0)
+        # help text added if updating
+        form = DataPrivacyPolicyAdminForm()
+        self.assertEqual(
+            form.fields['version'].help_text,
+            'Current version is 1.0.  Leave blank for next major version'
+        )
+        self.assertIsNone(form.fields['version'].initial)
+
+    def test_validation_error_if_no_changes(self):
+        policy = mommy.make(DataPrivacyPolicy, version=1.0, content='Foo')
+        form = DataPrivacyPolicyAdminForm(
+            data={
+                'content': 'Foo',
+                'version': 1.5,
+                'issue_date': policy.issue_date
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            [
+                'No changes made from previous version; new version must '
+                'update policy content'
+            ]
+        )

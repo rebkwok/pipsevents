@@ -1,30 +1,46 @@
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group, User
 
-from booking.models import Booking
+from mailchimp3 import MailChimp
 
 
 class Command(BaseCommand):
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--recreate', action='store_true',
+            help='Force recreation of mailing list from Mailchimp'
+        )
+
     def handle(self, *args, **options):
+        if options.get('recreate'):
+            Group.objects.filter(name='subscribed').delete()
+
         group, created = Group.objects.get_or_create(name='subscribed')
-        if created:  # only do this if it's the first time creating the group
-            users = User.objects.all()
-            added_users = 0
+
+        if created:
+            client = MailChimp(
+                settings.MAILCHIMP_SECRET, settings.MAILCHIMP_USER, timeout=20
+            )
+            mailchimp_members = client.lists.members.all(
+                settings.MAILCHIMP_LIST_ID,
+                fields="members.email_address,members.status"
+            )
+            subscribed = []
+            for member in mailchimp_members['members']:
+                if member['status'] == 'subscribed':
+                    subscribed.append(member['email_address'])
+
+            users = User.objects.filter(email__in=subscribed)
             for user in users:
-                user_class_bookings = Booking.objects.filter(
-                    status='OPEN', user=user,
-                    event__event_type__event_type='CL'
-                ).exists()
-                if user_class_bookings:
-                    group.user_set.add(user)
-                    added_users += 1
+                group.user_set.add(user)
 
             self.stdout.write(
-                'Subscription group created; {} users added to group.'.format(
-                    added_users
-                )
+                'Subscription group created; {} users added from Mailchimp '
+                'data'.format(len(users))
             )
+
         else:
             self.stdout.write(
                 'Subscription group already exists; mailing list has not '

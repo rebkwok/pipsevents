@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="container row">
+
+    <h1>Data Privacy Policy</h1>
+
+        <p>Please review our {% if update_needed %}updated {% endif %}data privacy policy before proceeding.</p>
+
+        {% if form.errors %}<div class="form-error">Please correct the errors below.{% endif %}</div>
+
+        <form action="" method="post">{% csrf_token %}
+            <div class="dp-box">
+            <h4>Version: {{ form.data_privacy_policy.version }}.  Issue date: {{ form.data_privacy_policy.issue_date | date:'d M Y' }}.</h4>
+            <p>
+                {{ form.data_privacy_policy.content | safe }}
+            </p>
+            </div>
+            <div class="form-group">
+               <div class="col-xs-12 vspace {% if form.confirm.errors %}ticket-error{% endif %}">
+                   {{ form.confirm }}<label for='id_confirm'></label>
+                     <label class="control-label" for='id_confirm'>{{ form.confirm.label }}</label>
+                    {% if form.confirm.errors %} {{ form.confirm.errors }}{% endif %}
+               </div>
+               <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.confirm.help_text }}</div>
+           </div>
+
+            <h4>Mailing List</h4>
+                <p>We only use our mailing list to send occasional newsletters and updates regarding the studio.
+                    You are free to unsubscribe at any time.
+            <div class="form-group">
+            <p>{% if request.user.subscribed %}
+                You are currently subscribed. Please confirm you wish to continue to subscribe.
+                {% else %}
+                You are not currently subscribed.  Please confirm if you would like to subscribe.
+            {% endif %}</p>
+              <div class="col-xs-12 {% if form.mailing_list.errors %}ticket-error{% endif %}">
+                  {% for choice in form.mailing_list %}
+                    {{ choice }}<br/>
+                  {% endfor %}
+               </div>
+           </div>
+            <input type="hidden" name="next_url" value={{ form.next_url }}/>
+            <input class="btn btn-success topspace" type="submit" value="Submit" />
+        </form>
+</div>
+
+{% endblock content %}

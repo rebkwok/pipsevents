@@ -19,6 +19,7 @@ from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.forms import TicketFormSet, TicketPurchaseForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.views.views_utils import DataPolicyAgreementRequiredMixin
 
 from payments.forms import PayPalPaymentsUpdateForm, PayPalPaymentsListForm
 from payments.helpers import create_ticket_booking_paypal_transaction
@@ -28,7 +29,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class TicketedEventListView(ListView):
+class TicketedEventListView(DataPolicyAgreementRequiredMixin, ListView):
     model = TicketedEvent
     context_object_name = 'ticketed_events'
     template_name = 'booking/ticketed_events.html'
@@ -60,7 +61,7 @@ class TicketedEventListView(ListView):
         return context
 
 
-class TicketCreateView(LoginRequiredMixin, TemplateView):
+class TicketCreateView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, TemplateView):
 
     template_name = 'booking/create_ticket_booking.html'
 
@@ -302,7 +303,7 @@ class TicketCreateView(LoginRequiredMixin, TemplateView):
             return TemplateResponse(request, self.template_name, context)
 
 
-class TicketBookingListView(LoginRequiredMixin, ListView):
+class TicketBookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
 
     model = TicketBooking
     context_object_name = 'ticket_bookings'
@@ -349,7 +350,9 @@ class TicketBookingListView(LoginRequiredMixin, ListView):
         return context
 
 
-class TicketBookingHistoryListView(LoginRequiredMixin, ListView):
+class TicketBookingHistoryListView(
+    DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView
+):
 
     model = TicketBooking
     context_object_name = 'ticket_bookings'
@@ -377,7 +380,9 @@ class TicketBookingHistoryListView(LoginRequiredMixin, ListView):
         return context
 
 
-class TicketBookingView(LoginRequiredMixin, TemplateView):
+class TicketBookingView(
+    DataPolicyAgreementRequiredMixin, LoginRequiredMixin, TemplateView
+):
 
     template_name = 'booking/ticket_booking.html'
 

@@ -6,6 +6,8 @@
 {% block head_title %}{% trans "Signup" %}{% endblock %}
 
 {% block content %}
+<div class="container">
+
 <h1>{% trans "Sign Up" %}</h1>
 
 <p>Already have an account? Then please <a href="{{ login_url }}">sign in</a>.</p>
@@ -17,7 +19,10 @@
     <strong>Sign up with</strong>
   <div class="socialaccount_providers" style="list-style-type: none;">
      {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+  <p class="studioadmin-help">Note that by signing in with Facebook your email address and basic profile information will be shared for authentication purposes.</p>
+
   </div><br/>
+
 </div>
 
 {% endif %}
@@ -26,12 +31,15 @@
 
 <form class="signup mock-bs-form" id="signup_form" method="post" action="{% url 'account_signup' %}">
   {% csrf_token %}
-  {{ form.as_p }}
+
+    {% include 'account/includes/signup_form_content.html' %}
+
   {% if redirect_field_value %}
   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
   {% endif %}
-  <button class="btn btn-success" type="submit">{% trans "Sign Up" %} &raquo;</button>
+  <button class="btn btn-success topspace" type="submit">{% trans "Sign Up" %} &raquo;</button>
 </form>
 
+</div>
 
 {% endblock %}

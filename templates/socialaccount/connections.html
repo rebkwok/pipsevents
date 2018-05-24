@@ -1,6 +1,8 @@
 {% extends "socialaccount/base.html" %}
 
 {% load i18n %}
+{% load socialaccount %}
+{% load accounttags %}
 
 {% block head_title %}{% trans "Account Connections" %}{% endblock %}
 
@@ -42,11 +44,16 @@
 <p>{% trans 'You currently have no social network accounts connected to this account.' %}</p>
 {% endif %}
 
-<h2>{% trans 'Add a 3rd Party Account' %}</h2>
+{% get_providers as socialaccount_providers %}
+{% get_user_providers request.user as user_providers %}
 
-<ul style="list-style-type: none; padding-left: 0;">
-{% include "socialaccount/snippets/provider_list.html" with process="connect" %}
-</ul>
+{% if socialaccount_providers|length > user_providers|length %}
+    <h2>{% trans 'Add a 3rd Party Account' %}</h2>
+
+    <ul style="list-style-type: none; padding-left: 0;">
+    {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+    </ul>
+{% endif %}
 
 {% include "socialaccount/snippets/login_extra.html" %}
 

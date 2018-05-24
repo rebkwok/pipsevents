@@ -191,8 +191,7 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         self.assertEqual(SocialApp.objects.count(), 1)
 
         # create_groups creates instructors, free5 and free7 blocks;
-        # creating users creates the subscribed group
-        self.assertEqual(Group.objects.all().count(), 4)
+        self.assertEqual(Group.objects.all().count(), 3)
 
         # This command just calls a bunch of othere; their content is tested
         # separately; just test relevent objects have been created

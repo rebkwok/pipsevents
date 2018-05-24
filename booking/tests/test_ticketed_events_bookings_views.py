@@ -17,7 +17,7 @@ from booking.views import TicketedEventListView, TicketCreateView, \
     TicketBookingListView, TicketBookingHistoryListView, TicketBookingView, \
     TicketBookingCancelView
 from common.tests.helpers import _create_session, format_content, \
-    TestSetupMixin
+    TestSetupMixin, make_data_privacy_agreement
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -32,6 +32,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.staff_user = mommy.make_recipe('booking.user')
         self.staff_user.is_staff = True
         self.staff_user.save()
+        make_data_privacy_agreement(self.staff_user)
 
     def _get_response(self, user):
         url = reverse('booking:ticketed_events')
@@ -222,6 +223,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         )
         self.staff_user.is_staff = True
         self.staff_user.save()
+        make_data_privacy_agreement(self.staff_user)
 
     def _post_response(self, user, ticketed_event, form_data={}):
         url = reverse(

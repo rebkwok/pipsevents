@@ -12,13 +12,14 @@
 {% get_providers as socialaccount_providers %}
 
 {% if socialaccount_providers  %}
-<p>{% blocktrans with site.name as site_name %}Please <strong>sign in</strong>. Or, <a href="{{ signup_url }}"><strong>sign up</strong></a>
+<p>{% blocktrans with site.name as site_name %}Please <strong>sign in</strong> below. Or, <a class='btn btn-success' href="{{ signup_url }}">sign up</a>
 for a new account.{% endblocktrans %}</p></br>
 
 <div class="socialaccount_ballot">
     <span class="vspace"><strong>Sign in with</strong>
      {% include "socialaccount/snippets/provider_list.html" with process="login" %}
     </span>
+  <p class="studioadmin-help">Note that by signing in with Facebook your email address and basic profile information will be shared for authentication purposes.</p>
   <p>If you have already created an account and would like to connect it with facebook, please sign in with your chosen username and password first and then go to Change Profile from the Your Accounts menu.</p>
   </br></br>
 

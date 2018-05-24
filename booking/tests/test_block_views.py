@@ -15,7 +15,7 @@ from booking.forms import BlockCreateForm
 from booking.models import Block, BlockVoucher, UsedBlockVoucher
 from booking.views import BlockCreateView, BlockDeleteView, BlockListView
 from common.tests.helpers import _create_session, format_content, \
-    setup_view, TestSetupMixin
+    setup_view, TestSetupMixin, make_data_privacy_agreement
 
 
 class BlockCreateViewTests(TestSetupMixin, TestCase):
@@ -23,6 +23,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
     def setUp(self):
         super(BlockCreateViewTests, self).setUp()
         self.user_no_disclaimer = mommy.make_recipe('booking.user')
+        make_data_privacy_agreement(self.user_no_disclaimer)
 
     def _set_session(self, user, request, session_data=None):
         request.session = _create_session()
@@ -324,6 +325,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         for user in users:
             mommy.make_recipe('booking.block_5', user=user)
         user = users[0]
+        make_data_privacy_agreement(user)
 
         resp = self._get_response(user)
         self.assertEqual(resp.status_code, 200)
@@ -378,6 +380,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         user = User.objects.create_user(
             username='test_no_disc', email='test@test.com', password='test'
         )
+        make_data_privacy_agreement(user)
         self.client.login(username=user.username, password='test')
         resp = self.client.get(reverse('booking:block_list'))
         self.assertNotIn(
@@ -402,6 +405,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         user_online_disclaimer = User.objects.create_user(
             username='test_online', email='test@test.com', password='test'
         )
+        make_data_privacy_agreement(user_online_disclaimer)
         mommy.make(OnlineDisclaimer, user=user_online_disclaimer)
         self.client.login(
             username=user_online_disclaimer.username, password='test'
@@ -419,6 +423,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         user_expired_disclaimer = User.objects.create_user(
             username='test_expired', email='test@test.com', password='test'
         )
+        make_data_privacy_agreement(user_expired_disclaimer)
         self.client.login(
             username=user_expired_disclaimer.username, password='test'
         )

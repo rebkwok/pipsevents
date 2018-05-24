@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 from booking.views import already_cancelled, already_paid, \
-    disclaimer_required, \
+    disclaimer_required,  \
     EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingMultiCreateView, \
     BookingUpdateView, \

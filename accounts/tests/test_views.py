@@ -1,4 +1,3 @@
-import logging
 from model_mommy import mommy
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
@@ -11,12 +10,13 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialApp, SocialAccount
 
-from accounts.models import OnlineDisclaimer
-from accounts.views import ProfileUpdateView, profile, DisclaimerCreateView
-
+from ..models import DataPrivacyPolicy, OnlineDisclaimer, SignedDataPrivacy
+from ..utils import has_active_data_privacy_agreement
+from ..views import ProfileUpdateView, profile, DisclaimerCreateView
 from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin
+    TestSetupMixin, set_up_fb, make_data_privacy_agreement
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
@@ -176,70 +176,8 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(self.user.email, 'new@test.com')
 
-        # mailchimp called twice, to ensure old email is unsubscribed and new
-        # email added/updated with user's current status
-        self.assertEqual(self.mock_request.call_count, 2)
-        first_call = call(
-            timeout=20,
-            hooks={'response': []},
-            method='POST',
-            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_LIST_ID
-            ),
-            auth=HTTPBasicAuth(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
-            ),
-            headers={
-                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-            },
-            json={
-                'update_existing': True,
-                'members': [
-                    {
-                        'email_address': 'test@test.com',
-                        'status': 'unsubscribed',
-                        'status_if_new': 'unsubscribed',
-                        'merge_fields': {
-                            'FNAME': self.user.first_name,
-                            'LNAME': self.user.last_name
-                        }
-                    }
-                ]
-            }
-        )
-        second_call = call(
-            timeout=20,
-            hooks={'response': []},
-            method='POST',
-            url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(
-                settings.MAILCHIMP_LIST_ID
-            ),
-            auth=HTTPBasicAuth(
-                settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
-            ),
-            headers={
-                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-            },
-            json={
-                'update_existing': True,
-                'members': [
-                    {
-                        'email_address': 'new@test.com',
-                        'status': 'unsubscribed',
-                        'status_if_new': 'unsubscribed',
-                        'merge_fields': {
-                            'FNAME': self.user.first_name,
-                            'LNAME': self.user.last_name
-                        }
-                    }
-                ]
-            }
-        )
-        self.assertEqual(
-            self.mock_request.call_args_list, [first_call, second_call]
-        )
+       # mailchimp not called b/c user unsubscribed
+        self.assertEqual(self.mock_request.call_count, 0)
 
     def test_change_primary_email_subscribed_user(self):
         # create another email address for this user
@@ -367,7 +305,9 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             user=self.user, email='new@test.com', primary=False, verified=True
         )
         self.client.login(username=self.user.username, password='test')
-        self.assertFalse(self.user.subscribed())
+        # user is subscribed
+        self.group.user_set.add(self.user)
+
         data = {'email': 'new@test.com', 'action_primary': True}
         with self.assertLogs(level='ERROR') as cm:
             resp = self.client.post(self.url, data=data)
@@ -634,11 +574,19 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
 
-class DataProtectionViewTests(TestSetupMixin, TestCase):
+class DataPrivacyViewTests(TestCase):
 
-    def test_get_data_protection_view(self):
+    def test_get_data_privacy_view(self):
         # no need to be a logged in user to access
-        resp = self.client.get(reverse('data_protection'))
+        resp = self.client.get(reverse('data_privacy_policy'))
+        self.assertEqual(resp.status_code, 200)
+
+
+class CookiePolicyViewTests(TestCase):
+
+    def test_get_cookie_view(self):
+        # no need to be a logged in user to access
+        resp = self.client.get(reverse('cookie_policy'))
         self.assertEqual(resp.status_code, 200)
 
 
@@ -690,6 +638,99 @@ class MailingListSubscribeViewTests(TestSetupMixin, TestCase):
         self.client.post(reverse('subscribe'), {'unsubscribe': 'Unsubscribe'})
         self.assertNotIn(self.subscribed, self.user.groups.all())
         # mailchimp updated
+        assert_mailchimp_post_data(
+            self.mock_request, self.user, 'unsubscribed'
+        )
+
+
+class SocialAccountViewTests(TestCase):
+
+    def setUp(self):
+        set_up_fb()
+
+    def test_connect_social_account(self):
+        # only shows fb link if user doesn't have an account connected already
+        user = User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+        resp = self.client.get(reverse('socialaccount_connections'))
+
+        self.assertIn(
+            "socialaccount_provider facebook btn btn-primary",
+            resp.rendered_content
+        )
+
+        SocialAccount.objects.create(user=user, provider='facebook')
+        resp = self.client.get(reverse('socialaccount_connections'))
+
+        self.assertNotIn(
+            "socialaccount_provider facebook btn btn-primary",
+            resp.rendered_content
+        )
+
+
+class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('profile:data_privacy_review')
+        cls.data_privacy_policy = mommy.make(DataPrivacyPolicy, version=None)
+        cls.subscribed, _ = Group.objects.get_or_create(name='subscribed')
+
+
+    def setUp(self):
+        super(SignedDataPrivacyCreateViewTests, self).setUp()
+        self.client.login(username=self.user.username, password='test')
+
+    def test_user_already_has_active_signed_agreement(self):
+        # dp agreement is created in setup
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:lessons'))
+
+        # make new policy
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_create_new_agreement(self):
+        # make new policy
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+
+        self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'no'}
+        )
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        self.assertFalse(self.user.subscribed())
+
+    def test_create_new_agreement_with_subscribe(self):
+        # make new policy
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+
+        self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'yes'}
+        )
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        self.assertTrue(self.user.subscribed())
+        assert_mailchimp_post_data(
+            self.mock_request, self.user, 'subscribed'
+        )
+
+    def test_create_new_agreement_with_unsubscribe(self):
+        # make new policy
+        mommy.make(DataPrivacyPolicy, version=None)
+        self.assertFalse(has_active_data_privacy_agreement(self.user))
+
+        self.subscribed.user_set.add(self.user)
+        self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'no'}
+        )
+        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        self.assertFalse(self.user.subscribed())
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'unsubscribed'
         )
