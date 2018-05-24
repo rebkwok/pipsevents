@@ -6,16 +6,20 @@ from model_mommy import mommy
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.auth.models import Permission
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer, OnlineDisclaimer
+from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
+    DataPrivacyPolicy
+from accounts.utils import has_active_data_privacy_agreement
 
 from booking.models import Event, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView
-from common.tests.helpers import TestSetupMixin, format_content
+from common.tests.helpers import TestSetupMixin, format_content, \
+    make_data_privacy_agreement
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -26,6 +30,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.future_EV', _quantity=3)
         mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
+        cls.url = reverse('booking:events')
 
     def tearDown(self):
         sale_env_vars = ['SALE_ON', 'SALE_OFF', 'SALE_CODE', 'SALE_TITLE']
@@ -34,8 +39,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
                 del os.environ[var]
 
     def _get_response(self, user, ev_type):
-        url = reverse('booking:events')
-        request = self.factory.get(url)
+        request = self.factory.get(self.url)
         request.user = user
         view = EventListView.as_view()
         return view(request, ev_type=ev_type)
@@ -44,12 +48,37 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that only events are listed (workshops and other events)
         """
-        url = reverse('booking:events')
-        resp = self.client.get(url)
+        resp = self.client.get(self.url)
 
         self.assertEquals(Event.objects.all().count(), 9)
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context['events'].count(), 3)
+
+    def test_event_list_logged_in_no_data_protection_policy(self):
+        DataPrivacyPolicy.objects.all().delete()
+        user = User.objects.create_user(
+            username='testnodp', email='testnodp@test.com', password='test'
+        )
+        mommy.make(PrintDisclaimer, user=user)
+        self.assertFalse(has_active_data_privacy_agreement(user))
+
+        self.assertTrue(
+            self.client.login(username=user.username, password='test')
+        )
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+        DataPrivacyPolicy.objects.create(content='Foo')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(
+            reverse('profile:data_privacy_review') + '?next=/events/',
+            resp.url
+        )
+
+        make_data_privacy_agreement(user)
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
 
     def test_event_list_past_event(self):
         """
@@ -58,8 +87,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.past_event')
         # check there are now 4 events
         self.assertEquals(Event.objects.all().count(), 10)
-        url = reverse('booking:events')
-        resp = self.client.get(url)
+        resp = self.client.get(self.url)
 
         # event listing should still only show future events
         self.assertEquals(resp.context['events'].count(), 3)
@@ -68,8 +96,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that no booked_events in context
         """
-        url = reverse('booking:events')
-        resp = self.client.get(url)
+        resp = self.client.get(self.url)
 
         # event listing should still only show future events
         self.assertFalse('booked_events' in resp.context)
@@ -165,6 +192,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         user = mommy.make_recipe('booking.user')
         mommy.make(PrintDisclaimer, user=user)
+        make_data_privacy_agreement(user)
 
         response = self._get_response(user, 'lessons')
         response.render()
@@ -179,6 +207,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
@@ -331,7 +360,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_users_disclaimer_status_in_context(self):
         user = mommy.make_recipe('booking.user')
-
+        make_data_privacy_agreement(user)
         resp = self._get_response(user, 'events')
         # user has no disclaimer
         self.assertFalse(resp.context_data.get('disclaimer'))
@@ -635,6 +664,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        make_data_privacy_agreement(user)
         mommy.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
@@ -652,6 +682,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = mommy.make_recipe('booking.user')
+        make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()

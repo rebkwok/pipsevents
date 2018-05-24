@@ -11,3 +11,8 @@ def modify_redirect_field_value(ret_url):
     return ret_url
 
 
+@register.simple_tag
+def get_user_providers(user):
+    if user.is_anonymous:
+        return []
+    return [socialaccount.provider for socialaccount in user.socialaccount_set.all()]

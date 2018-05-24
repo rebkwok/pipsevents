@@ -5,14 +5,17 @@ from django.contrib import admin
 from django.views.generic import RedirectView
 
 from accounts.views import custom_email_view, CustomLoginView, \
-    DisclaimerCreateView, data_protection, subscribe_view
+    DisclaimerCreateView, data_privacy_policy, cookie_policy, subscribe_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('studioadmin/', include('studioadmin.urls')),
     path('', include('booking.urls')),
     path(
-        'data-protection-statement/', data_protection, name='data_protection'
+        'data-privacy-policy/', data_privacy_policy, name='data_privacy_policy'
+    ),
+    path(
+        'cookie-policy/', cookie_policy, name='cookie_policy'
     ),
     path('accounts/api/', include('accounts.api_urls')),
     path('accounts/profile/', include('accounts.urls')),

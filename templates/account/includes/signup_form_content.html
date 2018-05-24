@@ -1,0 +1,42 @@
+    {% for field in form %}
+        {% if field.name  == 'data_privacy_content' %}
+            <span class="hide">{{ field }}</span>
+            <div class="dp-box pre-scrollable"><h2>Data Privacy & Cookie Policy</h2>
+            <h5>Version: {{ form.data_privacy_policy.version }}.  Issue date: {{ form.data_privacy_policy.issue_date | date:'d M Y' }}.</h5>
+                <h3>Data Privacy</h3>
+                {{ form.data_privacy_policy.content | safe }}
+            </div>
+        {% elif field.name  == 'data_privacy_confirmation' %}
+            <div class="form-group">
+               <div class="vspace {% if field.errors %}ticket-error{% endif %}">
+                   {{ field }}<label for='id_data_privacy_confirmation'></label>
+                     <label class="control-label" for='id_data_privacy_confirmation'>{{ field.label }}</label>
+                    {% if field.errors %} {{ field.errors }}{% endif %}
+               </div>
+           </div>
+        {% elif field.name == 'mailing_list' %}
+            <h4>Mailing List</h4>
+            <p>Please confirm if you would like to subscribe to our mailing list.  We only use this
+                to send occasional newsletters and updates regarding the studio.
+                You are free to unsubscribe at any time. 
+            </p>
+
+            <div class="form-group">
+              <div class="col-xs-12 {% if form.mailing_list.errors %}ticket-error{% endif %}">
+                  {% for choice in form.mailing_list %}
+                    {{ choice }}<br/>
+                  {% endfor %}
+               </div>
+           </div>
+
+        {% else %}
+            <div class="form-actions">
+            <label class="control-label" for="{{ field.name }}_id">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
+                <div {% if field.errors %}class="ticket-error control-group"{% endif %}>
+                    {{ field }}
+                </div>
+                <div class="studioadmin-help">{{ field.help_text }}</div>
+                {% if field.errors %}<div>{{ field.errors }}</div>{% endif %}
+            </div>
+        {%  endif %}
+    {% endfor %}

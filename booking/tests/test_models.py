@@ -410,14 +410,16 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking.refresh_from_db()
         self.assertIsNone(booking.date_rebooked)
 
-    def test_user_added_to_mailing_list_when_booking_first_CL(self):
+    def test_user_not_added_to_mailing_list_when_booking_first_CL(self):
+        # test that previous behaviour has been removed
         user = mommy.make_recipe('booking.user')
         self.assertNotIn(self.subscribed, user.groups.all())
         mommy.make(Booking, user=user, event__event_type__event_type='CL')
-        self.assertIn(self.subscribed, user.groups.all())
+        self.assertNotIn(self.subscribed, user.groups.all())
 
     def test_unsubscribed_user_with_past_CL_not_added_to_mailing_list(self):
         user = mommy.make_recipe('booking.user')
+        self.subscribed.user_set.add(user)
         mommy.make(Booking, user=user, event__event_type__event_type='CL')
         self.assertIn(self.subscribed, user.groups.all())
 
@@ -435,8 +437,9 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertNotIn(self.subscribed, user.groups.all())
         self.assertTrue(Booking.objects.filter(user=user).exists())
 
+        # no longer added when booking clasas either
         mommy.make(Booking, user=user, event__event_type__event_type='CL')
-        self.assertIn(self.subscribed, user.groups.all())
+        self.assertNotIn(self.subscribed, user.groups.all())
 
     def test_booking_autocancelled(self):
         # new booking set to auto_cancelled = False

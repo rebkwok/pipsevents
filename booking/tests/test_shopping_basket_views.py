@@ -9,9 +9,10 @@ from django.urls import reverse
 from django.test import override_settings, TestCase, RequestFactory
 from django.utils import timezone
 
+from accounts.models import DataPrivacyPolicy
 from booking.models import Event, Booking, \
     Block, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
-from common.tests.helpers import TestSetupMixin
+from common.tests.helpers import make_data_privacy_agreement, TestSetupMixin
 
 
 class ShoppingBasketViewTests(TestSetupMixin, TestCase):
@@ -49,6 +50,19 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
 
         self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_data_privacy_required(self):
+        # if one exists, user must have signed it
+        mommy.make(DataPrivacyPolicy, version=None)
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(
+            resp.url.startswith(reverse('profile:data_privacy_review'))
+        )
+
+        make_data_privacy_agreement(self.user)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 

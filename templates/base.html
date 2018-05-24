@@ -1,6 +1,7 @@
 {% load staticfiles %}
 {% load socialaccount %}
 {% load bookingtags %}
+{% load cookielaw_tags %}
 
 <!DOCTYPE html>
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
@@ -118,7 +119,7 @@
                 </div><!--/.nav-collapse -->
             </div>
         </div>
-
+        {% cookielaw_banner %}
       {% block sale %}{% sale_text %}{% endblock sale %}
 
         {% if messages %}
@@ -156,7 +157,7 @@
       <div class="footer-credit col-xs-8 pull-left">
           All prices are inclusive of VAT (VAT number 281 6986 56)<br/>
           Terms and conditions apply to all purchases, including sale items; for full T&C <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
-         <a href="{% url 'data_protection' %}">Data protection and privacy policy</a>
+         <a href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
       </div>
     {% endblock %}
       <div class="pull-right">
@@ -178,6 +179,8 @@
 <script src="{% static 'booking/js/jquery.cookie.js' %}"></script>
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'booking/js/custom.js' %}"></script>
+<script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
+  
 
 {% block extra_js %}{% endblock %}
 

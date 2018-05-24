@@ -65,6 +65,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.humanize',
+    'cookielaw',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -129,8 +130,11 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "[watermelon studio bookings]"
 ACCOUNT_PASSWORD_MIN_LENGTH = 6
 ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.SignupForm'
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 
 SOCIALACCOUNT_QUERY_EMAIL = True
+
+SOCIALACCOUNT_AUTO_SIGNUP = False
 
 TEMPLATES = [
     {
@@ -326,6 +330,8 @@ SUIT_CONFIG = {
                 'auth.user',
                 'account.emailaddress',
                 'account.emailconfirmation',
+                'accounts.cookiepolicy',
+                'accounts.dataprivacypolicy',
                 'accounts.onlinedisclaimer',
                 'accounts.printdisclaimer'),
             'icon': 'icon-user',
@@ -468,6 +474,16 @@ if 'test' in sys.argv:  # use local cache for tests
             'LOCATION': 'test-cache',
         }
     }
+
+
+# Session cookies
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 172800  # 2 days
+
+if env('LOCAL') or TESTING:
+    SESSION_COOKIE_SECURE = False
+else:  # pragma: no cover
+    SESSION_COOKIE_SECURE = True
 
 
 def show_toolbar(request):  # pragma: no cover

@@ -11,9 +11,6 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
-from django.core.paginator import EmptyPage
-from django.core.paginator import PageNotAnInteger
 from django.urls import reverse
 from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -39,7 +36,8 @@ from booking.models import (
 from booking.forms import BookingCreateForm, VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
-from booking.views.views_utils import DisclaimerRequiredMixin,\
+from booking.views.views_utils import DisclaimerRequiredMixin, \
+    DataPolicyAgreementRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
 
 from payments.helpers import create_booking_paypal_transaction
@@ -48,7 +46,7 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
-class BookingListView(LoginRequiredMixin, ListView):
+class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
 
     model = Booking
     context_object_name = 'bookings'
@@ -135,7 +133,7 @@ class BookingListView(LoginRequiredMixin, ListView):
         return context
 
 
-class BookingHistoryListView(LoginRequiredMixin, ListView):
+class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
 
     model = Booking
     context_object_name = 'bookings'
@@ -171,7 +169,8 @@ class BookingHistoryListView(LoginRequiredMixin, ListView):
 
 
 class BookingCreateView(
-    DisclaimerRequiredMixin, LoginRequiredMixin, CreateView
+    DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
+    CreateView
 ):
 
     model = Booking
@@ -587,7 +586,10 @@ class BookingMultiCreateView(BookingCreateView):
         return HttpResponseRedirect(url)
 
 
-class BookingUpdateView(DisclaimerRequiredMixin, LoginRequiredMixin, UpdateView):
+class BookingUpdateView(
+    DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
+    UpdateView
+):
     model = Booking
     template_name = 'booking/update_booking.html'
     success_message = 'Booking updated for {}!'
@@ -835,7 +837,10 @@ def _email_free_class_request(request, booking, booking_status):
             "the studio for information")
 
 
-class BookingDeleteView(DisclaimerRequiredMixin, LoginRequiredMixin, DeleteView):
+class BookingDeleteView(
+    DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
+    DeleteView
+):
     model = Booking
     template_name = 'booking/delete_booking.html'
     success_message = 'Booking cancelled for {}.'

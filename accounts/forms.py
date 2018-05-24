@@ -3,20 +3,82 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django import forms
+from django.contrib.auth.models import Group
+from django.utils import timezone
 
 from accounts import validators as account_validators
 from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
-    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS
+    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataPrivacyPolicy, \
+    SignedDataPrivacy
 from accounts.utils import has_expired_disclaimer
+from activitylog.models import ActivityLog
+from common.mailchimp_utils import update_mailchimp
+
 
 class SignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label='First name')
     last_name = forms.CharField(max_length=30, label='Last name')
 
+    def __init__(self, *args, **kwargs):
+        super(SignupForm, self).__init__(*args, **kwargs)
+        # get the current version here to make sure we always display and save
+        # with the same version, even if it changed while the form was being
+        # completed
+        if DataPrivacyPolicy.current():
+            self.data_privacy_policy = DataPrivacyPolicy.current()
+            self.fields['content'] = forms.CharField(
+                initial=self.data_privacy_policy.content,
+                required=False
+            )
+            self.fields['data_privacy_confirmation'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={'class': "regular-checkbox"}),
+                required=False,
+                label='I confirm I have read and agree to the terms of the data ' \
+                      'privacy policy'
+            )
+        self.fields['mailing_list'] = forms.CharField(
+            widget=forms.RadioSelect(
+                choices=(
+                    ('yes', 'Yes, subscribe me'),
+                    ('no', "No, I don't want to subscribe")
+                )
+            )
+        )
+
+    def clean_data_privacy_confirmation(self):
+        dp = self.cleaned_data.get('data_privacy_confirmation')
+        if not dp:
+            self.add_error(
+                'data_privacy_confirmation',
+                'You must check this box to continue'
+            )
+        return
+
     def signup(self, request, user):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.save()
+        if hasattr(self, 'data_privacy_policy'):
+            SignedDataPrivacy.objects.create(
+                user=user, version=self.data_privacy_policy.version,
+                date_signed=timezone.now()
+            )
+        if self.cleaned_data.get('mailing_list') == 'yes':
+            group, _ = Group.objects.get_or_create(name='subscribed')
+            group.user_set.add(user)
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has subscribed to the mailing list'.format(
+                    user.first_name, user.last_name,
+                    user.username
+                )
+            )
+            update_mailchimp(user, 'subscribe')
+            ActivityLog.objects.create(
+                log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                    user.first_name, user.last_name,
+                    user.username
+                )
+            )
 
 
 class DisclaimerForm(forms.ModelForm):
@@ -217,3 +279,33 @@ class DisclaimerForm(forms.ModelForm):
                 self.add_error(
                     'dob', 'You must be over 18 years in order to register')
         return super(DisclaimerForm, self).clean()
+
+
+class DataPrivacyAgreementForm(forms.Form):
+
+    confirm = forms.BooleanField(
+        widget=forms.CheckboxInput(attrs={'class': "regular-checkbox"}),
+        required=False,
+        label='I confirm I have read and agree to the terms of the data ' \
+              'privacy policy'
+    )
+
+    mailing_list = forms.CharField(
+        widget=forms.RadioSelect(
+            choices=(
+                ('yes', 'Yes, subscribe me'),
+                ('no', "No, I don't want to subscribe")
+            )
+        )
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.next_url = kwargs.pop('next_url')
+        super(DataPrivacyAgreementForm, self).__init__(*args, **kwargs)
+        self.data_privacy_policy = DataPrivacyPolicy.current()
+
+    def clean_confirm(self):
+        confirm = self.cleaned_data.get('confirm')
+        if not confirm:
+            self.add_error('confirm', 'You must check this box to continue')
+        return

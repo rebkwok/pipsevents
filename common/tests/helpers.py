@@ -10,7 +10,8 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.utils.html import strip_tags
 
-from accounts.models import PrintDisclaimer
+from accounts.models import PrintDisclaimer, SignedDataPrivacy, DataPrivacyPolicy
+from accounts.utils import has_active_data_privacy_agreement
 
 
 def set_up_fb():
@@ -48,6 +49,18 @@ def _add_user_email_addresses(model):
             instance.user.save()
 
 
+def make_data_privacy_agreement(user):
+    if not has_active_data_privacy_agreement(user):
+        if DataPrivacyPolicy.current_version() == 0:
+            mommy.make(
+                DataPrivacyPolicy, content='Foo', version=1
+            )
+        mommy.make(
+            SignedDataPrivacy, user=user,
+            version=DataPrivacyPolicy.current_version()
+        )
+
+
 class TestSetupMixin(object):
 
     @classmethod
@@ -64,6 +77,7 @@ class TestSetupMixin(object):
             username='test', email='test@test.com', password='test'
         )
         mommy.make(PrintDisclaimer, user=self.user)
+        make_data_privacy_agreement(self.user)
 
     def tearDown(self):
         self.patcher.stop()
