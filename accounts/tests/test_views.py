@@ -15,8 +15,8 @@ from allauth.socialaccount.models import SocialApp, SocialAccount
 from ..models import DataPrivacyPolicy, OnlineDisclaimer, SignedDataPrivacy
 from ..utils import has_active_data_privacy_agreement
 from ..views import ProfileUpdateView, profile, DisclaimerCreateView
-from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
-    TestSetupMixin, set_up_fb, make_data_privacy_agreement
+from common.tests.helpers import _create_session, Any, \
+    assert_mailchimp_post_data, TestSetupMixin, set_up_fb
 
 
 class ProfileUpdateViewTests(TestSetupMixin, TestCase):
@@ -208,10 +208,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             auth=HTTPBasicAuth(
                 settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
             ),
-            headers={
-                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-            },
+            headers=Any(dict),
             json={
                 'update_existing': True,
                 'members': [
@@ -237,10 +234,7 @@ class CustomEmailViewTests(TestSetupMixin, TestCase):
             auth=HTTPBasicAuth(
                 settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
             ),
-            headers={
-                'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-                'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-            },
+            headers=Any(dict),
             json={
                 'update_existing': True,
                 'members': [
