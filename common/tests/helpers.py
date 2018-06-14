@@ -102,6 +102,13 @@ def format_content(content):
     )
 
 
+def Any(cls):
+    class Any(cls):
+        def __eq__(self, other):
+            return True
+    return Any()
+
+
 def assert_mailchimp_post_data(
         mock_request, user, mailing_list_status, email=None,
         list_id=settings.MAILCHIMP_LIST_ID
@@ -114,10 +121,7 @@ def assert_mailchimp_post_data(
         timeout=20,
         hooks={'response': []},
         method='POST',
-        headers={
-            'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*',
-            'Connection': 'keep-alive', 'User-Agent': 'python-requests/2.18.4'
-        },
+        headers=Any(dict),
         url='https://us6.api.mailchimp.com/3.0/lists/{}'.format(list_id),
         auth=HTTPBasicAuth(
             settings.MAILCHIMP_USER, settings.MAILCHIMP_SECRET
