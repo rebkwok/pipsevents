@@ -2,7 +2,7 @@
     <div class="jumbotron">
         <p><strong>{% if sale_title %}{{ sale_title|upper }} {% endif %}SALE NOW ON!</strong><br>
             <span class='sale'>From {{ sale_start|date:"D dS M Y" }} to {{ sale_end|date:"D dS M Y" }}
-                most blocks and classes are on sale! {% if active_sale_code %}Use code {{ active_sale_code }}{% endif %}</span>
+                blocks are on sale! {% if active_sale_code %}Use code {{ active_sale_code }}{% endif %}</span>
         </p>
     </div>
 {% endif %}
