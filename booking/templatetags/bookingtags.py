@@ -13,7 +13,7 @@ from django.utils.safestring import mark_safe
 from accounts.models import OnlineDisclaimer
 from accounts.utils import has_active_disclaimer, has_active_online_disclaimer, \
     has_expired_disclaimer
-from booking.models import Block, Booking, Event, EventVoucher, \
+from booking.models import Block, BlockVoucher, Booking, Event, EventVoucher, \
     UsedBlockVoucher, UsedEventVoucher
 from payments.models import PaypalBookingTransaction
 from studioadmin.utils import int_str, chaffify
@@ -140,15 +140,23 @@ def sale_text():
     sale_start = os.environ.get('SALE_ON')
     sale_end = os.environ.get('SALE_OFF')
     sale_code = os.environ.get('SALE_CODE')
+    sale_description = os.environ.get('SALE_DESCRIPTION')
 
     active_sale_code = None
+    active_block_sale_code = None
+
     if sale_code:
         try:
             voucher = EventVoucher.objects.get(code=sale_code)
             if voucher.has_started and not voucher.has_expired:
                 active_sale_code = sale_code
         except EventVoucher.DoesNotExist:
-            pass
+            try:
+                voucher = BlockVoucher.objects.get(code=sale_code)
+                if voucher.has_started and not voucher.has_expired:
+                    active_sale_code = sale_code
+            except BlockVoucher.DoesNotExist:
+                pass
 
     if sale_start and sale_end:
         sale_start = datetime.strptime(sale_start, '%d-%b-%Y').replace(
@@ -161,9 +169,10 @@ def sale_text():
             return {
                 'is_sale_period': True,
                 'sale_title': sale_title,
+                'sale_description': sale_description,
                 'sale_start': sale_start,
                 'sale_end': sale_end,
-                'active_sale_code': active_sale_code
+                'active_sale_code': active_sale_code,
             }
     return {'is_sale_period': False}
 
