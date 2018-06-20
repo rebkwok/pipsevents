@@ -16,7 +16,7 @@ from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
     DataPrivacyPolicy
 from accounts.utils import has_active_data_privacy_agreement
 
-from booking.models import Event, Booking, EventVoucher
+from booking.models import Event, BlockVoucher, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content, \
     make_data_privacy_agreement
@@ -235,12 +235,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_OFF'] = '15-Jan-2015'
         resp = self.client.get(reverse('booking:events'))
 
-        self.assertIn('SALE NOW ON', resp.rendered_content)
         # no valid voucher
         self.assertNotIn('Use code', resp.rendered_content)
 
         # with a sale title
-        os.environ['SALE_TITLE'] = 'Test'
+        os.environ['SALE_TITLE'] = 'Test sale now on'
         resp = self.client.get(reverse('booking:events'))
         self.assertIn('TEST SALE NOW ON', resp.rendered_content)
 
@@ -251,6 +250,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         os.environ['SALE_ON'] = '04-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
+        os.environ['SALE_TITLE'] = 'Sale now on'
         resp = self.client.get(reverse('booking:events'))
 
         self.assertNotIn('SALE NOW ON', resp.rendered_content)
@@ -271,9 +271,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
+        os.environ['SALE_TITLE'] = 'Sale now on'
+        os.environ['SALE_DESCRIPTION'] = 'Classes are on sale!'
 
         resp = self.client.get(reverse('booking:events'))
         self.assertIn('SALE NOW ON', resp.rendered_content)
+        self.assertIn('Classes are on sale!', resp.rendered_content)
 
         # valid code but no env var set
         self.assertFalse(voucher.has_expired)
@@ -284,6 +287,34 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_CODE'] = 'testcode'
         resp = self.client.get(reverse('booking:events'))
         self.assertIn('Use code testcode', resp.rendered_content)
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    @patch('booking.models.timezone')
+    def test_sale_message_template_tag_block_voucher_code(self, mock_tz, mock_tz1):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz1.utc=timezone.utc
+
+        voucher = mommy.make(
+            BlockVoucher, code='block_testcode',
+            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2015, 1, 15, tzinfo=timezone.utc)
+        )
+        os.environ['SALE_ON'] = '01-Jan-2015'
+        os.environ['SALE_OFF'] = '15-Jan-2015'
+        os.environ['SALE_TITLE'] = 'Sale now on'
+        os.environ['SALE_DESCRIPTION'] = 'Classes are on sale!'
+        os.environ['SALE_CODE'] = 'block_testcode'
+
+        resp = self.client.get(reverse('booking:events'))
+        self.assertIn('SALE NOW ON', resp.rendered_content)
+        self.assertIn('Classes are on sale!', resp.rendered_content)
+
+        self.assertFalse(voucher.has_expired)
+        self.assertTrue(voucher.has_started)
+        self.assertIn('Use code block_testcode', resp.rendered_content)
 
     @patch('booking.templatetags.bookingtags.timezone')
     @patch('booking.models.timezone')
@@ -304,6 +335,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
         os.environ['SALE_CODE'] = 'testcode'
+        os.environ['SALE_TITLE'] = 'SALE NOW ON'
 
         resp = self.client.get(reverse('booking:events'))
         self.assertIn('SALE NOW ON', resp.rendered_content)
@@ -326,6 +358,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
         os.environ['SALE_CODE'] = 'testcode'
+        os.environ['SALE_TITLE'] = 'SALE NOW ON'
 
         resp = self.client.get(reverse('booking:events'))
         self.assertIn('SALE NOW ON', resp.rendered_content)
@@ -350,6 +383,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
         os.environ['SALE_CODE'] = 'testcode'
+        os.environ['SALE_TITLE'] = 'SALE NOW ON'
 
         resp = self.client.get(reverse('booking:events'))
         self.assertIn('SALE NOW ON', resp.rendered_content)
