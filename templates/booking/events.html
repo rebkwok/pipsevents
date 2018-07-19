@@ -88,8 +88,7 @@
                                                     <th class="table-center">Location</th>
                                                 {% endif %}
                                                 <th class="hidden-sm hidden-xs table-center">Cost <span class="vat">(incl VAT)</span></th>
-                                                <th class="hidden-xs table-center">Spaces</th>
-                                                <th class="table-center">Spaces left</th>
+                                                <th class="table-center">Spaces</th>
                                                 <th class="hidden-sm hidden-xs table-center">Booking open</th>
                                                 <th class="hidden-sm hidden-xs table-center">Payment open</th>
                                             </tr>
@@ -166,14 +165,25 @@
                                                         <td class="table-center"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>
                                                     {% endif %}
                                                     <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
-                                                    <td class="hidden-xs table-center">{% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
                                                     <td class="table-center" style="vertical-align: middle; horiz-align: center">
                                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                                         {% elif event.max_participants %}
                                                             {% if event.spaces_left == 0 %}
-                                                                <span class="label label-spaces label-default label-rounded">FULL</span>
+                                                                <span class="label label-spaces label-default label-rounded">
+                                                                    {% if request.user.is_staff or request.user|in_group:"instructors" %}
+                                                                        {{ event.spaces_left }}/{{ event.max_participants }}
+                                                                    {% else %}
+                                                                        FULL
+                                                                    {% endif %}
+                                                                </span>
                                                             {% else %}
-                                                                <span class="label label-spaces label-success label-rounded">{{ event.spaces_left }}</span>
+                                                                <span class="label label-spaces label-success label-rounded">
+                                                                    {% if request.user.is_staff or request.user|in_group:"instructors" %}
+                                                                        {{ event.spaces_left }}/{{ event.max_participants }}
+                                                                    {% else %}
+                                                                        AVAILABLE
+                                                                    {% endif %}
+                                                                </span>
                                                             {% endif %}
                                                         {% else %}N/A{% endif %}</td>
                                                     <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
