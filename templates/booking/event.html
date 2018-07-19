@@ -81,11 +81,7 @@
                 {% if not past %}
                     {% if not event.cancelled %}
                         {% if event.max_participants %}
-                            <h5>There are a maximum {{ event.max_participants }} spaces for this
-                                {{ event_type_str }}.</h5>
-                            {% if not event.external_instructor or type != 'lesson'%}
-                                <h5>Spaces left: {{ event.spaces_left }}</h5>
-                            {% endif %}
+                            <h5>Spaces are {% if event.spaces_left <= 0 %}not {% endif %}available for this {{ event_type_str }}.</h5>
                         {% endif %}
 
                         {% if booked %}
