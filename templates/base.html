@@ -122,6 +122,16 @@
         {% cookielaw_banner %}
       {% block sale %}{% sale_text %}{% endblock sale %}
 
+    {% if user.is_anonymous %}
+      <div id="message-row"  class="row">
+        <div class="col-xs-12">
+            <div class="message alert alert-info">
+                New to pole? Begin Level 1 at any time!
+            </div>
+        </div>
+      </div>
+      {% endif %}
+
         {% if messages %}
           <div class="row">
             <div class="col-xs-12">
@@ -180,7 +190,7 @@
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'booking/js/custom.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
-  
+
 
 {% block extra_js %}{% endblock %}
 
