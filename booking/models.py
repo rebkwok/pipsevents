@@ -89,7 +89,7 @@ class Event(models.Model):
         null=True, blank=True,
         help_text="Leave blank if no max number of participants"
     )
-    contact_person = models.CharField(max_length=255, default="Gwen Burns")
+    contact_person = models.CharField(max_length=255, default="Gwen Holbrey")
     contact_email = models.EmailField(
         default="thewatermelonstudio@hotmail.com"
         )
