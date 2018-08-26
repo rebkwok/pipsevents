@@ -477,8 +477,8 @@ if 'test' in sys.argv:  # use local cache for tests
 
 
 # Session cookies
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 172800  # 2 days
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_AGE = 604800  # 1 week
 
 if env('LOCAL') or TESTING:
     SESSION_COOKIE_SECURE = False
