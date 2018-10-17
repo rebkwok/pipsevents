@@ -529,12 +529,12 @@ def payment_received(sender, **kwargs):
                             if obj_type == 'booking':
                                 voucher = EventVoucher.objects.get(code=voucher_code)
                                 UsedEventVoucher.objects.create(
-                                    voucher=voucher, user=obj.user
+                                    voucher=voucher, user=obj.user, booking_id=obj.id
                                 )
                             elif obj_type == 'block':
                                 voucher = BlockVoucher.objects.get(code=voucher_code)
                                 UsedBlockVoucher.objects.create(
-                                    voucher=voucher, user=obj.user
+                                    voucher=voucher, user=obj.user, block_id=obj.id
                                 )
                             paypal_trans.voucher_code = voucher_code
                             paypal_trans.save()

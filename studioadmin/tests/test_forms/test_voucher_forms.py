@@ -60,22 +60,22 @@ class VoucherStudioAdminFormTests(TestCase):
 
     def test_discount_validation(self):
         """
-        Discount is a % and must be between 1 and 99
+        Discount is a % and must be between 1 and 100
         """
         self.data.update({'discount': 0})
         form = VoucherStudioadminForm(data=self.data)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
-            {'discount': ['Discount must be between 1% and 99%']}
+            {'discount': ['Discount must be between 1% and 100%']}
         )
 
-        self.data.update({'discount': 100})
+        self.data.update({'discount': 101})
         form = VoucherStudioadminForm(data=self.data)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
-            {'discount': ['Discount must be between 1% and 99%']}
+            {'discount': ['Discount must be between 1% and 100%']}
         )
 
         self.data.update({'discount': 20.5})

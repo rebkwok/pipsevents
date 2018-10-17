@@ -9,8 +9,8 @@ from booking.models import BlockType, BlockVoucher, EventVoucher, \
 
 
 def validate_discount(value):
-    if value < 1 or value > 99:
-        raise ValidationError('Discount must be between 1% and 99%')
+    if value < 1 or value > 100:
+        raise ValidationError('Discount must be between 1% and 100%')
 
 
 def validate_greater_than_0(value):

@@ -827,7 +827,7 @@ class Ticket(models.Model):
 
 class BaseVoucher(models.Model):
     discount = models.PositiveIntegerField(
-        help_text="Enter a number between 1 and 99"
+        help_text="Enter a number between 1 and 100"
     )
     start_date = models.DateTimeField(default=timezone.now)
     expiry_date = models.DateTimeField(null=True, blank=True)
@@ -889,8 +889,10 @@ class BlockVoucher(BaseVoucher):
 class UsedEventVoucher(models.Model):
     voucher = models.ForeignKey(EventVoucher, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    booking_id = models.CharField(max_length=20, null=True, blank=True)
 
 
 class UsedBlockVoucher(models.Model):
     voucher = models.ForeignKey(BlockVoucher, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    block_id = models.CharField(max_length=20, null=True, blank=True)

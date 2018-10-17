@@ -11,7 +11,8 @@ from booking.views import already_cancelled, already_paid, \
     TicketBookingView, TicketBookingCancelView, update_booking_cancelled, \
     cancellation_period_past, duplicate_booking, fully_booked, \
     has_active_block, permission_denied, ticket_purchase_expired, \
-    shopping_basket, update_block_bookings
+    shopping_basket, update_block_bookings, submit_zero_block_payment, \
+    submit_zero_booking_payment
 
 
 app_name = 'booking'
@@ -110,6 +111,14 @@ urlpatterns = [
     path(
         'bookings/shopping-basket/', shopping_basket,
         name='shopping_basket'
+    ),
+    path(
+        'bookings/shopping-basket/submit-block/', submit_zero_block_payment,
+        name='submit_zero_block_payment'
+    ),
+    path(
+        'bookings/shopping-basket/submit-booking/', submit_zero_booking_payment,
+        name='submit_zero_booking_payment'
     ),
     path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

@@ -528,14 +528,14 @@ class BlockVoucherAdmin(admin.ModelAdmin):
 
 class UsedEventVoucherAdmin(admin.ModelAdmin):
     list_display = (
-        'voucher', 'user'
+        'voucher', 'user', 'booking_id'
     )
     list_filter = ('voucher', UserFilter)
 
 
 class UsedBlockVoucherAdmin(admin.ModelAdmin):
     list_display = (
-        'voucher', 'user'
+        'voucher', 'user', 'block_id'
     )
     list_filter = ('voucher', UserFilter)
 
