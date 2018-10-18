@@ -548,9 +548,7 @@ class BookingCreateView(
         self.booking = booking
 
         if not booking.paid and booking.event.cost:
-            return HttpResponseRedirect(
-                reverse('booking:update_booking', args=[booking.id])
-            )
+            return HttpResponseRedirect(reverse('booking:shopping_basket'))
         return HttpResponseRedirect(reverse('booking:bookings'))
 
 
