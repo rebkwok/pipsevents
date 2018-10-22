@@ -170,12 +170,9 @@ def shopping_basket(request):
             _, total_booking_cost = total_agg.popitem()
             context['total_unpaid_booking_cost'] = total_booking_cost
 
-        if context['total_unpaid_booking_cost'] == 0:
-            # 100% voucher(s) applied; no paypal button required
-            # TODO: make a submit button instead; mark voucher as used and booking as paid;
-            # return to this page
-            pass
-        else:
+        if context['total_unpaid_booking_cost'] > 0:
+            # total_unpaid_block_cost can be 0 if 100% voucher(s) applied;
+            # paypal button replaced with an update button in template
             item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
             custom = context_helpers.get_paypal_custom(
                 item_type='booking',
@@ -230,12 +227,9 @@ def shopping_basket(request):
             # no voucher, or invalid voucher
             context['total_unpaid_block_cost'] = sum(unpaid_block_costs)
 
-        if context['total_unpaid_block_cost'] == 0:
-            # 100% voucher(s) applied; no paypal button required
-            # TODO: make a submit button instead; mark voucher as used and block(s) as paid;
-            # return to this page
-            pass
-        else:
+        if context['total_unpaid_block_cost'] > 0:
+            # total_unpaid_block_cost can be 0 if 100% voucher(s) applied;
+            # paypal button replaced with an update button in template
             item_ids_str = ','.join([str(item.id) for item in unpaid_blocks])
             custom = context_helpers.get_paypal_custom(
                 item_type='block',
