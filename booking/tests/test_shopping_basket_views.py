@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 from datetime import datetime, timedelta
 from decimal import Decimal
 from model_mommy import mommy
@@ -42,6 +44,12 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         )
         self.block_voucher = mommy.make(
             BlockVoucher, code='foo', discount=10, max_per_user=2
+        )
+        self.gift_voucher = mommy.make(
+            EventVoucher, code='gift_booking', discount=100, max_per_user=1
+        )
+        self.block_gift_voucher = mommy.make(
+            BlockVoucher, code='gift_block', discount=100, max_per_user=1
         )
 
     def test_login_required(self):
@@ -596,6 +604,61 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                     paypalform.initial['amount_{}'.format(i + 1)], Decimal('20.00')
                 )
 
+    def test_100_pct_booking_gift_voucher_payment_buttons(self):
+        # update button instead of paypal form for a 100% gift voucher
+        booking = Booking.objects.first()
+        Booking.objects.exclude(id=booking.id).delete()
+        ev_type = booking.event.event_type
+        self.gift_voucher.event_types.add(ev_type)
+
+        resp = self.client.get(self.url + '?booking_code=gift_booking')
+        self.assertEqual(len(resp.context['unpaid_bookings']), 1)
+
+        self.assertNotIn('bookings_paypalform', resp.context_data)
+        self.assertEquals(resp.context_data['total_unpaid_booking_cost'], 0)
+
+    def test_100_pct_booking_gift_voucher_payment_buttons_with_unapplied_booking(self):
+        # paypal form if there are bookings as well as the gift-voucher applied ones
+        bookings = Booking.objects.all()[:2]
+        Booking.objects.exclude(id__in=bookings.values_list('id', flat=True)).delete()
+        ev_type = bookings[0].event.event_type
+        self.gift_voucher.event_types.add(ev_type)
+
+        resp = self.client.get(self.url + '?booking_code=gift_booking')
+        self.assertEqual(len(resp.context['unpaid_bookings']), 2    )
+
+        self.assertIn('bookings_paypalform', resp.context_data)
+        self.assertEquals(resp.context_data['total_unpaid_booking_cost'], 8)
+
+    def test_100_pct_block_gift_voucher_payment_buttons(self):
+        # update button instead of paypal form for a 100% gift voucher
+        block = mommy.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        self.block_gift_voucher.block_types.add(block.block_type)
+
+        resp = self.client.get(self.url + '?block_code=gift_block')
+        self.assertEqual(len(resp.context['unpaid_blocks']), 1)
+
+        self.assertNotIn('block_paypalform', resp.context_data)
+        self.assertEquals(resp.context_data['total_unpaid_block_cost'], 0)
+
+    def test_100_pct_block_gift_voucher_payment_buttons_with_unapplied_booking(self):
+        # paypal form if there are bookings as well as the gift-voucher applied ones
+        block = mommy.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        mommy.make_recipe(
+            'booking.block', block_type__cost=10, user=self.user, paid=False
+        )
+        self.block_gift_voucher.block_types.add(block.block_type)
+
+        resp = self.client.get(self.url + '?block_code=gift_block')
+        self.assertEqual(len(resp.context['unpaid_blocks']), 2)
+
+        self.assertNotIn('block_paypalform', resp.context_data)
+        self.assertEquals(resp.context_data['total_unpaid_block_cost'], 10)
+
 
 class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
 
@@ -797,3 +860,199 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         )
         # no additional free block created
         self.assertEqual(Block.objects.count(), 2)
+
+
+class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('booking:submit_zero_booking_payment')
+        cls.pc1 = mommy.make_recipe('booking.future_PC', cost=10)
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password='test')
+        self.gift_voucher = EventVoucher.objects.create(code='gift', discount=100)
+
+    def test_submit_zero_booking_payment_no_blocks(self):
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=self.pc1, paid=False
+        )
+        self.gift_voucher.event_types.add(booking.event.event_type)
+        resp = self.client.post(
+            self.url,
+            {'booking_code': 'gift', 'unpaid_booking_ids': json.dumps([booking.id])}
+        )
+        booking.refresh_from_db()
+        # booking has been changed to paid and voucher updated
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        user_vouchers = UsedEventVoucher.objects.filter(voucher=self.gift_voucher)
+        self.assertEqual(user_vouchers.count(), 1)
+        self.assertEqual(user_vouchers[0].booking_id, str(booking.id))
+
+        # no blocks to pay for, so return to booking page
+        self.assertEqual(resp.url, reverse('booking:bookings'))
+
+    def test_submit_zero_booking_payment_with_unpaid_block(self):
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=self.pc1, paid=False
+        )
+        self.gift_voucher.event_types.add(booking.event.event_type)
+        resp = self.client.post(
+            self.url,
+            {
+                'booking_code': 'gift',
+                'unpaid_booking_ids': json.dumps([booking.id]),
+                'total_unpaid_block_cost': 20
+            }
+        )
+        booking.refresh_from_db()
+        # booking has been changed to paid and voucher updated
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        user_vouchers = UsedEventVoucher.objects.filter(voucher=self.gift_voucher)
+        self.assertEqual(user_vouchers.count(), 1)
+        self.assertEqual(user_vouchers[0].booking_id, str(booking.id))
+
+        # blocks to pay for, so return to shopping basket
+        self.assertEqual(resp.url, reverse('booking:shopping_basket'))
+
+    def test_submit_zero_booking_payment_with_unpaid_block_and_code(self):
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=self.pc1, paid=False
+        )
+        self.gift_voucher.event_types.add(booking.event.event_type)
+        resp = self.client.post(
+            self.url,
+            {
+                'booking_code': 'gift',
+                'unpaid_booking_ids': json.dumps([booking.id]),
+                'block_code': 'gift_block',
+                'total_unpaid_block_cost': 20
+            }
+        )
+        booking.refresh_from_db()
+        # booking has been changed to paid and voucher updated
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        user_vouchers = UsedEventVoucher.objects.filter(voucher=self.gift_voucher)
+        self.assertEqual(user_vouchers.count(), 1)
+        self.assertEqual(user_vouchers[0].booking_id, str(booking.id))
+
+        # blocks to pay for, so return to shopping basket
+        self.assertEqual(resp.url, reverse('booking:shopping_basket') + '?block_code=gift_block')
+
+    def test_submit_zero_booking_payment_invalid_code(self):
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=self.pc1, paid=False
+        )
+        self.gift_voucher.event_types.add(booking.event.event_type)
+        resp = self.client.post(
+            self.url,
+            {'booking_code': 'gift_foo', 'unpaid_booking_ids': json.dumps([booking.id])}
+        )
+        self.assertEqual(resp.status_code, 404)
+        booking.refresh_from_db()
+        # booking has not been changed
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+        user_vouchers = UsedEventVoucher.objects.filter(voucher=self.gift_voucher)
+        self.assertEqual(user_vouchers.count(), 0)
+
+
+class SubmitZeroBlockPaymentViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('booking:submit_zero_block_payment')
+        cls.pc1 = mommy.make_recipe('booking.future_PC', cost=10)
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password='test')
+        self.gift_block_voucher = BlockVoucher.objects.create(code='gift', discount=100)
+
+    def test_submit_zero_block_payment_no_blocks(self):
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, paid=False
+        )
+        self.gift_block_voucher.block_types.add(block.block_type)
+        resp = self.client.post(
+            self.url,
+            {'block_code': 'gift', 'unpaid_block_ids': json.dumps([block.id])}
+        )
+        block.refresh_from_db()
+        # block has been changed to paid and voucher updated
+        self.assertTrue(block.paid)
+        user_vouchers = UsedBlockVoucher.objects.filter(voucher=self.gift_block_voucher)
+        self.assertEqual(user_vouchers.count(), 1)
+        self.assertEqual(user_vouchers[0].block_id, str(block.id))
+
+        # no blocks to pay for, so return to block page
+        self.assertEqual(resp.url, reverse('booking:block_list'))
+
+    def test_submit_zero_block_payment_with_unpaid_booking(self):
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, paid=False
+        )
+        self.gift_block_voucher.block_types.add(block.block_type)
+        resp = self.client.post(
+            self.url,
+            {
+                'block_code': 'gift',
+                'unpaid_block_ids': json.dumps([block.id]),
+                'total_unpaid_booking_cost': 10
+            }
+        )
+        block.refresh_from_db()
+        # block has been changed to paid and voucher updated
+        self.assertTrue(block.paid)
+        user_vouchers = UsedBlockVoucher.objects.filter(voucher=self.gift_block_voucher)
+        self.assertEqual(user_vouchers.count(), 1)
+        self.assertEqual(user_vouchers[0].block_id, str(block.id))
+
+        # blocks to pay for, so return to shopping basket
+        self.assertEqual(resp.url, reverse('booking:shopping_basket'))
+
+    def test_submit_zero_block_payment_with_unpaid_booking_and_code(self):
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, paid=False
+        )
+        self.gift_block_voucher.block_types.add(block.block_type)
+        resp = self.client.post(
+            self.url,
+            {
+                'block_code': 'gift',
+                'unpaid_block_ids': json.dumps([block.id]),
+                'total_unpaid_booking_cost': 10,
+                'booking_code': 'booking_gift'
+            }
+        )
+        block.refresh_from_db()
+        # block has been changed to paid and voucher updated
+        self.assertTrue(block.paid)
+        user_vouchers = UsedBlockVoucher.objects.filter(voucher=self.gift_block_voucher)
+        self.assertEqual(user_vouchers.count(), 1)
+        self.assertEqual(user_vouchers[0].block_id, str(block.id))
+
+        # blocks to pay for, so return to shopping basket
+        self.assertEqual(resp.url, reverse('booking:shopping_basket') + '?booking_code=booking_gift')
+
+    def test_submit_zero_block_payment_invalid_code(self):
+        block = mommy.make_recipe(
+            'booking.block', user=self.user, paid=False
+        )
+        self.gift_block_voucher.block_types.add(block.block_type)
+        resp = self.client.post(
+            self.url,
+            {'block_code': 'gift_foo', 'unpaid_block_ids': json.dumps([block.id])}
+        )
+        self.assertEqual(resp.status_code, 404)
+        block.refresh_from_db()
+        # block has not been changed to paid
+        self.assertFalse(block.paid)
+        user_vouchers = UsedBlockVoucher.objects.filter(voucher=self.gift_block_voucher)
+        self.assertEqual(user_vouchers.count(), 0)

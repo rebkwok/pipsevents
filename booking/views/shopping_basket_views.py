@@ -503,10 +503,9 @@ def update_block_bookings(request):
 def submit_zero_booking_payment(request):
     # 100% gift voucher used for booking(s); this doesn't go through paypal, we
     # just mark as paid here and create a UsedEventVoucher
-    # TODO: raise error if no booking code?
     unpaid_booking_ids = json.loads(request.POST.get('unpaid_booking_ids'))
     booking_code = request.POST['booking_code']
-    voucher = EventVoucher.objects.get(code=booking_code)
+    voucher = get_object_or_404(EventVoucher, code=booking_code)
 
     unpaid_bookings = Booking.objects.filter(id__in=unpaid_booking_ids)
     for booking in unpaid_bookings:
@@ -522,7 +521,8 @@ def submit_zero_booking_payment(request):
     total_unpaid_block_cost = request.POST.get('total_unpaid_block_cost')
     if total_unpaid_block_cost:
         url = reverse('booking:shopping_basket')
-        params = {'booking_code': booking_code}
+        # don't include the used booking gift voucher code in return params
+        params = {}
         if 'block_code' in request.POST:
             params['block_code'] = request.POST['block_code']
 
@@ -537,11 +537,9 @@ def submit_zero_booking_payment(request):
 def submit_zero_block_payment(request):
     # 100% gift voucher used for block(s); this doesn't go through paypal, we
     # just mark as paid here and create a UsedBlockVoucher
-
-    # TODO: raise error if no block_code?
     unpaid_block_ids = json.loads(request.POST.get('unpaid_block_ids'))
     block_code = request.POST['block_code']
-    voucher = BlockVoucher.objects.get(code=block_code)
+    voucher = get_object_or_404(BlockVoucher, code=block_code)
 
     unpaid_blocks = Block.objects.filter(id__in=unpaid_block_ids)
     for block in unpaid_blocks:
@@ -555,7 +553,8 @@ def submit_zero_block_payment(request):
     total_unpaid_booking_cost = request.POST.get('total_unpaid_booking_cost')
     if total_unpaid_booking_cost:
         url = reverse('booking:shopping_basket')
-        params = {'block_code': block_code}
+        # don't include the used block gift voucher code in return params
+        params = {}
         if 'booking_code' in request.POST:
             params['booking_code'] = request.POST['booking_code']
 
