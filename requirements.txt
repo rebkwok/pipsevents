@@ -1,11 +1,11 @@
-Django==2.0.3
+Django==2.1.2
 coverage==4.5.1
 dj-database-url==0.5.0
-django-allauth==0.35.0
+django-allauth==0.38.0
 django-braces==1.12.0
 django-cookie-law==1.0.13
 django-crispy-forms==1.7.0
-django-datetime-widget==0.9.3
+git+git://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
 django-debug-toolbar==1.9.1
 django-environ==0.4.4
 django-extensions==2.0.0
@@ -18,9 +18,9 @@ dj-static==0.0.6
 psycopg2==2.7.4
 python-dateutil==2.6.1
 PyYAML==3.12
-mailchimp3==2.1.0
+mailchimp3==3.0.6
 model-mommy==1.5.1
-django-ckeditor==5.4.0
+django-ckeditor==5.6.1
 pillow==5.0.0
 gunicorn==19.7.1
 static3==0.7.0
