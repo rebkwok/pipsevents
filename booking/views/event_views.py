@@ -91,9 +91,15 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
 
         # paginate each queryset
         tab = self.request.GET.get('tab', 0)
-        context['tab'] = tab
 
-        if not tab or tab == '0':
+        try:
+            tab = int(tab)
+        except ValueError:  # value error if tab is not an integer, default to 0
+            tab = 0
+
+        context['tab'] = str(tab)
+
+        if not tab or tab == 0:
             page = self.request.GET.get('page', 1)
         else:
             page = 1
@@ -109,7 +115,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):
             location_qs = all_events.filter(location=location)
             location_paginator = Paginator(location_qs, 30)
-            if tab and int(tab) == i:
+            if tab and tab == i:
                 page = self.request.GET.get('page', 1)
             else:
                 page = 1

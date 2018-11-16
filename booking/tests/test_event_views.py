@@ -486,7 +486,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
             len(resp.context_data['location_events']), 3
         )
         # tab 0 by default
-        self.assertEqual(resp.context_data['tab'], 0)
+        self.assertEqual(resp.context_data['tab'], '0')
         # tab 0 is active and open by default
         self.assertIn(
             '<div class="tab-pane fade active in" id="tab0">',
@@ -615,6 +615,18 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             len(resp.context_data['location_events'][0]['queryset']), 30
         )
+        self.assertEqual(
+            resp.context_data['location_events'][1]['queryset'].number, 1
+        )
+
+        # tab not an int, defaults to show specified page on index 0 (all), page 1 on the rest
+        url = reverse('booking:lessons') + '?page=2&tab=foo'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for all
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 2
+        )
+        # Queryset contains page 1 objs for non-specified tabs
         self.assertEqual(
             resp.context_data['location_events'][1]['queryset'].number, 1
         )
