@@ -13,7 +13,7 @@ from accounts.models import OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.forms import BlockCreateForm
 from booking.models import Block, BlockVoucher, UsedBlockVoucher
-from booking.views import BlockCreateView, BlockDeleteView, BlockListView
+from booking.views import BlockCreateView, BlockListView
 from common.tests.helpers import _create_session, format_content, \
     setup_view, TestSetupMixin, make_data_privacy_agreement
 

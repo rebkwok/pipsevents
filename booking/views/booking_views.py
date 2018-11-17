@@ -179,6 +179,9 @@ class BookingCreateView(
     form_class = BookingCreateForm
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
         self.event = get_object_or_404(Event, slug=kwargs['event_slug'])
 
         if self.event.event_type.event_type == 'CL':
@@ -203,7 +206,7 @@ class BookingCreateView(
         if request.method == 'GET' and \
                 ('join waiting list' in self.request.GET or
                     'leave waiting list' in self.request.GET):
-            return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
         # redirect if fully booked and user doesn't already have open booking
         if self.event.spaces_left <= 0 and self.request.user not in \
@@ -217,16 +220,12 @@ class BookingCreateView(
 
         try:
             # redirect if already booked
-            booking = Booking.objects.get(
-                user=request.user, event=self.event
-            )
+            booking = Booking.objects.get(user=request.user, event=self.event)
             # all getting page to rebook if cancelled or previously marked as
             # no_show (i.e. cancelled after cancellation period or cancelled a
             # non-refundable event)
             if booking.status == 'CANCELLED' or booking.no_show:
-                return super(
-                    BookingCreateView, self
-                    ).dispatch(request, *args, **kwargs)
+                return super().dispatch(request, *args, **kwargs)
             # redirect if arriving back here from booking update page
             elif request.session.get(
                     'booking_created_{}'.format(booking.id)
@@ -240,7 +239,7 @@ class BookingCreateView(
             return HttpResponseRedirect(reverse('booking:duplicate_booking',
                                         args=[self.event.slug]))
         except (Booking.DoesNotExist):
-            return super(BookingCreateView, self).dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
     def get_initial(self):
         return {
@@ -314,6 +313,8 @@ class BookingCreateView(
 
     def form_valid(self, form):
         booking = form.save(commit=False)
+        previously_cancelled = False
+        previously_no_show = False
         try:
             # We shouldn't even get here with a booking that isn't either
             # cancelled or no_show; those get redirected in the dispatch()
@@ -331,8 +332,7 @@ class BookingCreateView(
             booking.status = 'OPEN'
             booking.no_show = False
         except Booking.DoesNotExist:
-            previously_cancelled = False
-            previously_no_show = False
+            pass
 
         booking.user = self.request.user
         transaction_id = None
