@@ -41,6 +41,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             mommy.make_recipe('booking.future_PC',  name="Scnd Event"),
             mommy.make_recipe('booking.future_RH',  name="Third Event")
         ]
+        cls.url = reverse('booking:bookings')
 
     def setUp(self):
         super(BookingListViewTests, self).setUp()
@@ -48,13 +49,6 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=self.user,
             event=event) for event in self.events]
         mommy.make_recipe('booking.past_booking', user=self.user)
-
-    def _get_response(self, user):
-        url = reverse('booking:bookings')
-        request = self.factory.get(url)
-        request.user = user
-        view = BookingListView.as_view()
-        return view(request)
 
     def test_login_required(self):
         """
@@ -68,7 +62,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         """
         Test that only future bookings are listed)
         """
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         self.assertEquals(Booking.objects.all().count(), 4)
         self.assertEquals(resp.status_code, 200)
@@ -84,7 +79,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
         # check there are now 5 bookings
         self.assertEquals(Booking.objects.all().count(), 5)
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         # event listing should still only show this user's future bookings
         self.assertEquals(resp.context_data['bookings'].count(), 3)
@@ -100,7 +96,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
         # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
         self.assertEquals(Booking.objects.all().count(), 5)
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         # booking listing should show this user's future bookings,
         # including the cancelled one
@@ -121,7 +118,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
         # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
         self.assertEquals(Booking.objects.all().count(), 1)
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         # booking listing should show this user's future bookings,
         # including the cancelled one
@@ -149,7 +147,9 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             payment_due_date=datetime(2015, 2, 12, 16, 0, tzinfo=timezone.utc),
         )
         mommy.make_recipe('booking.booking', user=self.user, event=event)
-        resp = self._get_response(self.user)
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         self.assertEquals(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
@@ -180,7 +180,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
         booking.date_booked = datetime(2015, 1, 18, tzinfo=timezone.utc)
         booking.save()
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         self.assertEquals(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
@@ -191,7 +192,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
 
         booking.date_rebooked = datetime(2015, 2, 1, tzinfo=timezone.utc)
         booking.save()
-        resp = self._get_response(self.user)
+        resp = self.client.get(self.url)
 
         self.assertEquals(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
@@ -223,7 +224,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe(
             'booking.booking', user=self.user, event=event
         )
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         self.assertEquals(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
@@ -242,7 +244,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=self.user, event=event_with_cost,
             paid=True
         )
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
         self.assertIn(
             '<span class="confirmed fa fa-check"></span>',
             resp.rendered_content
@@ -251,7 +254,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         booking.free_class = True
         booking.save()
 
-        resp = self._get_response(self.user)
+        resp = self.client.get(self.url)
         self.assertIn(
             '<span class="confirmed">Free class</span>',
             resp.rendered_content
@@ -263,7 +266,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         booking.free_class = False
         booking.block = block
         booking.save()
-        resp = self._get_response(self.user)
+        resp = self.client.get(self.url)
         self.assertIn(
             '<span class="confirmed">Transferred</span>',
             resp.rendered_content
@@ -272,7 +275,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         booking.block = None
         booking.paid = False
         booking.save()
-        resp = self._get_response(self.user)
+        resp = self.client.get(self.url)
         self.assertIn(
             '<span class="not-confirmed fa fa-times"></span>',
             resp.rendered_content
@@ -282,14 +285,14 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe(
             'booking.booking', user=self.user, event=event_without_cost,
         )
-        resp = self._get_response(self.user)
+        resp = self.client.get(self.url)
         self.assertIn('<strong>N/A</strong>', resp.rendered_content)
 
         booking.event=event_with_cost
         booking.paid=False
         booking.paypal_pending=True
         booking.save()
-        resp = self._get_response(self.user)
+        resp = self.client.get(self.url)
         self.assertIn(
             '<span class="not-confirmed">PayPal pending</span>',
             resp.rendered_content
@@ -307,7 +310,8 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         )
         # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
         self.assertEquals(Booking.objects.all().count(), 5)
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         # booking listing should show this user's future bookings,
         # including the cancelled one
@@ -323,6 +327,7 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super(BookingHistoryListViewTests, cls).setUpTestData()
         cls.event = mommy.make_recipe('booking.future_EV')
+        cls.url = reverse('booking:booking_history')
 
     def setUp(self):
         super(BookingHistoryListViewTests, self).setUp()
@@ -332,13 +337,6 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         self.past_booking = mommy.make_recipe(
             'booking.past_booking', user=self.user
         )
-
-    def _get_response(self, user):
-        url = reverse('booking:booking_history')
-        request = self.factory.get(url)
-        request.user = user
-        view = BookingHistoryListView.as_view()
-        return view(request)
 
     def test_login_required(self):
         """
@@ -352,7 +350,8 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         """
         Test that only past bookings are listed)
         """
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(resp.status_code, 200)
@@ -368,7 +367,8 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         )
         # check there are now 3 bookings
         self.assertEquals(Booking.objects.all().count(), 3)
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
 
         #  listing should still only show this user's past bookings
         self.assertEquals(resp.context_data['bookings'].count(), 1)
@@ -458,6 +458,12 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
         resp = self._get_response(self.user, event)
         self.assertEqual(resp.context_data['event'], event)
+
+    def test_login_required(self):
+        event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
 
     def test_create_booking(self):
         """
@@ -695,39 +701,36 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
     def test_cannot_get_create_page_for_duplicate_booking(self):
         """
-        Test trying to get the create page for exisiting redirects
+        Test trying to get the create page for existing redirects
         """
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        mommy.make_recipe('booking.booking', user=self.user, event=event)
 
-        resp = self._post_response(self.user, event)
-        booking_id = Booking.objects.all()[0].id
-        booking_url = reverse('booking:bookings')
-        self.assertEqual(resp.url, booking_url)
-
-        resp1 = self._get_response(self.user, event)
-        duplicate_url = reverse('booking:duplicate_booking',
-                                kwargs={'event_slug': event.slug}
-                                )
+        self.client.login(username=self.user.username, password='test')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
+        resp = self.client.get(url)
+        duplicate_url = reverse(
+            'booking:duplicate_booking', kwargs={'event_slug': event.slug}
+        )
         # test redirect to duplicate booking url
-        self.assertEqual(resp1.url, duplicate_url)
+        self.assertEqual(resp.url, duplicate_url)
 
     def test_cannot_create_duplicate_booking(self):
         """
         Test trying to create a duplicate booking redirects
         """
         event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        mommy.make_recipe('booking.booking', user=self.user, event=event)
 
-        resp = self._post_response(self.user, event)
-        booking_id = Booking.objects.all()[0].id
-        booking_url = reverse('booking:bookings')
-        self.assertEqual(resp.url, booking_url)
+        self.client.login(username=self.user.username, password='test')
+        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
 
-        resp1 = self._post_response(self.user, event)
-        duplicate_url = reverse('booking:duplicate_booking',
-                                kwargs={'event_slug': event.slug}
-                                )
+        resp = self.client.post(url, {'event': event.id})
+        duplicate_url = reverse(
+            'booking:duplicate_booking', kwargs={'event_slug': event.slug}
+        )
         # test redirect to duplicate booking url
-        self.assertEqual(resp1.url, duplicate_url)
+        self.assertEqual(resp.url, duplicate_url)
 
     def test_cannot_get_create_booking_page_for_full_event(self):
         """

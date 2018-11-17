@@ -222,7 +222,8 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
     form_class = DataPrivacyAgreementForm
 
     def dispatch(self, *args, **kwargs):
-        if has_active_data_privacy_agreement(self.request.user):
+        if self.request.user.is_authenticated and \
+                has_active_data_privacy_agreement(self.request.user):
             return HttpResponseRedirect(
                 self.request.GET.get('next', reverse('booking:lessons'))
             )

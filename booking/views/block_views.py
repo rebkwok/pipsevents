@@ -48,8 +48,9 @@ class BlockCreateView(
         if self.request.session.get('cart_items'):
             del self.request.session['cart_items']
 
-        if not context_helpers.get_blocktypes_available_to_book(
-            self.request.user
+        if (
+                self.request.user.is_authenticated and not
+                context_helpers.get_blocktypes_available_to_book(self.request.user)
         ):
             return HttpResponseRedirect(reverse('booking:block_list'))
 
