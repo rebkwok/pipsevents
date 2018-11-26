@@ -83,6 +83,7 @@ class SessionAdminForm(forms.ModelForm):
                 'aria-describedby': 'sizing-addon2',
             },
         ),
+        initial=8.50,
         required=False
     )
 
