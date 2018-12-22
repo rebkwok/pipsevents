@@ -133,6 +133,28 @@ def abbr_email(email):
     return email
 
 
+@register.inclusion_tag('booking/banner.html')
+def temporary_banner():
+    now = timezone.now()
+    banner = os.environ.get('TEMP_BANNER')
+    banner_start = os.environ.get('BANNER_START')
+    banner_end = os.environ.get('BANNER_END')
+
+    if banner_start and banner_end:
+        banner_start = datetime.strptime(banner_start, '%d-%b-%Y').replace(
+            tzinfo=timezone.utc
+        )
+        banner_end = datetime.strptime(banner_end, '%d-%b-%Y').replace(
+            hour=23, minute=59, tzinfo=timezone.utc
+        )
+        if now > banner_start and now < banner_end:
+            return {
+                'has_temporary_banner': True,
+                'temporary_banner': banner,
+            }
+    return {'has_temporary_banner': False}
+
+
 @register.inclusion_tag('booking/sale.html')
 def sale_text():
     now = timezone.now()
