@@ -1,6 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
-from booking.views import already_cancelled, already_paid, \
+from booking.views import ajax_create_booking, \
+    already_cancelled, already_paid, \
     disclaimer_required,  \
     EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingMultiCreateView, \
@@ -12,7 +13,7 @@ from booking.views import already_cancelled, already_paid, \
     cancellation_period_past, duplicate_booking, fully_booked, \
     has_active_block, permission_denied, ticket_purchase_expired, \
     shopping_basket, update_block_bookings, submit_zero_block_payment, \
-    submit_zero_booking_payment
+    submit_zero_booking_payment, update_shopping_basket_count
 
 
 app_name = 'booking'
@@ -38,6 +39,9 @@ urlpatterns = [
     path('booking/cancel/<int:pk>/already_cancelled/',
         already_cancelled,
         name='already_cancelled'),
+    path('booking/ajax-create/<int:event_id>/',
+        ajax_create_booking,
+        name='ajax_create_booking'),
     path('events/<slug:event_slug>/cancellation-period-past/',
         cancellation_period_past, name='cancellation_period_past'),
     path('events/<slug:event_slug>/duplicate/',
@@ -119,6 +123,10 @@ urlpatterns = [
     path(
         'bookings/shopping-basket/submit-booking/', submit_zero_booking_payment,
         name='submit_zero_booking_payment'
+    ),
+    path(
+        'bookings/ajax-update-shopping-basket/',
+        update_shopping_basket_count, name='update_shopping_basket_count'
     ),
     path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

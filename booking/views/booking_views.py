@@ -10,7 +10,9 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.http import HttpResponse
 from django.urls import reverse
 from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -39,6 +41,8 @@ from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.views_utils import DisclaimerRequiredMixin, \
     DataPolicyAgreementRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
+
+from booking.templatetags.bookingtags import get_shopping_basket_icon
 
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
@@ -862,6 +866,7 @@ class BookingDeleteView(
         context['event'] = event
         # Add in block info
         context['booked_with_block'] = booking.block is not None
+        context['booking'] = booking
         return context
 
     def delete(self, request, *args, **kwargs):
@@ -1002,11 +1007,22 @@ class BookingDeleteView(
                     )
                 )
         else:
+            # if the booking was made with a block, allow 15 mins to cancel in case user
+            # clicked the wrong button by mistake and autobooked with a block
             # if the booking wasn't paid, just cancel it
-            if not booking.paid:
+            allowed_datetime = timezone.now() - timedelta(minutes=15)
+            booked_within_allowed_time = (booking.date_rebooked and booking.date_rebooked > allowed_datetime) \
+                                         or (booking.date_booked > allowed_datetime)
+
+            can_cancel = (booking.block and booked_within_allowed_time) or not booking.paid
+            if can_cancel:
+                booking.block = None
+                booking.paid = False
+                booking.free_class = False
                 booking.status = 'CANCELLED'
                 booking.payment_confirmed = False
                 booking.save()
+
                 messages.success(
                     self.request,
                     self.success_message.format(booking.event)
@@ -1091,6 +1107,8 @@ class BookingDeleteView(
             params['name'] = request.GET['filter']
         if request.GET.get('tab'):
             params['tab'] = request.GET['tab']
+        if request.GET.get('page'):
+            params['page'] = request.GET['page']
 
         url = self.get_success_url(next)
         if params:
@@ -1172,4 +1190,238 @@ def disclaimer_required(request):
         request,
         'booking/disclaimer_required.html',
         {'has_expired_disclaimer': has_expired_disclaimer(request.user)}
+    )
+
+
+@login_required
+def ajax_create_booking(request, event_id):
+    event = Event.objects.get(id=event_id)
+    location_index = request.GET.get('location_index')
+    location_page = request.GET.get('location_page', 1)
+
+    if event.event_type.event_type == 'CL':
+        ev_type_str = 'class'
+        ev_type = 'lessons'
+    elif event.event_type.event_type == 'EV':
+        ev_type_str = 'workshop/event'
+        ev_type = 'events'
+    else:
+        ev_type_str = 'room hire'
+        ev_type = 'room_hires'
+
+    previously_cancelled = False
+    previously_no_show = False
+
+    context = {
+        "event": event, "type": ev_type,
+        "location_index": location_index,
+        "location_page": location_page
+    }
+
+    # make sure the event isn't full
+    if not event.spaces_left:
+        context["alert_message"] = {'message': "Sorry, this event is now full", 'message_type': 'info'}
+        return render(
+                request,
+                "booking/includes/ajax_book_button.txt",
+                context
+            )
+
+    booking, new = Booking.objects.get_or_create(
+        user=request.user,
+        event=event,
+    )
+
+    context['booking'] = booking
+
+    if not new:
+        if booking.status == 'CANCELLED':
+            previously_cancelled = True
+            previously_no_show = False
+        elif booking.no_show:
+            previously_no_show = True
+            previously_cancelled = False
+        else:
+            # open (not no-show) booking exists
+            # in case user clicked on the <span> around a cancel button
+
+            return render(
+                request,
+                "booking/includes/ajax_book_button.txt",
+                context
+            )
+
+    booking.status = 'OPEN'
+    booking.no_show = False
+
+    transaction_id = None
+    invoice_id = None
+    previously_cancelled_and_direct_paid = False
+
+    if previously_cancelled and booking.paid:
+        previously_cancelled_and_direct_paid = True
+        pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
+            .exclude(transaction_id__isnull=True)
+        if pptrans:
+            transaction_id = pptrans[0].transaction_id
+            invoice_id = pptrans[0].invoice_id
+
+    elif previously_no_show and booking.paid:
+        # leave paid no_show booking with existing payment method
+        pass
+
+    active_block = _get_active_user_block(request.user, booking)
+
+    if active_block:
+        booking.block = active_block
+        booking.paid = True
+        booking.payment_confirmed = True
+
+    # check for existence of free child block on pre-saved booking
+    # note for prev no-shows booked with block, any free child blocks should
+    # have already been created.  Rebooking prev no-show doesn;t add a new
+    # block booking
+    has_free_block_pre_save = False
+    if booking.block and booking.block.children.exists():
+        has_free_block_pre_save = True
+
+    booking.save()
+    ActivityLog.objects.create(
+        log='Booking {} {} for "{}" by user {}'.format(
+            booking.id,
+            'created' if not
+            (previously_cancelled or previously_no_show)
+            else 'rebooked',
+                booking.event, booking.user.username)
+    )
+
+    blocks_used, total_blocks = _get_block_status(booking, request)
+
+    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+    # send email to user
+
+    ctx = {
+          'host': host,
+          'booking': booking,
+          'event': booking.event,
+          'date': booking.event.date.strftime('%A %d %B'),
+          'time': booking.event.date.strftime('%H:%M'),
+          'blocks_used':  blocks_used,
+          'total_blocks': total_blocks,
+          'prev_cancelled_and_direct_paid':
+          previously_cancelled_and_direct_paid,
+          'claim_free': False,
+          'ev_type': ev_type_str
+    }
+    send_mail('{} Booking for {}'.format(
+        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
+    ),
+        get_template('booking/email/booking_received.txt').render(ctx),
+        settings.DEFAULT_FROM_EMAIL,
+        [booking.user.email],
+        html_message=get_template(
+            'booking/email/booking_received.html'
+            ).render(ctx),
+        fail_silently=False)
+
+    # send email to studio if flagged for the event or if previously
+    # cancelled and direct paid OR for specific users being watched
+    if (
+        booking.event.email_studio_when_booked or
+        previously_cancelled_and_direct_paid or
+        booking.user.email in settings.WATCHLIST
+    ):
+        additional_subject = ""
+        if previously_cancelled_and_direct_paid:
+            additional_subject = "ACTION REQUIRED!"
+
+        send_mail('{} {} {} {} has just booked for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
+            booking.user.first_name, booking.user.last_name,
+            booking.event
+        ),
+                  get_template(
+                    'booking/email/to_studio_booking.txt'
+                    ).render(
+                      {
+                          'host': host,
+                          'booking': booking,
+                          'event': booking.event,
+                          'date': booking.event.date.strftime('%A %d %B'),
+                          'time': booking.event.date.strftime('%H:%M'),
+                          'prev_cancelled_and_direct_paid':
+                          previously_cancelled_and_direct_paid,
+                          'transaction_id': transaction_id,
+                          'invoice_id': invoice_id
+                      }
+                  ),
+                  settings.DEFAULT_FROM_EMAIL,
+                  [settings.DEFAULT_STUDIO_EMAIL],
+                  fail_silently=False)
+
+    alert_message = {}
+
+    if previously_cancelled_and_direct_paid:
+        alert_message['message_type'] = 'warning'
+        alert_message['message'] = 'You previously paid for this booking; your booking ' \
+                    'will remain as pending until the organiser has ' \
+                    'reviewed your payment status.'
+    elif previously_no_show:
+        alert_message['message_type'] = 'success'
+        if booking.block:
+            alert_message['message'] = "You previously paid for this booking with a " \
+                        "block and your booking has been reopened."
+        elif booking.paid:
+            alert_message['message'] = "You previously paid for this booking and your " \
+                        "booking has been reopened."
+
+    elif booking.block:
+        alert_message['message_type'] = 'success'
+        msg = "Booked with block. "
+        if not booking.block.active_block():
+            transfer_block = booking.block.block_type.identifier\
+                .startswith('transferred') \
+                if booking.block.block_type.identifier else False
+            if not transfer_block:
+                msg += 'You have just used the last space in your block. '
+                if booking.block.children.exists() and not has_free_block_pre_save:
+                    msg += 'You have qualified for a extra free ' \
+                                 'class which has been added to your blocks'
+                else:
+                    alert_message['message_type'] = 'warning'
+                    msg += 'Go to My Blocks buy a new one.'
+        alert_message['message'] = msg
+    elif not booking.paid:
+        alert_message['message_type'] = 'error'
+        alert_message['message'] =  "Added to basket; booking not confirmed until payment has been made."
+
+    try:
+        waiting_list_user = WaitingListUser.objects.get(
+            user=booking.user, event=booking.event
+        )
+        waiting_list_user.delete()
+        ActivityLog.objects.create(
+            log='User {} removed from waiting list '
+            'for {}'.format(
+                booking.user.username, booking.event
+            )
+        )
+    except WaitingListUser.DoesNotExist:
+        pass
+
+    context["alert_message"] = alert_message
+
+    return render(
+        request,
+        "booking/includes/ajax_book_button.txt",
+        context
+    )
+
+
+def update_shopping_basket_count(request):
+    context = get_shopping_basket_icon(request.user, True)
+    return render(
+        request,
+        "booking/includes/shopping_basket_icon.html",
+        context
     )

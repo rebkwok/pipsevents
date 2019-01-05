@@ -327,11 +327,11 @@ color: #000;
 
 /*for shopping basket menu icon*/
 .navbar-header>span.shopping-basket-menu>a {
-  padding-bottom: 15px;
-  padding-top: 15px;
-  line-height: 20px;
+  position: relative;
+  padding: 15px;
+  display: inline-block;
 }
-.nav>span>li>a, .navbar-header>span.shopping-basket-menu {
+.nav>span>li>a {
     position: relative;
     display: block;
     padding: 15px 15px;
