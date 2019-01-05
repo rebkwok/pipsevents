@@ -52,6 +52,9 @@
                     <a class="navbar-brand" href="http://www.thewatermelonstudio.co.uk" title="Studio website">
                     <img class="nav-logo" src="{% static 'booking/images/logo_brand.png' %}">
                     </a>
+                    {% if request.user.is_authenticated %}
+                    <span class="visible-xs shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
+                    {% endif %}
                 </div>
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav pull-left">
@@ -86,8 +89,8 @@
                                     <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a></li>
                                   </ul>
-                                </li>
-                            {% show_shopping_basket_menu request.user %}
+                            </li>
+                            <li id="shopping-basket-menu">{% show_shopping_basket_menu request.user %}</li>
                         {% endif %}
                         {% endblock %}
                     </ul>
@@ -117,6 +120,7 @@
                         {% endif %}
                     </ul>
                 </div><!--/.nav-collapse -->
+
             </div>
         </div>
         {% cookielaw_banner %}
