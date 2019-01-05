@@ -1,7 +1,7 @@
 {% if menu %}
-    <li><a href="{% url 'booking:shopping_basket' %}" title="View shopping basket">
+    <a href="{% url 'booking:shopping_basket' %}" title="View shopping basket">
         <i class="fas fa-shopping-cart fa-lg"></i> <span class="basket-count">{{ count }}</span>
-    </a></li>
+    </a>
 {% else %}
     <a href="{% url 'booking:shopping_basket' %}" class="basket-icon" title="View shopping basket">
         <i class="fas fa-shopping-cart fa-2x"></i> <span class="basket-count">{{ count }}</span>

@@ -322,6 +322,27 @@ color: #000;
 .navbar .navbar-collapse { background-color: #fff}
 .navbar .navbar-nav>.active-nav>a:hover {background-color: #FF6666; color: #fff}
 .navbar .navbar-nav>li>a:hover {background-color: #FF6666; color: #fff}
+.navbar-header>span>a:hover {background-color: #FF6666;}
+
+
+/*for shopping basket menu icon*/
+.navbar-header>span.shopping-basket-menu>a {
+  padding-bottom: 15px;
+  padding-top: 15px;
+  line-height: 20px;
+}
+.nav>span>li>a, .navbar-header>span.shopping-basket-menu {
+    position: relative;
+    display: block;
+    padding: 15px 15px;
+}
+.navbar-default .navbar-nav>span>li>a, .navbar-header>span>a {
+    color: #777;
+}
+
+#shopping-basket-menu {
+  white-space:nowrap;
+}
 
 .nav-user {
     padding-top: 15px;
