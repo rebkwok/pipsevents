@@ -1,12 +1,13 @@
 from django.shortcuts import render
 
 from booking.views.event_views import EventDetailView, EventListView
-from booking.views.booking_views import already_cancelled, already_paid, \
+from booking.views.booking_views import ajax_create_booking, \
+    already_cancelled, already_paid, \
     BookingCreateView, BookingDeleteView, BookingMultiCreateView, \
     BookingHistoryListView, BookingListView, BookingUpdateView, \
     disclaimer_required, \
     duplicate_booking, update_booking_cancelled, fully_booked, \
-    has_active_block, cancellation_period_past
+    has_active_block, cancellation_period_past, update_shopping_basket_count
 from booking.views.block_views import BlockCreateView, BlockDeleteView, \
     BlockListView
 from booking.views.shopping_basket_views import shopping_basket, \
@@ -17,7 +18,7 @@ from booking.views.ticketed_views import TicketBookingListView, \
 
 
 __all__ = [
-    'already_cancelled', 'already_paid',
+    'ajax_create_booking', 'already_cancelled', 'already_paid',
     'EventListView', 'EventDetailView', 'BookingListView',
     'BookingHistoryListView', 'BookingCreateView', 'BookingUpdateView',
     'BookingMultiCreateView',
@@ -29,7 +30,7 @@ __all__ = [
     'BlockCreateView', 'BlockDeleteView', 'BlockListView', 'permission_denied',
     'TicketedEventListView', 'TicketCreateView', 'TicketBookingListView',
     'TicketBookingHistoryListView', 'TicketBookingView',
-    'TicketBookingCancelView', 'ticket_purchase_expired'
+    'TicketBookingCancelView', 'ticket_purchase_expired', update_shopping_basket_count
 ]
 
 

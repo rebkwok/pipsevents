@@ -2,6 +2,11 @@
 {% load static %}
 {% load bookingtags %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 
     <div class="row">
@@ -41,8 +46,10 @@
 
 
                 {% if user.is_authenticated %}
+                <div class="btn-group btn-group-sm pull-right" role="group">
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
-                    {% show_shopping_basket request.user %}
+                    <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+                </div>
                 {% endif %}
             </div>
 
@@ -104,9 +111,6 @@
                                                     compress table-tab">
                                                 {% if user.is_authenticated %}
                                                     <td class="table-center table-btns">
-                                                        {% if event.id in booked_events %}
-                                                            {% get_payment_button booking type location_obj.index request.GET.name %}
-                                                        {% elif event not in booked_events %}
                                                             {% if not disclaimer %}
                                                                 {% if type == 'lessons' %}
                                                                     <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
@@ -117,18 +121,18 @@
                                                                 {% endif %}
                                                             {% elif event.event_type.subtype == "Pole practice" and not is_regular_student %}
                                                                 <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
-                                                             {% elif event.bookable %}
+                                                             {% elif event.bookable or event.id in booked_events %}
                                                                     {% if event.id in auto_cancelled_events %}
                                                                         <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                                                     {% else %}
-                                                                        <form class="table-form" action="{% url 'booking:create_booking' event.slug %}" method="post">
-                                                                            {% csrf_token %}
-                                                                            <input type="hidden" name="event" value={{event.id}}>
-                                                                            <input type="hidden" name="filter" value="{{ request.GET.name }}">
-                                                                            <input type="hidden" name="tab" value="{{ location_obj.index }}">
-                                                                            <input type="hidden" name="page" value="{{ location_obj.queryset.number }}">
-                                                                            <input id="book_button" class="btn btn-success table-btn" type="submit" value="Book"/>
-                                                                        </form>
+                                                                        <span
+                                                                                id="book_{{ event.id }}_{{ location_obj.index }}"
+                                                                                data-event_id="{{ event.id }}"
+                                                                                data-location_index="{{ location_obj.index }}"
+                                                                                data-location_page="{{ location_obj.queryset.number }}"
+                                                                                class="td_ajax_book_btn">
+                                                                        {% include "booking/includes/ajax_book_button.txt" %}
+                                                                        </span>
                                                                     {% endif %}
                                                             {% elif event.external_instructor %}
                                                                 {% if type == 'events' %}
@@ -150,8 +154,9 @@
                                                             {% else %}
                                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                                             {% endif %}
-                                                        {% endif %}</td>
-                                                    {% endif %}
+
+                                                    </td>
+                                                  {% endif %}
                                                     <td class="date">{{ event.date | date:"D d M H:i" }}</td>
                                                     <td class="table-event">{% if type == 'events' %}
                                                         <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
@@ -241,4 +246,7 @@
         }, 10000); // <-- time in milliseconds, 1000 =  1 sec
     });
 </script>
+<script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax.js' %}"></script>
+
 {% endblock %}

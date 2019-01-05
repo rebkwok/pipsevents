@@ -1914,7 +1914,8 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             cancellation_period=48
         )
         booking = mommy.make_recipe(
-            'booking.booking', event=event, user=self.user
+            'booking.booking', event=event, user=self.user,
+            paid=True
         )
 
         url = reverse('booking:delete_booking', args=[booking.id])
