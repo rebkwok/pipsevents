@@ -129,6 +129,7 @@
                                                                                 id="book_{{ event.id }}_{{ location_obj.index }}"
                                                                                 data-event_id="{{ event.id }}"
                                                                                 data-location_index="{{ location_obj.index }}"
+                                                                                data-location_count="{{ location_events|length }}"
                                                                                 data-location_page="{{ location_obj.queryset.number }}"
                                                                                 class="td_ajax_book_btn">
                                                                         {% include "booking/includes/ajax_book_button.txt" %}
@@ -173,23 +174,7 @@
                                                     <td class="table-center" style="vertical-align: middle; horiz-align: center">
                                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                                         {% elif event.max_participants %}
-                                                            {% if event.spaces_left == 0 %}
-                                                                <span class="label label-spaces label-default label-rounded">
-                                                                    {% if request.user.is_staff or request.user|in_group:"instructors" %}
-                                                                        {{ event.spaces_left }}/{{ event.max_participants }}
-                                                                    {% else %}
-                                                                        FULL
-                                                                    {% endif %}
-                                                                </span>
-                                                            {% else %}
-                                                                <span class="label label-spaces label-success label-rounded">
-                                                                    {% if request.user.is_staff or request.user|in_group:"instructors" %}
-                                                                        {{ event.spaces_left }}/{{ event.max_participants }}
-                                                                    {% else %}
-                                                                        AVAILABLE
-                                                                    {% endif %}
-                                                                </span>
-                                                            {% endif %}
+                                                            <span id="booking_count_{{ event.id }}_{{ location_obj.index }}">{% include 'booking/includes/booking_count.html' %}</span>
                                                         {% else %}N/A{% endif %}</td>
                                                     <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
                                                     <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
