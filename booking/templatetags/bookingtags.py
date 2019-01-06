@@ -447,8 +447,6 @@ def is_active(location_index, tab):
     if tab:
         if str(location_index) == tab:
             return True
-    elif location_index == 0:
-        return True
     return False
 
 

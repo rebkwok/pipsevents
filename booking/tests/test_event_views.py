@@ -496,7 +496,6 @@ class EventListViewTests(TestSetupMixin, TestCase):
         url += '?tab=1'
         resp = self.client.get(url)
         self.assertEqual(resp.context_data['tab'], '1')
-        # tab 0 is active and open by default
         self.assertIn(
             '<div class="tab-pane fade active in" id="tab1">',
             resp.rendered_content
