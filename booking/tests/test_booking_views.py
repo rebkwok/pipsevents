@@ -2713,9 +2713,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             resp.url, reverse('booking:shopping_basket') + '?block_code=foo'
         )
 
-    def test_cancel_booking_with_filter_and_tab(self):
+    def test_cancel_booking_with_filter_and_tab_and_page(self):
         """
-        Test deleting a booking from events with filter and tab returns with
+        Test deleting a booking from events with filter, tab and page returns with
         params
         """
         event = mommy.make_recipe('booking.future_EV')
@@ -2725,7 +2725,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         self.client.login(username=self.user.username, password='test')
         url = reverse('booking:delete_booking', args=[booking.id]) + \
-              '?next=events&filter=foo&tab=1'
+              '?next=events&filter=foo&tab=1&page=1'
         resp = self.client.post(url)
         # after cancelling, the booking is still there, but status has changed
         self.assertEqual(Booking.objects.all().count(), 1)
@@ -2736,6 +2736,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(split_redirect_url.path, reverse('booking:events'))
         self.assertIn('name=foo', split_redirect_url.query)
         self.assertIn('tab=1', split_redirect_url.query)
+        self.assertIn('page=1', split_redirect_url.query)
 
 
 class BookingUpdateViewTests(TestSetupMixin, TestCase):
