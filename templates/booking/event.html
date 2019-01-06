@@ -2,6 +2,11 @@
 {% load static %}
 {% load bookingtags %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
@@ -102,11 +107,20 @@
                                     {% elif auto_cancelled %}
                                         <div class="btn btn-success table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                     {% else %}
-                                        <form class="table-form" action="{% url 'booking:create_booking' event.slug %}" method="post">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="event" value={{event.id}}>
-                                            <input id="book_button" class="btn btn-success table-btn" type="submit" value={% if cancelled %}"Rebook"{% else %}"Book"{% endif %}/>
-                                        </form>
+                                        <span
+                                            id="book_{{ event.id }}_0"
+                                            data-event_id="{{ event.id }}"
+                                            data-location_count="1"
+                                            data-location_index="0"
+                                            class="td_ajax_book_btn">
+                                        {% include "booking/includes/ajax_book_button.txt" %}
+                                        </span>
+
+                                        <!--<form class="table-form" action="{% url 'booking:create_booking' event.slug %}" method="post">-->
+                                            <!--{% csrf_token %}-->
+                                            <!--<input type="hidden" name="event" value={{event.id}}>-->
+                                            <!--<input id="book_button" class="btn btn-success table-btn" type="submit" value={% if cancelled %}"Rebook"{% else %}"Book"{% endif %}/>-->
+                                        <!--</form>-->
 
                                     {% endif %}
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
@@ -137,5 +151,5 @@
 {% block extra_js %}
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
-
+<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax.js' %}"></script>
 {% endblock %}
