@@ -12,10 +12,11 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
+from django.views.decorators.http import require_http_methods
 from django.views.generic import (
     ListView, CreateView, UpdateView, DeleteView
 )
@@ -1155,6 +1156,7 @@ def disclaimer_required(request):
 
 
 @login_required
+@require_http_methods(['POST'])
 def ajax_create_booking(request, event_id):
     event = Event.objects.get(id=event_id)
     location_index = request.GET.get('location_index')
@@ -1179,20 +1181,18 @@ def ajax_create_booking(request, event_id):
         "location_page": location_page
     }
 
-    # make sure the event isn't full
-    if not event.spaces_left:
-        context["alert_message"] = {'message': "Sorry, this event is now full", 'message_type': 'info'}
-        return render(
-                request,
-                "booking/includes/ajax_book_button.txt",
-                context
-            )
+    # make sure this isn't an open booking already
+    if Booking.objects.filter(user=request.user, event=event).exists():
+        booking = Booking.objects.get(user=request.user, event=event)
+        if booking.status == "OPEN" and not booking.no_show:
+            return HttpResponseBadRequest()
 
-    booking, new = Booking.objects.get_or_create(
-        user=request.user,
-        event=event,
-    )
+    # make sure the event isn't full or cancelled
+    if not event.spaces_left or event.cancelled:
+        message = "Sorry, this event {}".format('is now full' if not event.spaces_left else "has been cancelled")
+        return HttpResponseBadRequest(message)
 
+    booking, new = Booking.objects.get_or_create(user=request.user, event=event)
     context['booking'] = booking
 
     if not new:
@@ -1379,6 +1379,7 @@ def ajax_create_booking(request, event_id):
     )
 
 
+@login_required
 def update_shopping_basket_count(request):
     context = get_shopping_basket_icon(request.user, True)
     return render(
@@ -1388,6 +1389,7 @@ def update_shopping_basket_count(request):
     )
 
 
+@login_required
 def update_booking_count(request, event_id):
     event = Event.objects.get(id=event_id)
     return render(request, "booking/includes/booking_count.html", {'event': event})
