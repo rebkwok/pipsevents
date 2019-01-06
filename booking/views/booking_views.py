@@ -205,13 +205,6 @@ class BookingCreateView(
                 and not self.request.user.has_perm("booking.is_regular_student"):
             return HttpResponseRedirect(reverse('booking:permission_denied'))
 
-        # don't redirect fully/already booked if trying to join/leave waiting
-        # list
-        if request.method == 'GET' and \
-                ('join waiting list' in self.request.GET or
-                    'leave waiting list' in self.request.GET):
-            return super().dispatch(request, *args, **kwargs)
-
         # redirect if fully booked and user doesn't already have open booking
         if self.event.spaces_left <= 0 and self.request.user not in \
             [
@@ -249,63 +242,6 @@ class BookingCreateView(
         return {
             'event': self.event.pk
         }
-
-    def get(self, request, *args, **kwargs):
-        if 'join waiting list' in request.GET:
-            waitinglistuser, new = WaitingListUser.objects.get_or_create(
-                    user=request.user, event=self.event
-                )
-            if new:
-                msg = 'You have been added to the waiting list for {}. ' \
-                    ' We will email you if a space becomes ' \
-                    'available.'.format(self.event)
-                ActivityLog.objects.create(
-                    log='User {} has joined the waiting list '
-                    'for {}'.format(
-                        request.user.username, self.event
-                    )
-                )
-            else:
-                msg = 'You are already on the waiting list for {}'.format(
-                        self.event
-                    )
-            messages.success(request, msg)
-
-            if 'bookings' in request.GET:
-                return HttpResponseRedirect(
-                    reverse('booking:bookings')
-                )
-            return HttpResponseRedirect(
-                reverse('booking:{}'.format(self.ev_type))
-            )
-        elif 'leave waiting list' in request.GET:
-            try:
-                waitinglistuser = WaitingListUser.objects.get(
-                        user=request.user, event=self.event
-                    )
-                waitinglistuser.delete()
-                msg = 'You have been removed from the waiting list ' \
-                    'for {}. '.format(self.event)
-                ActivityLog.objects.create(
-                    log='User {} has left the waiting list '
-                    'for {}'.format(
-                        request.user.username, self.event
-                    )
-                )
-            except WaitingListUser.DoesNotExist:
-                msg = 'You are not on the waiting list '\
-                    'for {}. '.format(self.event)
-
-            messages.success(request, msg)
-
-            if 'bookings' in request.GET:
-                return HttpResponseRedirect(
-                    reverse('booking:bookings')
-                )
-            return HttpResponseRedirect(
-                reverse('booking:{}'.format(self.ev_type))
-            )
-        return super(BookingCreateView, self).get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -1430,3 +1366,24 @@ def update_shopping_basket_count(request):
 def update_booking_count(request, event_id):
     event = Event.objects.get(id=event_id)
     return render(request, "booking/includes/booking_count.html", {'event': event})
+
+
+@login_required
+def toggle_waiting_list(request, event_id):
+    user = request.user
+    event = Event.objects.get(id=event_id)
+
+    # toggle current status
+    try:
+        waitinglistuser = WaitingListUser.objects.get(user=user, event=event)
+        waitinglistuser.delete()
+        on_waiting_list = False
+    except WaitingListUser.DoesNotExist:
+        WaitingListUser.objects.create(user=user, event=event)
+        on_waiting_list = True
+
+    return render(
+        request,
+        "booking/includes/waiting_list_button.html",
+        {'event': event, 'on_waiting_list': on_waiting_list}
+    )

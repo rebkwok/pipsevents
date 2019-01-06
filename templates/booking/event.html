@@ -114,15 +114,13 @@
                                         {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
                                 {% else %}
                                     {% if not unbookable_pole_practice %}
-                                        {% if not waiting_list %}
-                                            <form action="{% url 'booking:book_event' event.slug %}" method="get">
-                                                <input id='join_waiting_list_button' class="btn btn-success table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
-                                            </form>
-                                        {% else %}
-                                            <form action="{% url 'booking:book_event' event.slug %}" method="get">
-                                                <input id='leave_waiting_list_button' class="btn btn-warning table-btn" type="submit" value="Leave waiting list" name="leave waiting list"/>
-                                            </form>
-                                        {% endif %}
+                                        <span
+                                            id="waiting_list_button_{{ event.id }}_0"
+                                            data-event_id="{{ event.id }}"
+                                            data-location_count="1"
+                                            class="td_ajax_waiting_list_btn">
+                                        {% include "booking/includes/waiting_list_button.html" %}
+                                        </span>
                                     {% endif %}
                                 {% endif %}
                             {% endif %}
@@ -135,3 +133,9 @@
 </div>
 
 {% endblock content %}
+
+{% block extra_js %}
+<script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
+
+{% endblock %}

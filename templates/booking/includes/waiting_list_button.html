@@ -1,0 +1,7 @@
+{% load bookingtags %}
+
+{% if on_waiting_list or bookingform.on_waiting_list or event.id in waiting_list_events %}
+        <button class="btn btn-warning table-btn" id="leave_waiting_list_button">Leave waiting list</button>
+{% else %}
+        <button class="btn btn-success table-btn" id="join_waiting_list_button">Join waiting list</button>
+{% endif %}

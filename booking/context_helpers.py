@@ -64,7 +64,7 @@ def get_event_context(context, event, user):
     cancelled = user_cancelled or user_no_show
 
     # waiting_list flag
-    context['waiting_list'] = WaitingListUser.objects.filter(
+    context['on_waiting_list'] = WaitingListUser.objects.filter(
         user=user, event=event
     ).exists()
 
