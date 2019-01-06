@@ -13,7 +13,7 @@ from booking.views import ajax_create_booking, \
     cancellation_period_past, duplicate_booking, fully_booked, \
     has_active_block, permission_denied, ticket_purchase_expired, \
     shopping_basket, update_block_bookings, submit_zero_block_payment, \
-    submit_zero_booking_payment, update_shopping_basket_count
+    submit_zero_booking_payment, update_shopping_basket_count, update_booking_count
 
 
 app_name = 'booking'
@@ -127,6 +127,10 @@ urlpatterns = [
     path(
         'bookings/ajax-update-shopping-basket/',
         update_shopping_basket_count, name='update_shopping_basket_count'
+    ),
+    path(
+        'bookings/ajax-update-booking-count/<int:event_id>/',
+        update_booking_count, name='update_booking_count'
     ),
     path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

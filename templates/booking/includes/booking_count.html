@@ -1,0 +1,19 @@
+{% load bookingtags %}
+
+{% if event.spaces_left == 0 %}
+    <span class="label label-spaces label-default label-rounded">
+        {% if request.user.is_staff or request.user|in_group:"instructors" %}
+            {{ event.spaces_left }}/{{ event.max_participants }}
+        {% else %}
+            FULL
+        {% endif %}
+    </span>
+{% else %}
+    <span class="label label-spaces label-success label-rounded">
+        {% if request.user.is_staff or request.user|in_group:"instructors" %}
+            {{ event.spaces_left }}/{{ event.max_participants }}
+        {% else %}
+            AVAILABLE
+        {% endif %}
+    </span>
+{% endif %}

@@ -16,35 +16,64 @@ var MILLS_TO_IGNORE = 500;
  */
 var processBookingRequest = function()  {
 
-   //In this scope, "this" is the button just clicked on.
-   //The "this" in processResult is *not* the button just clicked
-   //on.
-   var $button_just_clicked_on = $(this);
+    //In this scope, "this" is the button just clicked on.
+    //The "this" in processResult is *not* the button just clicked
+    //on.
+    var $button_just_clicked_on = $(this);
 
-   //The value of the "data-event_id" attribute.
-   var event_id = $button_just_clicked_on.data('event_id');
-   var location_index = $button_just_clicked_on.data('location_index');
-   var location_page = $button_just_clicked_on.data('location_page');
-   var processResult = function(
+    //The value of the "data-event_id" attribute.
+    var event_id = $button_just_clicked_on.data('event_id');
+    var location_index = $button_just_clicked_on.data('location_index');
+    var location_page = $button_just_clicked_on.data('location_page');
+    var location_count = $button_just_clicked_on.data('location_count');
+
+    var processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', user_id='" + user_id + "'");
       var result_no_alert = result.replace(/<script>.*<\/script>/, "")
-      $('#book_' + event_id + '_0').html(result_no_alert);
-      $('#book_' + event_id + '_1').html(result_no_alert);
-      $('#book_' + event_id + '_2').html(result_no_alert);
+      for (tab_index = 0; tab_index < location_count ; tab_index++) {
+          // Runs once for each tab
+          $('#book_' + event_id + '_' + tab_index).html(result_no_alert);
+      }
+      //  display the result with alerts only on the tab we're on
       $('#book_' + event_id + '_' + location_index).html(result);
    }
 
-    var processShoppingBasket  = function() {
+    var updateOnComplete  = function() {
         $.ajax(
             {
                 url: '/bookings/ajax-update-shopping-basket/',
                 dataType: 'html',
-                success: processShoppingBasketMenuCount
+                success: processShoppingBasketCount
+                //Should also have a "fail" call as well.
+            }
+        );
+
+        $.ajax(
+            {
+                url: '/bookings/ajax-update-booking-count/' + event_id + '/',
+                dataType: 'html',
+                success: processBookingCount
                 //Should also have a "fail" call as well.
             }
         );
     };
+
+    var processBookingCount = function(
+       result, status, jqXHR)  {
+      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
+        for (tab_index = 0; tab_index < location_count ; tab_index++) {
+          // Runs once for each tab
+          $('#booking_count_' + event_id + '_' + tab_index).html(result);
+      }
+   }
+
+    var processShoppingBasketCount = function(
+       result, status, jqXHR)  {
+      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
+      $('#shopping-basket-menu').html(result);
+      $('#shopping-basket-menu-xs').html(result);
+   }
 
    $.ajax(
        {
@@ -52,16 +81,11 @@ var processBookingRequest = function()  {
           dataType: 'html',
           success: processResult,
           //Should also have a "fail" call as well.
-          complete: processShoppingBasket
+          complete: updateOnComplete
        }
     );
 
-    var processShoppingBasketMenuCount = function(
-       result, status, jqXHR)  {
-      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
-      $('#shopping-basket-menu').html(result);
-      $('#shopping-basket-menu-xs').html(result);
-   }
+
 
 
 

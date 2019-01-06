@@ -7,7 +7,8 @@ from booking.views.booking_views import ajax_create_booking, \
     BookingHistoryListView, BookingListView, BookingUpdateView, \
     disclaimer_required, \
     duplicate_booking, update_booking_cancelled, fully_booked, \
-    has_active_block, cancellation_period_past, update_shopping_basket_count
+    has_active_block, cancellation_period_past, update_shopping_basket_count, \
+    update_booking_count
 from booking.views.block_views import BlockCreateView, BlockDeleteView, \
     BlockListView
 from booking.views.shopping_basket_views import shopping_basket, \
@@ -30,7 +31,8 @@ __all__ = [
     'BlockCreateView', 'BlockDeleteView', 'BlockListView', 'permission_denied',
     'TicketedEventListView', 'TicketCreateView', 'TicketBookingListView',
     'TicketBookingHistoryListView', 'TicketBookingView',
-    'TicketBookingCancelView', 'ticket_purchase_expired', update_shopping_basket_count
+    'TicketBookingCancelView', 'ticket_purchase_expired', 'update_shopping_basket_count',
+    'update_booking_count'
 ]
 
 

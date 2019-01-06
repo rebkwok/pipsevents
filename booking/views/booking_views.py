@@ -1425,3 +1425,8 @@ def update_shopping_basket_count(request):
         "booking/includes/shopping_basket_icon.html",
         context
     )
+
+
+def update_booking_count(request, event_id):
+    event = Event.objects.get(id=event_id)
+    return render(request, "booking/includes/booking_count.html", {'event': event})
