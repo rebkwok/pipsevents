@@ -454,10 +454,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
             Booking.objects.filter(event=event, status='OPEN').count(),
             2
         )
-        # 2 emails are sent on cancelling; cancel email to user and
+        # 1 emails are sent on cancelling; no cancel email to user (unpaid booking) and
         # a single email with bcc to waiting list users
-        self.assertEqual(len(mail.outbox), 2)
-        wl_email = mail.outbox[1]
+        self.assertEqual(len(mail.outbox), 1)
+        wl_email = mail.outbox[0]
         self.assertEqual(
             sorted(wl_email.bcc),
             ['test0@test.com', 'test1@test.com', 'test2@test.com']
@@ -504,8 +504,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
         )
 
         # make and delete booking again
-        booking.status = 'OPEN'
-        booking.save()
+        booking = mommy.make_recipe(
+            'booking.booking',
+            user=self.user, event=event
+        )
         self.assertEqual(
             Booking.objects.filter(event=event, status='OPEN').count(),
             3
@@ -524,13 +526,11 @@ class WaitingListTests(TestSetupMixin, TestCase):
             [booking.user.email for booking in event.bookings.all()]
         )
 
-        # 4 emails in mail box;
-        # First booking cancellation: cancel email to user and
-        # a single email with bcc to waiting list users
-        # 2nd cancellation: cancel email to user, one email to auto booked
-        #     user, no waiting list email
-        self.assertEqual(len(mail.outbox), 4)
-        auto_book_email = mail.outbox[3]
+        # 2 emails in mail box;
+        # First booking cancellation: single email with bcc to waiting list users
+        # 2nd cancellation: one email to auto booked user, no waiting list email
+        self.assertEqual(len(mail.outbox), 2)
+        auto_book_email = mail.outbox[1]
         self.assertEqual(auto_book_email.to, ['foo@test.com'])
         self.assertEqual(
             auto_book_email.subject,
@@ -642,17 +642,11 @@ class WaitingListTests(TestSetupMixin, TestCase):
             WaitingListUser.objects.filter(event=event).count(), 3
         )
 
-        # 2 emails in waiting list: cancel email and waitinglist email
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(
-            mail.outbox[0].subject,
-            "{} Booking for {} cancelled".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
-            )
-        )
+        # 1 emails: waitinglist email (no cancel email for unpaid booking)
+        self.assertEqual(len(mail.outbox), 1)
         self.assertIn(
             "A space has become available for {}".format(event),
-            mail.outbox[1].body
+            mail.outbox[0].body
         )
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com', 'bar@test.com'])
@@ -709,22 +703,16 @@ class WaitingListTests(TestSetupMixin, TestCase):
             WaitingListUser.objects.filter(event=event).count(), 3
         )
 
-        # 2 emails in waiting list: cancel email and autobook email
-        self.assertEqual(len(mail.outbox), 2)
+        # 1 email: (no cancel email as booking unpaid) and autobook email
+        self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
-            mail.outbox[0].subject,
-            "{} Booking for {} cancelled".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
-            )
-        )
-        self.assertEqual(
-           mail.outbox[1].subject,
+           mail.outbox[0].subject,
            "{} You have been booked into {}".format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
             )
         )
         self.assertEqual(
-           mail.outbox[1].to, ['bar@test.com']
+           mail.outbox[0].to, ['bar@test.com']
         )
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
@@ -780,21 +768,16 @@ class WaitingListTests(TestSetupMixin, TestCase):
             WaitingListUser.objects.filter(event=event).count(), 3
         )
 
-        # 2 emails in waiting list: cancel email and autobook email
-        self.assertEqual(len(mail.outbox), 2)
+        # 1 emails in waiting list: autobook email only (no cancel email for unpaid booking)
+        self.assertEqual(len(mail.outbox), 1)
+
         self.assertEqual(
             mail.outbox[0].subject,
-            "{} Booking for {} cancelled".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
-            )
-        )
-        self.assertEqual(
-            mail.outbox[1].subject,
             "{} You have been booked into {}".format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
             )
         )
-        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
+        self.assertEqual(mail.outbox[0].to, ['foo@test.com'])
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
     def test_admin_link_in_auto_book_user_emails(self):
@@ -829,32 +812,33 @@ class WaitingListTests(TestSetupMixin, TestCase):
             3
         )
 
-        # 2 emails in waiting list: cancel email and autobook email
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
-        self.assertIn('Pay for this booking', mail.outbox[1].body)
-        self.assertIn('Cancel this booking', mail.outbox[1].body)
-        self.assertNotIn('Your admin page', mail.outbox[1].body)
+        # 1 email1 in waiting list: autobook email (no cancel email for unpaid booking)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['foo@test.com'])
+        self.assertIn('Pay for this booking', mail.outbox[0].body)
+        self.assertIn('Cancel this booking', mail.outbox[0].body)
+        self.assertNotIn('Your admin page', mail.outbox[0].body)
 
         # make autobook user superuser
         auto_book_user.is_superuser = True
         auto_book_user.save()
         # delete booking, rebook self.user and add autobook user to WL again
         Booking.objects.get(event=event, user=auto_book_user).delete()
-        booking.status = 'OPEN'
-        booking.save()
+        booking = mommy.make_recipe(
+            'booking.booking', user=self.user, event=event
+        )
         mommy.make_recipe(
             'booking.waiting_list_user', event=event, user=auto_book_user
         )
 
         self._booking_delete(self.user, booking)
         # 4 emails in waiting list: original 2, plus second
-        # cancel email and autobook email
-        self.assertEqual(len(mail.outbox), 4)
-        self.assertEqual(mail.outbox[3].to, ['foo@test.com'])
-        self.assertIn('Pay for this booking', mail.outbox[3].body)
-        self.assertIn('Cancel this booking', mail.outbox[3].body)
-        self.assertIn('Your admin page', mail.outbox[3].body)
+        # autobook email
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
+        self.assertIn('Pay for this booking', mail.outbox[1].body)
+        self.assertIn('Cancel this booking', mail.outbox[1].body)
+        self.assertIn('Your admin page', mail.outbox[1].body)
 
 
 class ToggleWaitingListTests(TestSetupMixin, TestCase):
