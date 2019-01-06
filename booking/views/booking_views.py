@@ -805,42 +805,56 @@ class BookingDeleteView(
         context['booking'] = booking
         return context
 
+    def _can_fully_delete(self, booking):
+        # if booking isn't paid, and wasn't a rebooking, and has no associated
+        # paypal transaction (i.e. it's not refunded), we can just fully delete it
+        if not (booking.paid or booking.deposit_paid or booking.date_rebooked):
+            return not PaypalBookingTransaction.objects\
+                .filter(booking=booking, transaction_id__isnull=False).exists()
+        return False
+
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
+        event = booking.event
+
+        can_fully_delete = self._can_fully_delete(booking)
 
         # Booking can be fully cancelled if the event allows cancellation AND
         # the cancellation period is not past
         # If not, we let people cancel but leave the booking status OPEN and
         # set to no-show
         can_cancel_and_refund = booking.event.allow_booking_cancellation \
-            and booking.event.can_cancel()
+            and event.can_cancel() and not can_fully_delete
 
-        event_was_full = booking.event.spaces_left == 0
+        event_was_full = event.spaces_left == 0
 
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-        # send email to user
+        if not can_fully_delete:
+            # email if this isn't an unpaid/non-rebooked booking
 
-        ctx = {
-                  'host': host,
-                  'booking': booking,
-                  'event': booking.event,
-                  'date': booking.event.date.strftime('%A %d %B'),
-                  'time': booking.event.date.strftime('%I:%M %p'),
-              }
-        try:
-            send_mail('{} Booking for {} cancelled'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event),
-                get_template('booking/email/booking_cancelled.txt').render(ctx),
-                settings.DEFAULT_FROM_EMAIL,
-                [booking.user.email],
-                html_message=get_template(
-                    'booking/email/booking_cancelled.html').render(ctx),
-                fail_silently=False)
-        except Exception as e:
-            # send mail to tech support with Exception
-            send_support_email(e, __name__, "DeleteBookingView - cancelled email")
-            messages.error(self.request, "An error occured, please contact "
-                "the studio for information")
+            host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+            # send email to user
+
+            ctx = {
+                      'host': host,
+                      'booking': booking,
+                      'event': event,
+                      'date': event.date.strftime('%A %d %B'),
+                      'time': event.date.strftime('%I:%M %p'),
+                  }
+            try:
+                send_mail('{} Booking for {} cancelled'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event),
+                    get_template('booking/email/booking_cancelled.txt').render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [booking.user.email],
+                    html_message=get_template(
+                        'booking/email/booking_cancelled.html').render(ctx),
+                    fail_silently=False)
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(e, __name__, "DeleteBookingView - cancelled email")
+                messages.error(self.request, "An error occured, please contact "
+                    "the studio for information")
 
         if can_cancel_and_refund:
             transfer_block_created = False
@@ -857,9 +871,9 @@ class BookingDeleteView(
                 # If event is CL or RH, get or create transfer block type,
                 # create transfer block for user and set transferred_
                 # booking_id to the cancelled one
-                if booking.event.event_type.event_type != 'EV':
+                if event.event_type.event_type != 'EV':
                     block_type, _ = BlockType.objects.get_or_create(
-                        event_type=booking.event.event_type,
+                        event_type=event.event_type,
                         size=1, cost=0, duration=1,
                         identifier='transferred',
                         active=False
@@ -919,9 +933,9 @@ class BookingDeleteView(
                 self.success_message.format(booking.event)
             )
             ActivityLog.objects.create(
-                log='Booking id {} for event {}, user {}, was cancelled by user '
+                log='Booking id {} for event {} was cancelled by user '
                     '{}'.format(
-                        booking.id, booking.event, booking.user.username,
+                        booking.id, event,
                         self.request.user.username
                     )
             )
@@ -930,7 +944,7 @@ class BookingDeleteView(
                 ActivityLog.objects.create(
                     log='Transfer block created for user {} (for {}; transferred '
                         'booking id {} '.format(
-                            booking.user.username, booking.event.event_type.subtype,
+                            booking.user.username, event.event_type.subtype,
                             booking.id
                         )
                 )
@@ -942,6 +956,17 @@ class BookingDeleteView(
                         '1 month (<a href="/blocks">View your blocks</a>)'
                     )
                 )
+
+        elif can_fully_delete:
+            ActivityLog.objects.create(
+                log='Booking id {} for event {} was cancelled by user '
+                    '{} and deleted'.format(
+                        booking.id, event,
+                        self.request.user.username
+                    )
+            )
+            booking.delete()
+
         else:
             # if the booking was made with a block, allow 15 mins to cancel in case user
             # clicked the wrong button by mistake and autobooked with a block
@@ -961,12 +986,12 @@ class BookingDeleteView(
 
                 messages.success(
                     self.request,
-                    self.success_message.format(booking.event)
+                    self.success_message.format(event)
                 )
                 ActivityLog.objects.create(
                     log='Booking id {} for event {}, user {}, was cancelled by user '
                         '{}'.format(
-                            booking.id, booking.event, booking.user.username,
+                            booking.id, event, booking.user.username,
                             self.request.user.username
                         )
                 )
@@ -974,24 +999,24 @@ class BookingDeleteView(
                 booking.no_show = True
                 booking.save()
 
-                if not booking.event.allow_booking_cancellation:
+                if not event.allow_booking_cancellation:
                     messages.success(
                         self.request,
-                        self.success_message.format(booking.event) +
+                        self.success_message.format(event) +
                         ' Please note that this booking is not eligible for refunds '
                         'or transfer credit.'
                     )
                     ActivityLog.objects.create(
                         log='Booking id {} for NON-CANCELLABLE event {}, user {}, '
                             'was cancelled and set to no-show'.format(
-                                booking.id, booking.event, booking.user.username,
+                                booking.id, event, booking.user.username,
                                 self.request.user.username
                             )
                     )
                 else:
                     messages.success(
                         self.request,
-                        self.success_message.format(booking.event) +
+                        self.success_message.format(event) +
                         ' Please note that this booking is not eligible for '
                         'refunds or transfer credit as the allowed '
                         'cancellation period has passed.'
@@ -1000,7 +1025,7 @@ class BookingDeleteView(
                         log='Booking id {} for event {}, user {}, was cancelled '
                             'after the cancellation period and set to '
                             'no-show'.format(
-                                booking.id, booking.event, booking.user.username,
+                                booking.id, event, booking.user.username,
                                 self.request.user.username
                             )
                     )
@@ -1008,12 +1033,12 @@ class BookingDeleteView(
         # if applicable, email users on waiting list
         if event_was_full:
             waiting_list_users = WaitingListUser.objects.filter(
-                event=booking.event
+                event=event
             )
             if waiting_list_users:
                 try:
                     send_waiting_list_email(
-                        booking.event,
+                        event,
                         [wluser.user for wluser in waiting_list_users],
                         host='http://{}'.format(request.META.get('HTTP_HOST'))
                     )
@@ -1024,7 +1049,7 @@ class BookingDeleteView(
                                 [wluser.user.username for \
                                 wluser in waiting_list_users]
                             ),
-                            booking.event
+                            event
                         )
                     )
                 except Exception as e:
