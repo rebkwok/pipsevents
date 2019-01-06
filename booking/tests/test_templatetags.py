@@ -1,4 +1,7 @@
+import os
 from datetime import datetime
+from unittest.mock import patch
+
 from model_mommy import mommy
 
 from django.contrib.auth.models import Group
@@ -9,6 +12,7 @@ from django.utils import timezone
 from activitylog.models import ActivityLog
 
 from booking.models import Ticket, TicketBooking
+from booking.templatetags.bookingtags import temporary_banner
 from booking.views import EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content
 
@@ -19,6 +23,13 @@ class BookingtagTests(TestSetupMixin, TestCase):
         super(BookingtagTests, self).setUp()
         self.user.is_staff = True
         self.user.save()
+
+    def tearDown(self):
+        super().tearDown()
+        env_vars = ['TEMP_BANNER', 'BANNER_START', 'BANNER_END']
+        for var in env_vars:
+            if var in os.environ:
+                del os.environ[var]
 
     def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])
@@ -124,4 +135,62 @@ class BookingtagTests(TestSetupMixin, TestCase):
         self.assertIn(
             '{} (1/5 left); exp 01 Mar 15'.format(event.event_type.subtype),
             resp.rendered_content
+        )
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    def test_temporary_banner_on(self, mock_tz):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        os.environ['TEMP_BANNER'] = 'Banner text'
+        os.environ['BANNER_START'] = '01-Jan-2015'
+        os.environ['BANNER_END'] = '15-Jan-2015'
+
+        banner = temporary_banner()
+        self.assertCountEqual(
+            banner,
+            {'has_temporary_banner': True, 'temporary_banner': 'Banner text'}
+        )
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    def test_temporary_banner_off(self, mock_tz):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        os.environ['TEMP_BANNER'] = 'Banner text'
+        os.environ['BANNER_START'] = '04-Jan-2015'
+        os.environ['BANNER_END'] = '15-Jan-2015'
+
+        banner = temporary_banner()
+        self.assertCountEqual(
+            banner,
+            {'has_temporary_banner': False}
+        )
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    def test_temporary_banner_no_start_date(self, mock_tz):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        os.environ['TEMP_BANNER'] = 'Banner text'
+        os.environ['BANNER_END'] = '15-Jan-2015'
+
+        banner = temporary_banner()
+        self.assertCountEqual(
+            banner,
+            {'has_temporary_banner': False}
+        )
+
+    @patch('booking.templatetags.bookingtags.timezone')
+    def test_temporary_banner_no_end_date(self, mock_tz):
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        mock_tz.utc = timezone.utc
+
+        os.environ['TEMP_BANNER'] = 'Banner text'
+        os.environ['BANNER_START'] = '01-Jan-2015'
+
+        banner = temporary_banner()
+        self.assertCountEqual(
+            banner,
+            {'has_temporary_banner': False}
         )
