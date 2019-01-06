@@ -75,13 +75,23 @@ var processBookingRequest = function()  {
       $('#shopping-basket-menu-xs').html(result);
    }
 
+    var processFailure = function(
+       result, status, jqXHR)  {
+      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
+      if (result.responseText) {
+        vNotify.error({text:result.responseText,title:'Error',position: 'bottomRight'});
+      }
+   }
+
    $.ajax(
        {
           url: '/booking/ajax-create/' + event_id + '/?location_index=' + location_index + '&location+page=' + location_page,
           dataType: 'html',
+          type: 'POST',
           success: processResult,
           //Should also have a "fail" call as well.
-          complete: updateOnComplete
+          complete: updateOnComplete,
+          error: processFailure
        }
     );
 
