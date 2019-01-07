@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -824,6 +824,7 @@ class BookingDeleteView(
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
         event = booking.event
+        delete_from_shopping_basket = request.GET.get('basket', False)
 
         can_fully_delete = self._can_fully_delete(booking)
 
@@ -1063,6 +1064,9 @@ class BookingDeleteView(
                     send_support_email(e, __name__, "DeleteBookingView - waiting list email")
                     messages.error(self.request, "An error occured, please contact "
                         "the studio for information")
+
+        if delete_from_shopping_basket:
+            return HttpResponse('Booking cancelled')
 
         next = request.GET.get('next') or request.POST.get('next')
         params = {}

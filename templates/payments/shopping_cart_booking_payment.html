@@ -1,21 +1,23 @@
 {% load static %}
-{% if total_unpaid_booking_cost == 0 %}
-    <form class="table-form" method="post" action="{% url 'booking:submit_zero_booking_payment' %}">
-        {% csrf_token %}
-        {% if valid_booking_voucher %}
-            <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
-        {% endif %}
-        {% if valid_block_voucher %}
-            <input type="hidden" name="block_code" value="{{ block_code }}"/>
-        {% endif %}
-        <input type="hidden" name="unpaid_booking_ids" value="{{ unpaid_booking_ids }}"/>
-        <input type="hidden" name="total_unpaid_booking_cost" value="{{ total_unpaid_booking_cost }}"/>
-        <input type="hidden" name="total_unpaid_block_cost" value="{{ total_unpaid_block_cost }}"/>
-        <input class="btn btn-warning" type="submit" value="Submit"/>
-    </form>
-{% else %}
-    <!-- writes out the form tag automatically -->
-    {{ bookings_paypalform.render }}
+{% if unpaid_bookings %}
+    {% if total_unpaid_booking_cost == 0 %}
+        <form class="table-form" method="post" action="{% url 'booking:submit_zero_booking_payment' %}">
+            {% csrf_token %}
+            {% if valid_booking_voucher %}
+                <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
+            {% endif %}
+            {% if valid_block_voucher %}
+                <input type="hidden" name="block_code" value="{{ block_code }}"/>
+            {% endif %}
+            <input type="hidden" name="unpaid_booking_ids" value="{{ unpaid_booking_ids }}"/>
+            <input type="hidden" name="total_unpaid_booking_cost" value="{{ total_unpaid_booking_cost }}"/>
+            <input type="hidden" name="total_unpaid_block_cost" value="{{ total_unpaid_block_cost }}"/>
+            <input class="btn btn-warning" type="submit" value="Submit"/>
+        </form>
+    {% else %}
+        <!-- writes out the form tag automatically -->
+        {{ bookings_paypalform.render }}
+    {% endif %}
 {% endif %}
 
 
