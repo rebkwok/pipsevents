@@ -1839,11 +1839,11 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = Booking.objects.get(id=booking.id)
         self.assertEqual('CANCELLED', booking.status)
 
-    def test_cancel_booking_from_shopping_basket(self):
+    def test_cancel_booking_from_shopping_basket_ajax(self):
         """
         Test deleting a booking from shopping basket (ajax)
         """
-        event = mommy.make_recipe('booking.future_EV')
+        event = mommy.make_recipe('booking.future_PC')
         booking = mommy.make_recipe('booking.booking', event=event,
                                     user=self.user, paid=True)
         self.assertEqual(Booking.objects.all().count(), 1)
@@ -2797,7 +2797,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             ).exists()
         )
 
-    def test_cancel_booking_from_shopping_basket(self):
+    def test_cancel_booking_from_shopping_basket_non_ajax(self):
         """
         Test deleting a booking from basket returns to basket
         """
