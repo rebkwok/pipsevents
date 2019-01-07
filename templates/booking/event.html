@@ -116,12 +116,6 @@
                                         {% include "booking/includes/ajax_book_button.txt" %}
                                         </span>
 
-                                        <!--<form class="table-form" action="{% url 'booking:create_booking' event.slug %}" method="post">-->
-                                            <!--{% csrf_token %}-->
-                                            <!--<input type="hidden" name="event" value={{event.id}}>-->
-                                            <!--<input id="book_button" class="btn btn-success table-btn" type="submit" value={% if cancelled %}"Rebook"{% else %}"Book"{% endif %}/>-->
-                                        <!--</form>-->
-
                                     {% endif %}
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
                                     <div id='book_button_disabled' class="disabled btn btn-success table-btn">
@@ -132,6 +126,7 @@
                                             id="waiting_list_button_{{ event.id }}_0"
                                             data-event_id="{{ event.id }}"
                                             data-location_count="1"
+                                            data-ref="event"
                                             class="td_ajax_waiting_list_btn">
                                         {% include "booking/includes/waiting_list_button.html" %}
                                         </span>
