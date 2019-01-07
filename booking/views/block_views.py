@@ -268,19 +268,20 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         block_id = self.block.id
         block_user = self.block.user.username
         block_type = self.block.block_type
-        delete_from_shopping_basket = request.GET.get('basket', False)
+        delete_from_shopping_basket = request.GET.get('ref') == 'basket'
 
         ActivityLog.objects.create(
             log='User {} deleted unpaid and unused block {} ({})'.format(
                 block_user, block_id, block_type
             )
         )
-        messages.success(self.request, 'Block has been deleted')
 
         super().delete(request, *args, **kwargs)
 
         if delete_from_shopping_basket:
             return HttpResponse('Block deleted')
+
+        messages.success(self.request, 'Block has been deleted')
 
         next = request.POST.get('next', 'block_list')
 

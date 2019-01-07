@@ -828,6 +828,12 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
             )
         )
 
+    def test_delete_block_from_shopping_basket(self):
+        resp = self.client.post(self.url + '?ref=basket')
+        self.assertFalse(Block.objects.exists())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content, b'Block deleted')
+
     def test_delete_block_with_booking_code(self):
         """
         Test deleting a block from basket with code returns with code in get

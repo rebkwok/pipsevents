@@ -1839,6 +1839,27 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = Booking.objects.get(id=booking.id)
         self.assertEqual('CANCELLED', booking.status)
 
+    def test_cancel_booking_from_shopping_basket(self):
+        """
+        Test deleting a booking from shopping basket (ajax)
+        """
+        event = mommy.make_recipe('booking.future_EV')
+        booking = mommy.make_recipe('booking.booking', event=event,
+                                    user=self.user, paid=True)
+        self.assertEqual(Booking.objects.all().count(), 1)
+
+        url = reverse('booking:delete_booking', args=[booking.id]) + '?ref=basket'
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content, b'Booking cancelled')
+
+        # after cancelling, the booking is still there, but status has changed
+        self.assertEqual(Booking.objects.all().count(), 1)
+        booking = Booking.objects.get(id=booking.id)
+        self.assertEqual('CANCELLED', booking.status)
+        self.assertEqual(len(mail.outbox), 1)
+
     def test_cancel_unpaid_booking(self):
         """
         Test deleting a booking; unpaid, not rebooked, no paypal transaction associated
