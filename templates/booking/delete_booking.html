@@ -26,7 +26,7 @@
                         <p>Please note that any payments already made will not be automatically
                         refunded.</p>
                         {% endif %}
-                    {% else %}
+                    {% elif not block_booked_within_allowed_time %}
                         {% if not event.allow_booking_cancellation %}
                             <p>This event is not eligible for refunds or transfer credit on cancellation.</p>
                         {% else %}
