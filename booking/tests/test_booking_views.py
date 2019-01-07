@@ -2012,6 +2012,94 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(booking.status, 'OPEN')
         self.assertTrue(booking.paid)
 
+    @patch("booking.views.booking_views.timezone")
+    def test_cancelling_block_paid_after_cancellation_period(self, mock_tz):
+        """
+        Test cancellation after cancellation period for block paid is allowed for
+        15 mins after booking time
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            cancellation_period=48
+        )
+        block = mommy.make_recipe('booking.block_5', user=self.user, paid=True)
+        # booking made 10 mins ago
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, block=block, paid=True,
+            date_booked=datetime(2015, 2, 1, 9, 50, tzinfo=timezone.utc)
+        )
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.delete(url, follow=True)
+        self.assertNotIn(
+            'Please note that this booking is not eligible for refunds or '
+            'transfer credit as the allowed cancellation period has passed.',
+            resp.rendered_content
+        )
+        booking.refresh_from_db()
+        self.assertFalse(booking.no_show)
+        self.assertEqual(booking.status, 'CANCELLED')
+        self.assertFalse(booking.paid)
+        self.assertIsNone(booking.block)
+
+        # delete booking so it doesn't have a rebooked date
+        booking.delete()
+        # block booking made 20 mins ago
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, block=block, paid=True,
+            date_booked=datetime(2015, 2, 1, 9, 40, tzinfo=timezone.utc)
+        )
+        url = reverse('booking:delete_booking', args=[booking.id])
+        resp = self.client.delete(url, follow=True)
+
+        self.assertIn(
+            'Please note that this booking is not eligible for refunds or '
+            'transfer credit as the allowed cancellation period has passed.',
+            resp.rendered_content
+        )
+        booking.refresh_from_db()
+        self.assertTrue(booking.no_show)
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertTrue(booking.paid)
+        self.assertEqual(booking.block, block)
+
+    @patch("booking.views.booking_views.timezone")
+    def test_cancelling_rebooked_block_paid_after_cancellation_period(self, mock_tz):
+        """
+        Test cancellation after cancellation period for block paid is allowed for
+        15 mins after booking time
+        """
+        mock_tz.now.return_value = datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
+        event = mommy.make_recipe(
+            'booking.future_EV',
+            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            cancellation_period=48
+        )
+        block = mommy.make_recipe('booking.block_5', user=self.user, paid=True)
+        # booking made 60 mins ago, rebooked 10 mins ago
+        booking = mommy.make_recipe(
+            'booking.booking', event=event, user=self.user, block=block, paid=True,
+            date_booked=datetime(2015, 2, 1, 9, 0, tzinfo=timezone.utc),
+            date_rebooked=datetime(2015, 2, 1, 9, 50, tzinfo=timezone.utc)
+        )
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.delete(url, follow=True)
+        self.assertNotIn(
+            'Please note that this booking is not eligible for refunds or '
+            'transfer credit as the allowed cancellation period has passed.',
+            resp.rendered_content
+        )
+        booking.refresh_from_db()
+        self.assertFalse(booking.no_show)
+        self.assertEqual(booking.status, 'CANCELLED')
+        self.assertFalse(booking.paid)
+        self.assertIsNone(booking.block)
+
     def test_cancelling_free_class(self):
         """
         Cancelling a free class changes paid, payment_confirmed and free_class
