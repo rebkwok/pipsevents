@@ -824,7 +824,7 @@ class BookingDeleteView(
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
         event = booking.event
-        delete_from_shopping_basket = request.GET.get('basket', False)
+        delete_from_shopping_basket = request.GET.get('ref') == 'basket'
 
         can_fully_delete = self._can_fully_delete(booking)
 
@@ -1066,6 +1066,8 @@ class BookingDeleteView(
                         "the studio for information")
 
         if delete_from_shopping_basket:
+            # get rid of messages
+            list(messages.get_messages(request))
             return HttpResponse('Booking cancelled')
 
         next = request.GET.get('next') or request.POST.get('next')
