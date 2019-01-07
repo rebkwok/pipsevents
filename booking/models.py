@@ -452,7 +452,7 @@ class Booking(models.Model):
         # False if cancelled
         # True if open and advance payment not required or cost = 0 or
         # payment confirmed
-        if self.status == 'CANCELLED':
+        if self.status == 'CANCELLED' or self.no_show:
             return False
         return not self.event.advance_payment_required \
             or self.event.cost == 0 \
