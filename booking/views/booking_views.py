@@ -1221,15 +1221,6 @@ def ajax_create_booking(request, event_id):
         elif booking.no_show:
             previously_no_show = True
             previously_cancelled = False
-        else:
-            # open (not no-show) booking exists
-            # in case user clicked on the <span> around a cancel button
-
-            return render(
-                request,
-                "booking/includes/ajax_book_button.txt",
-                context
-            )
 
     booking.status = 'OPEN'
     booking.no_show = False
