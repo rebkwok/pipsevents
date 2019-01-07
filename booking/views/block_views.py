@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.urls import reverse
 
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, CreateView, DeleteView
 from django.core.mail import send_mail
@@ -267,6 +268,7 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         block_id = self.block.id
         block_user = self.block.user.username
         block_type = self.block.block_type
+        delete_from_shopping_basket = request.GET.get('basket', False)
 
         ActivityLog.objects.create(
             log='User {} deleted unpaid and unused block {} ({})'.format(
@@ -276,6 +278,9 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         messages.success(self.request, 'Block has been deleted')
 
         super().delete(request, *args, **kwargs)
+
+        if delete_from_shopping_basket:
+            return HttpResponse('Block deleted')
 
         next = request.POST.get('next', 'block_list')
 
