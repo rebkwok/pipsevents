@@ -2,8 +2,12 @@
 {% load static %}
 {% load bookingtags %}
 
-{% block content %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
+{% endblock %}
 
+{% block content %}
 
 <div class="row">
     <div class="col-xs-12">
@@ -42,14 +46,14 @@
                         <th class="hidden-sm hidden-xs table-center">Place confirmed</th>
                     </tr>
                     {% for bookingform in bookingformlist %}
-                        <tr class='{% if bookingform.booking_status == 'CANCELLED' %}expired
+                        <tr id='booked-{{ bookingform.booking.event.id }}-row' class='{% if bookingform.booking_status == 'CANCELLED' %}expired
                             {% elif not bookingform.booking.paid %}unpaid-booking-row{% endif %}
                             compress'>
 
                             {% if not history %}
                                 <td class="table-btns">
                                     {% if bookingform.booking_status == 'OPEN'%}
-                                    <a href="{% url 'booking:delete_booking' bookingform.booking.pk %}">
+                                    <a href="{% url 'booking:delete_booking' bookingform.booking.pk %}?page={{ page_obj.number}}">
                                         <div class="btn btn-danger table-btn {% if not bookingform.booking.paid %}table-cancel-btn{% endif %}">Cancel</div>
                                         {% if not bookingform.booking.paid %}
                                             <a href="{% url 'booking:shopping_basket' %}">
@@ -80,12 +84,16 @@
                                                     title="Contact {{ bookingform.booking.event.contact_email }} directly to rebook"
                                             >Rebook</div>
                                         {% else %}
-                                        <form class="table-form" action="{% url 'booking:create_booking' bookingform.booking.event.slug %}" method="post">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="event" value={{bookingform.booking.event.id}}>
-                                            <input type="hidden" name="next" value="bookings">
-                                            <input id="rebook_button" class="btn btn-success table-btn " type="submit" value="Rebook"/>
-                                        </form>
+                                            <span
+                                                id="book_{{ bookingform.booking.event.id }}_0"
+                                                data-event_id="{{ bookingform.booking.event.id }}"
+                                                data-location_count="1"
+                                                data-location_index="0"
+                                                data-ref="bookings"
+                                                class="td_ajax_book_btn">
+                                            {% include "booking/includes/ajax_book_button.txt" %}
+                                            </span>
+
                                         {% endif %}
                                     {% endif %}
                                 </td>
@@ -105,20 +113,22 @@
                                 {% endif %}
                             </td>
                             <td class="table-center"><span class="label label-location label-location-{{ bookingform.booking.event.location_index }} label-rounded">{{ bookingform.booking.event.location }}</span></td>
-                            <td class="table-center">{{ bookingform.booking_status }}</td>
+                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking_status }}</span></td>
                             <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
-                            <td class="table-center">{{ bookingform.booking|format_paid_status }}</td>
-                            <td class="table-center">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
-                            <td class="table-center">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
-                                {% else %}<strong>N/A</strong>{% endif %}</td>
+                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
+                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-payment_due">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
+                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-block">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
+                                {% else %}<strong>N/A</strong>{% endif %}</span></td>
                             <td class="hidden-sm hidden-xs table-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
-                            {% if bookingform.booking.space_confirmed %}
-                                <span class="fa fa-check"></span>
-                                {% elif bookingform.booking_status == 'CANCELLED' %}
-                                <span class="fa fa-times"></span>
-                                {% else %}
-                                Pending
-                            {% endif %}
+                                <span id="booked-{{ bookingform.booking.event.id }}-confirmed">
+                                {% if bookingform.booking.space_confirmed %}
+                                    <span class="fa fa-check"></span>
+                                    {% elif bookingform.booking_status == 'CANCELLED' %}
+                                    <span class="fa fa-times"></span>
+                                    {% else %}
+                                    Pending
+                                {% endif %}
+                                </span>
                             </td>
 
                         </tr>
@@ -147,5 +157,5 @@
 {% block extra_js %}
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
-
+<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax.js' %}"></script>
 {% endblock %}

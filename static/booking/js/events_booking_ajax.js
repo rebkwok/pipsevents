@@ -26,6 +26,7 @@ var processBookingRequest = function()  {
     var location_index = $button_just_clicked_on.data('location_index');
     var location_page = $button_just_clicked_on.data('location_page');
     var location_count = $button_just_clicked_on.data('location_count');
+    var ref = $button_just_clicked_on.data('ref');
 
     var processResult = function(
        result, status, jqXHR)  {
@@ -49,14 +50,26 @@ var processBookingRequest = function()  {
             }
         );
 
-        $.ajax(
-            {
-                url: '/bookings/ajax-update-booking-count/' + event_id + '/',
-                dataType: 'html',
-                success: processBookingCount
-                //Should also have a "fail" call as well.
-            }
-        );
+        if (ref == 'events') {
+            $.ajax(
+                {
+                    url: '/bookings/ajax-update-booking-count/' + event_id + '/',
+                    dataType: 'html',
+                    success: processBookingCount
+                    //Should also have a "fail" call as well.
+                }
+            );
+        }
+        else if (ref == 'bookings') {
+            $.ajax(
+                {
+                    url: '/bookings/booking-details/' + event_id + '/',
+                    dataType: 'json',
+                    success: processBookingDetails
+                    //Should also have a "fail" call as well.
+                }
+            );
+        }
     };
 
     var processBookingCount = function(
@@ -75,6 +88,22 @@ var processBookingRequest = function()  {
       $('#shopping-basket-menu-xs').html(result);
    }
 
+    var processBookingDetails = function(
+       result, status, jqXHR)  {
+      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
+        $('#booked-' + event_id + '-' + 'status').html(result.status);
+        $('#booked-' + event_id + '-' + 'paid_status').html(result.paid_status);
+        $('#booked-' + event_id + '-' + 'payment_due').html(result.payment_due);
+        $('#booked-' + event_id + '-' + 'block').html(result.block);
+        $('#booked-' + event_id + '-' + 'confirmed').html(result.confirmed);
+        if(result.status === 'OPEN' && result.no_show === false) {
+            $('#booked-' + event_id + '-' + 'row').removeClass('expired');
+            if(result.paid === false) {
+                $('#booked-' + event_id + '-' + 'row').addClass('unpaid-booking-row');
+            }
+        }
+   }
+
     var processFailure = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
@@ -85,7 +114,7 @@ var processBookingRequest = function()  {
 
    $.ajax(
        {
-          url: '/booking/ajax-create/' + event_id + '/?location_index=' + location_index + '&location+page=' + location_page,
+          url: '/booking/ajax-create/' + event_id + '/?location_index=' + location_index + '&location_page=' + location_page + '&refe=' + ref,
           dataType: 'html',
           type: 'POST',
           success: processResult,

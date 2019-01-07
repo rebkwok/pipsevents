@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.urls import reverse
 from django.db.models import Q, Sum
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
@@ -43,12 +43,27 @@ from booking.views.views_utils import DisclaimerRequiredMixin, \
     DataPolicyAgreementRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
 
-from booking.templatetags.bookingtags import get_shopping_basket_icon
+from booking.templatetags.bookingtags import format_paid_status, get_shopping_basket_icon
 
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
+
+
+def due_date_time(booking):
+    if booking.event.advance_payment_required:
+        uk_tz = pytz.timezone('Europe/London')
+        if booking.event.payment_due_date:
+            due_date_time = booking.event.payment_due_date
+        elif booking.event.payment_time_allowed:
+            last_booked = booking.date_rebooked if booking.date_rebooked else booking.date_booked
+            due_date_time = last_booked + timedelta(hours=booking.event.payment_time_allowed)
+        elif booking.event.cancellation_period:
+            due_date_time = booking.event.date - timedelta(
+                hours=booking.event.cancellation_period
+            )
+        return due_date_time.astimezone(uk_tz)
 
 
 class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
@@ -102,24 +117,6 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
             except WaitingListUser.DoesNotExist:
                 on_waiting_list = False
 
-            can_cancel = booking.event.allow_booking_cancellation and \
-                         booking.event.can_cancel() and \
-                         (booking.status == 'OPEN' and not booking.no_show)
-
-            due_date_time = None
-            if booking.event.advance_payment_required:
-                uk_tz = pytz.timezone('Europe/London')
-                if booking.event.payment_due_date:
-                    due_date_time = booking.event.payment_due_date
-                elif booking.event.payment_time_allowed:
-                    last_booked = booking.date_rebooked if booking.date_rebooked else booking.date_booked
-                    due_date_time = last_booked + timedelta(hours=booking.event.payment_time_allowed)
-                elif booking.event.cancellation_period:
-                    due_date_time = booking.event.date - timedelta(
-                        hours=booking.event.cancellation_period
-                    )
-                    due_date_time = due_date_time.astimezone(uk_tz)
-
             bookingform = {
                 'booking_status': 'CANCELLED' if
                 (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
@@ -128,9 +125,8 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
                 'paypalform': paypal_form,
                 'has_available_block': booking.event.event_type in
                 active_block_event_types,
-                'can_cancel': can_cancel,
                 'on_waiting_list': on_waiting_list,
-                'due_date_time': due_date_time,
+                'due_date_time': due_date_time(booking),
                 }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
@@ -173,6 +169,7 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
         return context
 
 
+# TODO: unused, delete?
 class BookingCreateView(
     DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     CreateView
@@ -493,6 +490,7 @@ class BookingCreateView(
         return HttpResponseRedirect(reverse('booking:bookings'))
 
 
+# TODO: unused, delete?
 class BookingMultiCreateView(BookingCreateView):
 
     success_message = "Booking for {} created"
@@ -525,6 +523,7 @@ class BookingMultiCreateView(BookingCreateView):
         return HttpResponseRedirect(url)
 
 
+# TODO: unused, delete?
 class BookingUpdateView(
     DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     UpdateView
@@ -803,8 +802,16 @@ class BookingDeleteView(
         context['event'] = event
         # Add in block info
         context['booked_with_block'] = booking.block is not None
+        context['block_booked_within_allowed_time'] = self._block_booked_within_allowed_time(booking)
         context['booking'] = booking
         return context
+
+    def _block_booked_within_allowed_time(self, booking):
+        allowed_datetime = timezone.now() - timedelta(minutes=15)
+        if booking.block:
+            return (booking.date_rebooked and booking.date_rebooked > allowed_datetime) \
+                   or (booking.date_booked > allowed_datetime)
+        return False
 
     def _can_fully_delete(self, booking):
         # if booking isn't paid, and wasn't a rebooking, and has no associated
@@ -972,9 +979,7 @@ class BookingDeleteView(
             # if the booking was made with a block, allow 15 mins to cancel in case user
             # clicked the wrong button by mistake and autobooked with a block
             # if the booking wasn't paid, just cancel it
-            allowed_datetime = timezone.now() - timedelta(minutes=15)
-            booked_within_allowed_time = (booking.date_rebooked and booking.date_rebooked > allowed_datetime) \
-                                         or (booking.date_booked > allowed_datetime)
+            booked_within_allowed_time = self._block_booked_within_allowed_time(booking)
 
             can_cancel = (booking.block and booked_within_allowed_time) or not booking.paid
             if can_cancel:
@@ -1165,6 +1170,7 @@ def ajax_create_booking(request, event_id):
     event = Event.objects.get(id=event_id)
     location_index = request.GET.get('location_index')
     location_page = request.GET.get('location_page', 1)
+    ref = request.GET.get('ref')
 
     if event.event_type.event_type == 'CL':
         ev_type_str = 'class'
@@ -1182,7 +1188,8 @@ def ajax_create_booking(request, event_id):
     context = {
         "event": event, "type": ev_type,
         "location_index": location_index,
-        "location_page": location_page
+        "location_page": location_page,
+        "ref": ref
     }
 
     # make sure this isn't an open booking already
@@ -1434,3 +1441,35 @@ def toggle_waiting_list(request, event_id):
         "booking/includes/waiting_list_button.html",
         {'event': event, 'on_waiting_list': on_waiting_list}
     )
+
+
+@login_required
+def booking_details(request, event_id):
+    booking = Booking.objects.get(user=request.user, event=Event.objects.get(id=event_id))
+    if booking.paid:
+        payment_due = "Received"
+    elif due_date_time(booking):
+        payment_due = due_date_time(booking).strftime('%a %d %b %H:%M')
+    else:
+        payment_due = "N/A"
+
+    if booking.space_confirmed and booking.paid:
+        confirmed = '<span class="fa fa-check"></span>'
+    elif booking.status == 'CANCELLED':
+        confirmed = '<span class="fa fa-times"></span>'
+    else:
+        confirmed = 'Pending'
+
+    return JsonResponse(
+        {
+            'paid': booking.paid,
+            'paid_status': format_paid_status(booking),
+            'status': booking.status,
+            'payment_due': payment_due,
+            'block': '<span class="confirmed fa fa-check"></span>' if booking.block else '<strong>N/A</strong>',
+            'confirmed': confirmed,
+            'no_show': booking.no_show
+        }
+    )
+
+
