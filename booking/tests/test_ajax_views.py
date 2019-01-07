@@ -645,6 +645,25 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         # created
         self.assertEqual(Block.objects.count(), 1)
 
+    def test_create_booking_user_on_waiting_list(self):
+        """
+        Test creating a booking for a user on the waiting list deletes waiting list
+        """
+        mommy.make(WaitingListUser, event=self.event, user=self.user)
+        mommy.make(WaitingListUser, event=self.event)
+        mommy.make(WaitingListUser, user=self.user)
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self.client.login(username=self.user.username, password='test')
+
+        self.client.post(self.event_url)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        # the waiting list user for this user and event only has been deleted
+        self.assertEqual(WaitingListUser.objects.all().count(), 2)
+        self.assertFalse(WaitingListUser.objects.filter(user=self.user, event=self.event).exists())
+
+        # email to student only
+        self.assertEqual(len(mail.outbox), 1)
+
 
 class AjaxTests(TestSetupMixin, TestCase):
 
