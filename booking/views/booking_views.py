@@ -1444,10 +1444,10 @@ def booking_details(request, event_id):
     else:
         payment_due = "N/A"
 
-    if booking.space_confirmed and booking.paid:
-        confirmed = '<span class="fa fa-check"></span>'
-    elif booking.status == 'CANCELLED':
+    if booking.status == 'CANCELLED' or booking.no_show:
         confirmed = '<span class="fa fa-times"></span>'
+    elif booking.space_confirmed():
+        confirmed = '<span class="fa fa-check"></span>'
     else:
         confirmed = 'Pending'
 
@@ -1462,5 +1462,3 @@ def booking_details(request, event_id):
             'no_show': booking.no_show
         }
     )
-
-

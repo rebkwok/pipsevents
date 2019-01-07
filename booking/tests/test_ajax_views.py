@@ -749,3 +749,96 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertFalse(WaitingListUser.objects.exists())
         self.assertEqual(resp.context['event'], self.event)
         self.assertEqual(resp.context['on_waiting_list'], False)
+
+    def test_booking_details(self):
+        """Return correct details to populate the bookings page"""
+        url = reverse('booking:booking_details', args=[self.event.id])
+        booking = mommy.make_recipe(
+            'booking.booking', event=self.event, user=self.user, paid=False, status='OPEN'
+        )
+        resp = self.client.post(url)
+        # event has 0 cost, no advance payment required
+        self.assertEqual(
+            resp.json(),
+            {
+                'paid': False,
+                'paid_status': '<strong>N/A</strong>',
+                'status': 'OPEN',
+                'payment_due': 'N/A',
+                'block': '<strong>N/A</strong>',
+                'confirmed': '<span class="fa fa-check"></span>',
+                'no_show': False
+            }
+        )
+
+        self.event.cost = 10
+        self.event.save()
+        resp = self.client.post(url)
+        # event has cost, no advance payment required
+        self.assertEqual(
+            resp.json(),
+            {
+                'paid': False,
+                'paid_status': '<span class="not-confirmed fa fa-times"></span>',
+                'status': 'OPEN',
+                'payment_due': 'N/A',
+                'block': '<strong>N/A</strong>',
+                'confirmed': '<span class="fa fa-check"></span>',
+                'no_show': False
+            }
+        )
+
+        self.event.advance_payment_required = True
+        self.event.payment_due_date = datetime(2018, 1, 1)
+        self.event.save()
+
+        resp = self.client.post(url)
+        self.assertEqual(
+            resp.json(),
+            {
+                'paid': False,
+                'paid_status': '<span class="not-confirmed fa fa-times"></span>',
+                'status': 'OPEN',
+                'payment_due': 'Mon 01 Jan 23:59',
+                'block': '<strong>N/A</strong>',
+                'confirmed': 'Pending',
+                'no_show': False
+            }
+        )
+
+        # no show booking
+        booking.no_show = True
+        booking.save()
+        resp = self.client.post(url)
+        # event has cost, no advance payment required
+        self.assertEqual(
+            resp.json(),
+            {
+                'paid': False,
+                'paid_status': '<span class="not-confirmed fa fa-times"></span>',
+                'status': 'OPEN',
+                'payment_due': 'Mon 01 Jan 23:59',
+                'block': '<strong>N/A</strong>',
+                'confirmed': '<span class="fa fa-times"></span>',
+                'no_show': True
+            }
+        )
+
+        # with block
+        booking.no_show = False
+        booking.block = mommy.make_recipe('booking.block', paid=True)
+        booking.save()
+        resp = self.client.post(url)
+        # event has cost, no advance payment required
+        self.assertEqual(
+            resp.json(),
+            {
+                'paid': True,
+                'paid_status': '<span class="confirmed fa fa-check"></span>',
+                'status': 'OPEN',
+                'payment_due': 'Received',
+                'block': '<span class="confirmed fa fa-check"></span>',
+                'confirmed': '<span class="fa fa-check"></span>',
+                'no_show': False
+            }
+        )
