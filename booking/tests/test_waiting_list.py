@@ -266,12 +266,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         )
         resp = self._get_booking_list(self.user)
         resp.render()
-        self.assertIn('rebook_button', str(resp.content))
+        self.assertIn('book_button', str(resp.content))
 
         mommy.make_recipe('booking.booking', event=event)
         resp = self._get_booking_list(self.user)
         resp.render()
-        self.assertNotIn('rebook_button', str(resp.content))
+        self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('leave_waiting_list_button', str(resp.content))
         self.assertIn('join_waiting_list_button', str(resp.content))
 
@@ -292,14 +292,14 @@ class WaitingListTests(TestSetupMixin, TestCase):
         resp = self._get_booking_list(self.user)
         resp.render()
         # user is on waiting list, but event not full; show "Rebook"
-        self.assertIn('rebook', str(resp.content))
+        self.assertIn('Rebook', str(resp.content))
 
         mommy.make_recipe('booking.booking', event=event)
         resp = self._get_booking_list(self.user)
         resp.render()
         # user is on waiting list, event is full; show "On waiting list"
         self.assertIn('leave_waiting_list_button', str(resp.content))
-        self.assertNotIn('rebook_button', str(resp.content))
+        self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
 
     def test_cancelled_booking_for_non_bookable_not_full_event(self):
