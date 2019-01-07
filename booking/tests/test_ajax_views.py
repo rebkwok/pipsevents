@@ -861,3 +861,45 @@ class AjaxTests(TestSetupMixin, TestCase):
                 'no_show': False
             }
         )
+
+    def test_ajax_shopping_basket_bookings_total(self):
+        self.event.cost = 5
+        self.event.payment_open = True
+        self.event.save()
+        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        url = reverse('booking:ajax_shopping_basket_bookings_total')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['total_unpaid_booking_cost'], 5)
+        self.assertIn('paypal-btn-form', resp.content.decode('utf-8'))
+
+    def test_ajax_shopping_basket_bookings_total_no_cost(self):
+        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        url = reverse('booking:ajax_shopping_basket_bookings_total')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context['total_unpaid_booking_cost'])
+        self.assertNotIn('paypal-btn-form', resp.content.decode('utf-8'))
+
+    def test_ajax_shopping_basket_bookings_total_with_code(self):
+        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        url = reverse('booking:ajax_shopping_basket_bookings_total') + '?code=test'
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context['total_unpaid_booking_cost'])
+        self.assertEqual(resp.context['booking_code'], 'test')
+
+    def test_ajax_shopping_blocks_total(self):
+        mommy.make_recipe('booking.block', block_type__cost=20, user=self.user)
+        url = reverse('booking:ajax_shopping_basket_blocks_total')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
+
+    def test_ajax_shopping_basket_blocks_total_with_code(self):
+        mommy.make_recipe('booking.block', block_type__cost=20, user=self.user)
+        url = reverse('booking:ajax_shopping_basket_blocks_total') + '?code=test'
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
+        self.assertEqual(resp.context['block_code'], 'test')
