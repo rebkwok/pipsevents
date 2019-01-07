@@ -605,7 +605,7 @@ def submit_zero_block_payment(request):
 
 def ajax_shopping_basket_bookings_total(request):
     # context requires total_unpaid_booking_cost and paypal booking form
-    booking_code = request.GET.get('code').strip()
+    booking_code = request.GET.get('code', '').strip()
     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
     context = get_unpaid_bookings_context(request.user)
     if booking_code:
@@ -617,7 +617,7 @@ def ajax_shopping_basket_bookings_total(request):
 
 
 def ajax_shopping_basket_blocks_total(request):
-    block_code = request.GET.get('code').strip()
+    block_code = request.GET.get('code', '').strip()
     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
     context = get_unpaid_block_context(request.user)
     if block_code:
