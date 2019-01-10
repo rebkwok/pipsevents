@@ -10,7 +10,7 @@ from booking.views.booking_views import ajax_create_booking, \
     has_active_block, cancellation_period_past, update_shopping_basket_count, \
     update_booking_count, toggle_waiting_list, booking_details
 from booking.views.block_views import BlockCreateView, BlockDeleteView, \
-    BlockListView
+    BlockListView, blocks_modal
 from booking.views.shopping_basket_views import shopping_basket, \
     update_block_bookings, submit_zero_booking_payment, submit_zero_block_payment, \
     ajax_shopping_basket_bookings_total, ajax_shopping_basket_blocks_total
@@ -34,7 +34,8 @@ __all__ = [
     'TicketBookingHistoryListView', 'TicketBookingView',
     'TicketBookingCancelView', 'ticket_purchase_expired', 'update_shopping_basket_count',
     'update_booking_count', 'toggle_waiting_list', 'booking_details',
-    'ajax_shopping_basket_bookings_total', 'ajax_shopping_basket_blocks_total'
+    'ajax_shopping_basket_bookings_total', 'ajax_shopping_basket_blocks_total',
+    'blocks_modal'
 ]
 
 

@@ -23,7 +23,9 @@
         <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
 
        <!-- Font awesome -->
-        <link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>
+      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+
+        <!--<link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>-->
 
        <!-- Custom styles --->
         <link href="{% static 'booking/css/custom.css' %}" rel="stylesheet">
@@ -53,7 +55,10 @@
                     <img class="nav-logo" src="{% static 'booking/images/logo_brand.png' %}">
                     </a>
                     {% if request.user.is_authenticated %}
-                    <span class="visible-xs shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
+                    <span class="visible-xs extra-collapsed-menu-icons">
+                    <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
+                    <span class="blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
+                    </span>
                     {% endif %}
                 </div>
                 <div class="navbar-collapse collapse">
@@ -91,6 +96,8 @@
                                   </ul>
                             </li>
                             <li id="shopping-basket-menu">{% show_shopping_basket_menu request.user %}</li>
+                            <li id="blocks-menu" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
+                        <!-- Button trigger modal -->
                         {% endif %}
                         {% endblock %}
                     </ul>
@@ -163,8 +170,9 @@
                     <p>You need to define a content block!</p>
                 </div>
             {% endblock %}
-
         {% endblock %}
+
+      <div class="modal fade" id="BlocksModal" tabindex="-1" role="dialog"></div>
 
     </div>  <!-- end .wrap-->
 
@@ -197,6 +205,17 @@
 <script src="{% static 'booking/js/custom.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
 
+<!--# blocks modal-->
+<script>
+    $(".blockmodalbtn").click(function(ev) { // for each edit url
+        ev.preventDefault(); // prevent navigation
+        var url = $(this).data("url"); // get the form url
+        $("#BlocksModal").load(url, function() { // load the url into the modal
+            $(this).modal('show'); // display the modal on url load
+        });
+        return false; // prevent the click propagation
+    });
+</script>
 
 {% block extra_js %}{% endblock %}
 

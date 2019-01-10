@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_total, \
-    ajax_shopping_basket_blocks_total, \
+    ajax_shopping_basket_blocks_total, blocks_modal, \
     already_cancelled, already_paid, \
     disclaimer_required,  \
     EventListView, EventDetailView, BookingListView, \
@@ -149,6 +149,10 @@ urlpatterns = [
     path(
         'bookings/shopping-basket-total/blocks/',
         ajax_shopping_basket_blocks_total, name='ajax_shopping_basket_blocks_total'
+    ),
+    path(
+        'blocks_modal/',
+        blocks_modal, name='blocks_modal'
     ),
     path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

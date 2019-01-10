@@ -859,3 +859,51 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
         self.assertIn(
             resp.url, reverse('booking:shopping_basket') + '?block_code=foo'
         )
+
+
+class BlockModalTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('booking:blocks_modal')
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password='test')
+
+    def test_block_modal_no_blocks(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.context['active_blocks'], [])
+        self.assertEqual(resp.context['unpaid_blocks'], [])
+        self.assertTrue('can_book_block')
+
+    def test_block_modal_with_blocks(self):
+        unpaid_block = mommy.make_recipe(
+            'booking.block_5', user=self.user, paid=False,
+            start_date=timezone.now()-timedelta(days=1)
+        )
+        paid_block = mommy.make_recipe(
+            'booking.block_5', user=self.user, paid=True,
+            start_date=timezone.now()-timedelta(days=1)
+        )
+        # expired
+        mommy.make_recipe(
+            'booking.block_5', user=self.user, paid=True,
+            start_date=timezone.now()-timedelta(days=365)
+        )
+        full_block = mommy.make_recipe(
+            'booking.block_5', user=self.user, paid=True,
+            start_date=timezone.now()-timedelta(days=1)
+        )
+        for i in range(5):
+            mommy.make_recipe('booking.booking', block=full_block)
+
+        # paid and active, different user
+        mommy.make_recipe(
+            'booking.block_5', paid=True, start_date=timezone.now()-timedelta(days=1)
+        )
+
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.context['active_blocks'], [paid_block])
+        self.assertEqual(resp.context['unpaid_blocks'], [unpaid_block])
