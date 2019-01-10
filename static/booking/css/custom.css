@@ -325,20 +325,13 @@ color: #000;
 .navbar-header>span>a:hover {background-color: #FF6666;}
 
 
-/*for shopping basket menu icon*/
-.navbar-header>span.shopping-basket-menu>a {
-  position: relative;
-  padding: 15px;
+/*for shopping basket and block menu icon*/
+.navbar-header>div.extra-collapsed-menu-icons {
   display: inline-block;
-}
-
-/*for shopping basket menu icon*/
-.navbar-header>span.extra-collapsed-menu-icons {
-  display: inline-block;
-  position: relative;
+  /*position: relative;*/
   padding-top: 15px;
 }
-.navbar-header>span>span>a {
+.navbar-header>div>span>a {
   padding-left: 15px;
 }
 
@@ -347,7 +340,7 @@ color: #000;
     display: block;
     padding: 15px 15px;
 }
-.navbar-default .navbar-nav>span>li>a, .navbar-header>span>span>a {
+.navbar-default .navbar-nav>span>li>a, .navbar-header>div>span>a {
     color: #777;
 }
 
@@ -552,7 +545,8 @@ a.disabled {
 .welcome-menu {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    margin-top: 2 !important;
+    padding-right: 15px !important;
+    margin-top: 2px !important;
     margin-bottom: 0 !important;
     color: green;
 }
