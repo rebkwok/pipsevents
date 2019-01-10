@@ -55,10 +55,10 @@
                     <img class="nav-logo" src="{% static 'booking/images/logo_brand.png' %}">
                     </a>
                     {% if request.user.is_authenticated %}
-                    <span class="visible-xs extra-collapsed-menu-icons">
+                    <div class="visible-xs extra-collapsed-menu-icons">
                     <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
                     <span class="blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
-                    </span>
+                    </div>
                     {% endif %}
                 </div>
                 <div class="navbar-collapse collapse">
