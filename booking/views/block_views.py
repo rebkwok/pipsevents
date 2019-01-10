@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.urls import reverse
 
 from django.db.models import Q
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, CreateView, DeleteView
@@ -298,3 +299,15 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
 
     def get_success_url(self, next='block_list'):
         return reverse('booking:{}'.format(next))
+
+
+@login_required
+def blocks_modal(request):
+    active_blocks = [block for block in request.user.blocks.all() if block.active_block()]
+    unpaid_blocks = [
+            block for block in request.user.blocks.filter(paid=False, paypal_pending=False)
+            if not block.expired and not block.full
+        ]
+    types_available_to_book = context_helpers.get_blocktypes_available_to_book(request.user)
+    context = {'active_blocks': active_blocks, 'unpaid_blocks': unpaid_blocks, 'can_book_block': types_available_to_book}
+    return render(request, 'booking/includes/blocks_modal_content.html', context)

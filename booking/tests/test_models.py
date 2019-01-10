@@ -571,6 +571,23 @@ class BlockTests(PatchRequestMixin, TestCase):
             datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc)
         )
 
+    @patch('booking.models.timezone.now')
+    def test_block_start_date_reset_on_paid(self, mock_now):
+        """
+        Test that a block's start date is set to current date on payment
+        """
+        now = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_now.return_value = now
+
+        # self.small_block has not expired, block isn't full, payment not
+        # confirmed
+        self.assertFalse(self.small_block.paid)
+        self.assertNotEqual(self.small_block.start_date, now)
+        # set paid
+        self.small_block.paid = True
+        self.small_block.save()
+        self.assertEqual(self.small_block.start_date, now)
+
     @patch.object(timezone, 'now',
                   return_value=datetime(2015, 2, 1, tzinfo=timezone.utc))
     def test_active_small_block(self, mock_now):
@@ -581,7 +598,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         # confirmed
         self.assertFalse(self.small_block.active_block())
         # set paid
-        self.small_block.paid=True
+        self.small_block.paid = True
+        self.small_block.save()
         self.assertTrue(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
