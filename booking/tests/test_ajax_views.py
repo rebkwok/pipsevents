@@ -473,6 +473,37 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         )
 
     @patch('booking.models.timezone')
+    def test_booking_with_transfer_block(self, mock_tz):
+        """
+        Usually there should be only one block of each type available, but in
+        case an admin has added additional blocks, ensure that the one with the
+        earlier expiry date is used
+        """
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        event_type = mommy.make_recipe('booking.event_type_PC')
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        url = reverse('booking:ajax_create_booking', args=[event.id])
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', event_type=event_type, identifier="transferred"
+        )
+        transfer = mommy.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
+            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(url)
+
+        bookings = Booking.objects.filter(user=self.user)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(bookings[0].block, transfer)
+
+        self.assertEqual(
+            resp.context['alert_message']['message'],
+            "Booked with credit block."
+        )
+
+    @patch('booking.models.timezone')
     def test_booking_with_block_if_multiple_blocks_available(self, mock_tz):
         """
         Usually there should be only one block of each type available, but in

@@ -1365,20 +1365,23 @@ def ajax_create_booking(request, event_id):
                         "booking has been reopened."
 
     elif booking.block:
+
         alert_message['message_type'] = 'success'
-        msg = "Booked with block. "
-        if not booking.block.active_block():
-            transfer_block = booking.block.block_type.identifier\
+
+        transfer_block = booking.block.block_type.identifier\
                 .startswith('transferred') \
                 if booking.block.block_type.identifier else False
-            if not transfer_block:
-                msg += 'You have just used the last space in your block. '
-                if booking.block.children.exists() and not has_free_block_pre_save:
-                    msg += 'You have qualified for a extra free ' \
-                                 'class which has been added to your blocks'
-                else:
-                    alert_message['message_type'] = 'warning'
-                    msg += 'Go to My Blocks buy a new one.'
+        msg = "Booked with block. " if not transfer_block else "Booked with credit block."
+
+        if not booking.block.active_block() and not transfer_block:
+            msg += 'You have just used the last space in your block. '
+            if booking.block.children.exists() and not has_free_block_pre_save:
+                msg += 'You have qualified for a extra free ' \
+                             'class which has been added to your blocks'
+            else:
+                alert_message['message_type'] = 'warning'
+                msg += 'Go to My Blocks buy a new one.'
+
         alert_message['message'] = msg
 
     elif event.cost == 0:
