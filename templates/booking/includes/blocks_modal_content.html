@@ -1,0 +1,20 @@
+<a href="{% url 'booking:blocks_modal' %}" role="button" data-toggle="modal" data-target="#blocksModal"><span class="fas fa-th fa-lg"></span></a>
+<div id="blocksModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="blocksModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+			<h3 id="blocksModalLabel">Available Blocks</h3>
+	</div>
+	<div class="modal-body">
+      <div class="progress progress-striped active">
+        <div class="progress-bar" style="width:100%">
+        </div>
+      </div>
+	</div>
+	<div class="modal-footer">
+		<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+	</div>
+</div>
+</div>
+</div>

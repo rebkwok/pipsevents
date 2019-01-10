@@ -359,6 +359,13 @@ class Block(models.Model):
         super(Block, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+        # for an existing block, if changed to paid, update start date to now
+        # (in case a user leaves a block sitting in basket for a while)
+        if self.id:
+            pre_save_block = Block.objects.get(id=self.id)
+            if not pre_save_block.paid and self.paid and not self.parent:
+                self.start_date = timezone.now()
+
         # if block has parent, make start date same as parent
         if self.parent:
             self.start_date = self.parent.start_date
