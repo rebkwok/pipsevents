@@ -26,7 +26,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         cls.pole_class_event_type = mommy.make(
             EventType, event_type='CL', subtype='Pole level class'
         )
-        cls.event = mommy.make_recipe('booking.future_EV', max_participants=3)
+        cls.event = mommy.make_recipe('booking.future_EV', cost=5, max_participants=3)
         cls.event_url = reverse('booking:ajax_create_booking', args=[cls.event.id])
         cls.free_blocktype = mommy.make_recipe(
             'booking.blocktype', size=1, cost=0,
@@ -80,6 +80,26 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             resp.context['alert_message']['message'],
             'Added to basket; booking not confirmed until payment has been made.'
         )
+        self.assertFalse(Booking.objects.first().paid)
+
+        # email to student only
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_create_booking_free_event(self):
+        """
+        Test creating a booking
+        """
+        event = mommy.make_recipe('booking.future_EV', cost=0, max_participants=3)
+        url = reverse('booking:ajax_create_booking', args=[event.id])
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(url)
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertEqual(
+            resp.context['alert_message']['message'],
+            'Booked.'
+        )
+        self.assertTrue(Booking.objects.first().paid)
 
         # email to student only
         self.assertEqual(len(mail.outbox), 1)
@@ -90,7 +110,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event
         """
         event = mommy.make_recipe(
-            'booking.future_EV', max_participants=3,
+            'booking.future_EV', cost=5, max_participants=3,
             email_studio_when_booked=True
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
@@ -131,7 +151,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         event = mommy.make_recipe(
             'booking.future_EV', max_participants=3,
-            email_studio_when_booked=True
+            email_studio_when_booked=True, cost=5
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
@@ -153,7 +173,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test creating a room hire booking
         """
-        room_hire = mommy.make_recipe('booking.future_RH', max_participants=3)
+        room_hire = mommy.make_recipe('booking.future_RH', max_participants=3, cost=5)
         url = reverse('booking:ajax_create_booking', args=[room_hire.id])
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
@@ -196,7 +216,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
     def test_cannot_book_for_cancelled_event(self):
         """cannot create booking for a full event
         """
-        event = mommy.make_recipe('booking.future_EV', max_participants=3, cancelled=True)
+        event = mommy.make_recipe('booking.future_EV', max_participants=3, cancelled=True, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
         self.client.login(username=self.user.username, password='test')
@@ -338,7 +358,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         booking status open, fetches the paypal
         transaction id
         """
-        event = mommy.make_recipe('booking.future_PC')
+        event = mommy.make_recipe('booking.future_PC', cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
         booking = mommy.make_recipe(
             'booking.booking', event=event, user=self.user, paid=True,
@@ -380,7 +400,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test that an active block is automatically used when booking
         """
         event_type = mommy.make_recipe('booking.event_type_PC')
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
         blocktype = mommy.make_recipe(
@@ -401,13 +421,14 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         bookings = Booking.objects.filter(user=self.user)
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block)
+        self.assertTrue(bookings[0].paid)
 
     def test_creating_booking_with_unpaid_user_block(self):
         """
         Test that an unpaid block is ignored used when booking
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        event_type = mommy.make_recipe('booking.event_type_PC', )
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
         blocktype = mommy.make_recipe(
@@ -436,7 +457,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
          student returns 400
         """
         event = mommy.make_recipe(
-            'booking.future_PP', event_type__subtype='Pole practice'
+            'booking.future_PP', event_type__subtype='Pole practice', cost=5
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
@@ -461,7 +482,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
         event_type = mommy.make_recipe('booking.event_type_PC')
 
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
+        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
         blocktype = mommy.make_recipe(
             'booking.blocktype5', event_type=event_type, duration=2
@@ -510,7 +531,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
 
         event = mommy.make_recipe(
-            'booking.future_PC', event_type=self.pole_class_event_type
+            'booking.future_PC', event_type=self.pole_class_event_type, cost=5
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 

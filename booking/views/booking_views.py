@@ -1262,6 +1262,10 @@ def ajax_create_booking(request, event_id):
     if booking.block and booking.block.children.exists():
         has_free_block_pre_save = True
 
+    if event.cost == 0:
+        booking.paid = True
+        booking.payment_confirmed = True
+
     booking.save()
     ActivityLog.objects.create(
         log='Booking {} {} for "{}" by user {}'.format(
@@ -1376,6 +1380,11 @@ def ajax_create_booking(request, event_id):
                     alert_message['message_type'] = 'warning'
                     msg += 'Go to My Blocks buy a new one.'
         alert_message['message'] = msg
+
+    elif event.cost == 0:
+        alert_message['message_type'] = 'success'
+        alert_message['message'] = "Booked."
+
     elif not booking.paid:
         alert_message['message_type'] = 'error'
         alert_message['message'] =  "Added to basket; booking not confirmed until payment has been made."
