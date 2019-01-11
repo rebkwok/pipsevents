@@ -303,7 +303,11 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
 
 @login_required
 def blocks_modal(request):
-    active_blocks = [block for block in request.user.blocks.all() if block.active_block()]
+    # order by expiry date
+    active_blocks_and_expiry = [(block, block.expiry_date) for block in request.user.blocks.all() if block.active_block()]
+    active_blocks_and_expiry = sorted(active_blocks_and_expiry, key=lambda active_block: active_block[1])
+    active_blocks, _ = zip(*active_blocks_and_expiry)
+
     unpaid_blocks = [
             block for block in request.user.blocks.filter(paid=False, paypal_pending=False)
             if not block.expired and not block.full

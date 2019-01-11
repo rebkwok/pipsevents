@@ -1,4 +1,4 @@
-
+{% load bookingtags %}
 
 <div class="modal-dialog modal-">
     <div class="modal-content">
@@ -11,7 +11,8 @@
 				<h5>Active</h5>
 			{% if active_blocks %}
 				{% for block in active_blocks %}
-					<li class="list-group-item list-group-item-success">{{ block.block_type.event_type.subtype }} ({{ block.bookings_made }}/{{ block.block_type.size }} left; expires {{ block.expiry_date | date:"d M Y" }})</li>
+					<li class="list-group-item list-group-item-success">{{ block.block_type.event_type.subtype }}
+						{% if block.block_type.identifier == 'free class' %} (free){% elif block.block_type.identifier == 'transferred' %} (transfer credit){% endif %} - {{ block.bookings_made }}/{{ block.block_type.size }} used; expires {{ block.expiry_date | date:"d M Y" }}</li>
 				{% endfor %}
 			{% else %}
 			   <li class="list-group-item">No active blocks</li>
