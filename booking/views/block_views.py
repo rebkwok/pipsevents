@@ -306,7 +306,10 @@ def blocks_modal(request):
     # order by expiry date
     active_blocks_and_expiry = [(block, block.expiry_date) for block in request.user.blocks.all() if block.active_block()]
     active_blocks_and_expiry = sorted(active_blocks_and_expiry, key=lambda active_block: active_block[1])
-    active_blocks, _ = zip(*active_blocks_and_expiry)
+    if active_blocks_and_expiry:
+        active_blocks, _ = zip(*active_blocks_and_expiry)
+    else:
+        active_blocks = []
 
     unpaid_blocks = [
             block for block in request.user.blocks.filter(paid=False, paypal_pending=False)

@@ -905,5 +905,5 @@ class BlockModalTests(TestSetupMixin, TestCase):
         )
 
         resp = self.client.get(self.url)
-        self.assertEqual(resp.context['active_blocks'], [paid_block])
+        self.assertEqual(resp.context['active_blocks'], (paid_block,))
         self.assertEqual(resp.context['unpaid_blocks'], [unpaid_block])
