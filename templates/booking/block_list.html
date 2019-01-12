@@ -13,7 +13,6 @@
             <div class="btn-group btn-group-sm pull-right">
                 <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                 <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a> 
-                {% show_shopping_basket request.user %}
             </div>
         </div>
             {% if not disclaimer %}
