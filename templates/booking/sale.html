@@ -1,5 +1,5 @@
 {% if is_sale_period %}
-    <div class="jumbotron">
+    <div class="jumbotron sale-jumbotron">
         <p><strong>{% if sale_title %}{{ sale_title|upper }} {% endif %}</strong><br>
             <span class='sale'>{{ sale_start|date:"D dS M Y" }} to {{ sale_end|date:"D dS M Y" }}</br>{% if sale_description %}
                 {{ sale_description }} {% endif %}{% if active_sale_code %}Use code {{ active_sale_code }} at checkout.{% endif %}</span>

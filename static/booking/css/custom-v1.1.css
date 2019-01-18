@@ -945,16 +945,26 @@ label.control-label {
     margin-top: -2px !important;
 }
 
-.jumbotron{
+.jumbotron.sale-jumbotron{
     color: red;
-    background-color: rgba(0, 175, 0, 0.1);
+    background-color: #faebcc;
     margin-top: 10px;
-    padding-top: 1px;
     padding-top: 10px;
     padding-bottom: 1px;
     padding-left: 15px;
     margin-bottom: 0px;
     line-height: 1.2;
+}
+
+
+.jumbotron.banner-jumbotron {
+  color: black;
+  background-color: #faebcc;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  margin-bottom: 0px;
+  padding-left: 10px;
+  border: peru 1pt solid
 }
 
 .sale {
