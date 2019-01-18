@@ -8,15 +8,10 @@
 {% endblock %}
 
 {% block content %}
-    {% if user.is_authenticated and type == 'lessons' %}
-    <div class="jumbotron banner-jumbotron">
-      <div>Email <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a> for private pole lesson availability</div>
-    </div>
-    {% endif %}
+
 
     <div class="row">
         <div class="col-xs-12">
-
         <h1>The Watermelon Studio
             {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}</br>
             {% if events %}<span class="location">at <span id="location">All locations</span></span>{%  endif %}

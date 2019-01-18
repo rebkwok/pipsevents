@@ -135,15 +135,21 @@
         {% block banner %}{% temporary_banner %}{% endblock banner %}
         {% block sale %}{% sale_text %}{% endblock sale %}
 
-    {% if user.is_anonymous %}
-      <div id="message-row"  class="row">
-        <div class="col-xs-12">
-            <div class="message alert alert-info">
-                New to pole? Begin Level 1 at any time!
+    {% block perm_banner %}
+        {% if user.is_anonymous %}
+          <div id="message-row"  class="row">
+            <div class="col-xs-12">
+                <div class="message alert alert-info">
+                    New to pole? Begin Level 1 at any time!
+                </div>
             </div>
+          </div>
+        {% else %}
+        <div class="jumbotron banner-jumbotron">
+          <div>Email <a href="mailto:thewatermelonstudio@hotmail.com">thewatermelonstudio@hotmail.com</a> for private pole lesson availability</div>
         </div>
-      </div>
-    {% endif %}
+        {% endif %}
+    {% endblock perm_banner %}
 
         {% if messages %}
           <div class="row">
