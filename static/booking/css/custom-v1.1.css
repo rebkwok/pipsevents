@@ -959,12 +959,17 @@ label.control-label {
 
 .jumbotron.banner-jumbotron {
   color: black;
+  font-size: larger;
   background-color: #faebcc;
   padding-top: 7px;
   padding-bottom: 7px;
   margin-bottom: 0px;
   padding-left: 10px;
   border: peru 1pt solid
+}
+
+.banner-star {
+  color: red;
 }
 
 .sale {
