@@ -835,17 +835,23 @@ class BookingDeleteView(
         can_cancel_and_refund = booking.event.allow_booking_cancellation \
             and event.can_cancel() and not can_fully_delete
 
+        # if the booking was made with a block, allow 15 mins to cancel in case user
+        # clicked the wrong button by mistake and autobooked with a block
+        # Check here so we can adjust the email message
+        block_booked_within_allowed_time = self._block_booked_within_allowed_time(booking)
+
         event_was_full = event.spaces_left == 0
+
+        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
 
         if not can_fully_delete:
             # email if this isn't an unpaid/non-rebooked booking
-
-            host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
             # send email to user
 
             ctx = {
                       'host': host,
                       'booking': booking,
+                      'block_booked_within_allowed_time': block_booked_within_allowed_time,
                       'event': event,
                       'date': event.date.strftime('%A %d %B'),
                       'time': event.date.strftime('%I:%M %p'),
@@ -980,9 +986,8 @@ class BookingDeleteView(
             # if the booking was made with a block, allow 15 mins to cancel in case user
             # clicked the wrong button by mistake and autobooked with a block
             # if the booking wasn't paid, just cancel it
-            booked_within_allowed_time = self._block_booked_within_allowed_time(booking)
 
-            can_cancel = (booking.block and booked_within_allowed_time) or not booking.paid
+            can_cancel = block_booked_within_allowed_time or not booking.paid
             if can_cancel:
                 booking.block = None
                 booking.paid = False
