@@ -11,7 +11,7 @@ from studioadmin.views.events import cancel_event_view, event_admin_list, \
 from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
     test_paypal_view
 from studioadmin.views.register import EventRegisterListView, \
-    register_print_day, register_view
+    register_print_day, register_view, register_list_view
 from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
     ConfirmTicketBookingRefundView, print_tickets_list, \
     TicketedEventAdminCreateView, TicketedEventAdminListView, \
@@ -42,7 +42,7 @@ __all__ = [
     'EventAdminCreateView', 'EventAdminUpdateView'
     'EventRegisterListView', 'EventVoucherDetailView',
     'event_waiting_list_view', 'MailingListView',
-    'print_tickets_list',
+    'print_tickets_list', 'register_list_view'
     'register_print_day', 'register_view', 'TicketedEventBookingsListView',
     'TicketedEventAdminUpdateView', 'TicketedEventAdminListView',
     'TicketedEventAdminCreateView', 'ConfirmTicketBookingRefundView',

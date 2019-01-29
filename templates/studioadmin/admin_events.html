@@ -53,9 +53,9 @@
                                 </td>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl">{% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
+                                    <a href="{% url 'studioadmin:event_register' event.instance.slug %}">{{ event.instance.name }}</a>
                                     {% elif type == 'lessons' %}
-                                    <a href="{% url 'studioadmin:class_register' event.instance.slug 'OPEN' %}">{{ event.instance.name }}</a>
+                                    <a href="{% url 'studioadmin:class_register' event.instance.slug %}">{{ event.instance.name }}</a>
                                     {% endif %}
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
                                 </td>
