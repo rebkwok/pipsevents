@@ -1,0 +1,94 @@
+{% load bookingtags %}
+
+<div class="container-fluid row">
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-success">
+
+                <form class="dirty-check" action="" method="get">
+                    <div class="panel-heading">
+                        <div class="pull-right">
+                            {{ status_filter.status_choice }}
+                            <input class="btn btn-info table-btn register-table-btn" type="submit" value="Filter" />
+                        </div>
+                    </div>
+                </form>
+                <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <caption><h2>Register for {{ event }}</h2></caption>
+                        <tr class="compress success">
+                            <th class="table-center"></th>
+                            <th class="table-center">Attended</th>
+                            <th class="table-center">No-show</th>
+                            <th class="table-center" >Status</th>
+                            <th class="table-center">User</th>
+                            <th class="table-center">Disclaimer</th>
+                            <th class="table-center">Paid</th>
+                            {% if available_block_type %}
+                            <th class="table-center">Block</th>
+                            {% endif %}
+                        </tr>
+
+                        {% for booking in bookings %}
+                            <tr class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
+                                {% if status_choice == 'CANCELLED' %}
+                                    <td></td>
+                                    {% else %}
+                                    <td class="table-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
+                                {% endif %}
+                                <td class="table-center studioadmin-tbl">{{ booking.attended }}</td>
+                                <td class="table-center studioadmin-tbl">{{ booking.no_show }}</td>
+                                <td class="table-center studioadmin-tbl">{{ booking.status }}</td>
+                                <td class="table-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">
+                                    {% if booking.user.id in users_with_online_disclaimers %}
+                                        <a href="{% url 'studioadmin:user_disclaimer' booking.user.id|encode %}" target="_blank">
+                                            <span id="disclaimer" class="far fa-file-alt"></span>{% if booking.user|disclaimer_medical_info %} *{% endif %}</a>
+                                        {% if not booking.user|has_online_disclaimer %}<span class="studioadmin-help">(expired)</span>{% endif %}
+                                    {% elif booking.user.id in users_with_print_disclaimers %}
+                                        <span id="disclaimer" class="fas fa-check"></span>
+                                    {% else %}
+                                        <span id="disclaimer" class="fas fa-times"></span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="table-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
+                                    {% if booking.paid %}
+                                        <span class="fas fa-check"></span>
+                                    {% else %}
+                                        <span>PAID CHECKBOX FOR AJAX</span>
+                                    {% endif %}
+                                </td>
+                                {% if available_block_type %}
+                                    {% if booking.paid %}
+                                        {% if booking.block %}
+                                            <td class="table-center no-block-comment studioadmin-tbl">{{ booking.block | format_block }}</td>
+                                        {% else %}
+                                            <td class="table-center">N/A</td>
+                                        {% endif %}
+                                    {% elif booking.has_available_block %}
+                                        <td class="table-center studioadmin-tbl"> <span>CLICK FOR FORM INPUT FOR AJAX</span></td>
+                                    {% else %}
+                                        <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
+                                    {% endif %}
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                        {% for line_number in extra_lines %}
+                            <tr>
+                                <td class="table-center register-index studioadmin-tbl">{{ line_number }}.</td>
+                                <td {% if available_block_type %}colspan="8"{% else %}colspan="7"{% endif %}>ADD NEW BUTTON FOR AJAX FORM<td></tr>
+                        {% endfor %}
+
+                    </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

@@ -49,10 +49,10 @@
                                             <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
                                             <td class="table-center studioadmin-tbl">
                                                 {% if type == 'events' %}
-                                                    <a href="{% url 'studioadmin:event_register' event.slug 'OPEN' %}">
+                                                    <a href="{% url 'studioadmin:event_register' event.slug %}">
                                                         {{ event.name }}</a>
                                                 {% elif type == 'lessons' %}
-                                                    <a href="{% url 'studioadmin:class_register' event.slug 'OPEN' %}">
+                                                    <a href="{% url 'studioadmin:class_register' event.slug %}">
                                                         {{ event.name }}</a>
                                                 {% endif %}</td>
                                              {%  if location_obj.index == 0 %}
