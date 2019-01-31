@@ -728,6 +728,7 @@ class EditPastBookingForm(forms.ModelForm):
                         'Booking cannot be both attended and no-show'
                     )
 
+
 class EditBookingForm(EditPastBookingForm):
 
     def __init__(self, *args, **kwargs):

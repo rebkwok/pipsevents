@@ -6,7 +6,7 @@ from studioadmin.forms.email_users_forms import ChooseUsersFormSet, \
 from studioadmin.forms.event_forms import EventAdminForm, EventFormSet
 from studioadmin.forms.misc_forms import ConfirmPaymentForm
 from studioadmin.forms.register_forms import RegisterDayForm, \
-    SimpleBookingRegisterFormSet
+    SimpleBookingRegisterFormSet, AddRegisterBookingForm
 from studioadmin.forms.ticketed_events_forms import PrintTicketsForm, \
     TicketedEventAdminForm, TicketedEventFormSet, TicketBookingInlineFormSet
 from studioadmin.forms.timetable_forms import SessionAdminForm, \
@@ -29,5 +29,5 @@ __all__ = [
     'TimetableSessionFormSet', 'UploadTimetableForm', 'UserBlockFormSet',
     'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',
     'VoucherStudioadminForm', 'EditPastBookingForm', 'EditBookingForm',
-    'AddBookingForm'
+    'AddBookingForm', 'AddRegisterBookingForm'
 ]

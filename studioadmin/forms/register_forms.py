@@ -293,3 +293,21 @@ class RegisterDayForm(forms.Form):
                                         'format e.g. Mon 08 Jun 2015')
 
         return cleaned_data
+
+
+class AddRegisterBookingForm(forms.Form):
+
+    user = forms.ChoiceField(
+        choices=User.objects.values_list('id', 'username'),
+        required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('instance')
+        self.event = kwargs.pop('event')
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields:
+            self.fields[field].widget.attrs.update(
+                {'id': 'id_new_{}'.format(field)}
+            )

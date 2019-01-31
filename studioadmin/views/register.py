@@ -7,18 +7,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect, get_object_or_404
-from django.views.generic import ListView
+from django.template.loader import render_to_string
+from django.shortcuts import HttpResponse, HttpResponseRedirect, get_object_or_404
+from django.views.generic import CreateView, ListView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from braces.views import LoginRequiredMixin
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.models import Event, Booking, Block, BlockType
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from payments.models import PaypalBookingTransaction
 from studioadmin.forms import SimpleBookingRegisterFormSet, StatusFilter, \
-    RegisterDayForm
+    RegisterDayForm, AddRegisterBookingForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin
 
@@ -589,3 +590,85 @@ class EventRegisterListView(
         context['location_events'] = location_events
 
         return context
+
+
+class BookingRegisterAddView(CreateView):
+
+    model = Booking
+    template_name = 'studioadmin/includes/register-booking-add-modal.html'
+    form_class = AddRegisterBookingForm
+
+    def get_form_event(self):
+        return Event.objects.get(id=self.kwargs['event_id'])
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['form_event'] = self.get_form_event()
+        return context
+
+    def get_form_kwargs(self, *args, **kwargs):
+        kwargs = super().get_form_kwargs(*args, **kwargs)
+        kwargs['event'] = self.get_form_event()
+        return kwargs
+
+    def form_valid(self, form):
+        process_event_booking_updates(form, self.request)
+        return HttpResponse(
+            render_to_string(
+                'studioadmin/includes/register-booking-add-success.html'
+            )
+        )
+
+
+def process_event_booking_updates(form, request):
+    if form.is_valid():
+        if form.has_changed():
+            extra_msg = ''
+            user_id = int(form.cleaned_data['user'])
+            booking, created = Booking.objects.get_or_create(user_id=user_id, event=form.event)
+            if created:
+                action = 'created'
+            elif booking.status == 'OPEN' and not booking.no_show:
+                messages.info(request, 'Open booking for this user already exists')
+                return
+            else:
+                booking.status = 'OPEN'
+                booking.no_show = False
+                action = 'reopened'
+
+            if not booking.block:  # reopened no-show could already have block
+                # TODO Assign block if available
+                pass
+
+            if booking.block:  # check after assignment
+                extra_msg = "Available block assigned."
+
+            booking.save()
+
+            messages.success(
+                request,
+                'Booking for {} has been {}'.format(booking.event,  action)
+            )
+
+            ActivityLog.objects.create(
+                log='Booking id {} (user {}) for "{}" {} by admin user {} {}'.format(
+                    booking.id,  booking.user.username,  booking.event,
+                    action,  request.user.username, extra_msg
+                )
+            )
+
+            try:
+                waiting_list_user = WaitingListUser.objects.get(
+                    user=booking.user,  event=booking.event
+                )
+                waiting_list_user.delete()
+                ActivityLog.objects.create(
+                    log='User {} has been removed from the waiting list for {}'.format(
+                        booking.user.username,  booking.event
+                    )
+                )
+            except WaitingListUser.DoesNotExist:
+                pass
+
+    else:
+        messages.info(request, 'No changes made')
