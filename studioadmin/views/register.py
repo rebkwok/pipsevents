@@ -361,6 +361,9 @@ def register_list_view(request, event_slug):
     else:
         bookings = event.bookings.filter(status=status_choice)
 
+    if status_choice == 'OPEN':
+        bookings = bookings.filter(no_show=False)
+
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
     if status_choice == 'CANCELLED':
