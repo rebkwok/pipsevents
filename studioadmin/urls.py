@@ -51,7 +51,8 @@ from studioadmin.views import (BookingEditView,
                                BlockVoucherDetailView,
                                EventVoucherDetailView,
                                export_mailing_list,
-                               BookingAddView
+                               BookingAddView,
+                               BookingRegisterAddView
                                )
 
 app_name = 'studioadmin'
@@ -70,8 +71,8 @@ urlpatterns = [
         name='cancel_event'),
     path('event-registers/', EventRegisterListView.as_view(),
         {'ev_type': 'events'}, name='event_register_list'),
-    # path('event-registers/<slug:event_slug>/<str:status_choice>/',
-    #     register_view, name='event_register'),
+    path('event-registers-v1/<slug:event_slug>/<str:status_choice>/',
+        register_view, name='event_register'),
     path('event-registers/<slug:event_slug>/', register_list_view, name='event_register'),
     path('event-registers/<slug:event_slug>/<str:status_choice>/print/',
         register_view, {'print_view': True}, name='event_register_print'),
@@ -85,8 +86,8 @@ urlpatterns = [
         {'ev_type': 'lessons'}, name='lessons'),
     path('class-registers/', EventRegisterListView.as_view(),
         {'ev_type': 'lessons'}, name='class_register_list'),
-    # path('class-registers/<slug:event_slug>/<str:status_choice>/',
-    #     register_view, name='class_register'),
+    path('class-registers-v1/<slug:event_slug>/<str:status_choice>/',
+        register_view, name='class_register'),
     path('class-registers/<slug:event_slug>/', register_list_view, name='class_register'),
     path('class-registers/<slug:event_slug>/<str:status_choice>/print/',
         register_view, {'print_view': True}, name='class_register_print'),
@@ -234,6 +235,10 @@ urlpatterns = [
     path(
         'bookingadd/<int:user_id>/', BookingAddView.as_view(),
         name='bookingadd'
+    ),
+    path(
+        'bookingregisteradd/<int:event_id>/', BookingRegisterAddView.as_view(),
+        name='bookingregisteradd'
     ),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),

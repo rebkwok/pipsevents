@@ -1,23 +1,27 @@
 {% load bookingtags %}
 
 <div class="container-fluid row">
+    <h2>Register for {{ event }}</h2>
 
     <div class="row">
+
         <div class="col-sm-12">
+
             <div class="panel panel-success">
 
-                <form class="dirty-check" action="" method="get">
-                    <div class="panel-heading">
-                        <div class="pull-right">
-                            {{ status_filter.status_choice }}
-                            <input class="btn btn-info table-btn register-table-btn" type="submit" value="Filter" />
-                        </div>
-                    </div>
-                </form>
                 <div class="panel-body">
+                     <div class="row">
+                    <form class="dirty-check" action="" method="get">
+                        <div class="panel-heading">
+                            <div class="pull-right">
+                                {{ status_filter.status_choice }}
+                                <input class="btn btn-info table-btn register-table-btn" type="submit" value="Filter" />
+                            </div>
+                        </div>
+                    </form>
+                     </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <caption><h2>Register for {{ event }}</h2></caption>
                         <tr class="compress success">
                             <th class="table-center"></th>
                             <th class="table-center">Attended</th>
@@ -30,6 +34,10 @@
                             <th class="table-center">Block</th>
                             {% endif %}
                         </tr>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="RegisterBookingAddModal" tabindex="-1" role="dialog" aria-labelledby="RegisterBookingAddModalLabel"></div>
+                        <!-- /.modal -->
 
                         {% for booking in bookings %}
                             <tr class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
@@ -69,7 +77,7 @@
                                             <td class="table-center">N/A</td>
                                         {% endif %}
                                     {% elif booking.has_available_block %}
-                                        <td class="table-center studioadmin-tbl"> <span>CLICK FOR FORM INPUT FOR AJAX</span></td>
+                                        <td class="table-center studioadmin-tbl"> <span>AJAX BUTTON TO ASSIGN TO AVAILABLE BLOCK</span></td>
                                     {% else %}
                                         <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
                                     {% endif %}
@@ -81,7 +89,10 @@
                         {% for line_number in extra_lines %}
                             <tr>
                                 <td class="table-center register-index studioadmin-tbl">{{ line_number }}.</td>
-                                <td {% if available_block_type %}colspan="8"{% else %}colspan="7"{% endif %}>ADD NEW BUTTON FOR AJAX FORM<td></tr>
+                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="7"{% endif %}>
+                                    <a class="bookingadd btn btn-success table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add New booking</a>
+                                </td>
+                            </tr>
                         {% endfor %}
 
                     </table>

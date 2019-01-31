@@ -7,3 +7,21 @@
 {% include "studioadmin/register_content_new.html" %}
 
 {% endblock studioadmincontent %}
+
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.2.2/jquery.form.min.js" integrity="sha384-FzT3vTVGXqf7wRfy8k4BiyzvbNfeYjK+frTVqZeNDFl8woCbF0CYG6g2fMEFFo/i" crossorigin="anonymous"></script>
+
+<script>
+    $(".bookingadd").click(function(ev) { // for each add url
+        ev.preventDefault(); // prevent navigation
+        var url = $(this).data("form"); // get the form url
+        $("#RegisterBookingAddModal").load(url, function() { // load the url into the modal
+            $(this).modal('show'); // display the modal on url load
+        });
+
+        return false; // prevent the click propagation
+    });
+
+</script>
+{% endblock %}
