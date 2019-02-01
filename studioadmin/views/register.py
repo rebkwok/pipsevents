@@ -366,17 +366,6 @@ def register_list_view(request, event_slug):
 
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
-    if status_choice == 'CANCELLED':
-        extra_line_count = 0
-    elif event.max_participants:
-        extra_line_count = event.spaces_left
-    elif bookings.count() < 15:
-        open_bookings = bookings.filter(no_show=False)
-        extra_line_count = 15 - open_bookings.count()
-    else:
-        extra_line_count = 2
-    extra_lines = range(bookings.count() + 1, bookings.count() + 1 + extra_line_count)
-
     template = 'studioadmin/register_new.html'
 
     sidenav_selection = 'lessons_register'
@@ -384,22 +373,14 @@ def register_list_view(request, event_slug):
         sidenav_selection = 'events_register'
 
     available_block_type = BlockType.objects.filter(event_type=event.event_type)
-    users_with_online_disclaimers = OnlineDisclaimer.objects.filter(
-        user__in=bookings.values_list('user__id', flat=True)
-    ).values_list('user__id', flat=True)
-    users_with_print_disclaimers = PrintDisclaimer.objects.filter(
-        user__in=bookings.filter(event=event).values_list('user__id', flat=True)
-    ).values_list('user__id', flat=True)
 
     return TemplateResponse(
         request, template, {
             'event': event, 'bookings': bookings, 'status_filter': status_filter,
-            'extra_lines': extra_lines,
+            'can_add_more': event.spaces_left > 0,
             'status_choice': status_choice,
             'available_block_type': bool(available_block_type),
             'sidenav_selection': sidenav_selection,
-            'users_with_online_disclaimers': users_with_online_disclaimers,
-            'users_with_print_disclaimers': users_with_print_disclaimers,
         }
     )
 
@@ -686,31 +667,48 @@ def process_event_booking_updates(form, event, request):
 @login_required
 @is_instructor_or_staff
 def ajax_assign_block(request, booking_id):
+    booking = get_object_or_404(Booking, pk=booking_id)
+    context = {'booking': booking, 'available_block_type': True}  # always True if we're calling this view
+    # Allow get for post-success call after updating block status
 
-    if request.method == 'GET':
-        # TODO: render template with current booking context
-        # For post-success call after updating paid status
-        pass
-
-    elif request.method == 'POST':
+    if request.method == 'POST':
         # TODO assign available block if booking not already paid
         # render template with new booking context
         pass
 
+    return TemplateResponse(request, 'studioadmin/includes/register_block.html', context)
+
 
 @login_required
 @is_instructor_or_staff
+@require_http_methods(['GET', 'POST'])
 def ajax_toggle_paid(request, booking_id):
+    booking = get_object_or_404(Booking, pk=booking_id)
+    # Allow get for post-success call after updating block status
 
-    if request.method == 'GET':
-        # TODO: render template with current booking context
-        # For post-success call after updating block status
-        pass
+    alert_msg = {}
 
-    elif request.method == 'POST':
-        # toggle paid true/false
-        # render template with new booking context
-        pass
+    if request.method == 'POST':
+        initial_state = booking.paid
+        booking.paid = not booking.paid
+        booking.payment_confirmed = not booking.paid
+
+        if initial_state is True:
+            if booking.block:
+                booking.block = None
+                alert_msg = {'status': 'warning', 'msg': 'Booking set to unpaid and block unassigned.'}
+            else:
+                alert_msg = {'status': 'success', 'msg': 'Booking set to unpaid.'}
+        else:
+            has_available_block = _get_active_user_block(booking.user, booking)
+            if has_available_block:
+                alert_msg = {'status': 'warning', 'msg': 'Booking set to paid.  Availale block NOT assigned.'}
+            else:
+                alert_msg = {'status': 'success', 'msg': 'Booking set to paid.'}
+
+        booking.save()
+
+    return JsonResponse({'paid': booking.paid, 'alert_msg': alert_msg})
 
 
 @login_required

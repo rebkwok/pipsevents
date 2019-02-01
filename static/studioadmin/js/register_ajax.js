@@ -8,23 +8,32 @@
   `$(document).ready()`.
   Equal to <code>500</code>.
  */
-var MILLS_TO_IGNORE = 500;
+const MILLS_TO_IGNORE = 500;
 
 /**
    Executes a toggle click. Triggered by clicks on the regular student yes/no links.
  */
-var processToggleAttended = function()  {
+
+const processFailure = function(
+   result, status, jqXHR)  {
+  //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
+  if (result.responseText) {
+    vNotify.error({text:result.responseText,title:'Error',position: 'bottomRight'});
+  }
+   };
+
+const processToggleAttended = function()  {
 
    //In this scope, "this" is the button just clicked on.
    //The "this" in processResult is *not* the button just clicked
    //on.
-   var $button_just_clicked_on = $(this);
+   const $button_just_clicked_on = $(this);
 
    //The value of the "data-booking_id" attribute.
-   var booking_id = $button_just_clicked_on.data('booking_id');
-   var attendance = $button_just_clicked_on.data('attendance');
+   const booking_id = $button_just_clicked_on.data('booking_id');
+   const attendance = $button_just_clicked_on.data('attendance');
 
-   var processResult = function(
+   const processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result.attended + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
 
@@ -51,12 +60,129 @@ var processToggleAttended = function()  {
           data: {'attendance': attendance},
           type: "POST",
           dataType: 'json',
-          success: processResult
-          //Should also have a "fail" call as well.
+          success: processResult,
+          error: processFailure
        }
     );
 };
 
+
+const processTogglePaid = function()  {
+
+   //In this scope, "this" is the button just clicked on.
+   //The "this" in processResult is *not* the button just clicked
+   //on.
+   const $button_just_clicked_on = $(this);
+
+   //The value of the "data-booking_id" attribute.
+   const booking_id = $button_just_clicked_on.data('booking_id');
+
+   const processResult = function(
+       result, status, jqXHR)  {
+      console.log("sf result='" + result.paid + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+
+       if(result.paid === true) {
+           $('#booking-paid-checkbox-' + booking_id).attr("checked", "checked");
+           $('#booking-paid-' + booking_id).removeClass("register-unpaid");
+       } else {
+          $('#booking-paid-checkbox-' + booking_id).attr("checked", "");
+          $('#booking-paid-' + booking_id).addClass("register-unpaid");
+     }
+       if (result.alert_msg) {
+           if (result.alert_msg.status === 'error') {
+               vNotify.error({text: result.alert_msg.msg, title: 'Error', position: 'bottomRight'});
+           }
+            else if (result.alert_msg.status === 'warning') {
+                vNotify.warning({text: result.alert_msg.msg, title: '', position: 'bottomRight'});
+           }
+           else {
+               vNotify.success({text: result.alert_msg.msg, title: '', position: 'bottomRight'});
+           }
+       }
+    };
+
+   const processRegisterBlock = function(
+       result, status, jqXHR)  {
+      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+      $('#booking-block-' + booking_id).html(result);
+    };
+
+   const updateOnComplete  = function() {
+        $.ajax(
+            {
+                url: '/studioadmin/register/' + booking_id + /assign_block/,
+                dataType: 'html',
+                type: 'GET',
+                success: processRegisterBlock,
+                error: processFailure
+            }
+        );
+    };
+
+   $.ajax(
+       {
+          url: '/studioadmin/register/' + booking_id + '/toggle_paid/' ,
+          type: "POST",
+          dataType: 'json',
+          success: processResult,
+          complete: updateOnComplete,
+          error: processFailure
+       }
+    );
+};
+
+
+const processAssignBlock = function()  {
+
+   //In this scope, "this" is the button just clicked on.
+   //The "this" in processResult is *not* the button just clicked
+   //on.
+   const $button_just_clicked_on = $(this);
+
+   //The value of the "data-booking_id" attribute.
+   const booking_id = $button_just_clicked_on.data('booking_id');
+
+   const processResult = function(
+       result, status, jqXHR)  {
+      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+       $('#booking-block-' + booking_id).html(result);
+    };
+
+   const processUpdatePaidDisplay = function(
+       result, status, jqXHR)  {
+      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+      if(result.paid === true) {
+           $('#booking-paid-checkbox-' + booking_id).attr("checked", "checked");
+           $('#booking-paid-' + booking_id).removeClass("register-unpaid");
+       } else {
+          $('#booking-paid-checkbox-' + booking_id).attr("checked", "");
+          $('#booking-paid-' + booking_id).addClass("register-unpaid");
+     }
+    };
+
+   const updateOnComplete  = function() {
+        $.ajax(
+            {
+                url: '/studioadmin/register/' + booking_id + /toggle_paid/,
+                dataType: 'json',
+                type: "GET",
+                success: processUpdatePaidDisplay,
+                error: processFailure
+            }
+        );
+    };
+
+   $.ajax(
+       {
+          url: '/studioadmin/register/' + booking_id + '/assign_block/' ,
+          type: "POST",
+          dataType: 'json',
+          success: processResult,
+          complete: updateOnComplete,
+          error: processFailure
+       }
+    );
+};
 
 
 /**
@@ -89,5 +215,6 @@ $(document).ready(function()  {
    */
   $('.btn-attended').click(_.debounce(processToggleAttended, MILLS_TO_IGNORE, true));
   $('.btn-noshow').click(_.debounce(processToggleAttended, MILLS_TO_IGNORE, true));
-
+  $('.booking-paid-checkbox').click(_.debounce(processTogglePaid, MILLS_TO_IGNORE, true));
+  $('.booking-block-btn').click(_.debounce(processAssignBlock, MILLS_TO_IGNORE, true));
 });
