@@ -52,7 +52,8 @@ from studioadmin.views import (BookingEditView,
                                EventVoucherDetailView,
                                export_mailing_list,
                                BookingAddView,
-                               BookingRegisterAddView
+                               booking_register_add_view,
+                               ajax_toggle_attended
                                )
 
 app_name = 'studioadmin'
@@ -237,8 +238,12 @@ urlpatterns = [
         name='bookingadd'
     ),
     path(
-        'bookingregisteradd/<int:event_id>/', BookingRegisterAddView.as_view(),
+        'bookingregisteradd/<int:event_id>/', booking_register_add_view,
         name='bookingregisteradd'
+    ),
+    path(
+        'register/<int:booking_id>/toggle_attended/', ajax_toggle_attended,
+        name='toggle_attended'
     ),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),

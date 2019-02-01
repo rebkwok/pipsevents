@@ -1,0 +1,19 @@
+{% load bookingtags %}
+
+{% if available_block_type %}
+    {% if booking.paid %}
+        {% if booking.block %}
+            <td class="table-center no-block-comment studioadmin-tbl">{{ booking.block | format_block }}</td>
+        {% elif booking.has_available_block %}
+            <td class="table-center no-block-comment studioadmin-tbl">Available block not used</td>
+        {% else %}
+            <td class="table-center">N/A</td>
+        {% endif %}
+    {% elif booking.has_available_block %}
+        <td class="table-center studioadmin-tbl"> <span>AJAX BUTTON TO ASSIGN TO AVAILABLE BLOCK</span></td>
+    {% else %}
+        <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
+    {% endif %}
+{% else %}
+    <td></td>
+{% endif %}

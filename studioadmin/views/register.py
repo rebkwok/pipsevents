@@ -6,17 +6,20 @@ from datetime import datetime, time, timedelta
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
+from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.template.loader import render_to_string
 from django.shortcuts import HttpResponse, HttpResponseRedirect, get_object_or_404
 from django.views.generic import CreateView, ListView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_http_methods
 
 from braces.views import LoginRequiredMixin
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
+from booking.views.views_utils import _get_active_user_block
 from payments.models import PaypalBookingTransaction
 from studioadmin.forms import SimpleBookingRegisterFormSet, StatusFilter, \
     RegisterDayForm, AddRegisterBookingForm
@@ -361,9 +364,6 @@ def register_list_view(request, event_slug):
     else:
         bookings = event.bookings.filter(status=status_choice)
 
-    if status_choice == 'OPEN':
-        bookings = bookings.filter(no_show=False)
-
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
     if status_choice == 'CANCELLED':
@@ -595,40 +595,43 @@ class EventRegisterListView(
         return context
 
 
-class BookingRegisterAddView(CreateView):
+@login_required
+@is_instructor_or_staff
+def booking_register_add_view(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    if request.method == 'GET':
+        form = AddRegisterBookingForm()
 
-    model = Booking
-    template_name = 'studioadmin/includes/register-booking-add-modal.html'
-    form_class = AddRegisterBookingForm
-
-    def get_form_event(self):
-        return Event.objects.get(id=self.kwargs['event_id'])
-
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['form_event'] = self.get_form_event()
-        return context
-
-    def get_form_kwargs(self, *args, **kwargs):
-        kwargs = super().get_form_kwargs(*args, **kwargs)
-        kwargs['event'] = self.get_form_event()
-        return kwargs
-
-    def form_valid(self, form):
-        process_event_booking_updates(form, self.request)
-        return HttpResponse(
-            render_to_string(
-                'studioadmin/includes/register-booking-add-success.html'
+    else:
+        form = AddRegisterBookingForm(request.POST)
+        if event.spaces_left > 0:
+            if form.is_valid():
+                process_event_booking_updates(form, event, request)
+                return HttpResponse(
+                    render_to_string(
+                        'studioadmin/includes/register-booking-add-success.html'
+                    )
+                )
+        else:
+            ev_type = 'Class' if event.event_type.event_type == 'CL' else 'Event'
+            form.add_error(
+                '__all__',
+                '{} is now full, booking could not be created. '
+                'Please close this window and refresh register page.'.format(ev_type)
             )
-        )
+
+    context = {'form_event': event, 'form': form}
+    return TemplateResponse(
+        request, 'studioadmin/includes/register-booking-add-modal.html', context
+    )
 
 
-def process_event_booking_updates(form, request):
+def process_event_booking_updates(form, event, request):
     if form.is_valid():
         if form.has_changed():
             extra_msg = ''
             user_id = int(form.cleaned_data['user'])
-            booking, created = Booking.objects.get_or_create(user_id=user_id, event=form.event)
+            booking, created = Booking.objects.get_or_create(user_id=user_id, event=event)
             if created:
                 action = 'created'
             elif booking.status == 'OPEN' and not booking.no_show:
@@ -640,8 +643,11 @@ def process_event_booking_updates(form, request):
                 action = 'reopened'
 
             if not booking.block:  # reopened no-show could already have block
-                # TODO Assign block if available
-                pass
+                active_block = _get_active_user_block(booking.user, booking)
+                if active_block:
+                    booking.block = active_block
+                    booking.paid = True
+                    booking.payment_confirmed = True
 
             if booking.block:  # check after assignment
                 extra_msg = "Available block assigned."
@@ -650,11 +656,11 @@ def process_event_booking_updates(form, request):
 
             messages.success(
                 request,
-                'Booking for {} has been {}'.format(booking.event,  action)
+                'Booking for {} has been {}. {}'.format(booking.event,  action, extra_msg)
             )
 
             ActivityLog.objects.create(
-                log='Booking id {} (user {}) for "{}" {} by admin user {} {}'.format(
+                log='Booking id {} (user {}) for "{}" {} by admin user {}. {}'.format(
                     booking.id,  booking.user.username,  booking.event,
                     action,  request.user.username, extra_msg
                 )
@@ -675,3 +681,57 @@ def process_event_booking_updates(form, request):
 
     else:
         messages.info(request, 'No changes made')
+
+
+@login_required
+@is_instructor_or_staff
+def ajax_assign_block(request, booking_id):
+
+    if request.method == 'GET':
+        # TODO: render template with current booking context
+        # For post-success call after updating paid status
+        pass
+
+    elif request.method == 'POST':
+        # TODO assign available block if booking not already paid
+        # render template with new booking context
+        pass
+
+
+@login_required
+@is_instructor_or_staff
+def ajax_toggle_paid(request, booking_id):
+
+    if request.method == 'GET':
+        # TODO: render template with current booking context
+        # For post-success call after updating block status
+        pass
+
+    elif request.method == 'POST':
+        # toggle paid true/false
+        # render template with new booking context
+        pass
+
+
+@login_required
+@is_instructor_or_staff
+@require_http_methods(['POST'])
+def ajax_toggle_attended(request, booking_id):
+    booking = get_object_or_404(Booking, pk=booking_id)
+    attendance = request.POST['attendance']
+
+    alert_msg = None
+    if attendance == 'attended':
+        if (booking.no_show or booking.status == 'CANCELLED') and booking.event.spaces_left == 0:
+            ev_type = 'Class' if booking.event.event_type.event_type == 'CL' else 'Event'
+            alert_msg = '{} is now full, cannot reopen booking.'.format(ev_type)
+        else:
+            booking.status = 'OPEN'
+            booking.attended = True
+            booking.no_show = False
+    elif attendance == 'no-show':
+        booking.attended = False
+        booking.no_show = True
+    booking.save()
+
+    return JsonResponse({'attended': booking.attended, 'alert_msg': alert_msg})
