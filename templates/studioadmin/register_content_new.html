@@ -24,8 +24,7 @@
                     <table class="table">
                         <tr class="compress success">
                             <th class="table-center"></th>
-                            <th class="table-center">Attended</th>
-                            <th class="table-center">No-show</th>
+                            <th >Attended</th>
                             <th class="table-center" >Status</th>
                             <th class="table-center">User</th>
                             <th class="table-center">Disclaimer</th>
@@ -40,15 +39,32 @@
                         <!-- /.modal -->
 
                         {% for booking in bookings %}
-                            <tr class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
+                            <tr id='booking-row-{{ booking.id }}' class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
                                 {% if status_choice == 'CANCELLED' %}
                                     <td></td>
-                                    {% else %}
+                                    <td></td>
+                                {% else %}
                                     <td class="table-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
+                                    <td class="table-center studioadmin-tbl">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                          <button
+                                                  id="booking-attended-{{ booking.id }}"
+                                                  data-booking_id="{{ booking.id }}"
+                                                  data-attendance="attended"
+                                                  type="button"
+                                                  class="btn btn-attended {% if booking.attended %}btn-success{% else %}btn-default{% endif %}"
+                                                  >Yes</button>
+                                          <button
+                                                  id="booking-noshow-{{ booking.id }}"
+                                                  data-booking_id="{{ booking.id }}"
+                                                  data-attendance="no-show"
+                                                  type="button"
+                                                  class="btn btn-noshow {% if booking.no_show %}btn-danger{% else %}btn-default{% endif %}"
+                                                  >No</button>
+                                        </div>
+                                    </td>
                                 {% endif %}
-                                <td class="table-center studioadmin-tbl">{{ booking.attended }}</td>
-                                <td class="table-center studioadmin-tbl">{{ booking.no_show }}</td>
-                                <td class="table-center studioadmin-tbl">{{ booking.status }}</td>
+                                <td id="booking-status-{{ booking.id }}" class="table-center studioadmin-tbl">{{ booking.status }}</td>
                                 <td class="table-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if booking.user.id in users_with_online_disclaimers %}
@@ -69,28 +85,17 @@
                                         <span>PAID CHECKBOX FOR AJAX</span>
                                     {% endif %}
                                 </td>
-                                {% if available_block_type %}
-                                    {% if booking.paid %}
-                                        {% if booking.block %}
-                                            <td class="table-center no-block-comment studioadmin-tbl">{{ booking.block | format_block }}</td>
-                                        {% else %}
-                                            <td class="table-center">N/A</td>
-                                        {% endif %}
-                                    {% elif booking.has_available_block %}
-                                        <td class="table-center studioadmin-tbl"> <span>AJAX BUTTON TO ASSIGN TO AVAILABLE BLOCK</span></td>
-                                    {% else %}
-                                        <td class="table-center no-block-comment studioadmin-tbl">No active block</td>
-                                    {% endif %}
-                                {% else %}
-                                    <td></td>
-                                {% endif %}
+                                <span>
+                                    {% include 'studioadmin/includes/register_block.html' %}
+                                </span>
+
                             </tr>
                         {% endfor %}
                         {% for line_number in extra_lines %}
                             <tr>
                                 <td class="table-center register-index studioadmin-tbl">{{ line_number }}.</td>
-                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="7"{% endif %}>
-                                    <a class="bookingadd btn btn-success table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add New booking</a>
+                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="7"{% else %}colspan="6"{% endif %}>
+                                    <a class="bookingadd btn btn-success register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
                                 </td>
                             </tr>
                         {% endfor %}

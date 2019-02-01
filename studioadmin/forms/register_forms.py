@@ -299,15 +299,6 @@ class AddRegisterBookingForm(forms.Form):
 
     user = forms.ChoiceField(
         choices=User.objects.values_list('id', 'username'),
-        required=True
+        required=True,
+        widget=forms.Select(attrs={'id': 'id_new_user'})
     )
-
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('instance')
-        self.event = kwargs.pop('event')
-        super().__init__(*args, **kwargs)
-
-        for field in self.fields:
-            self.fields[field].widget.attrs.update(
-                {'id': 'id_new_{}'.format(field)}
-            )
