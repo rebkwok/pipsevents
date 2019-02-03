@@ -268,11 +268,9 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
                         )
                     )
 
-            register_url = 'studioadmin:event_register'
-            if event.event_type.event_type == 'CL':
-                register_url = 'studioadmin:class_register'
+            register_url = 'studioadmin:event_register_old'
             if print_view:
-                register_url = register_url + '_print'
+                register_url = 'studioadmin:event_register_print'
 
             return HttpResponseRedirect(
                 reverse(register_url,
@@ -356,7 +354,7 @@ def register_view(request, event_slug, status_choice='OPEN', print_view=False):
 
 @login_required
 @is_instructor_or_staff
-def register_list_view(request, event_slug):
+def register_view_new(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
     status_choice = request.GET.get('status_choice', 'OPEN')
     if status_choice == 'ALL':

@@ -127,7 +127,7 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
         resp = self.client.get(
             reverse(
-                'studioadmin:class_register',
+                'studioadmin:event_register_old',
                 kwargs={'event_slug': event.slug, 'status_choice': 'OPEN'}
             )
         )

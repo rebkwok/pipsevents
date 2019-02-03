@@ -5,6 +5,11 @@
     {% if print %}
     <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
     {% endif %}
+        <div class="row">
+            <div class="col-sm-12">
+                <a href="{% url 'studioadmin:event_register' event.slug %}" class="pull-right">New format register</a>
+            </div>
+        </div>
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-success">
