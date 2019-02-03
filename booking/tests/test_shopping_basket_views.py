@@ -241,7 +241,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
         block_ids_str = ','.join(
             [
-                str(id) for id in Block.objects.filter(paid=False).values_list('id', flat=True)
+                str(id) for id in Block.objects.order_by('id').filter(paid=False).values_list('id', flat=True)
                 ]
         )
         self.assertEqual(
@@ -584,7 +584,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         paypalform = resp.context['blocks_paypalform']
         booking_ids_str = ','.join(
             [
-                str(id) for id in Block.objects.values_list('id', flat=True)
+                str(id) for id in Block.objects.order_by('id').values_list('id', flat=True)
                 ]
         )
         self.assertEqual(
