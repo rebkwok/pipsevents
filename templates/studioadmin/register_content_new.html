@@ -101,8 +101,15 @@
                         {% endfor %}
                         {% if can_add_more %}
                             <tr>
-                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="9"{% else %}colspan="7"{% endif %}>
+                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="6"{% endif %}>
                                     <a class="bookingadd btn btn-success register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        {% if event.max_participants %}
+                            <tr>
+                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="6"{% endif %}>
+                                    Spaces left: {{ event.spaces_left }} / {{ event.max_participants }}
                                 </td>
                             </tr>
                         {% endif %}
