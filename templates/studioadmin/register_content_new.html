@@ -85,6 +85,7 @@
                                         <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="regular-checkbox booking-paid-checkbox" {% if booking.paid %}checked{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
                                     {% endif %}
                                 </td>
+                                {% if available_block_type %}
                                 <td id="booking-block-{{ booking.id }}" class="table-center no-block-comment studioadmin-tbl booking-block">
                                     {% include 'studioadmin/includes/register_block.html' %}
                                 </td>
@@ -94,6 +95,7 @@
                                      </span>
                                     </td>
                                 </td>
+                                {% endif %}
 
                             </tr>
                         {% endfor %}
