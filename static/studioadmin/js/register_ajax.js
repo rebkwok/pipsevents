@@ -67,26 +67,20 @@ const processToggleAttended = function()  {
 };
 
 
-const processTogglePaid = function()  {
+const processUpdatePaid = function(
+       result, status, jqXHR, booking_id)  {
+      //console.log("sf result='" + result.paid + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
 
-   //In this scope, "this" is the button just clicked on.
-   //The "this" in processResult is *not* the button just clicked
-   //on.
-   const $button_just_clicked_on = $(this);
-
-   //The value of the "data-booking_id" attribute.
-   const booking_id = $button_just_clicked_on.data('booking_id');
-
-   const processResult = function(
-       result, status, jqXHR)  {
-      console.log("sf result='" + result.paid + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
-
-       if(result.paid === true) {
-           $('#booking-paid-checkbox-' + booking_id).attr("checked", "checked");
+      if(result.paid === true) {
+           $('#booking-paid-checkbox-' + booking_id).prop("checked", true);
+          $('#booking-paid-checkbox-' + booking_id).attr("checked","checked");
            $('#booking-paid-' + booking_id).removeClass("register-unpaid");
+           $('#booking-block-btn-content-' + booking_id).hide();
        } else {
+           $('#booking-paid-checkbox-' + booking_id).prop("checked", false);
           $('#booking-paid-checkbox-' + booking_id).attr("checked", "");
           $('#booking-paid-' + booking_id).addClass("register-unpaid");
+           $('#booking-block-btn-content-' + booking_id).show();
      }
        if (result.alert_msg) {
            if (result.alert_msg.status === 'error') {
@@ -100,6 +94,22 @@ const processTogglePaid = function()  {
            }
        }
     };
+
+
+const processTogglePaid = function()  {
+
+   //In this scope, "this" is the button just clicked on.
+   //The "this" in processResult is *not* the button just clicked
+   //on.
+   const $button_just_clicked_on = $(this);
+
+   //The value of the "data-booking_id" attribute.
+   const booking_id = $button_just_clicked_on.data('booking_id');
+
+   const processPaidDisplay =function(result, status, jqXHR) {
+        processUpdatePaid(result, status, jqXHR, booking_id);
+    };
+
 
    const processRegisterBlock = function(
        result, status, jqXHR)  {
@@ -124,7 +134,7 @@ const processTogglePaid = function()  {
           url: '/studioadmin/register/' + booking_id + '/toggle_paid/' ,
           type: "POST",
           dataType: 'json',
-          success: processResult,
+          success: processPaidDisplay,
           complete: updateOnComplete,
           error: processFailure
        }
@@ -144,21 +154,18 @@ const processAssignBlock = function()  {
 
    const processResult = function(
        result, status, jqXHR)  {
-      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
        $('#booking-block-' + booking_id).html(result);
     };
 
    const processUpdatePaidDisplay = function(
-       result, status, jqXHR)  {
-      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
-      if(result.paid === true) {
-           $('#booking-paid-checkbox-' + booking_id).attr("checked", "checked");
-           $('#booking-paid-' + booking_id).removeClass("register-unpaid");
-       } else {
-          $('#booking-paid-checkbox-' + booking_id).attr("checked", "");
-          $('#booking-paid-' + booking_id).addClass("register-unpaid");
-     }
-    };
+       result, status, jqXHR) {
+       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+       //console.log("result.paid=" + result.paid);
+
+       processUpdatePaid(result, status, jqXHR, booking_id)
+
+   };
 
    const updateOnComplete  = function() {
         $.ajax(
@@ -176,7 +183,7 @@ const processAssignBlock = function()  {
        {
           url: '/studioadmin/register/' + booking_id + '/assign_block/' ,
           type: "POST",
-          dataType: 'json',
+          dataType: 'html',
           success: processResult,
           complete: updateOnComplete,
           error: processFailure

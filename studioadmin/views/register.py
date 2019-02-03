@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.template.loader import render_to_string
-from django.shortcuts import HttpResponse, HttpResponseRedirect, get_object_or_404
+from django.shortcuts import HttpResponse, HttpResponseRedirect, get_object_or_404, render
 from django.views.generic import CreateView, ListView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -668,15 +668,35 @@ def process_event_booking_updates(form, event, request):
 @is_instructor_or_staff
 def ajax_assign_block(request, booking_id):
     booking = get_object_or_404(Booking, pk=booking_id)
-    context = {'booking': booking, 'available_block_type': True}  # always True if we're calling this view
     # Allow get for post-success call after updating block status
+    alert_msg = {}
 
     if request.method == 'POST':
-        # TODO assign available block if booking not already paid
-        # render template with new booking context
-        pass
+        if booking.paid:
+            if not booking.block:
+                alert_msg = {
+                    'status': 'error', 'msg': 'Booking is already marked as paid; uncheck "Paid" checkbox and try again.'
+                }
+            else:
+                alert_msg = {
+                    'status': 'warning', 'msg': 'Block already assigned.'
+                }
+        else:
+            available_block = _get_active_user_block(booking.user, booking)
+            booking.block = available_block
+            booking.paid = True
+            booking.payment_confirmed = True
+            booking.save()
+            alert_msg = {
+                    'status': 'success', 'msg': 'Block assigned.'
+                }
 
-    return TemplateResponse(request, 'studioadmin/includes/register_block.html', context)
+    context = {
+        'booking': booking, 'alert_msg': alert_msg,
+        'available_block_type': True  # always True if we're calling this view
+    }
+
+    return render(request, 'studioadmin/includes/register_block.html', context)
 
 
 @login_required
@@ -685,7 +705,6 @@ def ajax_assign_block(request, booking_id):
 def ajax_toggle_paid(request, booking_id):
     booking = get_object_or_404(Booking, pk=booking_id)
     # Allow get for post-success call after updating block status
-
     alert_msg = {}
 
     if request.method == 'POST':
