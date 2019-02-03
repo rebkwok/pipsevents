@@ -52,11 +52,8 @@
                                     {% endif %}</a>
                                 </td>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
-                                <td class="studioadmin-tbl">{% if type == 'events' %}
+                                <td class="studioadmin-tbl">
                                     <a href="{% url 'studioadmin:event_register' event.instance.slug %}">{{ event.instance.name }}</a>
-                                    {% elif type == 'lessons' %}
-                                    <a href="{% url 'studioadmin:class_register' event.instance.slug %}">{{ event.instance.name }}</a>
-                                    {% endif %}
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
                                 </td>
                                 <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.instance.location_index }} label-rounded">{{ event.instance.location }}</span></td>

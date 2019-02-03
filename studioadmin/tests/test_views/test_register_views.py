@@ -230,7 +230,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not logged in
         """
         url = reverse(
-            'studioadmin:event_register',
+            'studioadmin:event_register_old',
             args=[self.event.slug, 'OPEN']
             )
         resp = self.client.get(url)
@@ -421,7 +421,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         })
 
         url = reverse(
-            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
             )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(url, formset_data, follow=True)
@@ -581,39 +581,6 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             )
         )
 
-    def test_submitting_form_for_classes_redirects_to_class_register(self):
-        event = mommy.make_recipe('booking.future_PC')
-        bookings = mommy.make_recipe(
-            'booking.booking', event=event, status='OPEN', _quantity=2
-        )
-
-        form_data = self.formset_data({
-            'bookings-0-id': bookings[0].id,
-            'bookings-0-user': bookings[0].user.id,
-            'bookings-0-paid': bookings[0].paid,
-            'bookings-0-attended': bookings[0].attended,
-            'bookings-1-id': bookings[1].id,
-            'bookings-1-user': bookings[1].user.id,
-            'bookings-1-paid': bookings[1].paid,
-            'bookings-1-attended': bookings[1].attended,
-        })
-
-        resp = self._post_response(
-            self.staff_user, event.slug,
-            form_data=form_data,
-            print_view=False,
-            ev_type='class',
-            status_choice='OPEN'
-        )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(
-            resp.url,
-            reverse(
-                'studioadmin:class_register',
-            args=[event.slug, 'OPEN']
-            )
-        )
-
     def test_submitting_form_for_events_redirects_to_event_register(self):
         resp = self._post_response(
             self.staff_user, self.event.slug,
@@ -626,7 +593,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(
             resp.url,
             reverse(
-                'studioadmin:event_register',
+                'studioadmin:event_register_old',
             args=[self.event.slug, 'OPEN']
             )
         )
@@ -723,7 +690,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         self.assertEqual(self.booking2.status, 'CANCELLED')
         url = reverse(
-            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
             )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(url, formset_data, follow=True)
@@ -753,7 +720,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         })
 
         url = reverse(
-            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
             )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(url, formset_data, follow=True)
@@ -780,7 +747,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         })
 
         url = reverse(
-            'studioadmin:event_register', args=[self.event.slug, 'OPEN']
+            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
             )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(url, formset_data, follow=True)
@@ -805,7 +772,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         mommy.make_recipe('booking.booking', event=event, user=user)
 
         url = reverse(
-            'studioadmin:event_register', args=[event.slug, 'OPEN']
+            'studioadmin:event_register_old', args=[event.slug, 'OPEN']
         )
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.get(url)

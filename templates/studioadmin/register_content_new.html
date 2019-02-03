@@ -4,22 +4,20 @@
     <h2>Register for {{ event }}</h2>
 
     <div class="row">
-
         <div class="col-sm-12">
+            <a href="{% url 'studioadmin:event_register_old' event.slug status_choice%}" class="pull-right">Old format register</a>
+        </div>
+    </div>
 
+    <div class="row">
+        <div class="col-sm-12">
             <div class="panel panel-success">
-
                 <div class="panel-body">
-                     <div class="row">
-                    <form class="dirty-check" action="" method="get">
-                        <div class="panel-heading">
-                            <div class="pull-right">
+                    <form class="dirty-check pull-right" action="" method="get">
                                 {{ status_filter.status_choice }}
                                 <input class="btn btn-info table-btn register-table-btn" type="submit" value="Filter" />
-                            </div>
-                        </div>
                     </form>
-                     </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="compress success">
