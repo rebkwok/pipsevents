@@ -295,10 +295,14 @@ class RegisterDayForm(forms.Form):
         return cleaned_data
 
 
+def get_user_choices():
+    return User.objects.values_list('id', 'username')
+
+
 class AddRegisterBookingForm(forms.Form):
 
     user = forms.ChoiceField(
-        choices=User.objects.values_list('id', 'username'),
+        choices=get_user_choices,
         required=True,
         widget=forms.Select(attrs={'id': 'id_new_user'})
     )
