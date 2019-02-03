@@ -1039,7 +1039,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_no_events_on_selected_date(self):
-        events = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -1069,7 +1069,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_no_events_selected_to_print(self):
-        events = mommy.make_recipe(
+        mommy.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
