@@ -1,5 +1,17 @@
 {% load bookingtags %}
 
+{% if alert_msg %}
+    {% if alert_msg.status == 'warning' %}
+        <script>vNotify.warning({text:'{{ alert_msg.msg }}',title:'{{ event }}',position: 'bottomRight'});</script>
+    {% elif alert_msg.status == 'success' %}
+        <script>vNotify.success({text:'{{ alert_msg.msg }}',title:'{{ event }}',position: 'bottomRight'});</script>
+    {% elif alert_msg.status == 'error' %}
+        <script>vNotify.error({text:'{{ alert_msg.msg }}',title:'{{ event }}',position: 'bottomRight'});</script>
+    {% else %}
+        <script>vNotify.info({text:'{{ alert_msg.msg }}',title:'{{ event }}',position: 'bottomRight'});</script>
+    {% endif %}
+{% endif %}
+
 {% if available_block_type %}
     {% if booking.paid %}
         {% if booking.block %}
@@ -10,7 +22,7 @@
             N/A
         {% endif %}
     {% elif booking.has_available_block %}
-        AJAX BUTTON TO ASSIGN TO AVAILABLE BLOCK
+        Available block not used
     {% else %}
         No active block
     {% endif %}
