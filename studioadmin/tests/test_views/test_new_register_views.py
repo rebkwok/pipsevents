@@ -5,18 +5,17 @@ from datetime import  date, datetime
 from unittest.mock import patch
 from model_mommy import mommy
 
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils import timezone
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Event, Booking, BlockType
 from common.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     register_view_new, booking_register_add_view, ajax_toggle_attended,
     ajax_toggle_paid, ajax_assign_block
 )
+from studioadmin.forms.register_forms import AddRegisterBookingForm
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -132,6 +131,85 @@ class NewRegisterViewTests(TestPermissionMixin, TestCase):
         )
 
 
-class RegisterAjaxViewsTests(TestPermissionMixin, TestCase):
+class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
 
-    pass
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.pc = mommy.make_recipe('booking.future_PC', max_participants=3)
+        cls.ev = mommy.make_recipe('booking.future_EV', max_participants=3)
+        cls.pc_url = reverse('studioadmin:bookingregisteradd', args=(cls.pc.id,))
+        cls.ev_url = reverse('studioadmin:bookingregisteradd', args=(cls.ev.id,))
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
+
+    def test_add_booking_user_permissions(self):
+        self.client.logout()
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('account_login') + "?next={}".format(self.pc_url))
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 200)
+
+        self.client.logout()
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_add_booking(self):
+        self.assertFalse(self.pc.bookings.exists())
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        self.assertEqual(booking.user.id, self.user.id)
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertFalse(booking.no_show)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+
+    def test_reopen_cancelled_booking(self):
+        booking = mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='CANCELLED')
+        self.assertEqual(self.pc.bookings.count(), 1)
+
+        self.client.post(self.pc_url, {'user': booking.user.id})
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertFalse(booking.no_show)
+
+    def test_reopen_no_show_booking(self):
+        booking = mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN', no_show=True)
+        self.assertEqual(self.pc.bookings.count(), 1)
+
+        self.client.post(self.pc_url, {'user': booking.user.id})
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertFalse(booking.no_show)
+
+    def test_user_choices(self):
+        user = mommy.make_recipe('booking.user')
+        user1 = mommy.make_recipe('booking.user')
+        user2 = mommy.make_recipe('booking.user')
+        # open booking
+        mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
+        # no_show_booking
+        mommy.make_recipe('booking.booking', user=user, event=self.pc, status='OPEN', no_show=True)
+        # cancelled_booking
+        mommy.make_recipe('booking.booking', user=user1, event=self.pc, status='CANCELLED')
+
+        # form shows users with cancelled, no-show or no bookings
+        form = AddRegisterBookingForm(event=self.pc)
+        self.assertEqual(
+            sorted([choice[0] for choice in form.fields['user'].choices]),
+            sorted([user.id for user in User.objects.exclude(id=self.user.id)])
+        )
+
+    def test_assigns_available_block(self):
+        pass
