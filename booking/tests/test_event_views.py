@@ -27,8 +27,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(EventListViewTests, cls).setUpTestData()
-        mommy.make_recipe('booking.future_EV', _quantity=3)
-        mommy.make_recipe('booking.future_PC', _quantity=3)
+        cls.events = mommy.make_recipe('booking.future_EV', _quantity=3)
+        cls.poleclasses = mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
         cls.url = reverse('booking:events')
 
@@ -118,27 +118,27 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create a booking for this user
-        booked_event = Event.objects.all()[0]
-        mommy.make_recipe('booking.booking', user=self.user, event=booked_event)
+        event = self.events[0]
+        mommy.make_recipe('booking.booking', user=self.user, event=event)
         resp = self._get_response(self.user, 'events')
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(booked_event.id in booked_events)
+        self.assertTrue(event.id in booked_events)
 
     def test_event_list_booked_paid_events(self):
         """
         test that booked events are shown on listing
         """
+        event = self.events[0]
         # create a booking for this user
-        booked_event = Event.objects.all()[0]
         booking = mommy.make_recipe(
-            'booking.booking', user=self.user, event=booked_event,
+            'booking.booking', user=self.user, event=event,
             paid=True, payment_confirmed=True
         )
         resp = self._get_response(self.user, 'events')
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(booked_event.id in booked_events)
+        self.assertTrue(event.id in booked_events)
         self.assertNotIn('pay_button', resp.rendered_content)
 
         # unpaid booking
@@ -152,27 +152,25 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that only user's booked events are shown as booked
         """
-        events = Event.objects.all()
-        event1 = events[0]
-        event2 = events[1]
-
         resp = self._get_response(self.user, 'events')
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
-        mommy.make_recipe('booking.booking', user=self.user, event=event1)
-        # create booking for another user
+        event = self.events[0]
+        mommy.make_recipe('booking.booking', user=self.user, event=event)
+        # create booking for another user, different event
         user1 = mommy.make_recipe('booking.user')
-        mommy.make_recipe('booking.booking', user=user1, event=event2)
+        event1 = self.events[1]
+        mommy.make_recipe('booking.booking', user=user1, event=event1)
 
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'events')
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
-        self.assertTrue(event1.id in booked_events)
+        self.assertTrue(event.id in booked_events)
 
     def test_filter_events(self):
         """
