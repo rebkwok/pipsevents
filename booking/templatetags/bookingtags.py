@@ -433,11 +433,6 @@ def show_shopping_basket_menu(user):
     return get_shopping_basket_icon(user, menu=True)
 
 
-@register.inclusion_tag('booking/includes/shopping_basket_icon.html')
-def show_shopping_basket(user):
-    return get_shopping_basket_icon(user)
-
-
 @register.filter
 def voucher_applied_cost(cost, discount):
     return Decimal(float(cost) * ((100 - discount) / 100)).quantize(Decimal('.05'))
