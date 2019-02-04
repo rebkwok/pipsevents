@@ -7,9 +7,7 @@ from django.core.exceptions import ValidationError
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 from django.utils.translation import ugettext_lazy as _
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.models import Block, Booking, Event
-from payments.models import PaypalBookingTransaction
 
 from studioadmin.fields import BlockChoiceField, UserBlockModelChoiceField, \
     UserChoiceField
@@ -295,14 +293,24 @@ class RegisterDayForm(forms.Form):
         return cleaned_data
 
 
-def get_user_choices():
-    return User.objects.values_list('id', 'username')
+def get_user_choices(event):
+
+    def callable():
+        booked_user_ids = event.bookings.filter(status='OPEN', no_show=False).values_list('user_id', flat=True)
+        users = User.objects.exclude(id__in=booked_user_ids)
+        return tuple([(user.id, "{} {} ({})".format(user.first_name, user.last_name, user.username)) for user in users])
+
+    return callable
 
 
 class AddRegisterBookingForm(forms.Form):
 
-    user = forms.ChoiceField(
-        choices=get_user_choices,
-        required=True,
-        widget=forms.Select(attrs={'id': 'id_new_user'})
-    )
+    def __init__(self, *args, **kwargs):
+        event = kwargs.pop('event')
+        super(AddRegisterBookingForm, self).__init__(*args, **kwargs)
+        self.fields['user'] = forms.ChoiceField(
+            choices=get_user_choices(event),
+            required=True,
+            widget=forms.Select(
+                attrs={'id': 'id_new_user', 'class': 'form-control input-xs studioadmin-list'})
+        )

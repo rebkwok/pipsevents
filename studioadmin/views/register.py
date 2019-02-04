@@ -579,10 +579,10 @@ class EventRegisterListView(
 def booking_register_add_view(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     if request.method == 'GET':
-        form = AddRegisterBookingForm()
+        form = AddRegisterBookingForm(event=event)
 
     else:
-        form = AddRegisterBookingForm(request.POST)
+        form = AddRegisterBookingForm(request.POST, event=event)
         if event.spaces_left > 0:
             if form.is_valid():
                 process_event_booking_updates(form, event, request)
