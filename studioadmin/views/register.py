@@ -606,60 +606,55 @@ def booking_register_add_view(request, event_id):
 
 
 def process_event_booking_updates(form, event, request):
-    if form.is_valid():
-        if form.has_changed():
-            extra_msg = ''
-            user_id = int(form.cleaned_data['user'])
-            booking, created = Booking.objects.get_or_create(user_id=user_id, event=event)
-            if created:
-                action = 'created'
-            elif booking.status == 'OPEN' and not booking.no_show:
-                messages.info(request, 'Open booking for this user already exists')
-                return
-            else:
-                booking.status = 'OPEN'
-                booking.no_show = False
-                action = 'reopened'
+        extra_msg = ''
+        user_id = int(form.cleaned_data['user'])
+        booking, created = Booking.objects.get_or_create(user_id=user_id, event=event)
+        if created:
+            action = 'created'
+        elif booking.status == 'OPEN' and not booking.no_show:
+            messages.info(request, 'Open booking for this user already exists')
+            return
+        else:
+            booking.status = 'OPEN'
+            booking.no_show = False
+            action = 'reopened'
 
-            if not booking.block:  # reopened no-show could already have block
-                active_block = _get_active_user_block(booking.user, booking)
-                if active_block:
-                    booking.block = active_block
-                    booking.paid = True
-                    booking.payment_confirmed = True
+        if not booking.block:  # reopened no-show could already have block
+            active_block = _get_active_user_block(booking.user, booking)
+            if active_block:
+                booking.block = active_block
+                booking.paid = True
+                booking.payment_confirmed = True
 
-            if booking.block:  # check after assignment
-                extra_msg = "Available block assigned."
+        if booking.block:  # check after assignment
+            extra_msg = "Available block assigned."
 
-            booking.save()
+        booking.save()
 
-            messages.success(
-                request,
-                'Booking for {} has been {}. {}'.format(booking.event,  action, extra_msg)
+        messages.success(
+            request,
+            'Booking for {} has been {}. {}'.format(booking.event,  action, extra_msg)
+        )
+
+        ActivityLog.objects.create(
+            log='Booking id {} (user {}) for "{}" {} by admin user {}. {}'.format(
+                booking.id,  booking.user.username,  booking.event,
+                action,  request.user.username, extra_msg
             )
+        )
 
+        try:
+            waiting_list_user = WaitingListUser.objects.get(
+                user=booking.user,  event=booking.event
+            )
+            waiting_list_user.delete()
             ActivityLog.objects.create(
-                log='Booking id {} (user {}) for "{}" {} by admin user {}. {}'.format(
-                    booking.id,  booking.user.username,  booking.event,
-                    action,  request.user.username, extra_msg
+                log='User {} has been removed from the waiting list for {}'.format(
+                    booking.user.username,  booking.event
                 )
             )
-
-            try:
-                waiting_list_user = WaitingListUser.objects.get(
-                    user=booking.user,  event=booking.event
-                )
-                waiting_list_user.delete()
-                ActivityLog.objects.create(
-                    log='User {} has been removed from the waiting list for {}'.format(
-                        booking.user.username,  booking.event
-                    )
-                )
-            except WaitingListUser.DoesNotExist:
-                pass
-
-    else:
-        messages.info(request, 'No changes made')
+        except WaitingListUser.DoesNotExist:
+            pass
 
 
 @login_required
