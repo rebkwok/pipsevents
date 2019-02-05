@@ -659,9 +659,10 @@ def process_event_booking_updates(form, event, request):
 
 @login_required
 @is_instructor_or_staff
+@require_http_methods(['GET', 'POST'])
 def ajax_assign_block(request, booking_id):
     booking = get_object_or_404(Booking, pk=booking_id)
-    # Allow get for post-success call after updating block status
+    # Allow get for post-success call after updating paid status
     alert_msg = {}
 
     if request.method == 'POST':
@@ -676,12 +677,18 @@ def ajax_assign_block(request, booking_id):
                 }
         else:
             available_block = _get_active_user_block(booking.user, booking)
-            booking.block = available_block
-            booking.paid = True
-            booking.payment_confirmed = True
-            booking.save()
-            alert_msg = {
-                    'status': 'success', 'msg': 'Block assigned.'
+            if available_block:
+                booking.block = available_block
+                booking.paid = True
+                booking.payment_confirmed = True
+                booking.save()
+                alert_msg = {
+                        'status': 'success', 'msg': 'Block assigned.'
+                    }
+            else:
+                alert_msg = {
+                    'status': 'error',
+                    'msg': 'No available block to assign.'
                 }
 
     context = {
