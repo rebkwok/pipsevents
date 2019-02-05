@@ -6,15 +6,17 @@ from unittest.mock import patch
 from model_mommy import mommy
 
 from django.contrib.auth.models import User
+from django.contrib import messages
 from django.urls import reverse
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
-from booking.models import Event, Booking, BlockType
+from booking.models import Event, Booking, BlockType, WaitingListUser
 from common.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     register_view_new, booking_register_add_view, ajax_toggle_attended,
     ajax_toggle_paid, ajax_assign_block
 )
+from studioadmin.views.register import process_event_booking_updates
 from studioadmin.forms.register_forms import AddRegisterBookingForm
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -211,5 +213,75 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
             sorted([user.id for user in User.objects.exclude(id=self.user.id)])
         )
 
+    @patch('studioadmin.views.register.messages.info')
+    def test_already_open_booking(self, mock_messages):
+        # The user choices in the form exclude users with open bookings already, but we could post a form with an open
+        # booking if the booking was made in another session and the add booking forw was still open
+
+        # get the user form
+        form = AddRegisterBookingForm({'user': self.user.id}, event=self.pc)
+        self.assertTrue(form.is_valid())
+
+        # make booking for this user
+        mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
+
+        # try to process the form
+        request = self.factory.get(self.pc_url)
+        process_event_booking_updates(form, self.pc, request)
+
+        mock_messages.assert_called_once_with(request, 'Open booking for this user already exists')
+
+    def test_full_class(self):
+        mommy.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        # fetch from db again b/c spaces left is cached
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.pc_url, {'user': self.user.id})
+        form = resp.context_data['form']
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            ['Class is now full, booking could not be created. Please close this window and refresh register page.']
+        )
+
+    def test_full_event(self):
+        mommy.make_recipe('booking.booking', event=self.ev, _quantity=3)
+        # fetch from db again b/c spaces left is cached
+        ev = Event.objects.get(id=self.ev.id)
+        self.assertEqual(ev.spaces_left, 0)
+        resp = self.client.post(self.ev_url, {'user': self.user.id})
+        form = resp.context_data['form']
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            ['Event is now full, booking could not be created. Please close this window and refresh register page.']
+        )
+
     def test_assigns_available_block(self):
-        pass
+        self.assertFalse(self.pc.bookings.exists())
+        mommy.make_recipe('booking.block', user=self.user)  # block for different event type
+
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        self.assertEqual(booking.user, self.user)
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
+
+        booking.status = 'CANCELLED'
+        booking.save()
+
+        block_type = mommy.make_recipe('booking.blocktype5', event_type=self.pc.event_type)
+        block = mommy.make_recipe('booking.block', user=self.user, block_type=block_type, paid=True)
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        self.assertEqual(booking.user, self.user)
+        self.assertEqual(booking.block, block)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+    def test_remove_user_from_waiting_list(self):
+        mommy.make(WaitingListUser, user=self.user, event=self.pc)
+        self.assertEqual(WaitingListUser.objects.count(), 1)
+
+        self.client.post(self.pc_url, {'user': self.user.id})
+        self.assertFalse(WaitingListUser.objects.exists())
