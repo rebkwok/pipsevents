@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.test import RequestFactory, TestCase
 
-from booking.models import Event, Booking, BlockType, WaitingListUser
+from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from common.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     register_view_new, booking_register_add_view, ajax_toggle_attended,
@@ -285,3 +285,269 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
 
         self.client.post(self.pc_url, {'user': self.user.id})
         self.assertFalse(WaitingListUser.objects.exists())
+
+
+class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.pc = mommy.make_recipe('booking.future_PC', max_participants=3)
+        cls.block_type = mommy.make(BlockType, size=2, event_type=cls.pc.event_type)
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
+        self.booking = mommy.make_recipe('booking.booking', user=self.user, event=self.pc)
+        self.assign_block_url = reverse('studioadmin:assign_block', args=(self.booking.id,))
+        self.toggle_paid_url = reverse('studioadmin:toggle_paid', args=(self.booking.id,))
+        self.toggle_attended_url = reverse('studioadmin:toggle_attended', args=(self.booking.id,))
+
+    def test_ajax_assign_block_get(self):
+        # get just returns block display html for current booking
+        # no block, not paid
+        resp = self.client.get(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
+        self.assertEqual(resp.context['alert_msg'], {})
+        self.assertEqual(resp.context['available_block_type'], True)
+        self.assertIn('No active block', resp.content.decode('utf-8'))
+
+        # no block, paid
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('N/A', resp.content.decode('utf-8'))
+
+        # available block, paid
+        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('Available block not used', resp.content.decode('utf-8'))
+
+        # available block, not paid
+        # We shouldn't get here, because the main register page should be showing the "assign available block" button instead for
+        # unpaid bookings, but just in case
+        self.booking.paid = False
+        self.booking.save()
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('Block is available, please refresh page', resp.content.decode('utf-8'))
+
+        # block used
+        self.booking.block = block
+        self.booking.save()
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('{} (1/2 left)'.format(self.pc.event_type.subtype), resp.content.decode('utf-8'))
+
+    def test_ajax_assign_block_post_paid_no_block(self):
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.post(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
+        self.assertEqual(
+            resp.context['alert_msg'],
+            {'status': 'error', 'msg': 'Booking is already marked as paid; uncheck "Paid" checkbox and try again.'}
+        )
+        self.assertEqual(resp.context['available_block_type'], True)
+        self.assertIn('N/A', resp.content.decode('utf-8'))
+
+    def test_ajax_assign_block_post_paid_with_block_already(self):
+        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.block = block
+        self.booking.save()
+        resp = self.client.post(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
+        self.assertEqual(
+            resp.context['alert_msg'],
+            {'status': 'warning', 'msg': 'Block already assigned.'}
+        )
+
+    def test_ajax_assign_block_post_not_paid_no_available_block(self):
+        resp = self.client.post(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
+        self.assertEqual(
+            resp.context['alert_msg'],
+            {'status': 'error', 'msg': 'No available block to assign.'}
+        )
+        self.assertEqual(resp.context['available_block_type'], True)
+        self.assertIn('No active block', resp.content.decode('utf-8'))
+
+    def test_ajax_assign_block_post_not_paid_block_available(self):
+        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.assign_block_url)
+        self.booking.refresh_from_db()
+        self.assertEqual(self.booking.block, block)
+        self.assertEqual(
+            resp.context['alert_msg'],
+            {'status': 'success', 'msg': 'Block assigned.'}
+        )
+
+    def test_ajax_toggle_paid_get(self):
+        # get just returns paid status for current booking
+        resp = self.client.get(self.toggle_paid_url)
+        self.assertEqual(resp.json(), {'paid': False, 'alert_msg': {}})
+
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.get(self.toggle_paid_url)
+        self.assertEqual(resp.json(), {'paid': True, 'alert_msg': {}})
+
+    def test_ajax_toggle_paid_post_toggle_to_paid_paid_without_block(self):
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.paid)
+        self.assertTrue(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertTrue(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to paid.')
+
+    def test_ajax_toggle_paid_post_toggle_to_paid_with_availble_block(self):
+        mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.paid)
+        self.assertTrue(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertTrue(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'warning')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to paid. Available block NOT assigned.')
+
+    def test_ajax_toggle_paid_post_toggle_to_not_paid(self):
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
+
+    def test_ajax_toggle_paid_with_block_post_toggle_to_not_paid(self):
+        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.block = block
+        self.booking.save()
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'warning')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid and block unassigned.')
+
+    def test_ajax_toggle_paid_post_not_paid_block_available(self):
+        mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.paid = True
+        self.booking.save()
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
+
+    def test_ajax_toggle_attended_get(self):
+        # get not allowed
+        resp = self.client.get(self.toggle_attended_url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_ajax_toggle_attended_no_data(self):
+        resp = self.client.post(self.toggle_attended_url)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_ajax_toggle_attended_bad_data(self):
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'foo'})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_ajax_toggle_attended(self):
+        resp = self.client.post(self.toggle_attended_url,  {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+
+    def test_ajax_toggle_no_show(self):
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.assertFalse(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
+
+    def test_ajax_toggle_attended_cancelled_booking(self):
+        self.booking.status = 'CANCELLED'
+        self.booking.save()
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+        self.assertEqual(self.booking.status, 'OPEN')
+
+    def test_ajax_toggle_attended_no_show_booking(self):
+        self.booking.no_show = True
+        self.booking.save()
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+        self.assertEqual(self.booking.status, 'OPEN')
+
+    def test_ajax_toggle_attended_open_booking_full_event(self):
+        mommy.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+
+    def test_ajax_toggle_attended_cancelled_booking_full_event(self):
+        self.booking.status = 'CANCELLED'
+        self.booking.save()
+        mommy.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertFalse(resp.json()['attended'])
+        self.assertEqual(resp.json()['alert_msg'], 'Class is now full, cannot reopen booking.')
+
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+
+    def test_ajax_toggle_attended_no_show_booking_full_event(self):
+        self.booking.no_show = True
+        self.booking.save()
+        mommy.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertFalse(resp.json()['attended'])
+        self.assertEqual(resp.json()['alert_msg'], 'Class is now full, cannot reopen booking.')
+
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
