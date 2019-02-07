@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 from django.template.loader import render_to_string
 from django.shortcuts import HttpResponse, HttpResponseRedirect, get_object_or_404, render
@@ -709,8 +709,8 @@ def ajax_toggle_paid(request, booking_id):
 
     if request.method == 'POST':
         initial_state = booking.paid
-        booking.paid = not booking.paid
-        booking.payment_confirmed = not booking.paid
+        booking.paid = not initial_state
+        booking.payment_confirmed = not initial_state
 
         if initial_state is True:
             if booking.block:
@@ -721,7 +721,7 @@ def ajax_toggle_paid(request, booking_id):
         else:
             has_available_block = _get_active_user_block(booking.user, booking)
             if has_available_block:
-                alert_msg = {'status': 'warning', 'msg': 'Booking set to paid.  Availale block NOT assigned.'}
+                alert_msg = {'status': 'warning', 'msg': 'Booking set to paid. Available block NOT assigned.'}
             else:
                 alert_msg = {'status': 'success', 'msg': 'Booking set to paid.'}
 
@@ -735,7 +735,9 @@ def ajax_toggle_paid(request, booking_id):
 @require_http_methods(['POST'])
 def ajax_toggle_attended(request, booking_id):
     booking = get_object_or_404(Booking, pk=booking_id)
-    attendance = request.POST['attendance']
+    attendance = request.POST.get('attendance')
+    if not attendance or attendance not in ['attended', 'no-show']:
+        return HttpResponseBadRequest('No attendance data')
 
     alert_msg = None
     if attendance == 'attended':
