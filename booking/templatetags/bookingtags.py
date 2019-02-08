@@ -392,16 +392,6 @@ def get_weekday(weekday_num):
 
 
 @register.filter
-def has_paypal(booking):
-    if booking.event.cost and booking.paid:
-        ppbs = PaypalBookingTransaction.objects.filter(
-            booking_id=booking.id, transaction_id__isnull=False
-        )
-        return ppbs.exists()
-    return False
-
-
-@register.filter
 def full_location(location):
     locations = dict(Event.LOCATION_CHOICES)
     return locations[location]

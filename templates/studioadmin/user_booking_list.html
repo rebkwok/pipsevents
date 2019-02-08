@@ -85,7 +85,7 @@
                                                 <td class="table-center studioadmin-tbl">N/A</td>
                                             {% endif %}
                                             <td class="table-center studioadmin-tbl" id="paypal-td">
-                                                {% if booking|has_paypal %}
+                                                {% if booking.paypal_paid %}
                                                     <span class="fa fa-check"></span>
                                                 {% endif %}
                                             </td>
