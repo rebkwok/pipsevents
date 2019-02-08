@@ -329,7 +329,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.booking.paid = False
         self.booking.save()
         resp = self.client.get(self.assign_block_url)
-        self.assertIn('Block is available, please refresh page', resp.content.decode('utf-8'))
+        self.assertIn('Block is available', resp.content.decode('utf-8'))
 
         # block used
         self.booking.block = block
@@ -384,12 +384,16 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
     def test_ajax_toggle_paid_get(self):
         # get just returns paid status for current booking
         resp = self.client.get(self.toggle_paid_url)
-        self.assertEqual(resp.json(), {'paid': False, 'alert_msg': {}})
+        self.assertCountEqual(
+            resp.json(), {'paid': False, 'has_available_block': False, 'alert_msg': {}}
+        )
 
         self.booking.paid = True
         self.booking.save()
         resp = self.client.get(self.toggle_paid_url)
-        self.assertEqual(resp.json(), {'paid': True, 'alert_msg': {}})
+        self.assertCountEqual(
+            resp.json(), {'paid': True, 'has_available_block': False, 'alert_msg': {}}
+        )
 
     def test_ajax_toggle_paid_post_toggle_to_paid_paid_without_block(self):
         self.assertFalse(self.booking.paid)
