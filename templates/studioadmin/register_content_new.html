@@ -79,7 +79,7 @@
                                 </td>
 
                                 <td id="booking-paid-{{ booking.id }}" class="table-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
-                                    {% if booking|has_paypal %}
+                                    {% if booking.paypal_paid %}
                                         <span class="fas fa-check"></span>
                                     {% else %}
                                         <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="regular-checkbox booking-paid-checkbox" {% if booking.paid %}checked{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>

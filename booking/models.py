@@ -21,7 +21,6 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
 from activitylog.models import ActivityLog
-from common.mailchimp_utils import update_mailchimp
 
 
 logger = logging.getLogger(__name__)
@@ -496,6 +495,14 @@ class Booking(models.Model):
             if not block.full and not block.expired and not block.paid
         ]
         return bool(available_blocks)
+
+    @cached_property
+    def paypal_paid(self):
+        from payments.models import PaypalBookingTransaction
+        if not self.paid or self.block is not None:
+            return False
+        return PaypalBookingTransaction.objects.filter(
+            booking=self, transaction_id__isnull=False).exists()
 
     def _old_booking(self):
         if self.pk:
