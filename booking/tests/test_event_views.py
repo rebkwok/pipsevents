@@ -31,6 +31,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
         cls.poleclasses = mommy.make_recipe('booking.future_PC', _quantity=3)
         mommy.make_recipe('booking.future_CL', _quantity=3)
         cls.url = reverse('booking:events')
+        cls.lessons_url = reverse('booking:lessons')
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password='test')
 
     def tearDown(self):
         sale_env_vars = ['SALE_ON', 'SALE_OFF', 'SALE_CODE', 'SALE_TITLE']
@@ -38,16 +43,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
             if var in os.environ:
                 del os.environ[var]
 
-    def _get_response(self, user, ev_type):
-        request = self.factory.get(self.url)
-        request.user = user
-        view = EventListView.as_view()
-        return view(request, ev_type=ev_type)
-
     def test_event_list(self):
         """
         Test that only events are listed (workshops and other events)
         """
+        self.client.logout()
         resp = self.client.get(self.url)
 
         self.assertEquals(Event.objects.all().count(), 9)
@@ -96,6 +96,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that no booked_events in context
         """
+        self.client.logout()
         resp = self.client.get(self.url)
 
         # event listing should still only show future events
@@ -105,22 +106,21 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that booked_events in context
         """
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         self.assertTrue('booked_events' in resp.context_data)
 
     def test_event_list_with_booked_events(self):
         """
         test that booked events are shown on listing
         """
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         # check there are no booked events yet
-        booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create a booking for this user
         event = self.events[0]
         mommy.make_recipe('booking.booking', user=self.user, event=event)
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
@@ -135,7 +135,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=self.user, event=event,
             paid=True, payment_confirmed=True
         )
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
@@ -145,16 +145,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
         booking.paid = False
         booking.payment_confirmed = False
         booking.save()
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         self.assertIn('pay_button', resp.rendered_content)
 
     def test_event_list_shows_only_current_user_bookings(self):
         """
         Test that only user's booked events are shown as booked
         """
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         # check there are no booked events yet
-        booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
@@ -166,7 +165,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.booking', user=user1, event=event1)
 
         # check only event1 shows in the booked events
-        resp = self._get_response(self.user, 'events')
+        resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(Booking.objects.all().count(), 2)
         self.assertEquals(len(booked_events), 1)
@@ -179,20 +178,19 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mommy.make_recipe('booking.future_EV', name='test_name', _quantity=3)
         mommy.make_recipe('booking.future_EV', name='test_name1', _quantity=4)
 
-        url = reverse('booking:events')
-        resp = self.client.get(url, {'name': 'test_name'})
+        resp = self.client.get(self.url, {'name': 'test_name'})
         self.assertEquals(resp.context['events'].count(), 3)
 
     def test_pole_practice_context_without_permission(self):
         Event.objects.all().delete()
         pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
-        user = mommy.make_recipe('booking.user')
+        user = User.objects.create_user(username='test1', password='test1')
         mommy.make(PrintDisclaimer, user=user)
         make_data_privacy_agreement(user)
-
-        response = self._get_response(user, 'lessons')
+        self.client.login(username='test1', password='test1')
+        response = self.client.get(self.lessons_url)
         response.render()
         self.assertIn('N/A - see details', str(response.content))
         self.assertNotIn('book_button', str(response.content))
@@ -202,16 +200,16 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def test_pole_practice_context_with_permission(self):
         Event.objects.all().delete()
         pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
 
-        user = mommy.make_recipe('booking.user')
+        user = User.objects.create_user(username='test1', password='test1')
         make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
         mommy.make(PrintDisclaimer, user=user)
-        
-        response = self._get_response(user, 'lessons')
+        self.client.login(username='test1', password='test1')
+        response = self.client.get(self.lessons_url)
         response.render()
         self.assertIn('book_button', str(response.content))
         self.assertNotIn('join_waiting_list_button', str(response.content))
@@ -219,8 +217,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_cancelled_events_are_not_listed(self):
         Event.objects.all().delete()
-        cancelled_event = mommy.make_recipe('booking.future_CL', cancelled=True)
-        response = self._get_response(self.user, 'lessons')
+        mommy.make_recipe('booking.future_CL', cancelled=True)
+        response = self.client.get(self.lessons_url)
         self.assertEquals(Event.objects.count(), 1)
         self.assertEquals(response.context_data['events'].count(), 0)
 
@@ -231,15 +229,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
-        resp = self.client.get(reverse('booking:events'))
+        response = self.client.get(self.url)
 
         # no valid voucher
-        self.assertNotIn('Use code', resp.rendered_content)
+        self.assertNotIn('Use code', response.rendered_content)
 
         # with a sale title
         os.environ['SALE_TITLE'] = 'Test sale now on'
-        resp = self.client.get(reverse('booking:events'))
-        self.assertIn('TEST SALE NOW ON', resp.rendered_content)
+        response = self.client.get(self.url)
+        self.assertIn('TEST SALE NOW ON', response.rendered_content)
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_sale_message_template_tag_sale_off(self, mock_tz):
@@ -249,7 +247,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_ON'] = '04-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
         os.environ['SALE_TITLE'] = 'Sale now on'
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
 
         self.assertNotIn('SALE NOW ON', resp.rendered_content)
 
@@ -272,7 +270,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_TITLE'] = 'Sale now on'
         os.environ['SALE_DESCRIPTION'] = 'Classes are on sale!'
 
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
         self.assertIn('SALE NOW ON', resp.rendered_content)
         self.assertIn('Classes are on sale!', resp.rendered_content)
 
@@ -283,7 +281,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # set env var
         os.environ['SALE_CODE'] = 'testcode'
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
         self.assertIn('Use code testcode', resp.rendered_content)
 
     @patch('booking.templatetags.bookingtags.timezone')
@@ -306,7 +304,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_DESCRIPTION'] = 'Classes are on sale!'
         os.environ['SALE_CODE'] = 'block_testcode'
 
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
         self.assertIn('SALE NOW ON', resp.rendered_content)
         self.assertIn('Classes are on sale!', resp.rendered_content)
 
@@ -335,7 +333,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_CODE'] = 'testcode'
         os.environ['SALE_TITLE'] = 'SALE NOW ON'
 
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
         self.assertIn('SALE NOW ON', resp.rendered_content)
 
         self.assertTrue(voucher.has_expired)
@@ -358,7 +356,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_CODE'] = 'testcode'
         os.environ['SALE_TITLE'] = 'SALE NOW ON'
 
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
         self.assertIn('SALE NOW ON', resp.rendered_content)
         self.assertNotIn('Use code testcode', resp.rendered_content)
 
@@ -383,7 +381,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         os.environ['SALE_CODE'] = 'testcode'
         os.environ['SALE_TITLE'] = 'SALE NOW ON'
 
-        resp = self.client.get(reverse('booking:events'))
+        resp = self.client.get(self.url)
         self.assertIn('SALE NOW ON', resp.rendered_content)
 
         self.assertFalse(voucher.has_expired)
@@ -391,9 +389,10 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('Use code testcode', resp.rendered_content)
 
     def test_users_disclaimer_status_in_context(self):
-        user = mommy.make_recipe('booking.user')
+        user = User.objects.create_user(username='test1', password='test1')
         make_data_privacy_agreement(user)
-        resp = self._get_response(user, 'events')
+        self.client.login(username='test1', password='test1')
+        resp = self.client.get(self.url)
         # user has no disclaimer
         self.assertFalse(resp.context_data.get('disclaimer'))
         self.assertIn(
@@ -409,7 +408,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(disclaimer.is_active)
-        resp = self._get_response(user, 'events')
+        resp = self.client.get(self.url)
         self.assertNotIn(
             'Get a new block!', format_content(resp.rendered_content)
         )
@@ -420,7 +419,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         mommy.make_recipe('booking.online_disclaimer', user=user)
-        resp = self._get_response(user, 'events')
+        resp = self.client.get(self.url)
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
             'Your disclaimer has expired. Please review and confirm your '
@@ -430,7 +429,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         OnlineDisclaimer.objects.all().delete()
         mommy.make(PrintDisclaimer, user=user)
-        resp = self._get_response(user, 'events')
+        resp = self.client.get(self.url)
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
             'Please note that you will need to complete a disclaimer form '
@@ -459,8 +458,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         ev3.date = datetime(2017, 3, 22, 10, 0, tzinfo=timezone.utc)
         ev3.save()
 
-        url = reverse('booking:events')
-        resp = self.client.get(url)
+        resp = self.client.get(self.url)
         # Mon and Wed events are shaded, on the All locations and specific
         # location tabs
         self.assertEqual(
@@ -477,7 +475,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         ev.save()
 
         url = reverse('booking:events')
-        resp = self.client.get(url)
+        resp = self.client.get(self.url)
 
         # 3 loc events, 1 for all and 1 for each location
         self.assertEqual(
