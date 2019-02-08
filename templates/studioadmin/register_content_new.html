@@ -82,7 +82,7 @@
                                     {% if booking.paypal_paid %}
                                         <span class="fas fa-check"></span>
                                     {% else %}
-                                        <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="regular-checkbox booking-paid-checkbox" {% if booking.paid %}checked{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
+                                        <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="regular-checkbox booking-paid-checkbox" {% if booking.paid %}checked="checked"{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
                                     {% endif %}
                                 </td>
                                 {% if available_block_type %}
@@ -90,7 +90,7 @@
                                     {% include 'studioadmin/includes/register_block.html' %}
                                 </td>
                                 <td id="booking-block-btn-{{ booking.id }}" data-booking_id="{{ booking.id }}" class="table-center studioadmin-tbl booking-block-btn">
-                                     <span id="booking-block-btn-content-{{ booking.id }}" {% if booking.block or not booking.has_available_block %}hidden{% endif %}>
+                                     <span id="booking-block-btn-content-{{ booking.id }}" {% if booking.paid or booking.block or not booking.has_available_block %}hidden{% endif %}>
                                         <span class="btn btn-success register-table-btn">Assign available block</span>
                                      </span>
                                     </td>
