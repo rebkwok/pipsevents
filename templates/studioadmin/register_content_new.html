@@ -90,7 +90,7 @@
                                     {% include 'studioadmin/includes/register_block.html' %}
                                 </td>
                                 <td id="booking-block-btn-{{ booking.id }}" data-booking_id="{{ booking.id }}" class="table-center studioadmin-tbl booking-block-btn">
-                                     <span id="booking-block-btn-content-{{ booking.id }}">
+                                     <span id="booking-block-btn-content-{{ booking.id }}" {% if booking.block or not booking.has_available_block %}hidden{% endif %}>
                                         <span class="btn btn-success register-table-btn">Assign available block</span>
                                      </span>
                                     </td>
