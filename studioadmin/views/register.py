@@ -713,6 +713,10 @@ def ajax_toggle_paid(request, booking_id):
         booking.payment_confirmed = not initial_state
 
         if initial_state is True:
+
+            if booking.free_class:
+                booking.free_class = False
+
             if booking.block:
                 booking.block = None
                 alert_msg = {'status': 'warning', 'msg': 'Booking set to unpaid and block unassigned.'}

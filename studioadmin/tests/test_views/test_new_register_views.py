@@ -457,6 +457,22 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.json()['alert_msg']['status'], 'success')
         self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
 
+    def test_ajax_toggle_paid_post_free_class(self):
+        mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.paid = True
+        self.booking.free_class = True
+        self.booking.save()
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.free_class)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
+
     def test_ajax_toggle_attended_get(self):
         # get not allowed
         resp = self.client.get(self.toggle_attended_url)
