@@ -358,9 +358,9 @@ def register_view_new(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
     status_choice = request.GET.get('status_choice', 'OPEN')
     if status_choice == 'ALL':
-        bookings = event.bookings.all()
+        bookings = event.bookings.all().order_by('date_booked')
     else:
-        bookings = event.bookings.filter(status=status_choice)
+        bookings = event.bookings.filter(status=status_choice).order_by('date_booked')
 
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
@@ -621,7 +621,7 @@ def process_event_booking_updates(form, event, request):
 
         if not booking.block:  # reopened no-show could already have block
             active_block = _get_active_user_block(booking.user, booking)
-            if active_block:
+            if booking.has_available_block:
                 booking.block = active_block
                 booking.paid = True
                 booking.payment_confirmed = True
@@ -719,15 +719,20 @@ def ajax_toggle_paid(request, booking_id):
             else:
                 alert_msg = {'status': 'success', 'msg': 'Booking set to unpaid.'}
         else:
-            has_available_block = _get_active_user_block(booking.user, booking)
-            if has_available_block:
+            if booking.has_available_block:
                 alert_msg = {'status': 'warning', 'msg': 'Booking set to paid. Available block NOT assigned.'}
             else:
                 alert_msg = {'status': 'success', 'msg': 'Booking set to paid.'}
 
         booking.save()
 
-    return JsonResponse({'paid': booking.paid, 'alert_msg': alert_msg})
+    return JsonResponse(
+        {
+            'paid': booking.paid,
+            'has_available_block': not booking.paid and booking.has_available_block,
+            'alert_msg': alert_msg
+        }
+    )
 
 
 @login_required

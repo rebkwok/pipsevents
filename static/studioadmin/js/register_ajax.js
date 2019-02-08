@@ -80,7 +80,9 @@ const processUpdatePaid = function(
            $('#booking-paid-checkbox-' + booking_id).prop("checked", false);
           $('#booking-paid-checkbox-' + booking_id).attr("checked", "");
           $('#booking-paid-' + booking_id).addClass("register-unpaid");
-           $('#booking-block-btn-content-' + booking_id).show();
+          if (result.has_available_block === true) {
+            $('#booking-block-btn-content-' + booking_id).show();
+          }
      }
        if (result.alert_msg) {
            if (result.alert_msg.status === 'error') {
@@ -113,7 +115,7 @@ const processTogglePaid = function()  {
 
    const processRegisterBlock = function(
        result, status, jqXHR)  {
-      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
+      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
       $('#booking-block-' + booking_id).html(result);
     };
 
