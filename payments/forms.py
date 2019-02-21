@@ -13,7 +13,8 @@ class PayPalPaymentsBaseForm(PayPalPaymentsForm):
         super().get_image()
         return {
             (True, self.SUBSCRIBE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_subscribe_113x26.png',
-            (True, self.BUY): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_cc_171x47.png',
+            # (True, self.BUY): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_cc_171x47.png',
+            (True, self.BUY): "/static/booking/images/checkout-logo-with-cc.png",
             (True, self.DONATE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_donate_pp_142x27.png',
             (False, self.SUBSCRIBE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_subscribe_113x26.png',
             (False, self.BUY): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_cc_171x47.png',
@@ -25,7 +26,7 @@ class PayPalPaymentsListForm(PayPalPaymentsBaseForm):
     def render(self):
         return format_html(
             """<form class="paypal-btn-form" action="{0}" method="post">
-            {1}<input type="image" style="height: 75%; width: width: 8em;" src="{2}" border="0" name="submit" alt="Buy it Now" />
+            {1}<input type="image" style="height: 75%: width: 9em; " src="{2}" border="0" name="submit" alt="Buy it Now" />
             </form>""", self.get_endpoint(), self.as_p(), self.get_image()
        )
 
@@ -45,7 +46,7 @@ class PayPalPaymentsShoppingBasketForm(PayPalPaymentsBaseForm):
         super(PayPalPaymentsShoppingBasketForm, self).get_image()
         return {
             (True, self.SUBSCRIBE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_subscribe_113x26.png',
-            (True, self.BUY): "/static/booking/images/checkout_button.png",
+            (True, self.BUY): "/static/booking/images/checkout-logo-with-cc.png",
             (True, self.DONATE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_donate_pp_142x27.png',
             (False, self.SUBSCRIBE): 'https://www.paypalobjects.com/webstatic/en_US/btn/btn_subscribe_113x26.png',
             (False, self.BUY): "/static/booking/images/checkout_button.png",
@@ -55,7 +56,7 @@ class PayPalPaymentsShoppingBasketForm(PayPalPaymentsBaseForm):
     def render(self):
         return format_html(
             """<form class="paypal-btn-form" action="{0}" method="post">
-            {1}<input type="image" style="height: auto; width: 8em;"
+            {1}<input type="image" style="height: auto; width: 9em;"
             src="{2}" border="0" name="submit" alt="Checkout Now" />
             </form>""", self.get_endpoint(), self.as_p(), self.get_image()
        )
