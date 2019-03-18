@@ -333,7 +333,9 @@ SUIT_CONFIG = {
                 'accounts.cookiepolicy',
                 'accounts.dataprivacypolicy',
                 'accounts.onlinedisclaimer',
-                'accounts.printdisclaimer'),
+                'accounts.printdisclaimer',
+                'accounts.nonregistereddisclaimer'
+            ),
             'icon': 'icon-user',
         },
         {

@@ -1,0 +1,17 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Thank you for completing your online disclaimer form.  Your information has been successfully submitted
+    and we look forward to seeing you soon.</p>
+
+<p>View our full <a href="{{ host }}{% url 'data_privacy_policy' %}">data privacy and cookie policy</a> for further
+    information.
+</p>
+
+<p>If you have any additional questions or concerns, please contact <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+
+
+</div>
+{% endblock %}

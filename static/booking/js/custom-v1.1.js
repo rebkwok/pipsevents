@@ -121,7 +121,18 @@ jQuery(document).ready(function () {
         closeOnDateSelect: true,
         scrollMonth: false,
         scrollTime: false,
-        scrollInput: false,
+        scrollInput: false
+    });
+
+    jQuery('#eventdatepicker').datetimepicker({
+        format:'DD MMM YYYY',
+        formatTime:'HH:mm',
+        timepicker: false,
+        minDate: 0,
+        closeOnDateSelect: true,
+        scrollMonth: false,
+        scrollTime: false,
+        scrollInput: false
     });
 
     //http://digitalbush.com/projects/masked-input-plugin/

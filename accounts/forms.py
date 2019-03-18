@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
@@ -9,7 +11,7 @@ from django.utils import timezone
 from accounts import validators as account_validators
 from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
     OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataPrivacyPolicy, \
-    SignedDataPrivacy
+    SignedDataPrivacy, NonRegisteredDisclaimer
 from accounts.utils import has_expired_disclaimer
 from activitylog.models import ActivityLog
 from common.mailchimp_utils import update_mailchimp
@@ -81,6 +83,50 @@ class SignupForm(forms.Form):
             )
 
 
+BASE_DISCLAIMER_FORM_WIDGETS = {
+        'address': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'dob': forms.DateInput(
+            attrs={
+                'class': "form-control",
+                'id': 'dobdatepicker',
+                },
+            format='%d %b %Y'
+        ),
+        'postcode': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'home_phone': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'mobile_phone': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'emergency_contact1_name': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'emergency_contact1_relationship': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'emergency_contact1_phone': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'emergency_contact2_name': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'emergency_contact2_relationship': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'emergency_contact2_phone': forms.TextInput(
+            attrs={'class': 'form-control'}
+        ),
+        'medical_conditions': forms.RadioSelect(choices=BOOL_CHOICES),
+        'joint_problems': forms.RadioSelect(choices=BOOL_CHOICES),
+        'allergies': forms.RadioSelect(choices=BOOL_CHOICES),
+    }
+
+
 class DisclaimerForm(forms.ModelForm):
 
     medical_treatment_permission = forms.BooleanField(
@@ -141,7 +187,6 @@ class DisclaimerForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-
         user = kwargs.pop('user')
         super(DisclaimerForm, self).__init__(*args, **kwargs)
         # the agreed-to terms are read-only fields.  For a new disclaimer, we
@@ -162,21 +207,22 @@ class DisclaimerForm(forms.ModelForm):
             self.over_18_terms = OVER_18_TERMS
             self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
 
-            if has_expired_disclaimer(user):
-                last_disclaimer = OnlineDisclaimer.objects.filter(user=user)\
-                    .last()
-                # set initial on all fields except ^^^ and terms_accepted
-                # to data from last disclaimer
-                for field_name in self.fields:
-                    if field_name not in [
-                        'medical_treatment_terms', 'over_18_terms',
-                        'disclaimer_terms', 'terms_accepted',
-                        'password'
-                    ]:
-                        last_value = getattr(last_disclaimer, field_name)
-                        if field_name == 'dob':
-                            last_value = last_value.strftime('%d %b %Y')
-                        self.fields[field_name].initial = last_value
+            if user is not None:
+                if has_expired_disclaimer(user):
+                    last_disclaimer = OnlineDisclaimer.objects.filter(user=user)\
+                        .last()
+                    # set initial on all fields except ^^^ and terms_accepted
+                    # to data from last disclaimer
+                    for field_name in self.fields:
+                        if field_name not in [
+                            'medical_treatment_terms', 'over_18_terms',
+                            'disclaimer_terms', 'terms_accepted',
+                            'password'
+                        ]:
+                            last_value = getattr(last_disclaimer, field_name)
+                            if field_name == 'dob':
+                                last_value = last_value.strftime('%d %b %Y')
+                            self.fields[field_name].initial = last_value
 
         self.fields['home_phone'].required = False
 
@@ -191,53 +237,10 @@ class DisclaimerForm(forms.ModelForm):
             'joint_problems', 'joint_problems_details', 'allergies',
             'allergies_details', 'medical_treatment_permission',
             'terms_accepted', 'age_over_18_confirmed')
-
-        widgets = {
-            'name': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'address': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'dob': forms.DateInput(
-                attrs={
-                    'class': "form-control",
-                    'id': 'dobdatepicker',
-                    },
-                format='%d %b %Y'
-            ),
-            'postcode': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'home_phone': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'mobile_phone': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'emergency_contact1_name': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'emergency_contact1_relationship': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'emergency_contact1_phone': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'emergency_contact2_name': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'emergency_contact2_relationship': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'emergency_contact2_phone': forms.TextInput(
-                attrs={'class': 'form-control'}
-            ),
-            'medical_conditions': forms.RadioSelect(choices=BOOL_CHOICES),
-            'joint_problems': forms.RadioSelect(choices=BOOL_CHOICES),
-            'allergies': forms.RadioSelect(choices=BOOL_CHOICES),
-
-        }
+        widgets = deepcopy(BASE_DISCLAIMER_FORM_WIDGETS)
+        widgets.update(
+            {'name': forms.TextInput(attrs={'class': 'form-control'})}
+        )
 
     def clean(self):
         if self.cleaned_data.get('medical_conditions', False) \
@@ -279,6 +282,80 @@ class DisclaimerForm(forms.ModelForm):
                 self.add_error(
                     'dob', 'You must be over 18 years in order to register')
         return super(DisclaimerForm, self).clean()
+
+
+class NonRegisteredDisclaimerForm(DisclaimerForm):
+    
+    confirm_name = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        label="Please re-enter your first and last name to submit your data.<br/>"
+              "By submitting this form, you confirm that "
+              "the information you have provided is complete and accurate.",
+        required=True,
+    )
+    
+    class Meta:
+        model = NonRegisteredDisclaimer
+
+        fields = (
+            'first_name', 'last_name', 'email', 'dob', 'address', 'postcode',
+            'home_phone', 'mobile_phone',
+            'emergency_contact1_name', 'emergency_contact1_relationship',
+            'emergency_contact1_phone', 'emergency_contact2_name',
+            'emergency_contact2_relationship', 'emergency_contact2_phone',
+            'medical_conditions', 'medical_conditions_details',
+            'joint_problems', 'joint_problems_details', 'allergies',
+            'allergies_details', 'medical_treatment_permission',
+            'terms_accepted', 'age_over_18_confirmed', 'event_date')
+
+        widgets = deepcopy(BASE_DISCLAIMER_FORM_WIDGETS)
+        widgets.update(
+            {
+                'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+                'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+                'email': forms.EmailInput(attrs={'class': 'form-control'}),
+                'event_date': forms.DateInput(
+                    attrs={
+                        'class': "form-control",
+                        'id': 'eventdatepicker',
+                        },
+                    format='%d %b %Y'
+                )
+            }
+        )
+
+    def __init__(self, *args, **kwargs):
+        kwargs['user'] = None
+        super().__init__(*args, **kwargs)
+        del self.fields['password']
+        self.fields['event_date'].help_text = "If known, please enter the date of the " \
+                                              "event you will be attending.  This will help us " \
+                                              "retrieve your disclaimer on the day."
+    
+    def clean(self):
+        cleaned_data = super(NonRegisteredDisclaimerForm, self).clean()
+        first_name = cleaned_data['first_name']
+        last_name = cleaned_data['last_name']
+        confirm_name = cleaned_data['confirm_name']
+        if confirm_name.lower() != '{} {}'.format(first_name.lower(), last_name.lower()):
+            self.add_error(
+                'confirm_name', 'Does not match first and last name entered on form'
+            )
+
+        event_date = self.data.get('event_date', None)
+        if event_date and self.errors.get('event_date'):
+            del self.errors['event_date']
+        if event_date:
+            try:
+                event_date = datetime.strptime(event_date, '%d %b %Y').date()
+                self.cleaned_data['event_date'] = event_date
+            except ValueError:
+                self.add_error(
+                    'event_date', 'Invalid date format.  Select from '
+                                        'the date picker or enter date in the '
+                                        'format e.g. 08 Jun 1990')
+
+        return cleaned_data
 
 
 class DataPrivacyAgreementForm(forms.Form):
