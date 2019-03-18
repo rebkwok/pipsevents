@@ -5,7 +5,8 @@ from django.contrib import admin
 from django.views.generic import RedirectView
 
 from accounts.views import custom_email_view, CustomLoginView, \
-    DisclaimerCreateView, data_privacy_policy, cookie_policy, subscribe_view
+    DisclaimerCreateView, data_privacy_policy, cookie_policy, subscribe_view, \
+    NonRegisteredDisclaimerCreateView, nonregistered_disclaimer_submitted
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -16,6 +17,14 @@ urlpatterns = [
     ),
     path(
         'cookie-policy/', cookie_policy, name='cookie_policy'
+    ),
+    path(
+        'event-disclaimer/', NonRegisteredDisclaimerCreateView.as_view(),
+        name='nonregistered_disclaimer_form'
+    ),
+    path(
+        'event-disclaimer/complete', nonregistered_disclaimer_submitted,
+        name='nonregistered_disclaimer_submitted'
     ),
     path('accounts/api/', include('accounts.api_urls')),
     path('accounts/profile/', include('accounts.urls')),

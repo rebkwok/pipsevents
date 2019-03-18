@@ -205,20 +205,14 @@ class SignedDataPrivacy(models.Model):
 
 
 @has_readonly_fields
-class OnlineDisclaimer(models.Model):
+class BaseOnlineDisclaimer(models.Model):
 
     read_only_fields = (
         'disclaimer_terms', 'medical_treatment_terms', 'over_18_statement',
         'date'
     )
-
-    user = models.ForeignKey(
-        User, related_name='online_disclaimer', on_delete=models.CASCADE
-    )
     date = models.DateTimeField(default=timezone.now)
-    date_updated = models.DateTimeField(null=True, blank=True)
 
-    name = models.CharField(max_length=255, verbose_name="full name")
     dob = models.DateField(verbose_name='date of birth')
     address = models.CharField(max_length=512)
     postcode = models.CharField(max_length=10)
@@ -269,6 +263,20 @@ class OnlineDisclaimer(models.Model):
         max_length=2048, default=OVER_18_TERMS
     )
     age_over_18_confirmed = models.BooleanField()
+
+    class Meta:
+        abstract = True
+
+
+@has_readonly_fields
+class OnlineDisclaimer(BaseOnlineDisclaimer):
+
+    user = models.ForeignKey(
+        User, related_name='online_disclaimer', on_delete=models.CASCADE
+    )
+
+    date_updated = models.DateTimeField(null=True, blank=True)
+    name = models.CharField(max_length=255, verbose_name="full name")
 
     def __str__(self):
         return '{} - {}'.format(self.user.username, self.date.astimezone(
@@ -340,3 +348,24 @@ class PrintDisclaimer(models.Model):
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_print_disclaimer_cache_key(self.user))
         super(PrintDisclaimer, self).delete(using, keep_parents)
+
+
+@has_readonly_fields
+class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    email = models.EmailField()
+    event_date = models.DateField()
+
+    class Meta:
+        verbose_name = 'Event disclaimer'
+
+    @property
+    def is_active(self):
+        # Disclaimer is active if it was created <1 yr ago
+        return (self.date + timedelta(days=365)) > timezone.now()
+
+    def __str__(self):
+        return '{} {} - {}'.format(self.first_name, self.last_name, self.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y, %H:%M'))
