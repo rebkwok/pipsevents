@@ -28,28 +28,28 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
             'booking.user', first_name='Test', last_name='User')
         mommy.make(
             OnlineDisclaimer, user=self.user_online_only,
-            date=timezone.now()-timedelta(1100) # > 3 yrs
+            date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
         self.user_print_only = mommy.make_recipe(
             'booking.user', first_name='Test', last_name='User1'
         )
         mommy.make(
             PrintDisclaimer, user=self.user_print_only,
-            date=timezone.now()-timedelta(1100) # > 3 yrs
+            date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
         self.user_both = mommy.make_recipe(
             'booking.user', first_name='Test', last_name='User2'
         )
         mommy.make(
             OnlineDisclaimer, user=self.user_both,
-            date=timezone.now()-timedelta(1100) # > 3 yrs
+            date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
         mommy.make(
             PrintDisclaimer, user=self.user_both,
-            date=timezone.now()-timedelta(1100) # > 3 yrs
+            date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
 
-    def test_disclaimers_deleted_if_more_than_3_years_old(self):
+    def test_disclaimers_deleted_if_more_than_6_years_old(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
         self.assertEqual(PrintDisclaimer.objects.count(), 2)
 
@@ -64,7 +64,7 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         ]
 
         self.assertIn(
-            'Print disclaimers more than 3 yrs old deleted for users: {}'.format(
+            'Print disclaimers more than 6 yrs old deleted for users: {}'.format(
                 ', '.join(print_users)
             ),
             activitylogs
@@ -76,13 +76,13 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         ]
 
         self.assertIn(
-            'Online disclaimers more than 3 yrs old deleted for users: {}'.format(
+            'Online disclaimers more than 6 yrs old deleted for users: {}'.format(
                 ', '.join(online_users)
             ),
             activitylogs
         )
 
-    def test_disclaimers_not_deleted_if_created_in_past_3_years(self):
+    def test_disclaimers_not_deleted_if_created_in_past_6_years(self):
         # make a user with a disclaimer created today
         user = mommy.make_recipe('booking.user')
         mommy.make(OnlineDisclaimer, user=user)
@@ -96,12 +96,12 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
-    def test_disclaimers_not_deleted_if_updated_in_past_3_years(self):
+    def test_disclaimers_not_deleted_if_updated_in_past_6_years(self):
         # make a user with a disclaimer created > yr ago but updated in past yr
         user = mommy.make_recipe('booking.user')
         mommy.make(
-            OnlineDisclaimer, user=user, date=timezone.now() - timedelta(1100),
-            date_updated=timezone.now() - timedelta(1090),
+            OnlineDisclaimer, user=user, date=timezone.now() - timedelta(2200),
+            date_updated=timezone.now() - timedelta(2000),
         )
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
         self.assertEqual(PrintDisclaimer.objects.count(), 2)

@@ -1,22 +1,16 @@
 '''
-Delete all disclaimers signed or updated > 3 yrs ago
+Delete all disclaimers signed or updated > 6 yrs ago
 ActivityLog it
 '''
 import logging
-from datetime import timedelta
 
 from django.utils import timezone
-from django.contrib.auth.models import User
-from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import get_template
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 
 from dateutil.relativedelta import relativedelta
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.email_helpers import send_support_email
 from activitylog.models import ActivityLog
 
 
@@ -29,8 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         # get relevant users
-
-        expire_date = timezone.now() - relativedelta(years=3)
+        expire_date = timezone.now() - relativedelta(years=6)
 
         old_print_disclaimers_to_delete = PrintDisclaimer.objects\
             .select_related('user').filter(date__lt=expire_date)
@@ -53,17 +46,17 @@ class Command(BaseCommand):
 
         if print_disclaimer_users:
             ActivityLog.objects.create(
-                log='Print disclaimers more than 3 yrs old deleted for '
+                log='Print disclaimers more than 6 yrs old deleted for '
                     'users: {}'.format(
                     ', '.join(print_disclaimer_users)
                 )
             )
         if online_disclaimer_users:
             ActivityLog.objects.create(
-                log='Online disclaimers more than 3 yrs old deleted for '
+                log='Online disclaimers more than 6 yrs old deleted for '
                     'users: {}'.format(
-                    ', '.join(online_disclaimer_users)
-                )
+                        ', '.join(online_disclaimer_users)
+                    )
             )
         if not print_disclaimer_users or online_disclaimer_users:
             self.stdout.write('No disclaimers to delete')
