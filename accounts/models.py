@@ -7,6 +7,8 @@ from datetime import timedelta
 
 from math import floor
 
+from dateutil.relativedelta import relativedelta
+
 from django.db import models
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -47,7 +49,6 @@ def has_readonly_fields(original_class):
     models.signals.pre_save.connect(
         check_read_only_fields, original_class, weak=False)
     return original_class
-
 
 
 DISCLAIMER_TERMS = "I recognise that I may be asked to participate in some " \
@@ -324,6 +325,18 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         # clear active cache if there is any
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_online_disclaimer_cache_key(self.user))
+        # TODO: if disclaimer is < 6 yrs old (date signed or updated), it is being
+        # delete by user request; copy data to ArchivedDisclaimer model
+        expiry = timezone.now() - relativedelta(years=6)
+        if self.date > expiry or (self.date_updated and self.date_updated > expiry):
+            ignore_fields = ['id', 'user_id', '_state']
+            fields = {key: value for key, value in self.__dict__.items() if key not in ignore_fields and not key.endswith('_oldval')}
+            ArchivedDisclaimer.objects.create(**fields)
+            ActivityLog.objects.create(
+                log="Online disclaimer deleted; archive created for user {} {}".format(
+                    self.user.first_name, self.user.last_name
+                )
+            )
         super(OnlineDisclaimer, self).delete(using, keep_parents)
 
 
@@ -369,3 +382,32 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
         return '{} {} - {}'.format(self.first_name, self.last_name, self.date.astimezone(
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M'))
+
+    def delete(self, using=None, keep_parents=False):
+        expiry = timezone.now() - relativedelta(years=6)
+        if self.date > expiry or (self.date_updated and self.date_updated > expiry):
+            ignore_fields = ['id', '_state', 'first_name', 'last_name', 'email']
+            fields = {key: value for key, value in self.__dict__.items() if key not in ignore_fields and not key.endswith('_oldval')}
+
+            ArchivedDisclaimer.objects.create(name='{} {}'.format(self.first_name, self.laste_name), **fields)
+            ActivityLog.objects.create(
+                log="Event disclaimer < 6years old deleted; archive created for user {} {}".format(
+                    self.user.first_name, self.user.last_name
+                )
+            )
+        super().delete(using=using, keep_parents=keep_parents)
+
+
+class ArchivedDisclaimer(BaseOnlineDisclaimer):
+
+    name = models.CharField(max_length=255)
+    date_updated = models.DateTimeField(null=True, blank=True)
+    date_archived = models.DateTimeField(default=timezone.now)
+    event_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return '{} - {} (archived {})'.format(
+            self.name,
+            self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'),
+            self.date_archived.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
+        )
