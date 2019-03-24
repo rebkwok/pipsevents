@@ -76,6 +76,9 @@
                         <span class="sidebar_active">Bulk email</span>{% else %}Bulk email{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:mailing_list' %}">{% if sidenav_selection == 'mailing_list' %}
                         <span class="sidebar_active">Mailing list</span>{% else %}Mailing list{% endif %}</a></li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'users' %}
+                        <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
+
                 </ul>
             </li>
 
@@ -115,6 +118,8 @@
         <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
     <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
+    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'users' %}
+        <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
 {% endif %}
 {% endblock %}
 
@@ -256,6 +261,9 @@
                         <span class="sidebar_active">Bulk email</span>{% else %}Bulk email{% endif %}</a></li>
                         <li class="active-nav"><a href="{% url 'studioadmin:mailing_list' %}">{% if sidenav_selection == 'mailing_list' %}
                         <span class="sidebar_active">Mailing list</span>{% else %}Mailing list{% endif %}</a></li>
+                        <li class="active-nav"><a href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'users' %}
+                        <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
+
                     </span>
 
                     <li class="sidebar-title">

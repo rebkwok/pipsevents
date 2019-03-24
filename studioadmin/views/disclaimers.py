@@ -1,19 +1,22 @@
+import datetime
 import logging
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 from django.contrib import messages
+from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.urls import reverse
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404, Http404
-from django.views.generic import UpdateView, DeleteView
+from django.views.generic import UpdateView, DeleteView, ListView
 from django.utils import timezone
 
-from accounts.models import OnlineDisclaimer
-from studioadmin.forms import StudioadminDisclaimerForm
+from accounts.models import OnlineDisclaimer, NonRegisteredDisclaimer
+from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm
 from studioadmin.utils import str_int, dechaffify
-from studioadmin.views.helpers import is_instructor_or_staff, StaffUserMixin
+from studioadmin.views.helpers import is_instructor_or_staff, \
+    InstructorOrStaffUserMixin, StaffUserMixin
 
 from activitylog.models import ActivityLog
 
@@ -138,3 +141,54 @@ class DisclaimerDeleteView(StaffUserMixin, DeleteView):
             )
         )
         return reverse('studioadmin:users')
+
+
+class NonRegisteredDisclaimersListView(InstructorOrStaffUserMixin, ListView):
+
+    model = NonRegisteredDisclaimer
+    fields = '__all__'
+    template_name = 'studioadmin/non_registered_disclaimer_list.html'
+    context_object_name = 'disclaimers'
+    paginate_by = 30
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        reset = self.request.GET.get('reset')
+        search_submitted = self.request.GET.get('search_submitted')
+        search_text = self.request.GET.get('search')
+        search_date = self.request.GET.get('search_date')
+        if reset or (search_submitted and not search_text and not search_date) or (not reset and not search_submitted):
+            pass
+        else:
+            if search_text:
+                queryset = queryset.annotate(search=SearchVector('first_name', 'last_name')).filter(search=search_text)
+            if search_date:
+                search_date = datetime.datetime.strptime(search_date, '%d-%b-%Y').date()
+                queryset = queryset.filter(event_date=search_date)
+        return queryset
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        context['sidenav_selection'] = 'users'
+        context['search_submitted'] = self.request.GET.get('search_submitted')
+        search_date = self.request.GET.get('search_date', '')
+        search_text = self.request.GET.get('search',  '')
+        reset = self.request.GET.get('reset')
+
+        if reset:
+            search_text = ''
+        form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date})
+        context['form'] = form
+        return context
+
+
+@login_required
+@is_instructor_or_staff
+def nonregistered_disclaimer(request, user_uuid):
+    disclaimer = get_object_or_404(NonRegisteredDisclaimer, user_uuid=user_uuid)
+
+    ctx = {'disclaimer': disclaimer}
+
+    return TemplateResponse(
+        request, "studioadmin/non_registered_disclaimer.html", ctx
+    )

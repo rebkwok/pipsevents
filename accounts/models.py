@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
 import logging
 import pytz
+import uuid
 
 from datetime import timedelta
 
@@ -369,6 +369,7 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
     last_name = models.CharField(max_length=255)
     email = models.EmailField()
     event_date = models.DateField()
+    user_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     class Meta:
         verbose_name = 'Event disclaimer'
@@ -386,7 +387,7 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
     def delete(self, using=None, keep_parents=False):
         expiry = timezone.now() - relativedelta(years=6)
         if self.date > expiry or (self.date_updated and self.date_updated > expiry):
-            ignore_fields = ['id', '_state', 'first_name', 'last_name', 'email']
+            ignore_fields = ['id', '_state', 'first_name', 'last_name', 'email', 'user_uuid']
             fields = {key: value for key, value in self.__dict__.items() if key not in ignore_fields and not key.endswith('_oldval')}
 
             ArchivedDisclaimer.objects.create(name='{} {}'.format(self.first_name, self.laste_name), **fields)

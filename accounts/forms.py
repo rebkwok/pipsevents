@@ -328,7 +328,7 @@ class NonRegisteredDisclaimerForm(DisclaimerForm):
         kwargs['user'] = None
         super().__init__(*args, **kwargs)
         del self.fields['password']
-        self.fields['event_date'].help_text = "If known, please enter the date of the " \
+        self.fields['event_date'].help_text = "Please enter the date of the " \
                                               "event you will be attending.  This will help us " \
                                               "retrieve your disclaimer on the day."
     

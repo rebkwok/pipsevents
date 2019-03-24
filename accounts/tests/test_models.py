@@ -122,7 +122,7 @@ class DisclaimerModelTests(TestCase):
         disclaimer = mommy.make(
             OnlineDisclaimer, name='Test 1',
             date=timezone.now() - timedelta(2200),
-            date_update=timezone.now() - timedelta(1000)
+            date_updated=timezone.now() - timedelta(1000)
         )
         disclaimer.delete()
         # no archive created

@@ -1,0 +1,87 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+
+        <h2>Event Disclaimers</h2>
+
+        <div class=row>
+            <div class="col-sm-12">
+            <form action="" method="get">
+                {{ form.search }} {{ form.search_date }}
+                <input class="btn btn-info table-btn" type="submit" name='search_submitted' value="Search" />
+                <input class="btn btn-info table-btn" type="submit" name='reset' value="Reset" /><br/>
+            </form>
+        </div>
+
+
+
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-success">
+
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="table-center">First Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Email</th>
+                                <th class="table-center">Event Date <span class="fa fa-sort"></span></th>
+                                <th class="table-center">Medical conditions</th>
+                                <th class="table-center">Joint problems</th>
+                                <th class="table-center">Allergies</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for disclaimer in disclaimers %}
+                            <tr>
+                                <td class="table-center studioadmin-tbl">{{ disclaimer.first_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl">{{ disclaimer.last_name|abbr_name }}</td>
+                                <td class="table-center studioadmin-tbl"><a href="mailto:{{ disclaimer.email }}" target="_blank">{{ disclaimer.email|abbr_email }}</a></td>
+                                <td class="table-center studioadmin-tbl"><span style="display: none;">{{ disclaimer.event_date | date:"Ymd"}}</span>{{ disclaimer.event_date | date:"D d M Y" }}</td>
+                                <td class="table-center studioadmin-tbl">{{ disclaimer.medical_conditions | yesno | title }}</td>
+                                <td class="table-center studioadmin-tbl">{{ disclaimer.join_problems | yesno | title }}</td>
+                                <td class="table-center studioadmin-tbl">{{ disclaimer.allergies | yesno | title }}</td>
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:event_disclaimer' disclaimer.user_uuid%}">View details</a></td>
+                            </tr>
+                            {% endfor %}
+
+                            {% if is_paginated %}
+                                <tr>
+                                    <td class="studioadmin-tbl" colspan="8">
+                                            <div class="pagination">
+                                                {% if page_obj.has_previous %}
+                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                                                {% else %}
+                                                    <a class="disabled" disabled=disabled href="#">Previous</a>
+                                                {% endif %}
+                                                <span class="page-current">
+                                                    --  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} --
+                                                </span>
+                                                {% if page_obj.has_next %}
+                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                                                {% else %}
+                                                    <a class="disabled" href="#">Next</a>
+                                                {% endif %}
+                                            </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+         </div>
+
+    </div>
+
+{% endblock studioadmincontent %}
