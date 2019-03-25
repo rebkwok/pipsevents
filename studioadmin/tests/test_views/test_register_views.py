@@ -98,6 +98,13 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(len(resp.context_data['events']), 4)
 
+    def test_event_register_list_shows_todays_events(self):
+        mommy.make_recipe('booking.future_EV', _quantity=4)
+        mommy.make_recipe('booking.past_event', _quantity=4)
+        past_today = mommy.make_recipe('booking.past_event', date=timezone.now().replace(hour=0, minute=1))
+        resp = self._get_response(self.staff_user, 'events')
+        self.assertEquals(len(resp.context_data['events']), 5)
+
     def test_event_register_list_shows_events_only(self):
         mommy.make_recipe('booking.future_EV', _quantity=4)
         mommy.make_recipe('booking.future_PC', _quantity=5)

@@ -537,15 +537,11 @@ class EventRegisterListView(
     context_object_name = 'events'
 
     def get_queryset(self):
+        today = timezone.now().replace(hour=0, minute=0)
         if self.kwargs["ev_type"] == 'events':
-            queryset = Event.objects.filter(
-                event_type__event_type='EV',
-                date__gte=timezone.now() - timedelta(hours=1)
-            ).order_by('date')
+            queryset = Event.objects.filter(event_type__event_type='EV', date__gte=today).order_by('date')
         else:
-            queryset = Event.objects.filter(
-                date__gte=timezone.now() - timedelta(hours=1)
-            ).exclude(event_type__event_type='EV').order_by('date')
+            queryset = Event.objects.filter(date__gte=today).exclude(event_type__event_type='EV').order_by('date')
         return queryset
 
     def get_context_data(self, **kwargs):
