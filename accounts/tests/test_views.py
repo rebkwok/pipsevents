@@ -6,6 +6,7 @@ from unittest.mock import call, Mock
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core import mail
 from django.urls import reverse
 from django.test import TestCase, override_settings
 
@@ -606,6 +607,17 @@ class NonRegisteredDisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('nonregistered_disclaimer_submitted'))
 
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 1)
+        # email sent to email address in form
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['test@test.com'])
+
+
+class NonRegisteredDisclaimerSubmittedTests(TestCase):
+
+    def test_get_non_registered_disclaimer_submitted_view(self):
+        # no need to be a logged in user to access
+        resp = self.client.get(reverse('nonregistered_disclaimer_submitted'))
+        self.assertEqual(resp.status_code, 200)
 
 
 class DataPrivacyViewTests(TestCase):
