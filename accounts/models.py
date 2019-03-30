@@ -386,14 +386,14 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
 
     def delete(self, using=None, keep_parents=False):
         expiry = timezone.now() - relativedelta(years=6)
-        if self.date > expiry or (self.date_updated and self.date_updated > expiry):
+        if self.date > expiry:
             ignore_fields = ['id', '_state', 'first_name', 'last_name', 'email', 'user_uuid']
             fields = {key: value for key, value in self.__dict__.items() if key not in ignore_fields and not key.endswith('_oldval')}
 
-            ArchivedDisclaimer.objects.create(name='{} {}'.format(self.first_name, self.laste_name), **fields)
+            ArchivedDisclaimer.objects.create(name='{} {}'.format(self.first_name, self.last_name), **fields)
             ActivityLog.objects.create(
                 log="Event disclaimer < 6years old deleted; archive created for user {} {}".format(
-                    self.user.first_name, self.user.last_name
+                    self.first_name, self.last_name
                 )
             )
         super().delete(using=using, keep_parents=keep_parents)

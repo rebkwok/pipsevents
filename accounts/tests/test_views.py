@@ -12,7 +12,7 @@ from django.test import TestCase, override_settings
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp, SocialAccount
 
-from ..models import DataPrivacyPolicy, OnlineDisclaimer, SignedDataPrivacy
+from ..models import DataPrivacyPolicy, OnlineDisclaimer, NonRegisteredDisclaimer
 from ..utils import has_active_data_privacy_agreement
 from ..views import ProfileUpdateView, profile, DisclaimerCreateView
 from common.tests.helpers import _create_session, Any, \
@@ -566,6 +566,46 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         user.save()
         self._post_response(user, self.form_data)
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+
+
+class NonRegisteredDisclaimerCreateViewTests(TestSetupMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.form_data = {
+            'first_name': 'test',
+            'last_name': 'user',
+            'email': 'test@test.com',
+            'event_date': '01 Mar 2019',
+            'dob': '01 Jan 1990', 'address': '1 test st',
+            'postcode': 'TEST1', 'home_phone': '123445', 'mobile_phone': '124566',
+            'emergency_contact1_name': 'test1',
+            'emergency_contact1_relationship': 'mother',
+            'emergency_contact1_phone': '4547',
+            'emergency_contact2_name': 'test2',
+            'emergency_contact2_relationship': 'father',
+            'emergency_contact2_phone': '34657',
+            'medical_conditions': False, 'medical_conditions_details': '',
+            'joint_problems': False, 'joint_problems_details': '',
+            'allergies': False, 'allergies_details': '',
+            'medical_treatment_permission': True,
+            'terms_accepted': True,
+            'age_over_18_confirmed': True,
+            'confirm_name': 'test user'
+        }
+        self.url = reverse('nonregistered_disclaimer_form')
+
+    def test_login_not_required(self):
+        resp = self.client.get(self.url)
+        resp.status_code = 200
+
+    def test_submitting_form_creates_disclaimer_and_redirects(self):
+        self.assertEqual(NonRegisteredDisclaimer.objects.count(), 0)
+        resp = self.client.post(self.url, self.form_data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('nonregistered_disclaimer_submitted'))
+
+        self.assertEqual(NonRegisteredDisclaimer.objects.count(), 1)
 
 
 class DataPrivacyViewTests(TestCase):
