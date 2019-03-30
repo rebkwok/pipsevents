@@ -314,13 +314,25 @@ class NonRegisteredDisclaimerFormTests(TestSetupMixin, TestCase):
             ]}
         )
 
-    def test_invalid_date_format(self):
+    def test_invalid_dob_date_format(self):
         self.form_data['dob'] = '32 Jan 2015'
         form = NonRegisteredDisclaimerForm(data=self.form_data)
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
             {'dob': [
+                'Invalid date format.  Select from the date picker or enter '
+                'date in the format e.g. 08 Jun 1990'
+            ]}
+        )
+
+    def test_invalid_event_date_format(self):
+        self.form_data['event_date'] = '30 January 2015'
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'event_date': [
                 'Invalid date format.  Select from the date picker or enter '
                 'date in the format e.g. 08 Jun 1990'
             ]}
