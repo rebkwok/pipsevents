@@ -133,6 +133,24 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
+    def test_no_disclaimers_to_delete(self):
+        for disclaimer_list in [
+            OnlineDisclaimer.objects.all(), PrintDisclaimer.objects.all(),
+            ArchivedDisclaimer.objects.all(), NonRegisteredDisclaimer.objects.all()
+        ]:
+            for disclaimer in disclaimer_list:
+                if hasattr(disclaimer, 'date_updated'):
+                    disclaimer.date_updated = timezone.now() - timedelta(600)
+                    disclaimer.save()
+                else:
+                    disclaimer.delete()
+
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+        self.assertEqual(ArchivedDisclaimer.objects.count(), 1)
+        self.assertEqual(NonRegisteredDisclaimer.objects.count(), 0)
+
 
 @override_settings(LOG_FOLDER=os.path.dirname(__file__))
 class ExportDisclaimersTests(TestCase):

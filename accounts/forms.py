@@ -336,10 +336,11 @@ class NonRegisteredDisclaimerForm(DisclaimerForm):
         cleaned_data = super(NonRegisteredDisclaimerForm, self).clean()
         first_name = cleaned_data['first_name']
         last_name = cleaned_data['last_name']
-        confirm_name = cleaned_data['confirm_name']
-        if confirm_name.lower() != '{} {}'.format(first_name.lower(), last_name.lower()):
+        confirm_name = cleaned_data['confirm_name'].strip()
+        if confirm_name != '{} {}'.format(first_name, last_name):
             self.add_error(
-                'confirm_name', 'Does not match first and last name entered on form'
+                'confirm_name', 'Please enter your first and last name exactly as on '
+                                'the form (case sensitive) to confirm.'
             )
 
         event_date = self.data.get('event_date', None)

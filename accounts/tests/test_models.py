@@ -128,6 +128,35 @@ class DisclaimerModelTests(TestCase):
         # no archive created
         self.assertTrue(ArchivedDisclaimer.objects.exists())
 
+    def test_nonregistered_disclaimer_is_active(self):
+        disclaimer = mommy.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        self.assertTrue(disclaimer.is_active)
+
+        old_disclaimer = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User',
+            date=timezone.now() - timedelta(367),
+        )
+        self.assertFalse(old_disclaimer.is_active)
+
+    def test_delete_nonregistered_disclaimer(self):
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+        disclaimer = mommy.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        disclaimer.delete()
+
+        self.assertTrue(ArchivedDisclaimer.objects.exists())
+        archived = ArchivedDisclaimer.objects.first()
+        self.assertEqual(archived.name, '{} {}'.format(disclaimer.first_name, disclaimer.last_name))
+        self.assertEqual(archived.date, disclaimer.date)
+
+    def test_delete_nonregistered_disclaimer_older_than_6_yrs(self):
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+        # disclaimer created > 6yrs ago
+        disclaimer = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User', date=timezone.now() - timedelta(2200))
+        disclaimer.delete()
+        # no archive created
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+
 
 class DataPrivacyPolicyModelTests(TestCase):
 

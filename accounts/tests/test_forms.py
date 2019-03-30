@@ -7,8 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.admin import CookiePolicyAdminForm, DataPrivacyPolicyAdminForm
-from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm
-from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer
+from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm, NonRegisteredDisclaimerForm
+from accounts.models import CookiePolicy, DataPrivacyPolicy, NonRegisteredDisclaimer, OnlineDisclaimer
 from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
@@ -232,6 +232,151 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
 
         # terms accepted NOT set to expired
         self.assertIsNone(form.fields['terms_accepted'].initial)
+
+
+class NonRegisteredDisclaimerFormTests(TestSetupMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.form_data = {
+            'first_name': 'test',
+            'last_name': 'user',
+            'email': 'test@test.com',
+            'event_date': '01 Mar 2019',
+            'dob': '01 Jan 1990', 'address': '1 test st',
+            'postcode': 'TEST1', 'home_phone': '123445', 'mobile_phone': '124566',
+            'emergency_contact1_name': 'test1',
+            'emergency_contact1_relationship': 'mother',
+            'emergency_contact1_phone': '4547',
+            'emergency_contact2_name': 'test2',
+            'emergency_contact2_relationship': 'father',
+            'emergency_contact2_phone': '34657',
+            'medical_conditions': False, 'medical_conditions_details': '',
+            'joint_problems': False, 'joint_problems_details': '',
+            'allergies': False, 'allergies_details': '',
+            'medical_treatment_permission': True,
+            'terms_accepted': True,
+            'age_over_18_confirmed': True,
+            'confirm_name': 'test user'
+        }
+
+    def test_no_password_field(self):
+        form = NonRegisteredDisclaimerForm()
+        self.assertNotIn('password', form.fields)
+
+    def test_disclaimer_form(self):
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_custom_validators(self):
+        self.form_data['terms_accepted'] = False
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'terms_accepted': [
+                'You must confirm that you accept the disclaimer terms'
+            ]}
+        )
+
+        self.form_data['terms_accepted'] = True
+        self.form_data['age_over_18_confirmed'] = False
+
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'age_over_18_confirmed': [
+                'You must confirm that you are over 18'
+            ]}
+        )
+
+        self.form_data['age_over_18_confirmed'] = True
+        self.form_data['medical_treatment_permission'] = False
+        form = NonRegisteredDisclaimerForm(data=self.form_data,)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'medical_treatment_permission': [
+                'You must confirm that you give permission for medical '
+                'treatment in the event of an accident'
+            ]}
+        )
+
+    def test_under_18(self):
+        self.form_data['dob'] = '01 Jan 2015'
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'dob': [
+                'You must be over 18 years in order to register'
+            ]}
+        )
+
+    def test_invalid_date_format(self):
+        self.form_data['dob'] = '32 Jan 2015'
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'dob': [
+                'Invalid date format.  Select from the date picker or enter '
+                'date in the format e.g. 08 Jun 1990'
+            ]}
+        )
+
+    def test_medical_conditions_without_details(self):
+        self.form_data['medical_conditions'] = True
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'medical_conditions_details': [
+                'Please provide details of medical conditions'
+            ]}
+        )
+
+    def test_joint_problems_without_details(self):
+        self.form_data['joint_problems'] = True
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'joint_problems_details': [
+                'Please provide details of knee/back/shoulder/ankle/hip/neck '
+                'problems'
+            ]}
+        )
+
+    def test_allergies_without_details(self):
+        self.form_data['allergies'] = True
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {'allergies_details': [
+                'Please provide details of allergies'
+            ]}
+        )
+
+    def test_mismatched_confirm_name(self):
+        # name must match exactly, including case
+        self.form_data['confirm_name'] = 'Test user'
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors,
+            {
+                'confirm_name':
+                    ['Please enter your first and last name exactly as on the form (case sensitive) to confirm.']
+            }
+        )
+
+        # surrounding whitespace is ignored
+        self.form_data['confirm_name'] = ' test user '
+        form = NonRegisteredDisclaimerForm(data=self.form_data)
+        self.assertTrue(form.is_valid())
 
 
 class DataPrivacyAgreementFormTests(TestCase):
