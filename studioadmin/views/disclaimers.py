@@ -3,14 +3,15 @@ import logging
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-
 from django.contrib import messages
-from django.contrib.postgres.search import SearchQuery, SearchVector
+from django.db.models import Q
 from django.urls import reverse
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404, Http404
 from django.views.generic import UpdateView, DeleteView, ListView
 from django.utils import timezone
+
+from braces.views import LoginRequiredMixin
 
 from accounts.models import OnlineDisclaimer, NonRegisteredDisclaimer
 from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm
@@ -143,13 +144,14 @@ class DisclaimerDeleteView(StaffUserMixin, DeleteView):
         return reverse('studioadmin:users')
 
 
-class NonRegisteredDisclaimersListView(InstructorOrStaffUserMixin, ListView):
+class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
 
     model = NonRegisteredDisclaimer
     fields = '__all__'
     template_name = 'studioadmin/non_registered_disclaimer_list.html'
     context_object_name = 'disclaimers'
     paginate_by = 30
+    ordering = ['-event_date']
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -161,7 +163,9 @@ class NonRegisteredDisclaimersListView(InstructorOrStaffUserMixin, ListView):
             pass
         else:
             if search_text:
-                queryset = queryset.annotate(search=SearchVector('first_name', 'last_name')).filter(search=search_text)
+                queryset = queryset.filter(
+                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text)
+                )
             if search_date:
                 search_date = datetime.datetime.strptime(search_date, '%d-%b-%Y').date()
                 queryset = queryset.filter(event_date=search_date)
@@ -177,6 +181,7 @@ class NonRegisteredDisclaimersListView(InstructorOrStaffUserMixin, ListView):
 
         if reset:
             search_text = ''
+            search_date = ''
         form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date})
         context['form'] = form
         return context
