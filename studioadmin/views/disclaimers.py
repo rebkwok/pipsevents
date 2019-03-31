@@ -152,16 +152,32 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
     context_object_name = 'disclaimers'
     paginate_by = 30
     ordering = ['-event_date']
+    search_data = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            if 'reset' in self.request.POST:
+                kwargs['search_data'] = {}
+            elif 'search_submitted' in self.request.POST and not (self.request.POST.get('search') or self.request.POST.get('search_date')):
+                # search_submitted but no search terms
+                kwargs['search_data'] = {}
+            else:
+                kwargs['search_data'] = {
+                    'search_text': self.request.POST.get('search'),
+                    'search_date': self.request.POST.get('search_date'),
+                }
+            return self.get(request, *args, **kwargs)
+        return super(NonRegisteredDisclaimersListView, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        self.search_data = kwargs.pop('search_data', {})
+        return super(NonRegisteredDisclaimersListView, self).get(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        reset = self.request.GET.get('reset')
-        search_submitted = self.request.GET.get('search_submitted')
-        search_text = self.request.GET.get('search')
-        search_date = self.request.GET.get('search_date')
-        if reset or (search_submitted and not search_text and not search_date) or (not reset and not search_submitted):
-            pass
-        else:
+        if self.search_data:
+            search_text = self.search_data.get('search_text')
+            search_date = self.search_data.get('search_date')
             if search_text:
                 queryset = queryset.filter(
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text)
@@ -174,15 +190,12 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
     def get_context_data(self):
         context = super().get_context_data()
         context['sidenav_selection'] = 'users'
-        context['search_submitted'] = self.request.GET.get('search_submitted')
-        search_date = self.request.GET.get('search_date', '')
-        search_text = self.request.GET.get('search',  '')
-        reset = self.request.GET.get('reset')
-
-        if reset:
-            search_text = ''
-            search_date = ''
-        form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date})
+        if self.search_data:
+            search_date = self.search_data.get('search_date', '')
+            search_text = self.search_data.get('search_text',  '')
+            form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date})
+        else:
+            form = DisclaimerUserListSearchForm()
         context['form'] = form
         return context
 

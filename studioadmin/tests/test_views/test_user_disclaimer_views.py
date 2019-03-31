@@ -357,7 +357,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
     def test_disclaimer_name_search(self):
         self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(self.url + '?search_submitted=search&search=AUser')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
         disclaimers = resp.context_data['disclaimers']
         self.assertEqual(
             [disclaimer.id for disclaimer in disclaimers],
@@ -366,7 +366,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
     def test_disclaimer_date_search(self):
         self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(self.url + '?search_submitted=search&search_date=07-Mar-2019')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '07-Mar-2019'})
         disclaimers = resp.context_data['disclaimers']
         self.assertEqual(
             [disclaimer.id for disclaimer in disclaimers],
@@ -375,7 +375,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
     def test_disclaimer_reset_search(self):
         self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(self.url + '?search_submitted=search&search_date=07-Mar-2019%search=foo&reset=reset')
+        resp = self.client.post(self.url, {'reset': '', 'search_date': '07-Mar-2019', 'search': 'foo'})
         disclaimers = resp.context_data['disclaimers']
         self.assertEqual(
             [disclaimer.id for disclaimer in disclaimers],
@@ -384,7 +384,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
     def test_disclaimer_search_submitted_no_search_terms(self):
         self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(self.url + '?search_submitted=search')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '', 'search': ''})
         disclaimers = resp.context_data['disclaimers']
         self.assertEqual(
             [disclaimer.id for disclaimer in disclaimers],
