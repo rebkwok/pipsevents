@@ -1,10 +1,12 @@
 import datetime
+from unittest.mock import patch
 
 from model_mommy import mommy
 
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.utils import timezone
 
 from accounts.models import NonRegisteredDisclaimer, OnlineDisclaimer
 from common.tests.helpers import _create_session, format_content
@@ -346,16 +348,25 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
-    def test_all_disclaimers_shown_in_reverse_event_date_order(self):
+    def test_only_future_event_dates_shown_by_default(self):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.get(self.url)
         disclaimers = resp.context_data['disclaimers']
+        self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_all_disclaimers_shown_in_reverse_event_date_order(self, mock_now):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        disclaimers = resp.context_data['disclaimers']
+
         self.assertEqual(
             [disclaimer.id for disclaimer in disclaimers],
             [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
         )
 
-    def test_disclaimer_name_search(self):
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_name_search(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
         disclaimers = resp.context_data['disclaimers']
@@ -364,7 +375,21 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer2.id, self.disclaimer1.id]
         )
 
-    def test_disclaimer_date_search(self):
+    def test_disclaimer_name_search_including_past_events(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser', 'hide_past': True})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
+
+        resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer2.id, self.disclaimer1.id]
+        )
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_date_search(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '07-Mar-2019'})
         disclaimers = resp.context_data['disclaimers']
@@ -373,7 +398,8 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer2.id, self.disclaimer3.id]
         )
 
-    def test_disclaimer_reset_search(self):
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_reset_search(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'reset': '', 'search_date': '07-Mar-2019', 'search': 'foo'})
         disclaimers = resp.context_data['disclaimers']
@@ -382,7 +408,8 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
         )
 
-    def test_disclaimer_search_submitted_no_search_terms(self):
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_search_submitted_no_search_terms(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '', 'search': ''})
         disclaimers = resp.context_data['disclaimers']

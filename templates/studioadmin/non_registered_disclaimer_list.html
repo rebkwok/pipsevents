@@ -15,6 +15,7 @@
                 {{ form.search }} {{ form.search_date }}
                 <button class="btn btn-info table-btn" type="submit" name='search_submitted'>Search</button>
                 <button class="btn btn-info table-btn" type="submit" name='reset'>Reset</button><br/>
+                {{ form.hide_past }}<label for='id_hide_past'></label> <span class='studioadmincbox-help'> {{ form.hide_past.label }}</span><br/>
             </form>
         </div>
 
