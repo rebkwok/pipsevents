@@ -189,7 +189,7 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
 
     def get_context_data(self):
         context = super().get_context_data()
-        context['sidenav_selection'] = 'users'
+        context['sidenav_selection'] = 'event_disclaimers'
         if self.search_data:
             search_date = self.search_data.get('search_date', '')
             search_text = self.search_data.get('search_text',  '')

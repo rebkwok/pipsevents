@@ -455,6 +455,11 @@ class MailingListView(LoginRequiredMixin, StaffUserMixin, ListView):
     template_name = 'studioadmin/mailing_list.html'
     context_object_name = 'users'
 
+    def get_context_data(self):
+        context_data = super().get_context_data()
+        context_data['sidenav_selection'] = 'mailing_list'
+        return context_data
+
     def get_queryset(self, **kwargs):
         group, _ = Group.objects.get_or_create(name='subscribed')
         return group.user_set.all().order_by('first_name', 'last_name')
