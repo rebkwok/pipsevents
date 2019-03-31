@@ -152,50 +152,51 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
     context_object_name = 'disclaimers'
     paginate_by = 30
     ordering = ['-event_date']
-    search_data = None
+    search_data = {'hide_past': True}
 
     def dispatch(self, request, *args, **kwargs):
         if request.method == 'POST':
             if 'reset' in self.request.POST:
-                kwargs['search_data'] = {}
+                kwargs['search_data'] = self.search_data
             elif 'search_submitted' in self.request.POST and not (self.request.POST.get('search') or self.request.POST.get('search_date')):
-                # search_submitted but no search terms
-                kwargs['search_data'] = {}
+                # search_submitted but no search terms, just get the hide_post option
+                kwargs['search_data'] = {'hide_past': self.request.POST.get('hide_past')}
             else:
                 kwargs['search_data'] = {
                     'search_text': self.request.POST.get('search'),
                     'search_date': self.request.POST.get('search_date'),
+                    'hide_past': self.request.POST.get('hide_past')
                 }
             return self.get(request, *args, **kwargs)
         return super(NonRegisteredDisclaimersListView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        self.search_data = kwargs.pop('search_data', {})
+        self.search_data = kwargs.pop('search_data', self.search_data)
         return super(NonRegisteredDisclaimersListView, self).get(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.search_data:
-            search_text = self.search_data.get('search_text')
-            search_date = self.search_data.get('search_date')
-            if search_text:
-                queryset = queryset.filter(
-                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text)
-                )
-            if search_date:
-                search_date = datetime.datetime.strptime(search_date, '%d-%b-%Y').date()
-                queryset = queryset.filter(event_date=search_date)
+        hide_past = self.search_data.get('hide_past')
+        if hide_past:
+            queryset = queryset.filter(event_date__gte=timezone.now().date())
+        search_text = self.search_data.get('search_text')
+        search_date = self.search_data.get('search_date')
+        if search_text:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text)
+            )
+        if search_date:
+            search_date = datetime.datetime.strptime(search_date, '%d-%b-%Y').date()
+            queryset = queryset.filter(event_date=search_date)
         return queryset
 
     def get_context_data(self):
         context = super().get_context_data()
         context['sidenav_selection'] = 'event_disclaimers'
-        if self.search_data:
-            search_date = self.search_data.get('search_date', '')
-            search_text = self.search_data.get('search_text',  '')
-            form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date})
-        else:
-            form = DisclaimerUserListSearchForm()
+        hide_past = self.search_data.get('hide_past', '')
+        search_date = self.search_data.get('search_date', '')
+        search_text = self.search_data.get('search_text',  '')
+        form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date, 'hide_past': hide_past})
         context['form'] = form
         return context
 

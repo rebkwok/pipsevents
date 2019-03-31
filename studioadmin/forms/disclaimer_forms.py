@@ -35,3 +35,9 @@ class DisclaimerUserListSearchForm(forms.Form):
         ),
         required=False
     )
+    hide_past = forms.BooleanField(
+        label="Hide disclaimers for past events",
+        initial=True,
+        required=False,
+        widget=forms.CheckboxInput(attrs={'onclick': 'this.form.submit();', 'class': "regular-checkbox",})
+    )

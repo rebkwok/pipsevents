@@ -759,5 +759,3 @@ class EditBookingForm(EditPastBookingForm):
             required=False,
             empty_label="--------None--------"
         ))
-
-
