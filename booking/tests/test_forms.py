@@ -312,8 +312,8 @@ class AdminFormsTests(PatchRequestMixin, TestCase):
         self.assertEqual(Block.objects.count(), 3)
         self.assertEqual(block_field.queryset.count(), 2)
         self.assertEqual(
-            [bl.id for bl in block_field.queryset],
-            [block.id, block1.id]
+            sorted([bl.id for bl in block_field.queryset]),
+            sorted([block.id, block1.id])
         )
 
     def test_block_admin_form_user_display(self):
