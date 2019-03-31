@@ -10,10 +10,11 @@
 
         <div class=row>
             <div class="col-sm-12">
-            <form action="" method="get">
+            <form action="" method="post">
+                {% csrf_token %}
                 {{ form.search }} {{ form.search_date }}
-                <input class="btn btn-info table-btn" type="submit" name='search_submitted' value="Search" />
-                <input class="btn btn-info table-btn" type="submit" name='reset' value="Reset" /><br/>
+                <button class="btn btn-info table-btn" type="submit" name='search_submitted'>Search</button>
+                <button class="btn btn-info table-btn" type="submit" name='reset'>Reset</button><br/>
             </form>
         </div>
 
