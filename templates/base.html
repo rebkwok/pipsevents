@@ -136,7 +136,7 @@
         {% block sale %}{% sale_text %}{% endblock sale %}
 
     {% block perm_banner %}
-        {% if user.is_anonymous %}
+        {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
           <div id="message-row"  class="row">
             <div class="col-xs-12">
                 <div class="message alert alert-info">
