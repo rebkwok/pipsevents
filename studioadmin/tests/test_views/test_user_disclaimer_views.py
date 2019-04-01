@@ -310,7 +310,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         super().setUp()
         self.disclaimer1 = mommy.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser',
-            event_date=datetime.date(2019, 3, 6)
+            event_date=datetime.date(2019, 3, 8)
         )
         self.disclaimer2 =  mommy.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser1',
@@ -322,7 +322,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         )
         self.disclaimer4 = mommy.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='CUser',
-            event_date=datetime.date(2019, 3, 8)
+            event_date=datetime.date(2019, 3, 6)
         )
         self.url = reverse('studioadmin:event_disclaimers')
 
@@ -355,7 +355,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
 
     @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
-    def test_all_disclaimers_shown_in_reverse_event_date_order(self, mock_now):
+    def test_all_disclaimers_shown_in_ascending_event_date_order(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.get(self.url)
         disclaimers = resp.context_data['disclaimers']
@@ -388,8 +388,8 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer2.id, self.disclaimer1.id]
         )
 
-    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
-    def test_disclaimer_date_search(self, mock_now):
+    def test_disclaimer_date_search(self):
+        # date search ignores the hide_past filter
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '07-Mar-2019'})
         disclaimers = resp.context_data['disclaimers']
