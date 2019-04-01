@@ -353,6 +353,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.url)
         disclaimers = resp.context_data['disclaimers']
         self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
+        self.assertEqual(resp.context_data['empty_search_message'], 'No disclaimers found.')
 
     @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
     def test_all_disclaimers_shown_in_ascending_event_date_order(self, mock_now):
@@ -380,6 +381,10 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser', 'hide_past': True})
         disclaimers = resp.context_data['disclaimers']
         self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
+        self.assertEqual(
+            resp.context_data['empty_search_message'],
+            'No disclaimers found; you may want to try searching in past events.'
+        )
 
         resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
         disclaimers = resp.context_data['disclaimers']

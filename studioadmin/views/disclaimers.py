@@ -200,6 +200,12 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
         search_text = self.search_data.get('search_text',  '')
         form = DisclaimerUserListSearchForm(initial={'search': search_text, 'search_date': search_date, 'hide_past': hide_past})
         context['form'] = form
+
+        if not context['disclaimers']:
+            context['empty_search_message'] = 'No disclaimers found.'
+            if search_text and hide_past and not search_date:
+                context['empty_search_message'] = 'No disclaimers found; you may want to try searching in past events.'
+
         return context
 
 

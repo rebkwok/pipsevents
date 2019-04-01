@@ -55,6 +55,10 @@
                             </tr>
                             {% endfor %}
 
+                            {% if empty_search_message %}
+                            <tr><td colspan="8">{{ empty_search_message }}</td></tr>
+                            {% endif %}
+
                             {% if is_paginated %}
                                 <tr>
                                     <td class="studioadmin-tbl" colspan="8">
