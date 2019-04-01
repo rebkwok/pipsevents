@@ -512,6 +512,10 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertTrue(self.user_no_disclaimer.has_usable_password())
         resp = self._post_response(self.user_no_disclaimer, self.form_data)
         self.assertIn(
+            "Please correct the errors below",
+            str(resp.content)
+        )
+        self.assertIn(
             "Password is incorrect",
             str(resp.content)
         )
