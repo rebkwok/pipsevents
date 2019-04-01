@@ -8,6 +8,8 @@ from studioadmin.views import (BookingEditView,
                                ConfirmPaymentView,
                                DisclaimerDeleteView,
                                DisclaimerUpdateView,
+                               NonRegisteredDisclaimersListView,
+                               nonregistered_disclaimer,
                                EventAdminUpdateView,
                                EventAdminCreateView,
                                EventRegisterListView,
@@ -249,6 +251,14 @@ urlpatterns = [
     path(
         'register/<int:booking_id>/assign_block/', ajax_assign_block,
         name='assign_block'
+    ),
+    path(
+        'event-disclaimers/', NonRegisteredDisclaimersListView.as_view(),
+        name='event_disclaimers'
+    ),
+    path(
+        'event-disclaimer/<uuid:user_uuid>/', nonregistered_disclaimer,
+        name='event_disclaimer'
     ),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),

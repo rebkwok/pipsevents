@@ -1,0 +1,62 @@
+{% extends "studioadmin/print_base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+
+    <div class="disclaimer">
+    <h1>Disclaimer for {{ disclaimer.first_name }} {{ disclaimer.last_name }}</h1>
+    <h1>Event date {{ disclaimer.event_date|date:"D d M Y" }}</h1>
+
+    <div class="divider"></div>
+
+    <h4>Personal Details</h4>
+    <strong>Name: </strong>{{ disclaimer.first_name }} {{ disclaimer.last_name}}<br/>
+    <strong>DOB: </strong>{{ disclaimer.dob }}<br/>
+    <strong>Address: </strong>{{ disclaimer.address }}<br/>
+    <strong>Home phone: </strong>{{ disclaimer.home_phone }}<br/>
+    <strong>Mobile: </strong>{{ disclaimer.mobile_phone }}<br/>
+
+    <div class="divider"></div>
+
+    <h4>Emergency Contact 1</h4>
+    <strong>Name: </strong>{{ disclaimer.emergency_contact1_name }}<br/>
+    <strong>Relationship: </strong>{{ disclaimer.emergency_contact1_relationship }}<br/>
+    <strong>Contact number: </strong>{{ disclaimer.emergency_contact1_phone }}<br/>
+
+    <h4>Emergency Contact 2</h4>
+    <strong>Name: </strong>{{ disclaimer.emergency_contact2_name }}<br/>
+    <strong>Relationship: </strong>{{ disclaimer.emergency_contact2_relationship }}<br/>
+    <strong>Contact number: </strong>{{ disclaimer.emergency_contact2_phone }}<br/>
+
+    <div class="divider"></div>
+
+    <h4>Medical Information</h4>
+    <strong>{% get_verbose_field_name disclaimer "medical_conditions" %} </strong>{{ disclaimer.medical_conditions|yesno|title }}<br/>
+    {% if disclaimer.medical_conditions %}<strong>Details: </strong>{{ disclaimer.medical_conditions_details }}<br/>{% endif %}
+    <strong>{% get_verbose_field_name disclaimer "allergies" %} </strong>{{ disclaimer.allergies|yesno|title }}<br/>
+    {% if disclaimer.allergies %}<strong>Details: </strong>{{ disclaimer.allergies_details }}<br/>{% endif %}
+    <strong>{% get_verbose_field_name disclaimer "joint_problems" %} </strong>{{ disclaimer.joint_problems|yesno|title }}<br/>
+    {% if disclaimer.joint_problems %}<strong>Details: </strong>{{ disclaimer.joint_problems_details }}<br/>{% endif %}
+
+    <div class="divider"></div>
+
+    <h4>EMERGENCY MEDICAL TREATMENT</h4>
+    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer.medical_treatment_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+
+    <div class="divider"></div>
+
+    <h4>DISCLAIMER</h4>
+     {% if disclaimer.terms_accepted %}<p>{{ disclaimer.disclaimer_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+
+     {% if disclaimer.age_over_18_confirmed %}<p>{{ disclaimer.over_18_statement }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+
+    <div class="divider"></div>
+    <h4>DISCLAIMER COMPLETED ONLINE: {{ disclaimer.date }}</h4>
+
+    </div>
+
+</div>
+{% endblock studioadmincontent %}
