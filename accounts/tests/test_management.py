@@ -14,7 +14,7 @@ from django.utils import timezone
 from accounts.management.commands.import_disclaimer_data import logger as \
     import_disclaimer_data_logger
 from accounts.management.commands.export_encrypted_disclaimers import EmailMessage
-from accounts.models import PrintDisclaimer, OnlineDisclaimer
+from accounts.models import ArchivedDisclaimer, NonRegisteredDisclaimer, PrintDisclaimer, OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.models import Booking
 from common.tests.helpers import TestSetupMixin, PatchRequestMixin
@@ -46,6 +46,15 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         )
         mommy.make(
             PrintDisclaimer, user=self.user_both,
+            date=timezone.now()-timedelta(2200)  # > 6 yrs
+        )
+
+        mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='Nonreg',
+            date=timezone.now()-timedelta(2200)  # > 6 yrs
+        )
+        mommy.make(
+            ArchivedDisclaimer, name='Test Archived',
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
 
@@ -82,12 +91,26 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
             activitylogs
         )
 
+        self.assertIn(
+            'Non-registered disclaimers more than 6 yrs old deleted for users: Test Nonreg',
+            activitylogs
+        )
+
+        self.assertIn(
+            'Archived disclaimers more than 6 yrs old deleted for users: Test Archived',
+            activitylogs
+        )
+
     def test_disclaimers_not_deleted_if_created_in_past_6_years(self):
         # make a user with a disclaimer created today
         user = mommy.make_recipe('booking.user')
         mommy.make(OnlineDisclaimer, user=user)
+        mommy.make(NonRegisteredDisclaimer)
+        mommy.make(ArchivedDisclaimer)
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
+        self.assertEqual(NonRegisteredDisclaimer.objects.count(), 2)
+        self.assertEqual(ArchivedDisclaimer.objects.count(), 2)
         self.assertEqual(PrintDisclaimer.objects.count(), 2)
 
         # disclaimer should not be deleted because it was created < 3 yrs ago.
@@ -109,6 +132,24 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         self.assertEqual(PrintDisclaimer.objects.count(), 0)
+
+    def test_no_disclaimers_to_delete(self):
+        for disclaimer_list in [
+            OnlineDisclaimer.objects.all(), PrintDisclaimer.objects.all(),
+            ArchivedDisclaimer.objects.all(), NonRegisteredDisclaimer.objects.all()
+        ]:
+            for disclaimer in disclaimer_list:
+                if hasattr(disclaimer, 'date_updated'):
+                    disclaimer.date_updated = timezone.now() - timedelta(600)
+                    disclaimer.save()
+                else:
+                    disclaimer.delete()
+
+        management.call_command('delete_expired_disclaimers')
+        self.assertEqual(OnlineDisclaimer.objects.count(), 2)
+        self.assertEqual(PrintDisclaimer.objects.count(), 0)
+        self.assertEqual(ArchivedDisclaimer.objects.count(), 1)
+        self.assertEqual(NonRegisteredDisclaimer.objects.count(), 0)
 
 
 @override_settings(LOG_FOLDER=os.path.dirname(__file__))

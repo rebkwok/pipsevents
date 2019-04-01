@@ -136,7 +136,7 @@
         {% block sale %}{% sale_text %}{% endblock sale %}
 
     {% block perm_banner %}
-        {% if user.is_anonymous %}
+        {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
           <div id="message-row"  class="row">
             <div class="col-xs-12">
                 <div class="message alert alert-info">
@@ -204,7 +204,7 @@
 <script src="{% static 'booking/js/jquery.are-you-sure.js' %}"></script>
 <script src="{% static 'booking/js/jquery.cookie.js' %}"></script>
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
-<script src="{% static 'booking/js/custom.js' %}"></script>
+<script src="{% static 'booking/js/custom-v1.1.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
 
 <!--# blocks modal-->

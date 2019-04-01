@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.contrib import messages
@@ -5,6 +6,7 @@ from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView, FormView
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.utils.safestring import mark_safe
 
@@ -12,11 +14,12 @@ from allauth.account.views import EmailView, LoginView
 
 from braces.views import LoginRequiredMixin
 
-from .forms import DisclaimerForm, DataPrivacyAgreementForm
-from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy
+from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
+from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, NonRegisteredDisclaimer
 from .utils import has_active_data_privacy_agreement, \
     has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
+from booking.email_helpers import send_mail
 from common.mailchimp_utils import update_mailchimp
 
 
@@ -156,6 +159,37 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse('profile:profile')
 
+
+class NonRegisteredDisclaimerCreateView(CreateView):
+
+    form_class = NonRegisteredDisclaimerForm
+    template_name = 'account/nonregistered_disclaimer_form.html'
+
+    def form_valid(self, form):
+        # email user
+        disclaimer = form.save(commit=False)
+        email = disclaimer.email
+        host = 'https://{}'.format(self.request.META.get('HTTP_HOST'))
+        ctx = {
+            'host': host,
+            'contact_email': settings.DEFAULT_STUDIO_EMAIL
+        }
+        send_mail('{} Disclaimer recevied'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
+            get_template('account/email/nonregistered_disclaimer_received.txt').render(ctx),
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            html_message=get_template(
+                'account/email/nonregistered_disclaimer_received.html').render(ctx),
+            fail_silently=False)
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('nonregistered_disclaimer_submitted')
+
+
+def nonregistered_disclaimer_submitted(request):
+    return render(request, 'account/nonregistered_disclaimer_created.html')
 
 def data_privacy_policy(request):
     return render(

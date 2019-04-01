@@ -1,12 +1,14 @@
 import datetime
+from unittest.mock import patch
 
 from model_mommy import mommy
 
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.utils import timezone
 
-from accounts.models import OnlineDisclaimer
+from accounts.models import NonRegisteredDisclaimer, OnlineDisclaimer
 from common.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
@@ -300,3 +302,141 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.assertIn(
             'No changes made', format_content(resp.rendered_content)
         )
+
+
+class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.disclaimer1 = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='AUser',
+            event_date=datetime.date(2019, 3, 6)
+        )
+        self.disclaimer2 =  mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='AUser1',
+            event_date=datetime.date(2019, 3, 7)
+        )
+        self.disclaimer3 = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='BUser',
+            event_date=datetime.date(2019, 3, 7)
+        )
+        self.disclaimer4 = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='CUser',
+            event_date=datetime.date(2019, 3, 8)
+        )
+        self.url = reverse('studioadmin:event_disclaimers')
+
+    def test_only_staff_or_instructor_can_access_user_disclaimer(self):
+        # no logged in user
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('login'), resp.url)
+
+        # normal user
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # staff user
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+        # instructor user
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_only_future_event_dates_shown_by_default(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_all_disclaimers_shown_in_reverse_event_date_order(self, mock_now):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        disclaimers = resp.context_data['disclaimers']
+
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
+        )
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_name_search(self, mock_now):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer2.id, self.disclaimer1.id]
+        )
+
+    def test_disclaimer_name_search_including_past_events(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser', 'hide_past': True})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
+
+        resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer2.id, self.disclaimer1.id]
+        )
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_date_search(self, mock_now):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '07-Mar-2019'})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer2.id, self.disclaimer3.id]
+        )
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_reset_search(self, mock_now):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, {'reset': '', 'search_date': '07-Mar-2019', 'search': 'foo'})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
+        )
+
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    def test_disclaimer_search_submitted_no_search_terms(self, mock_now):
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '', 'search': ''})
+        disclaimers = resp.context_data['disclaimers']
+        self.assertEqual(
+            [disclaimer.id for disclaimer in disclaimers],
+            [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
+        )
+
+    def test_get_event_disclaimer_requires_login(self):
+        url = reverse('studioadmin:event_disclaimer', args=[self.disclaimer1.user_uuid])
+        # no logged in user
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('login'), resp.url)
+
+        # normal user
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # staff user
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+        # instructor user
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)

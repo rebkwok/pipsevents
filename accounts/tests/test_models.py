@@ -10,7 +10,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, \
-    PrintDisclaimer, OnlineDisclaimer, \
+    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, \
     DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
 from accounts.utils import has_active_data_privacy_agreement, \
     active_data_privacy_cache_key
@@ -35,6 +35,27 @@ class DisclaimerModelTests(TestCase):
             disclaimer.date.astimezone(
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M')
+        ))
+
+    def test_nonregistered_disclaimer_str(self):
+        disclaimer = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User',
+            event_date=datetime(2019, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(str(disclaimer), 'Test User - {}'.format(
+            disclaimer.date.astimezone(
+                pytz.timezone('Europe/London')
+            ).strftime('%d %b %Y, %H:%M')
+        ))
+
+    def test_archived_disclaimer_str(self):
+        disclaimer = mommy.make(
+            ArchivedDisclaimer, name='Test User',
+            date=datetime(2019, 1, 1, tzinfo=timezone.utc),
+            date_archived=datetime(2019, 1, 20, tzinfo=timezone.utc)
+        )
+        self.assertEqual(str(disclaimer), 'Test User - {} (archived {})'.format(
+            disclaimer.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'),
+            disclaimer.date_archived.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
         ))
 
     def test_default_terms_set_on_new_online_disclaimer(self):
@@ -77,6 +98,64 @@ class DisclaimerModelTests(TestCase):
         # can't make new disclaimer when one is already active
         with self.assertRaises(ValidationError):
             mommy.make(OnlineDisclaimer, user=user)
+
+    def test_delete_online_disclaimer(self):
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+        disclaimer = mommy.make(OnlineDisclaimer, name='Test 1')
+        disclaimer.delete()
+
+        self.assertTrue(ArchivedDisclaimer.objects.exists())
+        archived = ArchivedDisclaimer.objects.first()
+        self.assertEqual(archived.name, disclaimer.name)
+        self.assertEqual(archived.date, disclaimer.date)
+
+    def test_delete_online_disclaimer_older_than_6_yrs(self):
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+        # disclaimer created > 6yrs ago
+        disclaimer = mommy.make(
+            OnlineDisclaimer, name='Test 1', date=timezone.now() - timedelta(2200))
+        disclaimer.delete()
+        # no archive created
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+
+        # disclaimer created > 6yrs ago, update < 6yrs ago
+        disclaimer = mommy.make(
+            OnlineDisclaimer, name='Test 1',
+            date=timezone.now() - timedelta(2200),
+            date_updated=timezone.now() - timedelta(1000)
+        )
+        disclaimer.delete()
+        # no archive created
+        self.assertTrue(ArchivedDisclaimer.objects.exists())
+
+    def test_nonregistered_disclaimer_is_active(self):
+        disclaimer = mommy.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        self.assertTrue(disclaimer.is_active)
+
+        old_disclaimer = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User',
+            date=timezone.now() - timedelta(367),
+        )
+        self.assertFalse(old_disclaimer.is_active)
+
+    def test_delete_nonregistered_disclaimer(self):
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+        disclaimer = mommy.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        disclaimer.delete()
+
+        self.assertTrue(ArchivedDisclaimer.objects.exists())
+        archived = ArchivedDisclaimer.objects.first()
+        self.assertEqual(archived.name, '{} {}'.format(disclaimer.first_name, disclaimer.last_name))
+        self.assertEqual(archived.date, disclaimer.date)
+
+    def test_delete_nonregistered_disclaimer_older_than_6_yrs(self):
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
+        # disclaimer created > 6yrs ago
+        disclaimer = mommy.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User', date=timezone.now() - timedelta(2200))
+        disclaimer.delete()
+        # no archive created
+        self.assertFalse(ArchivedDisclaimer.objects.exists())
 
 
 class DataPrivacyPolicyModelTests(TestCase):

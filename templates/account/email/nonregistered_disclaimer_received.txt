@@ -1,0 +1,7 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Thank you for completing your online disclaimer form.  Your information has been successfully submitted and we look forward to seeing you soon.
+
+View our full {{ host }}{% url 'data_privacy_policy' %} for further information.
+
+If you have any additional questions or concerns, please contact <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
