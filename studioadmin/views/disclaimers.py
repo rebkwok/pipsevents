@@ -151,7 +151,7 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
     template_name = 'studioadmin/non_registered_disclaimer_list.html'
     context_object_name = 'disclaimers'
     paginate_by = 30
-    ordering = ['-event_date']
+    ordering = ['event_date']
     search_data = {'hide_past': True}
 
     def dispatch(self, request, *args, **kwargs):
@@ -177,10 +177,12 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
     def get_queryset(self):
         queryset = super().get_queryset()
         hide_past = self.search_data.get('hide_past')
-        if hide_past:
-            queryset = queryset.filter(event_date__gte=timezone.now().date())
         search_text = self.search_data.get('search_text')
         search_date = self.search_data.get('search_date')
+
+        if hide_past and not search_date:  # don't filter out past if we're seaching on a specific date
+            queryset = queryset.filter(event_date__gte=timezone.now().date())
+
         if search_text:
             queryset = queryset.filter(
                 Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text)
