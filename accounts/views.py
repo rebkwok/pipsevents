@@ -150,9 +150,8 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
             disclaimer.user = self.request.user
             disclaimer.save()
         else:
-            messages.error(self.request, "Password is incorrect")
             form = DisclaimerForm(form.data, user=self.request.user)
-            return render(self.request, self.template_name, {'form':form})
+            return render(self.request, self.template_name, {'form':form, 'password_error': 'Password is incorrect'})
 
         return super(DisclaimerCreateView, self).form_valid(form)
 

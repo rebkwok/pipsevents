@@ -326,7 +326,7 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_online_disclaimer_cache_key(self.user))
         # TODO: if disclaimer is < 6 yrs old (date signed or updated), it is being
-        # delete by user request; copy data to ArchivedDisclaimer model
+        # deleted by user request; copy data to ArchivedDisclaimer model
         expiry = timezone.now() - relativedelta(years=6)
         if self.date > expiry or (self.date_updated and self.date_updated > expiry):
             ignore_fields = ['id', 'user_id', '_state']
