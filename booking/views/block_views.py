@@ -105,7 +105,7 @@ class BlockCreateView(
         messages.success(
             self.request, self.success_message.format(block.block_type)
             )
-        return HttpResponseRedirect(block.get_absolute_url())
+        return HttpResponseRedirect(reverse('booking:shopping_basket'))
 
 
 class BlockListView(
@@ -117,91 +117,19 @@ class BlockListView(
     template_name = 'booking/block_list.html'
     paginate_by = 10
 
-    def post(self, request):
-        if "apply_voucher" in request.POST:
-            voucher_error = None
-            code = request.POST['code'].strip()
-            try:
-                voucher = BlockVoucher.objects.get(code=code)
-            except BlockVoucher.DoesNotExist:
-                voucher = None
-                voucher_error = 'Invalid code' if code else 'No code provided'
-
-            if voucher:
-                voucher_error = validate_block_voucher_code(
-                    voucher, self.request.user
-                )
-
-            paginator, page_obj, blocks, _ = self.paginate_queryset(
-                self.get_queryset(), self.paginate_by
-            )
-            context = {'blocks': blocks, 'paginator': paginator, 'page_obj': page_obj}
-            extra_context = self.get_extra_context(
-                context, voucher=voucher, voucher_error=voucher_error, code=code,
-            )
-            context.update(**extra_context)
-            return TemplateResponse(self.request, self.template_name, context)
-
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(BlockListView, self).get_context_data(**kwargs)
-        extra_context = self.get_extra_context(context)
-        context.update(**extra_context)
-        return context
-
-    def get_queryset(self):
-        return Block.objects.filter(
-           Q(user=self.request.user)
-        ).order_by('-start_date')
-
-    def get_extra_context(self, context, **kwargs):
         context['disclaimer'] = has_active_disclaimer(self.request.user)
         context['expired_disclaimer'] = has_expired_disclaimer(
             self.request.user
         )
-
         types_available_to_book = context_helpers.\
             get_blocktypes_available_to_book(self.request.user)
         if types_available_to_book:
             context['can_book_block'] = True
 
-        voucher = kwargs.get('voucher', None)
-        voucher_error = kwargs.get('voucher_error', None)
-        code = kwargs.get('code', None)
-        context['voucher_form'] = VoucherForm(initial={'code': code})
-        if voucher:
-            context['voucher'] = voucher
-        if voucher_error:
-            context['voucher_error'] = voucher_error
-
-        valid_voucher = voucher and not bool(voucher_error)
-        context['valid_voucher'] = valid_voucher
-
         blockformlist = []
-
-        unpaid_block_and_costs = [
-            (block, block.block_type.cost)
-            for block in self.get_queryset().filter(paid=False, paypal_pending=False)
-            if not block.expired and not block.full
-        ]
-        unpaid_blocks, unpaid_block_costs = list(zip(*unpaid_block_and_costs)) \
-            if unpaid_block_and_costs else ([], [0])
-
-        if valid_voucher:
-            times_used = UsedBlockVoucher.objects.filter(
-                voucher=voucher, user=self.request.user
-            ).count()
-            context['times_voucher_used'] = times_used
-
-            block_voucher_dict = apply_voucher_to_unpaid_blocks(
-                    voucher, unpaid_blocks, times_used
-                )
-
-            context.update({
-                'voucher_applied_items': block_voucher_dict['voucher_applied_blocks'],
-                'total_cost': block_voucher_dict['total_unpaid_block_cost'],
-                'voucher_msg': block_voucher_dict['block_voucher_msg'],
-            })
 
         for block in context['blocks']:
             blockform = {
@@ -212,40 +140,10 @@ class BlockListView(
 
         context['blockformlist'] = blockformlist
 
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
-
-        if unpaid_blocks:
-            context['has_unpaid_block'] = True
-            invoice_id = create_multiblock_paypal_transaction(
-                self.request.user, unpaid_blocks
-            )
-            item_ids_str = ','.join(str(block.id) for block in unpaid_blocks)
-            custom = context_helpers.get_paypal_custom(
-                item_type='block',
-                item_ids=item_ids_str,
-                voucher_code=voucher.code if context.get('valid_voucher') else '',
-                user_email=self.request.user.email
-            )
-            context['paypalform'] = PayPalPaymentsShoppingBasketForm(
-                initial=context_helpers.get_paypal_cart_dict(
-                    host,
-                    'block',
-                    unpaid_blocks,
-                    invoice_id,
-                    custom,
-                    voucher_applied_items=context.get('voucher_applied_items', []),
-                    voucher=voucher,
-                )
-            )
-            self.request.session['cart_items'] = custom
-            if not context.get('total_cost'):
-                # no voucher or invalid voucher
-                context['total_cost'] = sum(unpaid_block_costs)
-
-        else:
-            if self.request.session.get('cart_items'):
-                del self.request.session['cart_items']
         return context
+
+    def get_queryset(self):
+        return Block.objects.filter(user=self.request.user).order_by('-start_date')
 
 
 class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):

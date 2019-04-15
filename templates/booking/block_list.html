@@ -31,40 +31,6 @@
             {% endif %}
     </div>
 
-    <div class="col-xs-12">
-        {% if has_unpaid_block %}
-            <div class="col-xs-6 col-md-4 col-sm-4">
-                <h4 class="checkout-total">Payment outstanding: £{{ total_cost }} <span class="vat">(incl. VAT)</span></h4>
-                <h3>{% include 'payments/payment.html' %}</h3>
-            </div>
-            <div class="col-xs-6 col-md-8 col-sm-8">
-                {% if not valid_voucher %}
-                    <form name="voucher_form" class="form-inline" method="post" action="">
-                        {% csrf_token %}
-                            <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
-                            <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
-                            {% if voucher_error %}
-                                <p class="errorlist">{{ voucher_error }}</p>
-                            {% endif %}
-                    </form>
-                {% else %}
-                    <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
-                        <a class="btn btn-success table-btn" href="{% url 'booking:block_list' %}" />Remove</a></p>
-                    <p>
-                        Note: Voucher has been applied to all qualifying blocks below<br/>
-                        <small>You have already used this voucher for {% if times_voucher_used == 1 %}
-                            1 block{% else %}{{ times_voucher_used }} blocks{% endif %} (max {{ voucher.max_per_user }})</small>
-                    {% for msg in voucher_msg %}<span class="errorlist"><br/>- {{ msg }}</span>{% endfor %}
-                    </p>
-
-                {% endif %}
-            </div>
-            <div class="col-xs-12"><p><strong>No PayPal account required - choose "Pay with debit or credit card" at PayPal login to checkout as guest.</strong><br/>
-                <span class="studioadmin-help">Note: due to a PayPal bug, occasionally you may see "Create an Account" instead of "Pay with debit or credit card" at PayPal login; this should still take you to the Guest Checkout page.</span>
-            </p></div>
-
-        {% endif %}
-    </div>
 
     <div class="col-xs-12">
         {% if blockformlist %}
@@ -95,12 +61,7 @@
                                 <td>{% if blockform.block.active_block %}Active{% elif blockform.expired %}Expired{% else %}Not paid{% endif %}</td>
                                 <td>{{ blockform.block.block_type.event_type.subtype }} <span class="studioadmin-help">{{ blockform.block|format_block_type_id_user }}</span></td>
                                 <td>{% if blockform.block_cost %}
-                                        {% if blockform.block.id in voucher_applied_items %}
-                                            <s>£{{ blockform.block_cost }}</s>
-                                            £{{ blockform.block_cost|voucher_applied_cost:voucher.discount }}
-                                        {% else %}
-                                            £{{ blockform.block_cost }}
-                                        {% endif %}
+                                        £{{ blockform.block_cost }}
                                     {% else %}
                                     -
                                     {% endif %}
