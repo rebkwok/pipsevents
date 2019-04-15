@@ -1207,11 +1207,13 @@ def ajax_create_booking(request, event_id):
     if Booking.objects.filter(user=request.user, event=event).exists():
         booking = Booking.objects.get(user=request.user, event=event)
         if booking.status == "OPEN" and not booking.no_show:
+            logger.error('Attempt to rebook open booking')
             return HttpResponseBadRequest()
 
     # if pole practice, make sure this user has permission
     if event.event_type.subtype == "Pole practice" \
         and not request.user.has_perm("booking.is_regular_student"):
+            logger.error('Attempt to book Pole practice by non-regular student')
             return HttpResponseBadRequest(
                 "You must be a regular student to book this class; please "
                 "contact the studio for further information."
@@ -1220,6 +1222,7 @@ def ajax_create_booking(request, event_id):
     # make sure the event isn't full or cancelled
     if not event.spaces_left or event.cancelled:
         message = "Sorry, this event {}".format('is now full' if not event.spaces_left else "has been cancelled")
+        logger.error('Attempt to book %s class', 'cancelled' if event.cancelled else 'full')
         return HttpResponseBadRequest(message)
 
     booking, new = Booking.objects.get_or_create(user=request.user, event=event)
