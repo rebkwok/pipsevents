@@ -71,6 +71,7 @@
                               <ul class="dropdown-menu">
                                 <li class="active-nav"><a href="{% url 'booking:room_hires' %}">Room Hire</a></li>
                                 <li class="active-nav"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
+                                <li class="active-nav"><a href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
                               </ul>
                         </li>
                         {% if request.user.is_authenticated %}
