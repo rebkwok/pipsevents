@@ -208,6 +208,7 @@ class BlockType(models.Model):
     duration = models.PositiveIntegerField(
         help_text="Number of months until block expires")
     active = models.BooleanField(default=False)
+    assign_free_class_on_completion = models.BooleanField(default=False)
     paypal_email = models.EmailField(
         default=settings.DEFAULT_PAYPAL_EMAIL,
         help_text='Email for the paypal account to be used for payment.  '
@@ -615,36 +616,37 @@ class Booking(models.Model):
 
 @receiver(post_save, sender=Booking)
 def update_free_blocks(sender, instance, **kwargs):
-    # saving any open booking
-    if instance.block and instance.status == 'OPEN':
-        try:
-            free_blocktype = BlockType.objects.get(identifier='free class')
-        except BlockType.DoesNotExist:
-            free_blocktype = None
-
-        if free_blocktype \
+    # saving open booking block booking where block is no longer active (i.e. just
+    # used last in block) and block allows creation of free class on completetion,
+    if instance.status == 'OPEN' \
+        and instance.block \
+            and instance.block.block_type.assign_free_class_on_completion \
                 and instance.block.paid \
-                and not instance.block.active_block() \
-                and instance.block.block_type.event_type.subtype == \
-                        "Pole level class" \
-                and instance.block.block_type.size == 10:
-            # just used last block in 10 class pole level class block;
-            # check for free class block, add one if doesn't exist
-            # already (unless block has already expired)
-            if not instance.block.children.exists() \
-                    and not instance.block.expired:
-                free_block = Block.objects.create(
-                    user=instance.user, parent=instance.block,
-                    block_type=free_blocktype
-                )
-                ActivityLog.objects.create(
-                    log='Free class block created with booking {}. '
-                        'Block id {}, parent block id {}, user {}'.format(
-                            instance.id,
-                            free_block.id, instance.block.id,
-                            instance.user.username
-                        )
-                )
+                    and not instance.block.active_block():
+
+        free_blocktype, _ = BlockType.objects.get_or_create(
+            identifier='free class', event_type=instance.block.block_type.event_type,
+            defaults={
+                'size': 1, 'cost': 0, 'duration': 1, 'active': False,
+                'assign_free_class_on_completion': False
+            }
+        )
+
+        # User just used last block in block that credits free classes on completion;
+        # check for free class block, add one if doesn't exist already (unless block has already expired)
+        if not instance.block.children.exists() and not instance.block.expired:
+            free_block = Block.objects.create(
+                user=instance.user, parent=instance.block,
+                block_type=free_blocktype
+            )
+            ActivityLog.objects.create(
+                log='Free class block created with booking {}. '
+                    'Block id {}, parent block id {}, user {}'.format(
+                        instance.id,
+                        free_block.id, instance.block.id,
+                        instance.user.username
+                    )
+            )
 
 
 class WaitingListUser(models.Model):

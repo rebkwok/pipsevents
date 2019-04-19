@@ -670,7 +670,8 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
 
         # need to specify subtype for free block creation to happen
         cls.blocktype_cl_10 = mommy.make_recipe(
-            'booking.blocktype10', event_type__subtype="Pole level class"
+            'booking.blocktype10', event_type__subtype="Pole level class",
+            assign_free_class_on_completion=True
         )
         # create free block type associated with blocktype_cl_10
         cls.free_blocktype = mommy.make_recipe(
@@ -793,7 +794,7 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         # free class created and used
         block = mommy.make_recipe(
             'booking.block', user=self.user,
-            block_type=self.blocktype_cl_10, paid=True
+            block_type=self.blocktype_cl_10, paid=True,
         )
         self.assertTrue(block.active_block())
 

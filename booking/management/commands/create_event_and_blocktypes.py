@@ -58,78 +58,67 @@ class Command(BaseCommand):
         )
 
         self.stdout.write("Creating block types")
-        bt, created_bt = BlockType.objects.get_or_create(
+        BlockType.objects.get_or_create(
             event_type=pc,
             size=5,
             cost=35.00,
             duration=2,
             identifier="standard",
+            defaults={'active': True}
         )
-        if created_bt:
-            bt.active=True
-            bt.save()
 
-        bt1, created_bt1 = BlockType.objects.get_or_create(
+        BlockType.objects.get_or_create(
             event_type=pc,
             size=10,
             cost=68.00,
             duration=4,
             identifier="standard",
+            defaults={'active': True}
         )
-        if created_bt1:
-            bt1.active=True
-            bt1.save()
 
-        bt2, created_bt2 = BlockType.objects.get_or_create(
+        BlockType.objects.get_or_create(
             event_type=pp,
             size=10,
             cost=36.00,
             duration=4,
             identifier="standard",
+            defaults={'active': True}
         )
-        if created_bt2:
-            bt2.active=True
-            bt2.save()
 
-        sale_bt, created_sale_bt = BlockType.objects.get_or_create(
+        BlockType.objects.get_or_create(
             event_type=pc,
             size=5,
             cost=30.00,
             duration=2,
             identifier="sale",
+            defaults={'active': False}
         )
-        if created_sale_bt:
-            sale_bt.active=True
-            sale_bt.save()
-        sale_bt1, created_sale_bt1 = BlockType.objects.get_or_create(
+
+        BlockType.objects.get_or_create(
             event_type=pc,
             size=10,
             cost=57.00,
             duration=4,
             identifier="sale",
+            defaults={'active': False}
         )
-        if created_sale_bt1:
-            sale_bt1.active=True
-            sale_bt1.save()
-        sale_bt2, created_sale_bt2 = BlockType.objects.get_or_create(
+
+        BlockType.objects.get_or_create(
             event_type=pp,
             size=10,
             cost=25.00,
             duration=4,
             identifier="sale",
+            defaults={'active': False}
         )
-        if created_sale_bt2:
-            sale_bt2.active=True
-            sale_bt2.save()
 
         # free class blocks should always be inactive so they don't come up in
         # the options for users to purchase
-        free, _ = BlockType.objects.get_or_create(
+        BlockType.objects.get_or_create(
             event_type=pc,
             size=1,
             cost=0,
             duration=1,
-            identifier="free class"
+            identifier="free class",
+            active=False
         )
-        free.active = False
-        free.save()

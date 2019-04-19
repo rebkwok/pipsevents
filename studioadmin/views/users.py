@@ -785,7 +785,7 @@ def process_user_booking_updates(form, request):
                             and not has_free_block_pre_save:
                          messages.info(
                              request,
-                            'You have added the last booking to a 10 class block; free class '
+                            'You have added the last booking to a block that assigns a free class on completion; free class '
                             'block has been created.'
                          )
         else:
