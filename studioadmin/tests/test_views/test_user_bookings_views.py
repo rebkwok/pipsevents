@@ -1061,7 +1061,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
 
-    def test_new_booking_uses_last_in_10_blocks_block(self):
+    def test_new_booking_uses_last_in_free_class_assigned_block(self):
         """
         Checking for and creating the free block is done at the model level;
         check this is triggered from the studioadmin user bookings changes too
@@ -1077,8 +1077,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         event = mommy.make_recipe('booking.future_PC', event_type=event_type)
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
-            block_type__event_type=event_type, paid=True,
-            start_date=timezone.now()
+            block_type__event_type=event_type, block_type__assign_free_class_on_completion=True,
+            paid=True, start_date=timezone.now()
         )
         mommy.make_recipe(
             'booking.booking', user=self.user, block=block, _quantity=9
@@ -1106,12 +1106,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Block.objects.count(), 2)
         self.assertTrue(block.children.exists())
         self.assertIn(
-            'You have added the last booking to a 10 class block; '
+            'You have added the last booking to a block that assigns a free class on completion; '
             'free class block has been created.',
             format_content(resp.rendered_content)
         )
 
-    def test_using_last_in_10_blocks_block_free_block_already_exists(self):
+    def test_using_last_in_free_class_assigned_block_free_block_already_exists(self):
         """
         Also done at the model level; if free class block already exists, a
         new one is not created
@@ -1128,8 +1128,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         event = mommy.make_recipe('booking.future_PC', event_type=event_type)
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
-            block_type__event_type=event_type, paid=True,
-            start_date=timezone.now()
+            block_type__event_type=event_type, block_type__assign_free_class_on_completion=True,
+            paid=True, start_date=timezone.now()
         )
         # make free block on this block
         mommy.make(
@@ -1163,7 +1163,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Block.objects.count(), 2)
         self.assertTrue(block.children.exists())
         self.assertNotIn(
-            'You have added the last booking to a 10 class block; '
+            'You have added the last booking to a block that assigns a free class on completion; '
             'free class block has been created.',
             format_content(resp.rendered_content)
         )

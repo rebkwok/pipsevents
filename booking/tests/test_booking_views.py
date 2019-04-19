@@ -1406,10 +1406,11 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
 
-    def test_create_booking_uses_last_of_10_class_blocks(self):
+    def test_create_booking_uses_last_of_free_class_allowed_blocks(self):
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
+            block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
         event = mommy.make_recipe(
@@ -1427,10 +1428,11 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.count(), 2)
         self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
 
-    def test_booking_uses_last_of_10_blocks_free_block_already_exists(self):
+    def test_booking_uses_last_of_free_class_allowed_free_block_already_exists(self):
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
+            block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
         event = mommy.make_recipe(
@@ -1453,8 +1455,9 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
         block = mommy.make_recipe(
-            'booking.block_5', user=self.user,
+            'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
+            block_type__assign_free_class_on_completion=False,
             paid=True, start_date=timezone.now()
         )
         event = mommy.make_recipe(
@@ -1462,13 +1465,13 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         )
 
         mommy.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=4
+            'booking.booking', block=block, user=self.user, _quantity=9
         )
 
         self.assertEqual(Block.objects.count(), 1)
         self._post_response(self.user, event, {'block_book': 'yes'})
 
-        self.assertEqual(block.bookings.count(), 5)
+        self.assertEqual(block.bookings.count(), 10)
         self.assertTrue(block.full)
         # 5 class blocks do not qualify for free classes, no free class block
         # created
@@ -2969,11 +2972,12 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             resp.url, reverse('booking:already_paid', args=[booking.pk])
         )
 
-    def test_pay_with_block_uses_last_of_10(self):
+    def test_pay_with_block_uses_last_of_free_class_allowed_blocks(self):
         # block of 10 for 'CL' blocktype creates free block
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
+            block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
         event = mommy.make_recipe(
@@ -2990,7 +2994,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertEqual(Block.objects.count(), 1)
-        resp = self._post_response(self.user, booking, {'block_book': 'yes'})
+        self._post_response(self.user, booking, {'block_book': 'yes'})
 
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 2)
@@ -3023,10 +3027,11 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.count(), 1)
         self.assertEqual(Block.objects.latest('id'), block)
 
-    def test_pay_with_block_uses_last_of_10_free_block_already_exists(self):
+    def test_pay_with_block_uses_last_of_free_class_allowed_blocks_free_block_already_exists(self):
         block = mommy.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
+            block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
         event = mommy.make_recipe(

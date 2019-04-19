@@ -17,23 +17,23 @@ class ManagementCommandsTests(TestCase):
     def test_create_timetable_sessions(self):
         self.assertEquals(Session.objects.all().count(), 0)
         management.call_command('create_timetable')
-        self.assertEquals(Session.objects.all().count(), 18)
+        self.assertEquals(Session.objects.all().count(), 14)
 
     def test_create_timetable_sessions_also_creates_event_types(self):
         self.assertEquals(Session.objects.all().count(), 0)
         self.assertEquals(EventType.objects.all().count(), 0)
         management.call_command('create_timetable')
-        self.assertEquals(Session.objects.all().count(), 18)
+        self.assertEquals(Session.objects.all().count(), 14)
         self.assertEquals(EventType.objects.all().count(), 5)
 
     def test_create_sessions_does_not_make_duplicates(self):
         self.assertEquals(Session.objects.all().count(), 0)
         self.assertEquals(EventType.objects.all().count(), 0)
         management.call_command('create_timetable')
-        self.assertEquals(Session.objects.all().count(), 18)
+        self.assertEquals(Session.objects.all().count(), 14)
         self.assertEquals(EventType.objects.all().count(), 5)
         management.call_command('create_timetable')
-        self.assertEquals(Session.objects.all().count(), 18)
+        self.assertEquals(Session.objects.all().count(), 14)
         self.assertEquals(EventType.objects.all().count(), 5)
 
     def test_create_pip_room_hire_sessions(self):

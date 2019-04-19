@@ -81,39 +81,6 @@ class Command(BaseCommand):
 
         )
 
-        # Wednesday classes
-        Session.objects.get_or_create(
-            name="Flexibility (with Alicia)",
-            day=Session.WED,
-            event_type=ex,
-            time=time(hour=19, minute=00),
-            booking_open=False,
-            payment_open=False,
-            external_instructor=False,
-            max_participants=9,
-            contact_person="Alicia Alexandra",
-            contact_email="flexibeast@hotmail.com",
-            payment_info="£36 per 6 week block.  For further information and "
-                         "to book, please contact Alicia",
-            advance_payment_required=False,
-            payment_time_allowed=None
-        )
-        Session.objects.get_or_create(
-            name="Flexibility (with Alicia)",
-            day=Session.WED,
-            event_type=ex,
-            time=time(hour=20, minute=10),
-            booking_open=False,
-            payment_open=False,
-            external_instructor=False,
-            max_participants=9,
-            contact_person="Alicia Alexandra",
-            contact_email="flexibeast@hotmail.com",
-            payment_info="£36 per 6 week block.  For further information and "
-                         "to book, please contact Alicia",
-            advance_payment_required=False,
-            payment_time_allowed=None
-        )
         # Thursday classes
         Session.objects.get_or_create(
             name="Mixed Pole Levels",
@@ -130,26 +97,6 @@ class Command(BaseCommand):
             max_participants=15,
             time=time(hour=17, minute=45),
             external_instructor=False,
-        )
-
-        Session.objects.get_or_create(
-            name="Pole - advanced (with Carousel Fitness)",
-            day=Session.THU,
-            event_type=ex,
-            time=time(hour=19, minute=00),
-            cost=7,
-            booking_open=False,
-            payment_open=False,
-            external_instructor=False,
-            contact_person="Emma Junor/Kira Grant",
-            contact_email="starletpolefitness@gmail.com",
-            payment_info="<p>For further information and to book, please "
-                         "contact Carousel Fitness</p><p>"
-                         "<a "
-                         "href='http://www.carouselfitness.co.uk/timetable/'>"
-                         "http://www.carouselfitness.co.uk/timetable/</a></p>",
-            advance_payment_required=False,
-            payment_time_allowed=None
         )
 
         Session.objects.get_or_create(
@@ -213,20 +160,4 @@ class Command(BaseCommand):
             max_participants=15,
             cost=3.50,
             external_instructor=False,
-        )
-        Session.objects.get_or_create(
-            name="Flexibility (with Alicia)",
-            day=Session.SUN,
-            event_type=ex,
-            time=time(hour=19, minute=0),
-            booking_open=False,
-            payment_open=False,
-            external_instructor=False,
-            max_participants=9,
-            contact_person="Alicia Alexandra",
-            contact_email="flexibeast@hotmail.com",
-            payment_info="£36 per 6 week block.  For further information and "
-                         "to book, please contact Alicia",
-            advance_payment_required=False,
-            payment_time_allowed=None
         )

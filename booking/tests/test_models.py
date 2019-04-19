@@ -800,6 +800,46 @@ class BlockTests(PatchRequestMixin, TestCase):
             datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
         )
 
+    def test_create_free_class_blocktype(self):
+        """
+        If no free blocktype for this class' event_type, create it on using last
+        in block that allows creation of free class on completion
+        """
+        self.assertEqual(Block.objects.count(), 2)
+        self.assertFalse(BlockType.objects.filter(identifier='free class').exists())
+
+        ev_type = mommy.make(
+            EventType, event_type='CL', subtype="Unknown class type"
+        )
+
+        blocktype = mommy.make_recipe(
+            'booking.blocktype', size=6, cost=60, duration=4,
+            event_type=ev_type, identifier='standard', assign_free_class_on_completion=True
+        )
+        block = mommy.make_recipe(
+            'booking.block',
+            user=mommy.make_recipe('booking.user', username="TestUser"),
+            block_type=blocktype, paid=True
+        )
+        self.assertTrue(block.active_block())
+        mommy.make_recipe(
+            'booking.booking', user=block.user, block=block, _quantity=5
+        )
+        self.assertEqual(Booking.objects.count(), 5)
+        self.assertEqual(block.bookings.count(), 5)
+        self.assertEqual(Block.objects.count(), 3)
+
+        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        self.assertEqual(block.bookings.count(), 6)
+        self.assertEqual(Block.objects.count(), 4)
+        self.assertTrue(block.children.exists())
+        self.assertTrue(
+            BlockType.objects.filter(
+                identifier='free class', event_type=ev_type, size=1, duration=1,
+                cost=0, assign_free_class_on_completion=False
+            ).exists()
+        )
+
     def test_booking_last_in_10_class_block_creates_free_block(self):
         """
         Creating a new booking that uses the last of 10 pole level class
@@ -816,7 +856,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
@@ -856,7 +897,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         # make an expired block
         block = mommy.make_recipe(
@@ -895,7 +937,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
@@ -961,7 +1004,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
@@ -995,7 +1039,6 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertTrue(block.children.exists())
         self.assertEqual(block.children.count(), 1)
 
-
     def test_cancelling_non_block_booking_doesnt_affect_free_block(self):
 
         self.assertEqual(Block.objects.count(), 2)
@@ -1008,7 +1051,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
@@ -1051,7 +1095,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
@@ -1084,7 +1129,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
@@ -1120,7 +1166,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         blocktype = mommy.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=ev_type, identifier='standard'
+            event_type=ev_type, identifier='standard',
+            assign_free_class_on_completion=True
         )
         block = mommy.make_recipe(
             'booking.block',
