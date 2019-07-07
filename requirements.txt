@@ -11,7 +11,7 @@ django-environ==0.4.4
 django-extensions==2.0.0
 # django-migration-testcase==0.0.13
 git+git://github.com/lynncyrin/django_migration_testcase.git@b36644d34f353ca92545fe41a278867b8f895784
-django-paypal==0.5.0
+django-paypal==1.0.0
 djangorestframework==3.7.7
 django-suit==0.2.26
 dj-static==0.0.6
