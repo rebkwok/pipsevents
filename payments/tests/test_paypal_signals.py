@@ -1594,8 +1594,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_payment_received_with_duplicate_txn_flag(self, mock_postback):
         """
-        If we get a flagged completed payment, send a warning email.  Most
-        likely to happen with a duplicate transaction id
+        If we get a flagged completed duplicate transaction id payment, send a warning email.
         """
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
@@ -1628,6 +1627,45 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
 
         # even if the postback is verified, it is flagged and processed as
         # invalid
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            'WARNING! Invalid Payment Notification received from PayPal'
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_payment_received_with_non_duplicate_txn_flag(self, mock_postback):
+        """
+        If we get a flagged completed payment with flag other than duplicate transaction,
+        process payment and send a warning email.  Do not send email to student.
+        """
+        mock_postback.return_value = b"Internal Server Error"
+        booking = mommy.make_recipe(
+            'booking.booking_with_user',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': 'test_txn_id'
+
+            }
+        )
+        self.paypal_post(params)
+        booking.refresh_from_db()
+        ppipn = PayPalIPN.objects.first()
+
+        self.assertTrue(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, 'Invalid postback. (Internal Server Error)')
+
+        # even though the ipn is flagged, it is processed, and warning email sent
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
             mail.outbox[0].subject,

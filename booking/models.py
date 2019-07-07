@@ -341,9 +341,6 @@ class Block(models.Model):
         """
         return Booking.objects.filter(block__id=self.id).count()
 
-    def get_absolute_url(self):
-        return reverse("booking:block_list")
-
     def delete(self, *args, **kwargs):
         bookings = Booking.objects.filter(block=self.id)
         for booking in bookings:
