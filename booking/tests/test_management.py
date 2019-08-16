@@ -1748,20 +1748,17 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         cancel_email_to_studio = mail.outbox[2]
         self.assertEqual(
             warning_email.subject,
-            '[watermelon studio bookings] Reminder: Ticket booking ref {} is '
-            'not yet paid'.format(self.unpaid.booking_reference)
+            '{} Reminder: Ticket booking ref {} is not yet paid'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, self.unpaid.booking_reference)
         )
         self.assertEqual(warning_email.to[0], self.unpaid.user.email)
         self.assertEqual(
             cancel_email_to_user.subject,
-            '[watermelon studio bookings] Ticket Booking ref {} '
-            'cancelled'.format(self.unpaid.booking_reference)
+            '{} Ticket Booking ref {} cancelled'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, self.unpaid.booking_reference)
         )
         self.assertEqual(cancel_email_to_user.to[0], self.unpaid.user.email)
         self.assertEqual(
             cancel_email_to_studio.subject,
-            '[watermelon studio bookings] Ticket Booking has been '
-            'automatically cancelled'
+            '{} Ticket Booking has been automatically cancelled'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX)
         )
         self.assertEqual(cancel_email_to_studio.to[0], settings.DEFAULT_STUDIO_EMAIL)
         self.assertTrue(self.unpaid.cancelled)
