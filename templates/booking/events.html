@@ -66,9 +66,11 @@
                     <div class="panel-heading">
                         <ul class="nav nav-tabs">
                             {% for location_obj in location_events %}
+                                {% if location_obj.index != 0 or location_events|length > 2 %}
                                 <li class="nav-tab {{ location_obj.index|get_active_class:tab }}">
                                     <a class="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a>
                                 </li>
+                                {% endif %}
                             {%  endfor %}
                         </ul>
                     </div>
