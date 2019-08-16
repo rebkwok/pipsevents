@@ -1,6 +1,4 @@
 {% load i18n %}
 {% autoescape off %}
-{% blocktrans %}Confirm E-mail Address{% endblocktrans %}
+{% blocktrans %}Please confirm email address{% endblocktrans %}
 {% endautoescape %}
-
-{% include "account/email/do_not_reply.txt" %}
