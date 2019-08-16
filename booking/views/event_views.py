@@ -114,19 +114,21 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         }]
         for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):
             location_qs = all_events.filter(location=location)
-            location_paginator = Paginator(location_qs, 30)
-            if tab and tab == i:
-                page = self.request.GET.get('page', 1)
-            else:
-                page = 1
-            queryset = location_paginator.get_page(page)
+            if location_qs:
+                # Don't add the location tab if there are no events to display
+                location_paginator = Paginator(location_qs, 30)
+                if tab and tab == i:
+                    page = self.request.GET.get('page', 1)
+                else:
+                    page = 1
+                queryset = location_paginator.get_page(page)
 
-            location_obj = {
-                'index': i,
-                'queryset': queryset,
-                'location': location
-            }
-            location_events.append(location_obj)
+                location_obj = {
+                    'index': i,
+                    'queryset': queryset,
+                    'location': location
+                }
+                location_events.append(location_obj)
         context['location_events'] = location_events
 
         return context

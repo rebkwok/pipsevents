@@ -508,9 +508,9 @@ class EventListViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:lessons')
         resp = self.client.get(url)
 
-        # 3 loc events, 1 for all and 1 for each location
+        # 2 loc events, 1 for all and 1 for Beaverbank. None for DMs because there are no events there
         self.assertEqual(
-            len(resp.context_data['location_events']), 3
+            len(resp.context_data['location_events']), 2
         )
         # Queryset contains first 30
         self.assertEqual(
@@ -518,9 +518,6 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(
             len(resp.context_data['location_events'][1]['queryset']), 30
-        )
-        self.assertEqual(
-            len(resp.context_data['location_events'][2]['queryset']), 0
         )
 
         # make some classes at second location
