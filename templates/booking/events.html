@@ -14,9 +14,14 @@
         <div class="col-xs-12">
         <h1>The Watermelon Studio
             {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}</br>
-            {% if events %}<span class="location">at <span id="location">All locations</span></span>{%  endif %}
         </h1>
-            
+
+         {% if type == 'lessons' %}
+            <h4>Click <a href="{% url 'booking:events' %}">here</a> to view Workshops</h4>
+        {% elif type == 'events' %}
+            <h4>Click <a href="{% url 'booking:lessons' %}">here</a> to view Classes</h4>
+        {% endif %}
+
         {% if events %}
             {% if user.is_authenticated %}
                 {% has_shopping_basket_items user as items_in_shopping_basket %}
