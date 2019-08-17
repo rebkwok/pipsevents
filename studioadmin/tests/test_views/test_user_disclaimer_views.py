@@ -106,7 +106,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         resp = self._get_user_disclaimer(self.instructor_user, encoded_user_id)
         self.assertEqual(resp.status_code, 200)
 
-    def test_only_staff_can_access_update_user_disclaimer(self):
+    def test_only_staff_or_instructor_can_access_update_user_disclaimer(self):
         # no logged in user
         encoded_user_id = int_str(chaffify(self.user.id))
         url = reverse(
@@ -117,23 +117,19 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.assertIn(reverse('booking:permission_denied'), resp.url)
 
         # normal user
-        resp = self._get_response(
-            url, DisclaimerUpdateView, self.user, encoded_user_id
-        )
+        self.client.login(username=self.user.username, password="test")
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('booking:permission_denied'), resp.url)
 
         # instructor user
-        resp = self._get_response(
-            url, DisclaimerUpdateView, self.instructor_user, encoded_user_id
-        )
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn(reverse('booking:permission_denied'), resp.url)
+        self.client.login(username=self.instructor_user.username, password="test")
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
 
         # staff user
-        resp = self._get_response(
-            url, DisclaimerUpdateView, self.staff_user, encoded_user_id
-        )
+        self.client.login(username=self.staff_user.username, password="test")
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
     def test_only_staff_can_access_delete_user_disclaimer(self):
@@ -147,26 +143,23 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.assertIn(reverse('booking:permission_denied'), resp.url)
 
         # normal user
-        resp = self._get_response(
-            url, DisclaimerUpdateView, self.user, encoded_user_id
-        )
+        self.client.login(username=self.user.username, password="test")
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('booking:permission_denied'), resp.url)
 
         # instructor user
-        resp = self._get_response(
-            url, DisclaimerUpdateView, self.instructor_user, encoded_user_id
-        )
+        self.client.login(username=self.instructor_user.username, password="test")
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('booking:permission_denied'), resp.url)
 
         # staff user
-        resp = self._get_response(
-            url, DisclaimerUpdateView, self.staff_user, encoded_user_id
-        )
+        self.client.login(username=self.staff_user.username, password="test")
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
-    def test_update_and_delete_buttons_not_shown_for_instructors(self):
+    def test_delete_buttons_not_shown_for_instructors(self):
         encoded_user_id = int_str(chaffify(self.user.id))
         update_url = reverse(
             'studioadmin:update_user_disclaimer', args=[encoded_user_id]
@@ -175,10 +168,11 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
             'studioadmin:delete_user_disclaimer', args=[encoded_user_id]
         )
 
+        # instructor can see update but not delete
         resp = self._get_user_disclaimer(self.instructor_user, encoded_user_id)
         self.assertEqual(resp.status_code, 200)
-        self.assertNotIn('Update', resp.rendered_content)
-        self.assertNotIn(update_url, resp.rendered_content)
+        self.assertIn('Update', resp.rendered_content)
+        self.assertIn(update_url, resp.rendered_content)
         self.assertNotIn('Delete', resp.rendered_content)
         self.assertNotIn(delete_url, resp.rendered_content)
 
