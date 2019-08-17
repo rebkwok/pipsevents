@@ -40,7 +40,7 @@ def user_disclaimer(request, encoded_user_id):
     )
 
 
-class DisclaimerUpdateView(StaffUserMixin, UpdateView):
+class DisclaimerUpdateView(InstructorOrStaffUserMixin, UpdateView):
 
     model = OnlineDisclaimer
     form_class = StudioadminDisclaimerForm

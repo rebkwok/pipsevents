@@ -15,6 +15,12 @@ def subscribed(self):
     return group in self.groups.all()
 
 
+def is_instructor(self):
+    group, _ = Group.objects.get_or_create(name='instructors')
+    return group in self.groups.all()
+
+
 User.add_to_class("is_regular_student", is_regular_student)
 User.add_to_class("has_print_disclaimer", has_print_disclaimer)
 User.add_to_class("subscribed", subscribed)
+User.add_to_class("is_instructor", is_instructor)
