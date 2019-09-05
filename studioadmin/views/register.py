@@ -18,6 +18,7 @@ from django.views.decorators.http import require_http_methods
 from braces.views import LoginRequiredMixin
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer
+from booking.email_helpers import send_waiting_list_email
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from booking.views.views_utils import _get_active_user_block
 from payments.models import PaypalBookingTransaction
@@ -745,6 +746,7 @@ def ajax_toggle_attended(request, booking_id):
         return HttpResponseBadRequest('No attendance data')
 
     alert_msg = None
+    event_was_full = booking.event.spaces_left == 0
     if attendance == 'attended':
         if (booking.no_show or booking.status == 'CANCELLED') and booking.event.spaces_left == 0:
             ev_type = 'Class' if booking.event.event_type.event_type == 'CL' else 'Event'
@@ -758,4 +760,19 @@ def ajax_toggle_attended(request, booking_id):
         booking.no_show = True
     booking.save()
 
+    if event_was_full and attendance == 'no-show' and booking.event.date > (timezone.now() + timedelta(hours=1)):
+        # Only send waiting list emails if marking booking as no-show more than 1 hr before the event start
+        waiting_list_users = WaitingListUser.objects.filter(event=booking.event)
+        if waiting_list_users:
+            send_waiting_list_email(
+                booking.event,
+                [wluser.user for wluser in waiting_list_users],
+                host='http://{}'.format(request.META.get('HTTP_HOST'))
+            )
+            ActivityLog.objects.create(
+                log='Waiting list email sent to user(s) {} for event {}'.format(
+                    ',  '.join([wluser.user.username for wluser in waiting_list_users]),
+                    booking.event
+                )
+            )
     return JsonResponse({'attended': booking.attended, 'alert_msg': alert_msg})

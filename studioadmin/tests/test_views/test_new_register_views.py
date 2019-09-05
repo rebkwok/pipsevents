@@ -1,21 +1,15 @@
 # -*- coding: utf-8 -*-
-import pytz
-from datetime import  date, datetime
-
+from datetime import timedelta
 from unittest.mock import patch
 from model_mommy import mommy
 
 from django.contrib.auth.models import User
-from django.contrib import messages
+from django.core import mail
 from django.urls import reverse
+from django.utils import timezone
 from django.test import RequestFactory, TestCase
 
-from booking.models import Event, Booking, Block, BlockType, WaitingListUser
-from common.tests.helpers import _create_session, format_content
-from studioadmin.views import (
-    register_view_new, booking_register_add_view, ajax_toggle_attended,
-    ajax_toggle_paid, ajax_assign_block
-)
+from booking.models import Event, Block, BlockType, WaitingListUser
 from studioadmin.views.register import process_event_booking_updates
 from studioadmin.forms.register_forms import AddRegisterBookingForm
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
@@ -507,6 +501,35 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.booking.refresh_from_db()
         self.assertFalse(self.booking.attended)
         self.assertTrue(self.booking.no_show)
+
+    def test_ajax_toggle_no_show_send_waiting_list_email_for_full_event(self):
+        mommy.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        mommy.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
+
+        self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].bcc, ["waitinglist@user.com"])
+
+    def test_ajax_toggle_no_show_no_waiting_list_email_for_full_event_within_1_hour(self):
+        mommy.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        mommy.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
+
+        pc.date = timezone.now() + timedelta(minutes=58)
+        pc.save()
+        self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
+        # No waiting list email for events within 1 hr of current time
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_ajax_toggle_attended_cancelled_booking(self):
         self.booking.status = 'CANCELLED'
