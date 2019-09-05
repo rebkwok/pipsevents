@@ -1173,7 +1173,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
             'booking.booking_with_user', payment_confirmed=True, paid=True,
-            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL, status="CANCELLED"
         )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
@@ -1217,7 +1217,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
             'booking.booking_with_user', payment_confirmed=True, paid=True,
-            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL, status="CANCELLED"
         )
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
@@ -1247,7 +1247,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
             'booking.booking_with_user', payment_confirmed=True, paid=True,
-            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL, status="CANCELLED"
         )
         voucher = mommy.make(EventVoucher, code='test')
         voucher.event_types.add(booking.event.event_type)
@@ -1286,7 +1286,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
             'booking.booking_with_user', payment_confirmed=True, paid=True,
-            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL, status="CANCELLED"
         )
         voucher = mommy.make(EventVoucher, code='test')
         voucher.event_types.add(booking.event.event_type)
@@ -1323,7 +1323,8 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         mock_postback.return_value = b"VERIFIED"
         block = mommy.make_recipe(
             'booking.block',
-            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            paid=True
         )
         voucher = mommy.make(BlockVoucher, code='test')
         voucher.block_types.add(block.block_type)
@@ -1334,13 +1335,18 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         pptrans.save()
 
         self.assertFalse(PayPalIPN.objects.exists())
+
+        # block will only be marked as unpaid if we can confirm a full refund has been made
+        # make a "Completed" PayPalIPN with the same invoice and cost
+        mommy.make(PayPalIPN, mc_gross=block.block_type.cost, payment_status="Completed", invoice=pptrans.invoice_id)
         self.assertEqual(UsedBlockVoucher.objects.count(), 1)
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
                 'custom': b('block {} test'.format(block.id)),
                 'invoice': b(pptrans.invoice_id),
-                'payment_status': b'Refunded'
+                'payment_status': b'Refunded',
+                'mc_gross': b('{}'.format(block.block_type.cost))
             }
         )
         self.paypal_post(params)
@@ -1359,7 +1365,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         mock_postback.return_value = b"VERIFIED"
         booking = mommy.make_recipe(
             'booking.booking_with_user', payment_confirmed=True, paid=True,
-            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL, status="CANCELLED"
         )
         voucher = mommy.make(EventVoucher, code='test')
         voucher.event_types.add(booking.event.event_type)

@@ -10,6 +10,7 @@ from django.template.loader import get_template
 
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_REFUNDED, \
     ST_PP_PENDING
+from paypal.standard.ipn.models import PayPalIPN
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block, TicketBooking, BlockVoucher, \
@@ -487,6 +488,12 @@ def payment_received(sender, **kwargs):
 
             else:
                 voucher_refunded = False
+                try:
+                    original_transaction = PayPalIPN.objects.get(invoice=ipn_obj.invoice, payment_status=ST_PP_COMPLETED)
+                    full_refund = original_transaction.mc_gross == ipn_obj.mc_gross
+                except PayPalIPN.DoesNotExist:
+                    full_refund = False
+
                 for obj, paypal_trans in zip(obj_list, paypal_trans_list):
                     if paypal_trans.voucher_code:
                         # check for voucher on paypal trans object; delete first
@@ -497,7 +504,7 @@ def payment_received(sender, **kwargs):
                                 voucher__code=paypal_trans.voucher_code,
                                 user=obj.user
                             ).first()
-                        elif obj_type == 'booking':
+                        elif obj_type == 'booking' and obj.status == "CANCELLED":
                             used_voucher = UsedEventVoucher.objects.filter(
                                 voucher__code=paypal_trans.voucher_code,
                                 user=obj.user
@@ -506,14 +513,16 @@ def payment_received(sender, **kwargs):
                         if used_voucher:
                             voucher_refunded = True
                             used_voucher.delete()
-
-                    if obj_type == 'booking':
-                        obj.payment_confirmed = False
-                    obj.paid = False
-                    obj.save()
+                    if (obj_type == 'booking' and obj.status == "CANCELLED") or full_refund:
+                        # only set cancelled bookings or objs in fully refunded transactions to unpaid;
+                        # refund could apply to more than one booking
+                        if hasattr(obj, "payment_confirmed"):
+                            obj.payment_confirmed = False
+                        obj.paid = False
+                        obj.save()
 
                 ActivityLog.objects.create(
-                    log='{} id(s) {} for user {} has been refunded from paypal; '
+                    log='Transaction for {} id(s) {} for user {} has been refunded from paypal; '
                         'paypal transaction id {}, invoice id {}.{}'.format(
                             obj_type.title(), obj_ids, obj_list[0].user.username,
                             ipn_obj.txn_id, paypal_trans_list[0].invoice_id,
