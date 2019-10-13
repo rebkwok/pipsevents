@@ -147,16 +147,16 @@
           </div>
         {% endif %}
     {% endblock perm_banner %}
-
         {% if messages %}
           <div class="row">
             <div class="col-xs-12">
                 {% for message in messages %}
                 <div {% if message.tags and message.tags == 'error' %}
-                            class="message alert alert-danger"
+                            class="message alert alert-danger alert-dismissible"
                      {% elif message.tags %}
-                            class="message alert alert-{{ message.tags }}"
+                            class="message alert alert-{{ message.tags }} alert-dismissible"
                      {% endif %}>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     {% if 'safe' in message.tags %}
                         {{ message|safe }}
                     {% else %}
