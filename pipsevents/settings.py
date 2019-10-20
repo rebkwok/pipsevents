@@ -146,7 +146,6 @@ TEMPLATES = [
                 # Required by allauth template tags
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
-                'responsive.context_processors.device_info',
             ),
             'debug': DEBUG,
         },
