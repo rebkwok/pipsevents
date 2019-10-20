@@ -27,8 +27,8 @@ class ApiViewTests(TestSetupMixin, TestCase):
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
 
     def get_data_dict(
-            self, action, email=None, new_email=None, old_email=None,
-            first_name=None, last_name=None, list_id=settings.MAILCHIMP_LIST_ID
+            self, action, email='', new_email='', old_email='',
+            first_name='', last_name='', list_id=settings.MAILCHIMP_LIST_ID
     ):
         DATA_DICTS = {
             'subscribe':

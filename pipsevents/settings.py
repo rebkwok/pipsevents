@@ -48,7 +48,7 @@ else:  # pragma: no cover
 
 ALLOWED_HOSTS = [
     'booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk',
-    'vagrant.pipsevents.co.uk'
+    'vagrant.pipsevents.co.uk', 'vagrant.booking.thewatermelonstudio.co.uk'
 ]
 if env('LOCAL'):  # pragma: no cover
     ALLOWED_HOSTS = ['*']
@@ -95,7 +95,6 @@ MIDDLEWARE = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'common.middleware.NewDeviceInfoMiddleware',
 )
 
 
@@ -124,7 +123,7 @@ SOCIALACCOUNT_PROVIDERS = \
         }}
 
 
-ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "The Watermelon Studio:"

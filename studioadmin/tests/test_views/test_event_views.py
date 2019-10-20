@@ -61,7 +61,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
             'form-TOTAL_FORMS': 1,
             'form-INITIAL_FORMS': 1,
             'form-0-id': str(self.event.id),
-            'form-0-max-participants': self.event.max_participants,
+            'form-0-max-participants': self.event.max_participants or '',
             'form-0-booking_open': self.event.booking_open,
             'form-0-payment_open': self.event.payment_open,
             'form-0-advance_payment_required': self.event.advance_payment_required
