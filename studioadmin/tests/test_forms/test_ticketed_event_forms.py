@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytz
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.test import TestCase
@@ -15,7 +15,7 @@ from studioadmin.forms import TicketedEventAdminForm, TicketedEventFormSet, \
 class TicketedEventAdminFormTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
     def form_data(self, extra_data={}):
         data = {
@@ -312,7 +312,7 @@ class TicketedEventAdminFormTests(TestCase):
         )
 
     def test_form_for_cancelled_events(self):
-        ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
         data = {
             'id': ticketed_event.id,
@@ -400,7 +400,7 @@ class TicketedEventAdminFormTests(TestCase):
 class TicketedEventFormsetTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
 
     def formset_data(self, extra_data={}):
@@ -433,7 +433,7 @@ class TicketedEventFormsetTests(TestCase):
 
     def test_can_only_delete_if_no_confirmed_ticket_purchases(self):
 
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, purchase_confirmed=False,
             ticketed_event=self.ticketed_event
         )
@@ -454,7 +454,7 @@ class TicketedEventFormsetTests(TestCase):
         self.assertTrue(form.cannot_delete)
 
     def test_can_delete(self):
-        ev_to_delete = mommy.make_recipe('booking.ticketed_event_max10')
+        ev_to_delete = baker.make_recipe('booking.ticketed_event_max10')
         extra_data = {
             'form-TOTAL_FORMS': 2,
             'form-INITIAL_FORMS': 2,
@@ -473,8 +473,8 @@ class TicketedEventFormsetTests(TestCase):
 class TicketBookingInlineFormsetTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
-        self.ticket_booking = mommy.make(
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
+        self.ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True
         )
@@ -513,7 +513,7 @@ class TicketBookingInlineFormsetTests(TestCase):
         )
 
     def test_paypal(self):
-        ppt = mommy.make(
+        ppt = baker.make(
             PaypalTicketBookingTransaction,
             ticket_booking=self.ticket_booking
         )
@@ -540,7 +540,7 @@ class TicketBookingInlineFormsetTests(TestCase):
 class PrintTicketsFormTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
     def form_data(self, extra_data={}):
         data = {

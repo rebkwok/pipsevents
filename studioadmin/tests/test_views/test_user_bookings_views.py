@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from datetime import timedelta
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.urls import reverse
@@ -23,38 +23,38 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
     def setUp(self):
         super(UserBookingsViewTests, self).setUp()
 
-        past_classes1 = mommy.make_recipe('booking.past_class', _quantity=2)
-        past_classes2 = mommy.make_recipe('booking.past_class', _quantity=2)
-        future_classes1 = mommy.make_recipe('booking.future_PC', _quantity=2)
-        future_classes2 = mommy.make_recipe('booking.future_PC', _quantity=2)
-        future_classes3 = mommy.make_recipe('booking.future_PC', _quantity=2)
+        past_classes1 = baker.make_recipe('booking.past_class', _quantity=2)
+        past_classes2 = baker.make_recipe('booking.past_class', _quantity=2)
+        future_classes1 = baker.make_recipe('booking.future_PC', _quantity=2)
+        future_classes2 = baker.make_recipe('booking.future_PC', _quantity=2)
+        future_classes3 = baker.make_recipe('booking.future_PC', _quantity=2)
 
         self.future_user_bookings = [
-                mommy.make_recipe(
+                baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='OPEN',
             ) for event in future_classes1
         ]
         self.past_user_bookings = [
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='OPEN'
             ) for event in past_classes1
         ]
         self.future_cancelled_bookings = [
-                mommy.make_recipe(
+                baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='CANCELLED'
             ) for event in future_classes2
         ]
         self.past_cancelled_bookings = [
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='CANCELLED'
             ) for event in past_classes2
         ]
         [
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', paid=True,
                 payment_confirmed=True, event=event,
             ) for event in future_classes3
@@ -213,7 +213,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
     def test_can_update_booking_deposit_paid(self):
 
-        unpaid_booking = mommy.make_recipe(
+        unpaid_booking = baker.make_recipe(
             'booking.booking', user=self.user,
             event__date=timezone.now()+timedelta(3),
             status='OPEN',
@@ -242,7 +242,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
     def test_can_add_booking(self):
         self.assertEqual(Booking.objects.count(), 10)
-        event = mommy.make_recipe('booking.future_EV')
+        event = baker.make_recipe('booking.future_EV')
         form_data = self.formset_data(
             {
                 'bookings-TOTAL_FORMS': 3,
@@ -280,10 +280,10 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.payment_confirmed)
 
     def test_changing_booking_status_to_cancelled_removed_block(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking',
             event__event_type=block.block_type.event_type, block=block,
             user=self.user, paid=True, payment_confirmed=True
@@ -312,14 +312,14 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.payment_confirmed)
 
     def test_can_assign_booking_to_available_block(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking',
             event__date=timezone.now()+timedelta(2),
             user=self.user,
             paid=False,
             payment_confirmed=False
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=booking.event.event_type,
             user=self.user
         )
@@ -344,8 +344,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking.payment_confirmed)
 
     def test_create_new_block_booking(self):
-        event1 = mommy.make_recipe('booking.future_EV')
-        block1 = mommy.make_recipe(
+        event1 = baker.make_recipe('booking.future_EV')
+        block1 = baker.make_recipe(
             'booking.block', block_type__event_type=event1.event_type,
             user=self.user
         )
@@ -365,14 +365,14 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(booking.block, block1)
 
     def test_cannot_create_new_block_booking_with_wrong_blocktype(self):
-        event1 = mommy.make_recipe('booking.future_EV')
-        event2 = mommy.make_recipe('booking.future_EV')
+        event1 = baker.make_recipe('booking.future_EV')
+        event2 = baker.make_recipe('booking.future_EV')
 
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type__event_type=event1.event_type,
             user=self.user
         )
-        block2 = mommy.make_recipe(
+        block2 = baker.make_recipe(
             'booking.block', block_type__event_type=event2.event_type,
             user=self.user
         )
@@ -402,10 +402,10 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Booking.objects.count(), 10)
 
     def test_cannot_overbook_block(self):
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        event = mommy.make_recipe('booking.future_EV', event_type=event_type)
-        event1 = mommy.make_recipe('booking.future_EV', event_type=event_type)
-        block = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event = baker.make_recipe('booking.future_EV', event_type=event_type)
+        event1 = baker.make_recipe('booking.future_EV', event_type=event_type)
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=event_type,
             block_type__size=1,
             user=self.user
@@ -459,10 +459,10 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_cannot_create_new_block_booking_when_no_available_blocktype(self):
-        event1 = mommy.make_recipe('booking.future_EV')
-        event2 = mommy.make_recipe('booking.future_PC')
+        event1 = baker.make_recipe('booking.future_EV')
+        event2 = baker.make_recipe('booking.future_PC')
 
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type__event_type=event1.event_type,
             user=self.user
         )
@@ -493,8 +493,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Booking.objects.count(), 10)
 
     def test_cannot_add_booking_to_full_event(self):
-        event = mommy.make_recipe('booking.future_EV', max_participants=2)
-        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        event = baker.make_recipe('booking.future_EV', max_participants=2)
+        baker.make_recipe('booking.booking', event=event, _quantity=2)
         form_data = self.formset_data(
             {
                 'bookings-TOTAL_FORMS': 3,
@@ -516,12 +516,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(bookings), 2)
 
     def test_cannot_make_block_booking_unpaid(self):
-        event1 = mommy.make_recipe('booking.future_EV')
-        block1 = mommy.make_recipe(
+        event1 = baker.make_recipe('booking.future_EV')
+        block1 = baker.make_recipe(
             'booking.block', block_type__event_type=event1.event_type,
             user=self.user
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, block=block1, event=event1,
         )
         form_data = self.formset_data(
@@ -568,11 +568,11 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_create_new_booking_as_free_class(self):
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_PC',
             event_type__subtype='Pole level class'
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type__event_type=event1.event_type,
             user=self.user
         )
@@ -594,11 +594,11 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking.payment_confirmed)
 
     def test_cannot_assign_free_class_to_normal_block(self):
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_PC',
             event_type__subtype='Pole level class'
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type__event_type=event1.event_type,
             user=self.user
         )
@@ -646,7 +646,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
     def test_cannot_assign_cancelled_booking_to_available_block(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking',
             event__date=timezone.now()+timedelta(2),
             user=self.user,
@@ -654,7 +654,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             payment_confirmed=False,
             status='CANCELLED'
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=booking.event.event_type,
             user=self.user
         )
@@ -692,14 +692,14 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
     def test_cannot_assign_booking_for_cancelled_event_to_available_block(
             self
     ):
-        event = mommy.make_recipe('booking.future_EV', cancelled=True)
-        booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_EV', cancelled=True)
+        booking = baker.make_recipe(
             'booking.booking',
             event=event,
             user=self.user,
         )
         # make block with free spaces
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block_5', block_type__event_type=event.event_type,
             user=self.user
         )
@@ -734,8 +734,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_reopen_booking_for_cancelled_event(self):
-        event = mommy.make_recipe('booking.future_EV', cancelled=True)
-        booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_EV', cancelled=True)
+        booking = baker.make_recipe(
             'booking.booking',
             event=event,
             user=self.user,
@@ -769,8 +769,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_open_no_show_booking_for_cancelled_event(self):
-        event = mommy.make_recipe('booking.future_EV', cancelled=True)
-        booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_EV', cancelled=True)
+        booking = baker.make_recipe(
             'booking.booking',
             event=event,
             user=self.user,
@@ -807,8 +807,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_assign_booking_for_cancelled_event_to_free_class(self):
-        event = mommy.make_recipe('booking.future_EV', cancelled=True)
-        booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_EV', cancelled=True)
+        booking = baker.make_recipe(
             'booking.booking',
             event=event,
             user=self.user,
@@ -844,8 +844,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_assign_booking_for_cancelled_event_as_paid(self):
-        event = mommy.make_recipe('booking.future_EV', cancelled=True)
-        booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_EV', cancelled=True)
+        booking = baker.make_recipe(
             'booking.booking',
             event=event,
             user=self.user,
@@ -882,8 +882,8 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_assign_booking_for_cancelled_event_as_deposit_paid(self):
-        event = mommy.make_recipe('booking.future_EV', cancelled=True)
-        booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_EV', cancelled=True)
+        booking = baker.make_recipe(
             'booking.booking',
             event=event,
             user=self.user,
@@ -920,15 +920,15 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             errors)
 
     def test_can_assign_free_class_to_free_class_block(self):
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_PC',
             event_type__subtype='Pole level class'
         )
-        free_blocktype = mommy.make_recipe(
+        free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type=event1.event_type, identifier='free class'
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.block', block_type=free_blocktype,
             user=self.user
         )
@@ -972,12 +972,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.payment_confirmed)
 
     def test_cannot_reopen_booking_for_full_event(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        mommy.make_recipe('booking.booking', event=event, _quantity=2)
-        user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe(
+        baker.make_recipe('booking.booking', event=event, _quantity=2)
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
             'booking.booking', event=event, status='CANCELLED', paid=False,
             payment_confirmed=False, user=user
         )
@@ -1005,12 +1005,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_cannot_reopen_no_show_booking_for_full_event(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        mommy.make_recipe('booking.booking', event=event, _quantity=2)
-        user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe(
+        baker.make_recipe('booking.booking', event=event, _quantity=2)
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
             'booking.booking', event=event, status='OPEN', paid=True,
             payment_confirmed=True, user=user, no_show=True
         )
@@ -1038,7 +1038,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
 
     def test_remove_block_from_booking(self):
         booking = self.future_user_bookings[0]
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block_5', user=booking.user,
             block_type__event_type=booking.event.event_type
         )
@@ -1066,21 +1066,21 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         Checking for and creating the free block is done at the model level;
         check this is triggered from the studioadmin user bookings changes too
         """
-        event_type = mommy.make(
+        event_type = baker.make(
             EventType, event_type='CL', subtype='Pole level class'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type=event_type, identifier='free class'
         )
 
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
-        block = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_PC', event_type=event_type)
+        block = baker.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=event_type, block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block, _quantity=9
         )
 
@@ -1117,26 +1117,26 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         new one is not created
         Check correct messages shown in content
         """
-        event_type = mommy.make(
+        event_type = baker.make(
             EventType, event_type='CL', subtype='Pole level class'
         )
-        free_blocktype = mommy.make_recipe(
+        free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type=event_type, identifier='free class'
         )
 
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type)
-        block = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_PC', event_type=event_type)
+        block = baker.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=event_type, block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
         # make free block on this block
-        mommy.make(
+        baker.make(
             Block, user=self.user, block_type=free_blocktype, parent=block
         )
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block, _quantity=9
         )
 
@@ -1216,17 +1216,17 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(booking.status, 'CANCELLED')
 
     def test_cancel_booking_for_full_event_emails_waiting_list(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, status='OPEN')
 
         # fill event and make a waiting list
-        mommy.make_recipe('booking.booking', event=event)
-        user1 = mommy.make_recipe('booking.user', email='test@test.com')
-        mommy.make(WaitingListUser, event=event, user=user1)
+        baker.make_recipe('booking.booking', event=event)
+        user1 = baker.make_recipe('booking.user', email='test@test.com')
+        baker.make(WaitingListUser, event=event, user=user1)
 
         data = {
             'bookings-TOTAL_FORMS': 1,
@@ -1258,19 +1258,19 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_make_booking_no_show_for_full_event_emails_waiting_list(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, status='OPEN', paid=True,
             no_show=False
         )
 
         # fill event and make a waiting list
-        mommy.make_recipe('booking.booking', event=event)
-        user1 = mommy.make_recipe('booking.user', email='test@test.com')
-        mommy.make(WaitingListUser, event=event, user=user1)
+        baker.make_recipe('booking.booking', event=event)
+        user1 = baker.make_recipe('booking.user', email='test@test.com')
+        baker.make(WaitingListUser, event=event, user=user1)
 
         # event = Event.objects.get(id=event.id)
         data = {
@@ -1308,17 +1308,17 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
     @patch('studioadmin.views.users.send_waiting_list_email')
     def test_email_errors_when_sending_waiting_list_email(self, mock_send):
         mock_send.side_effect = Exception('Error sending mail')
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, status='OPEN')
 
         # fill event and make a waiting list
-        mommy.make_recipe('booking.booking', event=event)
-        user1 = mommy.make_recipe('booking.user', email='test@test.com')
-        mommy.make(WaitingListUser, event=event, user=user1)
+        baker.make_recipe('booking.booking', event=event)
+        user1 = baker.make_recipe('booking.user', email='test@test.com')
+        baker.make(WaitingListUser, event=event, user=user1)
 
         data = {
             'bookings-TOTAL_FORMS': 1,
@@ -1354,17 +1354,17 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
     ):
         mock_send.side_effect = Exception('Error sending mail')
         mock_send_mail.side_effect = Exception('Error sending mail')
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        user = mommy.make_recipe('booking.user')
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, status='OPEN')
 
         # fill event and make a waiting list
-        mommy.make_recipe('booking.booking', event=event)
-        user1 = mommy.make_recipe('booking.user', email='test@test.com')
-        mommy.make(WaitingListUser, event=event, user=user1)
+        baker.make_recipe('booking.booking', event=event)
+        user1 = baker.make_recipe('booking.user', email='test@test.com')
+        baker.make(WaitingListUser, event=event, user=user1)
 
         data = {
             'bookings-TOTAL_FORMS': 1,
@@ -1390,17 +1390,17 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(
             BlockType.objects.filter(identifier='transferred').exists()
         )
-        cl_booking = mommy.make_recipe(
+        cl_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='CL',
             user=self.user, paid=True, payment_confirmed=True
         )
-        rh_booking = mommy.make_recipe(
+        rh_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='RH',
             user=self.user, paid=True, payment_confirmed=True
         )
-        ev_booking = mommy.make_recipe(
+        ev_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='EV',
             user=self.user, paid=True, payment_confirmed=True
@@ -1478,17 +1478,17 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(
             BlockType.objects.filter(identifier='transferred').exists()
         )
-        cl_booking = mommy.make_recipe(
+        cl_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='CL',
             user=self.user, paid=True, payment_confirmed=True, free_class=True
         )
-        rh_booking = mommy.make_recipe(
+        rh_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='RH',
             user=self.user, paid=True, payment_confirmed=True, free_class=True
         )
-        ev_booking = mommy.make_recipe(
+        ev_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='EV',
             user=self.user, paid=True, payment_confirmed=True, free_class=True
@@ -1567,11 +1567,11 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             )
 
     def test_cancel_block_booked_CL_does_not_creates_transfer_block(self):
-        block = mommy.make(
+        block = baker.make(
             Block,
             user=self.user, block_type__event_type__event_type='CL'
         )
-        cl_booking = mommy.make_recipe(
+        cl_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='CL', block=block,
             user=self.user, paid=True, payment_confirmed=True
@@ -1612,9 +1612,9 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             )
 
     def test_cancel_free_block_booked_CL_does_not_creates_transfer_block(self):
-        free_blocktype = mommy.make_recipe('booking.free_blocktype')
-        block = mommy.make(Block, user=self.user, block_type=free_blocktype)
-        cl_booking = mommy.make_recipe(
+        free_blocktype = baker.make_recipe('booking.free_blocktype')
+        block = baker.make(Block, user=self.user, block_type=free_blocktype)
+        cl_booking = baker.make_recipe(
             'booking.booking',
             event__event_type__event_type='CL', block=block,
             user=self.user, paid=True, payment_confirmed=True, free_class=True
@@ -1657,7 +1657,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
     def test_past_bookings_pagination(self):
 
         for i in range(20):
-            mommy.make(
+            baker.make(
                 'booking.booking', user=self.user,
                 event__date=timezone.now()-timedelta(10+i)
             )
@@ -1719,8 +1719,8 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(BookingEditViewTests, self).setUp()
-        event = mommy.make_recipe('booking.future_PC', cost=10)
-        self.booking = mommy.make_recipe(
+        event = baker.make_recipe('booking.future_PC', cost=10)
+        self.booking = baker.make_recipe(
                 'booking.booking', paid=True,
                 payment_confirmed=True, event=event, status='OPEN'
         )
@@ -1783,8 +1783,8 @@ class BookingEditPastViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(BookingEditPastViewTests, self).setUp()
-        past_class = mommy.make_recipe('booking.past_class')
-        self.booking = mommy.make_recipe(
+        past_class = baker.make_recipe('booking.past_class')
+        self.booking = baker.make_recipe(
                 'booking.booking', paid=True,
                 payment_confirmed=True, event=past_class, status='OPEN'
         )
@@ -1846,38 +1846,38 @@ class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
     def setUp(self):
         super(UserBookingsModalViewTests, self).setUp()
 
-        past_classes1 = mommy.make_recipe('booking.past_class', _quantity=2)
-        past_classes2 = mommy.make_recipe('booking.past_class', _quantity=2)
-        future_classes1 = mommy.make_recipe('booking.future_PC', _quantity=2)
-        future_classes2 = mommy.make_recipe('booking.future_PC', _quantity=2)
-        future_classes3 = mommy.make_recipe('booking.future_PC', _quantity=2)
+        past_classes1 = baker.make_recipe('booking.past_class', _quantity=2)
+        past_classes2 = baker.make_recipe('booking.past_class', _quantity=2)
+        future_classes1 = baker.make_recipe('booking.future_PC', _quantity=2)
+        future_classes2 = baker.make_recipe('booking.future_PC', _quantity=2)
+        future_classes3 = baker.make_recipe('booking.future_PC', _quantity=2)
 
         self.future_user_bookings = [
-                mommy.make_recipe(
+                baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='OPEN',
             ) for event in future_classes1
         ]
         self.past_user_bookings = [
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='OPEN'
             ) for event in past_classes1
         ]
         self.future_cancelled_bookings = [
-                mommy.make_recipe(
+                baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='CANCELLED'
             ) for event in future_classes2
         ]
         self.past_cancelled_bookings = [
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', user=self.user, paid=True,
                 payment_confirmed=True, event=event, status='CANCELLED'
             ) for event in past_classes2
         ]
         [
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', paid=True,
                 payment_confirmed=True, event=event,
             ) for event in future_classes3
@@ -1967,9 +1967,9 @@ class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_paypal_shown(self):
-        user = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_PC', cost=10)
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_PC', cost=10)
+        booking = baker.make_recipe(
             'booking.booking', user=user, paid=True,
             payment_confirmed=True, event=event, status='OPEN'
         )
@@ -2002,7 +2002,7 @@ class BookingAddViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(BookingAddViewTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_PC', cost=10)
+        self.event = baker.make_recipe('booking.future_PC', cost=10)
         self.client.login(username=self.staff_user.username, password='test')
         self.url = reverse('studioadmin:bookingadd', args=[self.user.id])
 

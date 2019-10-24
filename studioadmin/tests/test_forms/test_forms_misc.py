@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase
 from common.tests.helpers import PatchRequestMixin
@@ -17,8 +17,8 @@ class StatusFilterTests(TestCase):
 class ConfirmPaymentFormTests(PatchRequestMixin, TestCase):
 
     def test_form_valid(self):
-        user = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_PC')
-        booking = mommy.make_recipe('booking.booking', user=user, event=event)
+        user = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_PC')
+        booking = baker.make_recipe('booking.booking', user=user, event=event)
         form = ConfirmPaymentForm(data={'paid': 'true'}, instance=booking)
         self.assertTrue(form.is_valid())

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase
 from django.utils import timezone
@@ -15,15 +15,15 @@ from studioadmin.forms import RegisterDayForm, SimpleBookingRegisterFormSet
 class SimpleBookingRegisterFormSetTests(TestCase):
 
     def setUp(self):
-        self.event = mommy.make_recipe('booking.future_EV')
-        self.user = mommy.make_recipe('booking.user')
-        self.block_type = mommy.make_recipe('booking.blocktype',
+        self.event = baker.make_recipe('booking.future_EV')
+        self.user = baker.make_recipe('booking.user')
+        self.block_type = baker.make_recipe('booking.blocktype',
                                        event_type=self.event.event_type,)
-        self.active_block = mommy.make_recipe('booking.block',
+        self.active_block = baker.make_recipe('booking.block',
                                        block_type=self.block_type,
                                        user=self.user,
                                        paid=True)
-        self.booking = mommy.make_recipe(
+        self.booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user
         )
 
@@ -51,9 +51,9 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         self.assertTrue(formset.is_valid(), formset.errors)
 
     def test_additional_data_in_form(self):
-        mommy.make(OnlineDisclaimer, user=self.user)
+        baker.make(OnlineDisclaimer, user=self.user)
         self.booking.paid = True
-        mommy.make(
+        baker.make(
             PaypalBookingTransaction,
             booking=self.booking, transaction_id='12334'
         )
@@ -73,7 +73,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         Only blocks with the same event type as the event instance should
         appear in the block dropdown
         """
-        mommy.make_recipe('booking.block', user=self.user, paid=True,
+        baker.make_recipe('booking.block', user=self.user, paid=True,
                           _quantity=5)
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
@@ -86,9 +86,9 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         """
         Only blocks for this user should appear in the block dropdown
         """
-        users = mommy.make_recipe('booking.user', _quantity=5)
+        users = baker.make_recipe('booking.user', _quantity=5)
         for user in users:
-            mommy.make_recipe('booking.block', user=user, paid=True,
+            baker.make_recipe('booking.block', user=user, paid=True,
                               block_type=self.block_type)
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
@@ -119,7 +119,7 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         """
         self.block_type.duration = 2
         self.block_type.save()
-        expired_block = mommy.make_recipe(
+        expired_block = baker.make_recipe(
             'booking.block', user=self.user, paid=True,
             block_type=self.block_type,
             start_date=timezone.now()-timedelta(365)
@@ -136,8 +136,8 @@ class SimpleBookingRegisterFormSetTests(TestCase):
     def test_adding_more_bookings_than_max_participants(self):
         self.event.max_participants = 2
         self.event.save()
-        user = mommy.make_recipe('booking.user')
-        user1 = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
+        user1 = baker.make_recipe('booking.user')
         data = self.formset_data({
             'bookings-TOTAL_FORMS': 3,
             'bookings-1-user': user.id,
@@ -201,7 +201,7 @@ class RegisterDayFormTests(TestCase):
         )
 
     def test_events(self):
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_PC',
             date=datetime(year=2015, month=9, day=7, tzinfo=timezone.utc), _quantity=3)
         form = RegisterDayForm({'register_date': 'Mon 07 Sep 2015'}, events=events)
@@ -212,13 +212,13 @@ class RegisterDayFormTests(TestCase):
         self.assertEqual(events_ids, choices_ids)
 
     def test_event_choices_only_show_selected_date(self):
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_PC',
             date=datetime(
                 year=2015, month=9, day=7, tzinfo=timezone.utc
             ), _quantity=3
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_PC',
             date=datetime(
                 year=2015, month=9, day=6, tzinfo=timezone.utc
@@ -234,12 +234,12 @@ class RegisterDayFormTests(TestCase):
         self.assertEqual(events_ids, choices_ids)
 
     def test_event_choices_initial_data(self):
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_PC',
             date=datetime(
                 year=2015, month=9, day=7, tzinfo=timezone.utc), _quantity=3
         )
-        ext_instructor_event = mommy.make_recipe(
+        ext_instructor_event = baker.make_recipe(
             'booking.future_PC',
             external_instructor=True,
             date=datetime(

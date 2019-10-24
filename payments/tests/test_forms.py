@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 from django.test import TestCase
 
 from booking.context_helpers import (
@@ -14,7 +14,7 @@ from payments.forms import (
 class PayPalPaymentsUpdateFormTests(PatchRequestMixin, TestCase):
 
     def test_form_renders_buy_it_now_button(self):
-        booking = mommy.make_recipe('booking.booking')
+        booking = baker.make_recipe('booking.booking')
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -33,7 +33,7 @@ class PayPalPaymentsUpdateFormTests(PatchRequestMixin, TestCase):
 class PayPalPaymentsShoppingBasketFormTests(PatchRequestMixin, TestCase):
 
     def test_form_renders_buy_it_now_button(self):
-        booking = mommy.make_recipe('booking.booking')
+        booking = baker.make_recipe('booking.booking')
         invoice_id = helpers.create_multibooking_paypal_transaction(
             booking.user, [booking]
         )

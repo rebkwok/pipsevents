@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.auth.models import Group, User
 from django.urls import reverse
@@ -14,7 +14,7 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(MailingListViewTests, cls).setUpTestData()
-        cls.subscribed = mommy.make(Group, name='subscribed')
+        cls.subscribed = baker.make(Group, name='subscribed')
 
     def test_staff_login_required(self):
         url = reverse('studioadmin:mailing_list')
@@ -42,8 +42,8 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_shows_only_users_on_mailing_list(self):
-        ml_users = mommy.make_recipe('booking.user', _quantity=5)
-        not_ml_users = mommy.make_recipe('booking.user', _quantity=5)
+        ml_users = baker.make_recipe('booking.user', _quantity=5)
+        not_ml_users = baker.make_recipe('booking.user', _quantity=5)
 
         for user in ml_users:
             self.subscribed.user_set.add(user)
@@ -60,7 +60,7 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_unsubscribe_user(self):
-        ml_users = mommy.make_recipe('booking.user', _quantity=5)
+        ml_users = baker.make_recipe('booking.user', _quantity=5)
 
         for user in ml_users:
             self.subscribed.user_set.add(user)
@@ -81,12 +81,12 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
     def test_export_mailing_list(self):
         non_mailing_list_users = []
         for i in range(5):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', email='test_user_{}@test.com'.format(i),
                 first_name='Test_{}'.format(i), last_name='User'
             )
             self.subscribed.user_set.add(user)
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.user', email='test_non_ml_user_{}@test.com'.format(i),
                 first_name='Test_non_ml{}'.format(i), last_name='User'
             )

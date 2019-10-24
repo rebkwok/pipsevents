@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.auth.models import User
 from django.contrib.admin.sites import AdminSite
@@ -21,9 +21,9 @@ from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
 class PaymentsAdminTests(PatchRequestMixin, TestCase):
 
     def test_paypal_booking_admin_display(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        booking = mommy.make_recipe('booking.booking', user=user, status='OPEN')
+        booking = baker.make_recipe('booking.booking', user=user, status='OPEN')
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -79,9 +79,9 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
 
     def test_paypal_booking_admin_display_no_booking(self):
         # check eveerything works when booking is null
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        booking = mommy.make_recipe('booking.booking', user=user, status='OPEN')
+        booking = baker.make_recipe('booking.booking', user=user, status='OPEN')
         pptrans = helpers.create_booking_paypal_transaction(
             booking.user, booking
         )
@@ -116,9 +116,9 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
         )
 
     def test_paypal_block_admin_display(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        block = mommy.make_recipe('booking.block_5', user=user)
+        block = baker.make_recipe('booking.block_5', user=user)
         helpers.create_block_paypal_transaction(
             block.user, block
         )
@@ -155,9 +155,9 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
         )
 
     def test_paypal_block_admin_display_no_block(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        block = mommy.make_recipe('booking.block_5', user=user)
+        block = baker.make_recipe('booking.block_5', user=user)
         helpers.create_block_paypal_transaction(
             block.user, block
         )
@@ -191,13 +191,13 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
         )
 
     def test_paypal_ticket_admin_display(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        ticketed_event = mommy.make(TicketedEvent, ticket_cost=10)
-        ticket_booking = mommy.make(
+        ticketed_event = baker.make(TicketedEvent, ticket_cost=10)
+        ticket_booking = baker.make(
             TicketBooking, user=user, ticketed_event=ticketed_event
         )
-        mommy.make(Ticket, ticket_booking=ticket_booking, _quantity=2)
+        baker.make(Ticket, ticket_booking=ticket_booking, _quantity=2)
         pptrans = helpers.create_ticket_booking_paypal_transaction(
             user, ticket_booking
         )
@@ -228,13 +228,13 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
         )
 
     def test_paypal_ticket_admin_display_no_ticket_booking(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        ticketed_event = mommy.make(TicketedEvent, ticket_cost=10)
-        ticket_booking = mommy.make(
+        ticketed_event = baker.make(TicketedEvent, ticket_cost=10)
+        ticket_booking = baker.make(
             TicketBooking, user=user, ticketed_event=ticketed_event
         )
-        mommy.make(Ticket, ticket_booking=ticket_booking, _quantity=2)
+        baker.make(Ticket, ticket_booking=ticket_booking, _quantity=2)
         pptrans = helpers.create_ticket_booking_paypal_transaction(
             user, ticket_booking
         )
@@ -263,7 +263,7 @@ class PaymentsAdminTests(PatchRequestMixin, TestCase):
 
 
     def test_paypaladmin_display(self):
-        mommy.make(PayPalIPN, first_name='Mickey', last_name='Mouse')
+        baker.make(PayPalIPN, first_name='Mickey', last_name='Mouse')
         paypal_admin = admin.PayPalAdmin(PayPalIPN, AdminSite())
         query = paypal_admin.get_queryset(None)[0]
         self.assertEqual(paypal_admin.buyer(query), 'Mickey Mouse')
@@ -273,20 +273,20 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(PaymentsAdminFiltersTests, self).setUp()
-        self.user = mommy.make_recipe(
+        self.user = baker.make_recipe(
             'booking.user', first_name="Foo", last_name="Bar", username="foob"
         )
-        self.user1 = mommy.make_recipe(
+        self.user1 = baker.make_recipe(
             'booking.user', first_name="Donald", last_name="Duck", username="dd"
         )
         for user in User.objects.all():
-            mommy.make(PaypalBookingTransaction, booking__user=user,
+            baker.make(PaypalBookingTransaction, booking__user=user,
                        _quantity=5
                        )
-            mommy.make(PaypalBlockTransaction, block__user=user,
+            baker.make(PaypalBlockTransaction, block__user=user,
                        _quantity=5
                        )
-            mommy.make(
+            baker.make(
                 PaypalTicketBookingTransaction, ticket_booking__user=user,
                 _quantity=5
             )

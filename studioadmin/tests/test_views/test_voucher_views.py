@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -17,7 +17,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.pc_event_type = mommy.make_recipe('booking.event_type_PC')
+        cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
         cls.url = reverse('studioadmin:vouchers')
 
     def test_access(self):
@@ -59,15 +59,15 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
 
     def test_vouchers_listed(self):
         # start date in past
-        mommy.make(
+        baker.make(
             EventVoucher, start_date=timezone.now() - timedelta(10), _quantity=2
         )
         # start date in future
-        mommy.make(
+        baker.make(
             EventVoucher, start_date=timezone.now() + timedelta(10), _quantity=2
         )
         # expired
-        mommy.make(
+        baker.make(
             EventVoucher, expiry_date=timezone.now() - timedelta(10), _quantity=2
         )
         self.assertTrue(
@@ -84,7 +84,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
         Grey out expired/used vouchers
         """
         # active
-        voucher = mommy.make(EventVoucher)
+        voucher = baker.make(EventVoucher)
         self.assertTrue(
             self.client.login(
                 username=self.staff_user.username, password='test'
@@ -95,7 +95,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
 
         voucher.delete()
         # expired
-        voucher = mommy.make(
+        voucher = baker.make(
             EventVoucher, expiry_date=timezone.now() - timedelta(10)
         )
         resp = self.client.get(self.url)
@@ -103,8 +103,8 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
 
         voucher.delete()
         # max used
-        voucher = mommy.make(EventVoucher, max_vouchers=1)
-        mommy.make(UsedEventVoucher, voucher=voucher)
+        voucher = baker.make(EventVoucher, max_vouchers=1)
+        baker.make(UsedEventVoucher, voucher=voucher)
         resp = self.client.get(self.url)
         self.assertIn('class="expired_block"', resp.rendered_content)
 
@@ -113,7 +113,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.pc_event_type = mommy.make_recipe('booking.event_type_PC')
+        cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
         cls.url = reverse('studioadmin:add_voucher')
 
     def setUp(self):
@@ -218,7 +218,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
             )
         )
         self.assertFalse(BlockVoucher.objects.exists())
-        block_type = mommy.make_recipe('booking.blocktype')
+        block_type = baker.make_recipe('booking.blocktype')
         url = reverse('studioadmin:add_block_voucher')
         data = self.data.copy()
         del data['event_types']
@@ -239,12 +239,12 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.pc_event_type = mommy.make_recipe('booking.event_type_PC')
-        cls.block_type = mommy.make_recipe('booking.blocktype')
+        cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
+        cls.block_type = baker.make_recipe('booking.blocktype')
 
     def setUp(self):
         super(VoucherUpdateViewTests, self).setUp()
-        self.voucher = mommy.make(
+        self.voucher = baker.make(
             EventVoucher, code='test_code', discount=10,
             start_date=datetime(2016, 1, 1),
             expiry_date=datetime(2016, 2, 1)
@@ -260,7 +260,7 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
             'event_types': [self.pc_event_type.id]
         }
 
-        self.block_voucher = mommy.make(
+        self.block_voucher = baker.make(
             BlockVoucher, code='test_code', discount=10,
             start_date=datetime(2016, 1, 1),
             expiry_date=datetime(2016, 2, 1)
@@ -388,7 +388,7 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.block_type = mommy.make_recipe('booking.blocktype')
+        cls.block_type = baker.make_recipe('booking.blocktype')
         cls.url = reverse('studioadmin:block_vouchers')
 
     def test_access(self):
@@ -430,15 +430,15 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
 
     def test_vouchers_listed(self):
         # start date in past
-        mommy.make(
+        baker.make(
             BlockVoucher, start_date=timezone.now() - timedelta (10), _quantity=2
         )
         # start date in future
-        mommy.make(
+        baker.make(
             BlockVoucher, start_date=timezone.now() + timedelta (10), _quantity=2
         )
         # expired
-        mommy.make(
+        baker.make(
             BlockVoucher, expiry_date=timezone.now() - timedelta (10), _quantity=2
         )
         self.assertTrue(
@@ -457,7 +457,7 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
         Grey out expired/used vouchers
         """
         # active
-        voucher = mommy.make(BlockVoucher)
+        voucher = baker.make(BlockVoucher)
         self.assertTrue(
             self.client.login(
                 username=self.staff_user.username, password='test'
@@ -468,7 +468,7 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
 
         voucher.delete()
         # expired
-        voucher = mommy.make(
+        voucher = baker.make(
             BlockVoucher, expiry_date=timezone.now() - timedelta(10)
         )
         resp = self.client.get(self.url)
@@ -476,8 +476,8 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
 
         voucher.delete()
         # max used
-        voucher = mommy.make(BlockVoucher, max_vouchers=1)
-        mommy.make(UsedBlockVoucher, voucher=voucher)
+        voucher = baker.make(BlockVoucher, max_vouchers=1)
+        baker.make(UsedBlockVoucher, voucher=voucher)
         resp = self.client.get(self.url)
         self.assertIn('class="expired_block"', resp.rendered_content)
 
@@ -487,8 +487,8 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(VoucherUsesViewTests, cls).setUpTestData()
-        cls.voucher = mommy.make(EventVoucher)
-        cls.block_voucher = mommy.make(BlockVoucher)
+        cls.voucher = baker.make(EventVoucher)
+        cls.block_voucher = baker.make(BlockVoucher)
         cls.voucher_url = reverse(
             'studioadmin:voucher_uses', args=[cls.voucher.pk]
         )
@@ -535,9 +535,9 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_voucher_counts_listed(self):
-        users = mommy.make_recipe('booking.user', _quantity=2)
+        users = baker.make_recipe('booking.user', _quantity=2)
         for user in users:
-            mommy.make(
+            baker.make(
                 UsedEventVoucher, voucher=self.voucher, user=user, _quantity=2
             )
 
@@ -553,9 +553,9 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context_data['sidenav_selection'], 'vouchers')
 
     def test_block_voucher_counts_listed(self):
-        users = mommy.make_recipe('booking.user', _quantity=2)
+        users = baker.make_recipe('booking.user', _quantity=2)
         for user in users:
-            mommy.make(
+            baker.make(
                 UsedBlockVoucher, voucher=self.block_voucher, user=user,
                 _quantity=2
             )

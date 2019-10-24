@@ -1,5 +1,5 @@
 from datetime import datetime
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -23,23 +23,23 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         # 2 for empty cron jobs
         # 3 with log messages to test search text
         # 2 with fixed dates to test search date
-        mommy.make(
+        baker.make(
             ActivityLog,
             log='email_warnings job run; no unpaid booking warnings to send'
         )
-        mommy.make(
+        baker.make(
             ActivityLog,
             log='cancel_unpaid_bookings job run; no bookings to cancel'
         )
-        mommy.make(ActivityLog, log='Test log message')
-        mommy.make(ActivityLog, log='Test log message1 One')
-        mommy.make(ActivityLog, log='Test log message2 Two')
-        mommy.make(
+        baker.make(ActivityLog, log='Test log message')
+        baker.make(ActivityLog, log='Test log message1 One')
+        baker.make(ActivityLog, log='Test log message2 Two')
+        baker.make(
             ActivityLog,
             timestamp=datetime(2015, 1, 1, 16, 0, tzinfo=timezone.utc),
             log='Log with test date'
         )
-        mommy.make(
+        baker.make(
             ActivityLog,
             timestamp=datetime(2015, 1, 1, 4, 0, tzinfo=timezone.utc),
             log='Log with test date for search'

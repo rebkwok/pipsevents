@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from datetime import timedelta, datetime
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
@@ -21,27 +21,27 @@ class EventTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.event = mommy.make_recipe('booking.future_EV')
+        cls.event = baker.make_recipe('booking.future_EV')
 
     def test_bookable_booking_not_open(self):
         """
         Test that event bookable logic returns correctly
         """
-        event = mommy.make_recipe('booking.future_EV', booking_open=False)
+        event = baker.make_recipe('booking.future_EV', booking_open=False)
         self.assertFalse(event.bookable)
 
     def test_bookable_with_no_payment_date(self):
         """
         Test that event bookable logic returns correctly
         """
-        event = mommy.make_recipe('booking.future_EV')
+        event = baker.make_recipe('booking.future_EV')
         self.assertTrue(event.bookable)
 
     def test_bookable_spaces(self):
-        event = mommy.make_recipe('booking.future_EV', max_participants=2)
+        event = baker.make_recipe('booking.future_EV', max_participants=2)
         self.assertTrue(event.bookable)
 
-        mommy.make_recipe('booking.booking', event=event, _quantity=2)
+        baker.make_recipe('booking.booking', event=event, _quantity=2)
         # need to get event again as bookable is cached property
         event = Event.objects.get(id=event.id)
         self.assertFalse(event.bookable)
@@ -53,7 +53,7 @@ class EventTests(TestCase):
         payment due dates
         """
         mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             cost=10,
             payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc))
@@ -61,7 +61,7 @@ class EventTests(TestCase):
         self.assertTrue(event.bookable)
 
         # bookable even if payment due date has passed
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_EV',
             cost=10,
             payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
@@ -77,7 +77,7 @@ class EventTests(TestCase):
         # advance_payment_required, payment_open, payment_due_date,
         # payment_time_allowed
 
-        poleclass = mommy.make_recipe(
+        poleclass = baker.make_recipe(
             'booking.future_PC', cost=7, payment_open=True,
             advance_payment_required=True,
             payment_time_allowed=4,
@@ -93,7 +93,7 @@ class EventTests(TestCase):
         self.assertIsNone(poleclass.payment_due_date)
 
         # event with cost, check other fields are left as is
-        workshop = mommy.make_recipe('booking.future_WS',
+        workshop = baker.make_recipe('booking.future_WS',
                                      cost=10,
                                      payment_open=True,
                                      payment_info="Pay me")
@@ -101,7 +101,7 @@ class EventTests(TestCase):
         self.assertEquals(workshop.payment_info, "Pay me")
 
     def test_pre_save_external_instructor(self):
-        pc = mommy.make_recipe(
+        pc = baker.make_recipe(
             'booking.future_PC', external_instructor=True
         )
         self.assertFalse(pc.booking_open)
@@ -117,7 +117,7 @@ class EventTests(TestCase):
         """
         payment_time_allowed automatically makes advance_payment_required true
         """
-        pc = mommy.make_recipe(
+        pc = baker.make_recipe(
             'booking.future_PC', cost=10, advance_payment_required=False
         )
         self.assertFalse(pc.advance_payment_required)
@@ -133,7 +133,7 @@ class EventTests(TestCase):
         )
 
     def test_str(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.past_event',
             name='Test event',
             date=datetime(2015, 1, 1, tzinfo=timezone.utc)
@@ -147,14 +147,14 @@ class BookingTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.event = mommy.make_recipe('booking.future_EV', max_participants=20)
-        cls.subscribed = mommy.make(Group, name='subscribed')
+        cls.event = baker.make_recipe('booking.future_EV', max_participants=20)
+        cls.subscribed = baker.make(Group, name='subscribed')
 
     def setUp(self):
         super(BookingTests, self).setUp()
-        mommy.make_recipe('booking.user', _quantity=15)
+        baker.make_recipe('booking.user', _quantity=15)
         self.users = User.objects.all()
-        self.event_with_cost = mommy.make_recipe('booking.future_EV',
+        self.event_with_cost = baker.make_recipe('booking.future_EV',
                                                  advance_payment_required=True,
                                                  cost=10)
 
@@ -167,7 +167,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertEqual(self.event.spaces_left, 20)
 
         for user in self.users:
-            mommy.make_recipe('booking.booking', user=user, event=self.event)
+            baker.make_recipe('booking.booking', user=user, event=self.event)
 
         # we need to get the event again as spaces_left is cached property
         event = Event.objects.get(id=self.event.id)
@@ -182,11 +182,11 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertEqual(self.event.spaces_left, 20)
 
         for user in self.users:
-            mommy.make_recipe('booking.booking', user=user, event=self.event)
-        mommy.make_recipe(
+            baker.make_recipe('booking.booking', user=user, event=self.event)
+        baker.make_recipe(
             'booking.booking', event=self.event, no_show=True
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status='CANCELLED'
         )
         # 20 total spaces, 15 open bookings, 1 cancelled, 1 no-show; still 5
@@ -201,7 +201,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         Test that a booking for an event with no cost is automatically confirmed
         """
 
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0], event=self.event)
         self.assertTrue(booking.space_confirmed())
 
@@ -210,7 +210,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         Test confirm_space method on a booking
         """
 
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0],
                                     event=self.event_with_cost)
         self.assertFalse(booking.space_confirmed())
@@ -228,7 +228,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         advance payments required
         """
 
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0],
                                     event=self.event_with_cost)
         self.assertFalse(booking.space_confirmed())
@@ -244,7 +244,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.event_with_cost.advance_payment_required = False
         self.event_with_cost.save()
 
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0],
                                     event=self.event_with_cost)
         self.assertTrue(booking.space_confirmed())
@@ -253,7 +253,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         """
         Test autopopulating date payment confirmed.
         """
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0],
                                     event=self.event_with_cost)
         # booking is created with no payment confirmed date
@@ -264,7 +264,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertTrue(booking.date_payment_confirmed)
 
     def test_cancelled_booking_is_no_longer_confirmed(self):
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0],
                                     event=self.event_with_cost)
         booking.confirm_space()
@@ -275,7 +275,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertFalse(booking.space_confirmed())
 
     def test_free_class_is_set_to_paid(self):
-        booking = mommy.make_recipe('booking.booking',
+        booking = baker.make_recipe('booking.booking',
                                     user=self.users[0],
                                     event=self.event_with_cost,
                                     free_class=True)
@@ -284,11 +284,11 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertTrue(booking.space_confirmed())
 
     def test_str(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking',
-            event=mommy.make_recipe(
+            event=baker.make_recipe(
                 'booking.future_EV', name='Test event', date=datetime(2015, 1, 1, 18, 0)),
-            user=mommy.make_recipe('booking.user', username='Test user'),
+            user=baker.make_recipe('booking.user', username='Test user'),
             )
         self.assertEqual(str(booking), 'Test event - Test user - 01Jan2015 18:00')
 
@@ -299,7 +299,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         """
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
         # we need to get the event again as spaces_left is cached property
@@ -317,11 +317,11 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
         user = self.users[0]
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
         event = Event.objects.get(id=self.event_with_cost.id)
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=event, user=user, status='CANCELLED'
         )
         with self.assertRaises(ValidationError):
@@ -333,10 +333,10 @@ class BookingTests(PatchRequestMixin, TestCase):
         Test that attempting to create new cancelled booking for full event
         does not raise error
         """
-        new_user = mommy.make_recipe('booking.user')
+        new_user = baker.make_recipe('booking.user')
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
         Booking.objects.create(
@@ -355,7 +355,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         mock_now = datetime(2015, 1, 1, tzinfo=timezone.utc)
         mock_tz.now.return_value = mock_now
         user = self.users[0]
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=self.event_with_cost, user=user,
             status='CANCELLED'
         )
@@ -375,7 +375,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         mock_now = datetime(2015, 3, 1, tzinfo=timezone.utc)
         mock_tz.now.return_value = mock_now
         user = self.users[0]
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=self.event_with_cost, user=user,
             status='CANCELLED',
             date_rebooked=datetime(2015, 1, 1, tzinfo=timezone.utc)
@@ -396,11 +396,11 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.event_with_cost.max_participants = 3
         self.event_with_cost.save()
         user = self.users[0]
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event_with_cost, _quantity=3
         )
         event = Event.objects.get(id=self.event_with_cost.id)
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=event, user=user, status='CANCELLED'
         )
         with self.assertRaises(ValidationError):
@@ -412,38 +412,38 @@ class BookingTests(PatchRequestMixin, TestCase):
 
     def test_user_not_added_to_mailing_list_when_booking_first_CL(self):
         # test that previous behaviour has been removed
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         self.assertNotIn(self.subscribed, user.groups.all())
-        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        baker.make(Booking, user=user, event__event_type__event_type='CL')
         self.assertNotIn(self.subscribed, user.groups.all())
 
     def test_unsubscribed_user_with_past_CL_not_added_to_mailing_list(self):
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         self.subscribed.user_set.add(user)
-        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        baker.make(Booking, user=user, event__event_type__event_type='CL')
         self.assertIn(self.subscribed, user.groups.all())
 
         self.subscribed.user_set.remove(user)
         self.assertNotIn(self.subscribed, user.groups.all())
 
-        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        baker.make(Booking, user=user, event__event_type__event_type='CL')
         self.assertEqual(Booking.objects.filter(user=user).count(), 2)
         self.assertNotIn(self.subscribed, user.groups.all())
 
     def test_user_not_added_to_mailing_list_when_booking_non_CL(self):
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         self.assertNotIn(self.subscribed, user.groups.all())
-        mommy.make(Booking, user=user, event__event_type__event_type='EV')
+        baker.make(Booking, user=user, event__event_type__event_type='EV')
         self.assertNotIn(self.subscribed, user.groups.all())
         self.assertTrue(Booking.objects.filter(user=user).exists())
 
         # no longer added when booking clasas either
-        mommy.make(Booking, user=user, event__event_type__event_type='CL')
+        baker.make(Booking, user=user, event__event_type__event_type='CL')
         self.assertNotIn(self.subscribed, user.groups.all())
 
     def test_booking_autocancelled(self):
         # new booking set to auto_cancelled = False
-        booking = mommy.make(Booking, user=self.users[0])
+        booking = baker.make(Booking, user=self.users[0])
         self.assertFalse(booking.auto_cancelled)
         booking.status = 'CANCELLED'
         booking.auto_cancelled = True
@@ -459,12 +459,12 @@ class BookingTests(PatchRequestMixin, TestCase):
         mock_now = datetime(2015, 3, 1, tzinfo=timezone.utc)
         mock_tz.now.return_value = mock_now
 
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC',
             date=datetime(2015, 3, 3, tzinfo=timezone.utc),
             cancellation_period=24
         )
-        booking = mommy.make(Booking, user=self.users[0], event=event)
+        booking = baker.make(Booking, user=self.users[0], event=event)
 
         # event allows cancellation and outside cancellation period
         self.assertTrue(booking.can_cancel)
@@ -487,13 +487,13 @@ class BlockTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        mommy.make_recipe('booking.future_PC', _quantity=10)
+        baker.make_recipe('booking.future_PC', _quantity=10)
 
     def setUp(self):
         super(BlockTests, self).setUp()
         # note for purposes of testing, start_date is set to 1.1.15
-        self.small_block = mommy.make_recipe('booking.block_5')
-        self.large_block = mommy.make_recipe('booking.block_10')
+        self.small_block = baker.make_recipe('booking.block_5')
+        self.large_block = baker.make_recipe('booking.block_10')
 
     def test_block_expiry_date(self):
         """
@@ -643,13 +643,13 @@ class BlockTests(PatchRequestMixin, TestCase):
         poleclasses = Event.objects.all()
         poleclasses5 = poleclasses[0:5]
         for pc in poleclasses5:
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking',
                 user=self.small_block.user,
                 block=self.small_block,
                 event=pc
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking',
                 user=self.large_block.user,
                 block=self.large_block,
@@ -663,7 +663,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         # fill up the large block
         poleclasses10 = poleclasses[5:]
         for pc in poleclasses10:
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking',
                 user=self.large_block.user,
                 block=self.large_block,
@@ -680,8 +680,8 @@ class BlockTests(PatchRequestMixin, TestCase):
         Test that bookings are reset to unpaid when a block is deleted
         """
 
-        events = mommy.make_recipe('booking.future_EV', cost=10, _quantity=5)
-        block_bookings = [mommy.make_recipe(
+        events = baker.make_recipe('booking.future_EV', cost=10, _quantity=5)
+        block_bookings = [baker.make_recipe(
             'booking.booking',
             block=self.large_block,
             user=self.large_block.user,
@@ -699,13 +699,13 @@ class BlockTests(PatchRequestMixin, TestCase):
             self.assertFalse(booking.payment_confirmed)
 
     def test_str(self):
-        blocktype = mommy.make_recipe('booking.blocktype', size=4,
+        blocktype = baker.make_recipe('booking.blocktype', size=4,
             event_type__subtype="Pole level class"
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype,
         )
 
@@ -715,14 +715,14 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
 
     def test_str_for_transfer_block(self):
-        blocktype1 = mommy.make_recipe(
+        blocktype1 = baker.make_recipe(
             'booking.blocktype', size=1, duration=1, identifier='transferred',
             event_type__subtype="Pole level class"
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
-            user=mommy.make_recipe('booking.user', username="TestUser1"),
+            user=baker.make_recipe('booking.user', username="TestUser1"),
             block_type=blocktype1,
         )
 
@@ -732,13 +732,13 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
 
     def test_str_for_free_class_block(self):
-        blocktype = mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        blocktype = baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type__subtype="Pole level class", identifier='free class'
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype,
         )
 
@@ -752,25 +752,25 @@ class BlockTests(PatchRequestMixin, TestCase):
         Free block has duration 1; if it has a parent block, override
         start date and duration with parent data
         """
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard'
         )
-        free_blocktype = mommy.make_recipe(
+        free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0, duration=1,
             event_type=ev_type, identifier='free class'
         )
-        user = mommy.make_recipe('booking.user', username="TestUser")
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="TestUser")
+        block = baker.make_recipe(
             'booking.block',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
             user=user,
             block_type=blocktype,
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.block', parent=block,
             user=user,
             block_type=free_blocktype,
@@ -783,14 +783,14 @@ class BlockTests(PatchRequestMixin, TestCase):
         Free block has duration 1; if no parent block keep start date and
         duration from free block type
         """
-        free_blocktype = mommy.make_recipe(
+        free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type__subtype="Pole level class", identifier='free class',
             duration=1
         )
-        user = mommy.make_recipe('booking.user', username="TestUser")
+        user = baker.make_recipe('booking.user', username="TestUser")
 
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.block', user=user, block_type=free_blocktype,
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
         )
@@ -808,28 +808,28 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertEqual(Block.objects.count(), 2)
         self.assertFalse(BlockType.objects.filter(identifier='free class').exists())
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Unknown class type"
         )
 
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=6, cost=60, duration=4,
             event_type=ev_type, identifier='standard', assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=5
         )
         self.assertEqual(Booking.objects.count(), 5)
         self.assertEqual(block.bookings.count(), 5)
         self.assertEqual(Block.objects.count(), 3)
 
-        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        baker.make_recipe('booking.booking', user=block.user, block=block)
         self.assertEqual(block.bookings.count(), 6)
         self.assertEqual(Block.objects.count(), 4)
         self.assertTrue(block.children.exists())
@@ -848,31 +848,31 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=9
         )
         self.assertEqual(Booking.objects.count(), 9)
         self.assertEqual(block.bookings.count(), 9)
         self.assertEqual(Block.objects.count(), 3)
 
-        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        baker.make_recipe('booking.booking', user=block.user, block=block)
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 4)
         self.assertTrue(block.children.exists())
@@ -889,33 +889,33 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
         # make an expired block
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.expired)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=9
         )
         self.assertEqual(Booking.objects.count(), 9)
         self.assertEqual(block.bookings.count(), 9)
         self.assertEqual(Block.objects.count(), 3)
 
-        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        baker.make_recipe('booking.booking', user=block.user, block=block)
         # last space in block filled but no free class block created
         self.assertEqual(block.bookings.count(), 10)
         self.assertEqual(Block.objects.count(), 3)
@@ -929,25 +929,25 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
         # fill block, which will create a free class block
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=10
         )
         self.assertEqual(block.bookings.count(), 10)
@@ -964,13 +964,13 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertFalse(block.children.exists())
 
         # fill block again
-        mommy.make_recipe('booking.booking', user=block.user, block=block)
+        baker.make_recipe('booking.booking', user=block.user, block=block)
         self.assertEqual(block.bookings.count(), 10)
         self.assertTrue(block.children.exists())
         self.assertEqual(block.children.count(), 1)
 
         # use free class block
-        free_booking = mommy.make_recipe(
+        free_booking = baker.make_recipe(
             'booking.booking', user=block.user, block=block.children.first()
         )
         self.assertEqual(block.bookings.count(), 10)
@@ -996,25 +996,25 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
         # fill block, which will create a free class block
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=10
         )
 
@@ -1043,28 +1043,28 @@ class BlockTests(PatchRequestMixin, TestCase):
 
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
         # fill block, which will create a free class block
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=10
         )
-        unrelated_booking = mommy.make_recipe(
+        unrelated_booking = baker.make_recipe(
             'booking.booking', user=block.user
         )
 
@@ -1087,27 +1087,27 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=9
         )
-        non_block_booking = mommy.make_recipe('booking.booking', user=block.user)
+        non_block_booking = baker.make_recipe('booking.booking', user=block.user)
         self.assertEqual(Booking.objects.count(), 10)
         self.assertEqual(block.bookings.count(), 9)
         self.assertEqual(Block.objects.count(), 3)
@@ -1121,27 +1121,27 @@ class BlockTests(PatchRequestMixin, TestCase):
     def test_removing_block_from_booking_deletes_unused_free_class(self):
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=9
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', block=block, user=block.user
         )
         self.assertEqual(Booking.objects.count(), 10)
@@ -1158,30 +1158,30 @@ class BlockTests(PatchRequestMixin, TestCase):
     def test_removing_block_from_booking_moves_existing_free_class_booking(self):
         self.assertEqual(Block.objects.count(), 2)
 
-        ev_type = mommy.make(
+        ev_type = baker.make(
             EventType, event_type='CL', subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype', size=1, cost=0,
+        baker.make_recipe('booking.blocktype', size=1, cost=0,
             event_type=ev_type, identifier='free class'
         )
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=ev_type, identifier='standard',
             assign_free_class_on_completion=True
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block',
-            user=mommy.make_recipe('booking.user', username="TestUser"),
+            user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
         self.assertTrue(block.active_block())
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=block.user, block=block, _quantity=9
         )
-        block_booking = mommy.make_recipe(
+        block_booking = baker.make_recipe(
             'booking.booking', block=block, user=block.user
         )
-        free_booking = mommy.make_recipe(
+        free_booking = baker.make_recipe(
             'booking.booking', block=block.children.first(), user=block.user
         )
 
@@ -1200,17 +1200,17 @@ class BlockTests(PatchRequestMixin, TestCase):
 
     def test_booking_cannot_be_attended_and_no_show(self):
         with self.assertRaises(ValidationError):
-            mommy.make(Booking, attended=True, no_show=True)
+            baker.make(Booking, attended=True, no_show=True)
 
 
 class EventTypeTests(TestCase):
 
     def test_str_class(self):
-        evtype = mommy.make_recipe('booking.event_type_PC', subtype="class subtype")
+        evtype = baker.make_recipe('booking.event_type_PC', subtype="class subtype")
         self.assertEqual(str(evtype), 'Class - class subtype')
 
     def test_str_event(self):
-        evtype = mommy.make_recipe('booking.event_type_OE', subtype="event subtype")
+        evtype = baker.make_recipe('booking.event_type_OE', subtype="event subtype")
         self.assertEqual(str(evtype), 'Event - event subtype')
 
         # unknown event type
@@ -1219,14 +1219,14 @@ class EventTypeTests(TestCase):
         self.assertEqual(str(evtype), 'Unknown - event subtype')
 
     def test_str_room_hire(self):
-        evtype = mommy.make_recipe('booking.event_type_RH', subtype="event subtype")
+        evtype = baker.make_recipe('booking.event_type_RH', subtype="event subtype")
         self.assertEqual(str(evtype), 'Room hire - event subtype')
 
 
 class TicketedEventTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe(
+        self.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10', payment_time_allowed=4
         )
 
@@ -1239,11 +1239,11 @@ class TicketedEventTests(TestCase):
         """
         self.assertTrue(self.ticketed_event.bookable)
         # if we make 10 bookings on this event, it should no longer be bookable
-        ticket_booking = mommy.make(
+        ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True
         )
-        mommy.make(
+        baker.make(
             Ticket,
             ticket_booking=ticket_booking, _quantity=10
         )
@@ -1316,7 +1316,7 @@ class TicketedEventTests(TestCase):
         )
 
     def test_str(self):
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             name='Test event',
             date=datetime(2015, 1, 1, tzinfo=timezone.utc)
@@ -1327,7 +1327,7 @@ class TicketedEventTests(TestCase):
 class TicketBookingTests(TestCase):
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
     def tearDown(self):
         del self.ticketed_event
@@ -1340,7 +1340,7 @@ class TicketBookingTests(TestCase):
         self.assertEqual(self.ticketed_event.max_tickets, 10)
         self.assertEqual(self.ticketed_event.tickets_left(), 10)
 
-        mommy.make(
+        baker.make(
             Ticket,
             ticket_booking__ticketed_event=self.ticketed_event,
             ticket_booking__purchase_confirmed=True,
@@ -1352,22 +1352,22 @@ class TicketBookingTests(TestCase):
         self.assertEqual(self.ticketed_event.max_tickets, 10)
         self.assertEqual(self.ticketed_event.tickets_left(), 10)
 
-        open_booking = mommy.make(
+        open_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             cancelled=False
         )
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking=open_booking, _quantity=5
         )
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
 
-        cancelled_booking = mommy.make(
+        cancelled_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             cancelled=False
         )
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking=cancelled_booking, _quantity=5
         )
         event_tickets = Ticket.objects.filter(
@@ -1390,12 +1390,12 @@ class TicketBookingTests(TestCase):
         self.assertEqual(self.ticketed_event.max_tickets, 10)
         self.assertEqual(self.ticketed_event.tickets_left(), 10)
 
-        confirmed_booking = mommy.make(
+        confirmed_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             cancelled=False
         )
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking=confirmed_booking, _quantity=5
         )
         self.assertEqual(self.ticketed_event.tickets_left(), 5)
@@ -1412,12 +1412,12 @@ class TicketBookingTests(TestCase):
 
 
     def test_str(self):
-        booking = mommy.make(
+        booking = baker.make(
             TicketBooking,
-            ticketed_event=mommy.make_recipe(
+            ticketed_event=baker.make_recipe(
                 'booking.ticketed_event_max10', name='Test event'
             ),
-            user=mommy.make_recipe('booking.user', username='Test user'),
+            user=baker.make_recipe('booking.user', username='Test user'),
             )
         self.assertEqual(
             str(booking), 'Booking ref {} - Test event - Test user'.format(
@@ -1430,11 +1430,11 @@ class TicketBookingTests(TestCase):
         Test that attempting to create new ticket booking for full event raises
         TicketBookingError
         """
-        booking = mommy.make(
+        booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True
         )
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking=booking,
             _quantity=10)
 
@@ -1442,14 +1442,14 @@ class TicketBookingTests(TestCase):
         with self.assertRaises(TicketBookingError):
             TicketBooking.objects.create(
                 ticketed_event=self.ticketed_event,
-                user=mommy.make_recipe('booking.user')
+                user=baker.make_recipe('booking.user')
             )
 
     def test_booking_reference_set(self):
-        ticket_booking = mommy.make(
+        ticket_booking = baker.make(
             TicketBooking,
             purchase_confirmed=True,
-            ticketed_event=mommy.make_recipe(
+            ticketed_event=baker.make_recipe(
                 'booking.ticketed_event_max10', name='Test event'
             ),
         )
@@ -1465,12 +1465,12 @@ class TicketBookingTests(TestCase):
 class TicketTests(TestCase):
 
     def test_cannot_create_ticket_for_full_event(self):
-        ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
-        booking = mommy.make(
+        ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
+        booking = baker.make(
             TicketBooking, ticketed_event=ticketed_event,
             purchase_confirmed=True
         )
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking=booking,
             _quantity=10)
         self.assertEqual(ticketed_event.tickets_left(), 0)
@@ -1482,31 +1482,31 @@ class TicketTests(TestCase):
 class BlockTypeTests(TestCase):
 
     def test_cannot_create_multiple_free_class_block_types(self):
-        ev_type = mommy.make_recipe('booking.event_type_PC')
-        mommy.make(BlockType, event_type=ev_type, identifier='free class')
+        ev_type = baker.make_recipe('booking.event_type_PC')
+        baker.make(BlockType, event_type=ev_type, identifier='free class')
         self.assertEqual(BlockType.objects.count(), 1)
 
         with self.assertRaises(BlockTypeError):
-            mommy.make(BlockType, event_type=ev_type, identifier='free class')
+            baker.make(BlockType, event_type=ev_type, identifier='free class')
         self.assertEqual(BlockType.objects.count(), 1)
 
     def test_cannot_create_multiple_transfer_block_types(self):
-        ev_type = mommy.make_recipe('booking.event_type_PC')
-        mommy.make(BlockType, event_type=ev_type, identifier='transferred')
+        ev_type = baker.make_recipe('booking.event_type_PC')
+        baker.make(BlockType, event_type=ev_type, identifier='transferred')
         self.assertEqual(BlockType.objects.count(), 1)
 
         with self.assertRaises(BlockTypeError):
-            mommy.make(BlockType, event_type=ev_type, identifier='transferred')
+            baker.make(BlockType, event_type=ev_type, identifier='transferred')
         self.assertEqual(BlockType.objects.count(), 1)
 
     def test_cann_create_transfer_block_types_for_different_events(self):
-        pc_ev_type = mommy.make_recipe('booking.event_type_PC')
-        pp_ev_type = mommy.make_recipe('booking.event_type_PP')
+        pc_ev_type = baker.make_recipe('booking.event_type_PC')
+        pp_ev_type = baker.make_recipe('booking.event_type_PP')
 
-        mommy.make(BlockType, event_type=pc_ev_type, identifier='transferred')
+        baker.make(BlockType, event_type=pc_ev_type, identifier='transferred')
         self.assertEqual(BlockType.objects.count(), 1)
 
-        mommy.make(BlockType, event_type=pp_ev_type, identifier='transferred')
+        baker.make(BlockType, event_type=pp_ev_type, identifier='transferred')
         self.assertEqual(BlockType.objects.count(), 2)
 
 
@@ -1518,7 +1518,7 @@ class VoucherTests(TestCase):
             2016, 1, 5, 16, 30, 30, 30, tzinfo=timezone.utc
         )
         mock_tz.now.return_value = mock_now
-        voucher = mommy.make(EventVoucher, start_date=mock_now)
+        voucher = baker.make(EventVoucher, start_date=mock_now)
         self.assertEqual(
             voucher.start_date,
             datetime(2016, 1, 5, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -1539,7 +1539,7 @@ class VoucherTests(TestCase):
             2016, 1, 5, 12, 30, tzinfo=timezone.utc
         )
 
-        voucher = mommy.make(
+        voucher = baker.make(
             EventVoucher,
             start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
             expiry_date=datetime(2016, 1, 4, tzinfo=timezone.utc)
@@ -1557,7 +1557,7 @@ class VoucherTests(TestCase):
             2016, 1, 5, 12, 30, tzinfo=timezone.utc
         )
 
-        voucher = mommy.make(
+        voucher = baker.make(
             EventVoucher,
             start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
         )
@@ -1567,10 +1567,10 @@ class VoucherTests(TestCase):
         self.assertFalse(voucher.has_started)
 
     def test_check_event_type(self):
-        voucher = mommy.make(EventVoucher)
-        pc_event_type = mommy.make_recipe('booking.event_type_PC')
-        pp_event_type = mommy.make_recipe('booking.event_type_PP')
-        ws_event_type = mommy.make_recipe('booking.event_type_WS')
+        voucher = baker.make(EventVoucher)
+        pc_event_type = baker.make_recipe('booking.event_type_PC')
+        pp_event_type = baker.make_recipe('booking.event_type_PP')
+        ws_event_type = baker.make_recipe('booking.event_type_WS')
         voucher.event_types.add(pp_event_type)
         voucher.event_types.add(pc_event_type)
 
@@ -1579,10 +1579,10 @@ class VoucherTests(TestCase):
         self.assertTrue(voucher.check_event_type(pp_event_type))
 
     def test_check_block_type(self):
-        voucher = mommy.make(BlockVoucher)
-        block_type1 = mommy.make_recipe('booking.blocktype')
-        block_type2 = mommy.make_recipe('booking.blocktype')
-        block_type3 = mommy.make_recipe('booking.blocktype')
+        voucher = baker.make(BlockVoucher)
+        block_type1 = baker.make_recipe('booking.blocktype')
+        block_type2 = baker.make_recipe('booking.blocktype')
+        block_type3 = baker.make_recipe('booking.blocktype')
         voucher.block_types.add(block_type1)
         voucher.block_types.add(block_type2)
 
@@ -1591,5 +1591,5 @@ class VoucherTests(TestCase):
         self.assertTrue(voucher.check_block_type(block_type2))
 
     def test_str(self):
-        voucher = mommy.make(EventVoucher, code="testcode")
+        voucher = baker.make(EventVoucher, code="testcode")
         self.assertEqual(str(voucher), 'testcode')

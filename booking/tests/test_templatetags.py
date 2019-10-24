@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from unittest.mock import patch
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.auth.models import Group
 from django.urls import reverse
@@ -42,44 +42,44 @@ class BookingtagTests(TestSetupMixin, TestCase):
         """
         Test that cancellation period is formatted correctly
         """
-        event = mommy.make_recipe('booking.future_EV', cancellation_period=24)
+        event = baker.make_recipe('booking.future_EV', cancellation_period=24)
         resp = self._get_response(self.user, event, 'event')
         resp.render()
         self.assertIn('24 hours', str(resp.content))
 
-        event = mommy.make_recipe('booking.future_EV', cancellation_period=25)
+        event = baker.make_recipe('booking.future_EV', cancellation_period=25)
         resp = self._get_response(self.user, event, 'event')
         resp.render()
         self.assertIn('1 day and 1 hour', str(resp.content))
 
-        event = mommy.make_recipe('booking.future_EV', cancellation_period=48)
+        event = baker.make_recipe('booking.future_EV', cancellation_period=48)
         resp = self._get_response(self.user, event, 'event')
         resp.render()
         self.assertIn('2 days', str(resp.content))
 
-        event = mommy.make_recipe('booking.future_EV', cancellation_period=619)
+        event = baker.make_recipe('booking.future_EV', cancellation_period=619)
         resp = self._get_response(self.user, event, 'event')
         resp.render()
         self.assertIn('3 weeks, 4 days and 19 hours', str(resp.content))
 
-        event = mommy.make_recipe('booking.future_EV', cancellation_period=168)
+        event = baker.make_recipe('booking.future_EV', cancellation_period=168)
         resp = self._get_response(self.user, event, 'event')
         resp.render()
         self.assertIn('1 week', str(resp.content))
 
-        event = mommy.make_recipe('booking.future_EV', cancellation_period=192)
+        event = baker.make_recipe('booking.future_EV', cancellation_period=192)
         resp = self._get_response(self.user, event, 'event')
         resp.render()
         self.assertIn('1 week, 1 day and 0 hours', str(resp.content))
 
     def test_formatted_uk_date(self):
         # activitylog in BST
-        mommy.make(
+        baker.make(
             ActivityLog, log="Test log",
             timestamp=datetime(2016, 7, 1, 18, 0, tzinfo=timezone.utc)
         )
         # activitylog in GMT (same as UTC)
-        mommy.make(
+        baker.make(
             ActivityLog, log="Test log",
             timestamp=datetime(2016, 1, 1, 18, 0, tzinfo=timezone.utc)
         )
@@ -93,10 +93,10 @@ class BookingtagTests(TestSetupMixin, TestCase):
         self.assertIn("01 Jan 2016 18:00:00", content)
 
     def test_abbreviated_ticket_booking_references(self):
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, purchase_confirmed=True, paid=True
         )
-        mommy.make(Ticket, ticket_booking=tb)
+        baker.make(Ticket, ticket_booking=tb)
 
         self.client.login(username=self.user.username, password='test')
 
@@ -113,15 +113,15 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
     def test_format_block(self):
         Group.objects.get_or_create(name='instructors')
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', user=user,)
-        event = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', user=user,)
+        event = baker.make_recipe(
             'booking.future_PC', event_type=block.block_type.event_type
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, user=user, block=block
         )
-        mommy.make_recipe('booking.booking', block=block, _quantity=3)
+        baker.make_recipe('booking.booking', block=block, _quantity=3)
 
         self.client.login(username=self.user.username, password='test')
 

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -16,7 +16,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(UserBlocksViewTests, self).setUp()
-        self.block = mommy.make_recipe('booking.block', user=self.user)
+        self.block = baker.make_recipe('booking.block', user=self.user)
 
     def _get_response(self, user, user_id):
         url = reverse(
@@ -101,8 +101,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         """
         Test only user's bookings for future events shown by default
         """
-        new_user = mommy.make_recipe('booking.user')
-        new_blocks = mommy.make_recipe(
+        new_user = baker.make_recipe('booking.user')
+        new_blocks = baker.make_recipe(
             'booking.block', user=new_user, _quantity=2
         )
         self.assertEqual(Block.objects.count(), 3)
@@ -127,7 +127,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(block.paid)
 
     def test_can_create_block(self):
-        block_type = mommy.make_recipe('booking.blocktype')
+        block_type = baker.make_recipe('booking.blocktype')
         self.assertEqual(Block.objects.count(), 1)
         self._post_response(
             self.staff_user, self.user.id,
@@ -141,7 +141,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(Block.objects.count(), 2)
 
     def test_can_create_block_without_start_date(self):
-        block_type = mommy.make_recipe('booking.blocktype')
+        block_type = baker.make_recipe('booking.blocktype')
         self.assertEqual(Block.objects.count(), 1)
         self._post_response(
             self.staff_user, self.user.id,
@@ -184,7 +184,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             Block.objects.get(id=self.block.id)
 
     def test_submitting_with_form_errors_shows_messages(self):
-        block_type = mommy.make_recipe('booking.blocktype')
+        block_type = baker.make_recipe('booking.blocktype')
         self.assertEqual(Block.objects.count(), 1)
         data = self.formset_data(
             {
@@ -209,7 +209,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
     def test_block_pagination(self):
         # Blocks are paginated by 10
         for i in range(20):
-            mommy.make(
+            baker.make(
                 'booking.block', user=self.user,
                 start_date=timezone.now()+timedelta(1+i)
             )
@@ -263,7 +263,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     def test_post_with_page(self):
         # Post return same page number
-        new_blocks = mommy.make('booking.block', user=self.user, _quantity=15)
+        new_blocks = baker.make('booking.block', user=self.user, _quantity=15)
         self.assertEqual(Block.objects.filter(user=self.user).count(), 16)
 
         self.client.login(username=self.staff_user.username, password='test')

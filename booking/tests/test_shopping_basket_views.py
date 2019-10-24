@@ -3,7 +3,7 @@ import json
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-from model_mommy import mommy
+from model_bakery import baker
 from urllib.parse import urlsplit
 
 from django.core import mail
@@ -27,28 +27,28 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.client.login(username=self.user.username, password='test')
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event__event_type__event_type='CL',
             event__date=timezone.now() + timedelta(3),
             event__cost=8,
             user=self.user, _quantity=3
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event__event_type__event_type='EV',
             event__date=timezone.now() + timedelta(3),
             event__cost=8,
             user=self.user, _quantity=3
         )
-        self.voucher = mommy.make(
+        self.voucher = baker.make(
             EventVoucher, code='foo', discount=10, max_per_user=10
         )
-        self.block_voucher = mommy.make(
+        self.block_voucher = baker.make(
             BlockVoucher, code='foo', discount=10, max_per_user=2
         )
-        self.gift_voucher = mommy.make(
+        self.gift_voucher = baker.make(
             EventVoucher, code='gift_booking', discount=100, max_per_user=1
         )
-        self.block_gift_voucher = mommy.make(
+        self.block_gift_voucher = baker.make(
             BlockVoucher, code='gift_block', discount=100, max_per_user=1
         )
 
@@ -63,7 +63,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
     def test_data_privacy_required(self):
         # if one exists, user must have signed it
-        mommy.make(DataPrivacyPolicy, version=None)
+        baker.make(DataPrivacyPolicy, version=None)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(
@@ -75,8 +75,8 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_only_users_bookings_displayed(self):
-        other_user = mommy.make_recipe('booking.user')
-        mommy.make_recipe(
+        other_user = baker.make_recipe('booking.user')
+        baker.make_recipe(
             'booking.booking', user=other_user,
             event__date=timezone.now() + timedelta(3),
             event__cost=8, paid=False
@@ -96,7 +96,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_bookings']), 6)
 
     def test_past_unpaid_bookings_not_displayed(self):
-        mommy.make_recipe('booking.past_booking', user=self.user)
+        baker.make_recipe('booking.past_booking', user=self.user)
 
         # 7 unpaid bookings, only 6 future, 1 past
         self.assertEqual(
@@ -112,7 +112,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_bookings']), 6)
 
     def test_cancelled_bookings_not_displayed(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user,
             event__date=timezone.now() + timedelta(3),
             event__cost=8, paid=False, status='CANCELLED'
@@ -131,7 +131,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_bookings']), 6)
 
     def test_no_show_bookings_not_displayed(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user,
             event__date=timezone.now() + timedelta(3),
             event__cost=8, paid=False, status='OPEN', no_show=True
@@ -150,7 +150,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_bookings']), 6)
 
     def test_paypal_pending_bookings_not_displayed(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user,
             event__date=timezone.now() + timedelta(3),
             event__cost=8, paid=False, status='OPEN', paypal_pending=True
@@ -221,13 +221,13 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertTrue(resp.context['include_warning'])
 
     def test_unpaid_blocks_displayed(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type__cost=10, user=self.user, paid=False
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type__cost=5, user=self.user, paid=True
         )
 
@@ -261,7 +261,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertFalse(resp.context['block_booking_available'])
 
         ev_type = Booking.objects.first().event.event_type
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block_5', block_type__event_type=ev_type,
             user=self.user, paid=True, start_date=timezone.now() - timedelta(1)
         )
@@ -300,10 +300,10 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
     def test_block_voucher_code(self):
         # valid voucher
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_voucher.block_types.add(block.block_type)
@@ -341,7 +341,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
     def test_block_voucher_code_expired(self):
         # expired voucher
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_voucher.block_types.add(block.block_type)
@@ -359,7 +359,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.voucher.event_types.add(ev_type)
         self.voucher.max_per_user = 2
         self.voucher.save()
-        mommy.make(
+        baker.make(
             UsedEventVoucher, user=self.user, voucher=self.voucher, _quantity=2
         )
         resp = self.client.get(self.url + '?booking_code=foo')
@@ -369,13 +369,13 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         )
 
     def test_block_voucher_used_up_for_user(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_voucher.block_types.add(block.block_type)
         self.block_voucher.max_per_user = 2
         self.voucher.save()
-        mommy.make(
+        baker.make(
             UsedBlockVoucher, user=self.user, voucher=self.block_voucher, _quantity=2
         )
         resp = self.client.get(self.url + '?block_code=foo')
@@ -390,7 +390,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.voucher.event_types.add(ev_type)
         self.voucher.max_per_user = 3
         self.voucher.save()
-        mommy.make(
+        baker.make(
             UsedEventVoucher, user=self.user, voucher=self.voucher, _quantity=2
         )
         resp = self.client.get(self.url + '?booking_code=foo')
@@ -406,17 +406,17 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context['total_unpaid_booking_cost'], Decimal('47.20'))
 
     def test_block_voucher_will_be_used_up_for_user_with_basket_blocks(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_voucher.block_types.add(block.block_type)
         self.block_voucher.block_types.add(block1.block_type)
         self.block_voucher.max_per_user = 2
         self.voucher.save()
-        mommy.make(
+        baker.make(
             UsedBlockVoucher, user=self.user, voucher=self.block_voucher
         )
         resp = self.client.get(self.url + '?block_code=foo')
@@ -437,8 +437,8 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.voucher.event_types.add(ev_type)
         self.voucher.max_vouchers = 4
         self.voucher.save()
-        other_user = mommy.make_recipe('booking.user')
-        mommy.make(
+        other_user = baker.make_recipe('booking.user')
+        baker.make(
             UsedEventVoucher, user=other_user, voucher=self.voucher,
             _quantity=4
         )
@@ -450,15 +450,15 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         )
 
     def test_block_voucher_used_max_total_times(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_voucher.block_types.add(block.block_type)
         self.block_voucher.max_vouchers = 2
         self.block_voucher.save()
 
-        other_user = mommy.make_recipe('booking.user')
-        mommy.make(
+        other_user = baker.make_recipe('booking.user')
+        baker.make(
             UsedBlockVoucher, user=other_user, voucher=self.block_voucher,
             _quantity=2
         )
@@ -485,8 +485,8 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.voucher.max_vouchers = 10
         self.voucher.save()
 
-        other_user = mommy.make_recipe('booking.user')
-        mommy.make(
+        other_user = baker.make_recipe('booking.user')
+        baker.make(
             UsedEventVoucher, user=other_user, voucher=self.voucher, _quantity=9
         )
 
@@ -571,10 +571,10 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 )
 
     def test_paypal_cart_form_created_with_block_voucher(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_voucher.block_types.add(block.block_type)
@@ -632,7 +632,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
     def test_100_pct_block_gift_voucher_payment_buttons(self):
         # update button instead of paypal form for a 100% gift voucher
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
         self.block_gift_voucher.block_types.add(block.block_type)
@@ -645,10 +645,10 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
 
     def test_100_pct_block_gift_voucher_payment_buttons_with_unapplied_booking(self):
         # paypal form if there are bookings as well as the gift-voucher applied ones
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type__cost=10, user=self.user, paid=False
         )
         self.block_gift_voucher.block_types.add(block.block_type)
@@ -666,40 +666,40 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.url = reverse('booking:update_block_bookings')
-        cls.blocktype_cl_5 = mommy.make_recipe('booking.blocktype5')
+        cls.blocktype_cl_5 = baker.make_recipe('booking.blocktype5')
 
         # need to specify subtype for free block creation to happen
-        cls.blocktype_cl_10 = mommy.make_recipe(
+        cls.blocktype_cl_10 = baker.make_recipe(
             'booking.blocktype10', event_type__subtype="Pole level class",
             assign_free_class_on_completion=True
         )
         # create free block type associated with blocktype_cl_10
-        cls.free_blocktype = mommy.make_recipe(
+        cls.free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type=cls.blocktype_cl_10.event_type, identifier='free class'
         )
-        cls.pc1 = mommy.make_recipe(
+        cls.pc1 = baker.make_recipe(
             'booking.future_PC', event_type=cls.blocktype_cl_5.event_type,
             cost=10
         )
-        cls.pc2 = mommy.make_recipe(
+        cls.pc2 = baker.make_recipe(
             'booking.future_PC', event_type=cls.blocktype_cl_5.event_type,
             cost=10
         )
-        cls.ev =  mommy.make_recipe('booking.future_EV', cost=10)
+        cls.ev =  baker.make_recipe('booking.future_EV', cost=10)
 
     def setUp(self):
         super().setUp()
         self.client.login(username=self.user.username, password='test')
 
     def test_use_block_for_all_eligible_bookings(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user,
             block_type=self.blocktype_cl_5, paid=True
         )
         self.assertTrue(block.active_block())
         for ev in Event.objects.all():
-            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+            baker.make_recipe('booking.booking', user=self.user, event=ev)
 
         # block is eligible for 2 of the 3 bookings
         resp = self.client.post(self.url)
@@ -727,7 +727,7 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
     def test_use_block_for_all_with_no_eligible_booking(self):
         # redirects with code
         for ev in Event.objects.all():
-            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+            baker.make_recipe('booking.booking', user=self.user, event=ev)
 
         self.client.post(self.url)
 
@@ -741,7 +741,7 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
     def test_use_block_for_all_with_voucher_codes(self):
         # redirects with code
         for ev in Event.objects.all():
-            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+            baker.make_recipe('booking.booking', user=self.user, event=ev)
 
         resp = self.client.post(
             self.url, {'booking_code': 'bar', 'block_code': 'foo'}
@@ -759,17 +759,17 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         self.assertIn('block_code=foo', split_redirect_url.query)
 
     def test_use_block_for_all_with_more_bookings_than_blocks(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_PC', event_type=self.blocktype_cl_5.event_type,
             cost=10, _quantity=6
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user,
             block_type=self.blocktype_cl_5, paid=True
         )
         self.assertTrue(block.active_block())
         for ev in Event.objects.all():
-            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+            baker.make_recipe('booking.booking', user=self.user, event=ev)
 
         self.assertEqual(Booking.objects.filter(user=self.user).count(), 9)
         # 8 bookings are eligible for block booking
@@ -786,20 +786,20 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         )
 
     def test_use_block_for_all_uses_last_block_free_class_created(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
             cost=10, _quantity=11
         )
 
         # free class created and used
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user,
             block_type=self.blocktype_cl_10, paid=True,
         )
         self.assertTrue(block.active_block())
 
         for ev in Event.objects.all():
-            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+            baker.make_recipe('booking.booking', user=self.user, event=ev)
 
         self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
         # 11 bookings are eligible for block booking
@@ -820,17 +820,17 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         )
 
     def test_uses_last_block_free_class_block_already_exists(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
             cost=10, _quantity=11
         )
 
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user,
             block_type=self.blocktype_cl_10, paid=True
         )
         # free related block already exists
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.block', user=self.user,
             block_type=self.free_blocktype, paid=True, parent=block
         )
@@ -838,7 +838,7 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         self.assertTrue(free_block.active_block())
 
         for ev in Event.objects.all():
-            mommy.make_recipe('booking.booking', user=self.user, event=ev)
+            baker.make_recipe('booking.booking', user=self.user, event=ev)
 
         self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
         # 11 bookings are eligible for block booking with block or free block
@@ -869,7 +869,7 @@ class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.url = reverse('booking:submit_zero_booking_payment')
-        cls.pc1 = mommy.make_recipe('booking.future_PC', cost=10)
+        cls.pc1 = baker.make_recipe('booking.future_PC', cost=10)
 
     def setUp(self):
         super().setUp()
@@ -877,7 +877,7 @@ class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
         self.gift_voucher = EventVoucher.objects.create(code='gift', discount=100)
 
     def test_submit_zero_booking_payment_no_blocks(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=self.pc1, paid=False
         )
         self.gift_voucher.event_types.add(booking.event.event_type)
@@ -897,7 +897,7 @@ class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:bookings'))
 
     def test_submit_zero_booking_payment_with_unpaid_block(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=self.pc1, paid=False
         )
         self.gift_voucher.event_types.add(booking.event.event_type)
@@ -921,7 +921,7 @@ class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:shopping_basket'))
 
     def test_submit_zero_booking_payment_with_unpaid_block_and_code(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=self.pc1, paid=False
         )
         self.gift_voucher.event_types.add(booking.event.event_type)
@@ -946,7 +946,7 @@ class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:shopping_basket') + '?block_code=gift_block')
 
     def test_submit_zero_booking_payment_invalid_code(self):
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=self.pc1, paid=False
         )
         self.gift_voucher.event_types.add(booking.event.event_type)
@@ -969,7 +969,7 @@ class SubmitZeroBlockPaymentViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.url = reverse('booking:submit_zero_block_payment')
-        cls.pc1 = mommy.make_recipe('booking.future_PC', cost=10)
+        cls.pc1 = baker.make_recipe('booking.future_PC', cost=10)
 
     def setUp(self):
         super().setUp()
@@ -977,7 +977,7 @@ class SubmitZeroBlockPaymentViewTests(TestSetupMixin, TestCase):
         self.gift_block_voucher = BlockVoucher.objects.create(code='gift', discount=100)
 
     def test_submit_zero_block_payment_no_blocks(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, paid=False
         )
         self.gift_block_voucher.block_types.add(block.block_type)
@@ -996,7 +996,7 @@ class SubmitZeroBlockPaymentViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:block_list'))
 
     def test_submit_zero_block_payment_with_unpaid_booking(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, paid=False
         )
         self.gift_block_voucher.block_types.add(block.block_type)
@@ -1019,7 +1019,7 @@ class SubmitZeroBlockPaymentViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:shopping_basket'))
 
     def test_submit_zero_block_payment_with_unpaid_booking_and_code(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, paid=False
         )
         self.gift_block_voucher.block_types.add(block.block_type)
@@ -1043,7 +1043,7 @@ class SubmitZeroBlockPaymentViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:shopping_basket') + '?booking_code=booking_gift')
 
     def test_submit_zero_block_payment_invalid_code(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, paid=False
         )
         self.gift_block_voucher.block_types.add(block.block_type)

@@ -18,7 +18,7 @@ psycopg2==2.8.4
 python-dateutil==2.8.0
 PyYAML==5.1.2
 mailchimp3==3.0.9
-model-mommy==1.6.0
+model-bakery==1.0.1
 django-ckeditor==5.7.1
 pillow==6.2.0
 gunicorn==19.7.1

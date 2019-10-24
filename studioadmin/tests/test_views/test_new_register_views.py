@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.auth.models import User
 from django.core import mail
@@ -20,9 +20,9 @@ class NewRegisterViewTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.pc = mommy.make_recipe('booking.future_PC', max_participants=3)
-        cls.pc_no_max = mommy.make_recipe('booking.future_PC')
-        cls.ev = mommy.make_recipe('booking.future_EV', max_participants=3)
+        cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
+        cls.pc_no_max = baker.make_recipe('booking.future_PC')
+        cls.ev = baker.make_recipe('booking.future_EV', max_participants=3)
         cls.pc_url = reverse('studioadmin:event_register', args=(cls.pc.slug,))
         cls.pc_no_max_url = reverse('studioadmin:event_register', args=(cls.pc_no_max.slug,))
         cls.ev_url = reverse('studioadmin:event_register', args=(cls.ev.slug,))
@@ -67,46 +67,46 @@ class NewRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(resp.context_data['can_add_more'])
 
     def test_register_shows_event_bookings(self):
-        bookings = mommy.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
-        mommy.make_recipe('booking.booking', status='OPEN', event=self.ev, _quantity=3)
+        bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', status='OPEN', event=self.ev, _quantity=3)
         resp = self.client.get(self.pc_url)
         self.assertEqual(
             sorted([booking.id for booking in resp.context_data['bookings']]),
             sorted([booking.id for booking in bookings]))
 
     def test_cancelled_bookings_not_shown(self):
-        bookings = mommy.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
-        mommy.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
+        bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
         resp = self.client.get(self.pc_url)
         self.assertEqual(
             sorted([booking.id for booking in resp.context_data['bookings']]),
             sorted([booking.id for booking in bookings]))
 
     def test_no_show_bookings_shown(self):
-        bookings = mommy.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
-        no_show_bookings = mommy.make_recipe('booking.booking', status='OPEN', no_show=True, event=self.pc, _quantity=1)
+        bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        no_show_bookings = baker.make_recipe('booking.booking', status='OPEN', no_show=True, event=self.pc, _quantity=1)
         resp = self.client.get(self.pc_url)
         self.assertEqual(
             sorted([booking.id for booking in resp.context_data['bookings']]),
             sorted([booking.id for booking in bookings + no_show_bookings]))
 
     def test_full_event_shows_no_new_booking_button(self):
-        mommy.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
         resp = self.client.get(self.pc_url)
         self.assertTrue(resp.context_data['can_add_more'])
 
-        mommy.make_recipe('booking.booking', status='OPEN', event=self.pc)
+        baker.make_recipe('booking.booking', status='OPEN', event=self.pc)
         resp = self.client.get(self.pc_url)
         self.assertFalse(resp.context_data['can_add_more'])
 
     def test_with_available_block_type_for_event(self):
-        mommy.make(BlockType, event_type=self.pc.event_type)
+        baker.make(BlockType, event_type=self.pc.event_type)
         resp = self.client.get(self.pc_url)
         self.assertTrue(resp.context_data['available_block_type'])
 
     def test_status_choices(self):
-        open_bookings = mommy.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
-        cancelled_bookings = mommy.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
+        open_bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        cancelled_bookings = baker.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
 
         resp = self.client.get(self.pc_url + '?status_choice=CANCELLED')
         self.assertEqual(
@@ -132,8 +132,8 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.pc = mommy.make_recipe('booking.future_PC', max_participants=3)
-        cls.ev = mommy.make_recipe('booking.future_EV', max_participants=3)
+        cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
+        cls.ev = baker.make_recipe('booking.future_EV', max_participants=3)
         cls.pc_url = reverse('studioadmin:bookingregisteradd', args=(cls.pc.id,))
         cls.ev_url = reverse('studioadmin:bookingregisteradd', args=(cls.ev.id,))
 
@@ -172,7 +172,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.payment_confirmed)
 
     def test_reopen_cancelled_booking(self):
-        booking = mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='CANCELLED')
+        booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='CANCELLED')
         self.assertEqual(self.pc.bookings.count(), 1)
 
         self.client.post(self.pc_url, {'user': booking.user.id})
@@ -181,7 +181,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.no_show)
 
     def test_reopen_no_show_booking(self):
-        booking = mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN', no_show=True)
+        booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN', no_show=True)
         self.assertEqual(self.pc.bookings.count(), 1)
 
         self.client.post(self.pc_url, {'user': booking.user.id})
@@ -190,15 +190,15 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.no_show)
 
     def test_user_choices(self):
-        user = mommy.make_recipe('booking.user')
-        user1 = mommy.make_recipe('booking.user')
-        user2 = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
+        user1 = baker.make_recipe('booking.user')
+        user2 = baker.make_recipe('booking.user')
         # open booking
-        mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
+        baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
         # no_show_booking
-        mommy.make_recipe('booking.booking', user=user, event=self.pc, status='OPEN', no_show=True)
+        baker.make_recipe('booking.booking', user=user, event=self.pc, status='OPEN', no_show=True)
         # cancelled_booking
-        mommy.make_recipe('booking.booking', user=user1, event=self.pc, status='CANCELLED')
+        baker.make_recipe('booking.booking', user=user1, event=self.pc, status='CANCELLED')
 
         # form shows users with cancelled, no-show or no bookings
         form = AddRegisterBookingForm(event=self.pc)
@@ -217,7 +217,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertTrue(form.is_valid())
 
         # make booking for this user
-        mommy.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
+        baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
 
         # try to process the form
         request = self.factory.get(self.pc_url)
@@ -226,7 +226,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         mock_messages.assert_called_once_with(request, 'Open booking for this user already exists')
 
     def test_full_class(self):
-        mommy.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=3)
         # fetch from db again b/c spaces left is cached
         pc = Event.objects.get(id=self.pc.id)
         self.assertEqual(pc.spaces_left, 0)
@@ -239,7 +239,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         )
 
     def test_full_event(self):
-        mommy.make_recipe('booking.booking', event=self.ev, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.ev, _quantity=3)
         # fetch from db again b/c spaces left is cached
         ev = Event.objects.get(id=self.ev.id)
         self.assertEqual(ev.spaces_left, 0)
@@ -253,7 +253,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
 
     def test_assigns_available_block(self):
         self.assertFalse(self.pc.bookings.exists())
-        mommy.make_recipe('booking.block', user=self.user)  # block for different event type
+        baker.make_recipe('booking.block', user=self.user)  # block for different event type
 
         self.client.post(self.pc_url, {'user': self.user.id})
         booking = self.pc.bookings.first()
@@ -264,8 +264,8 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         booking.status = 'CANCELLED'
         booking.save()
 
-        block_type = mommy.make_recipe('booking.blocktype5', event_type=self.pc.event_type)
-        block = mommy.make_recipe('booking.block', user=self.user, block_type=block_type, paid=True)
+        block_type = baker.make_recipe('booking.blocktype5', event_type=self.pc.event_type)
+        block = baker.make_recipe('booking.block', user=self.user, block_type=block_type, paid=True)
         self.client.post(self.pc_url, {'user': self.user.id})
         booking = self.pc.bookings.first()
         self.assertEqual(booking.user, self.user)
@@ -274,7 +274,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertTrue(booking.payment_confirmed)
 
     def test_remove_user_from_waiting_list(self):
-        mommy.make(WaitingListUser, user=self.user, event=self.pc)
+        baker.make(WaitingListUser, user=self.user, event=self.pc)
         self.assertEqual(WaitingListUser.objects.count(), 1)
 
         self.client.post(self.pc_url, {'user': self.user.id})
@@ -286,13 +286,13 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.pc = mommy.make_recipe('booking.future_PC', max_participants=3)
-        cls.block_type = mommy.make(BlockType, size=2, event_type=cls.pc.event_type)
+        cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
+        cls.block_type = baker.make(BlockType, size=2, event_type=cls.pc.event_type)
 
     def setUp(self):
         super().setUp()
         self.client.login(username=self.staff_user.username, password='test')
-        self.booking = mommy.make_recipe('booking.booking', user=self.user, event=self.pc)
+        self.booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc)
         self.assign_block_url = reverse('studioadmin:assign_block', args=(self.booking.id,))
         self.toggle_paid_url = reverse('studioadmin:toggle_paid', args=(self.booking.id,))
         self.toggle_attended_url = reverse('studioadmin:toggle_attended', args=(self.booking.id,))
@@ -313,7 +313,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertIn('N/A', resp.content.decode('utf-8'))
 
         # available block, paid
-        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         resp = self.client.get(self.assign_block_url)
         self.assertIn('Available block not used', resp.content.decode('utf-8'))
 
@@ -344,7 +344,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertIn('N/A', resp.content.decode('utf-8'))
 
     def test_ajax_assign_block_post_paid_with_block_already(self):
-        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         self.booking.block = block
         self.booking.save()
         resp = self.client.post(self.assign_block_url)
@@ -365,7 +365,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertIn('No active block', resp.content.decode('utf-8'))
 
     def test_ajax_assign_block_post_not_paid_block_available(self):
-        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         self.assertIsNone(self.booking.block)
         resp = self.client.post(self.assign_block_url)
         self.booking.refresh_from_db()
@@ -403,7 +403,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to paid.')
 
     def test_ajax_toggle_paid_post_toggle_to_paid_with_availble_block(self):
-        mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         self.assertFalse(self.booking.paid)
         self.assertFalse(self.booking.payment_confirmed)
         self.assertIsNone(self.booking.block)
@@ -429,7 +429,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
 
     def test_ajax_toggle_paid_with_block_post_toggle_to_not_paid(self):
-        block = mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         self.booking.block = block
         self.booking.save()
         resp = self.client.post(self.toggle_paid_url)
@@ -442,7 +442,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid and block unassigned.')
 
     def test_ajax_toggle_paid_post_not_paid_block_available(self):
-        mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         self.booking.paid = True
         self.booking.save()
         self.assertIsNone(self.booking.block)
@@ -456,7 +456,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
 
     def test_ajax_toggle_paid_post_free_class(self):
-        mommy.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
         self.booking.paid = True
         self.booking.free_class = True
         self.booking.save()
@@ -503,10 +503,10 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertTrue(self.booking.no_show)
 
     def test_ajax_toggle_no_show_send_waiting_list_email_for_full_event(self):
-        mommy.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=2)
         pc = Event.objects.get(id=self.pc.id)
         self.assertEqual(pc.spaces_left, 0)
-        mommy.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
+        baker.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
 
         self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
         self.booking.refresh_from_db()
@@ -517,10 +517,10 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(mail.outbox[0].bcc, ["waitinglist@user.com"])
 
     def test_ajax_toggle_no_show_no_waiting_list_email_for_full_event_within_1_hour(self):
-        mommy.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=2)
         pc = Event.objects.get(id=self.pc.id)
         self.assertEqual(pc.spaces_left, 0)
-        mommy.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
+        baker.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
 
         pc.date = timezone.now() + timedelta(minutes=58)
         pc.save()
@@ -556,7 +556,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(self.booking.status, 'OPEN')
 
     def test_ajax_toggle_attended_open_booking_full_event(self):
-        mommy.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=2)
         pc = Event.objects.get(id=self.pc.id)
         self.assertEqual(pc.spaces_left, 0)
         resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
@@ -570,7 +570,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
     def test_ajax_toggle_attended_cancelled_booking_full_event(self):
         self.booking.status = 'CANCELLED'
         self.booking.save()
-        mommy.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=3)
         pc = Event.objects.get(id=self.pc.id)
         self.assertEqual(pc.spaces_left, 0)
         resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
@@ -584,7 +584,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
     def test_ajax_toggle_attended_no_show_booking_full_event(self):
         self.booking.no_show = True
         self.booking.save()
-        mommy.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=3)
         pc = Event.objects.get(id=self.pc.id)
         self.assertEqual(pc.spaces_left, 0)
         resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})

@@ -2,7 +2,7 @@ from importlib import import_module
 from requests.auth import HTTPBasicAuth
 from unittest.mock import Mock, patch
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
@@ -15,7 +15,7 @@ from accounts.utils import has_active_data_privacy_agreement
 
 
 def set_up_fb():
-    fbapp = mommy.make_recipe('booking.fb_app')
+    fbapp = baker.make_recipe('booking.fb_app')
     site = Site.objects.get_current()
     fbapp.sites.add(site.id)
 
@@ -52,10 +52,10 @@ def _add_user_email_addresses(model):
 def make_data_privacy_agreement(user):
     if not has_active_data_privacy_agreement(user):
         if DataPrivacyPolicy.current_version() == 0:
-            mommy.make(
+            baker.make(
                 DataPrivacyPolicy, content='Foo', version=1
             )
-        mommy.make(
+        baker.make(
             SignedDataPrivacy, user=user,
             version=DataPrivacyPolicy.current_version()
         )
@@ -76,7 +76,7 @@ class TestSetupMixin(object):
         self.user = User.objects.create_user(
             username='test', email='test@test.com', password='test'
         )
-        mommy.make(PrintDisclaimer, user=self.user)
+        baker.make(PrintDisclaimer, user=self.user)
         make_data_privacy_agreement(self.user)
 
     def tearDown(self):

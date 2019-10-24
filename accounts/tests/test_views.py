@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
 from unittest.mock import call, Mock
@@ -332,9 +332,9 @@ class ProfileTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(ProfileTests, self).setUp()
-        self.user_with_online_disclaimer = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=self.user_with_online_disclaimer)
-        self.user_no_disclaimer = mommy.make_recipe('booking.user')
+        self.user_with_online_disclaimer = baker.make_recipe('booking.user')
+        baker.make(OnlineDisclaimer, user=self.user_with_online_disclaimer)
+        self.user_no_disclaimer = baker.make_recipe('booking.user')
 
     def _get_response(self, user):
         url = reverse('profile:profile')
@@ -435,7 +435,7 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(DisclaimerCreateViewTests, self).setUp()
-        self.user_no_disclaimer = mommy.make_recipe('booking.user')
+        self.user_no_disclaimer = baker.make_recipe('booking.user')
 
         self.form_data = {
             'name': 'test', 'dob': '01 Jan 1990', 'address': '1 test st',
@@ -543,7 +543,7 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
 
     def test_message_shown_if_no_usable_password(self):
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         user.set_unusable_password()
         user.save()
 
@@ -556,7 +556,7 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
     def test_cannot_complete_disclaimer_without_usable_password(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 0)
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         user.set_unusable_password()
         user.save()
 
@@ -645,7 +645,7 @@ class MailingListSubscribeViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(MailingListSubscribeViewTests, cls).setUpTestData()
-        cls.subscribed = mommy.make(Group, name='subscribed')
+        cls.subscribed = baker.make(Group, name='subscribed')
 
     def test_login_required(self):
         url = reverse('subscribe')
@@ -724,7 +724,7 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.url = reverse('profile:data_privacy_review')
-        cls.data_privacy_policy = mommy.make(DataPrivacyPolicy, version=None)
+        cls.data_privacy_policy = baker.make(DataPrivacyPolicy, version=None)
         cls.subscribed, _ = Group.objects.get_or_create(name='subscribed')
 
 
@@ -740,14 +740,14 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:lessons'))
 
         # make new policy
-        mommy.make(DataPrivacyPolicy, version=None)
+        baker.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_create_new_agreement(self):
         # make new policy
-        mommy.make(DataPrivacyPolicy, version=None)
+        baker.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
         self.client.post(
@@ -758,7 +758,7 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_new_agreement_with_subscribe(self):
         # make new policy
-        mommy.make(DataPrivacyPolicy, version=None)
+        baker.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
         self.client.post(
@@ -772,7 +772,7 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_new_agreement_with_unsubscribe(self):
         # make new policy
-        mommy.make(DataPrivacyPolicy, version=None)
+        baker.make(DataPrivacyPolicy, version=None)
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
         self.subscribed.user_set.add(self.user)

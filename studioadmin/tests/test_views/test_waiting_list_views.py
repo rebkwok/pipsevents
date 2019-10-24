@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -42,7 +42,7 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not logged in
         """
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
         url = reverse(
             'studioadmin:event_waiting_list', kwargs={'event_id':event.id}
         )
@@ -55,7 +55,7 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
         resp = self._get_response(self.user, event)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp.url, reverse('booking:permission_denied'))
@@ -65,7 +65,7 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         test that the page can be accessed by a non staff user if in the
         instructors group
         """
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
         resp = self._get_response(self.instructor_user, event)
         self.assertEquals(resp.status_code, 200)
 
@@ -73,7 +73,7 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
         resp = self._get_response(self.staff_user, event)
         self.assertEquals(resp.status_code, 200)
 
@@ -81,13 +81,13 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         """
         Only show users on the waiting list for the relevant event
         """
-        event = mommy.make_recipe('booking.future_PC')
-        event1 = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
+        event1 = baker.make_recipe('booking.future_PC')
 
-        event_wl = mommy.make_recipe(
+        event_wl = baker.make_recipe(
             'booking.waiting_list_user', event=event, _quantity=3
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.waiting_list_user', event=event1, _quantity=3
         )
         resp = self._get_response(self.staff_user, event)
@@ -99,9 +99,9 @@ class WaitingListViewStudioAdminTests(TestPermissionMixin, TestCase):
         """
         Only show users on the waiting list for the relevant event
         """
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
 
-        event_wl = mommy.make_recipe(
+        event_wl = baker.make_recipe(
             'booking.waiting_list_user', event=event, _quantity=3
         )
         resp = self._get_response(self.staff_user, event)

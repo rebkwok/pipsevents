@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from model_mommy import mommy
+from model_bakery import baker
 from unittest.mock import patch
 
 from django.conf import settings
@@ -25,11 +25,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(EventListViewTests, cls).setUpTestData()
-        mommy.make_recipe('booking.ticketed_event_max10', _quantity=3)
+        baker.make_recipe('booking.ticketed_event_max10', _quantity=3)
 
     def setUp(self):
         super(EventListViewTests, self).setUp()
-        self.staff_user = mommy.make_recipe('booking.user')
+        self.staff_user = baker.make_recipe('booking.user')
         self.staff_user.is_staff = True
         self.staff_user.save()
         make_data_privacy_agreement(self.staff_user)
@@ -56,7 +56,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that past event is not listed
         """
-        mommy.make_recipe('booking.ticketed_event_past_max10')
+        baker.make_recipe('booking.ticketed_event_past_max10')
         # check there are now 4 events
         self.assertEquals(TicketedEvent.objects.all().count(), 4)
         url = reverse('booking:ticketed_events')
@@ -92,7 +92,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # create a booking for this user with no tickets
         booked_event = TicketedEvent.objects.all()[0]
-        mommy.make(
+        baker.make(
             TicketBooking, user=self.user,
             ticketed_event=booked_event
         )
@@ -112,7 +112,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # create a booking for this user
         booked_event = TicketedEvent.objects.all()[0]
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=booked_event,
             ticket_booking__purchase_confirmed=True
@@ -133,13 +133,13 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # create a confirmed booking for this user
         booked_event = TicketedEvent.objects.all()[0]
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=booked_event,
             ticket_booking__purchase_confirmed=True
         )
         # create an unconfirmed booking for this user
-        unconfirmed = mommy.make(
+        unconfirmed = baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=booked_event,
         )
@@ -163,14 +163,14 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(resp.context_data['tickets_booked_events']), 0)
 
         # create booking for this user
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=event1,
             ticket_booking__purchase_confirmed=True
         )
         # create booking for another user
-        user1 = mommy.make_recipe('booking.user')
-        mommy.make(
+        user1 = baker.make_recipe('booking.user')
+        baker.make(
             Ticket, ticket_booking__user=user1,
             ticket_booking__ticketed_event=event2,
             ticket_booking__purchase_confirmed=True
@@ -184,7 +184,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertTrue(event1 in booked_events)
 
     def test_events_not_listed_if_show_on_site_false(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.ticketed_event_max10', show_on_site=False
         )
         # check there are now 4 events
@@ -194,7 +194,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(resp.context_data['ticketed_events'].count(), 3)
 
     def test_events_are_listed_for_staff_users_if_show_on_site_false(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.ticketed_event_max10', show_on_site=False
         )
         # check there are now 4 events
@@ -217,7 +217,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(TicketCreateViewTests, self).setUp()
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
         self.staff_user = User.objects.create_user(
             username='staff', password='test'
         )
@@ -314,7 +314,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         """
         # create an existing ticket booking for the user and event without
         # tickets
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event,
         )
         self.assertEqual(TicketBooking.objects.count(), 1)
@@ -326,7 +326,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
 
 
         # add tickets to the booking, but leave unconfirmed
-        mommy.make(Ticket, ticket_booking=tb)
+        baker.make(Ticket, ticket_booking=tb)
         self.assertEqual(TicketBooking.objects.count(), 1)
         resp = self._get_response(self.user, self.ticketed_event)
 
@@ -402,7 +402,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         )
 
         # create a ticket booking
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             date_booked=datetime(2015, 10, 1, 10, 0, tzinfo=timezone.utc)
         )
@@ -433,7 +433,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
 
     def test_create_booking_confirmed_purchase(self):
 
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -462,10 +462,10 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     def test_create_booking_already_confirmed_purchase(self):
         self.ticketed_event.max_tickets = 4
         self.ticketed_event.save()
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
-        tb1 = mommy.make(
+        tb1 = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
 
@@ -491,7 +491,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     def test_cannot_book_more_tickets_than_available(self):
 
         self.assertEqual(self.ticketed_event.tickets_left(), 10)
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # try to add more tickets to the booking than available
@@ -508,7 +508,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_cancelling_during_ticket_booking_deletes_booking_and_tickets(self):
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         self._post_response(
@@ -528,7 +528,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Ticket.objects.count(), 0)
 
     def test_can_change_ticket_quantity_during_process(self):
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # try to add more tickets to the booking than available
@@ -553,7 +553,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(tb.tickets.count(), 4)
 
     def test_paypal_form_only_displayed_if_ticket_cost_and_payment_open(self):
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -596,7 +596,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     def test_date_booked_reset_when_purchase_confirmed(self, mock_tz):
         mock_tz.now.return_value = datetime(2015, 10, 10, tzinfo=timezone.utc)
 
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event,
             date_booked=datetime(2015, 10, 1, tzinfo=timezone.utc)
         )
@@ -626,7 +626,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(tb.date_booked, datetime(2015, 10, 10, tzinfo=timezone.utc))
 
     def test_email_sent_to_user_when_booked(self):
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -661,7 +661,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     @patch('booking.views.ticketed_views.send_mail')
     def test_error_sending_user_email(self, mock_send):
         mock_send.side_effect = Exception('Error sending email')
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -688,7 +688,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     def test_email_sent_studio_when_booked_only_if_flag_set(self):
         self.ticketed_event.email_studio_when_purchased = True
         self.ticketed_event.save()
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -735,7 +735,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         mock_send.side_effect = Exception('Error sending email')
         self.ticketed_event.email_studio_when_purchased = True
         self.ticketed_event.save()
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -764,7 +764,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         self.ticketed_event.extra_ticket_info_required = True
         self.ticketed_event.save()
 
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
         )
         # add tickets to the booking
@@ -799,7 +799,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(TicketBookingListViewTests, cls).setUpTestData()
-        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        cls.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
     def _get_response(self, user):
         url = reverse('booking:ticket_bookings')
@@ -820,14 +820,14 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
         """
         Test that only bookings for future events are listed)
         """
-        past_bookings = mommy.make(
+        past_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() - timedelta(10),
             user=self.user,
             _quantity=2
         )
-        future_bookings = mommy.make(
+        future_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
@@ -835,7 +835,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -849,21 +849,21 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
         """
         Test that only ticket bookings for this user are listed
         """
-        user_bookings = mommy.make(
+        user_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
             user=self.user,
             _quantity=2
         )
-        other_bookings = mommy.make(
+        other_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -878,14 +878,14 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
         Test that all future ticket bookings for cancelled events for this
         user are listed
         """
-        open_bookings = mommy.make(
+        open_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
             user=self.user,
             _quantity=2
         )
-        cancelled_bookings = mommy.make(
+        cancelled_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
@@ -894,7 +894,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -903,14 +903,14 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
 
     def test_paypal_form_only_shown_for_open_bookings(self):
 
-        open_bookings = mommy.make(
+        open_bookings = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             user=self.user,
             _quantity=2
         )
-        cancelled_bookings = mommy.make(
+        cancelled_bookings = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
@@ -919,7 +919,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -934,7 +934,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
 
     def test_paypal_form_only_shown_for_unpaid_bookings(self):
 
-        paid_bookings = mommy.make(
+        paid_bookings = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
@@ -942,7 +942,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             paid=True,
             _quantity=2
         )
-        unpaid_bookings = mommy.make(
+        unpaid_bookings = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
@@ -951,7 +951,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -966,17 +966,17 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
 
     def test_paypal_form_not_shown_for_event_with_payment_not_open(self):
 
-        event_not_open = mommy.make_recipe(
+        event_not_open = baker.make_recipe(
             'booking.ticketed_event_max10', payment_open=False
         )
-        bookings_open_event = mommy.make(
+        bookings_open_event = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             user=self.user,
             _quantity=2
         )
-        bookings_not_open_event = mommy.make(
+        bookings_not_open_event = baker.make(
             TicketBooking,
             ticketed_event=event_not_open,
             purchase_confirmed=True,
@@ -984,7 +984,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -1006,14 +1006,14 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
         :return:
         """
 
-        tb = mommy.make(
+        tb = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             user=self.user,
             paid=True
         )
-        mommy.make(Ticket, ticket_booking=tb)
+        baker.make(Ticket, ticket_booking=tb)
 
         resp = self._get_response(self.user)
         self.assertIn('PAID', resp.rendered_content)
@@ -1044,7 +1044,7 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(TicketBookingHistoryListViewTests, cls).setUpTestData()
-        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
+        cls.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
 
     def _get_response(self, user):
         url = reverse('booking:ticket_booking_history')
@@ -1065,14 +1065,14 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
         """
         Test that only past bookings are listed)
         """
-        past_bookings = mommy.make(
+        past_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() - timedelta(10),
             user=self.user,
             _quantity=2
         )
-        future_bookings = mommy.make(
+        future_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
@@ -1080,7 +1080,7 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -1094,28 +1094,28 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
         """
         Test that only past booking for this user are listed
         """
-        user_bookings = mommy.make(
+        user_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() - timedelta(10),
             user=self.user,
             _quantity=2
         )
-        future_user_bookings = mommy.make(
+        future_user_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() + timedelta(10),
             user=self.user,
             _quantity=2
         )
-        other_bookings = mommy.make(
+        other_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() - timedelta(10),
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -1130,14 +1130,14 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
         """
         Test that cancelled bookings are listed in booking history
         """
-        open_bookings = mommy.make(
+        open_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() - timedelta(10),
             user=self.user,
             _quantity=2
         )
-        cancelled_bookings = mommy.make(
+        cancelled_bookings = baker.make(
             TicketBooking,
             purchase_confirmed=True,
             ticketed_event__date=timezone.now() - timedelta(10),
@@ -1146,7 +1146,7 @@ class TicketBookingHistoryListViewTests(TestSetupMixin, TestCase):
             _quantity=2
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         resp = self._get_response(self.user)
         self.assertEqual(
@@ -1159,18 +1159,18 @@ class TicketBookingViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(TicketBookingViewTests, cls).setUpTestData()
-        cls.ticketed_event = mommy.make_recipe(
+        cls.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             extra_ticket_info_label="Name",
         )
 
     def setUp(self):
         super(TicketBookingViewTests, self).setUp()
-        self.ticket_booking = mommy.make(
+        self.ticket_booking = baker.make(
             TicketBooking, user=self.user, purchase_confirmed=True,
             ticketed_event=self.ticketed_event
         )
-        mommy.make(Ticket, ticket_booking=self.ticket_booking)
+        baker.make(Ticket, ticket_booking=self.ticket_booking)
 
     def _get_response(self, user, ticket_booking):
         url = reverse(
@@ -1294,14 +1294,14 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(TicketBookingCancelViewTests, self).setUp()
-        self.ticketed_event = mommy.make_recipe(
+        self.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10'
         )
-        self.ticket_booking = mommy.make(
+        self.ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True
         )
-        mommy.make(Ticket, ticket_booking=self.ticket_booking)
+        baker.make(Ticket, ticket_booking=self.ticket_booking)
 
     def _get_response(self, user, ticket_booking):
         url = reverse(

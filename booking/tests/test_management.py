@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timedelta
 from io import StringIO
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase, override_settings
 from django.conf import settings
@@ -69,7 +69,7 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         self.assertCountEqual(disclaimer_ids, new_disclaimer_ids)
 
     def test_load_users_existing_superuser(self):
-        suser = mommy.make_recipe(
+        suser = baker.make_recipe(
             'booking.user', username='admin', email='admin@admin.com'
         )
         suser.is_superuser = True
@@ -123,8 +123,8 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         """
         test that create_bookings creates 3 bookings per event
         """
-        mommy.make_recipe('booking.user', _quantity=3)
-        mommy.make_recipe('booking.future_EV', _quantity=2)
+        baker.make_recipe('booking.user', _quantity=3)
+        baker.make_recipe('booking.future_EV', _quantity=2)
         self.assertEquals(Booking.objects.all().count(), 0)
         management.call_command('create_bookings')
         self.assertEquals(Booking.objects.all().count(), 6)
@@ -133,7 +133,7 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         """
         test that create_bookings creates users if none exist
         """
-        mommy.make_recipe('booking.future_EV')
+        baker.make_recipe('booking.future_EV')
         self.assertEquals(Booking.objects.all().count(), 0)
         self.assertEquals(User.objects.all().count(), 0)
         management.call_command('create_bookings')
@@ -217,23 +217,23 @@ class EmailReminderAndWarningTests(TestCase):
             )
 
         # cancellation period starts 2015/2/11 18:00
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 12, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
         # cancellation period starts 2015/2/12 18:00
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, _quantity=5,
             )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event1, _quantity=5,
             )
         # add user emails
@@ -250,14 +250,14 @@ class EmailReminderAndWarningTests(TestCase):
             )
 
         # cancellation period starts 2015/2/8 00:00
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.past_event',
             date=datetime(2015, 2, 9, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, _quantity=5,
             )
         _add_user_email_addresses(Booking)
@@ -271,13 +271,13 @@ class EmailReminderAndWarningTests(TestCase):
             )
 
         # cancellation period starts 2015/2/12 18:00
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, _quantity=5,
             )
         _add_user_email_addresses(Booking)
@@ -298,13 +298,13 @@ class EmailReminderAndWarningTests(TestCase):
             )
 
         # cancellation period starts 2015/2/12 18:00
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=True, payment_confirmed=True,
             )
         _add_user_email_addresses(Booking)
@@ -321,16 +321,16 @@ class EmailReminderAndWarningTests(TestCase):
             )
 
         # cancellation period starts 2015/2/11 18:00
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, status='OPEN', _quantity=5
             )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, status='CANCELLED', _quantity=5
             )
         _add_user_email_addresses(Booking)
@@ -353,7 +353,7 @@ class EmailReminderAndWarningTests(TestCase):
 
         # cancellation period starts 2015/2/14 17:00
         # payment_due_date 2015/2/11 23:59
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -362,7 +362,7 @@ class EmailReminderAndWarningTests(TestCase):
             cancellation_period=1)
         # cancellation period starts 2015/2/14 17:00
         # payment_due_date 2015/2/12 23:59
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -371,26 +371,26 @@ class EmailReminderAndWarningTests(TestCase):
             cancellation_period=1)
         # cancellation period starts 2015/2/14 17:00
         # payment_time_allowed 6 hrs, booking made 3 hrs ago
-        event2 = mommy.make_recipe(
+        event2 = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_time_allowed=6,
             cancellation_period=1)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=5,
             )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event1, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=5,
             )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event2, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 9, 21, 00, tzinfo=timezone.utc),
@@ -412,7 +412,7 @@ class EmailReminderAndWarningTests(TestCase):
 
         # cancellation period starts 2015/2/13 18:00
         # payment_due_date None
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -420,7 +420,7 @@ class EmailReminderAndWarningTests(TestCase):
             payment_due_date=None,
             cancellation_period=24)
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
@@ -441,7 +441,7 @@ class EmailReminderAndWarningTests(TestCase):
         # No cancellation period
         # payment_due_date is in the past
         # # SEND WARNING
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -449,7 +449,7 @@ class EmailReminderAndWarningTests(TestCase):
             payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc),
             cancellation_period=0)
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
@@ -458,14 +458,14 @@ class EmailReminderAndWarningTests(TestCase):
         # Has cancellation period starts 2015/2/13 18:00 (<48 hrs from now)
         # payment_due_date is in the past
         # SEND WARNING
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc),
             cancellation_period=24)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event1, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
@@ -474,14 +474,14 @@ class EmailReminderAndWarningTests(TestCase):
         # Has cancellation period starts 2015/2/13 18:00 (>48 hrs from now)
         # payment_due_date is in the past
         # SEND WARNING (ignore cancellation period if payment due date)
-        event2 = mommy.make_recipe(
+        event2 = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc),
             cancellation_period=24)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event2, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
@@ -502,14 +502,14 @@ class EmailReminderAndWarningTests(TestCase):
             )
         # cancellation period starts 2015/2/13 17:00
         # payment_due_date 2015/2/11 23:59
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
             cancellation_period=1)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
@@ -537,20 +537,20 @@ class EmailReminderAndWarningTests(TestCase):
             )
         # cancellation period starts 2015/2/13 17:00
         # payment_due_date 2015/2/11 23:59
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
             cancellation_period=1)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=3,
             )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=True,
             payment_confirmed=True,
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
@@ -574,20 +574,20 @@ class EmailReminderAndWarningTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 10, tzinfo=timezone.utc
             )
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
             cancellation_period=1)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
             _quantity=3,
             )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='CANCELLED',
             date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
@@ -610,19 +610,19 @@ class EmailReminderAndWarningTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 10, tzinfo=timezone.utc
             )
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
             cancellation_period=1)
-        booking1 = mommy.make_recipe(
+        booking1 = baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
             date_booked=datetime(2015, 2, 9, 21, 30, tzinfo=timezone.utc)
             )
-        booking2 = mommy.make_recipe(
+        booking2 = baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
             date_booked=datetime(2015, 2, 9, 22, 30, tzinfo=timezone.utc)
@@ -639,7 +639,7 @@ class EmailReminderAndWarningTests(TestCase):
 class CancelUnpaidBookingsTests(TestCase):
 
     def setUp(self):
-        self.event = mommy.make_recipe(
+        self.event = baker.make_recipe(
             'booking.future_EV',
             date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -647,7 +647,7 @@ class CancelUnpaidBookingsTests(TestCase):
             payment_due_date=datetime(2015, 2, 9, tzinfo=timezone.utc),
             advance_payment_required=True,
             cancellation_period=1)
-        self.unpaid = mommy.make_recipe(
+        self.unpaid = baker.make_recipe(
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
@@ -656,7 +656,7 @@ class CancelUnpaidBookingsTests(TestCase):
             ),
             warning_sent=True
         )
-        self.paid = mommy.make_recipe(
+        self.paid = baker.make_recipe(
             'booking.booking', event=self.event, paid=True,
             payment_confirmed=True, status='OPEN',
             user__email="paid@test.com",
@@ -834,7 +834,7 @@ class CancelUnpaidBookingsTests(TestCase):
             2015, 2, 10, 18, 0, tzinfo=timezone.utc
         )
 
-        unpaid_within_6_hrs = mommy.make_recipe(
+        unpaid_within_6_hrs = baker.make_recipe(
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
@@ -843,7 +843,7 @@ class CancelUnpaidBookingsTests(TestCase):
             ),
             warning_sent=True
         )
-        unpaid_more_than_6_hrs = mommy.make_recipe(
+        unpaid_more_than_6_hrs = baker.make_recipe(
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
@@ -876,7 +876,7 @@ class CancelUnpaidBookingsTests(TestCase):
             2015, 2, 10, tzinfo=timezone.utc
         )
         for i in range(5):
-            bookings = mommy.make_recipe(
+            bookings = baker.make_recipe(
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
@@ -919,7 +919,7 @@ class CancelUnpaidBookingsTests(TestCase):
             2015, 2, 10, tzinfo=timezone.utc
         )
         for i in range(5):
-            bookings = mommy.make_recipe(
+            bookings = baker.make_recipe(
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
@@ -956,7 +956,7 @@ class CancelUnpaidBookingsTests(TestCase):
         # cancellation period =1, date = 2015, 2, 13, 18, 0
         self.event.max_participants = 2
         self.event.save()
-        mommy.make_recipe('booking.waiting_list_user', event=self.event)
+        baker.make_recipe('booking.waiting_list_user', event=self.event)
 
         management.call_command('cancel_unpaid_bookings')
         # emails are sent to user per cancelled booking, studio and waiting
@@ -982,7 +982,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # make some waiting list users
         for i in range(3):
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.waiting_list_user', event=self.event,
                 user__email='test{}@test.com'.format(i)
             )
@@ -1012,7 +1012,7 @@ class CancelUnpaidBookingsTests(TestCase):
         self.event.save()
 
         # make another booking that will be cancelled
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
@@ -1024,7 +1024,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # make some waiting list users
         for i in range(3):
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.waiting_list_user', event=self.event,
                 user__email='test{}@test.com'.format(i)
             )
@@ -1059,7 +1059,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # make some waiting list users
         for i in range(3):
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.waiting_list_user', event=self.event,
                 user__email='test{}@test.com'.format(i)
             )
@@ -1279,7 +1279,7 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1287,7 +1287,7 @@ class TicketBookingWarningTests(TestCase):
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
         # payment_due_date 2015/2/12 23:59 (>24hrs - warnings not sent)
-        ticketed_event1 = mommy.make_recipe(
+        ticketed_event1 = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1295,12 +1295,12 @@ class TicketBookingWarningTests(TestCase):
             payment_due_date=datetime(2015, 2, 12, tzinfo=timezone.utc),
         )
 
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event1, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
@@ -1309,7 +1309,7 @@ class TicketBookingWarningTests(TestCase):
         _add_user_email_addresses(TicketBooking)
 
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1321,7 +1321,7 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # no payment_due_date
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1329,14 +1329,14 @@ class TicketBookingWarningTests(TestCase):
             payment_time_allowed=4,
         )
 
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
 
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
         _add_user_email_addresses(TicketBooking)
 
         management.call_command('email_ticket_booking_warnings')
@@ -1351,7 +1351,7 @@ class TicketBookingWarningTests(TestCase):
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         # payment_time_allowed is set
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1360,7 +1360,7 @@ class TicketBookingWarningTests(TestCase):
             payment_time_allowed=4,
         )
 
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
@@ -1368,7 +1368,7 @@ class TicketBookingWarningTests(TestCase):
         _add_user_email_addresses(TicketBooking)
 
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1381,7 +1381,7 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1389,7 +1389,7 @@ class TicketBookingWarningTests(TestCase):
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
 
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
@@ -1397,7 +1397,7 @@ class TicketBookingWarningTests(TestCase):
         _add_user_email_addresses(TicketBooking)
 
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1419,7 +1419,7 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1427,19 +1427,19 @@ class TicketBookingWarningTests(TestCase):
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
 
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=True,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1455,7 +1455,7 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1463,12 +1463,12 @@ class TicketBookingWarningTests(TestCase):
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
 
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             cancelled=True,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
@@ -1476,7 +1476,7 @@ class TicketBookingWarningTests(TestCase):
             )
         _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1492,14 +1492,14 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             ticket_cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
-        ticketed_event_cancelled = mommy.make_recipe(
+        ticketed_event_cancelled = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1507,12 +1507,12 @@ class TicketBookingWarningTests(TestCase):
             cancelled=True,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event_cancelled,
             paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
@@ -1520,7 +1520,7 @@ class TicketBookingWarningTests(TestCase):
             )
         _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1540,21 +1540,21 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             ticket_cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
-        mommy.make(
+        baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all()[0:5]:
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 5)
@@ -1574,24 +1574,24 @@ class TicketBookingWarningTests(TestCase):
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
-        ticketed_event = mommy.make_recipe(
+        ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
             ticket_cost=10,
             payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
         )
-        booking1 = mommy.make(
+        booking1 = baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             )
-        booking2 = mommy.make(
+        booking2 = baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 10, 23, 0, tzinfo=timezone.utc),
             )
         _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=ticket_booking)
+            baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
         self.assertEquals(len(mail.outbox), 1)
@@ -1605,7 +1605,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
 
     def setUp(self):
         # payment_due_date 2015/2/10 23:59
-        self.ticketed_event = mommy.make_recipe(
+        self.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
             payment_open=True,
@@ -1613,20 +1613,20 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             advance_payment_required=True,
             payment_due_date=datetime(2015, 2, 10, tzinfo=timezone.utc),
         )
-        self.paid = mommy.make(
+        self.paid = baker.make(
             TicketBooking,  ticketed_event=self.ticketed_event, paid=True,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             warning_sent=True,
             user__email='paid@test.com', purchase_confirmed=True
             )
-        self.unpaid = mommy.make(
+        self.unpaid = baker.make(
             TicketBooking,  ticketed_event=self.ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             warning_sent=True,
             user__email='unpaid@test.com', purchase_confirmed=True
             )
         for booking in [self.paid, self.unpaid]:
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
         _add_user_email_addresses(TicketBooking)
 
         # redirect stdout so we can test it
@@ -1918,7 +1918,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
 
         # self.ticketed_event payment due date 2015/2/11 23:59
 
-        unpaid_within_6_hrs = mommy.make(
+        unpaid_within_6_hrs = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
@@ -1927,7 +1927,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             ),
             warning_sent=True
         )
-        unpaid_more_than_6_hrs = mommy.make(
+        unpaid_more_than_6_hrs = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
@@ -1956,7 +1956,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             2015, 2, 11, tzinfo=timezone.utc
         )
         for i in range(5):
-            mommy.make(
+            baker.make(
                 TicketBooking, ticketed_event=self.ticketed_event,
                 cancelled=False, paid=False,
                 user__email="unpaid_user{}@test.com".format(i),
@@ -1966,7 +1966,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
                 warning_sent=True
             )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         management.call_command('cancel_unpaid_ticket_bookings')
         # emails are sent to user per cancelled booking (6) (these 5 plus
@@ -2029,7 +2029,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             2015, 2, 11, tzinfo=timezone.utc
         )
         for i in range(5):
-            mommy.make(
+            baker.make(
                 TicketBooking, ticketed_event=self.ticketed_event,
                 cancelled=False, paid=False,
                 user__email="unpaid_user{}@test.com".format(i),
@@ -2039,7 +2039,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
                 warning_sent=True
             )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         management.call_command('cancel_unpaid_ticket_bookings')
         # emails are sent to user per cancelled booking (6) (these 5 plus
@@ -2058,18 +2058,18 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 11, 12, 0, tzinfo=timezone.utc
         )
-        unconfirmed_ticket_booking = mommy.make(
+        unconfirmed_ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             date_booked=datetime(2015, 2, 11, 10, 0, tzinfo=timezone.utc),
             purchase_confirmed=False
         )
-        unconfirmed_ticket_booking1 = mommy.make(
+        unconfirmed_ticket_booking1 = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=timezone.utc),
             purchase_confirmed=False
         )
         for booking in TicketBooking.objects.all():
-            mommy.make(Ticket, ticket_booking=booking)
+            baker.make(Ticket, ticket_booking=booking)
 
         management.call_command('delete_unconfirmed_ticket_bookings')
         # only unconfirmed_ticket_booking has been deleted (booked >1 hr ago)
@@ -2104,12 +2104,12 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         self.unpaid.paid = True
         self.unpaid.save()
 
-        unconfirmed_ticket_booking = mommy.make(
+        unconfirmed_ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=timezone.utc),
             purchase_confirmed=False
         )
-        mommy.make(Ticket, ticket_booking=unconfirmed_ticket_booking)
+        baker.make(Ticket, ticket_booking=unconfirmed_ticket_booking)
 
         # all ticket bookings are paid or booked within pasr hr
 
@@ -2141,24 +2141,24 @@ class BlockBookingsReportTests(PatchRequestMixin, TestCase):
         Ignore free
         """
         super(BlockBookingsReportTests, self).setUp()
-        self.user1 = mommy.make_recipe('booking.user')
-        self.user2 = mommy.make_recipe('booking.user')
+        self.user1 = baker.make_recipe('booking.user')
+        self.user2 = baker.make_recipe('booking.user')
 
-        self.event_type = mommy.make_recipe('booking.event_type_PC')
+        self.event_type = baker.make_recipe('booking.event_type_PC')
 
-        self.user1_active_block = mommy.make_recipe(
+        self.user1_active_block = baker.make_recipe(
             'booking.block_5', user=self.user1,
             start_date=timezone.now() - timedelta(10),
             block_type__event_type=self.event_type,
             paid=True
         )
-        self.user2_active_block = mommy.make_recipe(
+        self.user2_active_block = baker.make_recipe(
             'booking.block_5', user=self.user2,
             start_date=timezone.now() - timedelta(10),
             block_type__event_type=self.event_type, paid=True
         )
 
-        user1_bookings_on_block = mommy.make_recipe(
+        user1_bookings_on_block = baker.make_recipe(
             'booking.booking',
             user=self.user1,
             event__event_type=self.event_type,
@@ -2166,19 +2166,19 @@ class BlockBookingsReportTests(PatchRequestMixin, TestCase):
             date_booked=timezone.now() - timedelta(8),
             _quantity=2
         )
-        self.user1_booking_not_on_block = mommy.make_recipe(
+        self.user1_booking_not_on_block = baker.make_recipe(
             'booking.booking',
             user=self.user1,
             event__event_type=self.event_type,
             date_booked=timezone.now() - timedelta(8)
         )
-        user1_booking_old = mommy.make_recipe(
+        user1_booking_old = baker.make_recipe(
             'booking.booking',
             user=self.user1,
             event__event_type=self.event_type,
             date_booked=timezone.now() - timedelta(12)
         )
-        user1_booking_free = mommy.make_recipe(
+        user1_booking_free = baker.make_recipe(
             'booking.booking',
             user=self.user1,
             event__event_type=self.event_type,
@@ -2226,21 +2226,21 @@ class BlockBookingsReportTests(PatchRequestMixin, TestCase):
         )
 
     def test_block_booking_report_with_paid(self):
-        paid_booking = mommy.make_recipe(
+        paid_booking = baker.make_recipe(
             'booking.booking',
             user=self.user1,
             event__event_type=self.event_type,
             date_booked=timezone.now() - timedelta(8),
             paid=True, payment_confirmed=True
         )
-        paid_by_pp_booking = mommy.make_recipe(
+        paid_by_pp_booking = baker.make_recipe(
             'booking.booking',
             user=self.user1,
             event__event_type=self.event_type,
             date_booked=timezone.now() - timedelta(8),
             paid=True, payment_confirmed=True
         )
-        mommy.make(
+        baker.make(
             PaypalBookingTransaction, booking=paid_by_pp_booking,
             invoice_id='inv', transaction_id='1'
         )
@@ -2289,13 +2289,13 @@ class BlockBookingsReportTests(PatchRequestMixin, TestCase):
 class CreateSaleBlockTypesTests(TestCase):
 
     def test_makes_existing_blocktypes_standard_and_creates_sale_copy(self):
-        pc_evtype = mommy.make(
+        pc_evtype = baker.make(
             EventType, event_type="CL", subtype="Pole level class"
         )
-        mommy.make_recipe('booking.blocktype5', event_type=pc_evtype)
-        mommy.make_recipe('booking.blocktype10', event_type=pc_evtype)
+        baker.make_recipe('booking.blocktype5', event_type=pc_evtype)
+        baker.make_recipe('booking.blocktype10', event_type=pc_evtype)
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktypePP10', event_type__subtype="Pole practice"
         )
         for bt in BlockType.objects.all():
@@ -2313,7 +2313,7 @@ class CreateSaleBlockTypesTests(TestCase):
 class ActivateBlockTypeTests(TestCase):
 
     def test_activate_blocktypes(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test', _quantity=5
         )
         self.assertEqual(
@@ -2327,7 +2327,7 @@ class ActivateBlockTypeTests(TestCase):
         )
 
     def test_deactivate_blocktypes(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', identifier='test', _quantity=5
         )
         management.call_command(
@@ -2338,10 +2338,10 @@ class ActivateBlockTypeTests(TestCase):
         )
 
     def test_activate_blocktypes_only_activates_by_identifier(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test', _quantity=5
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test1', _quantity=5
         )
         self.assertEqual(
@@ -2353,13 +2353,13 @@ class ActivateBlockTypeTests(TestCase):
         )
 
     def test_activate_multiple_identifiers(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test', _quantity=5
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test1', _quantity=5
         )
-        inactive_blocktypes = mommy.make_recipe(
+        inactive_blocktypes = baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test2', _quantity=5
         )
         self.assertEqual(
@@ -2372,7 +2372,7 @@ class ActivateBlockTypeTests(TestCase):
             self.assertTrue(blocktype not in active_blocktypes)
 
     def test_activate_blocktypes_emails_support(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test', _quantity=5
         )
         self.assertEqual(
@@ -2395,7 +2395,7 @@ class ActivateBlockTypeTests(TestCase):
         self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
     def test_activate_blocktypes_with_unknown_identifier(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=False, identifier='test', _quantity=5
         )
         self.assertEqual(
@@ -2418,7 +2418,7 @@ class ActivateBlockTypeTests(TestCase):
         self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
     def test_deactivate_blocktypes_with_unknown_identifier(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype5', active=True, identifier='test', _quantity=5
         )
         self.assertEqual(
@@ -2441,7 +2441,7 @@ class ActivateBlockTypeTests(TestCase):
     @patch('booking.management.commands.activate_blocktypes.send_mail')
     def test_activate_blocktypes_with_email_error(self, mock_send_emails):
         mock_send_emails.side_effect = Exception('Error sending mail')
-        mommy.make_recipe('booking.blocktype5', active=False, identifier='test')
+        baker.make_recipe('booking.blocktype5', active=False, identifier='test')
 
         self.assertEqual(BlockType.objects.filter(active=True).count(), 0)
         management.call_command('activate_blocktypes', 'test', 'on')
@@ -2462,7 +2462,7 @@ class ActivateBlockTypeTests(TestCase):
     @patch('booking.management.commands.activate_blocktypes.send_mail')
     def test_fail_to_activate_blocktypes_with_email_error(self, mock_send_emails):
         mock_send_emails.side_effect = Exception('Error sending mail')
-        mommy.make_recipe('booking.blocktype5', active=False, identifier='test')
+        baker.make_recipe('booking.blocktype5', active=False, identifier='test')
 
         self.assertEqual(BlockType.objects.filter(active=True).count(), 0)
         management.call_command('activate_blocktypes', 'unknown', 'on')
@@ -2501,19 +2501,19 @@ class ActivateSaleTests(TestCase):
         self.saved_stdout = sys.stdout
         sys.stdout = self.output
 
-        mommy.make(
+        baker.make(
            Event, date=timezone.now() + timedelta(1),
            cost=7.50, booking_open=False,
            payment_open=False, event_type=self.pc_ev_type,
            _quantity=5
         )
-        mommy.make(
+        baker.make(
             Event, date=timezone.now() + timedelta(1),
             cost=7.50, booking_open=False,
             payment_open=False, event_type=self.oc_ev_type,
             _quantity=5
         )
-        mommy.make(
+        baker.make(
             Event, date=timezone.now() + timedelta(1),
             cost=4, booking_open=False,
             payment_open=False, event_type=self.pp_ev_type,
@@ -2635,7 +2635,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.event_type = mommy.make(
+        cls.event_type = baker.make(
             EventType, event_type='CL', subtype='Pole level class'
         )
 
@@ -2701,9 +2701,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         self.assertFalse(Block.objects.exists())
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
-        user1 = mommy.make(User, first_name='Test', last_name='User1')
-        user2 = mommy.make(User, first_name='Test', last_name='User2')
-        user3 = mommy.make(User, first_name='Test', last_name='User3')
+        user1 = baker.make(User, first_name='Test', last_name='User1')
+        user2 = baker.make(User, first_name='Test', last_name='User2')
+        user3 = baker.make(User, first_name='Test', last_name='User3')
 
         user1.groups.add(group5)
         user2.groups.add(group7)
@@ -2740,9 +2740,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         self.assertFalse(Block.objects.exists())
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
-        user1 = mommy.make(User, first_name='Test', last_name='User1')
-        user2 = mommy.make(User, first_name='Test', last_name='User2')
-        user3 = mommy.make(User, first_name='Test', last_name='User3')
+        user1 = baker.make(User, first_name='Test', last_name='User1')
+        user2 = baker.make(User, first_name='Test', last_name='User2')
+        user3 = baker.make(User, first_name='Test', last_name='User3')
         user1.groups.add(group5)
         user2.groups.add(group7)
 
@@ -2778,9 +2778,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         self.assertFalse(Block.objects.exists())
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
-        user1 = mommy.make_recipe('booking.user', first_name='Test', last_name='User1')
-        user2 = mommy.make_recipe('booking.user', first_name='Test', last_name='User2')
-        user3 = mommy.make_recipe('booking.user', first_name='Test', last_name='User3')
+        user1 = baker.make_recipe('booking.user', first_name='Test', last_name='User1')
+        user2 = baker.make_recipe('booking.user', first_name='Test', last_name='User2')
+        user3 = baker.make_recipe('booking.user', first_name='Test', last_name='User3')
         user1.groups.add(group5)
         user2.groups.add(group7)
         user3.groups.add(group7)
@@ -2795,7 +2795,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
         # user2's block is full
         block2 = Block.objects.get(user=user2)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=user2, block=block2, _quantity=7
         )
 
@@ -2845,9 +2845,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         expired on 1st of the next month
         """
         group = Group.objects.create(name='free_5monthly_blocks')
-        user1 = mommy.make(User, first_name='Test', last_name='User1')
-        user2 = mommy.make(User, first_name='Test', last_name='User2')
-        user3 = mommy.make(User, first_name='Test', last_name='User3')
+        user1 = baker.make(User, first_name='Test', last_name='User1')
+        user2 = baker.make(User, first_name='Test', last_name='User2')
+        user3 = baker.make(User, first_name='Test', last_name='User3')
 
         for user in [user1, user2, user3]:
             user.groups.add(group)

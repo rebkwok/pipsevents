@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.test import TestCase
@@ -18,7 +18,7 @@ from timetable.models import Session
 class TimetableSessionFormSetTests(TestCase):
 
     def setUp(self):
-        self.session = mommy.make(Session)
+        self.session = baker.make(Session)
 
     def formset_data(self, extra_data={}):
 
@@ -50,7 +50,7 @@ class TimetableSessionFormSetTests(TestCase):
         self.assertEquals(form.payment_open_id, 'payment_open_0')
 
     def test_can_delete(self):
-        session_to_delete = mommy.make(Session)
+        session_to_delete = baker.make(Session)
         extra_data = {
             'form-TOTAL_FORMS': 2,
             'form-INITIAL_FORMS': 2,
@@ -71,9 +71,9 @@ class TimetableSessionFormSetTests(TestCase):
 class SessionAdminFormTests(TestCase):
 
     def setUp(self):
-        self.event_type = mommy.make_recipe('booking.event_type_PC')
-        self.event_type_ev = mommy.make_recipe('booking.event_type_OE')
-        self.event_type_oc = mommy.make_recipe('booking.event_type_OC')
+        self.event_type = baker.make_recipe('booking.event_type_PC')
+        self.event_type_ev = baker.make_recipe('booking.event_type_OE')
+        self.event_type_oc = baker.make_recipe('booking.event_type_OC')
 
     def form_data(self, extra_data={}):
         data = {
@@ -139,7 +139,7 @@ class SessionAdminFormTests(TestCase):
 
     def test_event_type_queryset_inlcudes_room_hire_and_classes(self):
 
-        rh_type = mommy.make_recipe('booking.event_type_RH')
+        rh_type = baker.make_recipe('booking.event_type_RH')
 
         form = SessionAdminForm(data=self.form_data())
         ev_type_field = form.fields['event_type']
@@ -294,7 +294,7 @@ class SessionAdminFormTests(TestCase):
 class UploadTimetableFormTests(TestCase):
 
     def setUp(self):
-        self.session = mommy.make_recipe('booking.mon_session')
+        self.session = baker.make_recipe('booking.mon_session')
 
     def form_data(self, extra_data={}):
         data = {
@@ -317,7 +317,7 @@ class UploadTimetableFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_form_valid_with_location(self):
-        session1 = mommy.make_recipe(
+        session1 = baker.make_recipe(
             'booking.mon_session', location="Davidson's Mains"
         )
 

@@ -1,7 +1,7 @@
 import datetime
 from unittest.mock import patch
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -25,7 +25,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         super(UserDisclamersTests, self).setUp()
         self.user.set_password('password')
         self.user.save()
-        self.disclaimer = mommy.make(
+        self.disclaimer = baker.make(
             OnlineDisclaimer, user=self.user,
             medical_conditions=False, allergies=False, joint_problems=False,
             medical_treatment_permission=True, terms_accepted=True,
@@ -302,19 +302,19 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.disclaimer1 = mommy.make(
+        self.disclaimer1 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser',
             event_date=datetime.date(2019, 3, 8)
         )
-        self.disclaimer2 =  mommy.make(
+        self.disclaimer2 =  baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser1',
             event_date=datetime.date(2019, 3, 7)
         )
-        self.disclaimer3 = mommy.make(
+        self.disclaimer3 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='BUser',
             event_date=datetime.date(2019, 3, 7)
         )
-        self.disclaimer4 = mommy.make(
+        self.disclaimer4 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='CUser',
             event_date=datetime.date(2019, 3, 6)
         )

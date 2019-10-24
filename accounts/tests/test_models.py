@@ -2,7 +2,7 @@ import pytz
 
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -20,8 +20,8 @@ from common.tests.helpers import make_data_privacy_agreement
 class DisclaimerModelTests(TestCase):
 
     def test_online_disclaimer_str(self,):
-        user = mommy.make_recipe('booking.user', username='testuser')
-        disclaimer = mommy.make(OnlineDisclaimer, user=user)
+        user = baker.make_recipe('booking.user', username='testuser')
+        disclaimer = baker.make(OnlineDisclaimer, user=user)
         self.assertEqual(str(disclaimer), 'testuser - {}'.format(
             disclaimer.date.astimezone(
                 pytz.timezone('Europe/London')
@@ -29,8 +29,8 @@ class DisclaimerModelTests(TestCase):
         ))
 
     def test_print_disclaimer_str(self):
-        user = mommy.make_recipe('booking.user', username='testuser')
-        disclaimer = mommy.make(PrintDisclaimer, user=user)
+        user = baker.make_recipe('booking.user', username='testuser')
+        disclaimer = baker.make(PrintDisclaimer, user=user)
         self.assertEqual(str(disclaimer), 'testuser - {}'.format(
             disclaimer.date.astimezone(
                 pytz.timezone('Europe/London')
@@ -38,7 +38,7 @@ class DisclaimerModelTests(TestCase):
         ))
 
     def test_nonregistered_disclaimer_str(self):
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='User',
             event_date=datetime(2019, 1, 1, tzinfo=timezone.utc))
         self.assertEqual(str(disclaimer), 'Test User - {}'.format(
@@ -48,7 +48,7 @@ class DisclaimerModelTests(TestCase):
         ))
 
     def test_archived_disclaimer_str(self):
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             ArchivedDisclaimer, name='Test User',
             date=datetime(2019, 1, 1, tzinfo=timezone.utc),
             date_archived=datetime(2019, 1, 20, tzinfo=timezone.utc)
@@ -59,7 +59,7 @@ class DisclaimerModelTests(TestCase):
         ))
 
     def test_default_terms_set_on_new_online_disclaimer(self):
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             OnlineDisclaimer, disclaimer_terms="foo", over_18_statement="bar",
             medical_treatment_terms="foobar"
         )
@@ -68,7 +68,7 @@ class DisclaimerModelTests(TestCase):
         self.assertEqual(disclaimer.over_18_statement, OVER_18_TERMS)
 
     def test_cannot_update_terms_after_first_save(self):
-        disclaimer = mommy.make(OnlineDisclaimer)
+        disclaimer = baker.make(OnlineDisclaimer)
         self.assertEqual(disclaimer.disclaimer_terms, DISCLAIMER_TERMS)
         self.assertEqual(disclaimer.medical_treatment_terms, MEDICAL_TREATMENT_TERMS)
         self.assertEqual(disclaimer.over_18_statement, OVER_18_TERMS)
@@ -86,22 +86,22 @@ class DisclaimerModelTests(TestCase):
             disclaimer.save()
 
     def test_cannot_create_new_active_disclaimer(self):
-        user = mommy.make_recipe('booking.user', username='testuser')
-        disclaimer = mommy.make(
+        user = baker.make_recipe('booking.user', username='testuser')
+        disclaimer = baker.make(
             OnlineDisclaimer, user=user,
             date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
         )
 
         self.assertFalse(disclaimer.is_active)
         # can make a new disclaimer
-        mommy.make(OnlineDisclaimer, user=user)
+        baker.make(OnlineDisclaimer, user=user)
         # can't make new disclaimer when one is already active
         with self.assertRaises(ValidationError):
-            mommy.make(OnlineDisclaimer, user=user)
+            baker.make(OnlineDisclaimer, user=user)
 
     def test_delete_online_disclaimer(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())
-        disclaimer = mommy.make(OnlineDisclaimer, name='Test 1')
+        disclaimer = baker.make(OnlineDisclaimer, name='Test 1')
         disclaimer.delete()
 
         self.assertTrue(ArchivedDisclaimer.objects.exists())
@@ -112,14 +112,14 @@ class DisclaimerModelTests(TestCase):
     def test_delete_online_disclaimer_older_than_6_yrs(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())
         # disclaimer created > 6yrs ago
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             OnlineDisclaimer, name='Test 1', date=timezone.now() - timedelta(2200))
         disclaimer.delete()
         # no archive created
         self.assertFalse(ArchivedDisclaimer.objects.exists())
 
         # disclaimer created > 6yrs ago, update < 6yrs ago
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             OnlineDisclaimer, name='Test 1',
             date=timezone.now() - timedelta(2200),
             date_updated=timezone.now() - timedelta(1000)
@@ -129,10 +129,10 @@ class DisclaimerModelTests(TestCase):
         self.assertTrue(ArchivedDisclaimer.objects.exists())
 
     def test_nonregistered_disclaimer_is_active(self):
-        disclaimer = mommy.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        disclaimer = baker.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
         self.assertTrue(disclaimer.is_active)
 
-        old_disclaimer = mommy.make(
+        old_disclaimer = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='User',
             date=timezone.now() - timedelta(367),
         )
@@ -140,7 +140,7 @@ class DisclaimerModelTests(TestCase):
 
     def test_delete_nonregistered_disclaimer(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())
-        disclaimer = mommy.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        disclaimer = baker.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
         disclaimer.delete()
 
         self.assertTrue(ArchivedDisclaimer.objects.exists())
@@ -151,7 +151,7 @@ class DisclaimerModelTests(TestCase):
     def test_delete_nonregistered_disclaimer_older_than_6_yrs(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())
         # disclaimer created > 6yrs ago
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='User', date=timezone.now() - timedelta(2200))
         disclaimer.delete()
         # no archive created
@@ -226,7 +226,7 @@ class SignedDataPrivacyModelTests(TestCase):
         DataPrivacyPolicy.objects.create(content='Foo')
 
     def setUp(self):
-        self.user = mommy.make_recipe('booking.user')
+        self.user = baker.make_recipe('booking.user')
 
     def test_cached_on_save(self):
         make_data_privacy_agreement(self.user)

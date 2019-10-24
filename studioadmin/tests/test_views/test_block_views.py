@@ -1,5 +1,5 @@
 from datetime import datetime
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -60,17 +60,17 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_current_blocks_returned_on_get(self):
-        active_blocks = mommy.make_recipe(
+        active_blocks = baker.make_recipe(
             'booking.block', _quantity=3, paid=True
         )
-        unpaid_blocks = mommy.make_recipe(
+        unpaid_blocks = baker.make_recipe(
             'booking.block', paid=False, _quantity=3
         )
         current_blocks = active_blocks + unpaid_blocks
-        full_block = mommy.make_recipe(
+        full_block = baker.make_recipe(
             'booking.block', paid=False, block_type__size=1
         )
-        mommy.make_recipe('booking.booking', block=full_block)
+        baker.make_recipe('booking.booking', block=full_block)
 
         resp = self._get_response(self.staff_user)
         self.assertEqual(
@@ -82,36 +82,36 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_block_status_filter(self):
-        active_blocks = mommy.make_recipe(
+        active_blocks = baker.make_recipe(
             'booking.block', _quantity=3, paid=True
         )
-        unpaid_blocks = mommy.make_recipe(
+        unpaid_blocks = baker.make_recipe(
             'booking.block', _quantity=3, paid=False
         )
 
-        expired_blocks = mommy.make_recipe(
+        expired_blocks = baker.make_recipe(
             'booking.block', paid=True,
             start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
             block_type__duration=1,
             _quantity=3
         )
-        unpaid_expired_blocks = mommy.make_recipe(
+        unpaid_expired_blocks = baker.make_recipe(
             'booking.block', paid=False,
             start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
             block_type__duration=1,
             _quantity=3
         )
-        full_blocks = mommy.make_recipe(
+        full_blocks = baker.make_recipe(
             'booking.block', paid=True,
             block_type__size=1,
             _quantity=3
         )
-        transferred_blocks1 = mommy.make_recipe(
+        transferred_blocks1 = baker.make_recipe(
             'booking.block', paid=True,
             block_type__size=1, block_type__identifier='transferred',
             _quantity=3
         )
-        transferred_blocks2 = mommy.make_recipe(
+        transferred_blocks2 = baker.make_recipe(
             'booking.block', paid=True,
             block_type__size=1, block_type__identifier='transferred',
             _quantity=3
@@ -119,7 +119,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         current_blocks = active_blocks + unpaid_blocks + \
                          transferred_blocks1 + transferred_blocks2
         for block in full_blocks:
-            mommy.make_recipe('booking.booking', block=block)
+            baker.make_recipe('booking.booking', block=block)
 
         # all blocks
         resp = self._get_response(
@@ -199,7 +199,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
 
     def test_transferred_from_display(self):
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', paid=True,
             block_type__size=1, block_type__identifier='transferred',
             transferred_booking_id='182893429'
@@ -216,9 +216,9 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
 
     def test_transferred_from_display_with_valid_booking(self):
 
-        booking = mommy.make_recipe('booking.booking', status='CANCELLED')
+        booking = baker.make_recipe('booking.booking', status='CANCELLED')
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', paid=True,
             block_type__size=1, block_type__identifier='transferred',
             transferred_booking_id=booking.id
@@ -246,14 +246,14 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_block_type_identfier_display(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', paid=True,
             block_type__size=1, block_type__identifier='transferred',
         )
         resp = self._get_response(self.staff_user)
         self.assertIn('(transfer)', resp.rendered_content)
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', paid=True, block_type__identifier='other id'
         )
         resp = self._get_response(self.staff_user)

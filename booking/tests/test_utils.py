@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 from datetime import datetime, timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from booking.models import Event
 from booking.utils import create_classes, upload_timetable
@@ -16,7 +16,7 @@ class UtilsTests(TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays
-        mommy.make_recipe('booking.mon_session', _quantity=3)
+        baker.make_recipe('booking.mon_session', _quantity=3)
 
         create_classes(input_date=date)
         # check that there are now classes on the Monday that week (21st Mar)
@@ -30,7 +30,7 @@ class UtilsTests(TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays
-        mommy.make_recipe('booking.mon_session', _quantity=3)
+        baker.make_recipe('booking.mon_session', _quantity=3)
 
         create_classes(input_date=date)
         # check that there are now classes on the Monday that week (21st Mar)
@@ -38,7 +38,7 @@ class UtilsTests(TestCase):
                                            date__lte=date)
         self.assertTrue(mon_classes.count(), 3)
 
-        mommy.make_recipe('booking.mon_session', _quantity=1)
+        baker.make_recipe('booking.mon_session', _quantity=1)
         create_classes(input_date=date)
         # check that there are now classes on the Monday that week (21st Mar)
         mon_classes = Event.objects.filter(date__gte=date - timedelta(days=1),
@@ -55,9 +55,9 @@ class UtilsTests(TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
-        mommy.make_recipe('booking.mon_session', _quantity=3)
-        mommy.make_recipe('booking.tue_session', _quantity=3)
-        mommy.make_recipe('booking.wed_session', _quantity=3)
+        baker.make_recipe('booking.mon_session', _quantity=3)
+        baker.make_recipe('booking.tue_session', _quantity=3)
+        baker.make_recipe('booking.wed_session', _quantity=3)
 
         session_ids = [session.id for session in Session.objects.all()]
 
@@ -85,9 +85,9 @@ class UtilsTests(TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
-        mommy.make_recipe('booking.mon_session', _quantity=3)
-        mommy.make_recipe('booking.tue_session', _quantity=3)
-        mommy.make_recipe('booking.wed_session', _quantity=3)
+        baker.make_recipe('booking.mon_session', _quantity=3)
+        baker.make_recipe('booking.tue_session', _quantity=3)
+        baker.make_recipe('booking.wed_session', _quantity=3)
 
         session_ids = [session.id for session in Session.objects.all()]
 
@@ -134,9 +134,9 @@ class UtilsTests(TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
-        mommy.make_recipe('booking.mon_session', _quantity=3)
-        mommy.make_recipe('booking.tue_session', _quantity=3)
-        mommy.make_recipe('booking.wed_session', _quantity=3)
+        baker.make_recipe('booking.mon_session', _quantity=3)
+        baker.make_recipe('booking.tue_session', _quantity=3)
+        baker.make_recipe('booking.wed_session', _quantity=3)
 
         session_ids = [session.id for session in Session.objects.all()]
 
@@ -209,8 +209,8 @@ class UtilsTests(TestCase):
         self.assertEquals(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
-        tues_sessions = mommy.make_recipe('booking.tue_session', _quantity=3)
-        mommy.make_recipe('booking.wed_session', _quantity=3)
+        tues_sessions = baker.make_recipe('booking.tue_session', _quantity=3)
+        baker.make_recipe('booking.wed_session', _quantity=3)
 
         session_ids = [
             session.id for session in Session.objects.all() if

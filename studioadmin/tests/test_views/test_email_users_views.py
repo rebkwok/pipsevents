@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.core import mail
@@ -78,9 +78,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_filter_users_by_event_booked(self):
-        mommy.make_recipe('booking.user', _quantity=2)
-        event = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe('booking.booking', user=self.user, event=event)
+        baker.make_recipe('booking.user', _quantity=2)
+        event = baker.make_recipe('booking.future_EV')
+        baker.make_recipe('booking.booking', user=self.user, event=event)
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
@@ -103,9 +103,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(user.instance, self.user)
 
     def test_filter_users_by_class_booked(self):
-        mommy.make_recipe('booking.user', _quantity=2)
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        baker.make_recipe('booking.user', _quantity=2)
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=self.user, event=pole_class)
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
@@ -127,14 +127,14 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(user.instance, self.user)
 
     def test_filter_users_by_user(self):
-        mommy.make_recipe('booking.user', _quantity=2)
-        event = mommy.make_recipe('booking.future_EV')
-        lesson = mommy.make_recipe('booking.future_CL')
-        user1 = mommy.make_recipe('booking.user')
-        user2 = mommy.make_recipe('booking.user')
+        baker.make_recipe('booking.user', _quantity=2)
+        event = baker.make_recipe('booking.future_EV')
+        lesson = baker.make_recipe('booking.future_CL')
+        user1 = baker.make_recipe('booking.user')
+        user2 = baker.make_recipe('booking.user')
 
-        mommy.make_recipe('booking.booking', user=user1, event=event)
-        mommy.make_recipe('booking.booking', user=user2, event=lesson)
+        baker.make_recipe('booking.booking', user=user1, event=event)
+        baker.make_recipe('booking.booking', user=user2, event=lesson)
 
         form_data = self.formset_data(
             {
@@ -158,14 +158,14 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(user.instance, self.user)
 
     def test_filter_users_without_events_removes_previous_selections(self):
-        user = mommy.make_recipe('booking.user')
-        user1 = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        event1 = mommy.make_recipe('booking.future_EV')
-        lesson = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', event=event, user=user)
-        mommy.make_recipe('booking.booking', event=event1, user=user1)
-        mommy.make_recipe('booking.booking', event=lesson, user=user1)
+        user = baker.make_recipe('booking.user')
+        user1 = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_EV')
+        event1 = baker.make_recipe('booking.future_EV')
+        lesson = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', event=event, user=user)
+        baker.make_recipe('booking.booking', event=event1, user=user1)
+        baker.make_recipe('booking.booking', event=lesson, user=user1)
 
         form_data = self.formset_data(
             {
@@ -186,9 +186,9 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(usersformset.forms), 0)
 
     def test_filter_with_no_events_selected(self):
-        mommy.make_recipe('booking.user', _quantity=2)
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
+        baker.make_recipe('booking.user', _quantity=2)
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=self.user, event=pole_class)
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
@@ -208,12 +208,12 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(usersformset.forms), 0)
 
     def test_filter_users_by_multiple_events_and_classes(self):
-        new_user1 = mommy.make_recipe('booking.user')
-        mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
-        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+        new_user1 = baker.make_recipe('booking.user')
+        baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_EV')
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=self.user, event=pole_class)
+        baker.make_recipe('booking.booking', user=new_user1, event=event)
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
@@ -235,17 +235,17 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(set(users), {self.user, new_user1})
 
     def test_filter_users_by_multiple_events_and_classes_and_students(self):
-        new_user1 = mommy.make_recipe('booking.user')
-        new_user2 = mommy.make_recipe('booking.user')
-        new_user3 = mommy.make_recipe('booking.user')
-        new_user4 = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        pole_class = mommy.make_recipe('booking.future_PC')
-        pole_class2 = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
-        mommy.make_recipe('booking.booking', user=new_user1, event=event)
-        mommy.make_recipe('booking.booking', user=new_user2, event=event)
-        mommy.make_recipe('booking.booking', user=new_user3, event=pole_class2)
+        new_user1 = baker.make_recipe('booking.user')
+        new_user2 = baker.make_recipe('booking.user')
+        new_user3 = baker.make_recipe('booking.user')
+        new_user4 = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_EV')
+        pole_class = baker.make_recipe('booking.future_PC')
+        pole_class2 = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=self.user, event=pole_class)
+        baker.make_recipe('booking.booking', user=new_user1, event=event)
+        baker.make_recipe('booking.booking', user=new_user2, event=event)
+        baker.make_recipe('booking.booking', user=new_user3, event=pole_class2)
 
         # new user 2 is selected based on both filter-events and filter-students
         # new user 1 is selected based on filter-events only
@@ -277,12 +277,12 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         )
 
     def test_users_for_cancelled_bookings_not_shown(self):
-        new_user = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe(
+        new_user = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_EV')
+        baker.make_recipe(
             'booking.booking', user=self.user, event=event, status='CANCELLED'
         )
-        mommy.make_recipe('booking.booking', user=new_user, event=event)
+        baker.make_recipe('booking.booking', user=new_user, event=event)
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
@@ -301,10 +301,10 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(user, new_user)
 
     def test_filter_users_with_multiple_bookings(self):
-        new_user = mommy.make_recipe('booking.user')
-        events = mommy.make_recipe('booking.future_EV', _quantity=3)
+        new_user = baker.make_recipe('booking.user')
+        events = baker.make_recipe('booking.future_EV', _quantity=3)
         for event in events:
-            mommy.make_recipe('booking.booking', user=new_user, event=event)
+            baker.make_recipe('booking.booking', user=new_user, event=event)
         form_data = self.formset_data(
             {
                 'filter': 'Show Students',
@@ -327,16 +327,16 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertEqual(user, new_user)
 
     def test_remove_previous_events_and_classes_data_from_session(self):
-        new_user1 = mommy.make_recipe('booking.user')
-        new_user2 = mommy.make_recipe('booking.user')
-        old_event = mommy.make_recipe('booking.future_EV')
-        old_pole_class = mommy.make_recipe('booking.future_PC')
-        event = mommy.make_recipe('booking.future_EV')
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
-        mommy.make_recipe('booking.booking', user=new_user1, event=event)
-        mommy.make_recipe('booking.booking', user=new_user2, event=old_event)
-        mommy.make_recipe(
+        new_user1 = baker.make_recipe('booking.user')
+        new_user2 = baker.make_recipe('booking.user')
+        old_event = baker.make_recipe('booking.future_EV')
+        old_pole_class = baker.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_EV')
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=self.user, event=pole_class)
+        baker.make_recipe('booking.booking', user=new_user1, event=event)
+        baker.make_recipe('booking.booking', user=new_user2, event=old_event)
+        baker.make_recipe(
             'booking.booking', user=new_user2, event=old_pole_class
         )
 
@@ -370,12 +370,12 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertIsNone(self.client.session.get('events'))
 
     def test_session_data_reset_on_get(self):
-        user1 = mommy.make_recipe('booking.user')
-        user2 = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=user1, event=event)
-        mommy.make_recipe('booking.booking', user=user2, event=pole_class)
+        user1 = baker.make_recipe('booking.user')
+        user2 = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_EV')
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=user1, event=event)
+        baker.make_recipe('booking.booking', user=user2, event=pole_class)
 
         form_data = self.formset_data(
             {
@@ -399,11 +399,11 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         self.assertIsNone(self.client.session.get('lessons'))
 
     def test_get_users_to_email(self):
-        new_user1 = mommy.make_recipe('booking.user')
-        event = mommy.make_recipe('booking.future_EV')
-        pole_class = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', user=self.user, event=pole_class)
-        mommy.make_recipe('booking.booking', user=new_user1, event=event)
+        new_user1 = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_EV')
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', user=self.user, event=pole_class)
+        baker.make_recipe('booking.booking', user=new_user1, event=event)
 
         session_data = {
             'events': [event.id],
@@ -523,8 +523,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_users_and_events_in_context(self):
-        event = mommy.make_recipe('booking.future_EV', name='Test Event')
-        lesson = mommy.make_recipe('booking.future_PC', name='Test Class')
+        event = baker.make_recipe('booking.future_EV', name='Test Event')
+        lesson = baker.make_recipe('booking.future_PC', name='Test Class')
         resp = self._get_response(
             self.staff_user, [self.user.id],
             event_ids=[event.id], lesson_ids=[lesson.id]
@@ -538,8 +538,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         )
 
     def test_subject_is_autopoulated(self):
-        event = mommy.make_recipe('booking.future_EV', name='Workshop')
-        lesson = mommy.make_recipe('booking.future_PC', name='Class')
+        event = baker.make_recipe('booking.future_EV', name='Workshop')
+        lesson = baker.make_recipe('booking.future_PC', name='Class')
         resp = self._get_response(
             self.staff_user, [self.user.id],
             event_ids=[event.id], lesson_ids=[lesson.id]
@@ -554,8 +554,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         )
 
     def test_emails_sent(self):
-        event = mommy.make_recipe('booking.future_EV')
-        user = mommy.make_recipe('booking.user', email='other@test.com')
+        event = baker.make_recipe('booking.future_EV')
+        user = baker.make_recipe('booking.user', email='other@test.com')
         self._post_response(
             self.staff_user, [self.user.id, user.id],
             event_ids=[event.id], lesson_ids=[],
@@ -577,7 +577,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
     @patch('studioadmin.views.email_users.EmailMultiAlternatives.send')
     def test_email_errors(self, mock_send):
         mock_send.side_effect = Exception('Error sending email')
-        event = mommy.make_recipe('booking.future_EV')
+        event = baker.make_recipe('booking.future_EV')
         self._post_response(
             self.staff_user, [self.user.id],
             event_ids=[event.id], lesson_ids=[],
@@ -645,8 +645,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertFalse(group.user_set.exists())
         self.assertEqual(resp.context_data['users_to_email'].count(), 0)
 
-        subscribed_users = mommy.make_recipe('booking.user', _quantity=3)
-        mommy.make_recipe('booking.user', _quantity=3)
+        subscribed_users = baker.make_recipe('booking.user', _quantity=3)
+        baker.make_recipe('booking.user', _quantity=3)
         for user in subscribed_users:
             group.user_set.add(user)
 
@@ -671,12 +671,12 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context_data['users_to_email'].count(), 0)
 
         for i in range(150):
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.user', email='subscribed{}@test.com'.format(i)
             )
         subscribed_users = User.objects.filter(email__icontains='subscribed')
 
-        mommy.make_recipe('booking.user', _quantity=3)
+        baker.make_recipe('booking.user', _quantity=3)
         for user in subscribed_users:
             group.user_set.add(user)
 
@@ -717,10 +717,10 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
             'cc': True
         }
 
-        subscribed_user = mommy.make_recipe(
+        subscribed_user = baker.make_recipe(
             'booking.user', email='subscribed@test.com'
         )
-        group = mommy.make(Group, name='subscribed')
+        group = baker.make(Group, name='subscribed')
         group.user_set.add(subscribed_user)
 
         # mailing list
@@ -756,13 +756,13 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
             'send_test': True
         }
 
-        subscribed_user = mommy.make_recipe(
+        subscribed_user = baker.make_recipe(
             'booking.user', email='subscribed@test.com'
         )
-        subscribed_user1 = mommy.make_recipe(
+        subscribed_user1 = baker.make_recipe(
             'booking.user', email='subscribed1@test.com'
         )
-        group = mommy.make(Group, name='subscribed')
+        group = baker.make(Group, name='subscribed')
         group.user_set.add(subscribed_user)
         group.user_set.add(subscribed_user1)
 
