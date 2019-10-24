@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.db.models import Q
@@ -61,7 +61,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_all_users_are_displayed(self):
-        mommy.make_recipe('booking.user', _quantity=6)
+        baker.make_recipe('booking.user', _quantity=6)
         # 9 users total, incl self.user, self.instructor_user self.staff_user
         self.assertEqual(User.objects.count(), 9)
         resp = self._get_response(self.staff_user)
@@ -73,7 +73,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         """
         Usernames > 15 characters are split to 2 lines
         """
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user',
             username='test123456789101112'
         )
@@ -85,7 +85,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         Names > 12 characters are split to 2 lines; names with hyphens are
         split on the first hyphen
         """
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user',
             first_name='namewithmorethan12characters',
             last_name='name-with-three-hyphens'
@@ -100,7 +100,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         """
         Email > 25 characters is truncated
         """
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user',
             email='test12345678@longemail.com'
         )
@@ -108,8 +108,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('test12345678@longemail...', resp.rendered_content)
 
     def test_regular_student_button_not_shown_for_instructors(self):
-        not_reg_student = mommy.make_recipe('booking.user')
-        reg_student = mommy.make_recipe('booking.user')
+        not_reg_student = baker.make_recipe('booking.user')
+        reg_student = baker.make_recipe('booking.user')
         perm = Permission.objects.get(codename='is_regular_student')
         reg_student.user_permissions.add(perm)
         reg_student.save()
@@ -137,8 +137,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_change_regular_student(self):
-        not_reg_student = mommy.make_recipe('booking.user')
-        reg_student = mommy.make_recipe('booking.user')
+        not_reg_student = baker.make_recipe('booking.user')
+        reg_student = baker.make_recipe('booking.user')
         perm = Permission.objects.get(codename='is_regular_student')
         reg_student.user_permissions.add(perm)
         reg_student.save()
@@ -162,8 +162,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(changed_student.has_perm('booking.is_regular_student'))
 
     def test_cannot_remove_regular_student_for_superuser(self):
-        reg_student = mommy.make_recipe('booking.user')
-        superuser = mommy.make_recipe(
+        reg_student = baker.make_recipe('booking.user')
+        superuser = baker.make_recipe(
             'booking.user', first_name='Donald', last_name='Duck', username='dd'
         )
         superuser.is_superuser = True
@@ -195,15 +195,15 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
     def test_user_search(self):
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='FooBar', first_name='Foo',
             last_name='Bar'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='Testing1', first_name='Foo',
             last_name='Bar'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='Testing2', first_name='Boo',
             last_name='Bar'
         )
@@ -231,15 +231,15 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(resp.context_data['users']), 6)
 
     def test_user_filter(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='FooBar', first_name='AUser',
             last_name='Bar'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='Testing1', first_name='aUser',
             last_name='Bar'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='Testing2', first_name='BUser',
             last_name='Bar'
         )
@@ -257,15 +257,15 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(resp.context_data['users']), 6)
 
     def test_user_filter_and_search(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='FooBar', first_name='AUser',
             last_name='Bar'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='Testing1', first_name='aUser',
             last_name='Bar'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.user', username='Testing2', first_name='BUser',
             last_name='Bar'
         )
@@ -279,7 +279,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
     def test_filter_options(self):
         # make a user with first name starting with all options
         for option in NAME_FILTERS:
-            mommy.make_recipe('booking.user', first_name='{}Usr'.format(option))
+            baker.make_recipe('booking.user', first_name='{}Usr'.format(option))
         # delete any starting with Z
         User.objects.filter(first_name__istartswith='Z').delete()
         resp = self._get_response(self.staff_user)
@@ -310,7 +310,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
                 self.assertFalse(opt['available'])
 
     def test_instructor_cannot_change_regular_student(self):
-        reg_student = mommy.make_recipe('booking.user')
+        reg_student = baker.make_recipe('booking.user')
         perm = Permission.objects.get(codename='is_regular_student')
         reg_student.user_permissions.add(perm)
         reg_student.save()
@@ -331,11 +331,11 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             username='super', email='super@test.com', password='test'
         )
 
-        user_with_print_disclaimer = mommy.make_recipe('booking.user')
-        mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        user_with_online_disclaimer = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=user_with_online_disclaimer)
-        user_with_no_disclaimer = mommy.make_recipe('booking.user')
+        user_with_print_disclaimer = baker.make_recipe('booking.user')
+        baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        user_with_online_disclaimer = baker.make_recipe('booking.user')
+        baker.make(OnlineDisclaimer, user=user_with_online_disclaimer)
+        user_with_no_disclaimer = baker.make_recipe('booking.user')
 
         resp = self._get_response(superuser)
         self.assertIn(
@@ -379,8 +379,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_print_disclaimer_button_only_shown_for_superusers(self):
-        user_with_print_disclaimer = mommy.make_recipe('booking.user')
-        mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        user_with_print_disclaimer = baker.make_recipe('booking.user')
+        baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
         superuser = User.objects.create_superuser(
             username='super', email='super@test.com', password='test'
         )
@@ -407,8 +407,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_change_print_disclaimer(self):
-        user_with_print_disclaimer = mommy.make_recipe('booking.user')
-        print_disc = mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        user_with_print_disclaimer = baker.make_recipe('booking.user')
+        print_disc = baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
         self.assertEqual(
             print_disc.id,
             user_with_print_disclaimer.print_disclaimer.id
@@ -441,8 +441,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_instructor_cannot_change_print_disclaimer(self):
-        user_with_print_disclaimer = mommy.make_recipe('booking.user')
-        print_disc = mommy.make(PrintDisclaimer, user=user_with_print_disclaimer)
+        user_with_print_disclaimer = baker.make_recipe('booking.user')
+        print_disc = baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
         self.assertEqual(
             print_disc.id,
             user_with_print_disclaimer.print_disclaimer.id
@@ -471,9 +471,9 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_mailing_list_button_not_shown_for_instructors(self):
-        subscribed_user = mommy.make_recipe('booking.user')
-        unsubscribed_user = mommy.make_recipe('booking.user')
-        subscribed = mommy.make(Group, name='subscribed')
+        subscribed_user = baker.make_recipe('booking.user')
+        unsubscribed_user = baker.make_recipe('booking.user')
+        subscribed = baker.make(Group, name='subscribed')
         subscribed.user_set.add(subscribed_user)
 
         resp = self._get_response(self.staff_user)
@@ -498,9 +498,9 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_change_mailing_list(self):
-        subscribed_user = mommy.make_recipe('booking.user')
-        unsubscribed_user = mommy.make_recipe('booking.user')
-        subscribed = mommy.make(Group, name='subscribed')
+        subscribed_user = baker.make_recipe('booking.user')
+        unsubscribed_user = baker.make_recipe('booking.user')
+        subscribed = baker.make(Group, name='subscribed')
         subscribed.user_set.add(subscribed_user)
 
         self.assertIn(subscribed, subscribed_user.groups.all())
@@ -530,8 +530,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_instructor_cannot_change_mailing_list(self):
-        subscribed_user = mommy.make_recipe('booking.user')
-        subscribed = mommy.make(Group, name='subscribed')
+        subscribed_user = baker.make_recipe('booking.user')
+        subscribed = baker.make(Group, name='subscribed')
         subscribed.user_set.add(subscribed_user)
 
         self.assertIn(subscribed, subscribed_user.groups.all())

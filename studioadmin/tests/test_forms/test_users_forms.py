@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.test import TestCase
@@ -17,7 +17,7 @@ from studioadmin.forms import AddBookingForm, ChooseUsersFormSet, \
 class ChooseUsersFormSetTests(TestCase):
 
     def setUp(self):
-        self.user = mommy.make_recipe('booking.user')
+        self.user = baker.make_recipe('booking.user')
 
     def formset_data(self, extra_data={}):
 
@@ -82,11 +82,11 @@ class EmailUsersFormTests(TestCase):
 class UserFilterFormTests(TestCase):
 
     def setUp(self):
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_EV',
             _quantity=3
             )
-        classes = mommy.make_recipe(
+        classes = baker.make_recipe(
             'booking.future_PC',
             _quantity=4)
 
@@ -123,18 +123,18 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(UserBookingFormSetTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_EV')
-        self.user = mommy.make_recipe('booking.user')
-        self.block_type = mommy.make_recipe('booking.blocktype',
+        self.event = baker.make_recipe('booking.future_EV')
+        self.user = baker.make_recipe('booking.user')
+        self.block_type = baker.make_recipe('booking.blocktype',
                                        event_type=self.event.event_type)
         # 5 active blocks for other users
-        mommy.make_recipe(
+        baker.make_recipe(
                     'booking.block',
                     block_type=self.block_type,
                     paid=True,
                     _quantity=5
                     )
-        self.booking = mommy.make_recipe(
+        self.booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user
         )
 
@@ -160,7 +160,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         self.assertTrue(formset.is_valid(), formset.errors)
 
     def test_additional_data_in_form(self):
-        mommy.make_recipe('booking.block',
+        baker.make_recipe('booking.block',
                                         block_type=self.block_type,
                                         user=self.user,
                                         paid=True)
@@ -176,11 +176,11 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         """
         New form should show all active user blocks
         """
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type=self.block_type, user=self.user,
             paid=True
         )
-        mommy.make_recipe( 'booking.block', user=self.user, paid=True)
+        baker.make_recipe( 'booking.block', user=self.user, paid=True)
 
         formset = UserBookingFormSet(instance=self.user,
                                      user=self.user)
@@ -195,11 +195,11 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         Existing booking should show only user's active blocks for the
         same event type.
         """
-        active_user_block = mommy.make_recipe('booking.block',
+        active_user_block = baker.make_recipe('booking.block',
                                         block_type=self.block_type,
                                         user=self.user,
                                         paid=True)
-        active_user_block_diff_type = mommy.make_recipe('booking.block',
+        active_user_block_diff_type = baker.make_recipe('booking.block',
                                          user=self.user,
                                          paid=True)
 
@@ -239,7 +239,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
 
     def test_block_queryset_with_existing_booking_no_active_user_block(self):
 
-        active_user_block_diff_type = mommy.make_recipe('booking.block',
+        active_user_block_diff_type = baker.make_recipe('booking.block',
                                          user=self.user,
                                          paid=True)
         formset = UserBookingFormSet(data=self.formset_data(),
@@ -252,7 +252,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         self.assertEquals(0, block.queryset.count())
 
     def test_block_choice_label_format(self):
-        active_user_block = mommy.make_recipe('booking.block',
+        active_user_block = baker.make_recipe('booking.block',
                                         block_type=self.block_type,
                                         user=self.user,
                                         paid=True)
@@ -278,7 +278,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         New form should show all events the user is not booked for
         """
 
-        events = mommy.make_recipe('booking.future_PC', _quantity=5)
+        events = baker.make_recipe('booking.future_PC', _quantity=5)
         formset = UserBookingFormSet(instance=self.user,
                                      user=self.user)
         # get the last form, which will be the new empty one
@@ -294,7 +294,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         Existing booking should show all events in event choices
         ).
         """
-        events = mommy.make_recipe('booking.future_PC', _quantity=5)
+        events = baker.make_recipe('booking.future_PC', _quantity=5)
         formset = UserBookingFormSet(data=self.formset_data(),
                                      instance=self.user,
                                      user=self.user)
@@ -313,25 +313,25 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         No-show with block: no_show widget enabled but greyed, paid,
             deposit_paid, free_class disabled
         """
-        events = mommy.make_recipe('booking.future_PC', _quantity=4)
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        events = baker.make_recipe('booking.future_PC', _quantity=4)
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', user=user,
             block_type__event_type=events[1].event_type
         )
-        cancelled_booking = mommy.make_recipe(
+        cancelled_booking = baker.make_recipe(
             'booking.booking', user=user, event=events[0], paid=True,
             payment_confirmed=True, status='CANCELLED'
         )
-        block_booking = mommy.make_recipe(
+        block_booking = baker.make_recipe(
             'booking.booking', user=user, event=events[1], paid=True,
             payment_confirmed=True, status='OPEN', block=block
         )
-        no_show_booking = mommy.make_recipe(
+        no_show_booking = baker.make_recipe(
             'booking.booking', user=user, event=events[2], paid=True,
             payment_confirmed=True, status='OPEN', no_show=True
         )
-        no_show_block_booking = mommy.make_recipe(
+        no_show_block_booking = baker.make_recipe(
             'booking.booking', user=user, event=events[3], paid=True,
             payment_confirmed=True, status='OPEN', block=block, no_show=True
         )
@@ -414,11 +414,11 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(UserBlockFormSetTests, self).setUp()
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        self.user = mommy.make_recipe('booking.user')
-        self.block_type = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        self.user = baker.make_recipe('booking.user')
+        self.block_type = baker.make_recipe(
             'booking.blocktype', event_type=event_type)
-        self.block = mommy.make_recipe(
+        self.block = baker.make_recipe(
             'booking.block', block_type=self.block_type, user=self.user,
             paid=True
         )
@@ -445,8 +445,8 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         self.assertTrue(formset.is_valid(), formset.errors)
 
     def test_additional_data_in_form(self):
-        event_type = mommy.make_recipe('booking.event_type_OE')
-        available_block_type = mommy.make_recipe('booking.blocktype',
+        event_type = baker.make_recipe('booking.event_type_OE')
+        available_block_type = baker.make_recipe('booking.blocktype',
                                                event_type=event_type)
         formset = UserBlockFormSet(data=self.formset_data(),
                                      instance=self.user,
@@ -460,7 +460,7 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         Block_type choices should not include blocktypes for which the user
         already has an active block
         """
-        available_block_type = mommy.make_recipe('booking.blocktype',
+        available_block_type = baker.make_recipe('booking.blocktype',
                                                _quantity=5)
         self.assertEquals(BlockType.objects.all().count(), 6)
         formset = UserBlockFormSet(instance=self.user, user=self.user)
@@ -495,28 +495,28 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         Delete checkbox should be active only for unpaid blocks, unused free
         blocks or unused transfer blocks
         """
-        unpaid = mommy.make_recipe(
+        unpaid = baker.make_recipe(
             'booking.block', user=self.user, paid=False
         )
-        free_block_type = mommy.make_recipe('booking.free_blocktype')
-        free = mommy.make(
+        free_block_type = baker.make_recipe('booking.free_blocktype')
+        free = baker.make(
             'booking.block', user=self.user, paid=True,
             block_type=free_block_type
         )
-        free_used = mommy.make_recipe(
+        free_used = baker.make_recipe(
             'booking.block', user=self.user, paid=True,
             block_type=free_block_type
         )
-        mommy.make_recipe('booking.booking', user=self.user, block=free_used)
-        transfer = mommy.make_recipe(
+        baker.make_recipe('booking.booking', user=self.user, block=free_used)
+        transfer = baker.make_recipe(
             'booking.block', user=self.user, paid=True,
             block_type__identifier='transferred'
         )
-        transfer_used = mommy.make_recipe(
+        transfer_used = baker.make_recipe(
             'booking.block', user=self.user, paid=True,
             block_type__identifier='transferred'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=transfer_used
         )
 
@@ -537,25 +537,25 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(EditPastBookingFormTests, self).setUp()
-        self.event = mommy.make_recipe('booking.past_event')
-        self.cancelled_event = mommy.make_recipe(
+        self.event = baker.make_recipe('booking.past_event')
+        self.cancelled_event = baker.make_recipe(
             'booking.past_event', cancelled=True
         )
-        self.user = mommy.make_recipe('booking.user')
-        self.block_type = mommy.make_recipe(
+        self.user = baker.make_recipe('booking.user')
+        self.block_type = baker.make_recipe(
             'booking.blocktype5', event_type=self.event.event_type
         )
         # 5 active blocks for other users
-        mommy.make_recipe(
+        baker.make_recipe(
                     'booking.block',
                     block_type=self.block_type,
                     paid=True,
                     _quantity=5
                     )
-        self.booking = mommy.make_recipe(
+        self.booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user
         )
-        self.booking_for_cancelled = mommy.make_recipe(
+        self.booking_for_cancelled = baker.make_recipe(
             'booking.booking', event=self.cancelled_event, user=self.user,
             status='CANCELLED'
         )
@@ -567,35 +567,35 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         # includes expired blocks for past events
 
         # user block, not expired, not full
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block1, _quantity=4
         )
         # user block, not expired, full
-        block2 = mommy.make_recipe(
+        block2 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block2, _quantity=5
         )
         # user block, expired, not full
-        block3 = mommy.make_recipe(
+        block3 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user, start_date=timezone.now() - timedelta(days=90)
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block3, _quantity=4
         )
         # user block, expired, full
-        block4 = mommy.make_recipe(
+        block4 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user, start_date=timezone.now() - timedelta(days=90)
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block4, _quantity=5
         )
 
@@ -614,7 +614,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         )
 
         # A different booking does NOT include full block 1
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user,
             event__event_type=self.block_type.event_type
         )
@@ -655,7 +655,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
 
     def test_changing_status_to_cancelled(self):
         # sets paid to False and block to None
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
@@ -676,7 +676,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
 
     def test_error_messages_for_cancelled_event(self):
         # can't assign booking for cancelled event to block
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
@@ -769,7 +769,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         )
 
     def test_cannot_assign_free_class_to_block(self):
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
@@ -791,7 +791,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         )
 
     def test_cannot_assign_cancelled_class_to_block(self):
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
@@ -817,7 +817,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         )
 
     def test_cannot_make_block_booking_unpaid(self):
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
@@ -860,25 +860,25 @@ class EditBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(EditBookingFormTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_PC')
-        self.cancelled_event = mommy.make_recipe(
+        self.event = baker.make_recipe('booking.future_PC')
+        self.cancelled_event = baker.make_recipe(
             'booking.future_PC', cancelled=True
         )
-        self.user = mommy.make_recipe('booking.user')
-        self.block_type = mommy.make_recipe(
+        self.user = baker.make_recipe('booking.user')
+        self.block_type = baker.make_recipe(
             'booking.blocktype5', event_type=self.event.event_type
         )
         # 5 active blocks for other users
-        mommy.make_recipe(
+        baker.make_recipe(
                     'booking.block',
                     block_type=self.block_type,
                     paid=True,
                     _quantity=5
                     )
-        self.booking = mommy.make_recipe(
+        self.booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user
         )
-        self.booking_for_cancelled = mommy.make_recipe(
+        self.booking_for_cancelled = baker.make_recipe(
             'booking.booking', event=self.cancelled_event, user=self.user,
             status='CANCELLED'
         )
@@ -892,35 +892,35 @@ class EditBookingFormTests(PatchRequestMixin, TestCase):
         # excludes expired blocks for past events
 
         # user block, not expired, not full
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block1, _quantity=4
         )
         # user block, not expired, full
-        block2 = mommy.make_recipe(
+        block2 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block2, _quantity=5
         )
         # user block, expired, not full
-        block3 = mommy.make_recipe(
+        block3 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user, start_date=timezone.now() - timedelta(days=90)
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block3, _quantity=4
         )
         # user block, expired, full
-        block4 = mommy.make_recipe(
+        block4 = baker.make_recipe(
             'booking.block', block_type=self.block_type, paid=True,
             user=self.user, start_date=timezone.now() - timedelta(days=90)
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block4, _quantity=5
         )
 
@@ -940,7 +940,7 @@ class EditBookingFormTests(PatchRequestMixin, TestCase):
         )
 
         # A different booking does NOT include full block 1
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user,
             event__event_type=self.block_type.event_type
         )
@@ -954,22 +954,22 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(AddBookingFormTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_EV', cost=10)
-        self.poleclass = mommy.make_recipe('booking.future_PC', cost=10)
-        self.poleclass1 = mommy.make_recipe('booking.future_PC', cost=10)
-        self.past_event = mommy.make_recipe('booking.past_event', cost=10)
-        self.cancelled_event = mommy.make_recipe(
+        self.event = baker.make_recipe('booking.future_EV', cost=10)
+        self.poleclass = baker.make_recipe('booking.future_PC', cost=10)
+        self.poleclass1 = baker.make_recipe('booking.future_PC', cost=10)
+        self.past_event = baker.make_recipe('booking.past_event', cost=10)
+        self.cancelled_event = baker.make_recipe(
             'booking.future_PC', cancelled=True, cost=10
         )
-        self.user = mommy.make_recipe('booking.user')
-        self.block_type_pc = mommy.make_recipe(
+        self.user = baker.make_recipe('booking.user')
+        self.block_type_pc = baker.make_recipe(
             'booking.blocktype5', event_type=self.poleclass.event_type
         )
-        self.block_type_ev = mommy.make_recipe(
+        self.block_type_ev = baker.make_recipe(
             'booking.blocktype5', event_type=self.event.event_type
         )
         # 5 active blocks for other users
-        mommy.make_recipe(
+        baker.make_recipe(
                     'booking.block',
                     block_type=self.block_type_ev,
                     paid=True,
@@ -991,35 +991,35 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
         # includes expired blocks for past events
 
         # user block, not expired, not full
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type_ev, paid=True,
             user=self.user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block1, _quantity=4
         )
         # user block, not expired, full
-        block2 = mommy.make_recipe(
+        block2 = baker.make_recipe(
             'booking.block', block_type=self.block_type_ev, paid=True,
             user=self.user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block2, _quantity=5
         )
         # user block, expired, not full
-        block3 = mommy.make_recipe(
+        block3 = baker.make_recipe(
             'booking.block', block_type=self.block_type_ev, paid=True,
             user=self.user, start_date=timezone.now() - timedelta(days=90)
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block3, _quantity=4
         )
         # user block, expired, full
-        block4 = mommy.make_recipe(
+        block4 = baker.make_recipe(
             'booking.block', block_type=self.block_type_ev, paid=True,
             user=self.user, start_date=timezone.now() - timedelta(days=90)
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block4, _quantity=5
         )
 
@@ -1030,7 +1030,7 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
         )
 
     def test_cannot_assign_free_class_to_block(self):
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type_ev, paid=True,
             user=self.user
         )
@@ -1051,7 +1051,7 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
         )
 
     def test_cannot_assign_cancelled_class_to_block(self):
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=self.block_type_ev, paid=True,
             user=self.user
         )
@@ -1095,11 +1095,11 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
     def test_event_not_block_bookable(self):
         # poleclass1 has no associated blocktype
         # make user blocks for available blocktypes
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=self.block_type_ev,
             paid=True,
         )
-        block_pc = mommy.make_recipe(
+        block_pc = baker.make_recipe(
             'booking.block', user=self.user, block_type=self.block_type_pc,
             paid=True,
         )
@@ -1122,11 +1122,11 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
 
     def test_create_booking_with_wrong_blocktype(self):
         # make user blocks for available blocktypes
-        block_ev = mommy.make_recipe(
+        block_ev = baker.make_recipe(
             'booking.block', user=self.user, block_type=self.block_type_ev,
             paid=True,
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=self.block_type_pc,
             paid=True,
         )

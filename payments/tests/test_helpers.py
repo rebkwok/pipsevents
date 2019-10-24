@@ -1,5 +1,5 @@
 from datetime import datetime
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase
 from django.utils import timezone
@@ -13,8 +13,8 @@ from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
 class TestHelpers(PatchRequestMixin, TestCase):
 
     def test_create_booking_transaction(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event'
         )
         booking_txn = helpers.create_booking_paypal_transaction(user, booking)
@@ -36,12 +36,12 @@ class TestHelpers(PatchRequestMixin, TestCase):
     def test_create_multi_booking_transaction(self):
         # test that creating multibooking invoices with events with same names
         # but different dates generates different invoice ids
-        user = mommy.make_recipe('booking.user', username="testuser")
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
             event__date=datetime(2016, 1, 1, 17, 30)
         )
-        booking1 = mommy.make_recipe(
+        booking1 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
             event__date=datetime(2016, 1, 2, 17, 30)
         )
@@ -50,11 +50,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
             user, [booking, booking1]
         )
 
-        booking2 = mommy.make_recipe(
+        booking2 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
             event__date=datetime(2016, 1, 3, 17, 30)
         )
-        booking3 = mommy.make_recipe(
+        booking3 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
             event__date=datetime(2016, 1, 4, 17, 30)
         )
@@ -66,8 +66,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertNotEqual(invoice1, invoice2)
 
     def test_create_existing_booking_transaction(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event'
         )
         booking_txn = helpers.create_booking_paypal_transaction(user, booking)
@@ -90,8 +90,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         transaction_id, we do need to create a new transaction, with new
         invoice number with incremented counter
         """
-        user = mommy.make_recipe('booking.user', username="testuser")
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event'
         )
         booking_txn = helpers.create_booking_paypal_transaction(user, booking)
@@ -115,8 +115,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         )
 
     def test_create_block_transaction(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        block = baker.make_recipe(
             'booking.block', user=user,
             block_type__event_type__subtype="Pole Level Class",
             block_type__size=10
@@ -138,8 +138,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         )
 
     def test_create_existing_block_transaction(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        block = baker.make_recipe(
             'booking.block', user=user,
             block_type__event_type__subtype="Pole Level Class",
             block_type__size=10
@@ -159,8 +159,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(block_txn, dp_block_txn)
 
     def test_create_ticket_booking_transaction(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        tbooking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        tbooking = baker.make_recipe(
             'booking.ticket_booking', user=user
         )
         tbooking_txn = helpers.create_ticket_booking_paypal_transaction(
@@ -178,8 +178,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         )
 
     def test_create_existing_ticket_booking_transaction(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        tbooking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        tbooking = baker.make_recipe(
             'booking.ticket_booking', user=user
         )
         tbooking_txn = helpers.create_ticket_booking_paypal_transaction(
@@ -197,12 +197,12 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(tbooking_txn, dp_tbooking_txn)
 
     def test_create_booking_with_duplicate_invoice_number(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        booking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
             event__date=datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
         )
-        booking1 = mommy.make_recipe(
+        booking1 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
             event__date=datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
         )
@@ -228,8 +228,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(len(booking1_txn.invoice_id.split('#')[-1]), 6)
 
     def test_create_existing_block_transaction_with_txn_id(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        block = baker.make_recipe(
             'booking.block', user=user,
             block_type__event_type__subtype="Pole Level Class",
             block_type__size=10
@@ -257,13 +257,13 @@ class TestHelpers(PatchRequestMixin, TestCase):
         )
 
     def test_create_block_transaction_with_duplicate_invoice_number(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        block = baker.make_recipe(
             'booking.block', user=user,
             block_type__event_type__subtype="Pole Level Class",
             block_type__size=10
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', user=user,
             block_type__event_type__subtype="Pole Level Class1",
             block_type__size=10,
@@ -287,11 +287,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(len(second_block_txn.invoice_id.split('#')[-1]), 6)
 
     def test_create_ticket_booking_with_duplicate_invoice_number(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        tbooking = mommy.make_recipe('booking.ticket_booking', user=user)
+        user = baker.make_recipe('booking.user', username="testuser")
+        tbooking = baker.make_recipe('booking.ticket_booking', user=user)
         tbooking.booking_reference = "ref"
         tbooking.save()
-        tbooking1 = mommy.make_recipe('booking.ticket_booking', user=user)
+        tbooking1 = baker.make_recipe('booking.ticket_booking', user=user)
         tbooking1.booking_reference = "ref"
         tbooking1.save()
 
@@ -322,8 +322,8 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(len(tbooking1_txn.invoice_id), 9)
 
     def test_create_existing_ticket_booking_transation_with_txn_id(self):
-        user = mommy.make_recipe('booking.user', username="testuser")
-        tbooking = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', username="testuser")
+        tbooking = baker.make_recipe(
             'booking.ticket_booking', user=user
         )
         tbooking_txn = helpers.create_ticket_booking_paypal_transaction(

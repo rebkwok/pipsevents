@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -25,7 +25,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
 
 
     def test_confirm_return(self):
-        booking = mommy.make_recipe('booking.booking')
+        booking = baker.make_recipe('booking.booking')
         url = reverse('payments:paypal_confirm')
         resp = self.client.post(
             url,
@@ -41,7 +41,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
             [obj for obj in resp.context_data['objs']], [booking]
         )
 
-        block = mommy.make_recipe('booking.block')
+        block = baker.make_recipe('booking.block')
 
         resp = self.client.post(
             url,
@@ -57,7 +57,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
             [obj for obj in resp.context_data['objs']], [block]
         )
 
-        ticket_booking = mommy.make_recipe('booking.ticket_booking')
+        ticket_booking = baker.make_recipe('booking.ticket_booking')
 
         resp = self.client.post(
             url,
@@ -74,7 +74,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         )
 
     def test_confirm_return_with_unknown_obj(self):
-        block = mommy.make_recipe('booking.block')
+        block = baker.make_recipe('booking.block')
         url = reverse('payments:paypal_confirm')
         resp = self.client.post(
             url,
@@ -114,7 +114,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_confirm_return_with_paypal_test_and_valid_ipn(self):
         url = reverse('payments:paypal_confirm')
-        mommy.make(
+        baker.make(
             PayPalIPN, invoice='testpp@test.com_123456',
             payment_status='Completed'
         )
@@ -137,7 +137,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         )
 
     def test_confirm_return_with_no_custom_field(self):
-        mommy.make_recipe('booking.booking')
+        baker.make_recipe('booking.booking')
 
         url = reverse('payments:paypal_confirm')
         resp = self.client.post(
@@ -154,7 +154,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         )
 
     def test_confirm_return_with_custom_multiple_bookings(self):
-        bookings = mommy.make_recipe('booking.booking', _quantity=3)
+        bookings = baker.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         resp = self.client.post(
             url,
@@ -172,7 +172,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         )
 
     def test_confirm_return_with_booking_cart_items(self):
-        bookings = mommy.make_recipe('booking.booking', _quantity=3)
+        bookings = baker.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
         session['cart_items'] = 'booking {} {}'.format(
@@ -198,8 +198,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
             self.assertTrue(booking.paypal_pending)
 
     def test_confirm_return_with_booking_cart_items_already_paid(self):
-        unpaid_bookings = mommy.make_recipe('booking.booking', _quantity=2)
-        paid_booking = mommy.make_recipe('booking.booking', paid=True)
+        unpaid_bookings = baker.make_recipe('booking.booking', _quantity=2)
+        paid_booking = baker.make_recipe('booking.booking', paid=True)
         all_bookings = unpaid_bookings + [paid_booking]
 
         url = reverse('payments:paypal_confirm')
@@ -231,7 +231,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         self.assertFalse(paid_booking.paypal_pending)
 
     def test_confirm_return_with_block_cart_items(self):
-        blocks = mommy.make_recipe('booking.block', _quantity=2)
+        blocks = baker.make_recipe('booking.block', _quantity=2)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
         session['cart_items'] = 'block {} {}'.format(
@@ -257,7 +257,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
             self.assertTrue(block.paypal_pending)
 
     def test_confirm_return_with_unknown_cart_items(self):
-        bookings = mommy.make_recipe('booking.booking', _quantity=3)
+        bookings = baker.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
         session['cart_items'] = 'unknown {} {}'.format(
@@ -307,7 +307,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_cart_items_already_paid_bookings(self):
         # create unpaid bookings
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', paid=False, payment_confirmed=False,
             user=self.user, _quantity=2
         )
@@ -319,7 +319,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
             'booking', ','.join([str(bk.id) for bk in bookings]), None,
             self.user.email
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice=invoice_id,
             payment_status='Completed', custom=custom
         )
@@ -341,7 +341,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_cart_items_already_paid_blocks(self):
         # create unpaid blocks
-        blocks = mommy.make_recipe(
+        blocks = baker.make_recipe(
             'booking.block', paid=False, paypal_pending=True,
             user=self.user, _quantity=2
         )
@@ -353,7 +353,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
             'block', ','.join([str(bk.id) for bk in blocks]), None,
             self.user.email
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice=invoice_id,
             payment_status='Completed', custom=custom
         )
@@ -374,7 +374,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_cart_items_already_paid_ticket_booking(self):
         # create unpaid ticket booking
-        ticket_booking = mommy.make_recipe(
+        ticket_booking = baker.make_recipe(
             'booking.ticket_booking', paid=False, user=self.user
         )
         # create pptrans objs
@@ -387,7 +387,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
             'ticket_booking', str(ticket_booking.id), None,
             self.user.email
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice=pptrans.invoice_id,
             payment_status='Completed', custom=custom
         )
@@ -406,7 +406,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_cart_items_already_paid_includes_voucher(self):
         # create unpaid bookings
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', paid=False, payment_confirmed=False,
             user=self.user, _quantity=2
         )
@@ -418,7 +418,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
             'booking', ','.join([str(bk.id) for bk in bookings]), 'foo',
             self.user.email
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice=invoice_id,
             payment_status='Completed', custom=custom
         )
@@ -440,7 +440,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_matching_cart_items_already_paid_other_user(self):
         # create unpaid bookings
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', paid=False, payment_confirmed=False,
             user=self.user, _quantity=2
         )
@@ -452,7 +452,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
             'booking', ','.join([str(bk.id) for bk in bookings]), None,
             'other_user@test.com'
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice=invoice_id,
             payment_status='Completed', custom=custom
         )
@@ -474,7 +474,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_cart_items_and_email_no_matching_ipn(self):
         # create unpaid bookings
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', paid=False, payment_confirmed=False,
             user=self.user, _quantity=2
         )
@@ -503,7 +503,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_with_cart_items_and_email_multiple_ipns(self):
         # create unpaid bookings
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', paid=False, payment_confirmed=False,
             user=self.user, _quantity=2
         )
@@ -515,11 +515,11 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
             'booking', ','.join([str(bk.id) for bk in bookings]), None,
             self.user.email
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice=invoice_id,
             payment_status='Completed', custom=custom
         )
-        mommy.make(
+        baker.make(
             PayPalIPN, txn_id='testtxn', invoice='other',
             payment_status='Completed', custom=custom
         )

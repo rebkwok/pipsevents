@@ -2,7 +2,7 @@ import os
 
 from unittest.mock import patch
 
-from model_mommy import mommy
+from model_bakery import baker
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
@@ -27,9 +27,9 @@ class EventListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(EventListViewTests, cls).setUpTestData()
-        cls.events = mommy.make_recipe('booking.future_EV', _quantity=3)
-        cls.poleclasses = mommy.make_recipe('booking.future_PC', _quantity=3)
-        mommy.make_recipe('booking.future_CL', _quantity=3)
+        cls.events = baker.make_recipe('booking.future_EV', _quantity=3)
+        cls.poleclasses = baker.make_recipe('booking.future_PC', _quantity=3)
+        baker.make_recipe('booking.future_CL', _quantity=3)
         cls.url = reverse('booking:events')
         cls.lessons_url = reverse('booking:lessons')
 
@@ -59,7 +59,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         user = User.objects.create_user(
             username='testnodp', email='testnodp@test.com', password='test'
         )
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
         self.assertFalse(has_active_data_privacy_agreement(user))
 
         self.assertTrue(
@@ -84,7 +84,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that past events is not listed
         """
-        mommy.make_recipe('booking.past_event')
+        baker.make_recipe('booking.past_event')
         # check there are now 4 events
         self.assertEquals(Event.objects.all().count(), 10)
         resp = self.client.get(self.url)
@@ -119,7 +119,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # create a booking for this user
         event = self.events[0]
-        mommy.make_recipe('booking.booking', user=self.user, event=event)
+        baker.make_recipe('booking.booking', user=self.user, event=event)
         resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
         self.assertEquals(len(booked_events), 1)
@@ -131,7 +131,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         event = self.events[0]
         # create a booking for this user
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=event,
             paid=True, payment_confirmed=True
         )
@@ -158,11 +158,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # create booking for this user
         event = self.events[0]
-        mommy.make_recipe('booking.booking', user=self.user, event=event)
+        baker.make_recipe('booking.booking', user=self.user, event=event)
         # create booking for another user, different event
-        user1 = mommy.make_recipe('booking.user')
+        user1 = baker.make_recipe('booking.user')
         event1 = self.events[1]
-        mommy.make_recipe('booking.booking', user=user1, event=event1)
+        baker.make_recipe('booking.booking', user=user1, event=event1)
 
         # check only event1 shows in the booked events
         resp = self.client.get(self.url)
@@ -175,19 +175,19 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         Test that we can filter the classes by name
         """
-        mommy.make_recipe('booking.future_EV', name='test_name', _quantity=3)
-        mommy.make_recipe('booking.future_EV', name='test_name1', _quantity=4)
+        baker.make_recipe('booking.future_EV', name='test_name', _quantity=3)
+        baker.make_recipe('booking.future_EV', name='test_name1', _quantity=4)
 
         resp = self.client.get(self.url, {'name': 'test_name'})
         self.assertEquals(resp.context['events'].count(), 3)
 
     def test_pole_practice_context_without_permission(self):
         Event.objects.all().delete()
-        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        baker.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = User.objects.create_user(username='test1', password='test1')
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
         make_data_privacy_agreement(user)
         self.client.login(username='test1', password='test1')
         response = self.client.get(self.lessons_url)
@@ -199,15 +199,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_pole_practice_context_with_permission(self):
         Event.objects.all().delete()
-        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        baker.make_recipe('booking.future_CL', event_type=pp_event_type)
 
         user = User.objects.create_user(username='test1', password='test1')
         make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
         self.client.login(username='test1', password='test1')
         response = self.client.get(self.lessons_url)
         response.render()
@@ -217,7 +217,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_cancelled_events_are_not_listed(self):
         Event.objects.all().delete()
-        mommy.make_recipe('booking.future_CL', cancelled=True)
+        baker.make_recipe('booking.future_CL', cancelled=True)
         response = self.client.get(self.lessons_url)
         self.assertEquals(Event.objects.count(), 1)
         self.assertEquals(response.context_data['events'].count(), 0)
@@ -260,7 +260,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
         mock_tz1.utc=timezone.utc
 
-        voucher = mommy.make(
+        voucher = baker.make(
             EventVoucher, code='testcode',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
             expiry_date=datetime(2015, 1, 15, tzinfo=timezone.utc)
@@ -293,7 +293,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
         mock_tz1.utc=timezone.utc
 
-        voucher = mommy.make(
+        voucher = baker.make(
             BlockVoucher, code='block_testcode',
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
             expiry_date=datetime(2015, 1, 15, tzinfo=timezone.utc)
@@ -323,7 +323,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
         mock_tz1.utc=timezone.utc
 
-        voucher = mommy.make(
+        voucher = baker.make(
             EventVoucher, code='testcode',
             start_date=datetime(2014, 1, 1, tzinfo=timezone.utc),
             expiry_date=datetime(2014, 1, 15, tzinfo=timezone.utc)
@@ -371,7 +371,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
         mock_tz1.utc=timezone.utc
 
-        voucher = mommy.make(
+        voucher = baker.make(
             EventVoucher, code='testcode',
             start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
             expiry_date=datetime(2016, 1, 15, tzinfo=timezone.utc)
@@ -402,7 +402,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         # expired disclaimer
-        disclaimer = mommy.make_recipe(
+        disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
             date=datetime(2015, 2, 1, tzinfo=timezone.utc)
         )
@@ -418,7 +418,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
-        mommy.make_recipe('booking.online_disclaimer', user=user)
+        baker.make_recipe('booking.online_disclaimer', user=user)
         resp = self.client.get(self.url)
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
@@ -428,7 +428,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         OnlineDisclaimer.objects.all().delete()
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
         resp = self.client.get(self.url)
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
@@ -504,7 +504,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def test_event_list_default_pagination(self):
         # make enough events that they will paginate
         # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
-        mommy.make_recipe('booking.future_PC', _quantity=25)
+        baker.make_recipe('booking.future_PC', _quantity=25)
         url = reverse('booking:lessons')
         resp = self.client.get(url)
 
@@ -521,7 +521,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         # make some classes at second location
-        mommy.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=32)
+        baker.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=32)
         resp = self.client.get(url)
 
         # Queryset contains first 30
@@ -538,9 +538,9 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def test_event_list_default_pagination_with_page(self):
         # make enough events that they will paginate
         # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
-        mommy.make_recipe('booking.future_PC', _quantity=25)
+        baker.make_recipe('booking.future_PC', _quantity=25)
         # make some classes at second location
-        mommy.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=10)
+        baker.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=10)
 
         # with specified page only, defaults to show all
         url = reverse('booking:lessons') + '?page=2'
@@ -629,12 +629,12 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(EventDetailViewTests, cls).setUpTestData()
-        mommy.make_recipe('booking.future_PC', _quantity=3)
-        mommy.make_recipe('booking.future_CL', _quantity=3)
+        baker.make_recipe('booking.future_PC', _quantity=3)
+        baker.make_recipe('booking.future_CL', _quantity=3)
 
     def setUp(self):
         super(EventDetailViewTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_EV')
+        self.event = baker.make_recipe('booking.future_EV')
 
     def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])
@@ -664,7 +664,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         Test that booked event is shown as booked
         """
         #create a booking for this event and user
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=self.event, paid=True,
             payment_confirmed=True
         )
@@ -689,21 +689,21 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         Test that the event is not shown as booked if the current user has
         not booked it
         """
-        user1 = mommy.make_recipe('booking.user')
+        user1 = baker.make_recipe('booking.user')
         #create a booking for this event and a different user
-        mommy.make_recipe('booking.booking', user=user1, event=self.event)
+        baker.make_recipe('booking.booking', user=user1, event=self.event)
 
         resp = self._get_response(self.user, self.event,'event')
         self.assertFalse('booked' in resp.context_data)
         self.assertEquals(resp.context_data['booking_info_text'], '')
 
     def test_pole_practice_context_without_permission(self):
-        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pole_practice = baker.make_recipe('booking.future_CL', event_type=pp_event_type)
 
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
@@ -716,15 +716,15 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('leave_waiting_list_button', str(response.content))
 
     def test_pole_practice_context_with_permission(self):
-        pp_event_type = mommy.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        pole_practice = mommy.make_recipe('booking.future_CL', event_type=pp_event_type)
+        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
+        pole_practice = baker.make_recipe('booking.future_CL', event_type=pp_event_type)
 
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
         perm = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)
         user.save()
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
@@ -890,7 +890,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.event.advance_payment_required = True
         self.event.save()
 
-        mommy.make(
+        baker.make(
             Booking, user=self.user, event=self.event, status='CANCELLED',
             auto_cancelled=True
         )
@@ -907,10 +907,10 @@ class LessonListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(LessonListViewTests, cls).setUpTestData()
-        mommy.make_recipe('booking.future_EV', cost=5, _quantity=1)
-        mommy.make_recipe('booking.future_PC', cost=5, _quantity=3)
-        mommy.make_recipe('booking.future_CL', cost=5, _quantity=3)
-        mommy.make_recipe('booking.future_WS', cost=5, _quantity=1)
+        baker.make_recipe('booking.future_EV', cost=5, _quantity=1)
+        baker.make_recipe('booking.future_PC', cost=5, _quantity=3)
+        baker.make_recipe('booking.future_CL', cost=5, _quantity=3)
+        baker.make_recipe('booking.future_WS', cost=5, _quantity=1)
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:lessons')
@@ -954,8 +954,8 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         """
         Test that we can filter the classes by name
         """
-        mommy.make_recipe('booking.future_PC', name='test_name', _quantity=3)
-        mommy.make_recipe('booking.future_PC', name='test_name1', _quantity=4)
+        baker.make_recipe('booking.future_PC', name='test_name', _quantity=3)
+        baker.make_recipe('booking.future_PC', name='test_name1', _quantity=4)
 
         url = reverse('booking:lessons')
         resp = self.client.get(url, {'name': 'test_name'})
@@ -976,10 +976,10 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
-        mommy.make_recipe('booking.booking', user=self.user, event=event1)
+        baker.make_recipe('booking.booking', user=self.user, event=event1)
         # create booking for another user
-        user1 = mommy.make_recipe('booking.user')
-        mommy.make_recipe('booking.booking', user=user1, event=event2)
+        user1 = baker.make_recipe('booking.user')
+        baker.make_recipe('booking.booking', user=user1, event=event2)
 
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'lessons')
@@ -998,8 +998,8 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create open and cancelled booking for this user
-        mommy.make_recipe('booking.booking', user=self.user, event=event1)
-        mommy.make_recipe(
+        baker.make_recipe('booking.booking', user=self.user, event=event1)
+        baker.make_recipe(
             'booking.booking', user=self.user, event=event2, status='CANCELLED'
         )
 
@@ -1015,7 +1015,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         event1, event2 = events[0:2]
 
         # create auto cancelled booking for this user
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=event2, status='CANCELLED',
             auto_cancelled=True
         )
@@ -1044,11 +1044,11 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(RoomHireListViewTests, cls).setUpTestData()
-        mommy.make_recipe('booking.future_RH', _quantity=4)
-        mommy.make_recipe('booking.future_EV', _quantity=1)
-        mommy.make_recipe('booking.future_PC', _quantity=3)
-        mommy.make_recipe('booking.future_CL', _quantity=3)
-        mommy.make_recipe('booking.future_WS', _quantity=1)
+        baker.make_recipe('booking.future_RH', _quantity=4)
+        baker.make_recipe('booking.future_EV', _quantity=1)
+        baker.make_recipe('booking.future_PC', _quantity=3)
+        baker.make_recipe('booking.future_CL', _quantity=3)
+        baker.make_recipe('booking.future_WS', _quantity=1)
 
     def _get_response(self, user, ev_type):
         url = reverse('booking:room_hires')
@@ -1092,8 +1092,8 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         """
         Test that we can filter the room hires by name
         """
-        mommy.make_recipe('booking.future_RH', name='test_name', _quantity=3)
-        mommy.make_recipe('booking.future_RH', name='test_name1', _quantity=4)
+        baker.make_recipe('booking.future_RH', name='test_name', _quantity=3)
+        baker.make_recipe('booking.future_RH', name='test_name1', _quantity=4)
 
         url = reverse('booking:room_hires')
         resp = self.client.get(url, {'name': 'test_name'})
@@ -1114,10 +1114,10 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
-        mommy.make_recipe('booking.booking', user=self.user, event=event1)
+        baker.make_recipe('booking.booking', user=self.user, event=event1)
         # create booking for another user
-        user1 = mommy.make_recipe('booking.user')
-        mommy.make_recipe('booking.booking', user=user1, event=event2)
+        user1 = baker.make_recipe('booking.user')
+        baker.make_recipe('booking.booking', user=user1, event=event2)
 
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'room_hires')
@@ -1136,8 +1136,8 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEquals(len(resp.context_data['booked_events']), 0)
 
         # create open and cancelled booking for this user
-        mommy.make_recipe('booking.booking', user=self.user, event=event1)
-        mommy.make_recipe(
+        baker.make_recipe('booking.booking', user=self.user, event=event1)
+        baker.make_recipe(
             'booking.booking', user=self.user, event=event2, status='CANCELLED'
         )
 
@@ -1157,9 +1157,9 @@ class LessonDetailViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(LessonDetailViewTests, cls).setUpTestData()
-        cls.lesson = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.future_EV', _quantity=3)
-        mommy.make_recipe('booking.future_PC', _quantity=3)
+        cls.lesson = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.future_EV', _quantity=3)
+        baker.make_recipe('booking.future_PC', _quantity=3)
 
     def test_with_logged_in_user(self):
         """
@@ -1184,10 +1184,10 @@ class RoomHireDetailViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(RoomHireDetailViewTests, cls).setUpTestData()
-        cls.room_hire = mommy.make_recipe('booking.future_RH')
-        mommy.make_recipe('booking.future_EV', _quantity=3)
-        mommy.make_recipe('booking.future_PC', _quantity=3)
-        mommy.make_recipe('booking.future_RH', _quantity=3)
+        cls.room_hire = baker.make_recipe('booking.future_RH')
+        baker.make_recipe('booking.future_EV', _quantity=3)
+        baker.make_recipe('booking.future_PC', _quantity=3)
+        baker.make_recipe('booking.future_RH', _quantity=3)
 
     def test_with_logged_in_user(self):
         """

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.core import mail
@@ -23,12 +23,12 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.pole_class_event_type = mommy.make(
+        cls.pole_class_event_type = baker.make(
             EventType, event_type='CL', subtype='Pole level class'
         )
-        cls.event = mommy.make_recipe('booking.future_EV', cost=5, max_participants=3)
+        cls.event = baker.make_recipe('booking.future_EV', cost=5, max_participants=3)
         cls.event_url = reverse('booking:ajax_create_booking', args=[cls.event.id])
-        cls.free_blocktype = mommy.make_recipe(
+        cls.free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
         )
@@ -53,7 +53,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
     def test_cannot_access_if_expired_disclaimer(self):
         user = User.objects.create_user(username='exp_disclaimer', password='test')
         make_data_privacy_agreement(user)
-        disclaimer = mommy.make_recipe(
+        disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
             date=datetime(2015, 2, 1, tzinfo=timezone.utc)
         )
@@ -64,7 +64,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
-        mommy.make(OnlineDisclaimer, user=user)
+        baker.make(OnlineDisclaimer, user=user)
         resp = self.client.post(self.event_url)
         self.assertEqual(resp.status_code, 200)
 
@@ -89,7 +89,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test creating a booking
         """
-        event = mommy.make_recipe('booking.future_EV', cost=0, max_participants=3)
+        event = baker.make_recipe('booking.future_EV', cost=0, max_participants=3)
         url = reverse('booking:ajax_create_booking', args=[event.id])
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
@@ -109,7 +109,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test creating a booking send email to user and studio if flag sent on
         event
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', cost=5, max_participants=3,
             email_studio_when_booked=True
         )
@@ -133,7 +133,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         watched_user = User.objects.create_user(
             username='foo', email='foo@test.com', password='test'
         )
-        mommy.make(OnlineDisclaimer, user=watched_user)
+        baker.make(OnlineDisclaimer, user=watched_user)
         make_data_privacy_agreement(watched_user)
         self.client.login(username=watched_user.username, password='test')
         self.client.post(self.event_url)
@@ -149,7 +149,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         mock_send_emails.side_effect = Exception('Error sending mail')
 
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', max_participants=3,
             email_studio_when_booked=True, cost=5
         )
@@ -173,7 +173,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test creating a room hire booking
         """
-        room_hire = mommy.make_recipe('booking.future_RH', max_participants=3, cost=5)
+        room_hire = baker.make_recipe('booking.future_RH', max_participants=3, cost=5)
         url = reverse('booking:ajax_create_booking', args=[room_hire.id])
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
@@ -188,7 +188,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test trying to create duplicate booking returns 400
         """
-        mommy.make_recipe('booking.booking', user=self.user, event=self.event)
+        baker.make_recipe('booking.booking', user=self.user, event=self.event)
 
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(self.event_url)
@@ -199,9 +199,9 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test trying create booking for a full event returns 400
         """
-        users = mommy.make_recipe('booking.user', _quantity=3)
+        users = baker.make_recipe('booking.user', _quantity=3)
         for user in users:
-            mommy.make_recipe('booking.booking', event=self.event, user=user)
+            baker.make_recipe('booking.booking', event=self.event, user=user)
         # check event is full; we need to get the event again as spaces_left is
         # cached property
         event = Event.objects.get(id=self.event.id)
@@ -216,7 +216,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
     def test_cannot_book_for_cancelled_event(self):
         """cannot create booking for a full event
         """
-        event = mommy.make_recipe('booking.future_EV', max_participants=3, cancelled=True, cost=5)
+        event = baker.make_recipe('booking.future_EV', max_participants=3, cancelled=True, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
         self.client.login(username=self.user.username, password='test')
@@ -229,7 +229,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test can load create booking page with a cancelled booking
         """
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user, status='CANCELLED'
         )
 
@@ -250,13 +250,13 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test can rebook a booking marked as no_show
         """
-        pclass = mommy.make_recipe(
+        pclass = baker.make_recipe(
             'booking.future_PC', allow_booking_cancellation=False, cost=10
         )
         url = reverse('booking:ajax_create_booking', args=[pclass.id])
 
         # book for non-refundable event and mark as no_show
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=pclass, paid=True,
             no_show=True
         )
@@ -284,15 +284,15 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test can rebook a block booking marked as no_show
         """
 
-        pclass = mommy.make_recipe(
+        pclass = baker.make_recipe(
             'booking.future_PC', allow_booking_cancellation=False, cost=10
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, paid=True,
             block_type__event_type =pclass.event_type
         )
         # book for non-refundable event and mark as no_show
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=pclass, paid=True,
             no_show=True, block=block
         )
@@ -324,7 +324,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test rebooking a cancelled booking still marked as paid reopens booking
         and emails studio
         """
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user, paid=True,
             payment_confirmed=True, status='CANCELLED'
         )
@@ -358,9 +358,9 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         booking status open, fetches the paypal
         transaction id
         """
-        event = mommy.make_recipe('booking.future_PC', cost=5)
+        event = baker.make_recipe('booking.future_PC', cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=event, user=self.user, paid=True,
             payment_confirmed=True, status='CANCELLED'
         )
@@ -399,14 +399,14 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test that an active block is automatically used when booking
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True
         )
         self.assertTrue(block.active_block())
@@ -427,14 +427,14 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test that an unpaid block is ignored used when booking
         """
-        event_type = mommy.make_recipe('booking.event_type_PC', )
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event_type = baker.make_recipe('booking.event_type_PC', )
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=False
         )
         self.assertFalse(block.active_block())
@@ -456,7 +456,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test trying to create a booking for pole practice if not regular
          student returns 400
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PP', event_type__subtype='Pole practice', cost=5
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
@@ -480,13 +480,13 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         earlier expiry date is used
         """
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', event_type=event_type, identifier="transferred"
         )
-        transfer = mommy.make_recipe(
+        transfer = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
             start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
         )
@@ -511,18 +511,18 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         earlier expiry date is used
         """
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
-        event_type = mommy.make_recipe('booking.event_type_PC')
+        event_type = baker.make_recipe('booking.event_type_PC')
 
-        event = mommy.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id])
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type, duration=2
         )
-        block1 = mommy.make_recipe(
+        block1 = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
             start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
         )
-        block2 = mommy.make_recipe(
+        block2 = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
             start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
         )
@@ -561,20 +561,20 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
 
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC', event_type=self.pole_class_event_type, cost=5
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
-        blocktype = mommy.make_recipe(
+        blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
             event_type=self.pole_class_event_type, identifier='standard'
         )
 
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, block_type=blocktype, paid=True
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.block', user=self.user, block_type=self.free_blocktype,
             paid=True, parent=block
         )
@@ -604,18 +604,18 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings[0].block, block)
 
     def test_create_booking_uses_last_of_free_class_allowed_block(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
             block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_CL', cost=10, event_type=self.pole_class_event_type
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', block=block, user=self.user, _quantity=9
         )
 
@@ -634,23 +634,23 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
 
     def test_booking_uses_last_of_free_class_allowed_block_free_block_already_exists(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
             block_type__assign_free_class_on_completion=True,
             paid=True, start_date=timezone.now()
         )
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', cost=10, event_type=self.pole_class_event_type
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=self.free_blocktype,
             paid=True, parent=block
         )
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', block=block, user=self.user, _quantity=9
         )
         self.assertEqual(Block.objects.count(), 2)
@@ -668,18 +668,18 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.count(), 2)
 
     def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block_10', user=self.user,
             block_type__event_type=self.pole_class_event_type,
             block_type__assign_free_class_on_completion=False,
             paid=True, start_date=timezone.now()
         )
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_CL', cost=10, event_type=self.pole_class_event_type
         )
         url = reverse('booking:ajax_create_booking', args=[event.id])
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', block=block, user=self.user, _quantity=9
         )
 
@@ -704,9 +704,9 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test creating a booking for a user on the waiting list deletes waiting list
         """
-        mommy.make(WaitingListUser, event=self.event, user=self.user)
-        mommy.make(WaitingListUser, event=self.event)
-        mommy.make(WaitingListUser, user=self.user)
+        baker.make(WaitingListUser, event=self.event, user=self.user)
+        baker.make(WaitingListUser, event=self.event)
+        baker.make(WaitingListUser, user=self.user)
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
 
@@ -724,7 +724,7 @@ class AjaxTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.event = mommy.make_recipe('booking.future_PC', max_participants=3)
+        self.event = baker.make_recipe('booking.future_PC', max_participants=3)
 
         self.staff_user = User.objects.create_user(
             username='testuser', email='test@test.com', password='test'
@@ -746,16 +746,16 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertIn('<span class="basket-count">0</span>', resp.content.decode('utf-8'))
 
     def test_update_shopping_basket_count_unpaid_bookings(self):
-        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
-        mommy.make_recipe('booking.booking') # booking for another user
+        baker.make_recipe('booking.booking', event=self.event, user=self.user)
+        baker.make_recipe('booking.booking') # booking for another user
         url = reverse('booking:update_shopping_basket_count')
         resp = self.client.get(url)
         self.assertIn('<span class="basket-count">1</span>', resp.content.decode('utf-8'))
 
     def test_update_shopping_basket_count_paid_and_unpaid_bookings(self):
-        event1 = mommy.make_recipe('booking.future_PC')
-        mommy.make_recipe('booking.booking', event=self.event, user=self.user, paid=True)
-        mommy.make_recipe('booking.booking', event=event1, user=self.user)
+        event1 = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', event=self.event, user=self.user, paid=True)
+        baker.make_recipe('booking.booking', event=event1, user=self.user)
         url = reverse('booking:update_shopping_basket_count')
         resp = self.client.get(url)
         self.assertIn('<span class="basket-count">1</span>', resp.content.decode('utf-8'))
@@ -768,7 +768,7 @@ class AjaxTests(TestSetupMixin, TestCase):
 
     def test_update_bookings_count_full(self):
         url = reverse('booking:update_booking_count', args=[self.event.id])
-        mommy.make_recipe('booking.booking', event=self.event, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.event, _quantity=3)
         resp = self.client.get(url)
         self.assertIn('FULL', resp.content.decode('utf-8'))
         self.assertNotIn('0/3', resp.content.decode('utf-8'))
@@ -783,7 +783,7 @@ class AjaxTests(TestSetupMixin, TestCase):
     def test_update_bookings_count_full_instructor(self):
         url = reverse('booking:update_booking_count', args=[self.event.id])
         self.client.login(username=self.instructor_user.username, password='test')
-        mommy.make_recipe('booking.booking', event=self.event, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.event, _quantity=3)
         resp = self.client.get(url)
         self.assertNotIn('FULL', resp.content.decode('utf-8'))
         self.assertIn('0/3', resp.content.decode('utf-8'))
@@ -798,7 +798,7 @@ class AjaxTests(TestSetupMixin, TestCase):
     def test_update_bookings_count_full_staff(self):
         url = reverse('booking:update_booking_count', args=[self.event.id])
         self.client.login(username=self.staff_user.username, password='test')
-        mommy.make_recipe('booking.booking', event=self.event, _quantity=3)
+        baker.make_recipe('booking.booking', event=self.event, _quantity=3)
         resp = self.client.get(url)
         self.assertNotIn('FULL', resp.content.decode('utf-8'))
         self.assertIn('0/3', resp.content.decode('utf-8'))
@@ -817,7 +817,7 @@ class AjaxTests(TestSetupMixin, TestCase):
 
     def test_toggle_waiting_list_off(self):
         url = reverse('booking:toggle_waiting_list', args=[self.event.id])
-        mommy.make(WaitingListUser, user=self.user, event=self.event)
+        baker.make(WaitingListUser, user=self.user, event=self.event)
         resp = self.client.post(url)
 
         self.assertFalse(WaitingListUser.objects.exists())
@@ -827,7 +827,7 @@ class AjaxTests(TestSetupMixin, TestCase):
     def test_booking_details(self):
         """Return correct details to populate the bookings page"""
         url = reverse('booking:booking_details', args=[self.event.id])
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user, paid=False, status='OPEN'
         )
         resp = self.client.post(url)
@@ -900,7 +900,7 @@ class AjaxTests(TestSetupMixin, TestCase):
 
         # with block
         booking.no_show = False
-        booking.block = mommy.make_recipe('booking.block', paid=True)
+        booking.block = baker.make_recipe('booking.block', paid=True)
         booking.save()
         resp = self.client.post(url)
         # event has cost, no advance payment required
@@ -921,7 +921,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.event.cost = 5
         self.event.payment_open = True
         self.event.save()
-        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        baker.make_recipe('booking.booking', event=self.event, user=self.user)
         url = reverse('booking:ajax_shopping_basket_bookings_total')
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -929,7 +929,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertIn('paypal-btn-form', resp.content.decode('utf-8'))
 
     def test_ajax_shopping_basket_bookings_total_no_cost(self):
-        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        baker.make_recipe('booking.booking', event=self.event, user=self.user)
         url = reverse('booking:ajax_shopping_basket_bookings_total')
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -937,7 +937,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertNotIn('paypal-btn-form', resp.content.decode('utf-8'))
 
     def test_ajax_shopping_basket_bookings_total_with_code(self):
-        mommy.make_recipe('booking.booking', event=self.event, user=self.user)
+        baker.make_recipe('booking.booking', event=self.event, user=self.user)
         url = reverse('booking:ajax_shopping_basket_bookings_total') + '?code=test'
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -945,14 +945,14 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context['booking_code'], 'test')
 
     def test_ajax_shopping_blocks_total(self):
-        mommy.make_recipe('booking.block', block_type__cost=20, user=self.user)
+        baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
         url = reverse('booking:ajax_shopping_basket_blocks_total')
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
 
     def test_ajax_shopping_basket_blocks_total_with_code(self):
-        mommy.make_recipe('booking.block', block_type__cost=20, user=self.user)
+        baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
         url = reverse('booking:ajax_shopping_basket_blocks_total') + '?code=test'
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)

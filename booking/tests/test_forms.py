@@ -1,5 +1,5 @@
 from django.test import TestCase
-from model_mommy import mommy
+from model_bakery import baker
 
 from booking.forms import BookingCreateForm, BlockCreateForm, \
     TicketPurchaseForm, BlockAdminForm, BookingAdminForm, \
@@ -11,9 +11,9 @@ class BookingCreateFormTests(PatchRequestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = mommy.make_recipe('booking.user')
-        cls.event = mommy.make_recipe('booking.future_EV')
-        cls.blocktype = mommy.make_recipe('booking.blocktype5')
+        cls.user = baker.make_recipe('booking.user')
+        cls.event = baker.make_recipe('booking.future_EV')
+        cls.blocktype = baker.make_recipe('booking.blocktype5')
 
     def test_create_form(self):
         form_data = {'event': self.event.id}
@@ -30,13 +30,13 @@ class BlockCreateFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = mommy.make_recipe('booking.user')
+        cls.user = baker.make_recipe('booking.user')
 
     def test_create_form_with_available_block(self):
 
-        block_type = mommy.make_recipe('booking.blocktype')
-        mommy.make_recipe('booking.blocktype', _quantity=5)
-        block = mommy.make_recipe(
+        block_type = baker.make_recipe('booking.blocktype')
+        baker.make_recipe('booking.blocktype', _quantity=5)
+        block = baker.make_recipe(
             'booking.block', user=self.user, paid=True,
             block_type=block_type)
         form_data = {'block_type': block.block_type.id}
@@ -44,10 +44,10 @@ class BlockCreateFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_create_form_block_type_display(self):
-        block_type = mommy.make_recipe(
+        block_type = baker.make_recipe(
             'booking.blocktype', event_type__subtype='Test', size=3
         )
-        block_type1 = mommy.make_recipe(
+        block_type1 = baker.make_recipe(
             'booking.blocktype', event_type__subtype='Test 1', size=4,
             identifier='test'
         )
@@ -68,11 +68,11 @@ class TicketPurchaseFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = mommy.make_recipe('booking.user')
+        cls.user = baker.make_recipe('booking.user')
 
     def setUp(self):
-        self.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
-        self.ticket_booking = mommy.make(
+        self.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
+        self.ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
         )
@@ -121,11 +121,11 @@ class TicketPurchaseFormTests(TestCase):
     def test_quantity_choices_max_ticket_purchase_and_booked_tickets(self):
         self.ticketed_event.max_ticket_purchase = 5
         self.ticketed_event.save()
-        new_booking = mommy.make(
+        new_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
         )
-        mommy.make(Ticket, ticket_booking=new_booking, _quantity=7)
+        baker.make(Ticket, ticket_booking=new_booking, _quantity=7)
         self.ticketed_event.save()
         form = TicketPurchaseForm(
             ticketed_event=self.ticketed_event,
@@ -159,11 +159,11 @@ class TicketPurchaseFormTests(TestCase):
         self.assertEqual(quantity_widget.choices, choices)
 
     def test_quantity_choices_with_booked_tickets(self):
-        new_booking = mommy.make(
+        new_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
         )
-        mommy.make(Ticket, ticket_booking=new_booking, _quantity=8)
+        baker.make(Ticket, ticket_booking=new_booking, _quantity=8)
         form = TicketPurchaseForm(
             ticketed_event=self.ticketed_event,
             ticket_booking=self.ticket_booking
@@ -184,7 +184,7 @@ class TicketPurchaseFormTests(TestCase):
         (if user has booked 8 out of 10 max tickets, we want them to have the
         option to change it to e.g. 4, so don't want to limit it to 2)
         """
-        mommy.make(Ticket, ticket_booking=self.ticket_booking, _quantity=8)
+        baker.make(Ticket, ticket_booking=self.ticket_booking, _quantity=8)
         form = TicketPurchaseForm(
             ticketed_event=self.ticketed_event,
             ticket_booking=self.ticket_booking
@@ -207,7 +207,7 @@ class TicketPurchaseFormTests(TestCase):
         """
         self.ticket_booking.purchase_confirmed = False
         self.ticket_booking.save()
-        mommy.make(
+        baker.make(
             Ticket, ticket_booking=self.ticket_booking, _quantity=8
         )
         form = TicketPurchaseForm(
@@ -227,12 +227,12 @@ class TicketPurchaseFormTests(TestCase):
         self.assertEqual(quantity_widget.choices, choices)
 
     def test_quantity_choices_with_booked_tickets_multiple_bookings(self):
-        new_booking = mommy.make(
+        new_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True
         )
-        mommy.make(Ticket, ticket_booking=new_booking, _quantity=4)
-        mommy.make(Ticket, ticket_booking=self.ticket_booking, _quantity=4)
+        baker.make(Ticket, ticket_booking=new_booking, _quantity=4)
+        baker.make(Ticket, ticket_booking=self.ticket_booking, _quantity=4)
         form = TicketPurchaseForm(
             ticketed_event=self.ticketed_event,
             ticket_booking=self.ticket_booking
@@ -249,12 +249,12 @@ class TicketPurchaseFormTests(TestCase):
         self.assertEqual(quantity_widget.choices, choices)
 
     def test_quantity_choices_with_booked_tickets_on_cancelled_booking(self):
-        new_booking = mommy.make(
+        new_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
             purchase_confirmed=True,
             cancelled=True
         )
-        mommy.make(Ticket, ticket_booking=new_booking, _quantity=8)
+        baker.make(Ticket, ticket_booking=new_booking, _quantity=8)
         form = TicketPurchaseForm(
             ticketed_event=self.ticketed_event,
             ticket_booking=self.ticket_booking
@@ -275,13 +275,13 @@ class AdminFormsTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(AdminFormsTests, self).setUp()
-        self.user = mommy.make_recipe(
+        self.user = baker.make_recipe(
             'booking.user', first_name="c", last_name='b', username='a'
         )
-        self.user1 =  mommy.make_recipe(
+        self.user1 =  baker.make_recipe(
            'booking.user', first_name="a", last_name='b', username='c'
         )
-        self.user2=  mommy.make_recipe(
+        self.user2=  baker.make_recipe(
            'booking.user', first_name="b", last_name='a', username='b'
         )
 
@@ -300,11 +300,11 @@ class AdminFormsTests(PatchRequestMixin, TestCase):
        )
 
     def test_block_shows_users_blocks_on_booking_admin_form(self):
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', user=user)
-        block1 = mommy.make_recipe('booking.block_10', user=user)
-        mommy.make_recipe('booking.block_10')
-        booking = mommy.make_recipe('booking.booking', user=user)
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', user=user)
+        block1 = baker.make_recipe('booking.block_10', user=user)
+        baker.make_recipe('booking.block_10')
+        booking = baker.make_recipe('booking.booking', user=user)
 
         form = BookingAdminForm(instance=booking)
         block_field = form.fields['block']

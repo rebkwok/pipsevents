@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from unittest.mock import patch
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.urls import reverse
@@ -31,7 +31,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(EventAdminListViewTests, self).setUp()
-        self.event = mommy.make_recipe('booking.future_EV', cost=7)
+        self.event = baker.make_recipe('booking.future_EV', cost=7)
 
     def _get_response(self, user, ev_type, url=None):
         if not url:
@@ -107,7 +107,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_events_url_shows_only_events(self):
-        events = mommy.make_recipe('booking.future_EV', _quantity=5)
+        events = baker.make_recipe('booking.future_EV', _quantity=5)
         events.append(self.event)
         resp = self._get_response(self.staff_user, ev_type='events')
 
@@ -120,7 +120,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('Scheduled Events', resp.rendered_content)
 
     def test_classes_url_shows_excludes_events(self):
-        classes = mommy.make_recipe('booking.future_PC', _quantity=5)
+        classes = baker.make_recipe('booking.future_PC', _quantity=5)
         url = reverse('studioadmin:lessons')
         resp = self._get_response(self.staff_user, ev_type='classes', url=url)
         eventsformset = resp.context_data['eventformset']
@@ -132,8 +132,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('Scheduled Classes', resp.rendered_content)
 
     def test_classes_url_shows_room_hire_with_classes(self):
-        classes = mommy.make_recipe('booking.future_PC', _quantity=5)
-        room_hires = mommy.make_recipe('booking.future_RH', _quantity=5)
+        classes = baker.make_recipe('booking.future_PC', _quantity=5)
+        room_hires = baker.make_recipe('booking.future_RH', _quantity=5)
         url = reverse('studioadmin:lessons')
         resp = self._get_response(self.staff_user, ev_type='classes', url=url)
         eventsformset = resp.context_data['eventformset']
@@ -148,7 +148,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('Scheduled Classes', resp.rendered_content)
 
     def test_past_filter(self):
-        past_evs = mommy.make_recipe('booking.past_event', _quantity=5)
+        past_evs = baker.make_recipe('booking.past_event', _quantity=5)
         resp = self._post_response(
             self.staff_user, 'events', {'past': 'Show past'}
         )
@@ -165,7 +165,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertNotIn('Scheduled Events',resp.rendered_content)
 
     def test_classes_past_filter(self):
-        past_classes = mommy.make_recipe('booking.past_class', _quantity=5)
+        past_classes = baker.make_recipe('booking.past_class', _quantity=5)
         resp = self._post_response(
             self.staff_user, 'lessons', {'past': 'Show past'}
         )
@@ -183,7 +183,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_upcoming_filter(self):
-        past_evs = mommy.make_recipe('booking.past_event', _quantity=5)
+        past_evs = baker.make_recipe('booking.past_event', _quantity=5)
         resp = self._post_response(
             self.staff_user, 'events', {'upcoming': 'Show upcoming'}
         )
@@ -199,7 +199,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertNotIn('Past Events', resp.rendered_content)
 
     def test_pagination(self):
-        mommy.make_recipe('booking.future_PC', _quantity=35)
+        baker.make_recipe('booking.future_PC', _quantity=35)
         url = reverse('studioadmin:lessons')
         self.client.login(
             username=self.staff_user.username, password='test'
@@ -232,7 +232,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(paginator.number, 2)
 
     def test_past_pagination(self):
-        mommy.make_recipe('booking.past_class', _quantity=35)
+        baker.make_recipe('booking.past_class', _quantity=35)
         url = reverse('studioadmin:lessons')
         self.client.login(
             username=self.staff_user.username, password='test'
@@ -258,8 +258,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         button shown instead
         :return:
         """
-        event = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe('booking.booking', event=event)
+        event = baker.make_recipe('booking.future_EV')
+        baker.make_recipe('booking.booking', event=event)
         self.assertEquals(event.bookings.all().count(), 1)
         self.assertEquals(self.event.bookings.all().count(), 0)
 
@@ -304,7 +304,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(EventAdminUpdateViewTests, self).setUp()
-        self.event = mommy.make_recipe(
+        self.event = baker.make_recipe(
             'booking.future_EV',
             date=timezone.now().replace(second=0, microsecond=0) + timedelta(2)
         )
@@ -406,7 +406,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_edit_class_refers_to_classes_on_page_and_menu(self):
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
         resp = self._get_response(
             self.staff_user, event.slug, 'lesson',
             url=reverse('studioadmin:edit_lesson', kwargs={'slug': event.slug})
@@ -427,7 +427,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.url, reverse('studioadmin:events'))
 
     def test_submitting_valid_class_form_redirects_back_to_classes_list(self):
-        event = mommy.make_recipe('booking.future_PC')
+        event = baker.make_recipe('booking.future_PC')
         form_data = self.form_data(event=event)
         resp = self._post_response(
             self.staff_user, event.slug, 'lesson', form_data,
@@ -543,8 +543,8 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(EventAdminCreateViewTests, self).setUp()
-        self.event_type_OE = mommy.make_recipe('booking.event_type_OE')
-        self.event_type_PC = mommy.make_recipe('booking.event_type_PC')
+        self.event_type_OE = baker.make_recipe('booking.event_type_OE')
+        self.event_type_PC = baker.make_recipe('booking.event_type_PC')
 
     def _get_response(self, user, ev_type, url=None):
         if url is None:
@@ -718,10 +718,10 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
 class CancelEventTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        self.event = mommy.make_recipe(
+        self.event = baker.make_recipe(
             'booking.future_EV', cost=10, booking_open=True, payment_open=True
         )
-        self.lesson = mommy.make_recipe(
+        self.lesson = baker.make_recipe(
             'booking.future_PC', cost=10, booking_open=True, payment_open=True
         )
         super(CancelEventTests, self).setUp()
@@ -780,7 +780,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_get_cancel_page_with_cancelled_bookings_only(self):
         # no open bookings displayed on page
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
 
@@ -789,7 +789,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_get_cancel_page_open_unpaid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=False,
             _quantity=3
@@ -818,13 +818,13 @@ class CancelEventTests(TestPermissionMixin, TestCase):
     def test_get_cancel_page_open_block_paid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
 
-        users = mommy.make_recipe('booking.user', _quantity=3)
+        users = baker.make_recipe('booking.user', _quantity=3)
         for user in users:
-            block = mommy.make_recipe(
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
@@ -853,7 +853,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_get_cancel_page_open_free_class_bookings(self):
         # open bookings displayed on page, not in due_refunds list
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
@@ -880,7 +880,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_get_cancel_page_open_direct_paid_bookings(self):
         # open bookings displayed on page, in due_refunds list
-        bookings = mommy.make_recipe(
+        bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, free_class=False,
             _quantity=3
@@ -911,21 +911,21 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         # multiple bookings, cancelled not displayed at all; all open displayed
         # in open_bookings list, only direct paid displayed in due_refunds list
 
-        cancelled_bookings = mommy.make_recipe(
+        cancelled_bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
-        unpaid_bookings = mommy.make_recipe(
+        unpaid_bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=False,
             _quantity=3
         )
 
-        free_blocktype = mommy.make_recipe('booking.free_blocktype')
-        for user in mommy.make_recipe('booking.user', _quantity=3):
-            block = mommy.make_recipe(
+        free_blocktype = baker.make_recipe('booking.free_blocktype')
+        for user in baker.make_recipe('booking.user', _quantity=3):
+            block = baker.make_recipe(
                 'booking.block', block_type=free_blocktype, user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True, free_class=True
             )
@@ -933,29 +933,29 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             block__isnull=False, free_class=True)
         )
 
-        free_class_non_block_bookings = mommy.make_recipe(
+        free_class_non_block_bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
         )
-        direct_paid_bookings = mommy.make_recipe(
+        direct_paid_bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, free_class=False,
             _quantity=3
         )
 
-        deposit_only_paid_bookings = mommy.make_recipe(
+        deposit_only_paid_bookings = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             deposit_paid=True, paid=False, free_class=False,
             _quantity=3
         )
 
-        for user in mommy.make_recipe('booking.user', _quantity=3):
-            block = mommy.make_recipe(
+        for user in baker.make_recipe('booking.user', _quantity=3):
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
@@ -1028,12 +1028,12 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         Cancelling changes block bookings to no block, not paid, not payment
         confirmed
         """
-        for user in mommy.make_recipe('booking.user', _quantity=3):
-            block = mommy.make_recipe(
+        for user in baker.make_recipe('booking.user', _quantity=3):
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
@@ -1054,14 +1054,14 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         Cancelling changes leaves free class as free class, not paid, not payment
         confirmed if not booked with block
         """
-        non_block_free = mommy.make_recipe(
+        non_block_free = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
         )
-        block_type = mommy.make_recipe('booking.free_blocktype')
-        block = mommy.make(Block, block_type=block_type)
-        free_with_block = mommy.make_recipe(
+        block_type = baker.make_recipe('booking.free_blocktype')
+        block = baker.make(Block, block_type=block_type)
+        free_with_block = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True, block=block
         )
@@ -1091,7 +1091,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         Cancelling changes direct paid classes to cancelled but does not change
          payment status
         """
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, payment_confirmed=True, free_class=False,
             _quantity=3
@@ -1149,7 +1149,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.url, reverse('studioadmin:lessons'))
 
     def test_open_bookings_on_aborted_cancel_request_remain_open(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             _quantity=3
         )
@@ -1162,30 +1162,30 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_emails_sent_to_all_users_with_open_bookings(self):
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=False,
             _quantity=3
         )
         # free_class
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
         )
         # direct paid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, free_class=False,
             _quantity=3
         )
         # block bookings
-        for user in mommy.make_recipe('booking.user', _quantity=3):
-            block = mommy.make_recipe(
+        for user in baker.make_recipe('booking.user', _quantity=3):
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
         )
@@ -1200,34 +1200,34 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
     def test_emails_not_sent_to_users_with_already_cancelled_bookings(self):
         # cancelled
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=False,
             _quantity=3
         )
         # free_class
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True,
             _quantity=3
         )
         # direct paid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, free_class=False,
             _quantity=3
         )
         # block bookings
-        for user in mommy.make_recipe('booking.user', _quantity=3):
-            block = mommy.make_recipe(
+        for user in baker.make_recipe('booking.user', _quantity=3):
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
             )
@@ -1246,29 +1246,29 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         Emails sent for direct paid and for free without block
         """
         # cancelled
-        cancelled = mommy.make_recipe(
+        cancelled = baker.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=False,
             _quantity=3
         )
         # free_class wuth block
-        blocktype = mommy.make_recipe('booking.free_blocktype')
-        block = mommy.make(Block, block_type=blocktype)
-        mommy.make_recipe(
+        blocktype = baker.make_recipe('booking.free_blocktype')
+        block = baker.make(Block, block_type=blocktype)
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             free_class=True, paid=True, block=block
         )
         # block bookings
-        for user in mommy.make_recipe('booking.user', _quantity=3):
-            block = mommy.make_recipe(
+        for user in baker.make_recipe('booking.user', _quantity=3):
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True
             )
@@ -1295,33 +1295,33 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         """
         # cancelled
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="Cancelled",
                 last_name="User" + str(i)
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="CANCELLED",
                 user=user
             )
         # free class
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="Free",
                 last_name="User" + str(i)
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN",
                 paid=True, free_class=True, user=user
             )
         # free class with block
-        blocktype = mommy.make_recipe('booking.free_blocktype')
+        blocktype = baker.make_recipe('booking.free_blocktype')
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="FreeBlock",
                 last_name="User" + str(i)
             )
-            block = mommy.make(Block, block_type=blocktype, user=user)
-            mommy.make_recipe(
+            block = baker.make(Block, block_type=blocktype, user=user)
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN",
                 paid=True, free_class=True, user=user, block=block
             )
@@ -1330,35 +1330,35 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         # unpaid
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="Unpaid",
                 last_name="User" + str(i)
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN",
                 paid=False, user=user
             )
         # block
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="Block",
                 last_name="User" + str(i)
             )
-            block = mommy.make_recipe(
+            block = baker.make_recipe(
                 'booking.block', block_type__event_type=self.event.event_type,
                 user=user
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN", block=block,
                 paid=True, user=user
             )
         # direct paid
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="Direct",
                 last_name="User" + str(i)
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN",
                 paid=True, free_class=False, user=user
             )
@@ -1368,11 +1368,11 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         # deposit only paid
         for i in range(2):
-            user = mommy.make_recipe(
+            user = baker.make_recipe(
                 'booking.user', first_name="Deposit",
                 last_name="User" + str(i)
             )
-            mommy.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event, status="OPEN",
                 paid=False, deposit_paid=True, free_class=False, user=user
             )
@@ -1418,7 +1418,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
     def test_email_errors(self, mock_send):
         mock_send.side_effect = Exception('Error sending email')
         # direct paid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, free_class=False,
         )
@@ -1453,50 +1453,50 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         - no transfer blocks for block paid/unpaid/free block/deposit only paid
 
         """
-        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class = baker.make_recipe('booking.future_PC')
 
         # cancelled
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="CANCELLED",
         )
         # free class
-        free = mommy.make_recipe(
+        free = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             paid=True, payment_confirmed=True, free_class=True
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False
         )
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user
         )
-        block_paid = mommy.make_recipe(
+        block_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         # free block class
-        user = mommy.make_recipe('booking.user')
-        f_block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        f_block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             block_type__identifier='free', block_type__size=1, paid=True,
             user=user
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=f_block,
             paid=True, payment_confirmed=True, free_class=True
         )
         # direct paid
-        direct_paid = mommy.make_recipe(
+        direct_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
         )
         # deposit only paid
-        deposit_only_paid = mommy.make_recipe(
+        deposit_only_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False,
             deposit_paid=True
         )
@@ -1564,50 +1564,50 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         - no transfer blocks for block paid/unpaid/free/deposit only paid
 
         """
-        room_hire = mommy.make_recipe('booking.future_RH')
+        room_hire = baker.make_recipe('booking.future_RH')
 
         # cancelled
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=room_hire, status="CANCELLED",
         )
         # free class
-        free = mommy.make_recipe(
+        free = baker.make_recipe(
             'booking.booking', event=room_hire, status="OPEN",
             paid=True, payment_confirmed=True, free_class=True
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=room_hire, status="OPEN", paid=False
         )
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=room_hire.event_type,
             user=user
         )
-        block_paid = mommy.make_recipe(
+        block_paid = baker.make_recipe(
             'booking.booking', event=room_hire, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         # free block class
-        user = mommy.make_recipe('booking.user')
-        f_block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        f_block = baker.make_recipe(
             'booking.block', block_type__event_type=room_hire.event_type,
             block_type__identifier='free', block_type__size=1, paid=True,
             user=user
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.booking', event=room_hire, status="OPEN", block=f_block,
             paid=True, payment_confirmed=True, free_class=True
         )
         # direct paid
-        direct_paid = mommy.make_recipe(
+        direct_paid = baker.make_recipe(
             'booking.booking', event=room_hire, status="OPEN",
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
         )
         # deposit only paid
-        deposit_only_paid = mommy.make_recipe(
+        deposit_only_paid = baker.make_recipe(
             'booking.booking', event=room_hire, status="OPEN", paid=False,
             deposit_paid=True
         )
@@ -1677,47 +1677,47 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         anyway)
         """
         # cancelled
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="CANCELLED",
         )
         # free class
-        free = mommy.make_recipe(
+        free = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             paid=True, payment_confirmed=True, free_class=True
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN", paid=False
         )
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=self.event.event_type,
             user=user
         )
-        block_paid = mommy.make_recipe(
+        block_paid = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         # free block class
-        user = mommy.make_recipe('booking.user')
-        f_block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        f_block = baker.make_recipe(
             'booking.block', block_type__event_type=self.event.event_type,
             block_type__identifier='free', block_type__size=1, paid=True,
             user=user
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN", block=f_block,
             paid=True, payment_confirmed=True, free_class=True
         )
         # direct paid
-        direct_paid = mommy.make_recipe(
+        direct_paid = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN",
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
         )
         # deposit only paid
-        deposit_only_paid = mommy.make_recipe(
+        deposit_only_paid = baker.make_recipe(
             'booking.booking', event=self.event, status="OPEN", paid=False,
             deposit_paid=True
         )
@@ -1778,50 +1778,50 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         direct paid and direct paid remain paid and payment confirmed
         Free non block classes also remain free/paid/payment confirmed
         """
-        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class = baker.make_recipe('booking.future_PC')
 
         # cancelled
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="CANCELLED",
         )
         # free class
-        free = mommy.make_recipe(
+        free = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             paid=True, payment_confirmed=True, free_class=True
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False
         )
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user
         )
-        block_paid = mommy.make_recipe(
+        block_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         # free block class
-        user = mommy.make_recipe('booking.user')
-        f_block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        f_block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             block_type__identifier='free', block_type__size=1, paid=True,
             user=user
         )
-        free_block = mommy.make_recipe(
+        free_block = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=f_block,
             paid=True, payment_confirmed=True, free_class=True
         )
         # direct paid
-        direct_paid = mommy.make_recipe(
+        direct_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
         )
         # deposit only paid
-        deposit_only_paid = mommy.make_recipe(
+        deposit_only_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False,
             deposit_paid=True
         )
@@ -1869,40 +1869,40 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
 
     def test_transfer_blocks_studio_email_sent(self):
-        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class = baker.make_recipe('booking.future_PC')
 
         # free class
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             paid=True, payment_confirmed=True, free_class=True
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False
         )
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         # free block class
-        user = mommy.make_recipe('booking.user')
-        f_block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        f_block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             block_type__identifier='free', block_type__size=1, paid=True,
             user=user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=f_block,
             paid=True, payment_confirmed=True, free_class=True
         )
         # direct paid
-        direct_paid = mommy.make_recipe(
+        direct_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
@@ -1927,47 +1927,47 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(emails), cancelled_bookings + 1)
 
     def test_transfer_blocks_studio_email_sent_for_deposit_only_paid(self):
-        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class = baker.make_recipe('booking.future_PC')
 
         # free class
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             paid=True, payment_confirmed=True, free_class=True
         )
         # unpaid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False
         )
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         # free block class
-        user = mommy.make_recipe('booking.user')
-        f_block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        f_block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             block_type__identifier='free', block_type__size=1, paid=True,
             user=user
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=f_block,
             paid=True, payment_confirmed=True, free_class=True
         )
         # direct paid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             deposit_paid=True,
             paid=True, free_class=False, payment_confirmed=True
         )
 
         # deposit only paid
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", paid=False,
             deposit_paid=True
         )
@@ -1995,30 +1995,30 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         Test that transfer credit is created for bookings booked with block
         that's now expired
         """
-        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class = baker.make_recipe('booking.future_PC')
 
         # block
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user
         )
         self.assertFalse(block.expired)
-        block_paid = mommy.make_recipe(
+        block_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         self.assertEqual(block.bookings_made(), 1)
 
         # expired block
-        user1 = mommy.make_recipe('booking.user')
-        expired_block = mommy.make_recipe(
+        user1 = baker.make_recipe('booking.user')
+        expired_block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user1, start_date=timezone.now() - timedelta(100),
             block_type__duration=1
         )
         self.assertTrue(expired_block.expired)
-        expired_block_paid = mommy.make_recipe(
+        expired_block_paid = baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             block=expired_block,
             paid=True, user=user1, payment_confirmed=True
@@ -2069,30 +2069,30 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         Test that blocks that expire in <1 month show a warning in the email to
         users
         """
-        pole_class = mommy.make_recipe('booking.future_PC')
+        pole_class = baker.make_recipe('booking.future_PC')
 
         # block
-        user = mommy.make_recipe('booking.user', email='block@user.com')
-        block = mommy.make_recipe(
+        user = baker.make_recipe('booking.user', email='block@user.com')
+        block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user
         )
         self.assertFalse(block.expired)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN", block=block,
             paid=True, user=user, payment_confirmed=True
         )
         self.assertEqual(block.bookings_made(), 1)
 
         # block expiring soon
-        user1 = mommy.make_recipe('booking.user', email='expiringblock@user.com')
-        expiring_block = mommy.make_recipe(
+        user1 = baker.make_recipe('booking.user', email='expiringblock@user.com')
+        expiring_block = baker.make_recipe(
             'booking.block', block_type__event_type=pole_class.event_type,
             user=user1, start_date=timezone.now() - timedelta(25),
             block_type__duration=1
         )
         self.assertFalse(expiring_block.expired)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', event=pole_class, status="OPEN",
             block=expiring_block,
             paid=True, user=user1, payment_confirmed=True

@@ -2,7 +2,7 @@ import sys
 from io import StringIO
 
 from datetime import datetime, timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.contrib.admin.sites import AdminSite
 from django.core import management
@@ -62,12 +62,12 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
 
         # logs 10, 20, 60 days ago, one for each empty job text msg, one other
         for days in [10, 20, 60]:
-            mommy.make(
+            baker.make(
                 ActivityLog, log='Non empty message',
                 timestamp=timezone.now()-timedelta(days),
             )
             for msg in EMPTY_JOB_TEXT:
-                mommy.make(
+                baker.make(
                     ActivityLog, log=msg,
                     timestamp=timezone.now()-timedelta(days),
                 )

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 from django.utils import timezone
 
-from model_mommy.recipe import Recipe, foreign_key, seq
+from model_bakery.recipe import Recipe, foreign_key, seq
 
 from allauth.socialaccount.models import SocialApp
 
@@ -23,7 +23,7 @@ user = Recipe(User,
               )
 
 # events; use defaults apart from dates
-# override when using recipes, eg. mommy.make_recipe('future_event', cost=10)
+# override when using recipes, eg. baker.make_recipe('future_event', cost=10)
 
 event_type_PC = Recipe(EventType, event_type="CL", subtype=seq("Pole level class"))
 event_type_PP = Recipe(EventType, event_type="CL", subtype=seq("Pole practice"))

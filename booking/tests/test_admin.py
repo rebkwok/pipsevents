@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.contrib.admin.sites import AdminSite
@@ -17,8 +17,8 @@ from common.tests.helpers import format_content, PatchRequestMixin
 class EventAdminTests(TestCase):
 
     def test_event_date_list_filter(self):
-        past_event = mommy.make_recipe('booking.past_event', name='past')
-        future_event = mommy.make_recipe('booking.future_EV', name='future')
+        past_event = baker.make_recipe('booking.past_event', name='past')
+        future_event = baker.make_recipe('booking.future_EV', name='future')
 
         filter = admin.EventDateListFilter(
             None, {'date': 'past'}, Event, admin.EventAdmin
@@ -38,8 +38,8 @@ class EventAdminTests(TestCase):
         self.assertEqual(events.count(), 2)
 
     def test_event_type_list_filter(self):
-        event = mommy.make_recipe('booking.future_EV', name='event')
-        pclass = mommy.make_recipe('booking.future_PC', name='pole class')
+        event = baker.make_recipe('booking.future_EV', name='event')
+        pclass = baker.make_recipe('booking.future_PC', name='pole class')
 
         filter = admin.EventTypeListFilter(
             None, {'type': 'class'}, Event, admin.EventAdmin
@@ -63,8 +63,8 @@ class EventAdminTests(TestCase):
         self.assertEqual(events.count(), 2)
 
     def test_spaces_left_display(self):
-        event = mommy.make_recipe('booking.future_EV', max_participants=5)
-        mommy.make_recipe('booking.booking', event=event, _quantity=3)
+        event = baker.make_recipe('booking.future_EV', max_participants=5)
+        baker.make_recipe('booking.booking', event=event, _quantity=3)
 
         ev_admin = admin.EventAdmin(Event, AdminSite())
         ev_query = ev_admin.get_queryset(None)[0]
@@ -75,16 +75,16 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(BookingAdminTests, self).setUp()
-        self.user = mommy.make_recipe(
+        self.user = baker.make_recipe(
             'booking.user', first_name="Test", last_name="User",
             username="testuser"
         )
 
     def test_booking_date_list_filter(self):
-        past_event = mommy.make_recipe('booking.past_event', name='past')
-        future_event = mommy.make_recipe('booking.future_EV', name='future')
-        mommy.make_recipe('booking.booking', user=self.user, event=past_event)
-        mommy.make_recipe('booking.booking', user=self.user, event=future_event)
+        past_event = baker.make_recipe('booking.past_event', name='past')
+        future_event = baker.make_recipe('booking.future_EV', name='future')
+        baker.make_recipe('booking.booking', user=self.user, event=past_event)
+        baker.make_recipe('booking.booking', user=self.user, event=future_event)
 
         filter = admin.BookingDateListFilter(
             None, {'event__date': 'past'}, Booking, admin.BookingAdmin
@@ -107,9 +107,9 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
 
 
     def test_booking_admin_display(self):
-        event = mommy.make_recipe('booking.future_EV', cost=6)
+        event = baker.make_recipe('booking.future_EV', cost=6)
 
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=event
         )
 
@@ -126,13 +126,13 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
         self.assertEqual(booking_admin.event_name(booking_query), event.name)
 
     def test_confirm_space(self):
-        users = mommy.make_recipe('booking.user', _quantity=10)
-        ev = mommy.make_recipe('booking.future_EV', cost=5)
-        ws = mommy.make_recipe('booking.future_WS', cost=5)
+        users = baker.make_recipe('booking.user', _quantity=10)
+        ev = baker.make_recipe('booking.future_EV', cost=5)
+        ws = baker.make_recipe('booking.future_WS', cost=5)
         for user in users[:5]:
-            mommy.make_recipe('booking.booking', user=user, event=ev)
+            baker.make_recipe('booking.booking', user=user, event=ev)
         for user in users[5:]:
-            mommy.make_recipe('booking.booking', user=user, event=ws)
+            baker.make_recipe('booking.booking', user=user, event=ws)
 
         self.assertEquals(len(Booking.objects.filter(paid=True)), 0)
         self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 0)
@@ -145,7 +145,7 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
 
     def test_booking_user_filter_choices(self):
         # test that user filter shows formatted choices ordered by first name
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Donald', last_name='Duck',
             username='dd')
         userfilter = admin.UserFilter(None, {}, Booking, admin.BookingAdmin)
@@ -158,11 +158,11 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
         )
 
     def test_paypal_booking_user_filter(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Donald', last_name='Duck',
             username='dd')
-        mommy.make_recipe('booking.booking', user=self.user, _quantity=5)
-        mommy.make_recipe('booking.booking', user=user, _quantity=5)
+        baker.make_recipe('booking.booking', user=self.user, _quantity=5)
+        baker.make_recipe('booking.booking', user=user, _quantity=5)
 
         userfilter = admin.UserFilter(None, {}, Booking, admin.BookingAdmin)
         result = userfilter.queryset(None, Booking.objects.all())
@@ -195,10 +195,10 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
         )
 
     def test_block_admin_display(self):
-        user = mommy.make_recipe(
+        user = baker.make_recipe(
             'booking.user', first_name='Donald', last_name='Duck',
             username='dd')
-        block = mommy.make_recipe('booking.block_5', user=user)
+        block = baker.make_recipe('booking.block_5', user=user)
         block_admin = admin.BlockAdmin(Block, AdminSite())
         block_query = block_admin.get_queryset(None)[0]
 
@@ -223,23 +223,23 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
         self.assertEqual(block_admin.get_user(block_query), 'Donald Duck (dd)')
 
     def test_block_list_filter(self):
-        unpaid_block = mommy.make_recipe(
+        unpaid_block = baker.make_recipe(
             'booking.block_5', paid=False,
             start_date=timezone.now() - timedelta(1)
         )
-        paid_block = mommy.make_recipe(
+        paid_block = baker.make_recipe(
             'booking.block_5', paid=True,
             start_date=timezone.now() - timedelta(1)
         )
-        expired_block = mommy.make_recipe(
+        expired_block = baker.make_recipe(
             'booking.block_5', paid=True,
             start_date=timezone.now() - timedelta(weeks=10)
         )
-        full_block = mommy.make_recipe(
+        full_block = baker.make_recipe(
             'booking.block_5', paid=True,
             start_date=timezone.now() - timedelta(1)
         )
-        mommy.make_recipe('booking.booking', block=full_block, _quantity=5)
+        baker.make_recipe('booking.booking', block=full_block, _quantity=5)
 
         filter = admin.BlockFilter(
             None, {'status': 'active'}, Block, admin.BlockAdmin
@@ -276,9 +276,9 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
     def test_adding_new_booking_to_block(self):
         self.client.login(username=self.superuser.username, password='test')
 
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
-        event = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', paid=True, user=user)
+        event = baker.make_recipe(
             'booking.future_PC', event_type=block.block_type.event_type
         )
 
@@ -302,12 +302,12 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
     def test_adding_existing_booking_to_block(self):
         self.client.login(username=self.superuser.username, password='test')
 
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
-        event = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', paid=True, user=user)
+        event = baker.make_recipe(
             'booking.future_PC', event_type=block.block_type.event_type
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, paid=False
         )
 
@@ -347,12 +347,12 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
     def test_adding_cancelled_booking_to_block(self):
         self.client.login(username=self.superuser.username, password='test')
 
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
-        event = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', paid=True, user=user)
+        event = baker.make_recipe(
             'booking.future_PC', event_type=block.block_type.event_type
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, paid=False,
             status='CANCELLED'
         )
@@ -394,12 +394,12 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
     def test_cancelling_booking_on_block(self):
         self.client.login(username=self.superuser.username, password='test')
 
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
-        event = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', paid=True, user=user)
+        event = baker.make_recipe(
             'booking.future_PC', event_type=block.block_type.event_type
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=user, event=event, block=block,
             status='OPEN'
         )
@@ -443,13 +443,13 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
     def test_booking_inline_event_choices(self):
         self.client.login(username=self.superuser.username, password='test')
 
-        user = mommy.make_recipe('booking.user')
-        block = mommy.make_recipe('booking.block_5', paid=True, user=user)
-        event = mommy.make_recipe(
+        user = baker.make_recipe('booking.user')
+        block = baker.make_recipe('booking.block_5', paid=True, user=user)
+        event = baker.make_recipe(
             'booking.future_PC', event_type=block.block_type.event_type
         )
-        event1 = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe(
+        event1 = baker.make_recipe('booking.future_EV')
+        baker.make_recipe(
             'booking.booking', user=user, event=event, block=block,
             status='OPEN'
         )
@@ -466,7 +466,7 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
 class BlockTypeAdminTests(TestCase):
 
     def test_block_type_admin_display(self):
-        block = mommy.make_recipe('booking.block_5')
+        block = baker.make_recipe('booking.block_5')
         block_type_admin = admin.BlockTypeAdmin(BlockType, AdminSite())
         block_type_query = block_type_admin.get_queryset(None)[0]
 
@@ -484,7 +484,7 @@ class BlockTypeAdminTests(TestCase):
             username='test', email='test@test.com', password='test'
         )
         self.client.login(username=user.username, password='test')
-        pc = mommy.make_recipe('booking.event_type_PC')
+        pc = baker.make_recipe('booking.event_type_PC')
         data = {
             'identifier': 'test',
             'size': 2,
@@ -539,10 +539,10 @@ class BlockTypeAdminTests(TestCase):
 class EventVoucherAdminTests(TestCase):
 
     def test_event_types_display(self):
-        voucher = mommy.make(EventVoucher)
-        event_typepp = mommy.make_recipe(
+        voucher = baker.make(EventVoucher)
+        event_typepp = baker.make_recipe(
             'booking.event_type_PP', subtype='Pole class')
-        event_typepc = mommy.make_recipe(
+        event_typepc = baker.make_recipe(
             'booking.event_type_PC', subtype='Pole practice'
         )
         voucher.event_types.add(event_typepc)
@@ -557,8 +557,8 @@ class EventVoucherAdminTests(TestCase):
         )
 
     def test_times_used_display(self):
-        voucher = mommy.make(EventVoucher)
-        users = mommy.make_recipe('booking.user', _quantity=2)
+        voucher = baker.make(EventVoucher)
+        users = baker.make_recipe('booking.user', _quantity=2)
         for user in users:
             UsedEventVoucher.objects.create(voucher=voucher, user=user)
 
@@ -573,8 +573,8 @@ class EventVoucherAdminTests(TestCase):
 class BlockVoucherAdminTests(TestCase):
 
     def test_block_types_display(self):
-        voucher = mommy.make(BlockVoucher)
-        block_type = mommy.make_recipe('booking.blocktype')
+        voucher = baker.make(BlockVoucher)
+        block_type = baker.make_recipe('booking.blocktype')
 
         voucher.block_types.add(block_type)
 
@@ -587,8 +587,8 @@ class BlockVoucherAdminTests(TestCase):
         )
 
     def test_times_used_display(self):
-        voucher = mommy.make(BlockVoucher)
-        users = mommy.make_recipe('booking.user', _quantity=2)
+        voucher = baker.make(BlockVoucher)
+        users = baker.make_recipe('booking.user', _quantity=2)
         for user in users:
             UsedBlockVoucher.objects.create(voucher=voucher, user=user)
 
@@ -603,8 +603,8 @@ class BlockVoucherAdminTests(TestCase):
 class TicketBookingAdminTests(TestCase):
 
     def test_ticket_number_display(self):
-        ticket_booking = mommy.make_recipe('booking.ticket_booking')
-        mommy.make(Ticket, ticket_booking=ticket_booking, _quantity=3)
+        ticket_booking = baker.make_recipe('booking.ticket_booking')
+        baker.make(Ticket, ticket_booking=ticket_booking, _quantity=3)
         tb_admin = admin.TicketBookingAdmin(TicketBooking, AdminSite())
         tb_query = tb_admin.get_queryset(None)[0]
         self.assertEqual(tb_admin.number_of_tickets(tb_query), 3)
@@ -614,15 +614,15 @@ class TicketAdmin(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.ticketed_event = mommy.make_recipe('booking.ticketed_event_max10')
-        cls.ticket_booking = mommy.make_recipe(
+        cls.ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
+        cls.ticket_booking = baker.make_recipe(
             'booking.ticket_booking', ticketed_event=cls.ticketed_event,
-            user=mommy.make_recipe(
+            user=baker.make_recipe(
                 'booking.user', first_name='Donald', last_name='Duck',
                 username='dd'
             )
         )
-        mommy.make(Ticket, ticket_booking=cls.ticket_booking)
+        baker.make(Ticket, ticket_booking=cls.ticket_booking)
 
     def test_ticketed_event_display(self):
         ticket_admin = admin.TicketAdmin(Ticket, AdminSite())

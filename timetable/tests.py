@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.core import management
 from allauth.socialaccount.models import SocialApp
-from model_mommy import mommy
+from model_bakery import baker
 
 from booking.models import EventType
 from timetable.models import Session
@@ -68,7 +68,7 @@ class ManagementCommandsTests(TestCase):
 class ModelTests(TestCase):
 
     def test_pre_save_without_cost(self):
-        session = mommy.make(
+        session = baker.make(
             Session, cost=10, advance_payment_required=True,
             payment_open=True, payment_time_allowed=4
         )
@@ -84,7 +84,7 @@ class ModelTests(TestCase):
         self.assertIsNone(session.payment_time_allowed)
 
     def test_pre_save_external_instructor(self):
-        session = mommy.make(
+        session = baker.make(
             Session, external_instructor=True,
         )
         self.assertFalse(session.booking_open)
@@ -100,7 +100,7 @@ class ModelTests(TestCase):
         """
         payment_time_allowed automatically makes advance_payment_required true
         """
-        session = mommy.make(
+        session = baker.make(
             Session, cost=10, advance_payment_required=False,
             payment_time_allowed=None
         )

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -22,7 +22,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(BlockCreateViewTests, self).setUp()
-        self.user_no_disclaimer = mommy.make_recipe('booking.user')
+        self.user_no_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(self.user_no_disclaimer)
 
     def _set_session(self, user, request, session_data=None):
@@ -48,7 +48,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         return view(request)
 
     def test_cannot_create_block_if_no_disclaimer(self):
-        block_type = mommy.make_recipe('booking.blocktype5')
+        block_type = baker.make_recipe('booking.blocktype5')
         resp = self._get_response(self.user_no_disclaimer)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
@@ -65,7 +65,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         """
         Test creating a block
         """
-        block_type = mommy.make_recipe('booking.blocktype5')
+        block_type = baker.make_recipe('booking.blocktype5')
         form_data={'block_type': block_type.id}
         self.assertEqual(Block.objects.count(), 0)
         resp = self._post_response(self.user, form_data)
@@ -89,8 +89,8 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test that the create block page redirects if there are no blocktypes
         available to book
         """
-        block_type = mommy.make_recipe('booking.blocktype5')
-        mommy.make_recipe(
+        block_type = baker.make_recipe('booking.blocktype5')
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type
         )
         resp = self._get_response(self.user)
@@ -101,14 +101,14 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test that create block form redirects if trying to create a
         block with an event type that the user already has
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        block_type_pc5 = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        block_type_pc5 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        block_type_pc10 = mommy.make_recipe(
+        block_type_pc10 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5,
             paid=True
         )
@@ -133,9 +133,9 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test that only user does not have the option to book a blocktype
         for which they already have an active block
         """
-        block_type = mommy.make_recipe('booking.blocktype5')
-        other_block_type = mommy.make_recipe('booking.blocktype_other')
-        mommy.make_recipe(
+        block_type = baker.make_recipe('booking.blocktype5')
+        other_block_type = baker.make_recipe('booking.blocktype_other')
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type
         )
         resp = self._get_response(self.user)
@@ -147,15 +147,15 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test that only user does not have the option to book a blocktype
         if they already have a block for the same event type
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        block_type_pc5 = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        block_type_pc5 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        block_type_pc10 = mommy.make_recipe(
+        block_type_pc10 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        other_block_type = mommy.make_recipe('booking.blocktype_other')
-        mommy.make_recipe(
+        other_block_type = baker.make_recipe('booking.blocktype_other')
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5
         )
         resp = self._get_response(self.user)
@@ -167,12 +167,12 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test user has the option to create a block with the same event type as
         an expired block
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        block_type_pc5 = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        block_type_pc5 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
         # this user has a block of this blocktype that has expired
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5,
             start_date=timezone.now() - timedelta(weeks=52)
         )
@@ -185,16 +185,16 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test user has the option to create a block with the same event type as
         a full block
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        block_type_pc5 = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        block_type_pc5 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
         # this user has a block of this blocktype
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5
         )
         # fill block
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, block=block, _quantity=5
         )
 
@@ -207,13 +207,13 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test user does not have the option to create a block with the same
         event type as an unpaid block
         """
-        event_type = mommy.make_recipe('booking.event_type_PC')
-        block_type_pc5 = mommy.make_recipe(
+        event_type = baker.make_recipe('booking.event_type_PC')
+        block_type_pc5 = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
         )
-        other_block_type = mommy.make_recipe('booking.blocktype_other')
+        other_block_type = baker.make_recipe('booking.blocktype_other')
         # this user has a block of this blocktype
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5,
             paid=False
         )
@@ -224,8 +224,8 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context_data['block_types'][0], other_block_type)
 
     def test_only_active_blocktypes_available(self):
-        block_type = mommy.make_recipe('booking.blocktype5')
-        inactive_block_type = mommy.make_recipe(
+        block_type = baker.make_recipe('booking.blocktype5')
+        inactive_block_type = baker.make_recipe(
             'booking.blocktype_other', active=False
         )
         resp = self._get_response(self.user)
@@ -237,12 +237,12 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         Test that only user does not have the option to book a blocktype
         for which they already have an active block
         """
-        block_type = mommy.make_recipe('booking.blocktype5')
-        active_block_type = mommy.make_recipe('booking.blocktype5')
-        inactive_block_type = mommy.make_recipe(
+        block_type = baker.make_recipe('booking.blocktype5')
+        active_block_type = baker.make_recipe('booking.blocktype5')
+        inactive_block_type = baker.make_recipe(
             'booking.blocktype_other', active=False
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type
         )
         resp = self._get_response(self.user)
@@ -256,10 +256,10 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         clicks the back button they get returned to the block list page
         instead of the create block page
         """
-        block_type1 = mommy.make_recipe('booking.blocktype5')
-        block_type2 = mommy.make_recipe('booking.blocktype5')
+        block_type1 = baker.make_recipe('booking.blocktype5')
+        block_type2 = baker.make_recipe('booking.blocktype5')
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type=block_type1, user=self.user
         )
         # blocktypes are available, but the one we post with is not
@@ -289,12 +289,12 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('booking:block_list'))
 
         # available blocktype
-        block_type = mommy.make_recipe('booking.blocktype5')
+        block_type = baker.make_recipe('booking.blocktype5')
         resp = self.client.get(reverse('booking:add_block'))
         self.assertEqual(resp.status_code, 200)
 
         # user has block for all available blocktypes
-        mommy.make_recipe('booking.block', block_type=block_type, user=self.user)
+        baker.make_recipe('booking.block', block_type=block_type, user=self.user)
         resp = self.client.get(reverse('booking:add_block'))
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:block_list'))
@@ -305,7 +305,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(BlockListViewTests, cls).setUpTestData()
-        cls.block_type = mommy.make_recipe('booking.blocktype5', cost=30)
+        cls.block_type = baker.make_recipe('booking.blocktype5', cost=30)
         cls.url = reverse('booking:block_list')
 
     def _set_session(self, user, request):
@@ -322,9 +322,9 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         return view(request)
 
     def test_only_list_users_blocks(self):
-        users = mommy.make_recipe('booking.user', _quantity=4)
+        users = baker.make_recipe('booking.user', _quantity=4)
         for user in users:
-            mommy.make_recipe('booking.block_5', user=user)
+            baker.make_recipe('booking.block_5', user=user)
         user = users[0]
         make_data_privacy_agreement(user)
 
@@ -334,7 +334,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context_data['blocks'].count(), 1)
 
     def test_disclaimer_messages(self):
-        mommy.make_recipe('booking.blocktype5')
+        baker.make_recipe('booking.blocktype5')
         user = User.objects.create_user(
             username='test_no_disc', email='test@test.com', password='test'
         )
@@ -364,7 +364,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             username='test_online', email='test@test.com', password='test'
         )
         make_data_privacy_agreement(user_online_disclaimer)
-        mommy.make(OnlineDisclaimer, user=user_online_disclaimer)
+        baker.make(OnlineDisclaimer, user=user_online_disclaimer)
         self.client.login(
             username=user_online_disclaimer.username, password='test'
         )
@@ -385,7 +385,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         self.client.login(
             username=user_expired_disclaimer.username, password='test'
         )
-        disclaimer = mommy.make(OnlineDisclaimer,
+        disclaimer = baker.make(OnlineDisclaimer,
             user=user_expired_disclaimer,
             date=datetime(2015, 2, 1, tzinfo=timezone.utc)
         )
@@ -402,35 +402,35 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         )
 
     def test_block_type_id_user_display(self):
-        bt1 = mommy.make_recipe(
+        bt1 = baker.make_recipe(
             'booking.blocktype5', event_type__subtype='Test1',
             identifier='transferred'
         )
-        mommy.make_recipe('booking.block', block_type=bt1, user=self.user)
-        bt2 = mommy.make_recipe(
+        baker.make_recipe('booking.block', block_type=bt1, user=self.user)
+        bt2 = baker.make_recipe(
             'booking.blocktype5', event_type__subtype='Test2',
             identifier='free class'
         )
-        mommy.make_recipe('booking.block', block_type=bt2, user=self.user)
+        baker.make_recipe('booking.block', block_type=bt2, user=self.user)
 
-        bt3 = mommy.make_recipe(
+        bt3 = baker.make_recipe(
             'booking.blocktype5', event_type__subtype='Test3',
             identifier='transferred'
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', event__name='Test event',
             event__date=datetime(
                 year=2015, month=1, day=12, tzinfo=timezone.utc
             ), status='CANCELLED'
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type=bt3, user=self.user,
             transferred_booking_id=booking.id
         )
-        bt4 = mommy.make_recipe(
+        bt4 = baker.make_recipe(
             'booking.blocktype5', event_type__subtype='Test4',
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', block_type=bt4, user=self.user,
         )
 
@@ -456,7 +456,7 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
     def setUp(self):
         super(BlockDeleteViewTests, self).setUp()
         self.client.login(username=self.user.username, password='test')
-        self.block = mommy.make_recipe('booking.block', user=self.user)
+        self.block = baker.make_recipe('booking.block', user=self.user)
         self.url = reverse('booking:delete_block', args=[self.block.id])
 
     def test_cannot_get_delete_page_if_not_logged_in(self):
@@ -480,7 +480,7 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
         self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_cannot_get_delete_block_page_if_block_has_bookings(self):
-        mommy.make_recipe('booking.booking', block=self.block)
+        baker.make_recipe('booking.booking', block=self.block)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
@@ -495,7 +495,7 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Block.objects.first(), self.block)
 
     def test_cannot_post_delete_block_page_if_block_has_bookings(self):
-        mommy.make_recipe('booking.booking', block=self.block)
+        baker.make_recipe('booking.booking', block=self.block)
         resp = self.client.post(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(resp.url, reverse('booking:permission_denied'))
@@ -565,28 +565,28 @@ class BlockModalTests(TestSetupMixin, TestCase):
         self.assertTrue('can_book_block')
 
     def test_block_modal_with_blocks(self):
-        unpaid_block = mommy.make_recipe(
+        unpaid_block = baker.make_recipe(
             'booking.block_5', user=self.user, paid=False,
             start_date=timezone.now()-timedelta(days=1)
         )
-        paid_block = mommy.make_recipe(
+        paid_block = baker.make_recipe(
             'booking.block_5', user=self.user, paid=True,
             start_date=timezone.now()-timedelta(days=1)
         )
         # expired
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block_5', user=self.user, paid=True,
             start_date=timezone.now()-timedelta(days=365)
         )
-        full_block = mommy.make_recipe(
+        full_block = baker.make_recipe(
             'booking.block_5', user=self.user, paid=True,
             start_date=timezone.now()-timedelta(days=1)
         )
         for i in range(5):
-            mommy.make_recipe('booking.booking', block=full_block)
+            baker.make_recipe('booking.booking', block=full_block)
 
         # paid and active, different user
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block_5', paid=True, start_date=timezone.now()-timedelta(days=1)
         )
 

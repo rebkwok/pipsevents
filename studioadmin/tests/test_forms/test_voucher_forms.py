@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytz
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase
 
@@ -14,7 +14,7 @@ from studioadmin.forms import BlockVoucherStudioadminForm, \
 class VoucherStudioAdminFormTests(TestCase):
 
     def setUp(self):
-        self.event_type = mommy.make_recipe('booking.event_type_PC')
+        self.event_type = baker.make_recipe('booking.event_type_PC')
         self.data = {
             'code': 'test_code',
             'discount': 10,
@@ -140,8 +140,8 @@ class VoucherStudioAdminFormTests(TestCase):
         )
 
     def test_cannot_make_max_vouchers_greater_than_number_already_used(self):
-        voucher = mommy.make(EventVoucher, max_vouchers=3)
-        users = mommy.make_recipe('booking.user', _quantity=3)
+        voucher = baker.make(EventVoucher, max_vouchers=3)
+        users = baker.make_recipe('booking.user', _quantity=3)
         for user in users:
             UsedEventVoucher.objects.create(voucher=voucher, user=user)
         self.data.update({'max_vouchers': 2, 'id': voucher.id})
@@ -164,10 +164,10 @@ class BlockVoucherStudioadminFormTests(TestCase):
 
     def test_only_active_and_non_free_blocktypes_in_choices(self):
         # free_block
-        mommy.make_recipe('booking.free_blocktype')
+        baker.make_recipe('booking.free_blocktype')
         # inactive_block
-        mommy.make_recipe('booking.blocktype', active=False)
-        active_blocktypes = mommy.make_recipe('booking.blocktype', _quantity=2)
+        baker.make_recipe('booking.blocktype', active=False)
+        active_blocktypes = baker.make_recipe('booking.blocktype', _quantity=2)
 
         form = BlockVoucherStudioadminForm()
         block_types = form.fields['block_types']
@@ -177,10 +177,10 @@ class BlockVoucherStudioadminFormTests(TestCase):
         )
 
     def test_cannot_make_max_vouchers_greater_than_number_already_used(self):
-        block_type = mommy.make_recipe('booking.blocktype')
-        voucher = mommy.make(BlockVoucher, max_vouchers=3)
+        block_type = baker.make_recipe('booking.blocktype')
+        voucher = baker.make(BlockVoucher, max_vouchers=3)
         voucher.block_types.add(block_type)
-        users = mommy.make_recipe('booking.user', _quantity=3)
+        users = baker.make_recipe('booking.user', _quantity=3)
         for user in users:
             UsedBlockVoucher.objects.create(voucher=voucher, user=user)
         data = {

@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.core import mail
@@ -19,7 +19,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(ConfirmPaymentViewTests, self).setUp()
-        self.booking = mommy.make_recipe(
+        self.booking = baker.make_recipe(
             'booking.booking', user=self.user,
             paid=False,
             payment_confirmed=False)
@@ -210,7 +210,7 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(ConfirmRefundViewTests, self).setUp()
-        self.booking = mommy.make_recipe(
+        self.booking = baker.make_recipe(
             'booking.booking', user=self.user,
             paid=True,
             payment_confirmed=True)

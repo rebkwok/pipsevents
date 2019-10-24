@@ -2,7 +2,7 @@ import pytz
 
 from datetime import datetime
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.urls import reverse
@@ -27,7 +27,7 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(TimetableAdminListViewTests, self).setUp()
-        self.session = mommy.make_recipe('booking.mon_session', cost=10)
+        self.session = baker.make_recipe('booking.mon_session', cost=10)
 
     def _get_response(self, user):
         url = reverse('studioadmin:timetable')
@@ -100,8 +100,8 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_can_delete_sessions(self):
-        mommy.make_recipe('booking.tue_session', _quantity=2)
-        mommy.make_recipe('booking.wed_session', _quantity=2)
+        baker.make_recipe('booking.tue_session', _quantity=2)
+        baker.make_recipe('booking.wed_session', _quantity=2)
         self.assertEqual(Session.objects.count(), 5)
 
         data = {
@@ -144,7 +144,7 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(TimetableSessionUpdateViewTests, self).setUp()
-        self.session = mommy.make_recipe('booking.mon_session')
+        self.session = baker.make_recipe('booking.mon_session')
 
     def _get_response(self, user, ttsession):
         url = reverse('studioadmin:edit_session', args=[ttsession.id])
@@ -362,7 +362,7 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         return view(request)
 
     def form_data(self, extra_data={}):
-        ev_type = mommy.make_recipe('booking.event_type_PC')
+        ev_type = baker.make_recipe('booking.event_type_PC')
         data = {
             'name': 'test_event',
             'event_type': ev_type.id,
@@ -532,7 +532,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         mock_tz.now.return_value = datetime(
             2015, 6, 1, 0, 0, tzinfo=timezone.utc
         )
-        mommy.make_recipe('booking.mon_session', _quantity=5)
+        baker.make_recipe('booking.mon_session', _quantity=5)
         self.assertEqual(Event.objects.count(), 0)
         form_data = {
             'start_date': 'Mon 08 Jun 2015',
@@ -550,7 +550,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         mock_tz.now.return_value = datetime(
             2015, 6, 1, 0, 0, tzinfo=timezone.utc
         )
-        mommy.make_recipe('booking.mon_session', _quantity=5)
+        baker.make_recipe('booking.mon_session', _quantity=5)
         self.assertEqual(Event.objects.count(), 0)
         form_data = {
             'start_date': 'Mon 08 Jun 2015',
@@ -560,7 +560,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 5)
 
-        mommy.make_recipe('booking.tue_session', _quantity=2)
+        baker.make_recipe('booking.tue_session', _quantity=2)
         form_data.update(
             {'sessions': [session.id for session in Session.objects.all()]}
         )
@@ -576,7 +576,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         mock_tz.now.return_value = datetime(
             2015, 6, 1, 0, 0, tzinfo=timezone.utc
         )
-        session = mommy.make_recipe('booking.tue_session', name='test')
+        session = baker.make_recipe('booking.tue_session', name='test')
 
         # create date in Europe/London, convert to UTC
         localtz = pytz.timezone('Europe/London')
@@ -587,7 +587,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         converted_ev_date = local_ev_date.astimezone(pytz.utc)
 
         # create duplicate existing classes for (tues) 2/6/15
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_PC', name='test', event_type=session.event_type,
             location=session.location,
             date=converted_ev_date,
@@ -616,10 +616,10 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context['existing_classes'][0].name, 'test')
 
     def test_get_upload_timetable_multiple_locations(self):
-        session_bp = mommy.make_recipe(
+        session_bp = baker.make_recipe(
             'booking.tue_session', name='test', location="Beaverbank Place"
         )
-        session_dm = mommy.make_recipe(
+        session_dm = baker.make_recipe(
             'booking.tue_session', name='test1', location="Davidson's Mains"
         )
         self.client.login(username=self.staff_user.username, password='test')
@@ -662,10 +662,10 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         )
 
     def test_upload_timetable_with_invalid_form_returns_all_locations(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.tue_session', name='test', location="Beaverbank Place"
         )
-        session_dm = mommy.make_recipe(
+        session_dm = baker.make_recipe(
             'booking.tue_session', name='test1', location="Davidson's Mains"
         )
 

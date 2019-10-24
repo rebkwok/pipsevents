@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytz
 
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.test import TestCase
@@ -13,9 +13,9 @@ from studioadmin.forms import EventFormSet, EventAdminForm
 class EventFormSetTests(TestCase):
 
     def setUp(self):
-        self.event = mommy.make_recipe('booking.future_EV')
-        self.event1 = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe('booking.booking', event=self.event1)
+        self.event = baker.make_recipe('booking.future_EV')
+        self.event1 = baker.make_recipe('booking.future_EV')
+        baker.make_recipe('booking.booking', event=self.event1)
 
     def formset_data(self, extra_data={}):
 
@@ -97,9 +97,9 @@ class EventFormSetTests(TestCase):
 class EventAdminFormTests(TestCase):
 
     def setUp(self):
-        self.event_type = mommy.make_recipe('booking.event_type_PC')
-        self.event_type_ev = mommy.make_recipe('booking.event_type_OE')
-        self.event_type_oc = mommy.make_recipe('booking.event_type_OC')
+        self.event_type = baker.make_recipe('booking.event_type_PC')
+        self.event_type_ev = baker.make_recipe('booking.event_type_OE')
+        self.event_type_oc = baker.make_recipe('booking.event_type_OC')
 
     def form_data(self, extra_data={}):
         data = {
@@ -124,7 +124,7 @@ class EventAdminFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_form_for_cancelled_events(self):
-        event = mommy.make_recipe('booking.future_PC', event_type=self.event_type)
+        event = baker.make_recipe('booking.future_PC', event_type=self.event_type)
         data = {
             'id': event.id,
             'name': event.name,
@@ -215,7 +215,7 @@ class EventAdminFormTests(TestCase):
         self.assertEquals(len(ev_type_field.queryset), 2)
 
     def test_event_type_queryset_shows_room_hire_with_classes(self):
-        rh_type = mommy.make_recipe('booking.event_type_RH')
+        rh_type = baker.make_recipe('booking.event_type_RH')
         form = EventAdminForm(
             data=self.form_data(), ev_type='EV')
         ev_type_field = form.fields['event_type']

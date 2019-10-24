@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 from unittest.mock import patch
 
 from django.conf import settings
@@ -119,7 +119,7 @@ class ApiViewTests(TestSetupMixin, TestCase):
             ]
         )
 
-        mommy.make_recipe('booking.user')
+        baker.make_recipe('booking.user')
 
         self.assertEqual(User.objects.count(), 2)
         # still just one mailing list user shown
@@ -287,7 +287,7 @@ class ApiViewTests(TestSetupMixin, TestCase):
 
     def test_update_email_request_from_mailchimp_exists_for_diff_user(self):
         # 400
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         EmailAddress.objects.create(user=user, email=user.email)
         data = self.get_data_dict(
             'update_email', old_email=self.user.email,

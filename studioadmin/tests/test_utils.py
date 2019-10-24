@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase
 
@@ -13,7 +13,7 @@ class ObscureUserIdTests(TestCase):
     """
     @classmethod
     def setUpTestData(cls):
-        cls.user = mommy.make_recipe('booking.user')
+        cls.user = baker.make_recipe('booking.user')
 
     def test_encoded_id_with_defaults(self):
         encoded_id = int_str(chaffify(self.user.id))

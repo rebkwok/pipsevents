@@ -3,7 +3,7 @@ import pytz
 from datetime import  date, datetime
 
 from unittest.mock import patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
@@ -93,45 +93,45 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         self.assertIn("Classes", resp.rendered_content)
 
     def test_event_register_list_shows_future_events_only(self):
-        mommy.make_recipe('booking.future_EV', _quantity=4)
-        mommy.make_recipe('booking.past_event', _quantity=4)
+        baker.make_recipe('booking.future_EV', _quantity=4)
+        baker.make_recipe('booking.past_event', _quantity=4)
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(len(resp.context_data['events']), 4)
 
     def test_event_register_list_shows_todays_events(self):
-        mommy.make_recipe('booking.future_EV', _quantity=4)
-        mommy.make_recipe('booking.past_event', _quantity=4)
-        past_today = mommy.make_recipe('booking.past_event', date=timezone.now().replace(hour=0, minute=1))
+        baker.make_recipe('booking.future_EV', _quantity=4)
+        baker.make_recipe('booking.past_event', _quantity=4)
+        past_today = baker.make_recipe('booking.past_event', date=timezone.now().replace(hour=0, minute=1))
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(len(resp.context_data['events']), 5)
 
     def test_event_register_list_shows_events_only(self):
-        mommy.make_recipe('booking.future_EV', _quantity=4)
-        mommy.make_recipe('booking.future_PC', _quantity=5)
+        baker.make_recipe('booking.future_EV', _quantity=4)
+        baker.make_recipe('booking.future_PC', _quantity=5)
         resp = self._get_response(self.staff_user, 'events')
         self.assertEquals(len(resp.context_data['events']), 4)
 
     def test_class_register_list_excludes_events(self):
-        mommy.make_recipe('booking.future_EV', _quantity=4)
-        mommy.make_recipe('booking.future_PC', _quantity=5)
+        baker.make_recipe('booking.future_EV', _quantity=4)
+        baker.make_recipe('booking.future_PC', _quantity=5)
         url = reverse('studioadmin:class_register_list')
         resp = self._get_response(self.staff_user, 'lessons', url=url)
         self.assertEquals(len(resp.context_data['events']), 5)
 
     def test_class_register_list_shows_room_hire_with_classes(self):
-        mommy.make_recipe('booking.future_EV', _quantity=4)
-        mommy.make_recipe('booking.future_PC', _quantity=5)
-        mommy.make_recipe('booking.future_RH', _quantity=5)
+        baker.make_recipe('booking.future_EV', _quantity=4)
+        baker.make_recipe('booking.future_PC', _quantity=5)
+        baker.make_recipe('booking.future_RH', _quantity=5)
 
         url = reverse('studioadmin:class_register_list')
         resp = self._get_response(self.staff_user, 'lessons', url=url)
         self.assertEquals(len(resp.context_data['events']), 10)
 
     def test_event_register_list_shows_correct_booking_count(self):
-        event = mommy.make_recipe('booking.future_EV')
-        mommy.make_recipe('booking.booking', event=event, _quantity=2)
-        mommy.make_recipe('booking.booking', event=event, status='CANCELLED')
-        mommy.make_recipe('booking.booking', event=event, no_show=True)
+        event = baker.make_recipe('booking.future_EV')
+        baker.make_recipe('booking.booking', event=event, _quantity=2)
+        baker.make_recipe('booking.booking', event=event, status='CANCELLED')
+        baker.make_recipe('booking.booking', event=event, no_show=True)
         resp = self._get_response(self.staff_user, 'events')
         self.assertIn(
             '{} {} {} 2'.format(
@@ -147,11 +147,11 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super(EventRegisterViewTests, self).setUp()
-        self.event = mommy.make_recipe(
+        self.event = baker.make_recipe(
             'booking.future_EV', max_participants=16
         )
-        self.booking1 = mommy.make_recipe('booking.booking', event=self.event)
-        self.booking2 = mommy.make_recipe('booking.booking', event=self.event)
+        self.booking1 = baker.make_recipe('booking.booking', event=self.event)
+        self.booking2 = baker.make_recipe('booking.booking', event=self.event)
 
     def _get_response(
             self, user, event_slug,
@@ -269,17 +269,17 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_block_format_block_used(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', max_participants=1, event_type__subtype='Event'
         )
         # block used
-        block_type = mommy.make(
+        block_type = baker.make(
             BlockType, event_type=event.event_type, size=3
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type=block_type, user=self.user, paid=True
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, event=event,
             block=block, paid=True, payment_confirmed=True
         )
@@ -301,17 +301,17 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def test_block_format_block_available_not_used(self):
         # paid (user has available block not used)
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', max_participants=1, event_type__subtype='Event'
         )
         # block used
-        block_type = mommy.make(
+        block_type = baker.make(
             BlockType, event_type=event.event_type, size=3
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type=block_type, user=self.user, paid=True
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking',  event=event, user=self.user, paid=True,
             payment_confirmed=True
         )
@@ -328,14 +328,14 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def test_block_format_paid_no_block_available(self):
         # paid (user has available block not used)
-        event = mommy.make_recipe('booking.future_EV', max_participants=1)
+        event = baker.make_recipe('booking.future_EV', max_participants=1)
         # block used
-        block_type = mommy.make(
+        block_type = baker.make(
             BlockType, event_type=event.event_type, size=3
         )
         # paid (user has no available block)
-        user1 = mommy.make_recipe('booking.user')
-        mommy.make_recipe(
+        user1 = baker.make_recipe('booking.user')
+        baker.make_recipe(
             'booking.booking',  event=event, user=user1, paid=True,
             payment_confirmed=True
         )
@@ -353,10 +353,10 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_status_choice_filter(self):
-        open_bookings = mommy.make_recipe(
+        open_bookings = baker.make_recipe(
             'booking.booking', event=self.event, status='OPEN', _quantity=5
             )
-        cancelled_bookings = mommy.make_recipe(
+        cancelled_bookings = baker.make_recipe(
             'booking.booking',
             event=self.event,
             status='CANCELLED',
@@ -484,10 +484,10 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def test_can_select_block_for_existing_booking(self):
         self.assertFalse(self.booking1.block)
-        block_type = mommy.make(
+        block_type = baker.make(
             BlockType, event_type=self.event.event_type
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type=block_type, user=self.user, paid=True
         )
         self.assertTrue(block.active_block())
@@ -507,10 +507,10 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.booking1.paid = False
         self.booking1.save()
         self.assertFalse(self.booking1.block)
-        block_type = mommy.make(
+        block_type = baker.make(
             BlockType, event_type=self.event.event_type
         )
-        block = mommy.make_recipe(
+        block = baker.make_recipe(
             'booking.block', block_type=block_type, user=self.user, paid=True
         )
         self.assertTrue(block.active_block())
@@ -529,7 +529,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
     def test_can_add_new_booking(self):
 
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         formset_data = self.formset_data({
             'bookings-TOTAL_FORMS': 3,
             'bookings-2-user': user.id,
@@ -611,8 +611,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         """
         # if there is a max_participants, and filter is 'OPEN',
         # show extra lines to this number
-        mommy.make('booking.booking', event=self.event, status='CANCELLED')
-        mommy.make(
+        baker.make('booking.booking', event=self.event, status='CANCELLED')
+        baker.make(
             'booking.booking', event=self.event, status='OPEN', no_show=True
         )
         self.event.max_participants = 10
@@ -665,7 +665,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context_data['extra_lines'], 13)
 
         # if 15 or more bookings, just show 2 extra lines
-        mommy.make_recipe('booking.booking', event=self.event, _quantity=12)
+        baker.make_recipe('booking.booking', event=self.event, _quantity=12)
         # need to get event again as spaces_left is cached property
         event = Event.objects.get(id=self.event.id)
         resp = self._get_response(
@@ -772,11 +772,11 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_disclaimer_display(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV', max_participants=1
         )
-        user = mommy.make_recipe('booking.user')
-        mommy.make_recipe('booking.booking', event=event, user=user)
+        user = baker.make_recipe('booking.user')
+        baker.make_recipe('booking.booking', event=event, user=user)
 
         url = reverse(
             'studioadmin:event_register_old', args=[event.slug, 'OPEN']
@@ -788,7 +788,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         self.assertNotIn('<span id="disclaimer" class="fas fa-check">', resp.rendered_content)
         self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
 
-        mommy.make(PrintDisclaimer, user=user)
+        baker.make(PrintDisclaimer, user=user)
         user.refresh_from_db()
         resp = self.client.get(url)
         # User has print disclaimers; no disclaimer link
@@ -798,7 +798,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
 
         PrintDisclaimer.objects.get(user=user).delete()
         # online disclaimer with no medical info ticked
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             OnlineDisclaimer,
             user=user, medical_conditions=False, joint_problems=False,
             allergies=False
@@ -895,7 +895,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             year=2015, month=9, day=7, hour=10, tzinfo=timezone.utc
         )
         mock_date.today.return_value = date(year=2015, month=9, day=7)
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -903,7 +903,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-        pole_classes = mommy.make_recipe(
+        pole_classes = baker.make_recipe(
             'booking.future_PC',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -924,7 +924,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
 
     def test_show_events_by_selected_date(self):
 
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -932,7 +932,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=6,
@@ -960,7 +960,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_show_events_by_selected_date_for_instructor(self):
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -968,7 +968,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-        pole_classes = mommy.make_recipe(
+        pole_classes = baker.make_recipe(
             'booking.future_CL',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -976,7 +976,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=6,
@@ -984,7 +984,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_CL',
             date=datetime(
                 year=2015, month=9, day=6,
@@ -1013,7 +1013,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_no_events_on_selected_date(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -1043,7 +1043,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_no_events_selected_to_print(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -1073,7 +1073,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_print_selected_events(self):
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -1102,7 +1102,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
          with exception of ext instructor classes which are based on the
          checkbox value
         """
-        events = mommy.make_recipe(
+        events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
@@ -1126,7 +1126,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             self.assertTrue(event['event'] in events)
 
     def test_print_open_bookings_for_events(self):
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_EV',
             name="event1",
             date=datetime(
@@ -1134,7 +1134,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 hour=18, minute=0, tzinfo=timezone.utc
             ),
         )
-        event2 = mommy.make_recipe(
+        event2 = baker.make_recipe(
             'booking.future_EV',
             name='event2',
             date=datetime(
@@ -1143,17 +1143,17 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
         )
 
-        ev1_bookings = mommy.make_recipe(
+        ev1_bookings = baker.make_recipe(
             'booking.booking',
             event=event1,
             _quantity=2
         )
-        ev1_cancelled_booking = mommy.make_recipe(
+        ev1_cancelled_booking = baker.make_recipe(
             'booking.booking',
             event=event2,
             status='CANCELLED'
         )
-        ev2_bookings = mommy.make_recipe(
+        ev2_bookings = baker.make_recipe(
             'booking.booking',
             event=event1,
             _quantity=2
@@ -1177,7 +1177,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 self.assertTrue(booking['booking'] in event['event'].bookings.all())
 
     def test_print_extra_lines(self):
-        event1 = mommy.make_recipe(
+        event1 = baker.make_recipe(
             'booking.future_EV',
             name="event1",
             date=datetime(
@@ -1187,12 +1187,12 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             max_participants=10,
         )
 
-        ev1_bookings = mommy.make_recipe(
+        ev1_bookings = baker.make_recipe(
             'booking.booking',
             event=event1,
             _quantity=2
         )
-        ev1_cancelled_booking = mommy.make_recipe(
+        ev1_cancelled_booking = baker.make_recipe(
             'booking.booking',
             event=event1,
             status='CANCELLED'
@@ -1229,7 +1229,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(resp.context_data['events']), 1)
         self.assertEqual(resp.context_data['events'][0]['extra_lines'], 13)
 
-        mommy.make_recipe('booking.booking', event=event1,  _quantity=14)
+        baker.make_recipe('booking.booking', event=event1,  _quantity=14)
         # event has no max_participants and >15 bookings; extra lines = 2
         resp = self._post_response(
             self.staff_user, {
@@ -1245,7 +1245,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context_data['events'][0]['extra_lines'], 2)
 
     def test_print_format_no_available_blocktype(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             name="event1",
             date=datetime(
@@ -1291,7 +1291,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertNotIn('>Fully Paid<', resp.rendered_content)
 
     def test_print_format_with_available_blocktype(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_EV',
             name="event1",
             date=datetime(
@@ -1300,7 +1300,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
         )
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.blocktype',
             event_type=event.event_type
         )
@@ -1350,7 +1350,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertNotIn('>Bookings used<', resp.rendered_content)
 
     def test_print_with_invalid_date_format(self):
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,

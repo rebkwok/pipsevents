@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.test import TestCase, override_settings
 from django.contrib.auth.models import User, Group
@@ -55,7 +55,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         self.assertFalse(form.is_valid())
 
     def test_user_assigned_from_request(self):
-        user = mommy.make(User)
+        user = baker.make(User)
         url = reverse('account_signup')
         request = self.factory.get(url)
         request.user = user
@@ -72,7 +72,7 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         self.assertEquals('Name', user.last_name)
 
     def test_signup_with_mailing_list(self):
-        user = mommy.make(User, email='test@mailinglist.com')
+        user = baker.make(User, email='test@mailinglist.com')
         url = reverse('account_signup')
         request = self.factory.get(url)
         request.user = user
@@ -207,7 +207,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
         )
 
     def test_with_expired_disclaimer(self):
-        disclaimer = mommy.make(
+        disclaimer = baker.make(
             OnlineDisclaimer, user=self.user, name='Donald Duck',
             dob=date(2000, 10, 5), address='1 Main St',
             postcode='AB1 2CD', terms_accepted=True,
@@ -395,8 +395,8 @@ class DataPrivacyAgreementFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = mommy.make(User)
-        mommy.make(DataPrivacyPolicy)
+        cls.user = baker.make(User)
+        baker.make(DataPrivacyPolicy)
 
     def test_confirm_required(self):
         form = DataPrivacyAgreementForm(
@@ -418,7 +418,7 @@ class CookiePolicyAdminFormTests(TestCase):
         self.assertEqual(form.fields['version'].help_text, '')
         self.assertEqual(form.fields['version'].initial, 1.0)
 
-        mommy.make(CookiePolicy, version=1.0)
+        baker.make(CookiePolicy, version=1.0)
         # help text added if updating
         form = CookiePolicyAdminForm()
         self.assertEqual(
@@ -428,7 +428,7 @@ class CookiePolicyAdminFormTests(TestCase):
         self.assertIsNone(form.fields['version'].initial)
 
     def test_validation_error_if_no_changes(self):
-        policy = mommy.make(CookiePolicy, version=1.0, content='Foo')
+        policy = baker.make(CookiePolicy, version=1.0, content='Foo')
         form = CookiePolicyAdminForm(
             data={
                 'content': 'Foo',
@@ -454,7 +454,7 @@ class DataPrivacyPolicyAdminFormTests(TestCase):
         self.assertEqual(form.fields['version'].help_text, '')
         self.assertEqual(form.fields['version'].initial, 1.0)
 
-        mommy.make(DataPrivacyPolicy, version=1.0)
+        baker.make(DataPrivacyPolicy, version=1.0)
         # help text added if updating
         form = DataPrivacyPolicyAdminForm()
         self.assertEqual(
@@ -464,7 +464,7 @@ class DataPrivacyPolicyAdminFormTests(TestCase):
         self.assertIsNone(form.fields['version'].initial)
 
     def test_validation_error_if_no_changes(self):
-        policy = mommy.make(DataPrivacyPolicy, version=1.0, content='Foo')
+        policy = baker.make(DataPrivacyPolicy, version=1.0, content='Foo')
         form = DataPrivacyPolicyAdminForm(
             data={
                 'content': 'Foo',

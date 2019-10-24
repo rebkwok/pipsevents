@@ -3,7 +3,7 @@ import os
 
 from datetime import date, datetime, timedelta
 from unittest.mock import Mock, patch
-from model_mommy import mommy
+from model_bakery import baker
 
 from django.conf import settings
 from django.core import management, mail
@@ -24,36 +24,36 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(DeleteExpiredDisclaimersTests, self).setUp()
-        self.user_online_only = mommy.make_recipe(
+        self.user_online_only = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
-        mommy.make(
+        baker.make(
             OnlineDisclaimer, user=self.user_online_only,
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
-        self.user_print_only = mommy.make_recipe(
+        self.user_print_only = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User1'
         )
-        mommy.make(
+        baker.make(
             PrintDisclaimer, user=self.user_print_only,
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
-        self.user_both = mommy.make_recipe(
+        self.user_both = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User2'
         )
-        mommy.make(
+        baker.make(
             OnlineDisclaimer, user=self.user_both,
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
-        mommy.make(
+        baker.make(
             PrintDisclaimer, user=self.user_both,
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
 
-        mommy.make(
+        baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='Nonreg',
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
-        mommy.make(
+        baker.make(
             ArchivedDisclaimer, name='Test Archived',
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
@@ -103,10 +103,10 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
     def test_disclaimers_not_deleted_if_created_in_past_6_years(self):
         # make a user with a disclaimer created today
-        user = mommy.make_recipe('booking.user')
-        mommy.make(OnlineDisclaimer, user=user)
-        mommy.make(NonRegisteredDisclaimer)
-        mommy.make(ArchivedDisclaimer)
+        user = baker.make_recipe('booking.user')
+        baker.make(OnlineDisclaimer, user=user)
+        baker.make(NonRegisteredDisclaimer)
+        baker.make(ArchivedDisclaimer)
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 2)
@@ -121,8 +121,8 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
     def test_disclaimers_not_deleted_if_updated_in_past_6_years(self):
         # make a user with a disclaimer created > yr ago but updated in past yr
-        user = mommy.make_recipe('booking.user')
-        mommy.make(
+        user = baker.make_recipe('booking.user')
+        baker.make(
             OnlineDisclaimer, user=user, date=timezone.now() - timedelta(2200),
             date_updated=timezone.now() - timedelta(2000),
         )
@@ -156,7 +156,7 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 class ExportDisclaimersTests(TestCase):
 
     def setUp(self):
-        mommy.make(OnlineDisclaimer, _quantity=10)
+        baker.make(OnlineDisclaimer, _quantity=10)
 
     def test_export_disclaimers_creates_default_bu_file(self):
         bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers_bu.csv')
@@ -187,7 +187,7 @@ class ExportDisclaimersTests(TestCase):
 class ExportEncryptedDisclaimersTests(TestCase):
 
     def setUp(self):
-        mommy.make(OnlineDisclaimer, _quantity=10)
+        baker.make(OnlineDisclaimer, _quantity=10)
 
     def test_export_disclaimers_creates_default_bu_file(self):
         bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
@@ -256,7 +256,7 @@ class ImportDisclaimersTests(TestCase):
 
     def test_import_disclaimers(self):
         for username in ['test_1', 'test_2', 'test_3']:
-            mommy.make_recipe('booking.user', username=username)
+            baker.make_recipe('booking.user', username=username)
         self.assertFalse(OnlineDisclaimer.objects.exists())
         management.call_command('import_disclaimer_data', file=self.bu_file)
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
@@ -267,9 +267,9 @@ class ImportDisclaimersTests(TestCase):
 
         # if disclaimer already exists for a user, it isn't imported
         for username in ['test_1', 'test_2']:
-            mommy.make_recipe('booking.user', username=username)
-        test_3 = mommy.make_recipe('booking.user', username='test_3')
-        mommy.make(
+            baker.make_recipe('booking.user', username=username)
+        test_3 = baker.make_recipe('booking.user', username='test_3')
+        baker.make(
             OnlineDisclaimer, user=test_3, name='Donald Duck')
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
@@ -302,17 +302,17 @@ class ImportDisclaimersTests(TestCase):
         import_disclaimer_data_logger.warning = Mock()
         import_disclaimer_data_logger.info = Mock()
 
-        test_1 = mommy.make_recipe('booking.user', username='test_1')
-        test_2 = mommy.make_recipe('booking.user', username='test_2')
-        test_3 = mommy.make_recipe('booking.user', username='test_3')
-        mommy.make(
+        test_1 = baker.make_recipe('booking.user', username='test_1')
+        test_2 = baker.make_recipe('booking.user', username='test_2')
+        test_3 = baker.make_recipe('booking.user', username='test_3')
+        baker.make(
             OnlineDisclaimer, user=test_2,
             date=datetime(2015, 1, 15, 15, 43, 19, 747445, tzinfo=timezone.utc),
             date_updated=datetime(
                 2016, 1, 6, 15, 9, 16, 920219, tzinfo=timezone.utc
             )
         ),
-        mommy.make(
+        baker.make(
             OnlineDisclaimer, user=test_3,
             date=datetime(2016, 2, 18, 16, 9, 16, 920219, tzinfo=timezone.utc),
         )
@@ -342,7 +342,7 @@ class ImportDisclaimersTests(TestCase):
         )
 
     def test_imported_data_is_correct(self):
-        test_1 = mommy.make_recipe('booking.user', username='test_1')
+        test_1 = baker.make_recipe('booking.user', username='test_1')
         management.call_command('import_disclaimer_data', file=self.bu_file)
         test_1_disclaimer = OnlineDisclaimer.objects.get(user=test_1)
 
@@ -490,8 +490,8 @@ class CreateMailingListTests(TestSetupMixin, TestCase):
             ]
         }
 
-        mommy.make_recipe('booking.user', email='mailchimptest@test.com')
-        mommy.make_recipe('booking.user', email='test1@test.com')
+        baker.make_recipe('booking.user', email='mailchimptest@test.com')
+        baker.make_recipe('booking.user', email='test1@test.com')
 
         management.call_command('create_mailing_list')
         group = Group.objects.get(name='subscribed')
@@ -505,8 +505,8 @@ class CreateMailingListTests(TestSetupMixin, TestCase):
                  'email_address': 'mailchimptest@test.com'}
             ]
         }
-        user = mommy.make_recipe('booking.user', email='mailchimptest@test.com')
-        user1 = mommy.make_recipe('booking.user', email='test1@test.com')
+        user = baker.make_recipe('booking.user', email='mailchimptest@test.com')
+        user1 = baker.make_recipe('booking.user', email='test1@test.com')
 
         self.assertFalse(Group.objects.filter(name='subscribed').exists())
         group = Group.objects.create(name='subscribed')
@@ -535,13 +535,13 @@ class CreateMailingListTests(TestSetupMixin, TestCase):
         group = Group.objects.create(name='subscribed')
         group_id = group.id
         # subscribed on both
-        user1 = mommy.make_recipe('booking.user', email='mailchimptest@test.com')
+        user1 = baker.make_recipe('booking.user', email='mailchimptest@test.com')
         group.user_set.add(user1)
         # subscribed on site, unsubscribed on mailchimp
-        user2 = mommy.make_recipe('booking.user', email='mailchimptest1@test.com')
+        user2 = baker.make_recipe('booking.user', email='mailchimptest1@test.com')
         group.user_set.add(user2)
         # subscribed on mailchimp, unsubscribed on site
-        user3 = mommy.make_recipe('booking.user', email='mailchimptest2@test.com')
+        user3 = baker.make_recipe('booking.user', email='mailchimptest2@test.com')
 
         management.call_command('create_mailing_list', recreate=True)
         group_after = Group.objects.get(name='subscribed')

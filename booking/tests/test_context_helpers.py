@@ -1,4 +1,4 @@
-from model_mommy import mommy
+from model_bakery import baker
 from datetime import datetime
 from unittest.mock import patch
 
@@ -24,9 +24,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super(EventDetailContextTests, cls).setUpTestData()
-        cls.free_event = mommy.make_recipe('booking.future_EV')
-        cls.past_event = mommy.make_recipe('booking.past_event')
-        cls.paid_event = mommy.make_recipe('booking.future_EV', cost=10)
+        cls.free_event = baker.make_recipe('booking.future_EV')
+        cls.past_event = baker.make_recipe('booking.past_event')
+        cls.paid_event = baker.make_recipe('booking.future_EV', cost=10)
 
         cls.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
@@ -78,9 +78,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         self.free_event.max_participants = 3
         self.free_event.save()
 
-        users = mommy.make_recipe('booking.user', _quantity=3)
+        users = baker.make_recipe('booking.user', _quantity=3)
         for user in users:
-            mommy.make_recipe('booking.booking',
+            baker.make_recipe('booking.booking',
                               user=user,
                               event=self.free_event)
         resp = self._get_response(self.user, self.free_event, 'event')
@@ -103,7 +103,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         self.assertTrue(resp.context_data['bookable'])
 
         # book the user
-        mommy.make_recipe('booking.booking',
+        baker.make_recipe('booking.booking',
                           user=self.user,
                           event=self.free_event)
         self.assertEquals(Booking.objects.all().count(), 3)
@@ -137,7 +137,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for an event with associated cost
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_WS',
             cost=10,
         )
@@ -166,7 +166,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         )
 
     def test_booking_not_open(self):
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_WS',
             booking_open=False,
         )
@@ -187,7 +187,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         helpers_mock_tz.now.return_value = datetime(
             2015, 2, 1, tzinfo=timezone.utc
         )
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_WS',
             cost=10,
             payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc)
@@ -204,7 +204,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         Test correct context returned for an event with payment due date
         """
         mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_WS',
             cost=10,
             payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
@@ -219,8 +219,8 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for lessons and events
         """
-        event = mommy.make_recipe('booking.future_WS', name='Wshop', cost=10)
-        lesson = mommy.make_recipe('booking.future_PC', name='Lesson', cost=10)
+        event = baker.make_recipe('booking.future_WS', name='Wshop', cost=10)
+        lesson = baker.make_recipe('booking.future_PC', name='Lesson', cost=10)
 
         resp = self._get_response(self.user, event, 'event')
         self.assertEquals(resp.context_data['type'], 'event')
@@ -236,10 +236,10 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for a cancelled booking
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.booking', user=self.user, event=event, status='CANCELLED'
         )
 
@@ -256,11 +256,11 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for an auto_cancelled booking
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
             contact_email='staff@test.com'
         )
-        booking = mommy.make_recipe(
+        booking = baker.make_recipe(
             'booking.booking', user=self.user, event=event, status='CANCELLED',
             auto_cancelled=True
         )
@@ -290,7 +290,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for a cancelled event
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
             external_instructor=True,
             event_type__subtype='External instructor class'
@@ -308,16 +308,16 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for user disclaimer
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
         )
-        user_no_disclaimer = mommy.make_recipe('booking.user')
+        user_no_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user_no_disclaimer)
-        user_print_disclaimer = mommy.make_recipe('booking.user')
+        user_print_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user_print_disclaimer)
-        user_online_disclaimer = mommy.make_recipe('booking.user')
+        user_online_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user_online_disclaimer)
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.online_disclaimer', user=user_online_disclaimer
         )
         PrintDisclaimer.objects.create(user=user_print_disclaimer)
@@ -356,12 +356,12 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for user disclaimer
         """
-        event = mommy.make_recipe(
+        event = baker.make_recipe(
             'booking.future_PC', name='Pole', cost=10, booking_open=True,
         )
-        user = mommy.make_recipe('booking.user')
+        user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
-        disclaimer = mommy.make_recipe(
+        disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
             date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
         )
@@ -410,9 +410,9 @@ class BlockListContextTests(TestSetupMixin, TestCase):
         """
         Test with blocktypes but no booked blocks
         """
-        mommy.make_recipe('booking.blocktype5')
-        mommy.make_recipe('booking.blocktype10')
-        mommy.make_recipe('booking.blocktype_other')
+        baker.make_recipe('booking.blocktype5')
+        baker.make_recipe('booking.blocktype10')
+        baker.make_recipe('booking.blocktype_other')
         resp = self._get_response(self.user)
         self.assertIn('can_book_block', resp.context_data)
         self.assertEqual(resp.context_data['blockformlist'], [])
@@ -423,18 +423,18 @@ class BlockListContextTests(TestSetupMixin, TestCase):
         type
         """
         # make 3 blocktypes, 2 with the same eventtype
-        ev_type = mommy.make_recipe('booking.event_type_PC')
-        blocktype_pc = mommy.make_recipe(
+        ev_type = baker.make_recipe('booking.event_type_PC')
+        blocktype_pc = baker.make_recipe(
             'booking.blocktype5', event_type=ev_type
         )
-        mommy.make_recipe('booking.blocktype10', event_type=ev_type)
-        blocktype_other = mommy.make_recipe('booking.blocktype_other')
+        baker.make_recipe('booking.blocktype10', event_type=ev_type)
+        blocktype_other = baker.make_recipe('booking.blocktype_other')
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user,
             block_type=blocktype_pc, start_date=timezone.now()
         )
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user,
             block_type=blocktype_other, start_date=timezone.now()
         )
@@ -446,10 +446,10 @@ class BlockListContextTests(TestSetupMixin, TestCase):
         """
         Test that user can book if there is a blocktype available
         """
-        blocktype_pc = mommy.make_recipe('booking.blocktype5')
-        mommy.make_recipe('booking.blocktype_other')
+        blocktype_pc = baker.make_recipe('booking.blocktype5')
+        baker.make_recipe('booking.blocktype_other')
 
-        mommy.make_recipe(
+        baker.make_recipe(
             'booking.block', user=self.user,
             block_type=blocktype_pc, start_date=timezone.now()
         )
