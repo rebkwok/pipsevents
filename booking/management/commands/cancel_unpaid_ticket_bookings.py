@@ -41,7 +41,16 @@ class Command(BaseCommand):
     help = 'Cancel unpaid ticket bookings that are past payment_due_date or '
     'payment time allowed'
     def handle(self, *args, **options):
+        # only cancel between 9am and 10pm; warnings are sent from 7 so this allows a minimum of 2 hrs after warning
+        # for payment before the next cancel job is run
+        cancel_start_time = 9
+        cancel_end_time = 22
+        now = timezone.now()
+        if cancel_start_time <= now.hour < cancel_end_time:
+            self.cancel_ticket_bookings()
 
+    def get_ticket_bookings_to_cancel(self):
+        time_buffer = timezone.now() - timedelta(hours=6)
         # get relevant ticketed_events
         ticketed_events = TicketedEvent.objects.filter(
             date__gte=timezone.now(),
@@ -49,9 +58,6 @@ class Command(BaseCommand):
             ticket_cost__gt=0,
             advance_payment_required=True,
         )
-
-        bookings_to_cancel = []
-        # import ipdb; ipdb.set_trace()
         for event in ticketed_events:
             # get open unpaid ticket bookings made > 6 hrs ago
             ticket_bookings = [
@@ -64,7 +70,7 @@ class Command(BaseCommand):
             if event.payment_due_date and event.payment_due_date < timezone.now():
                 for bkg in ticket_bookings:
                     if bkg.warning_sent:
-                        bookings_to_cancel.append(bkg)
+                        yield bkg
 
             elif event.payment_time_allowed:
                 # if there's a payment time allowed, cancel bookings booked
@@ -72,12 +78,15 @@ class Command(BaseCommand):
                 # any booked within 6 hrs)
                 # don't check for warning sent this time
                 for bkg in ticket_bookings:
-                    if bkg.date_booked < timezone.now() \
-                            - timedelta(hours=event.payment_time_allowed):
-                        bookings_to_cancel.append(bkg)
+                    if bkg.date_booked < timezone.now() - timedelta(hours=event.payment_time_allowed):
+                        yield bkg
 
-        for ticket_booking in bookings_to_cancel:
 
+    def cancel_ticket_bookings(self):
+
+        ticket_bookings_for_studio_email = [] if settings.SEND_ALL_STUDIO_EMAILS else None
+
+        for ticket_booking in self.get_ticket_bookings_to_cancel():
             ctx = {
                   'ticket_booking': ticket_booking,
                   'ticketed_event': ticket_booking.ticketed_event,
@@ -114,36 +123,38 @@ class Command(BaseCommand):
                 )
             )
 
-        if bookings_to_cancel:
-            if settings.SEND_ALL_STUDIO_EMAILS:
-                try:
-                    # send single mail to Studio
-                    send_mail('{} Ticket Booking{} been automatically cancelled'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                        ' has' if len(bookings_to_cancel) == 1 else 's have'),
-                        get_template(
-                            'booking/email/ticket_booking_auto_cancelled_studio_email.txt'
-                        ).render({'bookings': bookings_to_cancel}),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [settings.DEFAULT_STUDIO_EMAIL],
-                        html_message=get_template(
-                            'booking/email/ticket_booking_auto_cancelled_studio_email.html'
-                            ).render({'bookings': bookings_to_cancel}),
-                        fail_silently=False)
-                    self.stdout.write(
-                        'Cancellation emails sent for ticket booking refs {}'.format(
-                            ', '.join(
-                                [str(booking.booking_reference)
-                                 for booking in bookings_to_cancel]
-                            )
+            if ticket_bookings_for_studio_email is not None:
+                ticket_bookings_for_studio_email.append(ticket_booking)
+
+        if ticket_bookings_for_studio_email:
+            try:
+                # send single mail to Studio
+                send_mail('{} Ticket Booking{} been automatically cancelled'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    ' has' if len(ticket_bookings_for_studio_email) == 1 else 's have'),
+                    get_template(
+                        'booking/email/ticket_booking_auto_cancelled_studio_email.txt'
+                    ).render({'bookings': ticket_bookings_for_studio_email}),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'booking/email/ticket_booking_auto_cancelled_studio_email.html'
+                        ).render({'bookings': ticket_bookings_for_studio_email}),
+                    fail_silently=False)
+                self.stdout.write(
+                    'Cancellation emails sent for ticket booking refs {}'.format(
+                        ', '.join(
+                            [str(booking.booking_reference)
+                             for booking in ticket_bookings_for_studio_email]
                         )
                     )
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(
-                        e, __name__,
-                        "Automatic cancel ticket booking job - studio email"
-                    )
+                )
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(
+                    e, __name__,
+                    "Automatic cancel ticket booking job - studio email"
+                )
         else:
             self.stdout.write('No ticket bookings to cancel')
 

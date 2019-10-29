@@ -2,9 +2,5 @@
 
 Reminder! Your payment has not yet been received for ticket booking ref {{ ticket_booking.booking_reference }} for {{ event }}.
 
-Payment is due by {{ due_datetime }}.
-
-If your payment is not received by this time, your ticket booking will be cancelled.
-
 Please contact {{ event.contact_email }} urgently if you have already made payment.
 

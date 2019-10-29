@@ -1,24 +1,22 @@
 '''
-Email warnings for unpaid bookings 48 hrs prior to payment_due_date or
-cancellation_period
+Email warnings for unpaid bookings if booked/rebooked > 2hrs ago
+
 Check for bookings where:
-event.payment_open == True
 booking.status == OPEN
 booking.payment_confirmed = False
+booking.paid = False
 
 Add warning_sent flags to booking model so
 we don't keep sending
 '''
-import pytz
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.core.management.base import BaseCommand
-from django.core import management
+from django.db.models import Q
 
-from booking.templatetags.bookingtags import format_cancellation
 from booking.models import Booking, Event
 from activitylog.models import ActivityLog
 
@@ -27,65 +25,41 @@ class Command(BaseCommand):
     help = 'email warnings for unpaid bookings'
 
     def handle(self, *args, **options):
-        # send warning 2 days prior to cancellation period or payment due
-        # date
-        warning_bookings = get_bookings(48)
-        send_warning_email(self, warning_bookings)
+        # only send warnings between 7am and 10pm
+        warnings_start_time = 7
+        warnings_end_time = 22
+        now = timezone.now()
+
+        if warnings_start_time <= now.hour < warnings_end_time:
+            warning_bookings = get_bookings()
+            send_warning_email(self, warning_bookings)
 
 
-def get_bookings(num_hrs):
+def get_bookings():
+    # Find ids of future events with payment required
+    # Limit to only those with payment open - ones with payment closed are the ones that require
+    # bank transfer and will have longer payment due date/ time allowed
+    event_ids = Event.objects.filter(
+        date__gte=timezone.now(), cost__gt=0, advance_payment_required=True, payment_open=True
+    ).values_list("id", flat=True)
 
-    events_with_payment_time_allowed = Event.objects.filter(
-        date__gte=timezone.now(), payment_time_allowed__isnull=False
-    )
-
-    events_cancellation_period_soon = [
-        event for event in Event.objects.all() if event.cancellation_period and
-        event.date >= timezone.now() and
-        (event.date - timedelta(hours=(event.cancellation_period + num_hrs)))
-        <= timezone.now()
-    ]
-
-    events_with_payment_due_dates = [
-        event for event in Event.objects.all() if event.payment_due_date]
-    events_payment_due_soon = [
-        event for event in events_with_payment_due_dates if
-        event.date >= timezone.now() and
-        (event.payment_due_date - timedelta(hours=num_hrs)) <= timezone.now()
-    ]
-    events = list(
-        set(events_with_payment_time_allowed) |
-        set(events_payment_due_soon) | set(events_cancellation_period_soon)
-        )
+    rebooked = Q(date_rebooked__isnull=False)
+    not_rebooked = Q(date_rebooked__isnull=True)
+    rebooked_more_than_2hrs_ago= Q(date_rebooked__lte=timezone.now() - timedelta(hours=2))
+    booked_more_than_2hrs_ago = Q(date_booked__lte=timezone.now() - timedelta(hours=2))
 
     return Booking.objects.filter(
-        event__in=events,
+        (rebooked & rebooked_more_than_2hrs_ago) | (not_rebooked & booked_more_than_2hrs_ago ),
+        event_id__in=event_ids,
         status='OPEN',
-        event__cost__gt=0,
+        paid=False,
         payment_confirmed=False,
         warning_sent=False,
-        date_booked__lte=timezone.now() - timedelta(hours=2)
         )
 
 
 def send_warning_email(self, upcoming_bookings):
     for booking in upcoming_bookings:
-        uk_tz = pytz.timezone('Europe/London')
-
-        due_datetime = booking.event.date - \
-                       timedelta(hours=(booking.event.cancellation_period))
-
-        if booking.event.payment_time_allowed:
-            date_booked = booking.date_rebooked \
-                if booking.date_rebooked else booking.date_booked
-            due_datetime = date_booked + \
-                           timedelta(hours=booking.event.payment_time_allowed)
-
-        if booking.event.payment_due_date and \
-                        booking.event.payment_due_date < due_datetime:
-            due_datetime = booking.event.payment_due_date
-        due_datetime = due_datetime.astimezone(uk_tz)
-
         ctx = {
               'booking': booking,
               'event': booking.event,
@@ -93,15 +67,6 @@ def send_warning_email(self, upcoming_bookings):
               'time': booking.event.date.strftime('%H:%M'),
               'ev_type': 'event' if
               booking.event.event_type.event_type == 'EV' else 'class',
-              'cancellation_period': format_cancellation(
-                    booking.event.cancellation_period
-                    ),
-              'advance_payment_required':
-              booking.event.advance_payment_required,
-              'payment_due_date': booking.event.payment_due_date.strftime(
-                    '%A %d %B'
-                    ) if booking.event.payment_due_date else None,
-              'due_datetime': due_datetime.strftime('%A %d %B %H:%M'),
         }
 
         send_mail('{} Reminder: {}'.format(
@@ -113,8 +78,6 @@ def send_warning_email(self, upcoming_bookings):
                 'booking/email/booking_warning.html'
                 ).render(ctx),
             fail_silently=False)
-        booking.warning_sent = True
-        booking.save()
 
         ActivityLog.objects.create(
             log='Warning email sent for booking id {}, '
@@ -122,6 +85,8 @@ def send_warning_email(self, upcoming_bookings):
                 booking.id, booking.event, booking.user.username
             )
         )
+    # Update the warning_sent flag on all selected bookings
+    upcoming_bookings.update(warning_sent=True)
 
     if upcoming_bookings:
         self.stdout.write(
