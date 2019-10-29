@@ -1,28 +1,13 @@
 '''
-Email warnings for unpaid bookings 24 hrs prior to payment_due_date
-
-ticketed_event.cancelled = False
-ticketed_event is not in the past
-ticketed_event.advance_payment_required
-ticketed_event.ticket_cost > 0
-
-ticket_booking.cancelled = False
-ticket_booking.paid = False
-ticket_booking.warning_sent = False
-
-ticketed_event.payment_due_date < timezone.now() + 24 hrs
-
+Email warnings for unpaid bookings booked > 2 hrs ago
 '''
-import pytz
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.core.management.base import BaseCommand
-from django.core import management
 
-from booking.templatetags.bookingtags import format_cancellation
 from booking.models import TicketedEvent, TicketBooking
 from activitylog.models import ActivityLog
 
@@ -31,30 +16,27 @@ class Command(BaseCommand):
     help = 'email warnings for unpaid ticket bookings'
 
     def handle(self, *args, **options):
-        # send warning 2 days prior to cancellation period or payment due
-        # date
-        warning_bookings = get_bookings(24)
-        send_warning_email(self, warning_bookings)
+        # only send warnings between 7am and 10pm
+        warnings_start_time = 7
+        warnings_end_time = 22
+        now = timezone.now()
+        if warnings_start_time <= now.hour < warnings_end_time:
+            warning_bookings = get_bookings()
+            send_warning_email(self, warning_bookings)
 
 
-def get_bookings(num_hrs):
-
+def get_bookings():
     # get relevant ticketed_events
-    ticketed_events = TicketedEvent.objects.filter(
+    ticketed_event_ids = TicketedEvent.objects.filter(
         date__gte=timezone.now(),
         cancelled=False,
         ticket_cost__gt=0,
         advance_payment_required=True,
-    )
-
-    events_payment_due_soon = [
-        event for event in ticketed_events if
-        event.payment_due_date and
-        (event.payment_due_date - timedelta(hours=num_hrs)) <= timezone.now()
-    ]
+        payment_open=True,
+    ).values_list("id", flat=True)
 
     return TicketBooking.objects.filter(
-        ticketed_event__in=events_payment_due_soon,
+        ticketed_event__in=ticketed_event_ids,
         cancelled=False,
         paid=False,
         warning_sent=False,
@@ -64,14 +46,9 @@ def get_bookings(num_hrs):
 
 def send_warning_email(self, upcoming_bookings):
     for ticket_booking in upcoming_bookings:
-        uk_tz = pytz.timezone('Europe/London')
-        due_datetime = ticket_booking.ticketed_event.payment_due_date
-        due_datetime = due_datetime.astimezone(uk_tz)
-
         ctx = {
               'ticket_booking': ticket_booking,
               'event': ticket_booking.ticketed_event,
-              'due_datetime': due_datetime.strftime('%A %d %B %H:%M'),
         }
 
         send_mail('{} Reminder: Ticket booking ref {} is not yet paid'.format(
@@ -85,8 +62,6 @@ def send_warning_email(self, upcoming_bookings):
                 'booking/email/ticket_booking_warning.html'
                 ).render(ctx),
             fail_silently=False)
-        ticket_booking.warning_sent = True
-        ticket_booking.save()
 
         ActivityLog.objects.create(
             log='Warning email sent for booking ref {}, '
@@ -95,7 +70,7 @@ def send_warning_email(self, upcoming_bookings):
                 ticket_booking.ticketed_event, ticket_booking.user.username
             )
         )
-
+    upcoming_bookings.update(warning_sent=True)
     if upcoming_bookings:
         self.stdout.write(
             'Warning emails sent for booking refs {}'.format(

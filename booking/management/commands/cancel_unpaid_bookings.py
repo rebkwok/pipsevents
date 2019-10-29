@@ -21,7 +21,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.core.management.base import BaseCommand
-from django.core import management
+from django.db.models import Q
 
 from booking.models import Booking, WaitingListUser
 from booking.email_helpers import send_support_email, send_waiting_list_email
@@ -36,28 +36,31 @@ class Command(BaseCommand):
            'payment_time_allowed or cancellation_period'
 
     def handle(self, *args, **options):
+        # only cancel between 9am and 10pm; warnings are sent from 7 so this allows a minimum of 2 hrs after warning
+        # for payment before the next cancel job is run
+        cancel_start_time = 9
+        cancel_end_time = 22
+        now = timezone.now()
+        if cancel_start_time <= now.hour < cancel_end_time:
+            self.cancel_bookings()
 
-        bookings = []
-        for booking in Booking.objects.filter(
+    def get_bookings_to_cancel(self):
+        time_buffer = timezone.now() - timedelta(hours=6)
+        bookings_qset = Booking.objects.filter(
             event__date__gte=timezone.now(),
             event__advance_payment_required=True,
             status='OPEN',
             paid=False,
             payment_confirmed=False,
-            date_booked__lte=timezone.now() - timedelta(hours=6)):
-
-            # ignore any which have been rebooked in the past 6 hrs
-            if booking.date_rebooked and \
-                    (booking.date_rebooked >=
-                         (timezone.now() - timedelta(hours=6))):
-                pass
-            elif booking.event.date - timedelta(
-                    hours=booking.event.cancellation_period
-            ) < timezone.now() and booking.warning_sent:
-                bookings.append(booking)
+            date_booked__lte=time_buffer
+        ).exclude(Q(date_rebooked__isnull=False) & Q(date_rebooked__gte=time_buffer))
+        for booking in bookings_qset:
+            if booking.event.date - timedelta(hours=booking.event.cancellation_period) < timezone.now() \
+                    and booking.warning_sent:
+                yield booking
             elif booking.event.payment_due_date and booking.warning_sent:
                 if booking.event.payment_due_date < timezone.now():
-                    bookings.append(booking)
+                    yield booking
             elif booking.event.payment_time_allowed:
                 # if there's a payment time allowed, cancel bookings booked
                 # longer ago than this (bookings already filtered out
@@ -65,18 +68,17 @@ class Command(BaseCommand):
                 # don't check for warning sent this time
                 # for free class requests, always allow them 24 hrs so admin
                 # have time to mark classes as free (i.e.paid)
-                last_booked_date = booking.date_rebooked \
-                        if booking.date_rebooked else booking.date_booked
+                last_booked_date = booking.date_rebooked if booking.date_rebooked else booking.date_booked
                 if booking.free_class_requested:
                     if last_booked_date < timezone.now() - timedelta(hours=24):
-                        bookings.append(booking)
-                elif last_booked_date < timezone.now() \
-                        - timedelta(hours=booking.event.payment_time_allowed):
-                        bookings.append(booking)
+                        yield booking
+                elif last_booked_date < timezone.now() - timedelta(hours=booking.event.payment_time_allowed):
+                    yield booking
 
-        for booking in bookings:
+    def cancel_bookings(self):
+        bookings_for_studio_email = [] if settings.SEND_ALL_STUDIO_EMAILS else None
+        for booking in self.get_bookings_to_cancel():
             event_was_full = booking.event.spaces_left == 0
-
             ctx = {
                   'booking': booking,
                   'event': booking.event,
@@ -135,31 +137,33 @@ class Command(BaseCommand):
                         e, __name__, "Automatic cancel job - waiting list email"
                     )
 
-        if bookings:
-            if settings.SEND_ALL_STUDIO_EMAILS:
-                # send single mail to Studio
-                try:
-                    send_mail('{} Booking{} been automatically cancelled'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                        ' has' if len(bookings) == 1 else 's have'),
-                        get_template(
-                            'booking/email/booking_auto_cancelled_studio_email.txt'
-                        ).render({'bookings': bookings}),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [settings.DEFAULT_STUDIO_EMAIL],
-                        html_message=get_template(
-                            'booking/email/booking_auto_cancelled_studio_email.html'
-                            ).render({'bookings': bookings}),
-                        fail_silently=False)
-                    self.stdout.write(
-                        'Cancellation emails sent for booking ids {}'.format(
-                            ', '.join([str(booking.id) for booking in bookings])
-                        )
+            if bookings_for_studio_email is not None:
+                bookings_for_studio_email.append(booking)
+
+        if bookings_for_studio_email:
+            # send single mail to Studio
+            try:
+                send_mail('{} Booking{} been automatically cancelled'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                    ' has' if len(bookings_for_studio_email) == 1 else 's have'),
+                    get_template(
+                        'booking/email/booking_auto_cancelled_studio_email.txt'
+                    ).render({'bookings': bookings_for_studio_email}),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    html_message=get_template(
+                        'booking/email/booking_auto_cancelled_studio_email.html'
+                        ).render({'bookings': bookings_for_studio_email}),
+                    fail_silently=False)
+                self.stdout.write(
+                    'Cancellation emails sent for booking ids {}'.format(
+                        ', '.join([str(booking.id) for booking in bookings_for_studio_email])
                     )
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(
-                        e, __name__, "Automatic cancel job - studio email"
-                    )
+                )
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(
+                    e, __name__, "Automatic cancel job - studio email"
+                )
         else:
             self.stdout.write('No bookings to cancel')
