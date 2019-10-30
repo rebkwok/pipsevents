@@ -19,10 +19,14 @@ class Command(BaseCommand):
         regular_students = User.objects.filter(user_permissions=regular_student_permission)
 
         for student in regular_students:
-            last_class_booking = student.bookings.filter(event__event_type__event_type="CL")\
-                .exclude(event__event_type__subtype="Pole practice").latest("id")
-            last_class_booking_date = last_class_booking.date_rebooked or last_class_booking.date_booked
-            if last_class_booking_date < cutoff_date:
-                student.user_permissions.remove(regular_student_permission)
+            class_bookings = student.bookings.filter(event__event_type__event_type="CL")\
+                .exclude(event__event_type__subtype="Pole practice")
+            if class_bookings.exists():
+                last_class_booking = class_bookings.latest("id")
+                last_class_booking_date = last_class_booking.date_rebooked or last_class_booking.date_booked
+            else:
+                last_class_booking_date = None
 
+            if last_class_booking_date is None or last_class_booking_date < cutoff_date:
+                student.user_permissions.remove(regular_student_permission)
                 ActivityLog.objects.create(log=f"Regular student status for user {student.username} has been removed due to inactivity")
