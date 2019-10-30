@@ -3051,3 +3051,12 @@ class TestDeactivateRegularStudents(TestCase):
         management.call_command("deactivate_regular_students")
         user.refresh_from_db()
         self.assertTrue(user.has_perm(f"booking.{self.permission.codename}"))
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_with_no_class_bookings_deactivated(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        user = baker.make(User)
+        user.user_permissions.add(self.permission)
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
