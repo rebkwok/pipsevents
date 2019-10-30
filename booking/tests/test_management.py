@@ -3060,3 +3060,17 @@ class TestDeactivateRegularStudents(TestCase):
         management.call_command("deactivate_regular_students")
         user.refresh_from_db()
         self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
+
+    @override_settings(REGULAR_STUDENT_WHITELIST_IDS=[2, 3, 4])
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_whitelist(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        whitelist_user = baker.make(User, email='foo@test.com', id=3)
+        normal_user = baker.make(User, email='bar@test.com', id=9)
+        for user in [whitelist_user, normal_user]:
+            user.user_permissions.add(self.permission)
+        management.call_command("deactivate_regular_students")
+        whitelist_user.refresh_from_db()
+        normal_user.refresh_from_db()
+        self.assertTrue(whitelist_user.has_perm(f"booking.{self.permission.codename}"))
+        self.assertFalse(normal_user.has_perm(f"booking.{self.permission.codename}"))
