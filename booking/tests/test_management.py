@@ -5,6 +5,7 @@ from io import StringIO
 from unittest.mock import patch
 from model_bakery import baker
 
+from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 from django.conf import settings
 from django.core import management
@@ -2973,3 +2974,80 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
             self.assertEqual(Block.objects.filter(paid=False).count(), 0)
             management.call_command('create_free_monthly_blocks')
         self.assertEqual(Block.objects.count(), 3)
+
+
+class TestDeactivateRegularStudents(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        event_type = baker.make_recipe("booking.event_type_PC")
+        cls.pole_class = baker.make(Event, event_type=event_type)
+        cls.pole_class1 = baker.make(Event, event_type=event_type)
+        pole_practice_event_type = baker.make(EventType, event_type="CL", subtype="Pole practice")
+        cls.pole_practice = baker.make(Event, event_type=pole_practice_event_type)
+        cls.permission, _ = Permission.objects.get_or_create(codename="is_regular_student")
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_with_class_bookings_more_than_8_months_ago_deactivated(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        user = baker.make(User)
+        user.user_permissions.add(self.permission)
+        baker.make(
+            Booking, user=user, event=self.pole_class,
+            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc)
+        )
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_with_only_pole_practice_in_past_8_months_deactivated(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        user = baker.make(User)
+        user.user_permissions.add(self.permission)
+        # pole class 8 months ago, pole practice less than 8 months
+        baker.make(
+            Booking, user=user, event=self.pole_class,
+            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc)
+        )
+        baker.make(
+            Booking, user=user, event=self.pole_practice,
+            date_booked=datetime(2018, 4, 1, tzinfo=timezone.utc)
+        )
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_with_rebooked_date_in_past_8_months_not_deactivated(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        user = baker.make(User)
+        user.user_permissions.add(self.permission)
+        # booked longer ago than 8 months, rebooked less than 8 months ago
+        baker.make(
+            Booking, user=user, event=self.pole_class,
+            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc),
+            date_rebooked=datetime(2018, 5, 1, tzinfo=timezone.utc),
+        )
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        self.assertTrue(user.has_perm(f"booking.{self.permission.codename}"))
+
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_with_class_bookings_in_past_8_months_not_deactivated(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        user = baker.make(User)
+        user.user_permissions.add(self.permission)
+        # one booking longer ago than 8 months
+        baker.make(
+            Booking, user=user, event=self.pole_class,
+            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc)
+        )
+        baker.make(
+            Booking, user=user, event=self.pole_class1,
+            date_booked=datetime(2018, 4, 1, tzinfo=timezone.utc)
+        )
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        self.assertTrue(user.has_perm(f"booking.{self.permission.codename}"))
