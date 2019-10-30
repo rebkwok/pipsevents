@@ -22,6 +22,7 @@ env = environ.Env(DEBUG=(bool, False),
                   HEROKU=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
+                  REGULAR_STUDENT_WHITELIST_IDS=(list, []),
                   WACTHLIST=(list, []),
                   LOCAL=(bool, False)
                   )
@@ -505,6 +506,7 @@ AUTO_BOOK_EMAILS = env('AUTO_BOOK_EMAILS')
 WATCHLIST = env('WATCHLIST', default=[])
 if isinstance(WATCHLIST, str):  # pragma: no cover
     WATCHLIST = WATCHLIST.split(',')
+REGULAR_STUDENT_WHITELIST_IDS = env('REGULAR_STUDENT_WHITELIST_IDS')
 
 # Increase this to deal with the bulk emails.  Currently just under 2000
 # users, posts 2 fields per user

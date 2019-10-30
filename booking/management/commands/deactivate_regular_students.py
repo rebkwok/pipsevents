@@ -3,6 +3,7 @@ Remove students from regular_student group if they haven't booked classes in the
 """
 from dateutil.relativedelta import relativedelta
 
+from django.conf import settings
 from django.contrib.auth.models import Group, Permission, User
 from django.utils import timezone
 from django.core.management.base import BaseCommand
@@ -16,7 +17,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         cutoff_date = timezone.now() - relativedelta(months=8)
         regular_student_permission = Permission.objects.get(codename='is_regular_student')
-        regular_students = User.objects.filter(user_permissions=regular_student_permission)
+        regular_students = User.objects.filter(user_permissions=regular_student_permission)\
+            .exclude(id__in=settings.REGULAR_STUDENT_WHITELIST_IDS)
 
         for student in regular_students:
             class_bookings = student.bookings.filter(event__event_type__event_type="CL")\
