@@ -17,17 +17,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         cutoff_date = timezone.now() - relativedelta(months=8)
         regular_student_permission = Permission.objects.get(codename='is_regular_student')
-        regular_students = User.objects.filter(user_permissions=regular_student_permission)\
+        # never deactivate superuser or staff users
+        regular_students = User.objects.filter(user_permissions=regular_student_permission, is_superuser=False, is_staff=False)\
             .exclude(id__in=settings.REGULAR_STUDENT_WHITELIST_IDS)
-
         for student in regular_students:
             class_bookings = student.bookings.filter(event__event_type__event_type="CL")\
                 .exclude(event__event_type__subtype="Pole practice")
-            if class_bookings.exists():
-                last_class_booking = class_bookings.latest("id")
-                last_class_booking_date = last_class_booking.date_rebooked or last_class_booking.date_booked
-            else:
-                last_class_booking_date = None
+            last_class_booking_date = class_bookings.latest("date_booked").date_booked if class_bookings.exists() else None
 
             if last_class_booking_date is None or last_class_booking_date < cutoff_date:
                 student.user_permissions.remove(regular_student_permission)
