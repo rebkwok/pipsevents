@@ -19,7 +19,7 @@ class Command(BaseCommand):
         regular_student_permission = Permission.objects.get(codename='is_regular_student')
         # never deactivate superuser or staff users
         regular_students = User.objects.filter(user_permissions=regular_student_permission, is_superuser=False, is_staff=False)\
-            .exclude(id__in=settings.REGULAR_STUDENT_WHITELIST_IDS)
+            .exclude(id__in=[int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS])
         for student in regular_students:
             class_bookings = student.bookings.filter(event__event_type__event_type="CL")\
                 .exclude(event__event_type__subtype="Pole practice")
