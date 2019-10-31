@@ -3019,22 +3019,6 @@ class TestDeactivateRegularStudents(TestCase):
         self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
-    def test_regular_students_with_rebooked_date_in_past_8_months_not_deactivated(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
-        user = baker.make(User)
-        user.user_permissions.add(self.permission)
-        # booked longer ago than 8 months, rebooked less than 8 months ago
-        baker.make(
-            Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc),
-            date_rebooked=datetime(2018, 5, 1, tzinfo=timezone.utc),
-        )
-        management.call_command("deactivate_regular_students")
-        user.refresh_from_db()
-        self.assertTrue(user.has_perm(f"booking.{self.permission.codename}"))
-
-
-    @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_class_bookings_in_past_8_months_not_deactivated(self, mocktz):
         mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
         user = baker.make(User)
@@ -3073,4 +3057,20 @@ class TestDeactivateRegularStudents(TestCase):
         whitelist_user.refresh_from_db()
         normal_user.refresh_from_db()
         self.assertTrue(whitelist_user.has_perm(f"booking.{self.permission.codename}"))
+        self.assertFalse(normal_user.has_perm(f"booking.{self.permission.codename}"))
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_do_not_deactivate_superuser(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        super_user = baker.make(User, email='super@test.com', is_superuser=True)
+        staff_user = baker.make(User, email='staff@test.com', is_staff=True)
+        normal_user = baker.make(User, email='normal@test.com')
+        for user in [super_user, staff_user, normal_user]:
+            user.user_permissions.add(self.permission)
+        management.call_command("deactivate_regular_students")
+        super_user.refresh_from_db()
+        staff_user.refresh_from_db()
+        normal_user.refresh_from_db()
+        self.assertTrue(super_user.has_perm(f"booking.{self.permission.codename}"))
+        self.assertTrue(staff_user.has_perm(f"booking.{self.permission.codename}"))
         self.assertFalse(normal_user.has_perm(f"booking.{self.permission.codename}"))
