@@ -684,7 +684,8 @@ class CancelUnpaidBookingsTests(TestCase):
             date_booked=datetime(
                 2015, 2, 9, 18, 0, tzinfo=timezone.utc
             ),
-            warning_sent=True
+            warning_sent=True,
+            date_warning_sent = datetime(2015, 2, 9, 20, 0, tzinfo=timezone.utc)
         )
         self.paid = baker.make_recipe(
             'booking.booking', event=self.event, paid=True,
@@ -888,46 +889,41 @@ class CancelUnpaidBookingsTests(TestCase):
         self.assertFalse(self.paid.auto_cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_dont_cancel_bookings_created_within_past_6_hours(self, mock_tz):
+    def test_dont_cancel_bookings_within_cancellation_period_without_warning_sent(self, mock_tz):
         """
-        Avoid immediately cancelling bookings made within the cancellation
-        period to allow time for users to make payments
+        Only cancel bookings made within the cancellation period if a warning has been sent
         """
-        mock_tz.now.return_value = datetime(
-            2015, 2, 10, 18, 0, tzinfo=timezone.utc
-        )
+        mock_tz.now.return_value = datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc)
+        # reset warning flags
+        self.unpaid.warning_sent = False
+        self.unpaid.date_warning_sent = None
+        self.unpaid.save()
 
-        unpaid_within_6_hrs = baker.make_recipe(
-            'booking.booking', event=self.event, paid=False,
-            payment_confirmed=False, status='OPEN',
-            user__email="unpaid@test.com",
-            date_booked=datetime(
-                2015, 2, 10, 12, 30, tzinfo=timezone.utc
-            ),
-            warning_sent=True
-        )
-        unpaid_more_than_6_hrs = baker.make_recipe(
-            'booking.booking', event=self.event, paid=False,
-            payment_confirmed=False, status='OPEN',
-            user__email="unpaid@test.com",
-            date_booked=datetime(
-                2015, 2, 10, 11, 30, tzinfo=timezone.utc
-            ),
-            warning_sent=True
-        )
-
-        self.assertEquals(unpaid_within_6_hrs.status, 'OPEN')
-        self.assertEquals(unpaid_more_than_6_hrs.status, 'OPEN')
-
+        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertFalse(self.unpaid.warning_sent)
+        self.assertIsNone(self.unpaid.date_warning_sent)
         management.call_command('cancel_unpaid_bookings')
-        unpaid_within_6_hrs.refresh_from_db()
-        unpaid_more_than_6_hrs.refresh_from_db()
-        self.assertEquals(unpaid_within_6_hrs.status, 'OPEN')
-        self.assertEquals(unpaid_more_than_6_hrs.status, 'CANCELLED')
+        self.unpaid.refresh_from_db()
+        # still open
+        self.assertEquals(self.unpaid.status, 'OPEN')
 
-        # auto_cancelled set to True only on cancelled bookings
-        self.assertFalse(unpaid_within_6_hrs.auto_cancelled)
-        self.assertTrue(unpaid_more_than_6_hrs.auto_cancelled)
+        # set the warning sent flag to < 2hrs ago
+        self.unpaid.warning_sent = True
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 17, 0, tzinfo=timezone.utc)
+        self.unpaid.save()
+        management.call_command('cancel_unpaid_bookings')
+        self.unpaid.refresh_from_db()
+        # still open
+        self.assertEquals(self.unpaid.status, 'OPEN')
+
+        # set the warning sent flag to > 2hrs ago
+        self.unpaid.warning_sent = True
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 15, 0, tzinfo=timezone.utc)
+        self.unpaid.save()
+        management.call_command('cancel_unpaid_bookings')
+        self.unpaid.refresh_from_db()
+        # now cancelled
+        self.assertEquals(self.unpaid.status, 'CANCELLED')
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_only_send_one_email_to_studio(self, mock_tz):
@@ -935,19 +931,16 @@ class CancelUnpaidBookingsTests(TestCase):
         users are emailed per booking, studio just receives one summary
         email
         """
-        mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
-        )
+        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=timezone.utc)
         for i in range(5):
-            bookings = baker.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(
-                    2015, 2, 9, tzinfo=timezone.utc
-                ),
-                warning_sent=True
+                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                warning_sent=True,
+                date_warning_sent= datetime(2015, 2, 9, 2, tzinfo=timezone.utc),
             )
 
         management.call_command('cancel_unpaid_bookings')
@@ -978,19 +971,16 @@ class CancelUnpaidBookingsTests(TestCase):
         users are emailed per booking, studio just receives one summary
         email
         """
-        mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
-        )
+        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=timezone.utc)
         for i in range(5):
-            bookings = baker.make_recipe(
+            baker.make_recipe(
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(
-                    2015, 2, 9, tzinfo=timezone.utc
-                ),
-                warning_sent=True
+                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                warning_sent=True,
+                date_warning_sent= datetime(2015, 2, 9, 2, tzinfo=timezone.utc),
             )
 
         management.call_command('cancel_unpaid_bookings')
@@ -1060,14 +1050,12 @@ class CancelUnpaidBookingsTests(TestCase):
         )
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_cancelling_more_than_one_only_emails_once(self, mock_tz):
+    def test_cancelling_more_than_once_only_emails_once(self, mock_tz):
         """
         Test that the waiting list is only emailed once if more than one
         booking is cancelled
         """
-        mock_tz.now.return_value = datetime(
-            2015, 2, 13, 17, 15, tzinfo=timezone.utc
-        )
+        mock_tz.now.return_value = datetime(2015, 2, 13, 17, 15, tzinfo=timezone.utc)
 
         # make full event (setup has one paid and one unpaid)
         # cancellation period =1, date = 2015, 2, 13, 18, 0
@@ -1079,10 +1067,9 @@ class CancelUnpaidBookingsTests(TestCase):
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
-            date_booked=datetime(
-                2015, 2, 9, 18, 0, tzinfo=timezone.utc
-            ),
-            warning_sent=True
+            date_booked=datetime(2015, 2, 9, 18, 0, tzinfo=timezone.utc),
+            warning_sent=True,
+            date_warning_sent=datetime(2015, 2, 9, 20, 0, tzinfo=timezone.utc),
         )
 
         # make some waiting list users
@@ -1132,35 +1119,41 @@ class CancelUnpaidBookingsTests(TestCase):
         self.assertEqual(len(mail.outbox), 2)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_dont_cancel_bookings_rebooked_within_past_6_hours(self, mock_tz):
+    def test_dont_cancel_rebookings_within_cancellation_period_without_warning_sent(self, mock_tz):
         """
-        Avoid immediately cancelling bookings made within the cancellation
-        period to allow time for users to make payments
+        Only cancel bookings made within the cancellation period if a warning has been sent
         """
-        mock_tz.now.return_value = datetime(
-            2015, 2, 10, 18, 0, tzinfo=timezone.utc
-        )
-        self.unpaid.date_rebooked = datetime(
-            2015, 2, 10, 12, 30, tzinfo=timezone.utc
-        )
+        mock_tz.now.return_value = datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc)
+        # cancel booking to reset warning flags
+        self.unpaid.status = "CANCELLED"
+        self.unpaid.save()
+        # rebook
+        self.unpaid.status = "OPEN"
+        self.unpaid.date_rebooked = datetime(2015, 2, 10, 12, 30, tzinfo=timezone.utc)
         self.unpaid.save()
 
         self.assertEquals(self.unpaid.status, 'OPEN')
-
+        self.assertFalse(self.unpaid.warning_sent)
+        self.assertIsNone(self.unpaid.date_warning_sent)
         management.call_command('cancel_unpaid_bookings')
-        # self.unpaid was booked > 6 hrs ago
-        self.assertTrue(self.unpaid.date_booked <= (timezone.now() - timedelta(hours=6)))
         self.unpaid.refresh_from_db()
-        # but still open
+        # still open
         self.assertEquals(self.unpaid.status, 'OPEN')
 
-        # move time on one hour and try again
-        mock_tz.now.return_value = datetime(
-            2015, 2, 10, 19, 0, tzinfo=timezone.utc
-        )
+        # set the warning sent flag to < 2hrs ago
+        self.unpaid.warning_sent = True
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 17, 0, tzinfo=timezone.utc)
+        self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
-        # self.unpaid was rebooked > 6 hrs ago
-        self.assertTrue(self.unpaid.date_rebooked <= (timezone.now() - timedelta(hours=6)))
+        self.unpaid.refresh_from_db()
+        # still open
+        self.assertEquals(self.unpaid.status, 'OPEN')
+
+        # set the warning sent flag to > 2hrs ago
+        self.unpaid.warning_sent = True
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 15, 0, tzinfo=timezone.utc)
+        self.unpaid.save()
+        management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # now cancelled
         self.assertEquals(self.unpaid.status, 'CANCELLED')
@@ -1193,46 +1186,6 @@ class CancelUnpaidBookingsTests(TestCase):
         # set date booked to >8 hrs ago
         self.unpaid.date_booked = datetime(
             2015, 2, 11, 1, 59, tzinfo=timezone.utc
-        )
-        self.unpaid.save()
-        # self.unpaid.date_booked is within 4 hrs, so not cancelled
-        management.call_command('cancel_unpaid_bookings')
-        # emails are sent to user per cancelled booking and studio once for all
-        # cancelled bookings
-        self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
-        self.assertEqual(self.unpaid.status, "CANCELLED")
-        # even though warning has not been sent
-        self.assertFalse(self.unpaid.warning_sent)
-
-
-    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_payment_time_allowed_less_than_6_hours_defaults_to_6(
-            self, mock_tz
-    ):
-        mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
-        )
-        self.event.payment_due_date = None
-        self.event.payment_time_allowed = 4
-        self.event.save()
-
-        self.unpaid.date_booked = datetime(
-            2015, 2, 11, 5, 0, tzinfo=timezone.utc
-        )
-        self.unpaid.warning_sent = False
-        self.unpaid.save()
-        # self.unpaid.date_booked is more than 4 but <6 hrs, so not cancelled
-        management.call_command('cancel_unpaid_bookings')
-        # emails are sent to user per cancelled booking and studio once for all
-        # cancelled bookings
-        self.unpaid.refresh_from_db()
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(self.unpaid.status, "OPEN")
-
-        # set date booked to >6 hrs ago
-        self.unpaid.date_booked = datetime(
-            2015, 2, 11, 3, 59, tzinfo=timezone.utc
         )
         self.unpaid.save()
         # self.unpaid.date_booked is within 4 hrs, so not cancelled
@@ -1695,7 +1648,8 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             TicketBooking,  ticketed_event=self.ticketed_event, paid=False,
             date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
             warning_sent=True,
-            user__email='unpaid@test.com', purchase_confirmed=True
+            user__email='unpaid@test.com', purchase_confirmed=True,
+            date_warning_sent = datetime(2015, 2, 1, 2, 0, tzinfo=timezone.utc)
             )
         for booking in [self.paid, self.unpaid]:
             baker.make(Ticket, ticket_booking=booking)
@@ -1907,47 +1861,6 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # even though warning has not been sent
         self.assertFalse(self.unpaid.warning_sent)
 
-
-    @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
-    def test_payment_time_allowed_less_than_6_hours_defaults_to_6(
-            self, mock_tz
-    ):
-        mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
-        )
-        self.ticketed_event.payment_due_date = None
-        self.ticketed_event.payment_time_allowed = 4
-        self.ticketed_event.save()
-
-        self.unpaid.date_booked = datetime(
-            2015, 2, 11, 5, 0, tzinfo=timezone.utc
-        )
-        self.unpaid.warning_sent = False
-        self.unpaid.save()
-        # self.unpaid.date_booked is more than 4 but <6 hrs, so not cancelled
-        management.call_command('cancel_unpaid_ticket_bookings')
-        # emails are sent to user per cancelled booking and studio once for all
-        # cancelled bookings
-        self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertFalse(self.unpaid.cancelled)
-
-
-        # set date booked to >6 hrs ago
-        self.unpaid.date_booked = datetime(
-            2015, 2, 11, 3, 59, tzinfo=timezone.utc
-        )
-        self.unpaid.save()
-        # self.unpaid.date_booked is within 4 hrs, so not cancelled
-        management.call_command('cancel_unpaid_ticket_bookings')
-        # emails are sent to user per cancelled booking and studio once for all
-        # cancelled bookings
-        self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
-        self.assertTrue(self.unpaid.cancelled)
-        # even though warning has not been sent
-        self.assertFalse(self.unpaid.warning_sent)
-
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
     def test_dont_cancel_for_events_in_the_past(self, mock_tz):
         """
@@ -2011,44 +1924,50 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         self.assertFalse(self.unpaid.cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
-    def test_dont_cancel_bookings_created_within_past_6_hours(self, mock_tz):
+    def test_dont_cancel_bookings_in_cancellation_period_if_warning_not_sent(self, mock_tz):
         """
         Avoid immediately cancelling bookings made within the cancellation
-        period to allow time for users to make payments
+        period - don't cancel unless warned at least 2 hrs ago
         """
-        mock_tz.now.return_value = datetime(
-            2015, 2, 11, 12, 0, tzinfo=timezone.utc
-        )
+        mock_tz.now.return_value = datetime(2015, 2, 11, 12, 0, tzinfo=timezone.utc)
 
         # self.ticketed_event payment due date 2015/2/11 23:59
 
-        unpaid_within_6_hrs = baker.make(
+        unpaid_no_warning = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
-            date_booked=datetime(
-                2015, 2, 11, 6, 30, tzinfo=timezone.utc
-            ),
-            warning_sent=True
+            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=timezone.utc),
+            warning_sent=False
         )
-        unpaid_more_than_6_hrs = baker.make(
+        unpaid_warning_within_2_hrs = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
-            date_booked=datetime(
-                2015, 2, 10, 5, 30, tzinfo=timezone.utc
-            ),
-            warning_sent=True
+            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=timezone.utc),
+            warning_sent=True,
+            date_warning_sent=datetime(2015, 2, 11, 10, 30, tzinfo=timezone.utc),
+        )
+        unpaid_warning_more_than_2_hrs_ago = baker.make(
+            TicketBooking,
+            ticketed_event=self.ticketed_event,
+            paid=False,
+            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=timezone.utc),
+            warning_sent=True,
+            date_warning_sent=datetime(2015, 2, 11, 9, 30, tzinfo=timezone.utc),
         )
 
-        self.assertFalse(unpaid_within_6_hrs.cancelled)
-        self.assertFalse(unpaid_more_than_6_hrs.cancelled)
+        self.assertFalse(unpaid_no_warning.cancelled)
+        self.assertFalse(unpaid_warning_within_2_hrs.cancelled)
+        self.assertFalse(unpaid_warning_more_than_2_hrs_ago.cancelled)
 
         management.call_command('cancel_unpaid_ticket_bookings')
-        unpaid_within_6_hrs.refresh_from_db()
-        unpaid_more_than_6_hrs.refresh_from_db()
-        self.assertFalse(unpaid_within_6_hrs.cancelled)
-        self.assertTrue(unpaid_more_than_6_hrs.cancelled)
+        unpaid_no_warning.refresh_from_db()
+        unpaid_warning_within_2_hrs.refresh_from_db()
+        unpaid_warning_more_than_2_hrs_ago.refresh_from_db()
+        self.assertFalse(unpaid_no_warning.cancelled)
+        self.assertFalse(unpaid_warning_within_2_hrs.cancelled)
+        self.assertTrue(unpaid_warning_more_than_2_hrs_ago.cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
     def test_only_send_one_email_to_studio(self, mock_tz):
@@ -2062,10 +1981,9 @@ class CancelUnpaidTicketBookingsTests(TestCase):
                 TicketBooking, ticketed_event=self.ticketed_event,
                 cancelled=False, paid=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(
-                    2015, 2, 9, tzinfo=timezone.utc
-                ),
-                warning_sent=True
+                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                warning_sent=True,
+                date_warning_sent=datetime(2015, 2, 9, 2, tzinfo=timezone.utc),
             )
         for booking in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=booking)
@@ -2131,10 +2049,9 @@ class CancelUnpaidTicketBookingsTests(TestCase):
                 TicketBooking, ticketed_event=self.ticketed_event,
                 cancelled=False, paid=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(
-                    2015, 2, 9, tzinfo=timezone.utc
-                ),
-                warning_sent=True
+                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                warning_sent=True,
+                date_warning_sent= datetime(2015, 2, 9, tzinfo=timezone.utc),
             )
         for booking in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=booking)

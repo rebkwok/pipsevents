@@ -3,25 +3,25 @@ Check for unpaid bookings and cancel where:
 booking.status = OPEN
 paid = False
 advance_payment_required = True
-Booking date booked OR booking date rebooked > 6 hrs ago
+warning sent > 2 hrs ago (warning job already allowed a min 2hrs since booking, so this gives at least 4 hrs before cancelling)
 AND
-(payment_due_date < timezone.now()
+(payment_due_date < now
 OR
-date - cancellation_period < timezone.now()
+date - cancellation_period < now
 OR
-timezone.now() - date_booked/rebooked > payment_time_allowed
+now - date_booked/rebooked > payment_time_allowed
 )
 Email user that their booking has been cancelled
 '''
 import logging
 from datetime import timedelta
+import pytz
 
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.core.management.base import BaseCommand
-from django.db.models import Q
 
 from booking.models import Booking, WaitingListUser
 from booking.email_helpers import send_support_email, send_waiting_list_email
@@ -40,44 +40,40 @@ class Command(BaseCommand):
         # for payment before the next cancel job is run
         cancel_start_time = 9
         cancel_end_time = 22
-        now = timezone.now()
+        now = timezone.now().astimezone(pytz.timezone("Europe/London"))
         if cancel_start_time <= now.hour < cancel_end_time:
-            self.cancel_bookings()
+            self.cancel_bookings(now)
 
-    def get_bookings_to_cancel(self):
-        time_buffer = timezone.now() - timedelta(hours=6)
+    def get_bookings_to_cancel(self, now):
+        warning_time_buffer = now - timedelta(hours=2)
         bookings_qset = Booking.objects.filter(
-            event__date__gte=timezone.now(),
+            event__date__gte=now,
             event__advance_payment_required=True,
             status='OPEN',
             paid=False,
             payment_confirmed=False,
-            date_booked__lte=time_buffer
-        ).exclude(Q(date_rebooked__isnull=False) & Q(date_rebooked__gte=time_buffer))
+        ).exclude(date_warning_sent__gte=warning_time_buffer)  # doesn't exclude date_warning_sent==None
         for booking in bookings_qset:
-            if booking.event.date - timedelta(hours=booking.event.cancellation_period) < timezone.now() \
-                    and booking.warning_sent:
+            if booking.event.date - timedelta(hours=booking.event.cancellation_period) < now and booking.warning_sent:
                 yield booking
             elif booking.event.payment_due_date and booking.warning_sent:
-                if booking.event.payment_due_date < timezone.now():
+                if booking.event.payment_due_date < now:
                     yield booking
             elif booking.event.payment_time_allowed:
-                # if there's a payment time allowed, cancel bookings booked
-                # longer ago than this (bookings already filtered out
-                # any booked or rebooked within 6 hrs)
+                # if there's a payment time allowed, cancel bookings booked longer ago than this
                 # don't check for warning sent this time
                 # for free class requests, always allow them 24 hrs so admin
                 # have time to mark classes as free (i.e.paid)
                 last_booked_date = booking.date_rebooked if booking.date_rebooked else booking.date_booked
                 if booking.free_class_requested:
-                    if last_booked_date < timezone.now() - timedelta(hours=24):
+                    if last_booked_date < now - timedelta(hours=24):
                         yield booking
-                elif last_booked_date < timezone.now() - timedelta(hours=booking.event.payment_time_allowed):
+                elif last_booked_date < now - timedelta(hours=booking.event.payment_time_allowed):
                     yield booking
 
-    def cancel_bookings(self):
+    def cancel_bookings(self, now):
         bookings_for_studio_email = [] if settings.SEND_ALL_STUDIO_EMAILS else None
-        for booking in self.get_bookings_to_cancel():
+        for booking in self.get_bookings_to_cancel(now):
             event_was_full = booking.event.spaces_left == 0
             ctx = {
                   'booking': booking,

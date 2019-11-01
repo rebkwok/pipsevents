@@ -420,6 +420,8 @@ class Booking(models.Model):
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
+    date_warning_sent = models.DateTimeField(null=True, blank=True)
+
     free_class_requested = models.BooleanField(default=False)
     free_class = models.BooleanField(default=False)
     # Flag to note if booking was autocancelled due to non-payment - use to
@@ -596,6 +598,12 @@ class Booking(models.Model):
                 self.paid = False
                 self.payment_confirmed = False
 
+        if cancellation:
+            # reset reminder and warning flags on cancel
+            self.reminder_sent = False
+            self.warning_sent = False
+            self.date_warning_sent = None
+
         if self.block and self.block.block_type.identifier == 'free class':
             self.free_class = True
 
@@ -605,6 +613,9 @@ class Booking(models.Model):
 
         if self.payment_confirmed and not self.date_payment_confirmed:
             self.date_payment_confirmed = timezone.now()
+
+        if self.warning_sent and not self.date_warning_sent:
+            self.date_warning_sent = timezone.now()
 
         # Done with changes to current booking; call super to save the
         # booking so we can check block status
@@ -795,6 +806,7 @@ class TicketBooking(models.Model):
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
+    date_warning_sent = models.DateTimeField(null=True, blank=True)
 
     booking_reference = models.CharField(max_length=255)
     purchase_confirmed = models.BooleanField(default=False)
@@ -814,7 +826,8 @@ class TicketBooking(models.Model):
                     'No tickets left for {}'.format(self.ticketed_event)
                 )
             self.set_booking_reference()
-
+        if self.warning_sent and not self.date_warning_sent:
+            self.date_warning_sent = timezone.now()
         super(TicketBooking, self).save(*args, **kwargs)
 
 
