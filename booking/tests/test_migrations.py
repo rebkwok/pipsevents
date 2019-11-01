@@ -4,7 +4,7 @@ from django.utils import timezone
 from django_migration_testcase import MigrationTest
 
 
-class MigrationTests(MigrationTest):
+class VoucherMigrationTests(MigrationTest):
 
     before = [
         ('auth', '0007_alter_validators_add_error_messages'),
@@ -139,3 +139,149 @@ class MigrationTests(MigrationTest):
 
         # no BlockVouchers
         self.assertEqual(BlockVoucher.objects.count(), 0)
+
+
+class DateWarningSentMigrationTests(MigrationTest):
+
+    before = [
+        ('auth', '0011_update_proxy_permissions'),
+        ('booking', '0060_blocktype_assign_free_class_on_completion')
+    ]
+    after = [
+        ('auth', '0011_update_proxy_permissions'),
+        ('booking', '0062_data_migration_warning_dates_sent')
+    ]
+
+    def test_data_migration_booking_date_warning_sent(self):
+        # get pre-migration models
+        User = self.get_model_before('auth.User')
+        EventType = self.get_model_before('booking.EventType')
+        Event = self.get_model_before('booking.Event')
+        Booking = self.get_model_before('booking.Booking')
+
+
+        # set up pre-migration data
+        event_type = EventType.objects.create(
+            event_type='CL', subtype='Pole level class'
+        )
+
+        user1 = User.objects.create(username='user1', password='user1', email='user1@test.com')
+        user2 = User.objects.create(username='user2', password='user2', email='user2@test.com')
+        user3 = User.objects.create(username='user3', password='user3', email='user3@test.com')
+        user4 = User.objects.create(username='user4', password='user4', email='user4@test.com')
+        user5 = User.objects.create(username='user5', password='user4', email='user4@test.com')
+        future_event = Event.objects.create(
+            event_type=event_type,
+            date=timezone.now() + timedelta(days=7),
+            cost=10,
+            advance_payment_required=True,
+            payment_open=True,
+            booking_open=True
+        )
+        past_event = Event.objects.create(
+            event_type=event_type,
+            date=timezone.now() - timedelta(days=7),
+            cost=10,
+            advance_payment_required=True,
+            payment_open=True,
+            booking_open=True
+        )
+        # past_booking_with_warning - no warning date added
+        Booking.objects.create(event=past_event, user=user1, paid=False, warning_sent=True)
+        # open_unpaid_booking_without_warning - past_booking_with_warning - no warning date added
+        Booking.objects.create(user=user2, event=future_event, paid=False, warning_sent=False)
+        # open_paid_booking_with_warning - past_booking_with_warning - no warning date added
+        Booking.objects.create(user=user3, event=future_event, paid=True, warning_sent=True)
+        # cancelled_unpaid_booking_with_warning - past_booking_with_warning - no warning date added
+        Booking.objects.create(
+            user=user4, event=future_event, paid=False, warning_sent=True, status="CANCELLED"
+        )
+
+        # open_unpaid_booking_with_warning - warning date added
+        Booking.objects.create(user=user5, event=future_event, paid=False, warning_sent=True)
+
+        # run migration
+        self.run_migration()
+
+        # get post-migration models
+        User = self.get_model_after('auth.User')
+        Booking = self.get_model_after('booking.Booking')
+
+        user1_after = User.objects.get(username='user1')
+        user2_after = User.objects.get(username='user2')
+        user3_after = User.objects.get(username='user3')
+        user4_after = User.objects.get(username='user4')
+        user5_after = User.objects.get(username='user5')
+
+        # no warning date added
+        no_warning_date_added = Booking.objects.filter(user__in=[user1_after, user2_after, user3_after, user4_after])
+        # warning date added
+        open_unpaid_booking_with_warning_after = Booking.objects.get(user=user5_after)
+
+        # check data
+        for booking in no_warning_date_added:
+            self.assertIsNone(booking.date_warning_sent)
+
+        self.assertIsNotNone(open_unpaid_booking_with_warning_after.date_warning_sent)
+
+    def test_data_migration_ticket_booking_date_warning_sent(self):
+        # get pre-migration models
+        User = self.get_model_before('auth.User')
+        TicketedEvent = self.get_model_before('booking.TicketedEvent')
+        TicketBooking = self.get_model_before('booking.TicketBooking')
+
+        # set up pre-migration data
+        user1 = User.objects.create(username='user1', password='user1', email='user1@test.com')
+        user2 = User.objects.create(username='user2', password='user2', email='user2@test.com')
+        user3 = User.objects.create(username='user3', password='user3', email='user3@test.com')
+        user4 = User.objects.create(username='user4', password='user4', email='user4@test.com')
+        user5 = User.objects.create(username='user5', password='user4', email='user4@test.com')
+        future_event = TicketedEvent.objects.create(
+            date=timezone.now() + timedelta(days=7),
+            ticket_cost=10,
+            advance_payment_required=True,
+            payment_open=True,
+        )
+        past_event = TicketedEvent.objects.create(
+            date=timezone.now() - timedelta(days=7),
+            ticket_cost=10,
+            advance_payment_required=True,
+            payment_open=True,
+        )
+        # past_booking_with_warning - no warning date added
+        TicketBooking.objects.create(ticketed_event=past_event, user=user1, paid=False, warning_sent=True)
+        # future_unpaid_booking_without_warning - no warning date added
+        TicketBooking.objects.create(user=user2, ticketed_event=future_event, paid=False, warning_sent=False)
+        # future_paid_booking_with_warning - no warning date added
+        TicketBooking.objects.create(user=user3, ticketed_event=future_event, paid=True, warning_sent=True)
+        # cancelled_unpaid_booking_with_warning - past_booking_with_warning - no warning date added
+        TicketBooking.objects.create(
+            user=user4, ticketed_event=future_event, paid=False, warning_sent=True, cancelled=True
+        )
+
+        # open_unpaid_booking_with_warning - warning date added
+        TicketBooking.objects.create(user=user5, ticketed_event=future_event, paid=False, warning_sent=True)
+
+        # run migration
+        self.run_migration()
+
+        # get post-migration models
+        User = self.get_model_after('auth.User')
+        TicketBooking = self.get_model_after('booking.TicketBooking')
+
+        user1_after = User.objects.get(username='user1')
+        user2_after = User.objects.get(username='user2')
+        user3_after = User.objects.get(username='user3')
+        user4_after = User.objects.get(username='user4')
+        user5_after = User.objects.get(username='user5')
+
+        # no warning date added
+        no_warning_date_added = TicketBooking.objects.filter(user__in=[user1_after, user2_after, user3_after, user4_after])
+        # warning date added
+        open_unpaid_booking_with_warning_after = TicketBooking.objects.get(user=user5_after)
+
+        # check data
+        for booking in no_warning_date_added:
+            self.assertIsNone(booking.date_warning_sent)
+
+        self.assertIsNotNone(open_unpaid_booking_with_warning_after.date_warning_sent)

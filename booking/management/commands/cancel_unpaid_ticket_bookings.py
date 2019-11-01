@@ -9,9 +9,9 @@ ticket_booking.cancelled = False
 ticket_booking.paid = False
 ticket_booking.warning_sent = True (only for payment due date)
 
-ticketed_event.payment_due_date < timezone.now()
+ticketed_event.payment_due_date < now
 
-ticket_booking.date_booked is > 6 hrs ago
+ticket_booking.date_warning_sent is > 2 hrs ago
 if not ticketed_event.payment_due_date:
     now > ticket_booking.date_booked + ticketed_event.payment_time_allowed
     (check the date_booked first; if payment_time_allowed is <6 hrs, default
@@ -21,16 +21,16 @@ Email user that their booking has been cancelled
 '''
 import logging
 from datetime import timedelta
+import pytz
 
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import get_template
 from django.core.management.base import BaseCommand
-from django.core import management
 
-from booking.models import TicketBooking, TicketedEvent
-from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.models import TicketedEvent
+from booking.email_helpers import send_support_email
 from activitylog.models import ActivityLog
 
 
@@ -45,48 +45,43 @@ class Command(BaseCommand):
         # for payment before the next cancel job is run
         cancel_start_time = 9
         cancel_end_time = 22
-        now = timezone.now()
+        now = timezone.now().astimezone(pytz.timezone("Europe/London"))
         if cancel_start_time <= now.hour < cancel_end_time:
-            self.cancel_ticket_bookings()
+            self.cancel_ticket_bookings(now)
 
-    def get_ticket_bookings_to_cancel(self):
-        time_buffer = timezone.now() - timedelta(hours=6)
+    def get_ticket_bookings_to_cancel(self, now):
+        warning_sent_buffer = now - timedelta(hours=2)
         # get relevant ticketed_events
         ticketed_events = TicketedEvent.objects.filter(
-            date__gte=timezone.now(),
+            date__gte=now,
             cancelled=False,
             ticket_cost__gt=0,
             advance_payment_required=True,
         )
         for event in ticketed_events:
-            # get open unpaid ticket bookings made > 6 hrs ago
-            ticket_bookings = [
-                bkg for bkg in event.ticket_bookings.all()
-                if not bkg.cancelled and not bkg.paid
-                and (bkg.date_booked < timezone.now() - timedelta(hours=6))
-                ]
+            # get open unpaid ticket bookings made > with either no warning sent date yet, or warning sent date > 2hrs ago
+            ticket_bookings = event.ticket_bookings.filter(cancelled=False, paid=False).exclude(date_warning_sent__gte=warning_sent_buffer)
 
             # if payment due date is past and warning has been sent, cancel
-            if event.payment_due_date and event.payment_due_date < timezone.now():
+            if event.payment_due_date and event.payment_due_date < now:
                 for bkg in ticket_bookings:
                     if bkg.warning_sent:
                         yield bkg
 
             elif event.payment_time_allowed:
                 # if there's a payment time allowed, cancel bookings booked
-                # longer ago than this (ticket_bookings already filtered out
-                # any booked within 6 hrs)
+                # longer ago than this
                 # don't check for warning sent this time
                 for bkg in ticket_bookings:
-                    if bkg.date_booked < timezone.now() - timedelta(hours=event.payment_time_allowed):
+                    if bkg.date_booked < now - timedelta(hours=event.payment_time_allowed):
                         yield bkg
 
 
-    def cancel_ticket_bookings(self):
+    def cancel_ticket_bookings(self, now):
 
         ticket_bookings_for_studio_email = [] if settings.SEND_ALL_STUDIO_EMAILS else None
 
-        for ticket_booking in self.get_ticket_bookings_to_cancel():
+        for ticket_booking in self.get_ticket_bookings_to_cancel(now):
             ctx = {
                   'ticket_booking': ticket_booking,
                   'ticketed_event': ticket_booking.ticketed_event,
