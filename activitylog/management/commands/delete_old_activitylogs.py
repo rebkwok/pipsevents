@@ -20,16 +20,17 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             '--age',
-            default=2,
+            default=1,
             type=int,
-            help='Age (in years) of logs to delete.  Defaults to 2 yrs, i.e. will delete all logs older than 2 years old'
+            help='Age (in years) of logs to delete.  Defaults to 1 yr, i.e. will delete all logs older than 1 year old'
         )
 
     def handle(self, *args, **options):
         age = options.get('age')
+        now = timezone.now()
         # set cutoff to beginning of this day <age> years ago
-        cutoff = (timezone.now()-relativedelta(years=age)).replace(hour=0, minute=0, second=0, microsecond=0)
-        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff.strftime('%Y-%m-%d')}.csv"
+        cutoff = (now-relativedelta(years=age)).replace(hour=0, minute=0, second=0, microsecond=0)
+        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff.strftime('%Y-%m-%d')}_{now.strftime('%Y%m%d%H%M%S')}.csv"
         s3_upload_path = os.path.join(settings.S3_LOG_BACKUP_PATH, filename)
         # Delete the empty logs first
         management.call_command('delete_empty_job_logs', cutoff.strftime('%Y%m%d'))
