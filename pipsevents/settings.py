@@ -532,3 +532,6 @@ if not (MAILCHIMP_USER and MAILCHIMP_SECRET and MAILCHIMP_LIST_ID
         "You must set the MAILCHIMP_USER, MAILCHIMP_SECRET, "
         "MAILCHIMP_LIST_ID and MAILCHIMP_WEBHOOK_SECRET"
     )
+
+S3_LOG_BACKUP_PATH = "s3://backups.polefitstarlet.co.uk/pipsevents_activitylogs"
+S3_LOG_BACKUP_ROOT_FILENAME = "pipsevents_activity_logs_backup"

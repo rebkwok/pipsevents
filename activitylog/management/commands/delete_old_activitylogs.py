@@ -4,6 +4,7 @@ import subprocess
 
 from dateutil.relativedelta import relativedelta
 
+from django.conf import settings
 from django.core import management
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -28,8 +29,8 @@ class Command(BaseCommand):
         age = options.get('age')
         # set cutoff to beginning of this day <age> years ago
         cutoff = (timezone.now()-relativedelta(years=age)).replace(hour=0, minute=0, second=0, microsecond=0)
-        filename = f"pipsevents_activity_logs_backup_{cutoff.strftime('%Y-%m-%d')}.csv"
-
+        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff.strftime('%Y-%m-%d')}.csv"
+        s3_upload_path = os.path.join(settings.S3_LOG_BACKUP_PATH, filename)
         # Delete the empty logs first
         management.call_command('delete_empty_job_logs', cutoff.strftime('%Y%m%d'))
 
@@ -48,7 +49,7 @@ class Command(BaseCommand):
                         smart_str(activitylog.log)
                     ])
 
-            subprocess.run(["aws", "s3", "cp", filename, f"s3://backups.polefitstarlet.co.uk/pipsevents_activitylogs/{filename}"], check=True)
+            subprocess.run(["aws", "s3", "cp", filename, s3_upload_path], check=True)
             os.unlink(filename)
 
             old_logs.delete()
