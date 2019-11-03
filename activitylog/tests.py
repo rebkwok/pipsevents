@@ -89,6 +89,12 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
         # only the 3 non-empty logs remain
         self.assertEqual(ActivityLog.objects.count(), 3)
 
+    def test_delete_all_empty_logs_dry_run(self):
+        self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
+        management.call_command('delete_empty_job_logs', 'now', dry_run=True)
+        # all logs still remain
+        self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
+
     def test_delete_before_date(self):
         self.assertEqual(ActivityLog.objects.count(), self.total_setup_logs)
 
