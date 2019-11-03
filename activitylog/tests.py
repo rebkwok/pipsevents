@@ -1,3 +1,4 @@
+import os
 import sys
 from io import StringIO
 from unittest.mock import patch
@@ -6,6 +7,7 @@ from datetime import datetime, timedelta
 from model_bakery import baker
 from dateutil.relativedelta import relativedelta
 
+from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.core import management
 from django.test import TestCase
@@ -13,7 +15,6 @@ from django.utils import timezone
 
 from activitylog import admin
 from activitylog.models import ActivityLog
-from studioadmin.views.activity_log import EMPTY_JOB_TEXT
 
 
 class ActivityLogModelTests(TestCase):
@@ -68,13 +69,13 @@ class DeleteEmptyJobActivityLogsTests(TestCase):
                 ActivityLog, log='Non empty message',
                 timestamp=timezone.now()-timedelta(days),
             )
-            for msg in EMPTY_JOB_TEXT:
+            for msg in settings.EMPTY_JOB_TEXT:
                 baker.make(
                     ActivityLog, log=msg,
                     timestamp=timezone.now()-timedelta(days),
                 )
 
-        self.total_empty_msg_count = len(EMPTY_JOB_TEXT)
+        self.total_empty_msg_count = len(settings.EMPTY_JOB_TEXT)
         self.total_setup_logs = (self.total_empty_msg_count * 3) + 3
 
         self.output = StringIO()
@@ -182,9 +183,9 @@ class DeleteOldActivityLogsTests(TestCase):
         self.assertIn(self.log_13monthsold.id, all_log_ids)
 
         self.assertEquals(mock_run.call_count, 1)
-        filename = f"pipsevents_activity_logs_backup_{(timezone.now()-relativedelta(years=2)).strftime('%Y-%m-%d')}.csv"
+        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{(timezone.now()-relativedelta(years=2)).strftime('%Y-%m-%d')}.csv"
         mock_run.assert_called_once_with(
-            ['aws', 's3', 'cp', filename, f's3://backups.polefitstarlet.co.uk/pipsevents_activitylogs/{filename}'], check=True
+            ['aws', 's3', 'cp', filename, os.path.join(settings.S3_LOG_BACKUP_PATH, filename)], check=True
         )
 
     @patch('activitylog.management.commands.delete_old_activitylogs.subprocess.run')
@@ -199,7 +200,7 @@ class DeleteOldActivityLogsTests(TestCase):
         self.assertNotIn(self.log_37monthsold.id, all_log_ids)
 
         self.assertEquals(mock_run.call_count, 1)
-        filename = f"pipsevents_activity_logs_backup_{(timezone.now()-relativedelta(years=3)).strftime('%Y-%m-%d')}.csv"
+        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{(timezone.now()-relativedelta(years=3)).strftime('%Y-%m-%d')}.csv"
         mock_run.assert_called_once_with(
-            ['aws', 's3', 'cp', filename, f's3://backups.polefitstarlet.co.uk/pipsevents_activitylogs/{filename}'], check=True
+            ['aws', 's3', 'cp', filename, os.path.join(settings.S3_LOG_BACKUP_PATH, filename)], check=True
         )

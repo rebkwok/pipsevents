@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from activitylog.models import ActivityLog
-from studioadmin.views.activity_log import EMPTY_JOB_TEXT
 
 class Command(BaseCommand):
 
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         before_date_raw = options.get('before')
         dry_run = options.get('dry_run')
         if before_date_raw == 'now':
-            logs = ActivityLog.objects.filter(log__in=EMPTY_JOB_TEXT)
+            logs = ActivityLog.objects.filter(log__in=settings.EMPTY_JOB_TEXT)
             before_date = (timezone.now() + timedelta(1)).strftime('%Y%m%d')
         else:
             try:
@@ -36,7 +36,7 @@ class Command(BaseCommand):
                     )
                     return
                 logs = ActivityLog.objects.filter(
-                    log__in=EMPTY_JOB_TEXT, timestamp__lt=before_date
+                    log__in=settings.EMPTY_JOB_TEXT, timestamp__lt=before_date
                 )
             except ValueError:
                 self.stdout.write(

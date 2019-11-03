@@ -533,5 +533,15 @@ if not (MAILCHIMP_USER and MAILCHIMP_SECRET and MAILCHIMP_LIST_ID
         "MAILCHIMP_LIST_ID and MAILCHIMP_WEBHOOK_SECRET"
     )
 
+# Activitylogs
+EMPTY_JOB_TEXT = [
+    'email_warnings job run; no unpaid booking warnings to send',
+    'cancel_unpaid_bookings job run; no bookings to cancel',
+    'deleted_unconfirmed_bookings job run; no bookings to cancel',
+    'email_ticket_booking_warnings job run; no unpaid booking warnings to send',
+    'cancel_unpaid_ticket_bookings job run; no bookings to cancel',
+    'Delete disclaimers job run; no expired users',
+]
+
 S3_LOG_BACKUP_PATH = "s3://backups.polefitstarlet.co.uk/pipsevents_activitylogs"
 S3_LOG_BACKUP_ROOT_FILENAME = "pipsevents_activity_logs_backup"
