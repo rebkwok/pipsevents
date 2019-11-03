@@ -54,6 +54,6 @@ class Command(BaseCommand):
             os.unlink(filename)
 
             old_logs.delete()
-            message = f"{old_logs_count} activitylogs older than cutoff.strftime('%Y-%m-%d') backed up to s3 and deleted"
+            message = f"{old_logs_count} activitylogs older than {cutoff.strftime('%Y-%m-%d')} backed up to s3 and deleted"
             self.stdout.write(message)
             ActivityLog.objects.create(log=message)
