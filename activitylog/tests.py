@@ -166,41 +166,48 @@ class DeleteOldActivityLogsTests(TestCase):
     def setUp(self):
 
         # logs 13, 25, 37 months ago, one for each empty job text msg, one other
-        self.log_13monthsold = baker.make(ActivityLog, log='message', timestamp=timezone.now()-relativedelta(months=13))
-        self.log_25monthsold = baker.make(ActivityLog, log='message', timestamp=timezone.now()-relativedelta(months=25))
-        self.log_37monthsold = baker.make(ActivityLog, log='message', timestamp=timezone.now()-relativedelta(months=37))
+        self.mock_now = datetime(2019, 10, 1, tzinfo=timezone.utc)
+        self.log_11monthsold = baker.make(ActivityLog, log='message', timestamp=self.mock_now-relativedelta(months=11))
+        self.log_25monthsold = baker.make(ActivityLog, log='message', timestamp=self.mock_now-relativedelta(months=25))
+        self.log_37monthsold = baker.make(ActivityLog, log='message', timestamp=self.mock_now-relativedelta(months=37))
 
     @patch('activitylog.management.commands.delete_old_activitylogs.subprocess.run')
-    def test_delete_default_old_logs(self, mock_run):
+    @patch('activitylog.management.commands.delete_old_activitylogs.timezone.now')
+    def test_delete_default_old_logs(self, mock_now, mock_run):
+        mock_now.return_value = self.mock_now
         self.assertEqual(ActivityLog.objects.count(), 3)
-        # no age, defaults to 2 yrs
+        # no age, defaults to 1 yr
         management.call_command('delete_old_activitylogs')
-        # 2 logs left - the one that's < 2 yrs old plus the new one to log this activity
+        # 2 logs left - the one that's < 1 yrs old plus the new one to log this activity
         self.assertEquals(ActivityLog.objects.count(), 2)
         all_log_ids = ActivityLog.objects.values_list("id", flat=True)
         for log in [self.log_25monthsold, self.log_37monthsold]:
             self.assertNotIn(log.id, all_log_ids)
-        self.assertIn(self.log_13monthsold.id, all_log_ids)
+        self.assertIn(self.log_11monthsold.id, all_log_ids)
 
         self.assertEquals(mock_run.call_count, 1)
-        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{(timezone.now()-relativedelta(years=2)).strftime('%Y-%m-%d')}.csv"
+        cutoff = (self.mock_now-relativedelta(years=1)).strftime('%Y-%m-%d')
+        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff}_{self.mock_now.strftime('%Y%m%d%H%M%S')}.csv"
         mock_run.assert_called_once_with(
             ['aws', 's3', 'cp', filename, os.path.join(settings.S3_LOG_BACKUP_PATH, filename)], check=True
         )
 
     @patch('activitylog.management.commands.delete_old_activitylogs.subprocess.run')
-    def test_delete_old_logs_with_args(self, mock_run):
+    @patch('activitylog.management.commands.delete_old_activitylogs.timezone.now')
+    def test_delete_old_logs_with_args(self, mock_now, mock_run):
+        mock_now.return_value = self.mock_now
         self.assertEqual(ActivityLog.objects.count(), 3)
         management.call_command('delete_old_activitylogs', age=3)
         # 3 logs left - the 2 that are < 3 yrs old plus the new one to log this activity
         self.assertEquals(ActivityLog.objects.count(), 3)
         all_log_ids = ActivityLog.objects.values_list("id", flat=True)
-        for log in [self.log_13monthsold, self.log_25monthsold]:
+        for log in [self.log_11monthsold, self.log_25monthsold]:
             self.assertIn(log.id, all_log_ids)
         self.assertNotIn(self.log_37monthsold.id, all_log_ids)
 
         self.assertEquals(mock_run.call_count, 1)
-        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{(timezone.now()-relativedelta(years=3)).strftime('%Y-%m-%d')}.csv"
+        cutoff = (self.mock_now-relativedelta(years=3)).strftime('%Y-%m-%d')
+        filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff}_{self.mock_now.strftime('%Y%m%d%H%M%S')}.csv"
         mock_run.assert_called_once_with(
             ['aws', 's3', 'cp', filename, os.path.join(settings.S3_LOG_BACKUP_PATH, filename)], check=True
         )
