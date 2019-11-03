@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -16,11 +16,14 @@ class Command(BaseCommand):
                  'date will be deleted.  Enter "now" to delete all empty job '
                  'logs.'
         )
+        parser.add_argument('--dry-run')
 
     def handle(self, *args, **options):
         before_date_raw = options.get('before')
+        dry_run = options.get('dry_run')
         if before_date_raw == 'now':
             logs = ActivityLog.objects.filter(log__in=EMPTY_JOB_TEXT)
+            before_date = (timezone.now() + timedelta(1)).strftime('%Y%m%d')
         else:
             try:
                 # convert before date to datetime obj, with HH MM SS at 0
@@ -41,9 +44,13 @@ class Command(BaseCommand):
                 )
                 return
 
-        if logs:
-            log_count = logs.count()
+        log_count = logs.count()
+        if dry_run:
+            self.stdout.write(
+                f'{log_count} Logs for empty jobs before {before_date} will be deleted'
+            )
+        else:
             logs.delete()
             self.stdout.write(
-                'Logs for empty jobs deleted ({})'.format(log_count)
+                f'{log_count} Logs for empty jobs before {before_date} deleted'
             )
