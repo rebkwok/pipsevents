@@ -4,6 +4,7 @@ import operator
 from datetime import datetime
 from functools import reduce
 
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
 from django.views.generic import ListView
@@ -17,14 +18,6 @@ from activitylog.models import ActivityLog
 
 logger = logging.getLogger(__name__)
 
-EMPTY_JOB_TEXT = [
-    'email_warnings job run; no unpaid booking warnings to send',
-    'cancel_unpaid_bookings job run; no bookings to cancel',
-    'deleted_unconfirmed_bookings job run; no bookings to cancel',
-    'email_ticket_booking_warnings job run; no unpaid booking warnings to send',
-    'cancel_unpaid_ticket_bookings job run; no bookings to cancel',
-    'Delete disclaimers job run; no expired users',
-]
 
 class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
@@ -36,7 +29,7 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
     def get_queryset(self):
 
         queryset = ActivityLog.objects.exclude(
-            log__in=EMPTY_JOB_TEXT
+            log__in=settings.EMPTY_JOB_TEXT
         ).order_by('-timestamp')
 
         reset = self.request.GET.get('reset')
