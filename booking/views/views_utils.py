@@ -38,6 +38,8 @@ def validate_voucher_code(voucher, user, event=None):
         UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
             voucher.max_vouchers:
         return 'Voucher has limited number of total uses and has now expired'
+    elif not voucher.activated:
+        return 'Voucher has not been activated yet'
     elif not voucher.has_started:
         return 'Voucher code is not valid until {}'.format(
             voucher.start_date.strftime("%d %b %y")
@@ -58,6 +60,8 @@ def validate_block_voucher_code(voucher, user):
         UsedBlockVoucher.objects.filter(voucher=voucher).count() >= \
             voucher.max_vouchers:
         return 'Voucher has limited number of uses and has now expired'
+    elif not voucher.activated:
+        return 'Voucher has not been activated yet'
     elif not voucher.has_started:
         return 'Voucher code is not valid until {}'.format(
             voucher.start_date.strftime("%d %b %y")

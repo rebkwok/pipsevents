@@ -6,26 +6,21 @@ from django.conf import settings
 from django.contrib import messages
 from django.urls import reverse
 
-from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, CreateView, DeleteView
 from django.core.mail import send_mail
 from django.template.loader import get_template
-from django.template.response import TemplateResponse
 from braces.views import LoginRequiredMixin
 
 from accounts.utils import has_active_disclaimer, has_expired_disclaimer
-from payments.forms import PayPalPaymentsShoppingBasketForm
-from booking.models import Block, BlockVoucher, UsedBlockVoucher
-from booking.forms import BlockCreateForm, VoucherForm
+from booking.models import Block
+from booking.forms import BlockCreateForm
 import booking.context_helpers as context_helpers
-from booking.views.shopping_basket_views import apply_voucher_to_unpaid_blocks
 from booking.views.views_utils import (
-    DisclaimerRequiredMixin, DataPolicyAgreementRequiredMixin, validate_block_voucher_code
+    DisclaimerRequiredMixin, DataPolicyAgreementRequiredMixin
 )
-from payments.helpers import create_multiblock_paypal_transaction
 
 from activitylog.models import ActivityLog
 

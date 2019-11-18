@@ -12,13 +12,12 @@ from django.template.response import TemplateResponse
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 from braces.views import LoginRequiredMixin
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from booking.forms import TicketFormSet, TicketPurchaseForm
 import booking.context_helpers as context_helpers
-from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.email_helpers import send_support_email
 from booking.views.views_utils import DataPolicyAgreementRequiredMixin
 
 from payments.forms import PayPalPaymentsUpdateForm, PayPalPaymentsListForm

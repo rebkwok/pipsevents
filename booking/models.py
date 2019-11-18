@@ -225,6 +225,10 @@ class BlockType(models.Model):
             self.size
         )
 
+    @property
+    def description(self):
+        return f'{self.event_type.subtype} - {self.size} classes (block)'
+
 
 @receiver(pre_save)
 def check_duplicate_blocktype(sender, instance, **kwargs):
@@ -865,6 +869,10 @@ class BaseVoucher(models.Model):
         verbose_name="Maximum uses per user",
         help_text="Maximum times this voucher can be used by a single user"
     )
+    # for gift vouchers
+    is_gift_voucher = models.BooleanField(default=False)
+    activated = models.BooleanField(default=True)
+    name = models.CharField(null=True, blank=True, max_length=255, help_text="Name of recipient")
 
     def __str__(self):
         return self.code
@@ -877,7 +885,7 @@ class BaseVoucher(models.Model):
 
     @property
     def has_started(self):
-        return bool(self.start_date < timezone.now())
+        return bool(self.start_date < timezone.now() and self.activated)
 
     def save(self, *args, **kwargs):
         # replace start time with very start of day
@@ -922,3 +930,33 @@ class UsedBlockVoucher(models.Model):
     voucher = models.ForeignKey(BlockVoucher, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     block_id = models.CharField(max_length=20, null=True, blank=True)
+
+
+class GiftVoucher(models.Model):
+    block_type = models.ForeignKey(
+        BlockType, null=True, blank=True, on_delete=models.SET_NULL, related_name="block_gift_vouchers"
+    )
+    event_type = models.ForeignKey(
+        EventType, null=True, blank=True, on_delete=models.SET_NULL, related_name="event_gift_vouchers"
+    )
+
+    @property
+    def cost(self):
+        if self.block_type:
+            return self.block_type.cost
+        else:
+            last_event = Event.objects.filter(event_type=self.event_type).latest("id")
+            return last_event.cost
+
+    def clean(self):
+        if not self.block_type and not self.event_type:
+            raise ValidationError({'block_type': _('One of Block Type or Event Type is required.')})
+        elif self.block_type and self.event_type:
+            raise ValidationError({'event_type': _('Only one of Block Type or Event Type can be set.')})
+
+    def __str__(self):
+        if self.block_type:
+            voucher_type_str = f"{self.block_type.event_type.subtype} - {self.block_type.size} classes"
+        else:
+            voucher_type_str = str(self.event_type)
+        return f"{voucher_type_str} - £{self.cost}"

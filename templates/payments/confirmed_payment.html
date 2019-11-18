@@ -4,6 +4,7 @@
 {% block content %}
 
 <div class="row container-fluid">
+    {% if user.is_authenticated %}
     <div class="col-xs-12">
     <div class="btn-group btn-group-sm pull-right" role="group">
         <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
@@ -11,6 +12,7 @@
         <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
     </div>
     </div>
+    {% endif %}
 
     <div class="col-xs-12">
     {% if obj_unknown %}
@@ -25,12 +27,8 @@
             <p>You should receive payment confirmations from PayPal and from the
             studio shortly.</p>
         {% else %}
-            <p>Everything is probably fine...  </p>
-            <p>...but we could not retrieve all your data on return from paypal.
-                You (or PayPal) may have inadvertently re-requested this page.  This
-               is not likely to have affected the processing of your payment.
-                Please check your email for
-            payment confirmations from PayPal and from the studio.</p>
+            <p>Thank you for your payment which currently being processed.
+                Please check your email for payment confirmations from PayPal and from the studio.</p>
         {% endif %}
         <p>If you have not received payment confirmation within a
                 few hours, please check your spam folder and contact

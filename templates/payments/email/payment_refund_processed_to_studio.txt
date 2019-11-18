@@ -2,7 +2,7 @@ Payment has been refunded from paypal and payment status set to unpaid.
 
 User: {{ user }}
 Purchased: {% for obj in objs %}
-  - {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% else %}{{ obj.block_type }}{% endif %}
+  - {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% elif obj_type == "Block"%}{{ obj.block_type }}{% else %}Gift Voucher {{ obj.code }}{% endif %}
 {% endfor %}
 Invoice number: {{ invoice_id }}
 Paypal Transaction id: {{ paypal_transaction_id }}

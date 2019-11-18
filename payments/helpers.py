@@ -3,7 +3,7 @@ import random
 
 
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
-    PaypalTicketBookingTransaction
+    PaypalGiftVoucherTransaction, PaypalTicketBookingTransaction
 
 
 def create_booking_paypal_transaction(user, booking):
@@ -169,5 +169,38 @@ def create_ticket_booking_paypal_transaction(user, ticket_booking):
 
     pbt = PaypalTicketBookingTransaction.objects.create(
         invoice_id=invoice_id, ticket_booking=ticket_booking
+    )
+    return pbt
+
+
+def create_gift_voucher_paypal_transaction(voucher_type, voucher_code):
+    id_string = f"gift-voucher-{voucher_type}-{voucher_code}-inv#"
+    existing = PaypalGiftVoucherTransaction.objects.filter(
+        invoice_id__contains=id_string, voucher_type=voucher_type, voucher_code=voucher_code
+    ).order_by('-invoice_id')
+
+    if existing:
+        # PaypalGiftVoucherTransaction is created when the view is called, not when
+        # payment is made.  If there is no transaction id stored against it,
+        # we shouldn't need to make a new one
+        for transaction in existing:
+            if not transaction.transaction_id:
+                return transaction
+        existing_counter = existing[0].invoice_id[-3:]
+        counter = str(int(existing_counter) + 1).zfill(len(existing_counter))
+    else:
+        counter = '001'
+
+    invoice_id = id_string + counter
+    existing_inv = PaypalGiftVoucherTransaction.objects.filter(invoice_id=invoice_id)
+    if existing_inv:
+        # in case we already have the same invoice id for a different
+        # booking (the check for existing above checked for this exact
+        # combination of invoice id and voucher_code
+        random_prefix = random.randrange(100, 999)
+        invoice_id = id_string + str(random_prefix) + counter
+
+    pbt = PaypalGiftVoucherTransaction.objects.create(
+        invoice_id=invoice_id, voucher_type=voucher_type, voucher_code=voucher_code
     )
     return pbt
