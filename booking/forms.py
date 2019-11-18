@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
-from booking.models import Booking, Event, Block, BlockType, \
-    Ticket, TicketBooking
+from booking.models import Booking, Event, Block, BlockType, EventType, \
+    GiftVoucher, Ticket, TicketBooking
 
 
 MONTH_CHOICES = {
@@ -272,4 +272,45 @@ class BlockVoucherForm(forms.Form):
             attrs={"class": "form-control input-xs voucher"}
         ),
     )
+
+
+class GiftVoucherForm(forms.Form):
+
+    voucher_type = forms.ModelChoiceField(
+        label="Voucher for:",
+        queryset=GiftVoucher.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control input-xs"})
+    )
+    user_email = forms.EmailField(
+        label="Email address:",
+        widget=forms.TextInput(attrs={"class": "form-control input-xs"})
+    )
+    user_email1 = forms.EmailField(
+        label="Confirm email address:",
+        widget=forms.TextInput(attrs={"class": "form-control input-xs"})
+    )
+    recipient_name = forms.CharField(
+        label="Recipient name (optional):",
+        widget=forms.TextInput(attrs={"class": "form-control input-xs"}),
+        required=False
+    )
+
+    def __init__(self, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(**kwargs)
+        if user:
+            self.fields["user_email"].initial = user.email
+            self.fields["user_email1"].initial = user.email
+
+    def clean_user_email(self):
+        return self.cleaned_data.get('user_email').strip()
+
+    def clean_user_email1(self):
+        return self.cleaned_data.get('user_email1').strip()
+
+    def clean(self):
+        user_email = self.cleaned_data["user_email"]
+        user_email1 = self.cleaned_data["user_email1"]
+        if user_email != user_email1:
+            self.add_error("user_email1", "Email addresses do not match")
 

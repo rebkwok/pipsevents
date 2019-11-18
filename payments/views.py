@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.models import PayPalIPN
 
-from booking.models import Block, Booking, TicketBooking
+from booking.models import Block, BlockVoucher, Booking, EventVoucher, TicketBooking
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
 
@@ -58,6 +58,8 @@ def paypal_confirm_return(request):
             objs = Block.objects.filter(id__in=obj_ids)
         elif obj_type == "ticket_booking":
             objs = TicketBooking.objects.filter(id__in=obj_ids)
+        elif obj_type == "gift_voucher":
+            objs = list(BlockVoucher.objects.filter(id__in=obj_ids)) + list(EventVoucher.objects.filter(id__in=obj_ids))
         elif obj_type == "paypal_test":
             objs = ["paypal_test"]
             # custom in a test payment is in form

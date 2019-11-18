@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-xs-12">
+            <h2>Gift Voucher</h2>
+            <div><p>PLACEHOLDER - Description/instructions</p></div>
+
+            <div><label>Voucher code:</label> {{ voucher.code }}</div>
+            <div><label>Valid for:</label> {% for item in valid_for %}{% if voucher_type == "block" %}{{ item.description }}{% else %}{{ item }}{% endif %}{% endfor %}</div>
+            <div><label>Activated:</label> {{ voucher.activated|yesno|title }}</div>
+            <div><label>Date issued:</label> {{ voucher.start_date|date:"d M Y" }}</div>
+            <div><label>Date expires:</label> {{ voucher.expiry_date|date:"d M Y" }}</div>
+            <div><label>Recipient name:</label> {{ voucher.recipient_name }}</div>
+    </div>
+
+    <div class="col-xs-12">
+        <p>PLACEHOLDER - Print voucher</p>
+        <div><a href="#" class="btn btn-success">Print voucher</a></div>
+    </div>
+</div>
+
+{% endblock content %}

@@ -13,7 +13,7 @@ from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
-    EventType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
+    EventType, GiftVoucher, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
     BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from booking.forms import BookingAdminForm, BlockAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
@@ -515,12 +515,12 @@ class EventVoucherAdmin(admin.ModelAdmin):
 class BlockVoucherAdmin(admin.ModelAdmin):
     list_display = (
         'code', 'discount', 'start_date', 'expiry_date', 'max_vouchers',
-        'block_types', 'times_used'
+        'get_block_types', 'times_used'
     )
 
-    def block_types(self, obj):
+    def get_block_types(self, obj):
         return ', '.join([str(bt) for bt in obj.block_types.all()])
-    block_types.short_description = 'Event types'
+    get_block_types.short_description = 'Block types'
 
     def times_used(self, obj):
         return UsedBlockVoucher.objects.filter(voucher=obj).count()
@@ -540,6 +540,17 @@ class UsedBlockVoucherAdmin(admin.ModelAdmin):
     list_filter = ('voucher', UserFilter)
 
 
+class GiftVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'voucher_type', 'cost'
+    )
+
+    def voucher_type(self, obj):
+        if obj.block_type:
+            return obj.block_type
+        return obj.event_type
+
+
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
@@ -553,3 +564,4 @@ admin.site.register(EventVoucher, EventVoucherAdmin)
 admin.site.register(BlockVoucher, BlockVoucherAdmin)
 admin.site.register(UsedEventVoucher, UsedEventVoucherAdmin)
 admin.site.register(UsedBlockVoucher, UsedBlockVoucherAdmin)
+admin.site.register(GiftVoucher, GiftVoucherAdmin)

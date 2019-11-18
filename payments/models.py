@@ -14,7 +14,7 @@ from paypal.standard.ipn.models import PayPalIPN
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block, TicketBooking, BlockVoucher, \
-    EventVoucher, UsedBlockVoucher, UsedEventVoucher
+    EventVoucher, UsedBlockVoucher, UsedEventVoucher, GiftVoucher
 
 from activitylog.models import ActivityLog
 
@@ -61,6 +61,18 @@ class PaypalTicketBookingTransaction(models.Model):
         )
 
 
+class PaypalGiftVoucherTransaction(models.Model):
+    invoice_id = models.CharField(max_length=255, null=True, blank=True)
+    voucher_type = models.ForeignKey(GiftVoucher, null=True, on_delete=models.SET_NULL)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return '{} - {} - {}'.format(
+            self.invoice_id, self.voucher_type, self.voucher_code
+        )
+
+
 def get_paypal_email(obj, obj_type):
     if obj_type == 'booking':
         return obj.event.paypal_email
@@ -70,14 +82,19 @@ def get_paypal_email(obj, obj_type):
         return obj.block_type.paypal_email
 
 
-def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list):
-    user = obj_list[0].user
+def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list, additional_data):
+    if obj_type != "gift_voucher":
+        user = obj_list[0].user
+        user = " ".join([user.first_name, user.last_name])
+    else:
+        user = additional_data["user_email"]
+
     paypal_email = get_paypal_email(obj_list[0], obj_type)
     transaction_id = paypal_trans_list[0].transaction_id
     invoice_id = paypal_trans_list[0].invoice_id
 
     ctx = {
-        'user': " ".join([user.first_name, user.last_name]),
+        'user': user,
         'obj_type': obj_type.title().replace('_', ' '),
         'objs': obj_list,
         'invoice_id': invoice_id,
@@ -111,14 +128,18 @@ def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list
         fail_silently=False)
 
 
-def send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list):
-    user = obj_list[0].user
+def send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list, additional_data):
+    if obj_type != "gift_voucher":
+        user = obj_list[0].user
+        user = " ".join([user.first_name, user.last_name])
+    else:
+        user = additional_data["user_email"]
     paypal_email = get_paypal_email(obj_list[0], obj_type)
     transaction_id = paypal_trans_list[0].transaction_id
     invoice_id = paypal_trans_list[0].invoice_id
 
     ctx = {
-        'user': " ".join([user.first_name, user.last_name]),
+        'user': user,
         'obj_type': obj_type.title().replace('_', ' '),
         'objs': obj_list,
         'invoice_id': invoice_id,
@@ -223,6 +244,18 @@ def send_processed_test_unexpected_status_emails(additional_data, status):
         fail_silently=False)
 
 
+def send_gift_voucher_email(voucher, user_email):
+    ctx = {"voucher": voucher}
+    send_mail(
+        f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Gift Voucher',
+        get_template('payments/email/gift_voucher.txt').render(ctx),
+        settings.DEFAULT_FROM_EMAIL,
+        [user_email],
+        html_message=get_template('payments/email/gift_voucher.html').render(ctx),
+        fail_silently=False
+    )
+
+
 def get_obj(ipn_obj):
     from payments import helpers
     additional_data = {}
@@ -238,6 +271,7 @@ def get_obj(ipn_obj):
 
         voucher_code = custom[3] if len(custom) == 4 and \
             obj_type != 'test' else None
+
     else:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')
 
@@ -342,7 +376,32 @@ def get_obj(ipn_obj):
 
         obj_list.append(obj)
         paypal_trans_list.append(paypal_trans)
+    elif obj_type == "gift_voucher":
+        additional_data['user_email'] = custom[4]
+        try:
+            obj = BlockVoucher.objects.get(id=obj_ids[0])
+            voucher_type = "block"
+        except BlockVoucher.DoesNotExist:
+            try:
+                obj = EventVoucher.objects.get(id=obj_ids[0])
+                voucher_type = "event"
+            except EventVoucher.DoesNotExist:
+                raise PayPalTransactionError(
+                    'Voucher code with id {} does not exist'.format(obj_ids[0])
+                )
 
+        paypal_trans = PaypalGiftVoucherTransaction.objects.filter(
+            voucher=obj
+        )
+        if not paypal_trans:
+            paypal_trans = helpers.create_gift_voucher_paypal_transaction(
+                voucher_code=voucher_code, voucher_type=voucher_type
+            )
+        else:
+            paypal_trans = paypal_trans[0]
+
+        obj_list.append(obj)
+        paypal_trans_list.append(paypal_trans)
     else:
         raise PayPalTransactionError('Unknown object type for payment')
 
@@ -370,7 +429,10 @@ def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, vo
             obj.date_payment_confirmed = timezone.now()
         if obj_type in ['booking', 'block']:
             obj.paypal_pending=False
-        obj.paid = True
+        if obj_type == "gift_voucher":
+            obj.activated = False
+        else:
+            obj.paid = True
         obj.save()
 
         # do this AFTER saving the booking as paid; in the edge case that a
@@ -510,6 +572,10 @@ def payment_received(sender, **kwargs):
                                 user=obj.user
                             ).first()
                             voucher_refunded = True
+                        elif obj_type == "gift_voucher":
+                            # if this is a refunded gift voucher, deactivate it
+                            obj.activated = False
+                            obj.save()
                         if used_voucher:
                             voucher_refunded = True
                             used_voucher.delete()
@@ -524,14 +590,15 @@ def payment_received(sender, **kwargs):
                 ActivityLog.objects.create(
                     log='Transaction for {} id(s) {} for user {} has been refunded from paypal; '
                         'paypal transaction id {}, invoice id {}.{}'.format(
-                            obj_type.title(), obj_ids, obj_list[0].user.username,
+                            obj_type.title(), obj_ids,
+                            obj_list[0].user.username if obj_type != "gift_voucher" else additional_data["user_email"],
                             ipn_obj.txn_id, paypal_trans_list[0].invoice_id,
                             ' Used voucher deleted.' if voucher_refunded
                             else ''
                         )
                 )
                 if settings.SEND_ALL_STUDIO_EMAILS:
-                    send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list)
+                    send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list, additional_data)
 
         elif ipn_obj.payment_status == ST_PP_PENDING:
             if obj_type == 'paypal_test':
@@ -585,15 +652,17 @@ def payment_received(sender, **kwargs):
                         '{} ids {}'.format(
                         obj_type.title(),
                         obj_ids,
-                        obj_list[0].user.username,
+                        obj_list[0].user.username if obj_type != "gift_voucher" else additional_data["user_email"],
                         obj_type,
                         ', '.join([str(pp.id) for pp in paypal_trans_list]),
                     )
                 )
 
                 send_processed_payment_emails(
-                    obj_type, obj_ids, obj_list, paypal_trans_list
+                    obj_type, obj_ids, obj_list, paypal_trans_list, additional_data
                 )
+                if obj_type == "gift_voucher":
+                    send_gift_voucher_email(obj_list[0], additional_data["user_email"])
 
                 if voucher_error:
                     # raise error from invalid voucher here so emails for
