@@ -87,7 +87,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context_data['obj_unknown'], True)
         self.assertIn(
-            'Everything is probably fine...',
+            'Thank you for your payment which is currently being processed',
             resp.rendered_content
         )
 
@@ -149,7 +149,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context_data['obj_unknown'], True)
         self.assertIn(
-            'Everything is probably fine...',
+            'Thank you for your payment which is currently being processed',
             resp.rendered_content
         )
 

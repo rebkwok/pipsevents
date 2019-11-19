@@ -82,19 +82,26 @@ def get_paypal_email(obj, obj_type):
         return obj.block_type.paypal_email
 
 
-def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list, additional_data):
+def get_user_and_email(obj_type, obj_list, additional_data):
     if obj_type != "gift_voucher":
         user = obj_list[0].user
-        user = " ".join([user.first_name, user.last_name])
+        user_email = user.email
+        user_name = " ".join([user.first_name, user.last_name])
     else:
-        user = additional_data["user_email"]
+        user_name = None
+        user_email = additional_data["user_email"]
+    return user_name, user_email
 
+
+def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list, additional_data):
+    user_name, user_email = get_user_and_email(obj_type, obj_list, additional_data)
     paypal_email = get_paypal_email(obj_list[0], obj_type)
     transaction_id = paypal_trans_list[0].transaction_id
     invoice_id = paypal_trans_list[0].invoice_id
 
     ctx = {
-        'user': user,
+        'user': user_name,
+        'user_email': user_email,
         'obj_type': obj_type.title().replace('_', ' '),
         'objs': obj_list,
         'invoice_id': invoice_id,
@@ -122,24 +129,21 @@ def send_processed_payment_emails(obj_type, obj_ids, obj_list, paypal_trans_list
         get_template(
             'payments/email/payment_processed_to_user.txt').render(ctx),
         settings.DEFAULT_FROM_EMAIL,
-        [user.email],
+        [user_email],
         html_message=get_template(
             'payments/email/payment_processed_to_user.html').render(ctx),
         fail_silently=False)
 
 
 def send_processed_refund_emails(obj_type, obj_ids, obj_list, paypal_trans_list, additional_data):
-    if obj_type != "gift_voucher":
-        user = obj_list[0].user
-        user = " ".join([user.first_name, user.last_name])
-    else:
-        user = additional_data["user_email"]
+    user_name, user_email = get_user_and_email(obj_type, obj_list, additional_data)
     paypal_email = get_paypal_email(obj_list[0], obj_type)
     transaction_id = paypal_trans_list[0].transaction_id
     invoice_id = paypal_trans_list[0].invoice_id
 
     ctx = {
-        'user': user,
+        'user': user_name,
+        'user_email': user_email,
         'obj_type': obj_type.title().replace('_', ' '),
         'objs': obj_list,
         'invoice_id': invoice_id,
