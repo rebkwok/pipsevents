@@ -3,7 +3,7 @@
 {% block messagecontent %}
 <div style="font-family: sans-serif;">
 
-<p>Dear {{ user }},</p>
+{% if user %}<p>Dear {{ user }},</p>{% endif %}
 
 <p>Your payment to <strong>{{ paypal_email }}</strong> has now been processed.</p>
 

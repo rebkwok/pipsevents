@@ -1,6 +1,6 @@
 {% include "account/email/do_not_reply.txt" %}
 
-Dear {{ user }},
+{% if user %}Dear {{ user }},{% endif %}
 
 Your payment to {{ paypal_email }} has now been processed.
 
