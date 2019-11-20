@@ -582,7 +582,7 @@ class BlockVoucherAdminTests(TestCase):
         voucher_query = voucher_admin.get_queryset(None)[0]
 
         self.assertEqual(
-            voucher_admin.block_types(voucher_query),
+            voucher_admin.get_block_types(voucher_query),
             str(block_type)
         )
 
