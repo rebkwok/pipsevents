@@ -873,6 +873,7 @@ class BaseVoucher(models.Model):
     is_gift_voucher = models.BooleanField(default=False)
     activated = models.BooleanField(default=True)
     name = models.CharField(null=True, blank=True, max_length=255, help_text="Name of recipient")
+    message = models.TextField(null=True, blank=True, max_length=500, help_text="Message (max 500 characters)")
 
     def __str__(self):
         return self.code
