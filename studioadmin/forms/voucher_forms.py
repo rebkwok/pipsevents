@@ -31,7 +31,11 @@ class VoucherStudioadminForm(forms.ModelForm):
             'code', 'discount', 'start_date', 'expiry_date',
             'max_per_user',
             'max_vouchers',
-            'event_types'
+            'event_types',
+            "activated",
+            "is_gift_voucher",
+            'name',
+            'message',
         )
         widgets = {
             'code': forms.TextInput(
@@ -76,7 +80,8 @@ class VoucherStudioadminForm(forms.ModelForm):
             'expiry_date': 'Optional: set an expiry date after which the '
                            'voucher will no longer be accepted',
             'event_types': 'Choose event/class types that this voucher can '
-                           'be used for'
+                           'be used for',
+            'is_gift_voucher': 'For a standard, single use gift voucher, set max uses per user=1, max available vouchers=1, and discount=100%'
         }
 
     def __init__(self, *args, **kwargs):
@@ -163,7 +168,11 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
             'code', 'discount', 'start_date', 'expiry_date',
             'max_per_user',
             'max_vouchers',
-            'block_types'
+            'block_types',
+            "activated",
+            "is_gift_voucher",
+            'name',
+            'message',
         )
         widgets = {
             'code': forms.TextInput(
@@ -208,7 +217,8 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
             'expiry_date': 'Optional: set an expiry date after which the '
                            'voucher will no longer be accepted',
             'block_types': 'Choose block types that this voucher can '
-                           'be used for'
+                           'be used for',
+            'is_gift_voucher': 'For a standard, single use gift voucher, set max uses per user=1, max available vouchers=1, and discount=100%'
         }
 
     def __init__(self, *args, **kwargs):

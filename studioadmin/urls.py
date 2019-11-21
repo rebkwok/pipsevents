@@ -57,7 +57,8 @@ from studioadmin.views import (BookingEditView,
                                booking_register_add_view,
                                ajax_toggle_attended,
                                ajax_toggle_paid,
-                               ajax_assign_block
+                               ajax_assign_block,
+                               GiftVoucherListView
                                )
 
 app_name = 'studioadmin'
@@ -214,6 +215,9 @@ urlpatterns = [
     path(
         'block-vouchers/<int:pk>/edit/', BlockVoucherUpdateView.as_view(),
         name='edit_block_voucher'
+    ),
+        path(
+        'gift-vouchers/', GiftVoucherListView.as_view(), name='gift_vouchers'
     ),
     path('test-paypal-email/', test_paypal_view, name='test_paypal_email'),
     path(
