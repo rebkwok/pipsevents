@@ -9,7 +9,7 @@ from django.utils.safestring import mark_safe
 
 from braces.views import LoginRequiredMixin
 
-from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
+from booking.models import BaseVoucher, BlockVoucher, EventVoucher, UsedBlockVoucher, \
     UsedEventVoucher
 from studioadmin.forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
@@ -21,7 +21,7 @@ class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = EventVoucher
     template_name = 'studioadmin/vouchers.html'
     context_object_name = 'vouchers'
-    queryset = EventVoucher.objects.all().order_by('-start_date')
+    queryset = EventVoucher.objects.filter(is_gift_voucher=False).order_by('-start_date')
 
     def get_context_data(self, **kwargs):
         context = super(VoucherListView, self).get_context_data(**kwargs)
@@ -96,12 +96,30 @@ class BlockVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = BlockVoucher
     template_name = 'studioadmin/block_vouchers.html'
     context_object_name = 'vouchers'
-    queryset = BlockVoucher.objects.all().order_by('-start_date')
+    queryset = BlockVoucher.objects.filter(is_gift_voucher=False).order_by('-start_date')
 
     def get_context_data(self, **kwargs):
         context = super(BlockVoucherListView, self).get_context_data(**kwargs)
         context['sidenav_selection'] = 'block_vouchers'
         return context
+
+
+
+class GiftVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
+    template_name = 'studioadmin/gift_vouchers.html'
+    context_object_name = 'vouchers'
+
+    def get_queryset(self):
+        return EventVoucher.objects.filter(is_gift_voucher=True).order_by('-start_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        block_vouchers = BlockVoucher.objects.filter(is_gift_voucher=True).order_by('-start_date')
+        vouchers = sorted(list(context["vouchers"]) + list(block_vouchers), key=lambda x: x.start_date, reverse=True)
+        context['vouchers'] = vouchers
+        context['sidenav_selection'] = 'gift_vouchers'
+        return context
+
 
 
 class BlockVoucherUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):

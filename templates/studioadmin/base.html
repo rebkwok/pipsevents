@@ -93,6 +93,9 @@
                         <span class="sidebar_active">Block vouchers</span>{% else %}Block vouchers{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:add_block_voucher' %}">{% if sidenav_selection == 'add_block_voucher' %}
                         <span class="sidebar_active">Add new block voucher</span>{% else %}Add new block voucher{% endif %}</a></li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:gift_vouchers' %}">{% if sidenav_selection == 'gift_vouchers' %}
+                        <span class="sidebar_active">Gift vouchers</span>{% else %}Gift vouchers{% endif %}</a></li>
+
                 </ul>
             </li>
 
@@ -279,7 +282,7 @@
                             Vouchers
                         </a>
                     </li>
-                    <span id="vouchers" class="collapse {% if sidenav_selection in 'vouchers,add_voucher,block_vouchers,add_block_voucher' %} in{% endif %}">
+                    <span id="vouchers" class="collapse {% if sidenav_selection in 'vouchers,add_voucher,block_vouchers,add_block_voucher,gift_vouchers' %} in{% endif %}">
                          <li><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
                         <span class="sidebar_active">Class/event vouchers</span>{% else %}Class/event vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_voucher' %}">{% if sidenav_selection == 'add_voucher' %}
@@ -288,6 +291,8 @@
                         <span class="sidebar_active">Block vouchers</span>{% else %}Block vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_block_voucher' %}">{% if sidenav_selection == 'add_block_voucher' %}
                         <span class="sidebar_active">Add new block voucher</span>{% else %}Add new block voucher{% endif %}</a></li>
+                        <li class="active-nav"><a href="{% url 'studioadmin:gift_vouchers' %}">{% if sidenav_selection == 'gift_vouchers' %}
+                        <span class="sidebar_active">Gift vouchers</span>{% else %}Gift vouchers{% endif %}</a></li>
                     </span>
 
                     <li class="sidebar-title">
