@@ -50,6 +50,7 @@ class GiftVoucherPurchaseView(FormView):
         voucher_type = form.cleaned_data["voucher_type"]
         email = form.cleaned_data["user_email"]
         name = form.cleaned_data["recipient_name"]
+        message = form.cleaned_data["message"]
         code = ShortUUID().random(length=12)
 
         if voucher_type.block_type:
@@ -58,28 +59,26 @@ class GiftVoucherPurchaseView(FormView):
                 code = ShortUUID().random(length=12)
             voucher = BlockVoucher.objects.create(
                 activated=False, is_gift_voucher=True, expiry_date=timezone.now() + relativedelta(months=6),
-                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name
+                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name, message=message
             )
             voucher.block_types.add(voucher_type.block_type)
-            voucher_type_str = "block"
         else:
             while EventVoucher.objects.filter(code=code).exists():
                 code = ShortUUID().random(length=12)
             voucher = EventVoucher.objects.create(
                 activated=False, is_gift_voucher=True, expiry_date=timezone.now() + relativedelta(months=6),
-                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name
+                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name, message=message
             )
             voucher.event_types.add(voucher_type.event_type)
-            voucher_type_str = "event"
 
-        invoice_id = create_gift_voucher_paypal_transaction(voucher_type=voucher_type_str, voucher_code=code).invoice_id
+        invoice_id = create_gift_voucher_paypal_transaction(voucher_type=voucher_type, voucher_code=code).invoice_id
         paypal_form = PayPalPaymentsUpdateForm(
             initial=get_paypal_dict(
                 'http://{}'.format(self.request.META.get('HTTP_HOST')),
                 voucher_type.cost,
                 f"gift voucher - {voucher_type}",
                 invoice_id,
-                f'gift_voucher {voucher.id} {voucher_code} {email}',
+                f'gift_voucher {voucher.id} {voucher.code} {email}',
                 paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
             )
         )

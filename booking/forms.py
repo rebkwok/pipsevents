@@ -279,20 +279,27 @@ class GiftVoucherForm(forms.Form):
     voucher_type = forms.ModelChoiceField(
         label="Voucher for:",
         queryset=GiftVoucher.objects.all(),
-        widget=forms.Select(attrs={"class": "form-control input-xs"})
+        widget=forms.Select(attrs={"class": "form-control"})
     )
     user_email = forms.EmailField(
         label="Email address:",
-        widget=forms.TextInput(attrs={"class": "form-control input-xs"})
+        widget=forms.TextInput(attrs={"class": "form-control"})
     )
     user_email1 = forms.EmailField(
         label="Confirm email address:",
-        widget=forms.TextInput(attrs={"class": "form-control input-xs"})
+        widget=forms.TextInput(attrs={"class": "form-control"})
     )
     recipient_name = forms.CharField(
-        label="Recipient name (optional):",
-        widget=forms.TextInput(attrs={"class": "form-control input-xs"}),
+        label="Recipient name to display on voucher (optional):",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
         required=False
+    )
+    message = forms.CharField(
+        label="Message to display on voucher (optional):",
+        widget=forms.Textarea(attrs={"class": "form-control", 'rows': 4}),
+        required=False,
+        max_length=500,
+        help_text="Max 500 characters"
     )
 
     def __init__(self, **kwargs):

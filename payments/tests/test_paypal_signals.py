@@ -1199,7 +1199,6 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             len(mail.outbox), 1,
             "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
         )
-
         # emails sent to studio and support
         self.assertEqual(
             mail.outbox[0].to,

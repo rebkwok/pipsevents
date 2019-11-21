@@ -70,6 +70,7 @@
                               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Other<b class="caret"></b></a>
                               <ul class="dropdown-menu">
                                 <!--<li class="active-nav"><a href="{% url 'booking:room_hires' %}">Room Hire</a></li>-->
+                              <li class="active-nav"><a href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
                                 <li class="active-nav"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
                                 <li class="active-nav"><a href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
                               </ul>
@@ -181,7 +182,7 @@
 
     <div class="footer">
     {% block extra_footer %}
-      <div class="footer-credit col-xs-8 pull-left">
+      <div class="footer-credit col-xs-8 pull-left .no-print">
           All prices are inclusive of VAT (VAT number 281 6986 56)<br/>
           Terms and conditions apply to all purchases, including sale items; for full T&C <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
          <a href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>

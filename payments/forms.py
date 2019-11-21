@@ -35,7 +35,8 @@ class PayPalPaymentsUpdateForm(PayPalPaymentsBaseForm):
     def render(self):
         return format_html(
             """<form class="paypal-btn-form" action="{0}" method="post">
-            {1}<input type="image" src="{2}" border="0" name="submit" alt="Buy it Now" />
+            {1}<input type="image" style="height: auto; width: 15em;"
+            src="{2}" border="0" name="submit" alt="Buy it Now" />
             </form>""", self.get_endpoint(), self.as_p(), self.get_image()
        )
 
