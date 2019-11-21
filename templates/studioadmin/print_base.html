@@ -1,30 +1,34 @@
-{% load staticfiles %}
-{% load socialaccount %}
-{% providers_media_js %}
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
   <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, minumum-scale=1">
+      <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <title>Watermelon Studio Class and Event Booking
         {% block head_title %}{% endblock %}
         </title>
         {% block extra_head %}
         {% endblock %}
 
-        <link rel="shortcut icon" href="{{ STATIC_URL }}/favicon.ico">
-        <!-- Bootstrap core CSS -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-        <!-- Bootstrap theme -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-        <!-- Font awesome -->
-       <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
-        <!-- Custom styles --->
-        <link href="{% static 'booking/css/custom-v1.4.css' %}" rel="stylesheet">
-         <link rel="stylesheet" href="{% static 'booking/css/register_print_screen.css' %}"  type="text/css" media="screen" />
+        <link rel="shortcut icon" href="{% static 'booking/images/favicon.ico' %}" type="image/vnd.microsoft.icon">
+        <link rel="shortcut icon" type="image/png" href="{% static 'booking/images/icon.png' %}">
+        <link rel="apple-touch-icon" href="{% static 'booking/images/icon.png' %}">
+
+        <link rel="stylesheet" href="{% static 'booking/bootstrap-4.3.1-dist/css/bootstrap.min.css' %}">
+
+       <!-- Font awesome -->
+      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+
+        <!--<link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>-->
+
+       <!-- Custom styles --->
+        <link href="{% static 'booking/css/custom-v1.6.css' %}" rel="stylesheet">
+         <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
+      <link rel="stylesheet" href="{% static 'booking/css/register_print_screen.css' %}"  type="text/css" media="screen" />
        <link rel="stylesheet" href="{% static 'booking/css/register_print.css' %}"  type="text/css" media="print" />
-        <link href="{% static 'booking/css/bootstrap-switch.css' %}" rel="stylesheet">
+
+      <link href="{% static 'booking/css/bootstrap-switch.css' %}" rel="stylesheet">
         <link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" rel="stylesheet">
 
       {% block head %}{% endblock %}
@@ -52,9 +56,10 @@
    <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-    <script src="{% static 'booking/js/bootstrap-switch.js' %}"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
-<div id="fb-root"></div>
-    <script src="{% static 'booking/js/custom-v1.1.js' %}"></script>
+<script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+<script src="{% static 'booking/bootstrap-4.3.1-dist/js/bootstrap.bundle.min.js' %}"></script>
+
+

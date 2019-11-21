@@ -14,10 +14,10 @@
             {{ obj.event }}
         {% elif obj_type == "Ticket Booking" %}
             {{ obj.ticketed_event }}
-        {% elif obj_type == "Block %}
+        {% elif obj_type == "Block" %}
             {{ obj.block_type }}
         {% else %}
-            {{ obj.code }}
+            Gift Voucher {{ obj.code }}
         {% endif %}</li>
     {% endfor %}
     </ul>
