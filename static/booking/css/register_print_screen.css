@@ -7,7 +7,7 @@ body {
     color: black;
     background-color: #fff;
     margin: 0;
-    padding: 0;
+    padding: 10px;
 }
 
 a > span.fa.fa-print.fa-3x {
