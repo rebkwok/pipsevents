@@ -257,7 +257,11 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
             'max_per_user': self.voucher.max_per_user,
             'start_date': '01 Jan 2016',
             'expiry_date': '01 Feb 2016',
-            'event_types': [self.pc_event_type.id]
+            'event_types': [self.pc_event_type.id],
+            'activated': True,
+            'is_gift_voucher': False,
+            'name': '',
+            'message': ''
         }
 
         self.block_voucher = baker.make(
@@ -273,7 +277,11 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
             'max_per_user': self.block_voucher.max_per_user,
             'start_date': '01 Jan 2016',
             'expiry_date': '01 Feb 2016',
-            'block_types': [self.block_type.id]
+            'block_types': [self.block_type.id],
+            'activated': True,
+            'is_gift_voucher': False,
+            'name': '',
+            'message': ''
         }
 
     def test_access(self):
