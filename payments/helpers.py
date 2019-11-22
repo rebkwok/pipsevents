@@ -174,7 +174,7 @@ def create_ticket_booking_paypal_transaction(user, ticket_booking):
 
 
 def create_gift_voucher_paypal_transaction(voucher_type, voucher_code):
-    id_string = f"gift-voucher-{voucher_type}-{voucher_code}-inv#"
+    id_string = f"gift-voucher-{voucher_code}-inv#"
     existing = PaypalGiftVoucherTransaction.objects.filter(
         invoice_id__contains=id_string, voucher_type=voucher_type, voucher_code=voucher_code
     ).order_by('-invoice_id')

@@ -68,7 +68,7 @@ class PaypalGiftVoucherTransaction(models.Model):
     transaction_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return '{} - {} - {}'.format(
+        return '{} - {}'.format(
             self.invoice_id, self.voucher_type, self.voucher_code
         )
 
