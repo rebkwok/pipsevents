@@ -874,6 +874,7 @@ class BaseVoucher(models.Model):
     activated = models.BooleanField(default=True)
     name = models.CharField(null=True, blank=True, max_length=255, help_text="Name of recipient")
     message = models.TextField(null=True, blank=True, max_length=500, help_text="Message (max 500 characters)")
+    purchaser_email = models.EmailField(null=True, blank=True)
 
     def __str__(self):
         return self.code

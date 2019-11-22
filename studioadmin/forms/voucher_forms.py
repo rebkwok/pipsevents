@@ -25,6 +25,7 @@ def validate_code(code):
 
 
 class VoucherStudioadminForm(forms.ModelForm):
+
     class Meta:
         model = EventVoucher
         fields = (
@@ -36,6 +37,7 @@ class VoucherStudioadminForm(forms.ModelForm):
             "is_gift_voucher",
             'name',
             'message',
+            'purchaser_email'
         )
         widgets = {
             'code': forms.TextInput(
@@ -67,7 +69,9 @@ class VoucherStudioadminForm(forms.ModelForm):
             'event_types': forms.CheckboxSelectMultiple(),
         }
         labels = {
-            'discount': 'Discount (%)'
+            'discount': 'Discount (%)',
+            'name': 'Name (optional, for gift vouchers)',
+            'message': 'Message (optional, for gift vouchers)',
         }
 
         help_texts = {
@@ -81,7 +85,8 @@ class VoucherStudioadminForm(forms.ModelForm):
                            'voucher will no longer be accepted',
             'event_types': 'Choose event/class types that this voucher can '
                            'be used for',
-            'is_gift_voucher': 'For a standard, single use gift voucher, set max uses per user=1, max available vouchers=1, and discount=100%'
+            'is_gift_voucher': 'For a standard, single use gift voucher, set max uses per user=1, max available vouchers=1, and discount=100%',
+            'purchaser_email': 'Read only; purchaser email for gift voucher'
         }
 
     def __init__(self, *args, **kwargs):
@@ -89,6 +94,7 @@ class VoucherStudioadminForm(forms.ModelForm):
         self.fields['code'].validators = [validate_code]
         self.fields['discount'].validators = [validate_discount]
         self.fields['max_vouchers'].validators = [validate_greater_than_0]
+        self.fields['purchaser_email'].disabled = True
 
     def get_uses(self):
         return UsedEventVoucher.objects.filter(voucher=self.instance).count()
@@ -173,6 +179,7 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
             "is_gift_voucher",
             'name',
             'message',
+            'purchaser_email'
         )
         widgets = {
             'code': forms.TextInput(
@@ -204,7 +211,9 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
             'block_types': forms.CheckboxSelectMultiple(),
         }
         labels = {
-            'discount': 'Discount (%)'
+            'discount': 'Discount (%)',
+            'name': 'Name (optional, for gift vouchers)',
+            'message': 'Message (optional, for gift vouchers)',
         }
 
         help_texts = {
@@ -218,14 +227,20 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
                            'voucher will no longer be accepted',
             'block_types': 'Choose block types that this voucher can '
                            'be used for',
-            'is_gift_voucher': 'For a standard, single use gift voucher, set max uses per user=1, max available vouchers=1, and discount=100%'
+            'is_gift_voucher': 'For a standard, single use gift voucher, set max uses per user=1, max available vouchers=1, and discount=100%',
+            'purchaser_email': 'Read only; purchaser email for gift voucher'
         }
 
     def __init__(self, *args, **kwargs):
         super(BlockVoucherStudioadminForm, self).__init__(*args, **kwargs)
+        self.fields['code'].validators = [validate_code]
+        self.fields['discount'].validators = [validate_discount]
+        self.fields['max_vouchers'].validators = [validate_greater_than_0]
         block_types = self.fields['block_types']
         block_types.queryset = BlockType.objects.filter(active=True)\
             .exclude(identifier="free class")
+        self.fields['purchaser_email'].disabled = True
+
 
     def get_uses(self):
         return UsedBlockVoucher.objects.filter(voucher=self.instance).count()

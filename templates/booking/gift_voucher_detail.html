@@ -17,9 +17,12 @@
 
                     <div class="voucher-content">
                        <p><span class="voucher-content-label">Voucher code:</span> {{ voucher.code }}</p>
-                       <p><span class="voucher-content-label">Valid for:</span> {% for item in valid_for %}{% if voucher_type == "block" %}{{ item.description }}{% else %}{{ item }}{% endif %}{% endfor %}</p>
+                       <p><span class="voucher-content-label">Valid for:</span> <ul>{% for item in valid_for %}<li>{% if voucher_type == "block" %}{{ item.description }}{% else %}{{ item }}{% endif %}{% if voucher.discount < 100 %} - {{ voucher.discount }}% off{% endif %}</li>{% endfor %}</ul></p>
                        <p><span class="voucher-content-label">Date expires:</span> {{ voucher.start_date|date:"d M Y" }}</p>
                        <p><span class="voucher-content-label">Date issued:</span> {{ voucher.expiry_date|date:"d M Y" }}</p>
+                       {% if voucher.max_per_user > 1 %}
+                       <p><span class="voucher-content-label">Maximum uses:</span> {{ voucher.max_per_user }}</p>
+                        {% endif %}
                     </div>
 
 

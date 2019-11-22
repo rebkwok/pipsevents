@@ -17,12 +17,11 @@
                             <thead>
                             <tr class="success">
                                 <th class="table-center">Voucher code</br><span class="studioadmin-help">Click to edit</span></th>
-                                <th class="table-center">Discount</th>
+                                <th class="table-center">Purchaser</br>Email</th>
                                 <th class="table-center">Start Date</th>
                                 <th class="table-center">Expiry Date</th>
                                 <th class="table-center">Activated</th>
-                                <th class="table-center">Max<br/>per user</th>
-                                <th class="table-center">Max<br/>total uses</th>
+                                <th class="table-center">Printable</br>voucher</th>
                                 <th class="table-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
                                 <th>Valid for:</th>
                             </tr>
@@ -39,12 +38,11 @@
                                         <a href="{% url 'studioadmin:edit_voucher' voucher.pk %}?gift-vouchers=">{{ voucher.code }}</a>
                                         {% endif %}
                                     </td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.discount }}%</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}
+                                    <td class="table-center studioadmin-tbl">{% if voucher.purchaser_email %}{{ voucher.purchaser_email|abbr_email }}{% endif %}</td>
+                                    <td class="table-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}</td>
                                     <td class="table-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
                                     <td class="table-center studioadmin-tbl">{{ voucher.activated|yesno }}</td>
-                                    <td class="table-center studioadmin-tbl">{% if voucher.max_per_user %}{{ voucher.max_per_user }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
+                                    <td class="table-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
                                     <td class="table-center studioadmin-tbl">
                                         {% if voucher.block_types.exists %}
                                         <a href="{% url 'studioadmin:block_voucher_uses' voucher.pk %}?gift-vouchers=">{{ voucher|times_block_voucher_used }}</a>
@@ -59,9 +57,33 @@
                                     {% endif %}
                                 </tr>
                                 {% endfor %}
+                                {% if vouchers.has_other_pages %}
+                                    <tr>
+                                        <td class="studioadmin-tbl" colspan="8">
+                                                <div class="pagination">
+                                                    {% if vouchers.has_previous %}
+                                                        <a href="?page={{ vouchers.previous_page_number }}">Previous</a>
+                                                    {% else %}
+                                                        <a class="disabled" disabled=disabled href="#">Previous</a>
+                                                    {% endif %}
+                                                    <span class="page-current">
+                                                        --  Page {{ vouchers.number }} of {{ vouchers.paginator.num_pages }} --
+                                                    </span>
+                                                    {% if vouchers.has_next %}
+                                                        <a href="?page={{ vouchers.next_page_number }}">Next</a>
+                                                    {% else %}
+                                                        <a class="disabled" href="#">Next</a>
+                                                    {% endif %}
+                                                </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+
+
                             {% else %}
-                              <tr><td colspan="5" class="studioadmin-tbl">No vouchers found</td></tr>
+                              <tr><td colspan="8" class="studioadmin-tbl">No vouchers found</td></tr>
                             {% endif %}
+
                             </tbody>
                         </table>
                     </div>

@@ -24,6 +24,7 @@
                                 <th class="table-center">Max<br/>total uses</th>
                                 <th class="table-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
                                 <th>Block Types</th>
+                                <th class="table-center">Printable<br/>voucher</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -39,10 +40,32 @@
                                     <td class="table-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
                                     <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:block_voucher_uses' voucher.pk %}">{{ voucher|times_block_voucher_used }}</a></td>
                                     <td class="studioadmin-tbl">{% for bt in voucher.block_types.all %}{{ bt }}</br>{% endfor %}</td>
+                                    <td class="table-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
                                 </tr>
                                 {% endfor %}
+                                {% if is_paginated %}
+                                    <tr>
+                                        <td class="studioadmin-tbl" colspan="9">
+                                                <div class="pagination">
+                                                    {% if page_obj.has_previous %}
+                                                        <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                                    {% else %}
+                                                        <a class="disabled" disabled=disabled href="#">Previous</a>
+                                                    {% endif %}
+                                                    <span class="page-current">
+                                                        --  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} --
+                                                    </span>
+                                                    {% if page_obj.has_next %}
+                                                        <a href="?page={{ page_obj.next_page_number }}">Next</a>
+                                                    {% else %}
+                                                        <a class="disabled" href="#">Next</a>
+                                                    {% endif %}
+                                                </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
                             {% else %}
-                              <tr><td colspan="5" class="studioadmin-tbl">No vouchers found</td></tr>
+                              <tr><td colspan="9" class="studioadmin-tbl">No vouchers found</td></tr>
                             {% endif %}
                             </tbody>
                         </table>
