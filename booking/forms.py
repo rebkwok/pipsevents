@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
-from booking.models import Booking, Event, Block, BlockType, EventType, \
+from booking.models import Booking, Event, Block, BlockType, BlockVoucher, \
     GiftVoucher, Ticket, TicketBooking
 
 
@@ -304,8 +304,26 @@ class GiftVoucherForm(forms.Form):
 
     def __init__(self, **kwargs):
         user = kwargs.pop("user", None)
+        instance = kwargs.pop("instance", None)
         super().__init__(**kwargs)
-        if user:
+        if instance:
+            self.instance = instance
+            self.fields["user_email"].initial = instance.purchaser_email
+            self.fields["user_email1"].initial = instance.purchaser_email
+
+            if instance.activated:
+                self.fields["voucher_type"].disabled = True
+                self.fields["user_email"].disabled = True
+                self.fields["user_email1"].disabled = True
+
+            if isinstance(instance, BlockVoucher):
+                self.fields["voucher_type"].initial = GiftVoucher.objects.get(block_type=instance.block_types.first()).id
+            else:
+                self.fields["voucher_type"].initial = GiftVoucher.objects.get(event_type=instance.event_types.first()).id
+
+            self.fields["recipient_name"].initial = instance.name
+            self.fields["message"].initial = instance.message
+        elif user:
             self.fields["user_email"].initial = user.email
             self.fields["user_email1"].initial = user.email
 

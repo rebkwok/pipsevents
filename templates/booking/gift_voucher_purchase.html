@@ -28,7 +28,9 @@
                         </p>
                     </div>
 
-
+                    <div><a class="btn btn-warning" href="{% url 'booking:gift_voucher_update' voucher.code %}">Back</a>
+                    {% if not voucher.activated %} <a class="btn btn-danger" href="{% url 'booking:gift_voucher_delete' voucher.code %}">Cancel</a></div>
+                    {% endif %}
                 {% else %}
                 <div>
                     Choose your voucher type below.  If you provide a name and/or message, these will be displayed on the voucher.<br>
@@ -49,7 +51,7 @@
                     {% endfor %}
                        <div class="col-xs"><input class="btn btn-success" type="submit" value="Submit" /></div>
                 </form>
-               {% endif %}
+                 {% endif %}
     </div>
 </div>
 

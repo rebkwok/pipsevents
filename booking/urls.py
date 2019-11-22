@@ -3,7 +3,7 @@ from django.views.generic import RedirectView
 from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_total, \
     ajax_shopping_basket_blocks_total, blocks_modal, \
     already_cancelled, already_paid, \
-    GiftVoucherPurchaseView, gift_voucher_details, \
+    GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete, \
     disclaimer_required,  \
     EventListView, EventDetailView, BookingListView, \
     BookingHistoryListView, BookingCreateView, BookingMultiCreateView, \
@@ -157,6 +157,7 @@ urlpatterns = [
     ),
     path('gift-vouchers/', GiftVoucherPurchaseView.as_view(), name='buy_gift_voucher'),
     path('gift-voucher/<voucher_code>', gift_voucher_details, name='gift_voucher_details'),
-    path('gift-voucher/<voucher_code>/print', gift_voucher_details, {'print': True}, name='print_gift_voucher'),
+    path('gift-voucher/<voucher_code>/update', GiftVoucherPurchaseView.as_view(), name='gift_voucher_update'),
+    path('gift-voucher/<voucher_code>/delete', gift_voucher_delete, name='gift_voucher_delete'),
     path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]

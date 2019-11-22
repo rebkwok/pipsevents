@@ -6,7 +6,7 @@ from paypal.standard.ipn.models import PayPalIPN
 from paypal.standard.ipn.admin import PayPalIPNAdmin
 
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
-    PaypalTicketBookingTransaction
+    PaypalTicketBookingTransaction, PaypalGiftVoucherTransaction
 
 
 class PaypalBookingUserFilter(admin.SimpleListFilter):
@@ -263,6 +263,9 @@ admin.site.register(PaypalBookingTransaction, PaypalBookingTransactionAdmin)
 admin.site.register(PaypalBlockTransaction, PaypalBlockTransactionAdmin)
 admin.site.register(
     PaypalTicketBookingTransaction, PaypalTicketBookingTransactionAdmin
+)
+admin.site.register(
+    PaypalGiftVoucherTransaction
 )
 admin.site.unregister(PayPalIPN)
 admin.site.register(PayPalIPN, PayPalAdmin)
