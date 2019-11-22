@@ -59,7 +59,8 @@ class GiftVoucherPurchaseView(FormView):
                 code = ShortUUID().random(length=12)
             voucher = BlockVoucher.objects.create(
                 activated=False, is_gift_voucher=True, expiry_date=timezone.now() + relativedelta(months=6),
-                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name, message=message
+                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name, message=message,
+                purchaser_email=email
             )
             voucher.block_types.add(voucher_type.block_type)
         else:
@@ -67,7 +68,8 @@ class GiftVoucherPurchaseView(FormView):
                 code = ShortUUID().random(length=12)
             voucher = EventVoucher.objects.create(
                 activated=False, is_gift_voucher=True, expiry_date=timezone.now() + relativedelta(months=6),
-                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name, message=message
+                code=code, max_vouchers=1, max_per_user=1, discount=100, name=name, message=message,
+                purchaser_email=email
             )
             voucher.event_types.add(voucher_type.event_type)
 
@@ -78,7 +80,7 @@ class GiftVoucherPurchaseView(FormView):
                 voucher_type.cost,
                 f"gift voucher - {voucher_type}",
                 invoice_id,
-                f'gift_voucher {voucher.id} {voucher.code} {email}',
+                f'gift_voucher {voucher.id} {voucher.code}',
                 paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
             )
         )
