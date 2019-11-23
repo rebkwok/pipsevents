@@ -9,7 +9,8 @@ from allauth.socialaccount.models import SocialApp
 
 from accounts.models import OnlineDisclaimer
 from booking.models import Event, EventType, Block, Booking, \
-    BlockType, WaitingListUser, Ticket, TicketBooking, TicketedEvent
+    BlockType, WaitingListUser, Ticket, TicketBooking, TicketedEvent, \
+    EventVoucher, BlockVoucher
 from timetable.models import Session
 
 now = timezone.now()
@@ -137,4 +138,11 @@ online_disclaimer = Recipe(
     OnlineDisclaimer, dob=now - timedelta(20*365),
     medical_treatment_permission=True, terms_accepted=True,
     age_over_18_confirmed=True
+)
+
+event_gift_voucher = Recipe(
+    EventVoucher, code="abc1234", activated=False, discount=100, max_per_user=1, max_vouchers=1
+)
+block_gift_voucher = Recipe(
+    BlockVoucher, code="def1234", activated=False, discount=100, max_per_user=1, max_vouchers=1
 )
