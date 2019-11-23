@@ -221,7 +221,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         self.assertFalse(PayPalIPN.objects.exists())
 
         resp = self.paypal_post(
-            {'custom': b'gift_voucher 1234', 'charset': b(CHARSET), 'txn_id': 'test'}
+            {'custom': b'gift_voucher 1 test@test.com ghskfjsl234', 'charset': b(CHARSET), 'txn_id': 'test'}
         )
 
         self.assertEqual(resp.status_code, 200)
@@ -295,7 +295,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b(f'gift_voucher {voucher.id}'),
+                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
