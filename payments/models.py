@@ -385,17 +385,17 @@ def get_obj(ipn_obj):
     elif obj_type == "gift_voucher":
         try:
             obj = BlockVoucher.objects.get(id=obj_ids[0])
-            voucher_type = "block"
+            voucher_type = GiftVoucherType.objects.get(block_type=obj.block_types.first())
         except BlockVoucher.DoesNotExist:
             try:
                 obj = EventVoucher.objects.get(id=obj_ids[0])
-                voucher_type = "event"
+                voucher_type = GiftVoucherType.objects.get(event_type=obj.event_types.first())
             except EventVoucher.DoesNotExist:
                 raise PayPalTransactionError(
                     'Voucher code with id {} does not exist'.format(obj_ids[0])
                 )
 
-        paypal_trans = PaypalGiftVoucherTransaction.objects.filter(voucher=obj)
+        paypal_trans = PaypalGiftVoucherTransaction.objects.filter(voucher_code=obj.code, voucher_type=voucher_type)
         if not paypal_trans:
             paypal_trans = helpers.create_gift_voucher_paypal_transaction(
                 voucher_code=voucher_code, voucher_type=voucher_type
@@ -594,7 +594,7 @@ def payment_received(sender, **kwargs):
                     log='Transaction for {} id(s) {} for user {} has been refunded from paypal; '
                         'paypal transaction id {}, invoice id {}.{}'.format(
                             obj_type.title(), obj_ids,
-                            obj_list[0].user.username if obj_type != "gift_voucher" else additional_data["user_email"],
+                            obj_list[0].user.username if obj_type != "gift_voucher" else obj_list[0].purchaser_email,
                             ipn_obj.txn_id, paypal_trans_list[0].invoice_id,
                             ' Used voucher deleted.' if voucher_refunded
                             else ''
@@ -655,7 +655,7 @@ def payment_received(sender, **kwargs):
                         '{} ids {}'.format(
                         obj_type.title(),
                         obj_ids,
-                        obj_list[0].user.username if obj_type != "gift_voucher" else additional_data["user_email"],
+                        obj_list[0].user.username if obj_type != "gift_voucher" else obj_list[0].purchaser_email,
                         obj_type,
                         ', '.join([str(pp.id) for pp in paypal_trans_list]),
                     )
