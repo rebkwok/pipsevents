@@ -158,7 +158,7 @@ class GiftVoucherPurchaseView(FormView):
                     voucher_type.cost,
                     f"gift voucher - {voucher_type}",
                     invoice_id,
-                    f'gift_voucher {voucher.id}',
+                    f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}',
                     paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
                 )
             )
