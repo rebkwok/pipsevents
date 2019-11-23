@@ -74,7 +74,7 @@ class GiftVoucherPurchaseView(FormView):
                 # fields should be disabled anyway, so this check is just in case
                 # Update the existing paypal transaction object
                 # codes are random UUIDs, we'll probably only have one transaction per code/voucher type
-                voucher.email = email
+                voucher.purchaser_email = email
                 if isinstance(voucher, BlockVoucher):
                     old_voucher_type = GiftVoucherType.objects.get(block_type=voucher.block_types.first())
                 else:
