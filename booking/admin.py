@@ -13,7 +13,7 @@ from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
-    EventType, GiftVoucher, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
+    EventType, GiftVoucherType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
     BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from booking.forms import BookingAdminForm, BlockAdminForm, \
     TicketBookingAdminForm, WaitingListUserAdminForm
@@ -540,7 +540,7 @@ class UsedBlockVoucherAdmin(admin.ModelAdmin):
     list_filter = ('voucher', UserFilter)
 
 
-class GiftVoucherAdmin(admin.ModelAdmin):
+class GiftVoucherTypeAdmin(admin.ModelAdmin):
     list_display = (
         'voucher_type', 'cost'
     )
@@ -564,4 +564,4 @@ admin.site.register(EventVoucher, EventVoucherAdmin)
 admin.site.register(BlockVoucher, BlockVoucherAdmin)
 admin.site.register(UsedEventVoucher, UsedEventVoucherAdmin)
 admin.site.register(UsedBlockVoucher, UsedBlockVoucherAdmin)
-admin.site.register(GiftVoucher, GiftVoucherAdmin)
+admin.site.register(GiftVoucherType, GiftVoucherTypeAdmin)

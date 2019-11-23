@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import Booking, Event, Block, BlockType, BlockVoucher, \
-    GiftVoucher, Ticket, TicketBooking
+    GiftVoucherType, Ticket, TicketBooking
 
 
 MONTH_CHOICES = {
@@ -278,7 +278,7 @@ class GiftVoucherForm(forms.Form):
 
     voucher_type = forms.ModelChoiceField(
         label="Voucher for:",
-        queryset=GiftVoucher.objects.all(),
+        queryset=GiftVoucherType.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"})
     )
     user_email = forms.EmailField(
@@ -317,9 +317,9 @@ class GiftVoucherForm(forms.Form):
                 self.fields["user_email1"].disabled = True
 
             if isinstance(instance, BlockVoucher):
-                self.fields["voucher_type"].initial = GiftVoucher.objects.get(block_type=instance.block_types.first()).id
+                self.fields["voucher_type"].initial = GiftVoucherType.objects.get(block_type=instance.block_types.first()).id
             else:
-                self.fields["voucher_type"].initial = GiftVoucher.objects.get(event_type=instance.event_types.first()).id
+                self.fields["voucher_type"].initial = GiftVoucherType.objects.get(event_type=instance.event_types.first()).id
 
             self.fields["recipient_name"].initial = instance.name
             self.fields["message"].initial = instance.message
