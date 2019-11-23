@@ -275,8 +275,13 @@ def get_obj(ipn_obj):
         ids = custom[1]
         obj_ids = [int(id) for id in ids.split(',')]
 
-        voucher_code = custom[3] if len(custom) == 4 and \
-            obj_type != 'test' else None
+        if obj_type == "gift_voucher":
+            gift_voucher_code = custom[3]
+            voucher_code = None
+        elif obj_type != 'test':
+            voucher_code = custom[3] if len(custom) == 4 else None
+        else:
+            voucher_code = None
 
     else:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')
@@ -384,11 +389,11 @@ def get_obj(ipn_obj):
         paypal_trans_list.append(paypal_trans)
     elif obj_type == "gift_voucher":
         try:
-            obj = BlockVoucher.objects.get(id=obj_ids[0])
+            obj = BlockVoucher.objects.get(id=obj_ids[0], code=gift_voucher_code)
             voucher_type = GiftVoucherType.objects.get(block_type=obj.block_types.first())
         except BlockVoucher.DoesNotExist:
             try:
-                obj = EventVoucher.objects.get(id=obj_ids[0])
+                obj = EventVoucher.objects.get(id=obj_ids[0], code=gift_voucher_code)
                 voucher_type = GiftVoucherType.objects.get(event_type=obj.event_types.first())
             except EventVoucher.DoesNotExist:
                 raise PayPalTransactionError(
@@ -454,7 +459,7 @@ def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, vo
         paypal_trans.transaction_id = ipn_obj.txn_id
         paypal_trans.save()
 
-        if voucher_code:
+        if voucher_code and obj_type != 'gift_voucher':
             try:
                 if obj_type == 'booking':
                     voucher = EventVoucher.objects.get(code=voucher_code)
