@@ -39,12 +39,12 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         sys.stdout = self.saved_stdout
 
     def test_setup_fb(self):
-        self.assertEquals(SocialApp.objects.all().count(), 0)
+        self.assertEqual(SocialApp.objects.all().count(), 0)
         management.call_command('setup_fb')
-        self.assertEquals(SocialApp.objects.all().count(), 1)
+        self.assertEqual(SocialApp.objects.all().count(), 1)
 
     def test_load_users(self):
-        self.assertEquals(User.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
         management.call_command('load_users')
         self.assertEqual(User.objects.count(), 6)
         # Disclaimers created for non superusers
@@ -75,9 +75,9 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         )
         suser.is_superuser = True
         suser.save()
-        self.assertEquals(User.objects.all().count(), 1)
+        self.assertEqual(User.objects.all().count(), 1)
         management.call_command('load_users')
-        self.assertEquals(User.objects.all().count(), 6)
+        self.assertEqual(User.objects.all().count(), 6)
 
         self.assertEqual(
             'Create superuser...\n'
@@ -92,9 +92,9 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         )
 
     def test_create_events(self):
-        self.assertEquals(Event.objects.all().count(), 0)
+        self.assertEqual(Event.objects.all().count(), 0)
         management.call_command('create_events')
-        self.assertEquals(Event.objects.all().count(), 5)
+        self.assertEqual(Event.objects.all().count(), 5)
 
     @patch('booking.utils.date')
     def test_create_classes_with_manage_command(self, mock_date):
@@ -103,7 +103,7 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         """
         mock_date.today.return_value = datetime(2015, 2, 10)
 
-        self.assertEquals(Event.objects.all().count(), 0)
+        self.assertEqual(Event.objects.all().count(), 0)
         management.call_command('create_classes')
         # check that there are now classes on the Monday of the mocked week
         # (mocked now is Wed 10 Feb 2015)
@@ -126,56 +126,56 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         """
         baker.make_recipe('booking.user', _quantity=3)
         baker.make_recipe('booking.future_EV', _quantity=2)
-        self.assertEquals(Booking.objects.all().count(), 0)
+        self.assertEqual(Booking.objects.all().count(), 0)
         management.call_command('create_bookings')
-        self.assertEquals(Booking.objects.all().count(), 6)
+        self.assertEqual(Booking.objects.all().count(), 6)
 
     def test_create_bookings_without_users(self):
         """
         test that create_bookings creates users if none exist
         """
         baker.make_recipe('booking.future_EV')
-        self.assertEquals(Booking.objects.all().count(), 0)
-        self.assertEquals(User.objects.all().count(), 0)
+        self.assertEqual(Booking.objects.all().count(), 0)
+        self.assertEqual(User.objects.all().count(), 0)
         management.call_command('create_bookings')
-        self.assertEquals(Booking.objects.all().count(), 3)
-        self.assertEquals(User.objects.all().count(), 6)
+        self.assertEqual(Booking.objects.all().count(), 3)
+        self.assertEqual(User.objects.all().count(), 6)
 
     def test_create_bookings_without_events(self):
         """
         test that create_bookings handles being called when there are no events
         """
-        self.assertEquals(Booking.objects.all().count(), 0)
+        self.assertEqual(Booking.objects.all().count(), 0)
 
         management.call_command('create_bookings')
         # confirm no errors, and no booking are created
-        self.assertEquals(Booking.objects.all().count(), 0)
+        self.assertEqual(Booking.objects.all().count(), 0)
 
     def test_create_events_and_blocktypes(self):
         """
         test that create_events_and_blocktypes creates the default types
         """
-        self.assertEquals(EventType.objects.all().count(), 0)
-        self.assertEquals(BlockType.objects.all().count(), 0)
+        self.assertEqual(EventType.objects.all().count(), 0)
+        self.assertEqual(BlockType.objects.all().count(), 0)
 
         management.call_command('create_event_and_blocktypes')
-        self.assertEquals(EventType.objects.all().count(), 10)
-        self.assertEquals(BlockType.objects.all().count(), 7)
+        self.assertEqual(EventType.objects.all().count(), 10)
+        self.assertEqual(BlockType.objects.all().count(), 7)
 
     def test_create_events_and_blocktypes_twice(self):
         """
         test that create_events_and_blocktypes does not create duplicates
         """
-        self.assertEquals(EventType.objects.all().count(), 0)
-        self.assertEquals(BlockType.objects.all().count(), 0)
+        self.assertEqual(EventType.objects.all().count(), 0)
+        self.assertEqual(BlockType.objects.all().count(), 0)
 
         management.call_command('create_event_and_blocktypes')
-        self.assertEquals(EventType.objects.all().count(), 10)
-        self.assertEquals(BlockType.objects.all().count(), 7)
+        self.assertEqual(EventType.objects.all().count(), 10)
+        self.assertEqual(BlockType.objects.all().count(), 7)
 
         management.call_command('create_event_and_blocktypes')
-        self.assertEquals(EventType.objects.all().count(), 10)
-        self.assertEquals(BlockType.objects.all().count(), 7)
+        self.assertEqual(EventType.objects.all().count(), 10)
+        self.assertEqual(BlockType.objects.all().count(), 7)
 
     def test_setup_test_data(self):
         self.assertFalse(SocialApp.objects.exists())
@@ -242,7 +242,7 @@ class EmailReminderAndWarningTests(TestCase):
 
         management.call_command('email_reminders')
         # emails are only sent for event1
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_not_sent_for_past_events(self, mock_tz):
@@ -263,7 +263,7 @@ class EmailReminderAndWarningTests(TestCase):
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_reminders')
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
 
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_not_sent_twice(self, mock_tz):
@@ -284,10 +284,10 @@ class EmailReminderAndWarningTests(TestCase):
         _add_user_email_addresses(Booking)
 
         management.call_command('email_reminders')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         # emails are not sent again
         management.call_command('email_reminders')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_set_flags(self, mock_tz):
@@ -310,8 +310,8 @@ class EmailReminderAndWarningTests(TestCase):
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_reminders')
-        self.assertEquals(len(mail.outbox), 1)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
             Booking.objects.filter(reminder_sent=True).count(), 1
             )
 
@@ -336,7 +336,7 @@ class EmailReminderAndWarningTests(TestCase):
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_reminders')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for booking in Booking.objects.filter(status='OPEN'):
             self.assertTrue(booking.reminder_sent)
         for booking in Booking.objects.filter(status='CANCELLED'):
@@ -396,7 +396,7 @@ class EmailReminderAndWarningTests(TestCase):
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 10)
+        self.assertEqual(len(mail.outbox), 10)
 
     @patch('booking.management.commands.email_warnings.timezone')
     def test_email_warnings_sent_if_no_payment_due_date(self, mock_tz):
@@ -426,7 +426,7 @@ class EmailReminderAndWarningTests(TestCase):
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_warnings.timezone')
     def test_email_warnings_sent_for_booking_made_after_payment_due_date(
@@ -487,7 +487,7 @@ class EmailReminderAndWarningTests(TestCase):
         _add_user_email_addresses(Booking)
         
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 3)
+        self.assertEqual(len(mail.outbox), 3)
 
         for booking in Booking.objects.all():
             self.assertTrue(booking.warning_sent)
@@ -516,13 +516,13 @@ class EmailReminderAndWarningTests(TestCase):
         
         _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for booking in Booking.objects.all():
             self.assertTrue(booking.warning_sent)
 
         # no additional emails sent on subsequent calls
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_warnings.timezone')
     def test_email_warnings_not_sent_outside_hours(self, mock_tz):
@@ -547,16 +547,16 @@ class EmailReminderAndWarningTests(TestCase):
         # Before 7am warnings not sent
         mock_tz.now.return_value = datetime(2015, 2, 10, 6, 59, tzinfo=timezone.utc)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
 
         # After 10pm warnings not sent
         mock_tz.now.return_value = datetime(2015, 2, 10, 22, 1, tzinfo=timezone.utc)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
 
         mock_tz.now.return_value = datetime(2015, 2, 10, 9, 30, tzinfo=timezone.utc)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_warnings.timezone')
     def test_email_warnings_only_sent_for_payment_not_confirmed(self, mock_tz):
@@ -589,7 +589,7 @@ class EmailReminderAndWarningTests(TestCase):
         _add_user_email_addresses(Booking)
         
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 3)
+        self.assertEqual(len(mail.outbox), 3)
         for booking in Booking.objects.filter(payment_confirmed=False):
             self.assertTrue(booking.warning_sent)
         for booking in Booking.objects.filter(payment_confirmed=True):
@@ -626,7 +626,7 @@ class EmailReminderAndWarningTests(TestCase):
         _add_user_email_addresses(Booking)
         
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 3)
+        self.assertEqual(len(mail.outbox), 3)
         for booking in Booking.objects.filter(status='OPEN'):
             self.assertTrue(booking.warning_sent)
         for booking in Booking.objects.filter(status='CANCELLED'):
@@ -659,7 +659,7 @@ class EmailReminderAndWarningTests(TestCase):
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
-        self.assertEquals(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 1)
         booking1.refresh_from_db()
         booking2.refresh_from_db()
         self.assertTrue(booking1.warning_sent)
@@ -704,10 +704,10 @@ class CancelUnpaidBookingsTests(TestCase):
         mock_tz.now.return_value = datetime(
             2015, 2, 10, 10, tzinfo=timezone.utc
         )
-        self.assertEquals(
+        self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
         )
-        self.assertEquals(
+        self.assertEqual(
             self.paid.status, 'OPEN', self.paid.status
         )
         management.call_command('cancel_unpaid_bookings')
@@ -715,11 +715,11 @@ class CancelUnpaidBookingsTests(TestCase):
         # cancelled bookings
         unpaid_booking = Booking.objects.get(id=self.unpaid.id)
         paid_booking = Booking.objects.get(id=self.paid.id)
-        self.assertEquals(len(mail.outbox), 2)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(
             unpaid_booking.status, 'CANCELLED', unpaid_booking.status
         )
-        self.assertEquals(
+        self.assertEqual(
             paid_booking.status, 'OPEN', paid_booking.status
         )
 
@@ -732,21 +732,21 @@ class CancelUnpaidBookingsTests(TestCase):
         """
         test unpaid bookings are cancelled only between 9am and 10pm
         """
-        self.assertEquals(
+        self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
         )
 
         mock_tz.now.return_value = datetime(2015, 2, 10, 8, 59, tzinfo=timezone.utc)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(self.unpaid.status, 'OPEN', self.unpaid.status)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(self.unpaid.status, 'OPEN', self.unpaid.status)
 
         mock_tz.now.return_value = datetime(2015, 2, 10, 22, 00, tzinfo=timezone.utc)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(self.unpaid.status, 'OPEN', self.unpaid.status)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(self.unpaid.status, 'OPEN', self.unpaid.status)
 
 
         mock_tz.now.return_value = datetime(2015, 2, 10, 9, 10, tzinfo=timezone.utc)
@@ -754,8 +754,8 @@ class CancelUnpaidBookingsTests(TestCase):
         self.unpaid.refresh_from_db()
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
-        self.assertEquals(len(mail.outbox), 2)
-        self.assertEquals(self.unpaid.status, 'CANCELLED', self.unpaid.status)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(self.unpaid.status, 'CANCELLED', self.unpaid.status)
 
         # auto_cancelled set to True on cancelled bookings
         self.assertTrue(self.unpaid.auto_cancelled)
@@ -774,10 +774,10 @@ class CancelUnpaidBookingsTests(TestCase):
         self.event.payment_due_date = None
         self.event.advance_payment_required = False
         self.event.save()
-        self.assertEquals(
+        self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
         )
-        self.assertEquals(
+        self.assertEqual(
             self.paid.status, 'OPEN', self.paid.status
         )
         management.call_command('cancel_unpaid_bookings')
@@ -785,11 +785,11 @@ class CancelUnpaidBookingsTests(TestCase):
         # cancelled bookings
         unpaid_booking = Booking.objects.get(id=self.unpaid.id)
         paid_booking = Booking.objects.get(id=self.paid.id)
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(
             unpaid_booking.status, 'OPEN', unpaid_booking.status
         )
-        self.assertEquals(
+        self.assertEqual(
             paid_booking.status, 'OPEN', paid_booking.status
         )
         # auto_cancelled set to True only on cancelled bookings
@@ -807,10 +807,10 @@ class CancelUnpaidBookingsTests(TestCase):
         )
         self.event.cost = 0
         self.event.save()
-        self.assertEquals(
+        self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
         )
-        self.assertEquals(
+        self.assertEqual(
             self.paid.status, 'OPEN', self.paid.status
         )
         management.call_command('cancel_unpaid_bookings')
@@ -818,11 +818,11 @@ class CancelUnpaidBookingsTests(TestCase):
         # cancelled bookings
         unpaid_booking = Booking.objects.get(id=self.unpaid.id)
         paid_booking = Booking.objects.get(id=self.paid.id)
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(
             unpaid_booking.status, 'OPEN', unpaid_booking.status
         )
-        self.assertEquals(
+        self.assertEqual(
             paid_booking.status, 'OPEN', paid_booking.status
         )
 
@@ -838,10 +838,10 @@ class CancelUnpaidBookingsTests(TestCase):
         mock_tz.now.return_value = datetime(
             2016, 2, 10, 10, tzinfo=timezone.utc
         )
-        self.assertEquals(
+        self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
         )
-        self.assertEquals(
+        self.assertEqual(
             self.paid.status, 'OPEN', self.paid.status
         )
         self.assertTrue(timezone.now() > self.event.date)
@@ -850,11 +850,11 @@ class CancelUnpaidBookingsTests(TestCase):
         # for all cancelled bookings
         unpaid_booking = Booking.objects.get(id=self.unpaid.id)
         paid_booking = Booking.objects.get(id=self.paid.id)
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(
             unpaid_booking.status, 'OPEN', unpaid_booking.status
         )
-        self.assertEquals(
+        self.assertEqual(
             paid_booking.status, 'OPEN', paid_booking.status
         )
 
@@ -872,15 +872,15 @@ class CancelUnpaidBookingsTests(TestCase):
         )
         self.unpaid.status = 'CANCELLED'
         self.unpaid.save()
-        self.assertEquals(
+        self.assertEqual(
             self.unpaid.status, 'CANCELLED', self.unpaid.status
         )
         management.call_command('cancel_unpaid_bookings')
         # emails are sent to user per cancelled booking and studio once
         # for all cancelled bookings
         unpaid_booking = Booking.objects.get(id=self.unpaid.id)
-        self.assertEquals(len(mail.outbox), 0)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(
             unpaid_booking.status, 'CANCELLED', unpaid_booking.status
         )
 
@@ -899,13 +899,13 @@ class CancelUnpaidBookingsTests(TestCase):
         self.unpaid.date_warning_sent = None
         self.unpaid.save()
 
-        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertEqual(self.unpaid.status, 'OPEN')
         self.assertFalse(self.unpaid.warning_sent)
         self.assertIsNone(self.unpaid.date_warning_sent)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # still open
-        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertEqual(self.unpaid.status, 'OPEN')
 
         # set the warning sent flag to < 2hrs ago
         self.unpaid.warning_sent = True
@@ -914,7 +914,7 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # still open
-        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertEqual(self.unpaid.status, 'OPEN')
 
         # set the warning sent flag to > 2hrs ago
         self.unpaid.warning_sent = True
@@ -923,7 +923,7 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # now cancelled
-        self.assertEquals(self.unpaid.status, 'CANCELLED')
+        self.assertEqual(self.unpaid.status, 'CANCELLED')
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_only_send_one_email_to_studio(self, mock_tz):
@@ -947,11 +947,11 @@ class CancelUnpaidBookingsTests(TestCase):
         # emails are sent to user per cancelled booking (6) and studio once
         # for all cancelled bookings
         unpaid_booking = Booking.objects.get(id=self.unpaid.id)
-        self.assertEquals(len(mail.outbox), 7)
-        self.assertEquals(
+        self.assertEqual(len(mail.outbox), 7)
+        self.assertEqual(
             unpaid_booking.status, 'CANCELLED', unpaid_booking.status
         )
-        self.assertEquals(
+        self.assertEqual(
             Booking.objects.filter(status='CANCELLED').count(), 6
         )
         cancelled_booking_emails = [
@@ -959,7 +959,7 @@ class CancelUnpaidBookingsTests(TestCase):
             in Booking.objects.filter(status='CANCELLED')
         ]
         all_emails = cancelled_booking_emails + [[settings.DEFAULT_STUDIO_EMAIL]]
-        self.assertEquals(
+        self.assertEqual(
             sorted(all_emails),
             sorted([email.to for email in mail.outbox])
         )
@@ -985,12 +985,12 @@ class CancelUnpaidBookingsTests(TestCase):
 
         management.call_command('cancel_unpaid_bookings')
         # emails are sent to user per cancelled booking (6); none to studio
-        self.assertEquals(len(mail.outbox), 6)
+        self.assertEqual(len(mail.outbox), 6)
         cancelled_booking_emails = [
             [booking.user.email] for booking
             in Booking.objects.filter(status='CANCELLED')
         ]
-        self.assertEquals(
+        self.assertEqual(
             sorted(cancelled_booking_emails),
             sorted([email.to for email in mail.outbox])
         )
@@ -1014,7 +1014,7 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         # emails are sent to user per cancelled booking, studio and waiting
         # list user; 3 failure emails sent to support
-        self.assertEquals(len(mail.outbox), 3)
+        self.assertEqual(len(mail.outbox), 3)
         for email in mail.outbox:
             self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
@@ -1132,13 +1132,13 @@ class CancelUnpaidBookingsTests(TestCase):
         self.unpaid.date_rebooked = datetime(2015, 2, 10, 12, 30, tzinfo=timezone.utc)
         self.unpaid.save()
 
-        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertEqual(self.unpaid.status, 'OPEN')
         self.assertFalse(self.unpaid.warning_sent)
         self.assertIsNone(self.unpaid.date_warning_sent)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # still open
-        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertEqual(self.unpaid.status, 'OPEN')
 
         # set the warning sent flag to < 2hrs ago
         self.unpaid.warning_sent = True
@@ -1147,7 +1147,7 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # still open
-        self.assertEquals(self.unpaid.status, 'OPEN')
+        self.assertEqual(self.unpaid.status, 'OPEN')
 
         # set the warning sent flag to > 2hrs ago
         self.unpaid.warning_sent = True
@@ -1156,7 +1156,7 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # now cancelled
-        self.assertEquals(self.unpaid.status, 'CANCELLED')
+        self.assertEqual(self.unpaid.status, 'CANCELLED')
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_cancel_bookings_over_payment_time_allowed_without_warnings(
@@ -1179,7 +1179,7 @@ class CancelUnpaidBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(self.unpaid.status, "OPEN")
 
 
@@ -1193,7 +1193,7 @@ class CancelUnpaidBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(self.unpaid.status, "CANCELLED")
         # even though warning has not been sent
         self.assertFalse(self.unpaid.warning_sent)
@@ -1233,7 +1233,7 @@ class CancelUnpaidBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(self.unpaid.status, "CANCELLED")
         # even though warning has not been sent
         self.assertFalse(self.unpaid.warning_sent)
@@ -1277,7 +1277,7 @@ class CancelUnpaidBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(self.unpaid.status, "CANCELLED")
         # even though warning has not been sent
         self.assertFalse(self.unpaid.warning_sent)
@@ -1328,7 +1328,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_not_sent_out_of_hours(self, mock_tz):
@@ -1357,15 +1357,15 @@ class TicketBookingWarningTests(TestCase):
 
         mock_tz.now.return_value = datetime(2015, 2, 11, 6, 59, tzinfo=timezone.utc)
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
 
         mock_tz.now.return_value = datetime(2015, 2, 11, 22, 5, tzinfo=timezone.utc)
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
 
         mock_tz.now.return_value = datetime(2015, 2, 11, 21, 59, tzinfo=timezone.utc)
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
 
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
@@ -1396,7 +1396,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_not_sent_twice(self, mock_tz):
@@ -1425,13 +1425,13 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for ticket_booking in TicketBooking.objects.all():
             self.assertTrue(ticket_booking.warning_sent)
 
         # no additional emails sent on subsequent calls
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
 
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_only_sent_for_unpaid(self, mock_tz):
@@ -1467,7 +1467,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for ticket_booking in TicketBooking.objects.filter(paid=False):
             self.assertTrue(ticket_booking.warning_sent)
         for ticket_booking in TicketBooking.objects.filter(paid=True):
@@ -1504,7 +1504,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for ticket_booking in TicketBooking.objects.filter(cancelled=False):
             self.assertTrue(ticket_booking.warning_sent)
         for ticket_booking in TicketBooking.objects.filter(cancelled=True):
@@ -1548,7 +1548,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for ticket_booking in TicketBooking.objects.filter(
                 ticketed_event=ticketed_event
         ):
@@ -1582,7 +1582,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 5)
+        self.assertEqual(len(mail.outbox), 5)
         for ticket_booking in TicketBooking.objects.all():
             if ticket_booking.tickets.exists():
                 self.assertTrue(ticket_booking.warning_sent)
@@ -1619,7 +1619,7 @@ class TicketBookingWarningTests(TestCase):
             baker.make(Ticket, ticket_booking=ticket_booking)
 
         management.call_command('email_ticket_booking_warnings')
-        self.assertEquals(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 1)
         booking1.refresh_from_db()
         booking2.refresh_from_db()
         self.assertTrue(booking1.warning_sent)
@@ -1682,7 +1682,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # cancelled bookings
         self.unpaid.refresh_from_db()
         self.paid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertTrue(self.unpaid.cancelled)
         self.assertFalse(self.paid.cancelled)
 
@@ -1698,7 +1698,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
         mock_tz.now.return_value = datetime(2015, 2, 12, 22, 00, tzinfo=timezone.utc)
@@ -1706,7 +1706,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
         mock_tz.now.return_value = datetime(2015, 2, 12, 9, 5, tzinfo=timezone.utc)
@@ -1714,7 +1714,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertTrue(self.unpaid.cancelled)
 
 
@@ -1740,7 +1740,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # cancelled bookings
         self.unpaid.refresh_from_db()
         self.paid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
         self.assertFalse(self.paid.cancelled)
 
@@ -1762,7 +1762,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # cancelled bookings
         self.unpaid.refresh_from_db()
         self.paid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
         self.assertFalse(self.paid.cancelled)
 
@@ -1785,7 +1785,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
         # send warnings
@@ -1800,7 +1800,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # cancelled bookings; plus warning email
         self.unpaid.refresh_from_db()
 
-        self.assertEquals(len(mail.outbox), 3)
+        self.assertEqual(len(mail.outbox), 3)
         warning_email = mail.outbox[0]
         cancel_email_to_user = mail.outbox[1]
         cancel_email_to_studio = mail.outbox[2]
@@ -1842,7 +1842,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
 
@@ -1856,7 +1856,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertTrue(self.unpaid.cancelled)
         # even though warning has not been sent
         self.assertFalse(self.unpaid.warning_sent)
@@ -1882,7 +1882,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # for all cancelled bookings
         self.unpaid.refresh_from_db()
         self.paid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
         self.assertFalse(self.paid.cancelled)
 
@@ -1901,7 +1901,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once
         # for all cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertTrue(self.unpaid.cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
@@ -1920,7 +1920,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking and studio once
         # for all cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
@@ -1992,9 +1992,9 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # emails are sent to user per cancelled booking (6) (these 5 plus
         # self.unpaid) and studio once for all cancelled bookings
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 7)
+        self.assertEqual(len(mail.outbox), 7)
         self.assertTrue(self.unpaid.cancelled)
-        self.assertEquals(
+        self.assertEqual(
             TicketBooking.objects.filter(cancelled=True).count(), 6
         )
         cancelled_booking_emails = [
@@ -2003,7 +2003,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         ]
         all_emails = cancelled_booking_emails + [settings.DEFAULT_STUDIO_EMAIL]
 
-        self.assertEquals(
+        self.assertEqual(
             sorted(all_emails),
             sorted([email.to[0] for email in mail.outbox])
         )
@@ -2018,11 +2018,11 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # error emails are sent to user per cancelled booking (self.unpaid)
         # and studio
         self.unpaid.refresh_from_db()
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertTrue(self.unpaid.cancelled)
 
         for email in mail.outbox:
-            self.assertEquals(email.to, [settings.SUPPORT_EMAIL])
+            self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
 
         self.assertEqual(
             mail.outbox[0].subject,
@@ -2059,12 +2059,12 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         management.call_command('cancel_unpaid_ticket_bookings')
         # emails are sent to user per cancelled booking (6) (these 5 plus
         # self.unpaid); none to studio
-        self.assertEquals(len(mail.outbox), 6)
+        self.assertEqual(len(mail.outbox), 6)
         cancelled_booking_emails = [
             booking.user.email for booking
             in TicketBooking.objects.filter(cancelled=True)
         ]
-        self.assertEquals(
+        self.assertEqual(
             cancelled_booking_emails, [email.to[0] for email in mail.outbox]
         )
 

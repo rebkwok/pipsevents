@@ -147,7 +147,7 @@ class EventAdminFormTests(TestCase):
             cancelled_field.widget.attrs,
             {'disabled': 'disabled', 'id': 'cancelled_id', 'class': 'hide'}
         )
-        self.assertEquals(
+        self.assertEqual(
             cancelled_field.help_text,
             'To cancel, use the Cancel button on the class list page'
         )
@@ -162,7 +162,7 @@ class EventAdminFormTests(TestCase):
             cancelled_field.widget.attrs,
             {'class': 'form-control regular-checkbox', 'id': 'cancelled_id'}
         )
-        self.assertEquals(
+        self.assertEqual(
             cancelled_field.help_text,
             'Untick to reopen class; note that this does not change any other '
             'attributes and does not reopen previously cancelled bookings.  '
@@ -174,7 +174,7 @@ class EventAdminFormTests(TestCase):
         form = EventAdminForm(
             data=self.form_data({'contact_person': ''}), ev_type='CL')
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_person', form.errors.keys())
         self.assertIn(['This field is required.'], form.errors.values())
 
@@ -182,14 +182,14 @@ class EventAdminFormTests(TestCase):
         form = EventAdminForm(
             data=self.form_data({'contact_email': ''}), ev_type='CL')
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['This field is required.'], form.errors.values())
 
         form = EventAdminForm(
             data=self.form_data({'contact_email': 'test_email'}), ev_type='CL')
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['Enter a valid email address.'], form.errors.values())
 
@@ -201,7 +201,7 @@ class EventAdminFormTests(TestCase):
             set(EventType.objects.filter(id=self.event_type_ev.id)),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(len(ev_type_field.queryset), 1)
+        self.assertEqual(len(ev_type_field.queryset), 1)
 
         form = EventAdminForm(
             data=self.form_data(), ev_type='CL')
@@ -212,7 +212,7 @@ class EventAdminFormTests(TestCase):
             )),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(len(ev_type_field.queryset), 2)
+        self.assertEqual(len(ev_type_field.queryset), 2)
 
     def test_event_type_queryset_shows_room_hire_with_classes(self):
         rh_type = baker.make_recipe('booking.event_type_RH')
@@ -223,7 +223,7 @@ class EventAdminFormTests(TestCase):
             set(EventType.objects.filter(id=self.event_type_ev.id)),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(len(ev_type_field.queryset), 1)
+        self.assertEqual(len(ev_type_field.queryset), 1)
 
         form = EventAdminForm(
             data=self.form_data(), ev_type='CL')
@@ -234,7 +234,7 @@ class EventAdminFormTests(TestCase):
             )),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(len(ev_type_field.queryset), 3)
+        self.assertEqual(len(ev_type_field.queryset), 3)
 
     def test_invalid_date(self):
         form = EventAdminForm(
@@ -275,13 +275,13 @@ class EventAdminFormTests(TestCase):
     def test_name_placeholder(self):
         form = EventAdminForm(data=self.form_data(), ev_type='EV')
         name_field = form.fields['name']
-        self.assertEquals(
+        self.assertEqual(
             name_field.widget.attrs['placeholder'],
             'Name of event e.g. Workshop')
 
         form = EventAdminForm(data=self.form_data(), ev_type='CL')
         name_field = form.fields['name']
-        self.assertEquals(
+        self.assertEqual(
             name_field.widget.attrs['placeholder'],
             'Name of class e.g. Pole Level 1')
 

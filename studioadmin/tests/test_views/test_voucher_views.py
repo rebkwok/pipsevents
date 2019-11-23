@@ -29,7 +29,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
         # can't access if not logged in
         resp = self.client.get(self.url)
         redirected_url = reverse('account_login') + "?next={}".format(self.url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
         # can't access if not staff
@@ -37,8 +37,8 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
             self.client.login(username=self.user.username, password='test')
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -46,8 +46,8 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -55,7 +55,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_vouchers_listed(self):
         # start date in past
@@ -136,7 +136,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
         # can't access if not logged in
         resp = self.client.get(self.url)
         redirected_url = reverse('account_login') + "?next={}".format(self.url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
         # can't access if not staff
@@ -144,8 +144,8 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
             self.client.login(username=self.user.username, password='test')
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -153,8 +153,8 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -162,7 +162,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_create_voucher(self):
         self.assertTrue(
@@ -172,7 +172,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertFalse(EventVoucher.objects.exists())
         resp = self.client.post(self.url, self.data, follow=True)
-        self.assertEquals(EventVoucher.objects.count(), 1)
+        self.assertEqual(EventVoucher.objects.count(), 1)
         voucher = EventVoucher.objects.first()
         self.assertEqual(voucher.code, 'test_code')
 
@@ -189,7 +189,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertFalse(EventVoucher.objects.exists())
         resp = self.client.post(self.url, self.data)
-        self.assertEquals(EventVoucher.objects.count(), 1)
+        self.assertEqual(EventVoucher.objects.count(), 1)
         voucher = EventVoucher.objects.first()
         self.assertEqual(resp.status_code, 302)
         # redirects to edit page
@@ -225,7 +225,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
         data.update(block_types=[block_type.id])
         resp = self.client.post(url, data, follow=True)
 
-        self.assertEquals(BlockVoucher.objects.count(), 1)
+        self.assertEqual(BlockVoucher.objects.count(), 1)
         voucher = BlockVoucher.objects.first()
         self.assertEqual(voucher.code, 'test_code')
 
@@ -295,7 +295,7 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
         # can't access if not logged in
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
         # can't access if not staff
@@ -303,8 +303,8 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
             self.client.login(username=self.user.username, password='test')
         )
         resp = self.client.get(url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -312,8 +312,8 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -321,7 +321,7 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_update_voucher(self):
         url = reverse('studioadmin:edit_voucher', args=[self.voucher.id])
@@ -408,7 +408,7 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
         # can't access if not logged in
         resp = self.client.get(self.url)
         redirected_url = reverse('account_login') + "?next={}".format(self.url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
         # can't access if not staff
@@ -416,8 +416,8 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
             self.client.login(username=self.user.username, password='test')
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -425,8 +425,8 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -434,7 +434,7 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_vouchers_listed(self):
         # start date in past
@@ -514,7 +514,7 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.voucher_url)
         redirected_url = reverse('account_login') + \
             "?next={}".format(self.voucher_url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
         # can't access if not staff
@@ -522,8 +522,8 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
             self.client.login(username=self.user.username, password='test')
         )
         resp = self.client.get(self.voucher_url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -531,8 +531,8 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.voucher_url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         self.assertTrue(
             self.client.login(
@@ -540,7 +540,7 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
             )
         )
         resp = self.client.get(self.voucher_url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_voucher_counts_listed(self):
         users = baker.make_recipe('booking.user', _quantity=2)

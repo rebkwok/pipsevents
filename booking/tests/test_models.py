@@ -97,8 +97,8 @@ class EventTests(TestCase):
                                      cost=10,
                                      payment_open=True,
                                      payment_info="Pay me")
-        self.assertEquals(workshop.payment_open, True)
-        self.assertEquals(workshop.payment_info, "Pay me")
+        self.assertEqual(workshop.payment_open, True)
+        self.assertEqual(workshop.payment_info, "Pay me")
 
     def test_pre_save_external_instructor(self):
         pc = baker.make_recipe(
@@ -632,9 +632,9 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.small_block.paid = True
         self.large_block.paid = True
         # no bookings against either, active_block = True
-        self.assertEquals(Booking.objects.filter(
+        self.assertEqual(Booking.objects.filter(
             block__id=self.small_block.id).count(), 0)
-        self.assertEquals(Booking.objects.filter(
+        self.assertEqual(Booking.objects.filter(
             block__id=self.large_block.id).count(), 0)
         self.assertTrue(self.small_block.active_block())
         self.assertTrue(self.large_block.active_block())

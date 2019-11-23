@@ -68,8 +68,8 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
         form.signup(request, user)
-        self.assertEquals('New', user.first_name)
-        self.assertEquals('Name', user.last_name)
+        self.assertEqual('New', user.first_name)
+        self.assertEqual('Name', user.last_name)
 
     def test_signup_with_mailing_list(self):
         user = baker.make(User, email='test@mailinglist.com')

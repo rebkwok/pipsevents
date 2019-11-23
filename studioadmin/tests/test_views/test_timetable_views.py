@@ -72,7 +72,7 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:timetable')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -80,8 +80,8 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -89,15 +89,15 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_can_delete_sessions(self):
         baker.make_recipe('booking.tue_session', _quantity=2)
@@ -196,7 +196,7 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:edit_session', args=[self.session.id])
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -204,8 +204,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.session)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -213,15 +213,15 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user, self.session)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, self.session)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_submitting_valid_session_form_redirects_back_to_timetable(self):
         resp = self._post_response(
@@ -387,7 +387,7 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:add_session')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -395,8 +395,8 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -404,15 +404,15 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_submitting_valid_session_form_redirects_back_to_timetable(self):
         resp = self._post_response(self.staff_user, self.form_data())
@@ -500,7 +500,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:upload_timetable')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -508,8 +508,8 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -517,15 +517,15 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_events_are_created(self, mock_tz):

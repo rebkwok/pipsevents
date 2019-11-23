@@ -79,7 +79,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:events')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -87,8 +87,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, ev_type='events')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -96,15 +96,15 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user, ev_type='events')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, ev_type='events')
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_events_url_shows_only_events(self):
         events = baker.make_recipe('booking.future_EV', _quantity=5)
@@ -260,8 +260,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         """
         event = baker.make_recipe('booking.future_EV')
         baker.make_recipe('booking.booking', event=event)
-        self.assertEquals(event.bookings.all().count(), 1)
-        self.assertEquals(self.event.bookings.all().count(), 0)
+        self.assertEqual(event.bookings.all().count(), 1)
+        self.assertEqual(self.event.bookings.all().count(), 0)
 
         resp = self._get_response(self.staff_user, 'events')
         self.assertIn('id="DELETE_0"', resp.rendered_content)
@@ -269,12 +269,12 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('cancel_button', resp.rendered_content)
 
     def test_can_delete(self):
-        self.assertEquals(Event.objects.all().count(), 1)
+        self.assertEqual(Event.objects.all().count(), 1)
         formset_data = self.formset_data({
             'form-0-DELETE': 'on'
             })
         self._post_response(self.staff_user, 'events', formset_data)
-        self.assertEquals(Event.objects.all().count(), 0)
+        self.assertEqual(Event.objects.all().count(), 0)
 
     def test_can_update_existing_event(self):
         self.assertTrue(self.event.booking_open)
@@ -289,15 +289,15 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, 'events', self.formset_data()
         )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('studioadmin:events'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:events'))
 
         resp = self._post_response(
             self.staff_user, 'lessons', self.formset_data(),
             url=reverse('studioadmin:lessons')
         )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('studioadmin:lessons'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:lessons'))
 
 
 class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
@@ -369,7 +369,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -377,8 +377,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.event.slug, 'EV')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -386,20 +386,20 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user, self.event.slug, 'EV')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, self.event.slug, 'EV')
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_edit_event_refers_to_events_on_page_and_menu(self):
         resp = self._get_response(self.staff_user, self.event.slug, 'event')
-        self.assertEquals(resp.context_data['sidenav_selection'], 'events')
-        self.assertEquals(resp.context_data['type'], 'event')
+        self.assertEqual(resp.context_data['sidenav_selection'], 'events')
+        self.assertEqual(resp.context_data['type'], 'event')
         resp.render()
         self.assertIn(
             self.event.name, str(resp.content), "Content not found"
@@ -411,8 +411,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             self.staff_user, event.slug, 'lesson',
             url=reverse('studioadmin:edit_lesson', kwargs={'slug': event.slug})
         )
-        self.assertEquals(resp.context_data['sidenav_selection'], 'lessons')
-        self.assertEquals(resp.context_data['type'], 'class')
+        self.assertEqual(resp.context_data['sidenav_selection'], 'lessons')
+        self.assertEqual(resp.context_data['type'], 'class')
         resp.render()
         self.assertIn(
             event.name, str(resp.content), "Content not found"
@@ -423,8 +423,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.event.slug, 'event', form_data
         )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('studioadmin:events'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:events'))
 
     def test_submitting_valid_class_form_redirects_back_to_classes_list(self):
         event = baker.make_recipe('booking.future_PC')
@@ -433,8 +433,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             self.staff_user, event.slug, 'lesson', form_data,
             url=reverse('studioadmin:edit_lesson', kwargs={'slug': event.slug})
         )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('studioadmin:lessons'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:lessons'))
 
     def test_post_with_events_page(self):
         form_data = self.form_data(event=self.event)
@@ -442,8 +442,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, self.event.slug, 'event', form_data
         )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('studioadmin:events') + '?page=2')
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:events') + '?page=2')
 
     def test_no_changes(self):
         form_data = self.form_data(
@@ -596,7 +596,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:add_event')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -604,8 +604,8 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, 'EV')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -613,20 +613,20 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user, 'EV')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, 'EV')
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_add_event_refers_to_events_on_page(self):
         resp = self._get_response(self.staff_user, 'event')
-        self.assertEquals(resp.context_data['sidenav_selection'], 'add_event')
-        self.assertEquals(resp.context_data['type'], 'event')
+        self.assertEqual(resp.context_data['sidenav_selection'], 'add_event')
+        self.assertEqual(resp.context_data['type'], 'event')
         resp.render()
         self.assertIn(
             'Adding new event', str(resp.content), "Content not found"
@@ -636,8 +636,8 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(
             self.staff_user, 'lesson', url=reverse('studioadmin:add_lesson')
         )
-        self.assertEquals(resp.context_data['sidenav_selection'], 'add_lesson')
-        self.assertEquals(resp.context_data['type'], 'class')
+        self.assertEqual(resp.context_data['sidenav_selection'], 'add_lesson')
+        self.assertEqual(resp.context_data['type'], 'class')
         resp.render()
         self.assertIn(
             'Adding new class', str(resp.content), "Content not found"
@@ -755,7 +755,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -763,15 +763,15 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.event)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, self.event)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_get_cancel_page_with_no_bookings(self):
         # no open bookings displayed on page
@@ -1196,7 +1196,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
         # sends one email per open booking and one to studio
-        self.assertEquals(len(mail.outbox), 13)
+        self.assertEqual(len(mail.outbox), 13)
 
     def test_emails_not_sent_to_users_with_already_cancelled_bookings(self):
         # cancelled
@@ -1239,7 +1239,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         # sends one email per open booking (not already cancelled) and one to
         # studio
-        self.assertEquals(len(mail.outbox), 13)
+        self.assertEqual(len(mail.outbox), 13)
 
     def test_emails_sent_to_studio_on_cancelling_event(self):
         """
@@ -1280,7 +1280,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
         # sends one email per open booking and one email to studio
-        self.assertEquals(len(mail.outbox), 8)
+        self.assertEqual(len(mail.outbox), 8)
         self.assertIn('(unpaid) - no action required', mail.outbox[-1].body)
         self.assertIn('(free class - block) - no action required', mail.outbox[-1].body)
         self.assertIn('(paid by block) - no action required', mail.outbox[-1].body)
@@ -1429,7 +1429,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
         )
         # sends one error email per open booking and one to studio
-        self.assertEquals(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 2)
         for email in mail.outbox:
             self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
         self.assertEqual(
@@ -1517,7 +1517,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(transfer_btypes.count(), 1)
 
         transfer_blocks = Block.objects.filter(block_type=transfer_btypes[0])
-        self.assertEquals(transfer_blocks.count(), 2)
+        self.assertEqual(transfer_blocks.count(), 2)
         direct_paid_transfer = transfer_blocks.get(
             transferred_booking_id=direct_paid.id
         )
@@ -1553,7 +1553,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertFalse(free_block.paid)
         self.assertFalse(free_block.payment_confirmed)
 
-        self.assertEquals(
+        self.assertEqual(
             Booking.objects.filter(event=pole_class, status='OPEN').count(), 0
         )
 
@@ -1628,7 +1628,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(transfer_btypes.count(), 1)
 
         transfer_blocks = Block.objects.filter(block_type=transfer_btypes[0])
-        self.assertEquals(transfer_blocks.count(), 2)
+        self.assertEqual(transfer_blocks.count(), 2)
 
         direct_paid_transfers = transfer_blocks.get(
             transferred_booking_id=direct_paid.id
@@ -1666,7 +1666,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertFalse(free_block.paid)
         self.assertFalse(free_block.payment_confirmed)
 
-        self.assertEquals(
+        self.assertEqual(
             Booking.objects.filter(event=room_hire, status='OPEN').count(), 0
         )
 
@@ -1764,7 +1764,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertFalse(free_block.paid)
         self.assertFalse(free_block.payment_confirmed)
 
-        self.assertEquals(
+        self.assertEqual(
             Booking.objects.filter(event=self.event, status='OPEN').count(), 0
         )
 
@@ -1864,7 +1864,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertFalse(free_block.paid)
         self.assertFalse(free_block.payment_confirmed)
 
-        self.assertEquals(
+        self.assertEqual(
             Booking.objects.filter(event=self.event, status='OPEN').count(), 0
         )
 
@@ -2042,7 +2042,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         # transfer block made for the expired block booking only
         transfer_blocks = Block.objects.filter(block_type=transfer_btypes[0])
-        self.assertEquals(transfer_blocks.count(), 1)
+        self.assertEqual(transfer_blocks.count(), 1)
 
         block.refresh_from_db()
         expired_block.refresh_from_db()
@@ -2060,7 +2060,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertFalse(expired_block_paid.deposit_paid)
         self.assertFalse(expired_block_paid.payment_confirmed)
 
-        self.assertEquals(
+        self.assertEqual(
             Booking.objects.filter(event=pole_class, status='OPEN').count(), 0
         )
 

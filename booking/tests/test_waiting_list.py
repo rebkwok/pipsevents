@@ -124,7 +124,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.booking', event=event, _quantity=2)
         baker.make_recipe('booking.booking', event=event, user=self.user)
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(list(resp.context_data['booked_events']), [event.id])
+        self.assertEqual(list(resp.context_data['booked_events']), [event.id])
         resp.render()
         self.assertNotIn('book_button', str(resp.content))
         self.assertNotIn('join_waiting_list_button', str(resp.content))
@@ -140,7 +140,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=self.user
         )
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(
+        self.assertEqual(
             list(resp.context_data['waiting_list_events']), [event.id]
         )
 
@@ -160,10 +160,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.booking', event=event, user=self.user)
 
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(
+        self.assertEqual(
             list(resp.context_data['waiting_list_events']), [wlevent.id]
         )
-        self.assertEquals(
+        self.assertEqual(
             list(resp.context_data['booked_events']), [event.id]
         )
 
@@ -178,7 +178,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=self.user
         )
         resp = self._get_event_list(self.user, "lessons")
-        self.assertEquals(
+        self.assertEqual(
             list(resp.context_data['waiting_list_events']), [event.id]
         )
 

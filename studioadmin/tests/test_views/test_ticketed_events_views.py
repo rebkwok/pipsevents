@@ -78,20 +78,20 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:ticketed_events')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_get_shows_upcoming_events(self):
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(
             [ev.id for ev in formset.queryset],
@@ -100,13 +100,13 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
 
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user)
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'ticketed_events'
         )
 
     def test_show_ticketed_events_by_past_or_upcoming(self):
         resp = self._post_response(self.staff_user, {'past': 'Show past events'})
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(
             [ev.id for ev in formset.queryset],
@@ -116,7 +116,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
         resp = self._post_response(
             self.staff_user, {'upcoming': 'Show upcoming events'}
         )
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(
             [ev.id for ev in formset.queryset],
@@ -130,7 +130,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             cancelled=True
         )
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(formset.queryset.count(), 2)
         self.assertEqual(
@@ -139,13 +139,13 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_can_delete(self):
-        self.assertEquals(TicketedEvent.objects.all().count(), 2)
+        self.assertEqual(TicketedEvent.objects.all().count(), 2)
         formset_data = self.formset_data({
             'form-0-DELETE': 'on',
             'formset_submitted': 'Save changes'
             })
         resp = self._post_response(self.staff_user, formset_data)
-        self.assertEquals(TicketedEvent.objects.all().count(), 1)
+        self.assertEqual(TicketedEvent.objects.all().count(), 1)
 
     def test_cancel_button_shown_for_events_with_bookings(self):
         """
@@ -277,16 +277,16 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user, self.ticketed_event)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user, self.ticketed_event)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_can_edit_event(self):
         self.assertEqual(self.ticketed_event.ticket_cost, 10)
@@ -352,7 +352,7 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user, self.ticketed_event)
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'ticketed_events'
         )
 
@@ -435,20 +435,20 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:add_ticketed_event')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user)
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'add_ticketed_event'
         )
 
@@ -581,16 +581,16 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user, self.ticketed_event)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user, self.ticketed_event)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_show_only_ticket_bookings_on_event(self):
         """
@@ -674,7 +674,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
 
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user, self.ticketed_event)
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'ticketed_events'
         )
 
@@ -1005,16 +1005,16 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user, self.ticketed_event_with_booking)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user, self.ticketed_event_with_booking)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_get_cancel_page_with_no_bookings(self):
         # no bookings displayed on page
@@ -1382,16 +1382,16 @@ class ConfirmTicketBookingRefundViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user, self.ticket_booking)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user, self.ticket_booking)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
 
     def test_shows_already_confirmed_msg_for_already_refunded(self):
@@ -1488,16 +1488,16 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:print_tickets_list',)
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_selecting_event_shows_its_extra_info_fields(self):
         """
@@ -1538,8 +1538,8 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
 
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'print_tickets_list'
         )
 

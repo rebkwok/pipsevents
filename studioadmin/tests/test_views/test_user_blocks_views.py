@@ -70,7 +70,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -78,8 +78,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.user.id)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -87,15 +87,15 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user, self.user.id)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, self.user.id)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_view_users_blocks(self):
         """
