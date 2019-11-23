@@ -30,3 +30,4 @@ simple-crypt==4.1.7
 python-memcached==1.59
 pytest==5.3.0
 pytest-django==3.7.0
+pytest-cov==2.8.1

@@ -426,7 +426,7 @@ DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
 import sys
-TESTING = 'test' in sys.argv
+TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
 
 # TRAVIS and HEROKU logging
 if env('TRAVIS') or env('HEROKU') or TESTING:  # pragma: no cover
