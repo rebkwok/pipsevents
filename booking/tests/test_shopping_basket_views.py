@@ -353,6 +353,34 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             resp.context['block_voucher_error'], 'Voucher code has expired'
         )
 
+    def test_block_voucher_code_not_started(self):
+        # expired voucher
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        self.block_voucher.block_types.add(block.block_type)
+        self.block_voucher.start_date = timezone.now() + timedelta(4)
+        self.block_voucher.expiry_date = timezone.now() + timedelta(20)
+        self.block_voucher.save()
+        resp = self.client.get(self.url + '?block_code=foo')
+        self.assertIn(
+            'Voucher code is not valid until', resp.context['block_voucher_error']
+        )
+
+    def test_block_voucher_code_not_activated(self):
+        # expired voucher
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False,
+        )
+        self.block_voucher.activated = False
+        self.block_voucher.block_types.add(block.block_type)
+        self.block_voucher.save()
+
+        resp = self.client.get(self.url + '?block_code=foo')
+        self.assertEqual(
+            resp.context['block_voucher_error'], 'Voucher has not been activated yet'
+        )
+
     def test_booking_voucher_used_up_for_user(self):
         booking = Booking.objects.first()
         ev_type = booking.event.event_type

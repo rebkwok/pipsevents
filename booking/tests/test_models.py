@@ -8,10 +8,11 @@ from django.urls import reverse
 from datetime import timedelta, datetime
 from unittest.mock import patch
 from model_bakery import baker
+import pytest
 
 from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
-    EventVoucher
+    EventVoucher, GiftVoucherType
 from common.tests.helpers import PatchRequestMixin
 
 now = timezone.now()
@@ -1593,3 +1594,24 @@ class VoucherTests(TestCase):
     def test_str(self):
         voucher = baker.make(EventVoucher, code="testcode")
         self.assertEqual(str(voucher), 'testcode')
+
+
+class GiftVoucherTypeTests(TestCase):
+
+    def test_event_type_or_block_type_required(self):
+
+        block_type = baker.make_recipe("booking.blocktype5")
+        event_type = baker.make_recipe("booking.event_type_PC")
+
+        with pytest.raises(ValidationError):
+            gift_voucher = GiftVoucherType.objects.create()
+            gift_voucher.clean()
+
+        with pytest.raises(ValidationError):
+            gift_voucher = GiftVoucherType.objects.create(event_type=event_type, block_type=block_type)
+            gift_voucher.clean()
+
+    def test_gift_voucher_cost(self):
+        block_type = baker.make_recipe("booking.blocktype5", cost=40)
+        gift_voucher_type = GiftVoucherType.objects.create(block_type=block_type)
+        assert gift_voucher_type.cost == 40

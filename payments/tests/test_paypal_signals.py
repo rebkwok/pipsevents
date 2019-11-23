@@ -9,12 +9,12 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from booking.models import Booking, BlockVoucher, EventVoucher, \
-    UsedBlockVoucher, UsedEventVoucher
+    UsedBlockVoucher, UsedEventVoucher, GiftVoucherType
 from common.tests.helpers import PatchRequestMixin
 
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
-    PaypalTicketBookingTransaction
+    PaypalTicketBookingTransaction, PaypalGiftVoucherTransaction
 from payments.models import logger as payment_models_logger
 
 from paypal.standard.ipn.models import PayPalIPN
@@ -217,6 +217,32 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             )
         )
 
+    def test_paypal_notify_url_with_no_matching_gift_voucher(self):
+        self.assertFalse(PayPalIPN.objects.exists())
+
+        resp = self.paypal_post(
+            {'custom': b'gift_voucher 1234', 'charset': b(CHARSET), 'txn_id': 'test'}
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+
+        # one warning email sent
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            mail.outbox[0].subject,
+            'WARNING! Error processing Invalid Payment Notification from PayPal'
+        )
+        self.assertEqual(
+            mail.outbox[0].body,
+            'PayPal sent an invalid transaction notification while '
+            'attempting to process payment;.\n\nThe flag '
+            'info was "{}"\n\nAn additional error was raised: {}'.format(
+                ppipn.flag_info, 'Voucher code with id 1234 does not exist'
+            )
+        )
+
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
@@ -252,6 +278,43 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         # 2 emails sent, to user and studio
         self.assertEqual(
             len(mail.outbox), 2,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_complete_status_gift_voucher(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        event_type = baker.make_recipe("booking.event_type_PC")
+        baker.make_recipe("booking.future_PC", event_type=event_type, cost=10)
+        voucher_type = baker.make(GiftVoucherType, event_type=event_type)
+        voucher = baker.make_recipe('booking.event_gift_voucher', purchaser_email="gitt@test.com", code=1234)
+        voucher.event_types.add(event_type)
+        pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'gift_voucher {voucher.id}'),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        # 3 emails sent, payment emails to user and studio and gift voucher email to user
+        self.assertEqual(
+            len(mail.outbox), 3,
             "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
         )
 
