@@ -14,7 +14,7 @@ from paypal.standard.ipn.models import PayPalIPN
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
 
 from booking.models import Booking, Block, TicketBooking, BlockVoucher, \
-    EventVoucher, UsedBlockVoucher, UsedEventVoucher, GiftVoucher
+    EventVoucher, UsedBlockVoucher, UsedEventVoucher, GiftVoucherType
 
 from activitylog.models import ActivityLog
 
@@ -63,7 +63,7 @@ class PaypalTicketBookingTransaction(models.Model):
 
 class PaypalGiftVoucherTransaction(models.Model):
     invoice_id = models.CharField(max_length=255, null=True, blank=True)
-    voucher_type = models.ForeignKey(GiftVoucher, null=True, on_delete=models.SET_NULL)
+    voucher_type = models.ForeignKey(GiftVoucherType, null=True, on_delete=models.SET_NULL)
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
     transaction_id = models.CharField(max_length=255, null=True, blank=True)
 

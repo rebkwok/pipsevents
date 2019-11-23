@@ -934,7 +934,7 @@ class UsedBlockVoucher(models.Model):
     block_id = models.CharField(max_length=20, null=True, blank=True)
 
 
-class GiftVoucher(models.Model):
+class GiftVoucherType(models.Model):
     block_type = models.ForeignKey(
         BlockType, null=True, blank=True, on_delete=models.SET_NULL, related_name="block_gift_vouchers"
     )
