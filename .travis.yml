@@ -28,7 +28,7 @@ before_script:
   - python manage.py migrate
 
 script:
-  - pytest --cov-config=.coveragerc --cov=pipsevents,booking,timetable,accounts,payments,studioadmin,common,activitylog
+  - pytest --cov-config=.coveragerc --cov=.
 
 after_success:
   coveralls
