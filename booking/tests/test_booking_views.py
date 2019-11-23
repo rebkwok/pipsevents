@@ -65,9 +65,9 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
-        self.assertEquals(Booking.objects.all().count(), 4)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['bookings'].count(), 3)
+        self.assertEqual(Booking.objects.all().count(), 4)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['bookings'].count(), 3)
 
     def test_booking_list_by_user(self):
         """
@@ -78,12 +78,12 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=another_user, event=self.events[0]
         )
         # check there are now 5 bookings
-        self.assertEquals(Booking.objects.all().count(), 5)
+        self.assertEqual(Booking.objects.all().count(), 5)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
         # event listing should still only show this user's future bookings
-        self.assertEquals(resp.context_data['bookings'].count(), 3)
+        self.assertEqual(resp.context_data['bookings'].count(), 3)
 
     def test_cancelled_booking_shown_in_booking_list(self):
         """
@@ -95,13 +95,13 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             status='CANCELLED'
         )
         # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
-        self.assertEquals(Booking.objects.all().count(), 5)
+        self.assertEqual(Booking.objects.all().count(), 5)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
         # booking listing should show this user's future bookings,
         # including the cancelled one
-        self.assertEquals(resp.context_data['bookings'].count(), 4)
+        self.assertEqual(resp.context_data['bookings'].count(), 4)
 
     def test_cancelled_events_shown_in_booking_list(self):
         """
@@ -117,13 +117,13 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             status='CANCELLED'
         )
         # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
-        self.assertEquals(Booking.objects.all().count(), 1)
+        self.assertEqual(Booking.objects.all().count(), 1)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
         # booking listing should show this user's future bookings,
         # including the cancelled one
-        self.assertEquals(resp.context_data['bookings'].count(), 1)
+        self.assertEqual(resp.context_data['bookings'].count(), 1)
         self.assertIn('EVENT CANCELLED', resp.rendered_content)
 
     @patch('booking.views.booking_views.timezone')
@@ -151,7 +151,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
-        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        self.assertEqual(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(bookingform['due_date_time'], event.payment_due_date)
 
@@ -183,7 +183,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
-        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        self.assertEqual(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(
             bookingform['due_date_time'],
@@ -194,7 +194,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         booking.save()
         resp = self.client.get(self.url)
 
-        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        self.assertEqual(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(
             bookingform['due_date_time'],
@@ -227,7 +227,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
-        self.assertEquals(len(resp.context_data['bookingformlist']), 1)
+        self.assertEqual(len(resp.context_data['bookingformlist']), 1)
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(
             bookingform['due_date_time'],
@@ -309,13 +309,13 @@ class BookingListViewTests(TestSetupMixin, TestCase):
             status='CANCELLED', auto_cancelled=True
         )
         # check there are now 5 bookings (3 future, 1 past, 1 cancelled)
-        self.assertEquals(Booking.objects.all().count(), 5)
+        self.assertEqual(Booking.objects.all().count(), 5)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
         # booking listing should show this user's future bookings,
         # including the cancelled one
-        self.assertEquals(resp.context_data['bookings'].count(), 4)
+        self.assertEqual(resp.context_data['bookings'].count(), 4)
         self.assertIn(
             'rebook_button_auto_cancelled_disabled', resp.rendered_content
         )
@@ -353,9 +353,9 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
-        self.assertEquals(Booking.objects.all().count(), 2)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['bookings'].count(), 1)
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['bookings'].count(), 1)
 
     def test_booking_history_list_by_user(self):
         """
@@ -366,12 +366,12 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=another_user, event=self.past_booking.event
         )
         # check there are now 3 bookings
-        self.assertEquals(Booking.objects.all().count(), 3)
+        self.assertEqual(Booking.objects.all().count(), 3)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
 
         #  listing should still only show this user's past bookings
-        self.assertEquals(resp.context_data['bookings'].count(), 1)
+        self.assertEqual(resp.context_data['bookings'].count(), 1)
 
 
 class BookingCreateViewTests(TestSetupMixin, TestCase):
@@ -2710,7 +2710,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         self._delete_response(user5, direct_paid_booking)
         direct_paid_booking.refresh_from_db()
-        self.assertEquals(
+        self.assertEqual(
             Block.objects.filter(block_type__identifier='transferred').count(),
             2
         )

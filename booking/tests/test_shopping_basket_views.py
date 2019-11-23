@@ -615,7 +615,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_bookings']), 1)
 
         self.assertNotIn('bookings_paypalform', resp.context_data)
-        self.assertEquals(resp.context_data['total_unpaid_booking_cost'], 0)
+        self.assertEqual(resp.context_data['total_unpaid_booking_cost'], 0)
 
     def test_100_pct_booking_gift_voucher_payment_buttons_with_unapplied_booking(self):
         # paypal form if there are bookings as well as the gift-voucher applied ones
@@ -628,7 +628,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_bookings']), 2    )
 
         self.assertIn('bookings_paypalform', resp.context_data)
-        self.assertEquals(resp.context_data['total_unpaid_booking_cost'], 8)
+        self.assertEqual(resp.context_data['total_unpaid_booking_cost'], 8)
 
     def test_100_pct_block_gift_voucher_payment_buttons(self):
         # update button instead of paypal form for a 100% gift voucher
@@ -641,7 +641,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_blocks']), 1)
 
         self.assertNotIn('block_paypalform', resp.context_data)
-        self.assertEquals(resp.context_data['total_unpaid_block_cost'], 0)
+        self.assertEqual(resp.context_data['total_unpaid_block_cost'], 0)
 
     def test_100_pct_block_gift_voucher_payment_buttons_with_unapplied_booking(self):
         # paypal form if there are bookings as well as the gift-voucher applied ones
@@ -657,7 +657,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(resp.context['unpaid_blocks']), 2)
 
         self.assertNotIn('block_paypalform', resp.context_data)
-        self.assertEquals(resp.context_data['total_unpaid_block_cost'], 10)
+        self.assertEqual(resp.context_data['total_unpaid_block_cost'], 10)
 
 
 class UpdateBlockBookingsTests(TestSetupMixin, TestCase):

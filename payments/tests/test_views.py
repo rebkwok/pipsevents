@@ -35,9 +35,9 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'item_name': booking.event.name
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['obj_type'], 'booking')
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['obj_type'], 'booking')
+        self.assertEqual(
             [obj for obj in resp.context_data['objs']], [booking]
         )
 
@@ -51,9 +51,9 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'item_name': block
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['obj_type'], 'block')
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['obj_type'], 'block')
+        self.assertEqual(
             [obj for obj in resp.context_data['objs']], [block]
         )
 
@@ -67,9 +67,9 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'item_name': ticket_booking.ticketed_event.name
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['obj_type'], 'ticket_booking')
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['obj_type'], 'ticket_booking')
+        self.assertEqual(
             [obj for obj in resp.context_data['objs']], [ticket_booking]
         )
 
@@ -84,8 +84,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'item_name': block
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['obj_unknown'], True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['obj_unknown'], True)
         self.assertIn(
             'Thank you for your payment which is currently being processed',
             resp.rendered_content
@@ -103,8 +103,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'item_name': 'paypal_test'
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
             resp.context_data['test_paypal_email'], 'testpp@test.com'
         )
         self.assertIn(
@@ -127,8 +127,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'item_name': 'paypal_test'
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
             resp.context_data['test_paypal_email'], 'testpp@test.com'
         )
         self.assertIn(
@@ -146,8 +146,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'payment_status': 'paid',
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['obj_unknown'], True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['obj_unknown'], True)
         self.assertIn(
             'Thank you for your payment which is currently being processed',
             resp.rendered_content
@@ -165,8 +165,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
                 'payment_status': 'paid',
             }
         )
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['obj_type'], 'booking')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['obj_type'], 'booking')
         self.assertCountEqual(
             [obj for obj in resp.context_data['objs']], bookings
         )
@@ -182,7 +182,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         session.save()
 
         resp = self.client.post(url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.context_data['obj_unknown'])
 
         self.assertCountEqual(
@@ -211,7 +211,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         session.save()
 
         resp = self.client.post(url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.context_data['obj_unknown'])
 
         # all cart items included
@@ -241,7 +241,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         session.save()
 
         resp = self.client.post(url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.context_data['obj_unknown'])
 
         self.assertCountEqual(
@@ -268,7 +268,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         session.save()
 
         resp = self.client.post(url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.context_data['obj_unknown'])
 
         self.assertEqual(resp.context_data['cart_items'], [])

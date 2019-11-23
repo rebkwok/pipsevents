@@ -63,7 +63,7 @@ class EmailUsersFormTests(TestCase):
             data=self.form_data({'from_address': ''})
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(
+        self.assertEqual(
             form.errors['from_address'],
             ['This field is required.']
         )
@@ -73,7 +73,7 @@ class EmailUsersFormTests(TestCase):
             data=self.form_data({'message': ''})
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(
+        self.assertEqual(
             form.errors['message'],
             ['This field is required.']
         )
@@ -96,13 +96,13 @@ class UserFilterFormTests(TestCase):
         event_choices = [
             choice for choice in event_field.widget.choices
             ]
-        self.assertEquals(len(event_choices), 3)
+        self.assertEqual(len(event_choices), 3)
         event_ids = [id for (id, name) in event_choices]
         event_type = set([
             event.event_type.event_type
             for event in Event.objects.filter(id__in=event_ids)
             ])
-        self.assertEquals(event_type, set(['EV']))
+        self.assertEqual(event_type, set(['EV']))
 
     def test_lessons_dropdown(self):
         form = UserFilterForm()
@@ -110,13 +110,13 @@ class UserFilterFormTests(TestCase):
         lesson_choices = [
             choice for choice in lesson_field.widget.choices
             ]
-        self.assertEquals(len(lesson_choices), 4)
+        self.assertEqual(len(lesson_choices), 4)
         lesson_ids = [id for (id, name) in lesson_choices]
         event_type = set([
             event.event_type.event_type
             for event in Event.objects.filter(id__in=lesson_ids)
             ])
-        self.assertEquals(event_type, set(['CL']))
+        self.assertEqual(event_type, set(['CL']))
 
 
 class UserBookingFormSetTests(PatchRequestMixin, TestCase):
@@ -170,7 +170,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
                                      user=self.user)
         form = formset.forms[0]
         self.assertTrue(form.has_available_block)
-        self.assertEquals(form.paid_id, 'paid_0')
+        self.assertEqual(form.paid_id, 'paid_0')
 
     def test_block_queryset_with_new_form(self):
         """
@@ -188,7 +188,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[-1]
         block = form.fields['block']
         # queryset shows only the two active blocks for this user
-        self.assertEquals(2, block.queryset.count())
+        self.assertEqual(2, block.queryset.count())
 
     def test_block_queryset_with_existing_booking_with_active_user_block(self):
         """
@@ -210,10 +210,10 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[0]
         block = form.fields['block']
         # queryset shows only the active blocks for this user and event type
-        self.assertEquals(1, block.queryset.count())
+        self.assertEqual(1, block.queryset.count())
 
         # empty_label shows the "None"
-        self.assertEquals(
+        self.assertEqual(
             block.empty_label,
             "--------None--------",
         )
@@ -229,10 +229,10 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[0]
         block = form.fields['block']
         # queryset still only shows active blocks for this user and event type
-        self.assertEquals(1, block.queryset.count())
+        self.assertEqual(1, block.queryset.count())
 
         # empty_label shows the "Remove block" instruction
-        self.assertEquals(
+        self.assertEqual(
             block.empty_label,
             "---REMOVE BLOCK (TO CHANGE BLOCK, REMOVE AND SAVE FIRST)---",
         )
@@ -249,7 +249,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[0]
         block = form.fields['block']
         # no active blocks for this user and event type
-        self.assertEquals(0, block.queryset.count())
+        self.assertEqual(0, block.queryset.count())
 
     def test_block_choice_label_format(self):
         active_user_block = baker.make_recipe('booking.block',
@@ -264,8 +264,8 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[0]
         block = form.fields['block']
         # queryset shows only the active blocks for this user and event type
-        self.assertEquals(1, block.queryset.count())
-        self.assertEquals(
+        self.assertEqual(1, block.queryset.count())
+        self.assertEqual(
                     "{}; exp {}; {} left".format(
                         active_user_block.block_type.event_type.subtype,
                         active_user_block.expiry_date.strftime('%d/%m'),
@@ -285,8 +285,8 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[-1]
         event = form.fields['event']
         # queryset shows only the two active blocks for this user
-        self.assertEquals(6, Event.objects.count())
-        self.assertEquals(5, event.queryset.count())
+        self.assertEqual(6, Event.objects.count())
+        self.assertEqual(5, event.queryset.count())
         self.assertFalse(self.event in event.queryset)
 
     def test_event_choices_with_existing_booking(self):
@@ -302,7 +302,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
         form = formset.forms[0]
         event = form.fields['event']
         # queryset shows all events (will be hidden in the template)
-        self.assertEquals(6, event.queryset.count())
+        self.assertEqual(6, event.queryset.count())
 
     def test_widgets_disabled(self):
         """
@@ -453,7 +453,7 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
                                      user=self.user)
         form = formset.forms[0]
         self.assertTrue(form.can_buy_block)
-        self.assertEquals(form.paid_id, 'paid_0')
+        self.assertEqual(form.paid_id, 'paid_0')
 
     def test_block_type_queryset_for_new_form(self):
         """
@@ -462,11 +462,11 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         """
         available_block_type = baker.make_recipe('booking.blocktype',
                                                _quantity=5)
-        self.assertEquals(BlockType.objects.all().count(), 6)
+        self.assertEqual(BlockType.objects.all().count(), 6)
         formset = UserBlockFormSet(instance=self.user, user=self.user)
         form = formset.forms[-1]
         block_type_queryset = form.fields['block_type'].queryset
-        self.assertEquals(block_type_queryset.count(), 5)
+        self.assertEqual(block_type_queryset.count(), 5)
         self.assertFalse(self.block_type in block_type_queryset)
 
         # blocktypes of unpaid blocks which are otherwise active are also not
@@ -476,7 +476,7 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         formset = UserBlockFormSet(instance=self.user, user=self.user)
         form = formset.forms[-1]
         block_type_queryset = form.fields['block_type'].queryset
-        self.assertEquals(block_type_queryset.count(), 5)
+        self.assertEqual(block_type_queryset.count(), 5)
         self.assertFalse(self.block_type in block_type_queryset)
         # blocktypes of expired blocks are included in the choices
         self.block.start_date = timezone.now() - timedelta(100)
@@ -487,7 +487,7 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         formset = UserBlockFormSet(instance=self.user, user=self.user)
         form = formset.forms[-1]
         block_type_queryset = form.fields['block_type'].queryset
-        self.assertEquals(block_type_queryset.count(), 6)
+        self.assertEqual(block_type_queryset.count(), 6)
         self.assertIn(self.block_type, block_type_queryset)
 
     def test_delete_checkbox(self):

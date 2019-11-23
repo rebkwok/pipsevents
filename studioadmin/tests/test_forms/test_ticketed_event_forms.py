@@ -40,7 +40,7 @@ class TicketedEventAdminFormTests(TestCase):
     def test_form_with_invalid_contact_person(self):
         form = TicketedEventAdminForm(data=self.form_data({'contact_person': ''}))
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_person', form.errors.keys())
         self.assertIn(['This field is required.'], form.errors.values())
 
@@ -48,14 +48,14 @@ class TicketedEventAdminFormTests(TestCase):
         form = TicketedEventAdminForm(
             data=self.form_data({'contact_email': ''}))
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['This field is required.'], form.errors.values())
 
         form = TicketedEventAdminForm(
             data=self.form_data({'contact_email': 'test_email'}))
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['Enter a valid email address.'], form.errors.values())
 
@@ -334,7 +334,7 @@ class TicketedEventAdminFormTests(TestCase):
             cancelled_field.widget.attrs,
             {'disabled': 'disabled', 'id': 'cancelled_id', 'class': 'hide'}
         )
-        self.assertEquals(
+        self.assertEqual(
             cancelled_field.help_text,
             'To cancel, use the Cancel button on the event list page'
         )
@@ -349,7 +349,7 @@ class TicketedEventAdminFormTests(TestCase):
             cancelled_field.widget.attrs,
             {'class': 'form-control regular-checkbox', 'id': 'cancelled_id'}
         )
-        self.assertEquals(
+        self.assertEqual(
             cancelled_field.help_text,
             'Untick to reopen event; note that this does not change any other '
             'event attributes and does not reopen previously cancelled ticket '
@@ -425,11 +425,11 @@ class TicketedEventFormsetTests(TestCase):
             data=self.formset_data(), queryset=TicketedEvent.objects.all()
         )
         form = formset.forms[0]
-        self.assertEquals(form.payment_open_id, 'payment_open_0')
-        self.assertEquals(
+        self.assertEqual(form.payment_open_id, 'payment_open_0')
+        self.assertEqual(
             form.advance_payment_required_id, 'advance_payment_required_0'
         )
-        self.assertEquals(form.DELETE_id, 'DELETE_0')
+        self.assertEqual(form.DELETE_id, 'DELETE_0')
 
     def test_can_only_delete_if_no_confirmed_ticket_purchases(self):
 

@@ -61,12 +61,12 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
         form = formset.forms[0]
-        self.assertEquals(form.index, 1)
-        self.assertEquals(form.available_block, self.active_block)
-        self.assertEquals(form.checkbox_deposit_paid_id, 'checkbox_deposit_paid_0')
-        self.assertEquals(form.checkbox_paid_id, 'checkbox_paid_0')
-        self.assertEquals(form.checkbox_attended_id, 'checkbox_attended_0')
-        self.assertEquals(form.checkbox_no_show_id, 'checkbox_no_show_0')
+        self.assertEqual(form.index, 1)
+        self.assertEqual(form.available_block, self.active_block)
+        self.assertEqual(form.checkbox_deposit_paid_id, 'checkbox_deposit_paid_0')
+        self.assertEqual(form.checkbox_paid_id, 'checkbox_paid_0')
+        self.assertEqual(form.checkbox_attended_id, 'checkbox_attended_0')
+        self.assertEqual(form.checkbox_no_show_id, 'checkbox_no_show_0')
 
     def test_block_queryset_with_other_event_types(self):
         """
@@ -78,9 +78,9 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
         form = formset.forms[0]
-        self.assertEquals(Block.objects.filter(user=self.user).count(), 6)
+        self.assertEqual(Block.objects.filter(user=self.user).count(), 6)
         block_field = form.fields['block']
-        self.assertEquals(set(block_field.queryset), {self.active_block})
+        self.assertEqual(set(block_field.queryset), {self.active_block})
 
     def test_block_queryset_with_other_user_blocks(self):
         """
@@ -93,11 +93,11 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
         form = formset.forms[0]
-        self.assertEquals(Block.objects.filter(
+        self.assertEqual(Block.objects.filter(
             block_type=self.block_type
         ).count(), 6)
         block_field = form.fields['block']
-        self.assertEquals(set(block_field.queryset), {self.active_block})
+        self.assertEqual(set(block_field.queryset), {self.active_block})
 
     def test_block_queryset_with_inactive_block(self):
         """
@@ -109,9 +109,9 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
         form = formset.forms[0]
-        self.assertEquals(Block.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(Block.objects.filter(user=self.user).count(), 1)
         block_field = form.fields['block']
-        self.assertEquals(block_field.widget.attrs, {'class': 'hide'})
+        self.assertEqual(block_field.widget.attrs, {'class': 'hide'})
 
     def test_block_queryset_with_expired_block(self):
         """
@@ -129,9 +129,9 @@ class SimpleBookingRegisterFormSetTests(TestCase):
         formset = SimpleBookingRegisterFormSet(data=self.formset_data(),
                                                instance=self.event)
         form = formset.forms[0]
-        self.assertEquals(Block.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(Block.objects.filter(user=self.user).count(), 2)
         block_field = form.fields['block']
-        self.assertEquals(set(block_field.queryset), {self.active_block})
+        self.assertEqual(set(block_field.queryset), {self.active_block})
 
     def test_adding_more_bookings_than_max_participants(self):
         self.event.max_participants = 2

@@ -48,9 +48,9 @@ class EventListViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:ticketed_events')
         resp = self.client.get(url)
 
-        self.assertEquals(TicketedEvent.objects.all().count(), 3)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context['ticketed_events'].count(), 3)
+        self.assertEqual(TicketedEvent.objects.all().count(), 3)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['ticketed_events'].count(), 3)
 
     def test_event_list_past_event(self):
         """
@@ -58,12 +58,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         baker.make_recipe('booking.ticketed_event_past_max10')
         # check there are now 4 events
-        self.assertEquals(TicketedEvent.objects.all().count(), 4)
+        self.assertEqual(TicketedEvent.objects.all().count(), 4)
         url = reverse('booking:ticketed_events')
         resp = self.client.get(url)
 
         # event listing should still only show future events
-        self.assertEquals(resp.context['ticketed_events'].count(), 3)
+        self.assertEqual(resp.context['ticketed_events'].count(), 3)
 
     def test_event_list_with_anonymous_user(self):
         """
@@ -88,7 +88,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user)
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(len(resp.context_data['tickets_booked_events']), 0)
+        self.assertEqual(len(resp.context_data['tickets_booked_events']), 0)
 
         # create a booking for this user with no tickets
         booked_event = TicketedEvent.objects.all()[0]
@@ -99,7 +99,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
         # ticket bookings without attached tickets are ignored
-        self.assertEquals(len(booked_events), 0)
+        self.assertEqual(len(booked_events), 0)
 
     def test_event_list_with_booked_events(self):
         """
@@ -108,7 +108,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user)
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(len(resp.context_data['tickets_booked_events']), 0)
+        self.assertEqual(len(resp.context_data['tickets_booked_events']), 0)
 
         # create a booking for this user
         booked_event = TicketedEvent.objects.all()[0]
@@ -119,7 +119,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(booked_event in booked_events)
 
     def test_event_list_only_shows_confirmed_bookings_events(self):
@@ -129,7 +129,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user)
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(len(resp.context_data['tickets_booked_events']), 0)
+        self.assertEqual(len(resp.context_data['tickets_booked_events']), 0)
 
         # create a confirmed booking for this user
         booked_event = TicketedEvent.objects.all()[0]
@@ -145,7 +145,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(booked_event in booked_events)
         self.assertFalse(unconfirmed in booked_events)
 
@@ -160,7 +160,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user)
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(len(resp.context_data['tickets_booked_events']), 0)
+        self.assertEqual(len(resp.context_data['tickets_booked_events']), 0)
 
         # create booking for this user
         baker.make(
@@ -179,8 +179,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         # check only event1 shows in the booked events
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
-        self.assertEquals(TicketBooking.objects.all().count(), 2)
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(TicketBooking.objects.all().count(), 2)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event1 in booked_events)
 
     def test_events_not_listed_if_show_on_site_false(self):
@@ -188,29 +188,29 @@ class EventListViewTests(TestSetupMixin, TestCase):
             'booking.ticketed_event_max10', show_on_site=False
         )
         # check there are now 4 events
-        self.assertEquals(TicketedEvent.objects.all().count(), 4)
+        self.assertEqual(TicketedEvent.objects.all().count(), 4)
         resp = self._get_response(self.user)
         # event listing should only show events ticked as show on site
-        self.assertEquals(resp.context_data['ticketed_events'].count(), 3)
+        self.assertEqual(resp.context_data['ticketed_events'].count(), 3)
 
     def test_events_are_listed_for_staff_users_if_show_on_site_false(self):
         baker.make_recipe(
             'booking.ticketed_event_max10', show_on_site=False
         )
         # check there are now 4 events
-        self.assertEquals(TicketedEvent.objects.all().count(), 4)
+        self.assertEqual(TicketedEvent.objects.all().count(), 4)
 
         resp = self._get_response(self.user)
         # event listing should only show events ticked as show on site
-        self.assertEquals(resp.context_data['ticketed_events'].count(), 3)
+        self.assertEqual(resp.context_data['ticketed_events'].count(), 3)
         self.assertNotIn('not_visible_events', resp.context_data)
 
         resp = self._get_response(self.staff_user)
         # event listing should show events ticked as show on site
-        self.assertEquals(resp.context_data['ticketed_events'].count(), 3)
+        self.assertEqual(resp.context_data['ticketed_events'].count(), 3)
         # now also has the not_visible_events
         self.assertIn('not_visible_events', resp.context_data)
-        self.assertEquals(resp.context_data['not_visible_events'].count(), 1)
+        self.assertEqual(resp.context_data['not_visible_events'].count(), 1)
 
 
 class TicketCreateViewTests(TestSetupMixin, TestCase):

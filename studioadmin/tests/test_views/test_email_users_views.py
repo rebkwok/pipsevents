@@ -45,7 +45,7 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:choose_email_users')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -54,8 +54,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         """
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -66,8 +66,8 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
             username=self.instructor_user.username, password='test'
         )
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
@@ -75,7 +75,7 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
         """
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.get(self.url)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_filter_users_by_event_booked(self):
         baker.make_recipe('booking.user', _quantity=2)
@@ -495,7 +495,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:email_users_view')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -503,8 +503,8 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, [self.user.id])
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_instructor_group_cannot_access(self):
         """
@@ -512,15 +512,15 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         not a staff user
         """
         resp = self._get_response(self.instructor_user, [self.user.id])
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, [self.user.id])
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_users_and_events_in_context(self):
         event = baker.make_recipe('booking.future_EV', name='Test Event')

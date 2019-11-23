@@ -44,7 +44,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                   'first_name': 'Fred', 'last_name': self.user.last_name}
         )
         self.user.refresh_from_db()
-        self.assertEquals(self.user.first_name, "Fred")
+        self.assertEqual(self.user.first_name, "Fred")
 
 
     def test_updates_mailchimp_with_first_name(self):
@@ -344,7 +344,7 @@ class ProfileTests(TestSetupMixin, TestCase):
 
     def test_profile_view(self):
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_profile_view_shows_disclaimer_info(self):
         resp = self._get_response(self.user)

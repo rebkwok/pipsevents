@@ -134,14 +134,14 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
         for user in users[5:]:
             baker.make_recipe('booking.booking', user=user, event=ws)
 
-        self.assertEquals(len(Booking.objects.filter(paid=True)), 0)
-        self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 0)
+        self.assertEqual(len(Booking.objects.filter(paid=True)), 0)
+        self.assertEqual(len(Booking.objects.filter(payment_confirmed=True)), 0)
 
         booking_admin = admin.BookingAdmin(Booking, AdminSite())
         queryset = Booking.objects.filter(event__event_type__subtype__contains='Other event')
         booking_admin.confirm_space(None, queryset)
-        self.assertEquals(len(Booking.objects.filter(paid=True)), 5)
-        self.assertEquals(len(Booking.objects.filter(payment_confirmed=True)), 5)
+        self.assertEqual(len(Booking.objects.filter(paid=True)), 5)
+        self.assertEqual(len(Booking.objects.filter(payment_confirmed=True)), 5)
 
     def test_booking_user_filter_choices(self):
         # test that user filter shows formatted choices ordered by first name

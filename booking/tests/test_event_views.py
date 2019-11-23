@@ -50,9 +50,9 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.client.logout()
         resp = self.client.get(self.url)
 
-        self.assertEquals(Event.objects.all().count(), 9)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context['events'].count(), 3)
+        self.assertEqual(Event.objects.all().count(), 9)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['events'].count(), 3)
 
     def test_event_list_logged_in_no_data_protection_policy(self):
         DataPrivacyPolicy.objects.all().delete()
@@ -86,11 +86,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         baker.make_recipe('booking.past_event')
         # check there are now 4 events
-        self.assertEquals(Event.objects.all().count(), 10)
+        self.assertEqual(Event.objects.all().count(), 10)
         resp = self.client.get(self.url)
 
         # event listing should still only show future events
-        self.assertEquals(resp.context['events'].count(), 3)
+        self.assertEqual(resp.context['events'].count(), 3)
 
     def test_event_list_with_anonymous_user(self):
         """
@@ -115,14 +115,14 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         resp = self.client.get(self.url)
         # check there are no booked events yet
-        self.assertEquals(len(resp.context_data['booked_events']), 0)
+        self.assertEqual(len(resp.context_data['booked_events']), 0)
 
         # create a booking for this user
         event = self.events[0]
         baker.make_recipe('booking.booking', user=self.user, event=event)
         resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
 
     def test_event_list_booked_paid_events(self):
@@ -137,7 +137,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
         resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
         self.assertNotIn('pay_button', resp.rendered_content)
 
@@ -154,7 +154,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         """
         resp = self.client.get(self.url)
         # check there are no booked events yet
-        self.assertEquals(len(resp.context_data['booked_events']), 0)
+        self.assertEqual(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
         event = self.events[0]
@@ -167,8 +167,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         # check only event1 shows in the booked events
         resp = self.client.get(self.url)
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(Booking.objects.all().count(), 2)
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
 
     def test_filter_events(self):
@@ -179,7 +179,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.future_EV', name='test_name1', _quantity=4)
 
         resp = self.client.get(self.url, {'name': 'test_name'})
-        self.assertEquals(resp.context['events'].count(), 3)
+        self.assertEqual(resp.context['events'].count(), 3)
 
     def test_pole_practice_context_without_permission(self):
         Event.objects.all().delete()
@@ -219,8 +219,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         Event.objects.all().delete()
         baker.make_recipe('booking.future_CL', cancelled=True)
         response = self.client.get(self.lessons_url)
-        self.assertEquals(Event.objects.count(), 1)
-        self.assertEquals(response.context_data['events'].count(), 0)
+        self.assertEqual(Event.objects.count(), 1)
+        self.assertEqual(response.context_data['events'].count(), 0)
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_sale_message_template_tag(self, mock_tz):
@@ -657,7 +657,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         """
         resp = self._get_response(self.user, self.event, 'event')
         self.assertEqual(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'event')
+        self.assertEqual(resp.context_data['type'], 'event')
 
     def test_with_booked_event(self):
         """
@@ -670,7 +670,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user, self.event, 'event')
         self.assertTrue(resp.context_data['booked'])
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           'You have booked for this workshop/event.')
         self.assertNotIn('pay_button', resp.rendered_content)
 
@@ -680,7 +680,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         booking.save()
         resp = self._get_response(self.user, self.event, 'event')
         self.assertTrue(resp.context_data['booked'])
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           'You have booked for this workshop/event.')
         self.assertIn('pay_button', resp.rendered_content)
 
@@ -695,7 +695,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
 
         resp = self._get_response(self.user, self.event,'event')
         self.assertFalse('booked' in resp.context_data)
-        self.assertEquals(resp.context_data['booking_info_text'], '')
+        self.assertEqual(resp.context_data['booking_info_text'], '')
 
     def test_pole_practice_context_without_permission(self):
         pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
@@ -925,7 +925,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         """
         resp = self._get_response(self.user, 'lessons')
         self.assertEqual(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'lessons')
+        self.assertEqual(resp.context_data['type'], 'lessons')
         self.assertTrue('booked_events' in resp.context_data)
 
     def test_lesson_list_with_anonymous_user(self):
@@ -945,10 +945,10 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:lessons')
         resp = self.client.get(url)
 
-        self.assertEquals(Event.objects.all().count(), 8)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context['events'].count(), 6)
-        self.assertEquals(resp.context['type'], 'lessons')
+        self.assertEqual(Event.objects.all().count(), 8)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['events'].count(), 6)
+        self.assertEqual(resp.context['type'], 'lessons')
 
     def test_filter_lessons(self):
         """
@@ -959,9 +959,9 @@ class LessonListViewTests(TestSetupMixin, TestCase):
 
         url = reverse('booking:lessons')
         resp = self.client.get(url, {'name': 'test_name'})
-        self.assertEquals(resp.context['events'].count(), 3)
+        self.assertEqual(resp.context['events'].count(), 3)
         resp = self.client.get(url, {'name': 'test_name1'})
-        self.assertEquals(resp.context['events'].count(), 4)
+        self.assertEqual(resp.context['events'].count(), 4)
 
     def test_lesson_list_shows_only_current_user_bookings(self):
         """
@@ -973,7 +973,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, 'lessons')
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(len(resp.context_data['booked_events']), 0)
+        self.assertEqual(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
         baker.make_recipe('booking.booking', user=self.user, event=event1)
@@ -984,8 +984,8 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'lessons')
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(Booking.objects.all().count(), 2)
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
 
     def test_lesson_list_only_shows_open_bookings(self):
@@ -995,7 +995,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, 'lessons')
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(len(resp.context_data['booked_events']), 0)
+        self.assertEqual(len(resp.context_data['booked_events']), 0)
 
         # create open and cancelled booking for this user
         baker.make_recipe('booking.booking', user=self.user, event=event1)
@@ -1006,8 +1006,8 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'lessons')
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(Booking.objects.all().count(), 2)
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
 
     def test_autocancelled_booking(self):
@@ -1063,7 +1063,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         """
         resp = self._get_response(self.user, 'room_hires')
         self.assertEqual(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'room_hires')
+        self.assertEqual(resp.context_data['type'], 'room_hires')
         self.assertTrue('booked_events' in resp.context_data)
 
     def test_room_hire_list_with_anonymous_user(self):
@@ -1083,10 +1083,10 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:room_hires')
         resp = self.client.get(url)
 
-        self.assertEquals(Event.objects.all().count(), 12)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context['events'].count(), 4)
-        self.assertEquals(resp.context['type'], 'room_hires')
+        self.assertEqual(Event.objects.all().count(), 12)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['events'].count(), 4)
+        self.assertEqual(resp.context['type'], 'room_hires')
 
     def test_filter_room_hire(self):
         """
@@ -1097,9 +1097,9 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
 
         url = reverse('booking:room_hires')
         resp = self.client.get(url, {'name': 'test_name'})
-        self.assertEquals(resp.context['events'].count(), 3)
+        self.assertEqual(resp.context['events'].count(), 3)
         resp = self.client.get(url, {'name': 'test_name1'})
-        self.assertEquals(resp.context['events'].count(), 4)
+        self.assertEqual(resp.context['events'].count(), 4)
 
     def test_room_hire_list_shows_only_current_user_bookings(self):
         """
@@ -1111,7 +1111,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, 'room_hires')
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(len(resp.context_data['booked_events']), 0)
+        self.assertEqual(len(resp.context_data['booked_events']), 0)
 
         # create booking for this user
         baker.make_recipe('booking.booking', user=self.user, event=event1)
@@ -1122,8 +1122,8 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'room_hires')
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(Booking.objects.all().count(), 2)
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
 
     def test_room_hire_list_only_shows_open_bookings(self):
@@ -1133,7 +1133,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, 'room_hires')
         # check there are no booked events yet
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(len(resp.context_data['booked_events']), 0)
+        self.assertEqual(len(resp.context_data['booked_events']), 0)
 
         # create open and cancelled booking for this user
         baker.make_recipe('booking.booking', user=self.user, event=event1)
@@ -1144,8 +1144,8 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         # check only event1 shows in the booked events
         resp = self._get_response(self.user, 'room_hires')
         booked_events = [event for event in resp.context_data['booked_events']]
-        self.assertEquals(Booking.objects.all().count(), 2)
-        self.assertEquals(len(booked_events), 1)
+        self.assertEqual(Booking.objects.all().count(), 2)
+        self.assertEqual(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
 
 
@@ -1173,7 +1173,7 @@ class LessonDetailViewTests(TestSetupMixin, TestCase):
         resp = view(request, slug=self.lesson.slug, ev_type='lesson')
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'lesson')
+        self.assertEqual(resp.context_data['type'], 'lesson')
 
 
 class RoomHireDetailViewTests(TestSetupMixin, TestCase):
@@ -1201,4 +1201,4 @@ class RoomHireDetailViewTests(TestSetupMixin, TestCase):
         resp = view(request, slug=self.room_hire.slug, ev_type='room_hire')
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'room_hire')
+        self.assertEqual(resp.context_data['type'], 'room_hire')

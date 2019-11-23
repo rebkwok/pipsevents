@@ -179,13 +179,13 @@ class DeleteOldActivityLogsTests(TestCase):
         # no age, defaults to 1 yr
         management.call_command('delete_old_activitylogs')
         # 2 logs left - the one that's < 1 yrs old plus the new one to log this activity
-        self.assertEquals(ActivityLog.objects.count(), 2)
+        self.assertEqual(ActivityLog.objects.count(), 2)
         all_log_ids = ActivityLog.objects.values_list("id", flat=True)
         for log in [self.log_25monthsold, self.log_37monthsold]:
             self.assertNotIn(log.id, all_log_ids)
         self.assertIn(self.log_11monthsold.id, all_log_ids)
 
-        self.assertEquals(mock_run.call_count, 1)
+        self.assertEqual(mock_run.call_count, 1)
         cutoff = (self.mock_now-relativedelta(years=1)).strftime('%Y-%m-%d')
         filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff}_{self.mock_now.strftime('%Y%m%d%H%M%S')}.csv"
         mock_run.assert_called_once_with(
@@ -199,13 +199,13 @@ class DeleteOldActivityLogsTests(TestCase):
         self.assertEqual(ActivityLog.objects.count(), 3)
         management.call_command('delete_old_activitylogs', age=3)
         # 3 logs left - the 2 that are < 3 yrs old plus the new one to log this activity
-        self.assertEquals(ActivityLog.objects.count(), 3)
+        self.assertEqual(ActivityLog.objects.count(), 3)
         all_log_ids = ActivityLog.objects.values_list("id", flat=True)
         for log in [self.log_11monthsold, self.log_25monthsold]:
             self.assertIn(log.id, all_log_ids)
         self.assertNotIn(self.log_37monthsold.id, all_log_ids)
 
-        self.assertEquals(mock_run.call_count, 1)
+        self.assertEqual(mock_run.call_count, 1)
         cutoff = (self.mock_now-relativedelta(years=3)).strftime('%Y-%m-%d')
         filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff}_{self.mock_now.strftime('%Y%m%d%H%M%S')}.csv"
         mock_run.assert_called_once_with(

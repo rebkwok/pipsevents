@@ -45,9 +45,9 @@ class TimetableSessionFormSetTests(TestCase):
         formset = TimetableSessionFormSet(
             data=self.formset_data(), queryset=Session.objects.all())
         form =formset.forms[0]
-        self.assertEquals(form.formatted_day, DAY_CHOICES[self.session.day])
-        self.assertEquals(form.booking_open_id, 'booking_open_0')
-        self.assertEquals(form.payment_open_id, 'payment_open_0')
+        self.assertEqual(form.formatted_day, DAY_CHOICES[self.session.day])
+        self.assertEqual(form.booking_open_id, 'booking_open_0')
+        self.assertEqual(form.payment_open_id, 'payment_open_0')
 
     def test_can_delete(self):
         session_to_delete = baker.make(Session)
@@ -103,7 +103,7 @@ class SessionAdminFormTests(TestCase):
         form = SessionAdminForm(
             data=self.form_data({'contact_person': ''}))
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_person', form.errors.keys())
         self.assertIn(['This field is required.'], form.errors.values())
 
@@ -111,14 +111,14 @@ class SessionAdminFormTests(TestCase):
         form = SessionAdminForm(
             data=self.form_data({'contact_email': ''}))
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['This field is required.'], form.errors.values())
 
         form = SessionAdminForm(
             data=self.form_data({'contact_email': 'test_email'}))
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('contact_email', form.errors.keys())
         self.assertIn(['Enter a valid email address.'], form.errors.values())
 
@@ -129,7 +129,7 @@ class SessionAdminFormTests(TestCase):
             set(EventType.objects.filter(event_type='CL')),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(ev_type_field.queryset.count(), 2)
+        self.assertEqual(ev_type_field.queryset.count(), 2)
         self.assertEqual(
             set(EventType.objects.filter(
                 id__in=[self.event_type.id, self.event_type_oc.id]
@@ -149,7 +149,7 @@ class SessionAdminFormTests(TestCase):
             )),
             set(ev_type_field.queryset)
         )
-        self.assertEquals(ev_type_field.queryset.count(), 3)
+        self.assertEqual(ev_type_field.queryset.count(), 3)
 
     def test_invalid_time(self):
         form = SessionAdminForm(
@@ -161,7 +161,7 @@ class SessionAdminFormTests(TestCase):
     def test_name_placeholder(self):
         form = SessionAdminForm(data=self.form_data())
         name_field = form.fields['name']
-        self.assertEquals(
+        self.assertEqual(
             name_field.widget.attrs['placeholder'],
             'Name of session e.g. Pole Level 1')
 
@@ -346,11 +346,11 @@ class UploadTimetableFormTests(TestCase):
             data={'sessions': [self.session.id]}
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 2)
-        self.assertEquals(
+        self.assertEqual(len(form.errors), 2)
+        self.assertEqual(
             form.errors.get('start_date'), ['This field is required.']
         )
-        self.assertEquals(
+        self.assertEqual(
             form.errors.get('end_date'), ['This field is required.']
         )
 
@@ -363,7 +363,7 @@ class UploadTimetableFormTests(TestCase):
             data=self.form_data({'start_date': 'Monday 08 June 2015'})
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('Invalid date format', str(form.errors['start_date']))
 
     @patch('studioadmin.forms.timetable_forms.timezone')
@@ -375,7 +375,7 @@ class UploadTimetableFormTests(TestCase):
             data=self.form_data({'start_date': 'Mon 08 Jun 2000'})
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('Must be in the future', str(form.errors['start_date']))
 
     @patch('studioadmin.forms.timetable_forms.timezone')
@@ -387,7 +387,7 @@ class UploadTimetableFormTests(TestCase):
             data=self.form_data({'end_date': 'Monday 15 June 2015'})
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
+        self.assertEqual(len(form.errors), 1)
         self.assertIn('Invalid date format', str(form.errors['end_date']))
 
     @patch('studioadmin.forms.timetable_forms.timezone')
@@ -402,8 +402,8 @@ class UploadTimetableFormTests(TestCase):
             })
         )
         self.assertFalse(form.is_valid())
-        self.assertEquals(len(form.errors), 1)
-        self.assertEquals(
+        self.assertEqual(len(form.errors), 1)
+        self.assertEqual(
             form.errors['end_date'],
             ['Cannot be before start date']
         )

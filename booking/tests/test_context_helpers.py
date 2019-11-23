@@ -64,9 +64,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
 
         flags_not_expected = ['booked', 'past']
 
-        self.assertEquals(resp.context_data['payment_text'],
+        self.assertEqual(resp.context_data['payment_text'],
                           self.CONTEXT_OPTIONS['payment_text_no_cost'])
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
         self.assertTrue(resp.context_data['bookable'])
 
@@ -86,9 +86,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, self.free_event, 'event')
 
         flags_not_expected = ['booked', 'past']
-        self.assertEquals(resp.context_data['payment_text'],
+        self.assertEqual(resp.context_data['payment_text'],
                           self.CONTEXT_OPTIONS['payment_text_no_cost'])
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_full'])
         for key in flags_not_expected:
             self.assertFalse(key in resp.context_data.keys(),
@@ -96,9 +96,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
 
         # remove one booking, check if user can now book
         Booking.objects.all()[0].delete()
-        self.assertEquals(Booking.objects.all().count(), 2)
+        self.assertEqual(Booking.objects.all().count(), 2)
         resp = self._get_response(self.user, self.free_event, 'event')
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
         self.assertTrue(resp.context_data['bookable'])
 
@@ -106,9 +106,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.booking',
                           user=self.user,
                           event=self.free_event)
-        self.assertEquals(Booking.objects.all().count(), 3)
+        self.assertEqual(Booking.objects.all().count(), 3)
         resp = self._get_response(self.user, self.free_event, 'event')
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_booked'])
         self.assertFalse(resp.context_data['bookable'])
 
@@ -122,7 +122,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         # context; template handles the display
         self.assertFalse('booked' in resp.context_data.keys())
         self.assertTrue('past' in resp.context_data.keys())
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['payment_text'],
             "Online payments are open. {}".format(self.past_event.payment_info)
         )
@@ -148,9 +148,9 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, event, 'event')
         flags_not_expected = ['booked', 'past']
 
-        self.assertEquals(resp.context_data['payment_text'],
+        self.assertEqual(resp.context_data['payment_text'],
                           self.CONTEXT_OPTIONS['payment_text_cost_not_open'])
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
         for key in flags_not_expected:
             self.assertFalse(key in resp.context_data.keys(),
@@ -160,7 +160,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         event.payment_open = True
         event.save()
         resp = self._get_response(self.user, event, 'event')
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['payment_text'],
             "Online payments are open. {}".format(self.past_event.payment_info)
         )
@@ -171,7 +171,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
             booking_open=False,
         )
         resp = self._get_response(self.user, event, 'event')
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                   self.CONTEXT_OPTIONS['booking_info_text_not_open'])
         self.assertFalse(resp.context_data['bookable'])
 
@@ -194,7 +194,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user, event, 'event')
 
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
         self.assertTrue(resp.context_data['bookable'])
 
@@ -211,7 +211,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user, event, 'event')
 
-        self.assertEquals(resp.context_data['booking_info_text'],
+        self.assertEqual(resp.context_data['booking_info_text'],
                           self.CONTEXT_OPTIONS['booking_info_payment_date_past'])
         self.assertTrue(resp.context_data['bookable'])
 
@@ -223,14 +223,14 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         lesson = baker.make_recipe('booking.future_PC', name='Lesson', cost=10)
 
         resp = self._get_response(self.user, event, 'event')
-        self.assertEquals(resp.context_data['type'], 'event')
+        self.assertEqual(resp.context_data['type'], 'event')
 
         url = reverse('booking:lesson_detail', args=[lesson.slug])
         request = self.factory.get(url)
         request.user = self.user
         view = EventDetailView.as_view()
         resp = view(request, slug=lesson.slug, ev_type='lesson')
-        self.assertEquals(resp.context_data['type'], 'lesson')
+        self.assertEqual(resp.context_data['type'], 'lesson')
 
     def test_cancelled_booking(self):
         """
@@ -246,7 +246,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, event, 'lesson')
 
         self.assertTrue('cancelled' in resp.context_data.keys())
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['booking_info_text_cancelled'],
             "You have previously booked for this class and your booking has "
             "been cancelled."
@@ -268,7 +268,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, event, 'lesson')
 
         self.assertTrue('auto_cancelled' in resp.context_data.keys())
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['booking_info_text_cancelled'],
             "To rebook this class please contact staff@test.com directly."
         )
@@ -299,7 +299,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
 
         resp = self._get_response(self.user, event, 'lesson')
 
-        self.assertEquals(
+        self.assertEqual(
             resp.context_data['booking_info_text'],
             "Please contact {} directly to book".format(event.contact_person)
         )

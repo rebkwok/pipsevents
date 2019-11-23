@@ -40,7 +40,7 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:event_register_list')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -48,19 +48,19 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, 'events')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
         resp = self._get_response(self.user, 'lessons')
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, 'events')
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_can_access_class_registers_if_instructor(self):
         """
@@ -68,16 +68,16 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         instructors group for both classes and events
         """
         resp = self._get_response(self.instructor_user, 'events')
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
         resp = self._get_response(self.instructor_user, 'lessons')
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_event_context(self):
         resp = self._get_response(self.staff_user, 'events')
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'events')
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['type'], 'events')
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'events_register'
             )
         self.assertIn("Events", resp.rendered_content)
@@ -85,9 +85,9 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
     def test_lesson_context(self):
         url = reverse('studioadmin:class_register_list')
         resp = self._get_response(self.staff_user, 'lessons', url=url)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp.context_data['type'], 'lessons')
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['type'], 'lessons')
+        self.assertEqual(
             resp.context_data['sidenav_selection'], 'lessons_register'
             )
         self.assertIn("Classes", resp.rendered_content)
@@ -96,27 +96,27 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.past_event', _quantity=4)
         resp = self._get_response(self.staff_user, 'events')
-        self.assertEquals(len(resp.context_data['events']), 4)
+        self.assertEqual(len(resp.context_data['events']), 4)
 
     def test_event_register_list_shows_todays_events(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.past_event', _quantity=4)
         past_today = baker.make_recipe('booking.past_event', date=timezone.now().replace(hour=0, minute=1))
         resp = self._get_response(self.staff_user, 'events')
-        self.assertEquals(len(resp.context_data['events']), 5)
+        self.assertEqual(len(resp.context_data['events']), 5)
 
     def test_event_register_list_shows_events_only(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.future_PC', _quantity=5)
         resp = self._get_response(self.staff_user, 'events')
-        self.assertEquals(len(resp.context_data['events']), 4)
+        self.assertEqual(len(resp.context_data['events']), 4)
 
     def test_class_register_list_excludes_events(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.future_PC', _quantity=5)
         url = reverse('studioadmin:class_register_list')
         resp = self._get_response(self.staff_user, 'lessons', url=url)
-        self.assertEquals(len(resp.context_data['events']), 5)
+        self.assertEqual(len(resp.context_data['events']), 5)
 
     def test_class_register_list_shows_room_hire_with_classes(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
@@ -125,7 +125,7 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
 
         url = reverse('studioadmin:class_register_list')
         resp = self._get_response(self.staff_user, 'lessons', url=url)
-        self.assertEquals(len(resp.context_data['events']), 10)
+        self.assertEqual(len(resp.context_data['events']), 10)
 
     def test_event_register_list_shows_correct_booking_count(self):
         event = baker.make_recipe('booking.future_EV')
@@ -242,7 +242,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             )
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -250,8 +250,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user, self.event.slug)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_if_instructor(self):
         """
@@ -259,14 +259,14 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         instructors group
         """
         resp = self._get_response(self.instructor_user, self.event.slug)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user, self.event.slug)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_block_format_block_used(self):
         event = baker.make_recipe(
@@ -367,7 +367,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         # bookings: open - 5 plus 2 created in setup, cancelled = 5 (12)
         # also shows forms for available spaces (16 max, 9 spaces)
-        self.assertEquals(len(resp.context_data['formset'].forms), 21)
+        self.assertEqual(len(resp.context_data['formset'].forms), 21)
 
         resp = self._get_response(
             self.staff_user, self.event.slug, status_choice='OPEN'
@@ -375,8 +375,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         # 5 open plus 2 created in setup, plus empty forms for available
         # spaces to max participants 16
         forms = resp.context_data['formset'].forms
-        self.assertEquals(len(forms), 16)
-        self.assertEquals(
+        self.assertEqual(len(forms), 16)
+        self.assertEqual(
             set([form.instance.status for form in forms]), {'OPEN'}
             )
 
@@ -385,7 +385,7 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
         )
         forms = resp.context_data['formset'].forms
         # 5 cancelled plus empty forms for 9 available spaces
-        self.assertEquals(len(forms), 14)
+        self.assertEqual(len(forms), 14)
 
     def test_can_update_booking(self):
         self.assertFalse(self.booking1.paid)
@@ -579,8 +579,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             status_choice='OPEN'
         )
 
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
             resp.url,
             reverse(
                 'studioadmin:event_register_print',
@@ -596,8 +596,8 @@ class EventRegisterViewTests(TestPermissionMixin, TestCase):
             ev_type='event',
             status_choice='OPEN'
         )
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
             resp.url,
             reverse(
                 'studioadmin:event_register_old',
@@ -868,7 +868,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         url = reverse('studioadmin:register-day')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_if_not_staff(self):
@@ -876,15 +876,15 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is not a staff user
         """
         resp = self._get_response(self.user)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp.url, reverse('booking:permission_denied'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
         resp = self._get_response(self.staff_user)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     @patch('studioadmin.forms.register_forms.date')
     @patch('studioadmin.views.register.datetime')
