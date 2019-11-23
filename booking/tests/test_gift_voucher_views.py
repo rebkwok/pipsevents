@@ -1,6 +1,6 @@
 from model_bakery import baker
-import pytest
 
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.test import TestCase
 
@@ -39,6 +39,12 @@ class TestGiftVoucherPurchseView(GiftVoucherTestMixin, TestCase):
     def test_gift_voucher_view_no_login_required(self):
         response = self.client.get(self.url)
         assert response.status_code == 200
+
+    def test_gift_voucher_view_with_login_populated_email_fields(self):
+        self.client.login(username=self.user.username, password="test")
+        response = self.client.get(self.url)
+        assert response.context_data['form'].fields["user_email"].initial == "test@test.com"
+        assert response.context_data['form'].fields["user_email1"].initial == "test@test.com"
 
     def test_purchase_gift_voucher_event(self):
         assert EventVoucher.objects.exists() is False
@@ -188,6 +194,41 @@ class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
         assert PaypalGiftVoucherTransaction.objects.first().id == ppt.id
         ppt.refresh_from_db()
         assert ppt.voucher_type == self.block_voucher_type2
+
+    def test_update_gift_voucher_change_voucher_event_type(self):
+        # deactivated gift voucher, changing between event types keeps same voucher
+        # original paypal payment transaction updated
+        # deactivated gift voucher redirects to payment view, same invoice number
+        event_voucher = baker.make_recipe(
+            "booking.event_gift_voucher", purchaser_email="test@test.com"
+        )
+        event_voucher.event_types.add(self.event_voucher_type1.event_type)
+        create_gift_voucher_paypal_transaction(self.event_voucher_type1, event_voucher.code)
+
+        assert PaypalGiftVoucherTransaction.objects.count() == 1
+        ppt = PaypalGiftVoucherTransaction.objects.first()
+        data = {
+            'voucher_type': self.event_voucher_type2.id,
+            'user_email': "test@test.com",
+            'user_email1': "test@test.com",
+            'recipient_name': '',
+            'message': ''
+        }
+
+        # different block type, but still a block voucher rather than an event voucher, so the voucher id is the same
+        resp = self.client.post(reverse(self.url_string, args=(event_voucher.code,)), data)
+        assert EventVoucher.objects.count() == 1
+        updated_voucher = EventVoucher.objects.first()
+        assert updated_voucher.id == event_voucher.id
+        assert updated_voucher.event_types.count() == 1
+        assert self.event_voucher_type2.event_type in updated_voucher.event_types.all()
+
+        # still just the one ppt, but it's voucher type has changed
+        assert resp.context_data["paypal_form"].fields["invoice"].initial == ppt.invoice_id
+        assert PaypalGiftVoucherTransaction.objects.count() == 1
+        assert PaypalGiftVoucherTransaction.objects.first().id == ppt.id
+        ppt.refresh_from_db()
+        assert ppt.voucher_type == self.event_voucher_type2
 
     def test_update_gift_voucher_change_voucher_type(self):
         # deactivated gift voucher, changing block type to event type deletes and recreates voucher
