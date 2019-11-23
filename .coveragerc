@@ -1,0 +1,2 @@
+[run]
+omit=booking/management/commands/upload_data.py,../*migrations*,../*tests*,../*wsgi*,../*__init__*
