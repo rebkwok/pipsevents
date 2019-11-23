@@ -15,7 +15,7 @@
             {{ obj.block_type }}
         {% else %}
             {{ obj.code }}
-        {% endif %} ({{ obj_type }})</li>
+        {% endif %} ({% if obj.event_types %}{{ obj.event_types.first }}{% else %}{{ obj.block_types.first }}{% endif %})</li>
     {% endfor %}
     </ul>
 </p>

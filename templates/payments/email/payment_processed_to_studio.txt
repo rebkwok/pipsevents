@@ -1,6 +1,6 @@
 User: {% if user %}{{ user }}{% else %}{{ user_email }}{% endif %}}
 Purchased: {% for obj in objs %}
-  - {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% elif obj_type == "Block"%}{{ obj.block_type }}{% else %}Gift Voucher {{ obj.code }}{% endif %} ({{ obj_type }})
+  - {% if obj_type == "Booking" %}{{ obj.event }}{% elif obj_type == "Ticket Booking" %}{{ obj.ticketed_event }}{% elif obj_type == "Block"%}{{ obj.block_type }}{% else %}Gift Voucher {{ obj.code }}{% endif %} ({% if obj.event_types %}{{ obj.event_types.first }}{% else %}{{ obj.block_types.first }}{% endif %})
   {% endfor %}
 Invoice number: {{ invoice_id }}
 Paypal Transaction id: {{ paypal_transaction_id }}
