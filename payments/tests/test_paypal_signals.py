@@ -283,16 +283,14 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
-    def test_paypal_notify_url_with_complete_status_gift_voucher(self, mock_postback):
+    def test_paypal_notify_url_with_complete_status_event_gift_voucher(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        # event_type = baker.make_recipe("booking.event_type_PC")
-        event_type, _ = EventType.objects.get_or_create(event_type="CL", subtype="Pole level class")
-        Event.objects.create(event_type=event_type, cost=10, date=timezone.now() + timedelta(10))
-        voucher_type = GiftVoucherType.objects.create(event_type=event_type)
-        voucher = EventVoucher.objects.create(purchaser_email="gift@test.com", activated=False, code=1234, discount=100)
+        event_type = baker.make_recipe("booking.event_type_PC")
+        baker.make_recipe("booking.future_PC", event_type=event_type, cost=10)
+        voucher_type = baker.make(GiftVoucherType, event_type=event_type)
+        voucher = baker.make_recipe("booking.event_gift_voucher", purchaser_email="gift@test.com", code=1234)
         voucher.event_types.add(event_type)
-        # pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
-        pptrans = PaypalGiftVoucherTransaction.objects.create(voucher_type=voucher_type, voucher_code=1234, invoice_id="gift-voucher-1234-inv-001")
+        pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
         self.assertFalse(PayPalIPN.objects.exists())
         params = dict(IPN_POST_PARAMS)
         params.update(
@@ -314,11 +312,84 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         pptrans.refresh_from_db()
         self.assertEqual(pptrans.transaction_id, 'test_txn_id')
 
+        voucher.refresh_from_db()
+        assert voucher.activated is True
         # 3 emails sent, payment emails to user and studio and gift voucher email to user
         self.assertEqual(
             len(mail.outbox), 3,
             "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
         )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_complete_status_block_gift_voucher(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block_type = baker.make_recipe("booking.blocktype5")
+        voucher_type = baker.make(GiftVoucherType, block_type=block_type)
+        voucher = baker.make_recipe("booking.block_gift_voucher", purchaser_email="gift@test.com", code=1234)
+        voucher.block_types.add(block_type)
+        pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        voucher.refresh_from_db()
+        assert voucher.activated is True
+        # 3 emails sent, payment emails to user and studio and gift voucher email to user
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_complete_status_block_gift_voucher_no_pptrans(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block_type = baker.make_recipe("booking.blocktype5")
+        baker.make(GiftVoucherType, block_type=block_type)
+        voucher = baker.make_recipe("booking.block_gift_voucher", purchaser_email="gift@test.com", code=1234)
+        voucher.block_types.add(block_type)
+        assert PaypalGiftVoucherTransaction.objects.exists() is False
+        assert PayPalIPN.objects.exists() is False
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'invoice': b"001",
+                'txn_id': b'test_txn_id'
+            }
+        )
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        assert PaypalGiftVoucherTransaction.objects.count() == 1
+        voucher.refresh_from_db()
+        assert voucher.activated is True
+        # 3 emails sent, payment emails to user and studio and gift voucher email to user
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status_multiple_bookings(
@@ -1491,6 +1562,33 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
         # paypal trans object still has record of voucher code used
         pptrans.refresh_from_db()
         self.assertEqual(pptrans.voucher_code, 'test')
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_refund_gift_voucher(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block_type = baker.make_recipe("booking.blocktype5")
+        voucher_type = baker.make(GiftVoucherType, block_type=block_type)
+        voucher = baker.make_recipe("booking.block_gift_voucher", purchaser_email="gift@test.com", code=1234, activated=True)
+        voucher.block_types.add(block_type)
+
+        pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        assert PayPalIPN.objects.exists() is False
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        # refund processed and voucher deactivated
+        voucher.refresh_from_db()
+        assert voucher.activated is False
+
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_date_format_with_extra_spaces(self, mock_postback):
