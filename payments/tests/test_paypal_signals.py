@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from datetime import timedelta
 from model_bakery import baker
 from unittest.mock import Mock, patch
 
@@ -7,9 +7,10 @@ from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from booking.models import Booking, BlockVoucher, EventVoucher, \
-    UsedBlockVoucher, UsedEventVoucher, GiftVoucherType
+    UsedBlockVoucher, UsedEventVoucher, GiftVoucherType, Event, EventType
 from common.tests.helpers import PatchRequestMixin
 
 from payments import helpers
@@ -284,13 +285,14 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_url_with_complete_status_gift_voucher(self, mock_postback):
         mock_postback.return_value = b"VERIFIED"
-        event_type = baker.make_recipe("booking.event_type_PC")
-        baker.make_recipe("booking.future_PC", event_type=event_type, cost=10)
-        voucher_type = baker.make(GiftVoucherType, event_type=event_type)
-        voucher = baker.make_recipe('booking.event_gift_voucher', purchaser_email="gitt@test.com", code=1234)
+        # event_type = baker.make_recipe("booking.event_type_PC")
+        event_type, _ = EventType.objects.get_or_create(event_type="CL", subtype="Pole level class")
+        Event.objects.create(event_type=event_type, cost=10, date=timezone.now() + timedelta(10))
+        voucher_type = GiftVoucherType.objects.create(event_type=event_type)
+        voucher = EventVoucher.objects.create(purchaser_email="gift@test.com", activated=False, code=1234, discount=100)
         voucher.event_types.add(event_type)
-        pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
-
+        # pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type, voucher.code)
+        pptrans = PaypalGiftVoucherTransaction.objects.create(voucher_type=voucher_type, voucher_code=1234, invoice_id="gift-voucher-1234-inv-001")
         self.assertFalse(PayPalIPN.objects.exists())
         params = dict(IPN_POST_PARAMS)
         params.update(

@@ -145,11 +145,13 @@ class DateWarningSentMigrationTests(MigrationTest):
 
     before = [
         ('auth', '0011_update_proxy_permissions'),
+        ('payments', '0011_auto_20180104_1301'),
         ('booking', '0060_blocktype_assign_free_class_on_completion')
     ]
     after = [
         ('auth', '0011_update_proxy_permissions'),
-        ('booking', '0062_data_migration_warning_dates_sent')
+        ('payments', '0012_add_paypalgiftvouchertransaction'),
+        ('booking', '0064_auto_20191123_0800')
     ]
 
     def test_data_migration_booking_date_warning_sent(self):
