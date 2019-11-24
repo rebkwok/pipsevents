@@ -28,8 +28,7 @@ before_script:
   - python manage.py migrate
 
 script:
-  - pytest payments/tests/test_paypal_signals.py::PaypalSignalsTests::test_paypal_notify_url_with_complete_status_gift_voucher
-#  - pytest --cov-config=.coveragerc --cov=.
+  - pytest --cov-config=.coveragerc --cov=.
 
 after_success:
   coveralls
