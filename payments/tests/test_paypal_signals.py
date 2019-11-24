@@ -239,7 +239,7 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             'PayPal sent an invalid transaction notification while '
             'attempting to process payment;.\n\nThe flag '
             'info was "{}"\n\nAn additional error was raised: {}'.format(
-                ppipn.flag_info, 'Voucher code with id 1234 does not exist'
+                ppipn.flag_info, 'Voucher code with id 1 (code ghskfjsl234) does not exist'
             )
         )
 
