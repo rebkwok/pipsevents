@@ -397,7 +397,7 @@ def get_obj(ipn_obj):
                 voucher_type = GiftVoucherType.objects.get(event_type=obj.event_types.first())
             except EventVoucher.DoesNotExist:
                 raise PayPalTransactionError(
-                    'Voucher code with id {} does not exist'.format(obj_ids[0])
+                    'Voucher code with id {} (code {}) does not exist'.format(obj_ids[0], gift_voucher_code)
                 )
 
         paypal_trans = PaypalGiftVoucherTransaction.objects.filter(voucher_code=obj.code, voucher_type=voucher_type)
