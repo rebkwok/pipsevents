@@ -1,10 +1,8 @@
 import pytz
-import pytest
 
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from model_bakery import baker
-from os import environ
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -230,7 +228,6 @@ class SignedDataPrivacyModelTests(TestCase):
     def setUp(self):
         self.user = baker.make_recipe('booking.user')
 
-    @pytest.mark.skipif(environ.get("TRAVIS"), reason="Skip on Travis")
     def test_cached_on_save(self):
         make_data_privacy_agreement(self.user)
         self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))
@@ -238,7 +235,6 @@ class SignedDataPrivacyModelTests(TestCase):
         DataPrivacyPolicy.objects.create(content='New Foo')
         self.assertFalse(has_active_data_privacy_agreement(self.user))
 
-    @pytest.mark.skipif(environ.get("TRAVIS"), reason="Skip on Travis")
     def test_delete(self):
         make_data_privacy_agreement(self.user)
         self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))

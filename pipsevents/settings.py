@@ -468,7 +468,7 @@ if env('TRAVIS') or env('HEROKU') or TESTING:  # pragma: no cover
         },
     }
 
-if 'test' in sys.argv:  # use local cache for tests
+if TESTING:  # use local cache for tests
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
