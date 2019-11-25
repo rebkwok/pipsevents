@@ -278,7 +278,7 @@ class GiftVoucherForm(forms.Form):
 
     voucher_type = forms.ModelChoiceField(
         label="Voucher for:",
-        queryset=GiftVoucherType.objects.all(),
+        queryset=GiftVoucherType.objects.filter(active=True),
         widget=forms.Select(attrs={"class": "form-control"})
     )
     user_email = forms.EmailField(
