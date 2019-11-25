@@ -941,6 +941,7 @@ class GiftVoucherType(models.Model):
     event_type = models.ForeignKey(
         EventType, null=True, blank=True, on_delete=models.SET_NULL, related_name="event_gift_vouchers"
     )
+    active = models.BooleanField(default=True, help_text="Display on site; set to False instead of deleting unused voucher types")
 
     @property
     def cost(self):
