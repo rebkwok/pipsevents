@@ -19,7 +19,7 @@
 
             <div class="panel-body">
                 <div>
-                    {% if "gift-vouchers" in request.GET or form.is_gift_voucher %}
+                    {% if form.instance.is_gift_voucher %}
                     <a href="{% url 'studioadmin:gift_vouchers' %}" class="btn btn-warning table-btn">Gift Voucher List</a>
                     {% elif is_block_voucher %}
                     <a href="{% url 'studioadmin:block_vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
