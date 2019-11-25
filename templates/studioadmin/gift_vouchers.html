@@ -33,9 +33,9 @@
                                 <tr {% if expired %}class="expired_block"{% endif %}>
                                     <td class="table-center studioadmin-tbl">
                                          {% if voucher.block_types.all %}
-                                        <a href="{% url 'studioadmin:edit_block_voucher' voucher.pk %}?gift-vouchers=">{{ voucher.code }}</a>
+                                        <a href="{% url 'studioadmin:edit_block_voucher' voucher.pk %}">{{ voucher.code }}</a>
                                         {% else %}
-                                        <a href="{% url 'studioadmin:edit_voucher' voucher.pk %}?gift-vouchers=">{{ voucher.code }}</a>
+                                        <a href="{% url 'studioadmin:edit_voucher' voucher.pk %}">{{ voucher.code }}</a>
                                         {% endif %}
                                     </td>
                                     <td class="table-center studioadmin-tbl">{% if voucher.purchaser_email %}{{ voucher.purchaser_email|abbr_email }}{% endif %}</td>
@@ -45,9 +45,9 @@
                                     <td class="table-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
                                     <td class="table-center studioadmin-tbl">
                                         {% if voucher.block_types.exists %}
-                                        <a href="{% url 'studioadmin:block_voucher_uses' voucher.pk %}?gift-vouchers=">{{ voucher|times_block_voucher_used }}</a>
+                                        <a href="{% url 'studioadmin:block_voucher_uses' voucher.pk %}">{{ voucher|times_block_voucher_used }}</a>
                                         {% else %}
-                                        <a href="{% url 'studioadmin:voucher_uses' voucher.pk %}?gift-vouchers=">{{ voucher|times_voucher_used }}</a>
+                                        <a href="{% url 'studioadmin:voucher_uses' voucher.pk %}">{{ voucher|times_voucher_used }}</a>
                                         {% endif %}
                                     </td>
                                     {% if voucher.block_types %}

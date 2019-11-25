@@ -9,7 +9,7 @@
         <h2>{% if is_block_voucher %}Block {% endif %}Voucher Uses: {{ voucher.code }}</h2>
 
         <div>
-            {% if "gift-vouchers" in request.GET %}
+            {% if voucher.is_gift_voucher %}
             <a href="{% url 'studioadmin:gift_vouchers' %}" class="btn btn-warning table-btn">Gift Voucher List</a>
             {% elif is_block_voucher %}
             <a href="{% url 'studioadmin:block_vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
