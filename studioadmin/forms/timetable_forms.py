@@ -313,6 +313,21 @@ class SessionAdminForm(forms.ModelForm):
 
 class UploadTimetableForm(forms.Form):
 
+    override_options_booking_open = forms.CharField(
+        widget=forms.RadioSelect(
+            choices=(("1", "Yes"), ("0", "No"), ("default", "Use timetable defaults")),
+        ),
+        initial="default",
+        label="Booking open"
+    )
+    override_options_payment_open = forms.CharField(
+        widget=forms.RadioSelect(
+            choices=(("1", "Yes"), ("0", "No"), ("default", "Use timetable defaults")),
+        ),
+        initial="default",
+        label="Payment open"
+    )
+
     def __init__(self, *args, **kwargs):
         location = kwargs.pop('location', 'all')
         super(UploadTimetableForm, self).__init__(*args, **kwargs)
@@ -329,7 +344,9 @@ class UploadTimetableForm(forms.Form):
             widget=forms.DateInput(
                 attrs={
                     'class': "form-control",
-                    'id': 'datepicker_startdate_{}'.format(self.location_index)},
+                    'id': 'datepicker_startdate_{}'.format(self.location_index),
+                    'autocomplete': 'off'
+                },
                 format='%a %d %b %Y'
             ),
             required=True,
@@ -341,7 +358,9 @@ class UploadTimetableForm(forms.Form):
             widget=forms.DateInput(
                 attrs={
                     'class': "form-control",
-                    'id': 'datepicker_enddate_{}'.format(self.location_index)},
+                    'id': 'datepicker_enddate_{}'.format(self.location_index),
+                    'autocomplete': 'off'
+                },
                 format='%a %d %b %Y'
             ),
             required=True,

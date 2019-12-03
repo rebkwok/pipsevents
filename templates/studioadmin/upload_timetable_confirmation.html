@@ -5,8 +5,10 @@
     <div class="col-sm-11">
         <div>
             <h4>Classes uploaded from the current timetable</h4>
-            <p>Start date: {{ start_date | date:"D d F Y"}}</p>
-            <p>End date: {{ end_date | date:"D d F Y"}}</p>
+            <p><strong>Start date:</strong> {{ start_date | date:"D d F Y"}}</p>
+            <p><strong>End date:</strong> {{ end_date | date:"D d F Y"}}</p>
+            {% if override_options %}<p><strong>Overriden settings:</strong> {{ override_options }}</p>{% endif %}
+
 
             {% if duplicate_classes %}
                 <h3 style="color: red;">WARNING: The following duplicate classes were found!</h3>
@@ -17,7 +19,7 @@
                 </ul>
             {% endif %}
             {% if created_classes %}
-                <p>The following classes were created :</p>
+                <p>The following classes were created:</p>
                 <ul>
                 {% for class in created_classes %}
                     <li><strong>{{ class.name }} ({{ class.location }})</strong>, {{ class.date | date:"D d F Y, g:i a"}}</li>

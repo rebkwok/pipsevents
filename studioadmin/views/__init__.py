@@ -8,7 +8,7 @@ from studioadmin.views.disclaimers import DisclaimerUpdateView, \
 from studioadmin.views.email_users import choose_users_to_email, \
     email_users_view, export_mailing_list
 from studioadmin.views.events import cancel_event_view, event_admin_list, \
-    EventAdminCreateView, EventAdminUpdateView
+    EventAdminCreateView, EventAdminUpdateView, open_all_classes
 from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
     test_paypal_view
 from studioadmin.views.register import EventRegisterListView, \
@@ -58,6 +58,6 @@ __all__ = [
     'VoucherListView', 'VoucherUpdateView',
     'BookingEditPastView', 'BookingAddView', 'BookingEditView',
     'export_mailing_list', 'user_ajax_bookings_view', 'booking_register_add_view',
-    'ajax_assign_block', 'ajax_toggle_paid', 'ajax_toggle_attended'
+    'ajax_assign_block', 'ajax_toggle_paid', 'ajax_toggle_attended', 'open_all_classes'
 ]
 
