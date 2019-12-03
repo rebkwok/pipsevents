@@ -521,3 +521,15 @@ def cancel_event_view(request, slug):
     return TemplateResponse(
         request, 'studioadmin/cancel_event.html', context
     )
+
+
+@login_required
+@staff_required
+def open_all_classes(request):
+    classes_to_open = Event.objects.filter(
+        event_type__event_type="CL", date__gte=timezone.now(), cancelled=False
+    )
+    classes_to_open.update(booking_open=True, payment_open=True)
+    messages.info(request, "All upcoming classes are now open for booking and payments")
+    ActivityLog.objects.create(log=f"All upcoming classes opened by admin user {request.user.username}")
+    return HttpResponseRedirect(reverse("studioadmin:lessons"))

@@ -9,10 +9,21 @@
         <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
+
         <div class="row">
-                <form class="dirty-check" method="post" action="">
+            <div class="top-button-row">
+                <a class="btn btn-success filter-btn pull-right" href="{% url 'studioadmin:open_all_classes' %}" >Open all classes</a>
+            </div>
+        </div>
+
+        <div class="row">
+
+            <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
+                    {% if type == 'lessons' %}
+                    {% endif %}
+
                     <div class="top-button-row">
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
                         {% if show_past %}

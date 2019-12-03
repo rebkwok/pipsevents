@@ -2132,3 +2132,34 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertNotIn(
             'YOUR BLOCK EXPIRES ON', block_user_email.body
         )
+
+
+class OpenAllClassesTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse("studioadmin:open_all_classes")
+
+    def test_open_all_classes(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        baker.make_recipe('booking.future_PC', booking_open=False, payment_open=False, _quantity=5)
+        assert Event.objects.count() == 5
+        assert Event.objects.filter(booking_open=False, payment_open=False).count() == 5
+        self.client.get(self.url)
+        assert Event.objects.count() == 5
+        assert Event.objects.filter(booking_open=True, payment_open=True).count() == 5
+
+    def test_open_all_classes_does_not_affect_events(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        baker.make_recipe('booking.future_PC', booking_open=False, payment_open=False, _quantity=3)
+        baker.make_recipe('booking.future_EV', booking_open=False, payment_open=False, _quantity=3)
+        assert Event.objects.count() == 6
+        assert Event.objects.filter(booking_open=False, payment_open=False).count() == 6
+        self.client.get(self.url)
+        assert Event.objects.count() == 6
+        assert Event.objects.filter(booking_open=True, payment_open=True).count() == 3
+        for event in Event.objects.filter(event_type__event_type='EV'):
+            assert event.booking_open is False
+            assert event.payment_open is False
+

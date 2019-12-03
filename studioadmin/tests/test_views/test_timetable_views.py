@@ -537,13 +537,32 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         form_data = {
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Sun 14 Jun 2015',
-            'sessions': [session.id for session in Session.objects.all()]
+            'sessions': [session.id for session in Session.objects.all()],
+            'override_options_booking_open': "default",
+            'override_options_payment_open': "default",
         }
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 5)
         event_names = [event.name for event in Event.objects.all()]
         session_names =  [session.name for session in Session.objects.all()]
         self.assertEqual(sorted(event_names), sorted(session_names))
+
+    @patch('studioadmin.forms.timetable_forms.timezone')
+    def test_events_are_created_with_overridden_settings(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 1, 0, 0, tzinfo=timezone.utc
+        )
+        baker.make_recipe('booking.mon_session', booking_open=True, payment_open=True, _quantity=5)
+        self.assertEqual(Event.objects.count(), 0)
+        form_data = {
+            'start_date': 'Mon 08 Jun 2015',
+            'end_date': 'Sun 14 Jun 2015',
+            'sessions': [session.id for session in Session.objects.all()],
+            'override_options_booking_open': "0",
+            'override_options_payment_open': "0",
+        }
+        self._post_response(self.staff_user, form_data)
+        self.assertEqual(Event.objects.filter(booking_open=False, payment_open=False).count(), 5)
 
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_does_not_create_duplicate_sessions(self, mock_tz):
@@ -555,7 +574,9 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         form_data = {
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Sun 14 Jun 2015',
-            'sessions': [session.id for session in Session.objects.all()]
+            'sessions': [session.id for session in Session.objects.all()],
+            'override_options_booking_open': "default",
+            'override_options_payment_open': "default",
         }
         self._post_response(self.staff_user, form_data)
         self.assertEqual(Event.objects.count(), 5)
@@ -596,7 +617,9 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         form_data = {
             'start_date': 'Mon 01 Jun 2015',
             'end_date': 'Wed 03 Jun 2015',
-            'sessions': [session.id]
+            'sessions': [session.id],
+            'override_options_booking_open': "default",
+            'override_options_payment_open': "default",
         }
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(
@@ -672,7 +695,9 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         form_data = {
             'start_date': 'invalid date',
             'end_date': 'Wed 03 Jun 2015',
-            'sessions': [session_dm.id]
+            'sessions': [session_dm.id],
+            'override_options_booking_open': "default",
+            'override_options_payment_open': "default",
         }
 
         self.client.login(username=self.staff_user.username, password='test')
