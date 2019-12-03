@@ -42,36 +42,79 @@
                         </div>
                     {% endif %}
 
-                    <div>Upload classes from the current timetable for the following date range:</div>
                     </br>
                 <form class="form-horizontal dirty-check" method="post" action="">
                     {% csrf_token %}
 
                     <div class="form-group-sm">
-
-                        {% for field in location_obj.form %}
+                        <div class="col-sm-12"><h4>Upload dates</h4>
+                            <p>Upload classes from the current timetable for the following date range:</p>
+                        </div>
 
                         <div class="form-group">
-                                <label class="control-label col-sm-2" for="{{ field.name }}_id">{% if field.field.required %}*{% endif %}{{ field.label }}</label>
-                                <div class="col-sm-10">
-                                    {% if field.name == 'sessions' %}
-                                        {% for radio in field %}
-                                            {{ radio.tag }} <label class='header-not-bold' for="id_{{ field.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
-                                        {% endfor %}
-                                    {% else %}
-                                        <div class="col-sm-11">
-                                            {{ field }}<p class="studioadmin-help">{{ field.help_text }}</p>
-                                        </div>
-                                    {% endif %}
+                            <label class="control-label col-sm-1" for="{{ location_obj.form.start_date.name }}}_id">{% if location_obj.form.start_date.field.required %}*{% endif %}{{ location_obj.form.start_date.label }}</label>
+                                <div class="col-sm-11">
+                                    {{ location_obj.form.start_date }}<p class="studioadmin-help">{{ location_obj.form.start_date.help_text }}</p>
+                                </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="control-label col-sm-1" for="{{ location_obj.form.end_date.name }}}_id">{% if location_obj.form.end_date.field.required %}*{% endif %}{{ location_obj.form.end_date.label }}</label>
+                            <div class="col-sm-11">
+                                    {{ location_obj.form.end_date }}<p class="studioadmin-help">{{ location_obj.form.end_date.help_text }}</p>
+                            </div>
+                        </div>
+
+                        <hr/>
+
+                        <div class="col-sm-12"><h4>Override options</h4>
+                        <p>Apply these settings to all uploaded classes, irrespective of their individual session attributes.
+                            (e.g. if timetable sessions are set to "booking open", selecting "No" in the options below will upload
+                            all classes with booking closed.
+                        </p></div>
+
+                        <div class="form-group">
+                            <label class="control-label col-sm-1" for="{{ location_obj.form.override_options_booking_open.name }}_id">{{ location_obj.form.override_options_booking_open.label }}</label>
+                            <div class="col-sm-11">
+                                <div class="override_options">
+                                {% for radio in location_obj.form.override_options_booking_open %}
+                                    {{ radio.tag }} <label class='header-not-bold' for="id_{{ location_obj.form.override_options_booking_open.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
+                                {% endfor %}
                                 </div>
                             </div>
-                        {% endfor %}
+
+                            <label class="control-label col-sm-1" for="{{ location_obj.form.override_options_payment_open.name }}_id">{{ location_obj.form.override_options_payment_open.label }}</label>
+                            <div class="col-sm-11">
+                                <div class="override_options">
+                                {% for radio in location_obj.form.override_options_payment_open %}
+                                    {{ radio.tag }} <label class='header-not-bold' for="id_{{ location_obj.form.override_options_payment_open.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
+                                {% endfor %}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <hr/>
+
+                        <div class="col-sm-12"><h4>{{ location_obj.form.sessions.label }}</h4></div>
+                        <div class="form-group">
+                            <div class="col-sm-11 col-sm-offset-1">
+                                {% for radio in location_obj.form.sessions %}
+                                    {{ radio.tag }} <label class='header-not-bold' for="id_{{ location_obj.form.sessions.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+
+
                     </div>
 
 
                     <div class="form-group">
-                        <div class="col-sm-offset-2 col-sm-10">
-                            <button type="submit" class="btn btn-success">Save</button>
+                        <div class="col-sm-12">
+                            <div class="col-sm-12">
+                                <button type="submit" class="btn btn-success">Save</button>
+                            </div>
                         </div>
                     </div>
                 </form>

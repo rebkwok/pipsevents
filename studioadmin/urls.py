@@ -58,7 +58,8 @@ from studioadmin.views import (BookingEditView,
                                ajax_toggle_attended,
                                ajax_toggle_paid,
                                ajax_assign_block,
-                               GiftVoucherListView
+                               GiftVoucherListView,
+                               open_all_classes
                                )
 
 app_name = 'studioadmin'
@@ -94,6 +95,7 @@ urlpatterns = [
         {'ev_type': 'lessons'}, name='class_register_list'),
     path('classes/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'lesson'}, name='add_lesson'),
+    path('classes/open/', open_all_classes, name='open_all_classes'),
     path('timetable', timetable_admin_list, name='timetable'),
     path('timetable/session/<int:pk>/edit/',
         TimetableSessionUpdateView.as_view(), name='edit_session'

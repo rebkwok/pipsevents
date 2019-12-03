@@ -90,8 +90,11 @@ def create_classes(week='this', input_date=None):
     return created_classes, existing_classes
 
 
-def upload_timetable(start_date, end_date, session_ids, user=None):
-
+def upload_timetable(start_date, end_date, session_ids, user=None, override_options=None):
+    override_options = override_options or {}
+    override_options = {
+        field: bool(int(value)) for field, value in override_options.items() if value != "default"
+    }
     daylist = [
         '01MON',
         '02TUE',
@@ -136,9 +139,9 @@ def upload_timetable(start_date, end_date, session_ids, user=None):
                     contact_person=session.contact_person,
                     contact_email=session.contact_email,
                     cost=session.cost,
-                    payment_open=session.payment_open,
+                    payment_open=override_options.get("payment_open", session.payment_open),
                     advance_payment_required=session.advance_payment_required,
-                    booking_open=session.booking_open,
+                    booking_open=override_options.get("booking_open", session.booking_open),
                     payment_info=session.payment_info,
                     cancellation_period=session.cancellation_period,
                     external_instructor=session.external_instructor,

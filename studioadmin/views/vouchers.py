@@ -127,7 +127,6 @@ class GiftVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
         return context
 
 
-
 class BlockVoucherUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
     form_class = BlockVoucherStudioadminForm
