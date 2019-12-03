@@ -300,7 +300,9 @@ class UploadTimetableFormTests(TestCase):
         data = {
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Mon 15 Jun 2015',
-            'sessions': [self.session.id]
+            'sessions': [self.session.id],
+            'override_options_booking_open': "default",
+            'override_options_payment_open': "default",
         }
 
         for key, value in extra_data.items():
@@ -343,7 +345,11 @@ class UploadTimetableFormTests(TestCase):
             2015, 6, 6, 12, 0, tzinfo=timezone.utc
             )
         form = UploadTimetableForm(
-            data={'sessions': [self.session.id]}
+            data={
+                'sessions': [self.session.id],
+                'override_options_booking_open': "default",
+                'override_options_payment_open': "default",
+            }
         )
         self.assertFalse(form.is_valid())
         self.assertEqual(len(form.errors), 2)
