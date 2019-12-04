@@ -565,7 +565,7 @@ def payment_received(sender, **kwargs):
                     full_refund = False
 
                 for obj, paypal_trans in zip(obj_list, paypal_trans_list):
-                    if paypal_trans.voucher_code:
+                    if hasattr(paypal_trans, "voucher_code"):
                         # check for voucher on paypal trans object; delete first
                         # UsedEventVoucher/UsedBlockVoucher if applicable
                         used_voucher = None
