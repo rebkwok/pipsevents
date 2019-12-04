@@ -1167,7 +1167,6 @@ def disclaimer_required(request):
 @login_required
 @require_http_methods(['POST'])
 def ajax_create_booking(request, event_id):
-
     if not has_active_disclaimer(request.user):
         return HttpResponseRedirect(reverse('booking:disclaimer_required'))
 

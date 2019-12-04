@@ -1280,13 +1280,16 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
     @patch('booking.models.timezone')
-    def test_booking_with_block_if_multiple_blocks_available(self, mock_tz):
+    @patch('booking.views.views_utils.timezone')
+    def test_booking_with_block_if_multiple_blocks_available(self, mock_tz, mock_tz1):
         """
         Usually there should be only one block of each type available, but in
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+        mock_tz1.now.return_value = mock_now
         event_type = baker.make_recipe('booking.event_type_PC')
 
         event = baker.make_recipe('booking.future_PC', event_type=event_type)
@@ -3160,13 +3163,17 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         )
 
     @patch('booking.models.timezone')
-    def test_update_with_block_if_multiple_blocks_available(self, mock_tz):
+    @patch('booking.views.views_utils.timezone')
+    def test_update_with_block_if_multiple_blocks_available(self, mock_tz, mock_tz1):
         """
         Usually there should be only one block of each type available, but in
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+        mock_tz1.now.return_value = mock_now
+
         event_type = baker.make_recipe('booking.event_type_PC')
 
         event = baker.make_recipe('booking.future_PC', event_type=event_type)
