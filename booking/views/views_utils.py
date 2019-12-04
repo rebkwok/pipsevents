@@ -2,11 +2,13 @@ from operator import itemgetter
 
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
+from django.utils import timezone
 
 from accounts.models import DataPrivacyPolicy
 from accounts.utils import has_active_disclaimer, has_active_data_privacy_agreement
 from activitylog.models import ActivityLog
 from booking.models import Block, UsedBlockVoucher, UsedEventVoucher
+
 
 class DisclaimerRequiredMixin(object):
 
@@ -106,14 +108,8 @@ def _get_active_user_block(user, booking):
     """
     return the active block for this booking with the soonest expiry date
     """
-    blocks = user.blocks.all()
-    active_blocks = [
-        (block, block.expiry_date)
-        for block in blocks if block.active_block()
-        and block.block_type.event_type == booking.event.event_type
-    ]
+    blocks = user.blocks.filter(expiry_date__gte=timezone.now()).order_by("expiry_date")
+    # already sorted by expiry date, so we can just get the next active one
+    next_active_block = next((block for block in blocks if block.active_block()), None)
     # use the block with the soonest expiry date
-    if active_blocks:
-        return min(active_blocks, key=itemgetter(1))[0]
-    else:
-        return None
+    return next_active_block

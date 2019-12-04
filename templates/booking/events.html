@@ -146,16 +146,7 @@
                                                                     {% if event.id in auto_cancelled_events %}
                                                                         <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                                                     {% else %}
-                                                                        <span
-                                                                                id="book_{{ event.id }}_{{ location_obj.index }}"
-                                                                                data-event_id="{{ event.id }}"
-                                                                                data-location_index="{{ location_obj.index }}"
-                                                                                data-location_count="{{ location_events|length }}"
-                                                                                data-location_page="{{ location_obj.queryset.number }}"
-                                                                                data-ref="events"
-                                                                                class="td_ajax_book_btn">
-                                                                        {% include "booking/includes/ajax_book_button.txt" %}
-                                                                        </span>
+                                                                        {% include "booking/includes/ajax_book_button_events.txt" %}
                                                                     {% endif %}
                                                             {% elif event.external_instructor %}
                                                                 {% if type == 'events' %}

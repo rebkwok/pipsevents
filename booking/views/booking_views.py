@@ -523,7 +523,6 @@ class BookingMultiCreateView(BookingCreateView):
         return HttpResponseRedirect(url)
 
 
-# TODO: unused, delete?
 class BookingUpdateView(
     DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     UpdateView
@@ -630,7 +629,6 @@ class BookingUpdateView(
             return TemplateResponse(self.request, self.template_name, context)
 
         booking = form.save(commit=False)
-
         if "claim_free"in form.data:
             _email_free_class_request(self.request, booking, 'update')
 
@@ -642,16 +640,13 @@ class BookingUpdateView(
                 booking.payment_confirmed = True
             else:
                 messages.error(self.request, 'Error: No available block')
-
         # check for existence of free child block on pre-saved booking
         has_free_block_pre_save = False
         if booking.block and booking.block.children.exists():
             has_free_block_pre_save = True
 
         booking.save()
-
         blocks_used, total_blocks = _get_block_status(booking, self.request)
-
         if booking.block:
             # send email to user if they used block to book (paypal payment
             # sends separate emails
@@ -686,7 +681,6 @@ class BookingUpdateView(
         messages.success(
             self.request, self.success_message.format(booking.event)
         )
-
         if booking.block and not booking.block.active_block():
             if booking.block.children.exists() \
                     and not has_free_block_pre_save:
@@ -706,7 +700,6 @@ class BookingUpdateView(
                        'Go to <a href="/blocks">My Blocks</a> to buy a new one.'
                     )
                 )
-
         if 'shopping_basket' in form.data:
             url = reverse('booking:shopping_basket')
             params = {}
@@ -1398,7 +1391,7 @@ def ajax_create_booking(request, event_id):
 
     elif not booking.paid:
         alert_message['message_type'] = 'error'
-        alert_message['message'] =  "Added to basket; booking not confirmed until payment has been made."
+        alert_message['message'] = "Added to basket; booking not confirmed until payment has been made."
 
     try:
         waiting_list_user = WaitingListUser.objects.get(
@@ -1418,7 +1411,7 @@ def ajax_create_booking(request, event_id):
 
     return render(
         request,
-        "booking/includes/ajax_book_button.txt",
+        f"booking/includes/ajax_book_button_{ref}.txt",
         context
     )
 

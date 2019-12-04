@@ -114,7 +114,7 @@ var processBookingRequest = function()  {
 
    $.ajax(
        {
-          url: '/booking/ajax-create/' + event_id + '/?location_index=' + location_index + '&location_page=' + location_page + '&refe=' + ref,
+          url: '/booking/ajax-create/' + event_id + '/?location_index=' + location_index + '&location_page=' + location_page + '&ref=' + ref,
           dataType: 'html',
           type: 'POST',
           success: processResult,
