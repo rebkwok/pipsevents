@@ -1,5 +1,13 @@
 {% if has_temporary_banner %}
-    <div class="jumbotron">
-        <p><strong>{{ temporary_banner }}</strong><br/></p>
+
+
+<div id="message-row"  class="row">
+    <div class="col-xs-12">
+        <div class="message alert alert-warning alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        {{ temporary_banner }}
+        </div>
     </div>
+</div>
+
 {% endif %}
