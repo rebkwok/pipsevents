@@ -366,7 +366,8 @@ class Block(models.Model):
             pre_save_block = Block.objects.get(id=self.id)
             if not pre_save_block.paid and self.paid and not self.parent:
                 self.start_date = timezone.now()
-                # also update expiry date based on revised start date
+            # also update expiry date based on revised start date if changed
+            if pre_save_block.start_date != self.start_date:
                 self.expiry_date = self.get_expiry_date()
 
         # if block has parent, make start date same as parent
@@ -380,8 +381,9 @@ class Block(models.Model):
             self.extended_expiry_date = self._get_end_of_day(
                 self.extended_expiry_date
             )
+            self.expiry_date = self.get_expiry_date()
 
-        if not self.expiry_date:
+        if not self.expiry_date or not self.id:
             self.expiry_date = self.get_expiry_date()
 
         super(Block, self).save(*args, **kwargs)

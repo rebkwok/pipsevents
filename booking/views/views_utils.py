@@ -1,5 +1,3 @@
-from operator import itemgetter
-
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
 from django.utils import timezone
@@ -110,6 +108,6 @@ def _get_active_user_block(user, booking):
     """
     blocks = user.blocks.filter(expiry_date__gte=timezone.now()).order_by("expiry_date")
     # already sorted by expiry date, so we can just get the next active one
-    next_active_block = next((block for block in blocks if block.active_block()), None)
+    next_active_block = next((block for block in blocks if block.active_block() and block.block_type.event_type == booking.event.event_type), None)
     # use the block with the soonest expiry date
     return next_active_block
