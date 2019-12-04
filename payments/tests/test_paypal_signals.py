@@ -1341,6 +1341,54 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             [settings.DEFAULT_STUDIO_EMAIL, settings.SUPPORT_EMAIL],
         )
 
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_refunded_status_ticket_booking(self, mock_postback):
+        """
+        when a paypal payment is refunded, it looks like it posts back to the
+        notify url again (since the PayPalIPN is updated).  Test that we can
+        identify and process refunded payments.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ticket_booking = baker.make_recipe(
+            'booking.ticket_booking', paid=False,
+            ticketed_event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_ticket_booking_paypal_transaction(
+            ticket_booking.user, ticket_booking
+        )
+
+        # First make the ticket booking paid
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('ticket_booking {}'.format(ticket_booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Completed'
+            }
+        )
+
+        self.paypal_post(params)
+        ticket_booking.refresh_from_db()
+        self.assertTrue(ticket_booking.paid)
+        self.assertTrue(PayPalIPN.objects.exists())
+
+        # Now refund same booking
+        params.update({'payment_status': b'Refunded'})
+        self.paypal_post(params)
+        ticket_booking.refresh_from_db()
+        self.assertFalse(ticket_booking.paid)
+
+        # 3 emails sent, 2 for initial payment, 1 for refund
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+        assert "Payment processed" in mail.outbox[0].subject
+        assert "Payment processed" in mail.outbox[1].subject
+        assert "Payment refund processed" in mail.outbox[2].subject
+
+
     @override_settings(SEND_ALL_STUDIO_EMAILS=False)
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_refunded_emails_not_sent_if_studio_emails_off(self, mock_postback):
