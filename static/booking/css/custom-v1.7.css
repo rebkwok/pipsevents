@@ -958,10 +958,11 @@ label.control-label {
     background-color: #faebcc;
     margin-top: 10px;
     padding-top: 10px;
-    padding-bottom: 1px;
+    padding-bottom: 2px;
     padding-left: 15px;
     margin-bottom: 0px;
     line-height: 1.2;
+    border: peru 1pt solid;
 }
 
 
@@ -972,7 +973,7 @@ label.control-label {
   padding-bottom: 7px;
   margin-bottom: 0px;
   padding-left: 10px;
-  border: peru 1pt solid
+  border: peru 1pt solid;
 }
 
 .banner-star {
@@ -980,7 +981,7 @@ label.control-label {
 }
 
 .sale {
-    font-size: small;
+    font-size: medium;
 }
 
 .register-unpaid {
