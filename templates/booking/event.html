@@ -107,15 +107,7 @@
                                     {% elif auto_cancelled %}
                                         <div class="btn btn-success table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                     {% else %}
-                                        <span
-                                            id="book_{{ event.id }}_0"
-                                            data-event_id="{{ event.id }}"
-                                            data-location_count="1"
-                                            data-location_index="0"
-                                            class="td_ajax_book_btn">
-                                        {% include "booking/includes/ajax_book_button.txt" %}
-                                        </span>
-
+                                        {% include "booking/includes/ajax_book_button_event.txt" %}
                                     {% endif %}
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
                                     <div id='book_button_disabled' class="disabled btn btn-success table-btn">

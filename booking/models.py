@@ -270,6 +270,7 @@ class Block(models.Model):
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
     paypal_pending = models.BooleanField(default=False)
+    expiry_date = models.DateTimeField()
 
     class Meta:
         ordering = ['user__username']
@@ -296,8 +297,7 @@ class Block(models.Model):
         utc_offset = end_of_day_uk.utcoffset()
         return end_of_day_utc - utc_offset
 
-    @property
-    def expiry_date(self):
+    def get_expiry_date(self):
         # replace block expiry date with very end of day in local time
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
@@ -366,6 +366,8 @@ class Block(models.Model):
             pre_save_block = Block.objects.get(id=self.id)
             if not pre_save_block.paid and self.paid and not self.parent:
                 self.start_date = timezone.now()
+                # also update expiry date based on revised start date
+                self.expiry_date = self.get_expiry_date()
 
         # if block has parent, make start date same as parent
         if self.parent:
@@ -378,6 +380,9 @@ class Block(models.Model):
             self.extended_expiry_date = self._get_end_of_day(
                 self.extended_expiry_date
             )
+
+        if not self.expiry_date:
+            self.expiry_date = self.get_expiry_date()
 
         super(Block, self).save(*args, **kwargs)
 
@@ -482,7 +487,7 @@ class Booking(models.Model):
     def has_available_block(self):
         available_blocks = [
             block for block in
-            Block.objects.filter(
+            Block.objects.select_related("user", "block_type").filter(
                 user=self.user, block_type__event_type=self.event.event_type
             )
             if block.active_block()
@@ -493,7 +498,7 @@ class Booking(models.Model):
     def has_unpaid_block(self):
         available_blocks = [
             block for block in
-            Block.objects.filter(
+            Block.objects.select_related("user", "block_type").filter(
                 user=self.user, block_type__event_type=self.event.event_type
             )
             if not block.full and not block.expired and not block.paid

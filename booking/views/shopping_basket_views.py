@@ -36,7 +36,7 @@ from payments.helpers import (
 
 
 def get_unpaid_bookings_context(user):
-    unpaid_bookings_all = Booking.objects.filter(
+    unpaid_bookings_all = Booking.objects.select_related("user", "event").filter(
         user=user, paid=False, status='OPEN',
         event__date__gte=timezone.now(),
         no_show=False, paypal_pending=False
@@ -278,20 +278,17 @@ def shopping_basket(request):
             initial={'booking_code': booking_code}
         )
         context = add_total_bookings_and_paypal_context(request.user, host, context)
-
     # blocks
     context = get_unpaid_block_context(request.user, context)
     block_code = request.GET.get('block_code', None)
     if "block_code" in request.GET and "remove_block_voucher" not in request.GET:
         block_code = request.GET['block_code'].strip()
         context = add_block_voucher_context(block_code, request.user, context)
-
     if context['unpaid_blocks']:
         context['block_voucher_form'] = BlockVoucherForm(
             initial={'block_code': block_code}
         )
         context = add_total_blocks_and_paypal_context(request.user, host, context)
-
     return TemplateResponse(
         request,
         template_name,
@@ -475,7 +472,6 @@ def update_block_bookings(request):
             booking.save()
             block_booked.append(booking)
             _get_block_status(booking, request)
-
 
             if not booking.block.active_block():
                 if booking.block.children.exists() \

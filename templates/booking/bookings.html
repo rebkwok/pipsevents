@@ -83,16 +83,7 @@
                                                     title="Contact {{ bookingform.booking.event.contact_email }} directly to rebook"
                                             >Rebook</div>
                                         {% else %}
-                                            <span
-                                                id="book_{{ bookingform.booking.event.id }}_0"
-                                                data-event_id="{{ bookingform.booking.event.id }}"
-                                                data-location_count="1"
-                                                data-location_index="0"
-                                                data-ref="bookings"
-                                                class="td_ajax_book_btn">
-                                            {% include "booking/includes/ajax_book_button.txt" %}
-                                            </span>
-
+                                            {% include "booking/includes/ajax_book_button_bookings.txt" %}
                                         {% endif %}
                                     {% endif %}
                                 </td>
