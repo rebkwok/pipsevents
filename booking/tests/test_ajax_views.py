@@ -27,7 +27,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             EventType, event_type='CL', subtype='Pole level class'
         )
         cls.event = baker.make_recipe('booking.future_EV', cost=5, max_participants=3)
-        cls.event_url = reverse('booking:ajax_create_booking', args=[cls.event.id])
+        cls.event_url = reverse('booking:ajax_create_booking', args=[cls.event.id]) + "?ref=events"
         cls.free_blocktype = baker.make_recipe(
             'booking.blocktype', size=1, cost=0,
             event_type=cls.pole_class_event_type, identifier='free class'
@@ -90,7 +90,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test creating a booking
         """
         event = baker.make_recipe('booking.future_EV', cost=0, max_participants=3)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
@@ -113,7 +113,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             'booking.future_EV', cost=5, max_participants=3,
             email_studio_when_booked=True
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
         self.client.post(url)
@@ -153,7 +153,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             'booking.future_EV', max_participants=3,
             email_studio_when_booked=True, cost=5
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
@@ -174,7 +174,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         Test creating a room hire booking
         """
         room_hire = baker.make_recipe('booking.future_RH', max_participants=3, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[room_hire.id])
+        url = reverse('booking:ajax_create_booking', args=[room_hire.id]) + "?ref=events"
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
@@ -217,7 +217,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """cannot create booking for a full event
         """
         event = baker.make_recipe('booking.future_EV', max_participants=3, cancelled=True, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         self.client.login(username=self.user.username, password='test')
         # try to book for event
@@ -253,7 +253,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         pclass = baker.make_recipe(
             'booking.future_PC', allow_booking_cancellation=False, cost=10
         )
-        url = reverse('booking:ajax_create_booking', args=[pclass.id])
+        url = reverse('booking:ajax_create_booking', args=[pclass.id]) + "?ref=events"
 
         # book for non-refundable event and mark as no_show
         booking = baker.make_recipe(
@@ -297,7 +297,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             no_show=True, block=block
         )
 
-        url = reverse('booking:ajax_create_booking', args=[pclass.id])
+        url = reverse('booking:ajax_create_booking', args=[pclass.id]) + "?ref=events"
         self.assertIsNone(booking.date_rebooked)
 
         # try to book again
@@ -359,7 +359,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         transaction id
         """
         event = baker.make_recipe('booking.future_PC', cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         booking = baker.make_recipe(
             'booking.booking', event=event, user=self.user, paid=True,
             payment_confirmed=True, status='CANCELLED'
@@ -401,7 +401,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         event_type = baker.make_recipe('booking.event_type_PC')
         event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
@@ -429,7 +429,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         event_type = baker.make_recipe('booking.event_type_PC', )
         event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
@@ -459,7 +459,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe(
             'booking.future_PP', event_type__subtype='Pole practice', cost=5
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         self.user.user_permissions.all().delete()
 
@@ -482,7 +482,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
         event_type = baker.make_recipe('booking.event_type_PC')
         event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         blocktype = baker.make_recipe(
             'booking.blocktype', event_type=event_type, identifier="transferred"
         )
@@ -504,17 +504,20 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         )
 
     @patch('booking.models.timezone')
-    def test_booking_with_block_if_multiple_blocks_available(self, mock_tz):
+    @patch('booking.views.views_utils.timezone')
+    def test_booking_with_block_if_multiple_blocks_available(self, mock_views_tz, mock_tz):
         """
         Usually there should be only one block of each type available, but in
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_now
+        mock_views_tz.now.return_value = mock_now
         event_type = baker.make_recipe('booking.event_type_PC')
 
         event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type, duration=2
         )
@@ -564,7 +567,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe(
             'booking.future_PC', event_type=self.pole_class_event_type, cost=5
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         blocktype = baker.make_recipe(
             'booking.blocktype', size=10, cost=60, duration=4,
@@ -613,7 +616,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe(
             'booking.future_CL', cost=10, event_type=self.pole_class_event_type
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         baker.make_recipe(
             'booking.booking', block=block, user=self.user, _quantity=9
@@ -643,7 +646,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe(
             'booking.future_EV', cost=10, event_type=self.pole_class_event_type
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         baker.make_recipe(
             'booking.block', user=self.user, block_type=self.free_blocktype,
@@ -677,7 +680,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe(
             'booking.future_CL', cost=10, event_type=self.pole_class_event_type
         )
-        url = reverse('booking:ajax_create_booking', args=[event.id])
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
 
         baker.make_recipe(
             'booking.booking', block=block, user=self.user, _quantity=9

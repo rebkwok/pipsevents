@@ -1,4 +1,5 @@
 import os
+import pytest
 
 from unittest.mock import patch
 
@@ -277,12 +278,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
         # valid code but no env var set
         self.assertFalse(voucher.has_expired)
         self.assertTrue(voucher.has_started)
-        self.assertNotIn('Use code testcode', resp.rendered_content)
+        self.assertNotIn('Use code <strong>testcode</strong>', resp.rendered_content)
 
         # set env var
         os.environ['SALE_CODE'] = 'testcode'
         resp = self.client.get(self.url)
-        self.assertIn('Use code testcode', resp.rendered_content)
+        self.assertIn('Use code <strong>testcode</strong>', resp.rendered_content)
 
     @patch('booking.templatetags.bookingtags.timezone')
     @patch('booking.models.timezone')
@@ -310,7 +311,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         self.assertFalse(voucher.has_expired)
         self.assertTrue(voucher.has_started)
-        self.assertIn('Use code block_testcode', resp.rendered_content)
+        self.assertIn('Use code <strong>block_testcode</strong>', resp.rendered_content)
 
     @patch('booking.templatetags.bookingtags.timezone')
     @patch('booking.models.timezone')
@@ -459,13 +460,12 @@ class EventListViewTests(TestSetupMixin, TestCase):
         ev3.save()
 
         resp = self.client.get(self.url)
-        # Mon and Wed events are shaded, on the All locations and specific
-        # location tabs
+        # Mon and Wed events are shaded, on the All locations tab (currently no location tabs)
         self.assertEqual(
-            resp.rendered_content.count('table-shaded'), 4
+            resp.rendered_content.count('table-shaded'), 2
         )
 
-    def test_event_list_tab_parameter(self):
+    def test_event_list_tab_parameter_with_locations(self):
         """
         Test that events are coloured on alt days
         """
@@ -474,7 +474,30 @@ class EventListViewTests(TestSetupMixin, TestCase):
         ev.location = "Davidson's Mains"
         ev.save()
 
-        url = reverse('booking:events')
+        resp = self.client.get(self.url)
+
+        # 1 loc events for all
+        self.assertEqual(
+            len(resp.context_data['location_events']), 0
+        )
+        # tab 0 by default
+        self.assertEqual(resp.context_data['tab'], '0')
+        # tab 0 is active and open by default
+        self.assertIn(
+            '<div class="tab-pane fade active in" id="tab0">',
+            resp.rendered_content
+        )
+
+    @pytest.mark.skip("Locations currently not used")
+    def test_event_list_tab_parameter_with_locations(self):
+        """
+        Test that events are coloured on alt days
+        """
+        events = Event.objects.filter(event_type__event_type='EV')
+        ev = events[0]
+        ev.location = "Davidson's Mains"
+        ev.save()
+
         resp = self.client.get(self.url)
 
         # 3 loc events, 1 for all and 1 for each location
@@ -508,6 +531,23 @@ class EventListViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:lessons')
         resp = self.client.get(url)
 
+        # 1 loc event
+        self.assertEqual(
+            len(resp.context_data['location_events']), 1
+        )
+        # Queryset contains first 30
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 30
+        )
+
+    @pytest.mark.skip("Locations not currently used")
+    def test_event_list_default_pagination_with_location(self):
+        # make enough events that they will paginate
+        # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
+        baker.make_recipe('booking.future_PC', _quantity=25)
+        url = reverse('booking:lessons')
+        resp = self.client.get(url)
+
         # 2 loc events, 1 for all and 1 for Beaverbank. None for DMs because there are no events there
         self.assertEqual(
             len(resp.context_data['location_events']), 2
@@ -535,7 +575,52 @@ class EventListViewTests(TestSetupMixin, TestCase):
             len(resp.context_data['location_events'][2]['queryset']), 30
         )
 
-    def test_event_list_default_pagination_with_page(self):
+    def test_event_list_default_pagination_with_page_and_location(self):
+        # make enough events that they will paginate
+        # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
+        baker.make_recipe('booking.future_PC', _quantity=25)
+        # make some classes at second location
+        baker.make_recipe('booking.future_PC', location="Davidson's Mains", _quantity=10)
+
+        # with specified page only, defaults to show all
+        url = reverse('booking:lessons') + '?page=2'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for all; 41 in all, paginated 30
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 11
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 2
+        )
+
+        # page out of range, defaults to last page
+        url = reverse('booking:lessons') + '?page=10'
+        resp = self.client.get(url)
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 11
+        )
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 2
+        )
+
+        # page not an int, defaults to 1
+        url = reverse('booking:lessons') + '?page=foo'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for all
+        self.assertEqual(
+            len(resp.context_data['location_events'][0]['queryset']), 30
+        )
+
+        # tab not an int, defaults to show specified page on index 0 (all), page 1 on the rest
+        url = reverse('booking:lessons') + '?page=2&tab=foo'
+        resp = self.client.get(url)
+        # Queryset contains page 2 objs for all
+        self.assertEqual(
+            resp.context_data['location_events'][0]['queryset'].number, 2
+        )
+
+    @pytest.mark.skip("Locations not currently used")
+    def test_event_list_default_pagination_with_page_and_location(self):
         # make enough events that they will paginate
         # total 31 (3 PC and 3 OC created in setup, plus 25 here), paginates by 30
         baker.make_recipe('booking.future_PC', _quantity=25)

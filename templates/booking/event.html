@@ -115,7 +115,6 @@
                                             class="td_ajax_book_btn">
                                         {% include "booking/includes/ajax_book_button.txt" %}
                                         </span>
-
                                     {% endif %}
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
                                     <div id='book_button_disabled' class="disabled btn btn-success table-btn">
@@ -146,5 +145,5 @@
 {% block extra_js %}
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
-<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax.js' %}"></script>
+<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v1.js' %}"></script>
 {% endblock %}

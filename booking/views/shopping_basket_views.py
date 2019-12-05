@@ -36,18 +36,24 @@ from payments.helpers import (
 
 
 def get_unpaid_bookings_context(user):
-    unpaid_bookings_all = Booking.objects.filter(
-        user=user, paid=False, status='OPEN',
-        event__date__gte=timezone.now(),
-        no_show=False, paypal_pending=False
+    # unpaid_bookings_all = Booking.objects.select_related("user", "event").filter(
+    #     user=user, paid=False, status='OPEN',
+    #     event__date__gte=timezone.now(),
+    #     no_show=False, paypal_pending=False
+    # )
+    # unpaid_bookings_all_open = unpaid_bookings_all.filter(event__payment_open=True)
+    unpaid_bookings_all_open = user.bookings.filter(
+        event__payment_open=True,
+        paid=False, status='OPEN', event__date__gte=timezone.now(), no_show=False, paypal_pending=False
     )
-    unpaid_bookings_all_open = unpaid_bookings_all.filter(event__payment_open=True)
-    unpaid_bookings_payment_not_open = unpaid_bookings_all.filter(event__payment_open=False)
+    unpaid_bookings_payment_not_open = user.bookings.filter(
+        event__payment_open=False,
+        paid=False, status='OPEN', event__date__gte=timezone.now(), no_show=False, paypal_pending=False
+    )
+    # unpaid_bookings_payment_not_open = unpaid_bookings_all.filter(event__payment_open=False)
 
-    unpaid_bookings = unpaid_bookings_all_open.filter(
-        event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
-    )
-    unpaid_bookings_non_default_paypal = set(unpaid_bookings_all_open) - set(unpaid_bookings)
+    unpaid_bookings = unpaid_bookings_all_open.filter(event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
+    unpaid_bookings_non_default_paypal = unpaid_bookings_all_open.exclude(event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 
     include_warning = bool([True for bk in unpaid_bookings_all_open if not bk.can_cancel])
     block_booking_available = bool(
@@ -56,13 +62,7 @@ def get_unpaid_bookings_context(user):
     unpaid_block_booking_available = bool(
         [True for booking in unpaid_bookings if booking.has_unpaid_block]
     )
-    block_types_available = bool(
-        [
-            True for booking in unpaid_bookings if BlockType.objects.filter(
-            active=True, event_type=booking.event.event_type
-            ).exists()
-        ]
-    )
+    block_types_available = any(booking for booking in unpaid_bookings if any(BlockType.objects.filter(active=True, event_type=booking.event.event_type)))
 
     return {
         'unpaid_bookings': unpaid_bookings,
@@ -167,12 +167,10 @@ def add_total_bookings_and_paypal_context(user, host, context):
 
 def get_unpaid_block_context(user, context=None):
     context = context or {}
+
     unpaid_block_and_costs = [
         (block, block.block_type.cost)
-        for block in Block.objects.filter(
-            user=user, paid=False, paypal_pending=False
-        )
-        if not block.expired and not block.full
+        for block in user.blocks.filter(paid=False, paypal_pending=False, expiry_date__gte=timezone.now()) if not block.full
     ]
     unpaid_blocks, unpaid_block_costs = list(zip(*unpaid_block_and_costs)) \
         if unpaid_block_and_costs else ([], [0])
@@ -278,20 +276,17 @@ def shopping_basket(request):
             initial={'booking_code': booking_code}
         )
         context = add_total_bookings_and_paypal_context(request.user, host, context)
-
     # blocks
     context = get_unpaid_block_context(request.user, context)
     block_code = request.GET.get('block_code', None)
     if "block_code" in request.GET and "remove_block_voucher" not in request.GET:
         block_code = request.GET['block_code'].strip()
         context = add_block_voucher_context(block_code, request.user, context)
-
     if context['unpaid_blocks']:
         context['block_voucher_form'] = BlockVoucherForm(
             initial={'block_code': block_code}
         )
         context = add_total_blocks_and_paypal_context(request.user, host, context)
-
     return TemplateResponse(
         request,
         template_name,
@@ -475,7 +470,6 @@ def update_block_bookings(request):
             booking.save()
             block_booked.append(booking)
             _get_block_status(booking, request)
-
 
             if not booking.block.active_block():
                 if booking.block.children.exists() \
