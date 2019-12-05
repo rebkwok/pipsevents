@@ -18,6 +18,6 @@
         {% get_payment_button booking type location_obj.index request.GET.name location_obj.queryset.number %}
     {% endif %}
 {% else %}
-<button class="btn table-btn btn-success book_button">{% if ref == 'bookings' or bookingform %}Rebook{% else %}Book{% endif %}</button>
+     <button class="btn table-btn btn-success book_button">{% if ref == 'bookings' or bookingform %}Rebook{% else %}Book{% endif %}</button>
 {% endif %}
 

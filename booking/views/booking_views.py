@@ -82,10 +82,9 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
         # Call the base implementation first to get a context
         context = super(BookingListView, self).get_context_data(**kwargs)
 
-        user_blocks = self.request.user.blocks.all()
+        user_blocks = self.request.user.blocks.filter(expiry_date__gte=timezone.now())
         active_block_event_types = [
-            block.block_type.event_type for block in user_blocks
-            if block.active_block()
+            block.block_type.event_type for block in user_blocks if block.active_block()
         ]
 
         bookingformlist = []
@@ -148,9 +147,7 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
-        context = super(
-            BookingHistoryListView, self
-            ).get_context_data(**kwargs)
+        context = super(BookingHistoryListView, self).get_context_data(**kwargs)
         # Add in the history flag
         context['history'] = True
 
@@ -523,7 +520,6 @@ class BookingMultiCreateView(BookingCreateView):
         return HttpResponseRedirect(url)
 
 
-# TODO: unused, delete?
 class BookingUpdateView(
     DataPolicyAgreementRequiredMixin, DisclaimerRequiredMixin, LoginRequiredMixin,
     UpdateView
@@ -630,7 +626,6 @@ class BookingUpdateView(
             return TemplateResponse(self.request, self.template_name, context)
 
         booking = form.save(commit=False)
-
         if "claim_free"in form.data:
             _email_free_class_request(self.request, booking, 'update')
 
@@ -642,16 +637,13 @@ class BookingUpdateView(
                 booking.payment_confirmed = True
             else:
                 messages.error(self.request, 'Error: No available block')
-
         # check for existence of free child block on pre-saved booking
         has_free_block_pre_save = False
         if booking.block and booking.block.children.exists():
             has_free_block_pre_save = True
 
         booking.save()
-
         blocks_used, total_blocks = _get_block_status(booking, self.request)
-
         if booking.block:
             # send email to user if they used block to book (paypal payment
             # sends separate emails
@@ -686,7 +678,6 @@ class BookingUpdateView(
         messages.success(
             self.request, self.success_message.format(booking.event)
         )
-
         if booking.block and not booking.block.active_block():
             if booking.block.children.exists() \
                     and not has_free_block_pre_save:
@@ -706,7 +697,6 @@ class BookingUpdateView(
                        'Go to <a href="/blocks">My Blocks</a> to buy a new one.'
                     )
                 )
-
         if 'shopping_basket' in form.data:
             url = reverse('booking:shopping_basket')
             params = {}
@@ -1174,7 +1164,6 @@ def disclaimer_required(request):
 @login_required
 @require_http_methods(['POST'])
 def ajax_create_booking(request, event_id):
-
     if not has_active_disclaimer(request.user):
         return HttpResponseRedirect(reverse('booking:disclaimer_required'))
 
@@ -1398,7 +1387,7 @@ def ajax_create_booking(request, event_id):
 
     elif not booking.paid:
         alert_message['message_type'] = 'error'
-        alert_message['message'] =  "Added to basket; booking not confirmed until payment has been made."
+        alert_message['message'] = "Added to basket; booking not confirmed until payment has been made."
 
     try:
         waiting_list_user = WaitingListUser.objects.get(
@@ -1418,7 +1407,7 @@ def ajax_create_booking(request, event_id):
 
     return render(
         request,
-        "booking/includes/ajax_book_button.txt",
+        f"booking/includes/ajax_book_button.txt",
         context
     )
 
@@ -1462,7 +1451,7 @@ def toggle_waiting_list(request, event_id):
 
 @login_required
 def booking_details(request, event_id):
-    booking = Booking.objects.get(user=request.user, event=Event.objects.get(id=event_id))
+    booking = request.user.bookings.get(event_id=event_id)
     if booking.paid:
         payment_due = "Received"
     elif due_date_time(booking):

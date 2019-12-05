@@ -131,6 +131,10 @@ class Event(models.Model):
 
     class Meta:
         ordering = ['-date']
+        indexes = [
+            models.Index(fields=['event_type', 'date', 'cancelled']),
+            models.Index(fields=['event_type', 'name', 'date', 'cancelled']),
+        ]
 
     @cached_property
     def spaces_left(self):
@@ -270,9 +274,15 @@ class Block(models.Model):
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
     paypal_pending = models.BooleanField(default=False)
+    expiry_date = models.DateTimeField()
 
     class Meta:
         ordering = ['user__username']
+        indexes = [
+                models.Index(fields=['user', 'paid']),
+                models.Index(fields=['user', 'expiry_date']),
+                models.Index(fields=['user', '-start_date']),
+            ]
 
     def __str__(self):
 
@@ -296,8 +306,7 @@ class Block(models.Model):
         utc_offset = end_of_day_uk.utcoffset()
         return end_of_day_utc - utc_offset
 
-    @property
-    def expiry_date(self):
+    def get_expiry_date(self):
         # replace block expiry date with very end of day in local time
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
@@ -366,6 +375,9 @@ class Block(models.Model):
             pre_save_block = Block.objects.get(id=self.id)
             if not pre_save_block.paid and self.paid and not self.parent:
                 self.start_date = timezone.now()
+            # also update expiry date based on revised start date if changed
+            if pre_save_block.start_date != self.start_date:
+                self.expiry_date = self.get_expiry_date()
 
         # if block has parent, make start date same as parent
         if self.parent:
@@ -378,6 +390,10 @@ class Block(models.Model):
             self.extended_expiry_date = self._get_end_of_day(
                 self.extended_expiry_date
             )
+            self.expiry_date = self.get_expiry_date()
+
+        if not self.expiry_date or not self.id:
+            self.expiry_date = self.get_expiry_date()
 
         super(Block, self).save(*args, **kwargs)
 
@@ -441,6 +457,10 @@ class Booking(models.Model):
             ("is_regular_student", "Is regular student"),
             ("can_view_registers", "Can view registers"),
         )
+        indexes = [
+            models.Index(fields=['event', 'user', 'status']),
+            models.Index(fields=['block']),
+        ]
 
     def __str__(self):
         return "{} - {} - {}".format(
@@ -482,7 +502,7 @@ class Booking(models.Model):
     def has_available_block(self):
         available_blocks = [
             block for block in
-            Block.objects.filter(
+            Block.objects.select_related("user", "block_type").filter(
                 user=self.user, block_type__event_type=self.event.event_type
             )
             if block.active_block()
@@ -493,7 +513,7 @@ class Booking(models.Model):
     def has_unpaid_block(self):
         available_blocks = [
             block for block in
-            Block.objects.filter(
+            Block.objects.select_related("user", "block_type").filter(
                 user=self.user, block_type__event_type=self.event.event_type
             )
             if not block.full and not block.expired and not block.paid
@@ -673,6 +693,11 @@ class WaitingListUser(models.Model):
     )
     # date user joined the waiting list
     date_joined = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'event'])
+        ]
 
 
 class TicketedEvent(models.Model):
