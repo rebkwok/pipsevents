@@ -82,10 +82,9 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
         # Call the base implementation first to get a context
         context = super(BookingListView, self).get_context_data(**kwargs)
 
-        user_blocks = self.request.user.blocks.all()
+        user_blocks = self.request.user.blocks.filter(expiry_date__gte=timezone.now())
         active_block_event_types = [
-            block.block_type.event_type for block in user_blocks
-            if block.active_block()
+            block.block_type.event_type for block in user_blocks if block.active_block()
         ]
 
         bookingformlist = []
@@ -148,9 +147,7 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
-        context = super(
-            BookingHistoryListView, self
-            ).get_context_data(**kwargs)
+        context = super(BookingHistoryListView, self).get_context_data(**kwargs)
         # Add in the history flag
         context['history'] = True
 
@@ -1410,7 +1407,7 @@ def ajax_create_booking(request, event_id):
 
     return render(
         request,
-        f"booking/includes/ajax_book_button_{ref}.txt",
+        f"booking/includes/ajax_book_button.txt",
         context
     )
 
@@ -1454,7 +1451,7 @@ def toggle_waiting_list(request, event_id):
 
 @login_required
 def booking_details(request, event_id):
-    booking = Booking.objects.get(user=request.user, event=Event.objects.get(id=event_id))
+    booking = request.user.bookings.get(event_id=event_id)
     if booking.paid:
         payment_due = "Received"
     elif due_date_time(booking):

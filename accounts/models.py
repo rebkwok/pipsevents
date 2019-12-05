@@ -279,6 +279,11 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
     date_updated = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=255, verbose_name="full name")
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
+
     def __str__(self):
         return '{} - {}'.format(self.user.username, self.date.astimezone(
                 pytz.timezone('Europe/London')
