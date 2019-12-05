@@ -131,6 +131,10 @@ class Event(models.Model):
 
     class Meta:
         ordering = ['-date']
+        indexes = [
+            models.Index(fields=['event_type', 'date', 'cancelled']),
+            models.Index(fields=['event_type', 'name', 'date', 'cancelled']),
+        ]
 
     @cached_property
     def spaces_left(self):
@@ -274,6 +278,11 @@ class Block(models.Model):
 
     class Meta:
         ordering = ['user__username']
+        indexes = [
+                models.Index(fields=['user', 'paid']),
+                models.Index(fields=['user', 'expiry_date']),
+                models.Index(fields=['user', '-start_date']),
+            ]
 
     def __str__(self):
 
@@ -448,6 +457,10 @@ class Booking(models.Model):
             ("is_regular_student", "Is regular student"),
             ("can_view_registers", "Can view registers"),
         )
+        indexes = [
+            models.Index(fields=['event', 'user', 'status']),
+            models.Index(fields=['block']),
+        ]
 
     def __str__(self):
         return "{} - {} - {}".format(
@@ -680,6 +693,11 @@ class WaitingListUser(models.Model):
     )
     # date user joined the waiting list
     date_joined = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'event'])
+        ]
 
 
 class TicketedEvent(models.Model):

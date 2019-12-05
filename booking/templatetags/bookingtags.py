@@ -276,9 +276,9 @@ def subscribed(user):
 
 @register.filter
 def has_booked_class(user):
-    return Booking.objects.filter(
+    return any(Booking.objects.select_related('user', 'event').filter(
         user=user, event__event_type__event_type='CL'
-    ).exists()
+    ))
 
 
 @register.filter
@@ -363,9 +363,12 @@ def voucher_expired(voucher):
 
 
 @register.simple_tag
-def get_booking(event, user):
+def get_booking(event, user, user_bookings):
+    # user_bookings is a dict of booking info by event_id
     if user.is_authenticated:
-        return Booking.objects.filter(event=event, user=user).first()
+        return user_bookings.get(event.id)
+        # return user_bookings.get(event.id)
+        # return Booking.objects.filter(event=event, user=user).first()
     return None
 
 
@@ -398,16 +401,14 @@ def full_location(location):
 
 
 def get_shopping_basket_icon(user, menu=False):
-    bookings = Booking.objects.filter(
-        user=user, paid=False, status='OPEN',
-        event__date__gte=timezone.now(),
-        no_show=False, paypal_pending=False
+    bookings = user.bookings.select_related('event').filter(
+        paid=False, status='OPEN', event__date__gte=timezone.now(), no_show=False, paypal_pending=False
     )
-    blocks = [block for block in Block.objects.filter(
-        user=user, paid=False, paypal_pending=False
-    ) if not block.expired and not block.full]
+    blocks = [
+        block for block in user.blocks.filter(expiry_date__gte=timezone.now(), paid=False, paypal_pending=False) if not block.full
+    ]
     return {
-        'has_unpaid_bookings': bookings.exists(),
+        'has_unpaid_bookings': any(bookings),
         'count': bookings.count() + len(blocks),
         'menu': menu
     }
