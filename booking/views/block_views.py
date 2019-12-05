@@ -199,19 +199,8 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
 def blocks_modal(request):
     # order by expiry date
     blocks = request.user.blocks.filter(expiry_date__gte=timezone.now()).order_by("expiry_date")
-
-
     # # already sorted by expiry date,
-    active_blocks = (block for block in blocks if block.active_block())
-    # # use the block with the soonest expiry date
-    # return next_active_block
-    #
-    # active_blocks_and_expiry = [(block, block.expiry_date) for block in request.user.blocks.all() if block.active_block()]
-    # active_blocks_and_expiry = sorted(active_blocks_and_expiry, key=lambda active_block: active_block[1])
-    # if active_blocks_and_expiry:
-    #     active_blocks, _ = zip(*active_blocks_and_expiry)
-    # else:
-    #     active_blocks = []
+    active_blocks = [block for block in blocks if block.active_block()]
 
     unpaid_blocks = [
         block for block in request.user.blocks.filter(expiry_date__gte=timezone.now(), paid=False, paypal_pending=False)

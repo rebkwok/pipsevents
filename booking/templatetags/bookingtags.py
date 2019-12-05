@@ -165,7 +165,6 @@ def sale_text():
     sale_description = os.environ.get('SALE_DESCRIPTION')
 
     active_sale_code = None
-    active_block_sale_code = None
 
     if sale_code:
         try:
