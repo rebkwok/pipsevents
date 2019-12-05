@@ -18,16 +18,6 @@
         {% get_payment_button booking type location_obj.index request.GET.name location_obj.queryset.number %}
     {% endif %}
 {% else %}
-        <span
-            id="book_{{ event.id }}_0"
-            data-event_id="{{ event.id }}"
-            data-location_count="1"
-            data-location_index="0"
-            data-ref="event"
-            class="td_ajax_book_btn"
-            >
-            <button class="btn table-btn btn-success book_button">{% if ref == 'bookings' or bookingform %}Rebook{% else %}Book{% endif %}</button>
-        </span>
-
+     <button class="btn table-btn btn-success book_button">{% if ref == 'bookings' or bookingform %}Rebook{% else %}Book{% endif %}</button>
 {% endif %}
 
