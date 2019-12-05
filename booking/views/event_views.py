@@ -55,26 +55,11 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             user_bookings = self.request.user.bookings.filter(event__id__in=all_events)
             user_bookings = {booking.event.id: booking for booking in user_bookings}
 
-            # booked_events = user_bookings.filter(status='OPEN', no_show=False).values_list('event__id', flat=True)
-            # booked_events = Booking.objects.select_related('event', 'user')\
-            #     .filter(event__in=all_events, user=self.request.user, status='OPEN', no_show=False)\
-            #     .values_list('event__id', flat=True)
-            # auto_cancelled_events = Booking.objects.select_related('event', 'user') \
-            #     .filter(
-            #         event__in=all_events, user=self.request.user, status='CANCELLED',
-            #         auto_cancelled=True
-            #     ) \
-            #     .values_list('event__id', flat=True)
-
             booked_events = all_events.filter(bookings__user_id=self.request.user.id, bookings__status='OPEN', bookings__no_show=False).values_list('id', flat=True)
 
             # auto_cancelled_events = user_bookings.filter(status='CANCELLED', auto_cancelled=True).values_list('event__id', flat=True)
             auto_cancelled_events = all_events.filter(bookings__user_id=self.request.user.id, bookings__status='CANCELLED', bookings__auto_cancelled=True).values_list('id', flat=True)
 
-            # waiting_list_events = WaitingListUser.objects\
-            #     .select_related('event', 'user')\
-            #     .filter(event__in=all_events, user=self.request.user)\
-            #     .values_list('event__id', flat=True)
             waiting_list_events = self.request.user.waitinglists.filter(event__in=all_events).values_list('event__id', flat=True)
             context['user_bookings'] = user_bookings
             context['booked_events'] = booked_events
@@ -124,7 +109,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             'queryset': queryset,
             'location': 'All locations'
         }]
-        # NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
+        # TODO: NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
         # for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):
         #     location_qs = all_events.filter(location=location)
         #     if location_qs:
