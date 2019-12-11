@@ -803,27 +803,16 @@ class BookingDeleteView(
                    or (booking.date_booked > allowed_datetime)
         return False
 
-    def _can_fully_delete(self, booking):
-        # if booking isn't paid, and wasn't a rebooking, and has no associated
-        # paypal transaction (i.e. it's not refunded), we can just fully delete it
-        if not (booking.paid or booking.deposit_paid or booking.date_rebooked):
-            return not PaypalBookingTransaction.objects\
-                .filter(booking=booking, transaction_id__isnull=False).exists()
-        return False
-
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
         event = booking.event
         delete_from_shopping_basket = request.GET.get('ref') == 'basket'
 
-        can_fully_delete = self._can_fully_delete(booking)
-
         # Booking can be fully cancelled if the event allows cancellation AND
         # the cancellation period is not past
         # If not, we let people cancel but leave the booking status OPEN and
         # set to no-show
-        can_cancel_and_refund = booking.event.allow_booking_cancellation \
-            and event.can_cancel() and not can_fully_delete
+        can_cancel_and_refund = booking.event.allow_booking_cancellation and event.can_cancel
 
         # if the booking was made with a block, allow 15 mins to cancel in case user
         # clicked the wrong button by mistake and autobooked with a block
@@ -834,32 +823,31 @@ class BookingDeleteView(
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
 
-        if not can_fully_delete:
-            # email if this isn't an unpaid/non-rebooked booking
-            # send email to user
+        # email if this isn't an unpaid/non-rebooked booking
+        # send email to user
 
-            ctx = {
-                      'host': host,
-                      'booking': booking,
-                      'block_booked_within_allowed_time': block_booked_within_allowed_time,
-                      'event': event,
-                      'date': event.date.strftime('%A %d %B'),
-                      'time': event.date.strftime('%I:%M %p'),
-                  }
-            try:
-                send_mail('{} Booking for {} cancelled'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event),
-                    get_template('booking/email/booking_cancelled.txt').render(ctx),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [booking.user.email],
-                    html_message=get_template(
-                        'booking/email/booking_cancelled.html').render(ctx),
-                    fail_silently=False)
-            except Exception as e:
-                # send mail to tech support with Exception
-                send_support_email(e, __name__, "DeleteBookingView - cancelled email")
-                messages.error(self.request, "An error occured, please contact "
-                    "the studio for information")
+        ctx = {
+                  'host': host,
+                  'booking': booking,
+                  'block_booked_within_allowed_time': block_booked_within_allowed_time,
+                  'event': event,
+                  'date': event.date.strftime('%A %d %B'),
+                  'time': event.date.strftime('%I:%M %p'),
+              }
+        try:
+            send_mail('{} Booking for {} cancelled'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event),
+                get_template('booking/email/booking_cancelled.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_cancelled.html').render(ctx),
+                fail_silently=False)
+        except Exception as e:
+            # send mail to tech support with Exception
+            send_support_email(e, __name__, "DeleteBookingView - cancelled email")
+            messages.error(self.request, "An error occured, please contact "
+                "the studio for information")
 
         if can_cancel_and_refund:
             transfer_block_created = False
@@ -961,16 +949,6 @@ class BookingDeleteView(
                         '1 month (<a href="/blocks">View your blocks</a>)'
                     )
                 )
-
-        elif can_fully_delete:
-            ActivityLog.objects.create(
-                log='Booking id {} for event {} was cancelled by user '
-                    '{} and deleted'.format(
-                        booking.id, event,
-                        self.request.user.username
-                    )
-            )
-            booking.delete()
 
         else:
             # if the booking was made with a block, allow 15 mins to cancel in case user
