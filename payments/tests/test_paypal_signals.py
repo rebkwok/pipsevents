@@ -66,7 +66,7 @@ IPN_POST_PARAMS = {
 
 
 @override_settings(DEFAULT_PAYPAL_EMAIL=TEST_RECEIVER_EMAIL)
-class PaypalSignalsTests(PatchRequestMixin, TestCase):
+class PaypalSignalsTestBase(PatchRequestMixin, TestCase):
 
     def paypal_post(self, params):
         """
@@ -84,6 +84,10 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             reverse('paypal-ipn'),
             post_data, content_type='application/x-www-form-urlencoded'
         )
+
+
+@override_settings(DEFAULT_PAYPAL_EMAIL=TEST_RECEIVER_EMAIL)
+class PaypalSignalsTests(PaypalSignalsTestBase):
 
     def test_paypal_notify_url_with_no_data(self):
         self.assertFalse(PayPalIPN.objects.exists())
@@ -2517,3 +2521,195 @@ class PaypalSignalsTests(PatchRequestMixin, TestCase):
             )
         )
         self.assertIn('The exception raised was "Error"', email.body)
+
+
+@override_settings(DEFAULT_PAYPAL_EMAIL=TEST_RECEIVER_EMAIL)
+class PaypalSignalTestsCancelledBooking(PaypalSignalsTestBase):
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_cancelled_booking_with_bookable_event(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = baker.make_recipe(
+            'booking.booking_with_user',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            status="CANCELLED",
+            auto_cancelled=True,
+        )
+
+        pptrans = helpers.create_booking_paypal_transaction(booking.user, booking)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        booking.refresh_from_db()
+        # booking has been reopened
+        assert booking.status == "OPEN"
+        assert booking.auto_cancelled is False
+        assert booking.no_show is False
+
+        # 3 emails sent, to user and studio, and warning for cancelled booking
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+        assert mail.outbox[0].subject == 'WARNING! Payment processed for cancelled booking'
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_no_show_booking_with_bookable_event(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = baker.make_recipe(
+            'booking.booking_with_user',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            status="OPEN",
+            auto_cancelled=True,
+            no_show=True
+        )
+
+        pptrans = helpers.create_booking_paypal_transaction(booking.user, booking)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        booking.refresh_from_db()
+        # booking has been reopened
+        assert booking.status == "OPEN"
+        assert booking.auto_cancelled is False
+        assert booking.no_show is False
+
+        # 3 emails sent, to user and studio, and warning for cancelled booking
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+        assert mail.outbox[0].subject == 'WARNING! Payment processed for cancelled booking'
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_cancelled_booking_with_full_event(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        event = baker.make_recipe("booking.future_PC", paypal_email=settings.DEFAULT_PAYPAL_EMAIL, max_participants=3)
+        baker.make_recipe("booking.booking", event=event, _quantity=3)
+        assert event.spaces_left == 0
+
+        booking = baker.make_recipe(
+            'booking.booking_with_user',
+            event=event,
+            status="CANCELLED",
+            auto_cancelled=True,
+        )
+
+        pptrans = helpers.create_booking_paypal_transaction(booking.user, booking)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        booking.refresh_from_db()
+        # booking has not been reopened because event is full
+        assert booking.status == "CANCELLED"
+        assert booking.auto_cancelled
+
+        # 3 emails sent, to user and studio, and warning for cancelled booking
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+        assert mail.outbox[0].subject == 'WARNING! Payment processed for cancelled booking'
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_cancelled_booking_with_cancelled_event(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        booking = baker.make_recipe(
+            'booking.booking_with_user',
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            event__cancelled=True,
+            status="CANCELLED",
+            auto_cancelled=True,
+        )
+
+        pptrans = helpers.create_booking_paypal_transaction(booking.user, booking)
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('booking {}'.format(booking.id)),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id'
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        resp = self.paypal_post(params)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        # check paypal trans obj is updated
+        pptrans.refresh_from_db()
+        self.assertEqual(pptrans.transaction_id, 'test_txn_id')
+
+        booking.refresh_from_db()
+        # booking has not been reopened because event is cancelled
+        assert booking.status == "CANCELLED"
+        assert booking.auto_cancelled
+
+        # 3 emails sent, to user and studio, and warning for cancelled booking
+        self.assertEqual(
+            len(mail.outbox), 3,
+            "NOTE: Fails if SEND_ALL_STUDIO_EMAILS!=True in env/test settings"
+        )
+        assert mail.outbox[0].subject == 'WARNING! Payment processed for cancelled booking'

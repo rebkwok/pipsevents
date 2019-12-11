@@ -250,6 +250,19 @@ def send_processed_test_unexpected_status_emails(additional_data, status):
         fail_silently=False)
 
 
+def send_payment_for_cancelled_booking_email(obj, paypal_trans, ipn_obj, reopened):
+    send_mail(
+        f'WARNING! Payment processed for cancelled booking',
+        f'Payment processed for cancelled booking:\n '
+        f'Booking: {obj} (id {obj.id})\n'
+        f'User: {obj.user}'
+        f'IPN: {ipn_obj.txn_id}'
+        f'Invoice ID: {paypal_trans.invoice_id}'
+        f'Booking {"was reopened." if reopened else "is still cancelled (class is full or cancelled)."}',
+        settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
+        fail_silently=False)
+
+
 def send_gift_voucher_email(voucher):
     ctx = {"voucher": voucher}
     send_mail(
@@ -435,8 +448,19 @@ def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, vo
         if obj_type == 'booking':
             obj.payment_confirmed = True
             obj.date_payment_confirmed = timezone.now()
+            if obj.status == "CANCELLED" or obj.no_show:
+                # Paying for a cancelled booking (or a no-show booking, which would be a late cancellation);
+                # something's not right here
+                # Reopen it if there's still space in the class.  Email a warning so we can check this is correct.
+                reopened = False
+                if obj.event.spaces_left and not obj.event.cancelled:
+                    obj.status = "OPEN"
+                    obj.autocancelled = False
+                    obj.no_show = False
+                    reopened = True
+                send_payment_for_cancelled_booking_email(obj, paypal_trans, ipn_obj, reopened)
         if obj_type in ['booking', 'block']:
-            obj.paypal_pending=False
+            obj.paypal_pending = False
         if obj_type == "gift_voucher":
             obj.activated = True
         else:
@@ -485,11 +509,7 @@ def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, vo
             ipn_obj.invoice = paypal_trans.invoice_id
             ipn_obj.save()
             send_mail(
-                '{} No invoice number on paypal ipn for '
-                '{} id {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, obj_type,
-                    obj.id
-                ),
+                f'WARNING! No invoice number on paypal ipn for {obj_type} id {obj.id}',
                 'Please check booking and paypal records for '
                 'paypal transaction id {}.  No invoice number on paypal'
                 ' IPN.  Invoice number has been set to {}.'.format(
