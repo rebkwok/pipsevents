@@ -378,6 +378,7 @@ def get_payment_button(booking, type, tab, filter, page=1):
         'unpaid': not (booking.paid and booking.payment_confirmed),
         'booking': booking,
         'payment_open': booking.event.payment_open,
+        'paypal_pending': booking.paypal_pending,
         'ev_type': type,
         'tab': tab,
         'filter': filter,
