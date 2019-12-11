@@ -795,9 +795,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         )
         self.assertEqual(
             mail.outbox[0].subject,
-            '{} No invoice number on paypal ipn for booking id {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.id
-            )
+            f'WARNING! No invoice number on paypal ipn for booking id {booking.id}'
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')

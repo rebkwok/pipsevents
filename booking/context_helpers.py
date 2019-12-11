@@ -209,7 +209,7 @@ def get_paypal_dict(
         "currency_code": "GBP",
         "quantity": quantity,
         "notify_url": host + reverse('paypal-ipn'),
-        "return_url": host + reverse('payments:paypal_confirm'),
+        "return": host + reverse('payments:paypal_confirm'),
         "cancel_return": host + reverse('payments:paypal_cancel'),
 
     }
@@ -230,7 +230,7 @@ def get_paypal_cart_dict(
         "invoice": invoice_id,
         "currency_code": "GBP",
         "notify_url": host + reverse('paypal-ipn'),
-        "return_url": host + reverse('payments:paypal_confirm'),
+        "return": host + reverse('payments:paypal_confirm'),
         "cancel_return": host + reverse('payments:paypal_cancel'),
     }
 

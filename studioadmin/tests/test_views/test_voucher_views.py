@@ -246,8 +246,8 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
         super(VoucherUpdateViewTests, self).setUp()
         self.voucher = baker.make(
             EventVoucher, code='test_code', discount=10,
-            start_date=datetime(2016, 1, 1),
-            expiry_date=datetime(2016, 2, 1)
+            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2016, 2, 1, tzinfo=timezone.utc)
         )
         self.voucher.event_types.add(self.pc_event_type)
         self.data = {
@@ -266,8 +266,8 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
 
         self.block_voucher = baker.make(
             BlockVoucher, code='test_code', discount=10,
-            start_date=datetime(2016, 1, 1),
-            expiry_date=datetime(2016, 2, 1)
+            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+            expiry_date=datetime(2016, 2, 1, tzinfo=timezone.utc)
         )
         self.block_voucher.block_types.add(self.block_type)
         self.block_data = {
