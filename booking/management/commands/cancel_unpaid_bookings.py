@@ -52,6 +52,7 @@ class Command(BaseCommand):
             status='OPEN',
             paid=False,
             payment_confirmed=False,
+            paypal_pending=False,
         ).exclude(date_warning_sent__gte=warning_time_buffer)  # doesn't exclude date_warning_sent==None
         for booking in bookings_qset:
             if booking.event.date - timedelta(hours=booking.event.cancellation_period) < now and booking.warning_sent:
