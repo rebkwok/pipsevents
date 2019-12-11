@@ -2,6 +2,6 @@
 
 Thank you for purchasing a gift voucher.  Your voucher code is {{ voucher.code }}.
 
-To view and print your gift voucher, please go to https://thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}
+To view and print your gift voucher, please go to https://booking.thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}
 
-To update the recipient name or message on your gift voucher, please go to https://thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}
+To update the recipient name or message on your gift voucher, please go to https://booking.thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}
