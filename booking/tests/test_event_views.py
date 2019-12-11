@@ -833,7 +833,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.event.save()
 
         self.assertTrue(self.event.allow_booking_cancellation)
-        self.assertTrue(self.event.can_cancel())
+        self.assertTrue(self.event.can_cancel)
 
         resp = self._get_response(self.user, self.event, 'event')
         soup = BeautifulSoup(resp.rendered_content, 'html.parser')
@@ -874,7 +874,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.event.save()
 
         self.assertTrue(self.event.allow_booking_cancellation)
-        self.assertTrue(self.event.can_cancel())
+        self.assertTrue(self.event.can_cancel)
 
         resp = self._get_response(self.user, self.event, 'event')
         soup = BeautifulSoup(resp.rendered_content, 'html.parser')
@@ -900,7 +900,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.event.save()
 
         self.assertTrue(self.event.allow_booking_cancellation)
-        self.assertTrue(self.event.can_cancel())
+        self.assertTrue(self.event.can_cancel)
 
         resp = self._get_response(self.user, self.event, 'event')
         soup = BeautifulSoup(resp.rendered_content, 'html.parser')

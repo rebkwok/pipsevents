@@ -288,7 +288,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking = baker.make_recipe(
             'booking.booking',
             event=baker.make_recipe(
-                'booking.future_EV', name='Test event', date=datetime(2015, 1, 1, 18, 0)),
+                'booking.future_EV', name='Test event', date=datetime(2015, 1, 1, 18, 0, tzinfo=timezone.utc)),
             user=baker.make_recipe('booking.user', username='Test user'),
             )
         self.assertEqual(str(booking), 'Test event - Test user - 01Jan2015 18:00')
@@ -472,15 +472,19 @@ class BookingTests(PatchRequestMixin, TestCase):
 
         event.allow_booking_cancellation = False
         event.save()
+        # get booking from db because can_cancel is cached property
+        booking = Booking.objects.get(id=booking.id)
         self.assertFalse(booking.can_cancel)
 
         event.allow_booking_cancellation = True
         event.save()
+        booking = Booking.objects.get(id=booking.id)
         self.assertTrue(booking.can_cancel)
 
         mock_now = datetime(2015, 3, 2, 18, 0, tzinfo=timezone.utc)
         mock_tz.now.return_value = mock_now
         # event cancellation allowed but now we're within cancellation period
+        booking = Booking.objects.get(id=booking.id)
         self.assertFalse(booking.can_cancel)
 
 
@@ -1550,6 +1554,8 @@ class VoucherTests(TestCase):
         mock_tz.now.return_value = datetime(
             2016, 1, 3, 12, 30, tzinfo=timezone.utc
         )
+        # get voucher from id b/c has_expired is cached property
+        voucher = EventVoucher.objects.get(id=voucher.id)
         self.assertFalse(voucher.has_expired)
 
     @patch('booking.models.timezone')
@@ -1565,6 +1571,9 @@ class VoucherTests(TestCase):
         self.assertTrue(voucher.has_started)
 
         voucher.start_date = datetime(2016, 1, 6, tzinfo=timezone.utc)
+        voucher.save()
+        # get voucher from id b/c has_started is cached property
+        voucher = EventVoucher.objects.get(id=voucher.id)
         self.assertFalse(voucher.has_started)
 
     def test_check_event_type(self):

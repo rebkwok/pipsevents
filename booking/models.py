@@ -145,6 +145,7 @@ class Event(models.Model):
         else:
             return 100
 
+    @property
     def bookable(self):
         return self.booking_open and self.spaces_left > 0
 

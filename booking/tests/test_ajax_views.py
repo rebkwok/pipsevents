@@ -866,7 +866,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         )
 
         self.event.advance_payment_required = True
-        self.event.payment_due_date = datetime(2018, 1, 1)
+        self.event.payment_due_date = datetime(2018, 1, 1, tzinfo=timezone.utc)
         self.event.save()
 
         resp = self.client.post(url)

@@ -26,7 +26,7 @@ def view_that_asks_for_money(request):
         "invoice": "unique-invoice-id",
         "currency_code": "GBP",
         "notify_url": reverse('paypal-ipn'),
-        "return_url": reverse('payments:paypal_confirm'),
+        "return": reverse('payments:paypal_confirm'),
         "cancel_return": reverse('payments:paypal_cancel'),
 
     }
