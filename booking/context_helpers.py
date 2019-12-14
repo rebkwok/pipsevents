@@ -197,7 +197,7 @@ def get_booking_create_context(event, request, context):
 
 
 def get_paypal_dict(
-        host, cost, item_name, invoice_id, custom,
+        request, cost, item_name, invoice_id, custom,
         paypal_email=settings.DEFAULT_PAYPAL_EMAIL, quantity=1):
 
     paypal_dict = {
@@ -208,16 +208,15 @@ def get_paypal_dict(
         "invoice": invoice_id,
         "currency_code": "GBP",
         "quantity": quantity,
-        "notify_url": host + reverse('paypal-ipn'),
-        "return": host + reverse('payments:paypal_confirm'),
-        "cancel_return": host + reverse('payments:paypal_cancel'),
-
+        "notify_url": request.build_absolute_uri(reverse('paypal-ipn')),
+        "return": request.build_absolute_uri(reverse('payments:paypal_confirm')),
+        "cancel_return": request.build_absolute_uri(reverse('payments:paypal_cancel')),
     }
     return paypal_dict
 
 
 def get_paypal_cart_dict(
-        host, item_type, items, invoice_id, custom,
+        request, item_type, items, invoice_id, custom,
         voucher_applied_items=None,
         voucher=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
     ):
@@ -229,9 +228,9 @@ def get_paypal_cart_dict(
         "custom": custom,
         "invoice": invoice_id,
         "currency_code": "GBP",
-        "notify_url": host + reverse('paypal-ipn'),
-        "return": host + reverse('payments:paypal_confirm'),
-        "cancel_return": host + reverse('payments:paypal_cancel'),
+        "notify_url": request.build_absolute_uri(reverse('paypal-ipn')),
+        "return": request.build_absolute_uri(reverse('payments:paypal_confirm')),
+        "cancel_return": request.build_absolute_uri(reverse('payments:paypal_cancel')),
     }
 
     for i, item in enumerate(items):

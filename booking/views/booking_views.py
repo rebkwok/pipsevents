@@ -96,10 +96,9 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
                 # ONLY DO THIS IF PAYPAL BUTTON NEEDED
                 invoice_id = create_booking_paypal_transaction(
                     self.request.user, booking).invoice_id
-                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
                 paypal_form = PayPalPaymentsListForm(
                     initial=context_helpers.get_paypal_dict(
-                        host,
+                        self.request,
                         booking.event.cost,
                         booking.event,
                         invoice_id,
@@ -555,7 +554,6 @@ class BookingUpdateView(
         invoice_id = create_booking_paypal_transaction(
             self.request.user, self.object
         ).invoice_id
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
 
         paypal_cost = self.object.event.cost
         voucher = kwargs.get('voucher', None)
@@ -584,7 +582,7 @@ class BookingUpdateView(
         )
         paypal_form = PayPalPaymentsUpdateForm(
             initial=context_helpers.get_paypal_dict(
-                host,
+                self.request,
                 paypal_cost,
                 '{}'.format(self.object.event),
                 invoice_id,
