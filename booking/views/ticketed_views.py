@@ -203,11 +203,10 @@ class TicketCreateView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, Tem
                     invoice_id = create_ticket_booking_paypal_transaction(
                         self.request.user, self.ticket_booking
                     ).invoice_id
-                    host = 'http://{}'.format(self.request.META.get('HTTP_HOST')
-                                                      )
+
                     paypal_form = PayPalPaymentsUpdateForm(
                         initial=context_helpers.get_paypal_dict(
-                            host,
+                            self.request,
                             self.ticketed_event.ticket_cost,
                             self.ticketed_event,
                             invoice_id,
@@ -325,10 +324,9 @@ class TicketBookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin
                 # ONLY DO THIS IF PAYPAL BUTTON NEEDED
                 invoice_id = create_ticket_booking_paypal_transaction(
                     self.request.user, ticket_booking).invoice_id
-                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
                 paypal_form = PayPalPaymentsListForm(
                     initial=context_helpers.get_paypal_dict(
-                        host,
+                        self.request,
                         ticket_booking.ticketed_event.ticket_cost,
                         ticket_booking.ticketed_event,
                         invoice_id,
