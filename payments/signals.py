@@ -208,11 +208,11 @@ def send_payment_for_cancelled_booking_email(obj, paypal_trans, ipn_obj, reopene
     send_mail(
         f'WARNING! Payment processed for cancelled booking',
         f'Payment processed for cancelled booking:\n '
-        f'Booking: {obj} (id {obj.id})\n'
-        f'User: {obj.user}'
-        f'IPN: {ipn_obj.txn_id}'
-        f'Invoice ID: {paypal_trans.invoice_id}'
-        f'Booking {"was reopened." if reopened else "is still cancelled (class is full or cancelled)."}',
+        f'- Booking: {obj} (id {obj.id})\n'
+        f'- User: {obj.user}\n'
+        f'- IPN: {ipn_obj.txn_id}\n'
+        f'- Invoice ID: {paypal_trans.invoice_id}\n'
+        f'Booking {"was REOPENED." if reopened else "is still CANCELLED (class is full or cancelled)."}',
         settings.DEFAULT_FROM_EMAIL, [settings.SUPPORT_EMAIL],
         fail_silently=False)
 
@@ -846,6 +846,7 @@ def payment_not_received(sender, **kwargs):
             settings.DEFAULT_FROM_EMAIL,
             [settings.SUPPORT_EMAIL],
             fail_silently=False)
+
 
 valid_ipn_received.connect(payment_received)
 invalid_ipn_received.connect(payment_not_received)
