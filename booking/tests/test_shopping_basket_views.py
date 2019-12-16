@@ -687,6 +687,45 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('block_paypalform', resp.context_data)
         self.assertEqual(resp.context_data['total_unpaid_block_cost'], 10)
 
+    def test_paypal_cart_items_unpaid_bookings(self):
+        # If we only have unpaid bookings, add the cart items to the session
+        # 6 unpaid bookings, only 6 for self.user
+        resp = self.client.get(self.url)
+        self.assertEqual(len(resp.context['unpaid_bookings']), 6)
+        booking_ids = ','.join(str(booking.id) for booking in self.user.bookings.all().order_by("id"))
+        assert self.client.session["cart_items"] == f"booking {booking_ids} {self.user.email}"
+
+    def test_paypal_cart_items_unpaid_blocks(self):
+        # If we only have unpaid blocks, add the cart items to the session
+        Booking.objects.all().delete()
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=5, user=self.user, paid=False
+        )
+        self.client.get(self.url)
+        assert self.client.session["cart_items"] == f"block {block.id} {self.user.email}"
+
+    def test_paypal_cart_items_bookings_and_blocks(self):
+        # If we have both unpaid bookings and blocks, don't add the cart items to the session as
+        # we can't be sure which paypal button they'll use
+        unpaid = baker.make_recipe(
+            'booking.block', block_type__cost=10, user=self.user, paid=False
+        )
+        baker.make_recipe(
+            'booking.block', block_type__cost=5, user=self.user, paid=True
+        )
+        self.client.get(self.url)
+        assert "cart_items" not in self.client.session
+
+        unpaid.delete()
+        self.client.get(self.url)
+        assert "cart_items" in self.client.session
+
+    def test_paypal_cart_items_deleted_from_session_on_get(self):
+        Booking.objects.all().delete()
+        self.client.session["cart_items"] = "test"
+        self.client.get(self.url)
+        assert "cart_items" not in self.client.session
+
 
 class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
 
