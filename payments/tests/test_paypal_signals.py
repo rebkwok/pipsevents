@@ -1891,7 +1891,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         )
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
-    @patch('payments.models.send_processed_payment_emails')
+    @patch('payments.signals.send_processed_payment_emails')
     def test_error_sending_emails_payment_received(
             self, mock_send_emails, mock_postback
     ):
@@ -1942,7 +1942,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
             'raised was "Error sending mail"'.format(pptrans.invoice_id)
         )
 
-    @patch('payments.models.send_mail')
+    @patch('payments.signals.send_mail')
     def test_error_sending_emails_payment_not_received(self, mock_send_emails):
         """
         We send a warning email with the exception if anything else goes wrong
@@ -2485,7 +2485,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
             ),
         )
 
-    @patch('payments.models.send_processed_test_confirmation_emails')
+    @patch('payments.signals.send_processed_test_confirmation_emails')
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_email_check_unexpected_error(
             self, mock_postback, mock_send_confirmation
