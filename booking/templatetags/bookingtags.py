@@ -206,8 +206,6 @@ def in_group(user, group_name):
 
 @register.filter
 def format_block(block):
-    if not block:
-        return "Active block not used"
     return "{} ({}/{} left); exp {}".format(
             block.block_type.event_type.subtype,
             block.block_type.size - block.bookings_made(),
