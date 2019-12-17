@@ -9,6 +9,7 @@ from payments import helpers
 from payments.forms import (
     PayPalPaymentsUpdateForm, PayPalPaymentsShoppingBasketForm
 )
+from payments.tests.utils import get_mock_request
 
 
 class PayPalPaymentsUpdateFormTests(PatchRequestMixin, TestCase):
@@ -20,7 +21,7 @@ class PayPalPaymentsUpdateFormTests(PatchRequestMixin, TestCase):
         )
         form = PayPalPaymentsUpdateForm(
             initial=get_paypal_dict(
-                        'http://example.com',
+                        get_mock_request(booking.user),
                         booking.event.cost,
                         booking.event,
                         pptrans.invoice_id,
@@ -39,7 +40,7 @@ class PayPalPaymentsShoppingBasketFormTests(PatchRequestMixin, TestCase):
         )
         form = PayPalPaymentsShoppingBasketForm(
             initial=get_paypal_cart_dict(
-                        'http://example.com',
+                        get_mock_request(booking.user),
                         'booking',
                         [booking],
                         invoice_id,

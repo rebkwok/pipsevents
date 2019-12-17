@@ -1874,10 +1874,11 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = baker.make_recipe('booking.booking', event=event, user=self.user, paid=False)
         self.assertEqual(Booking.objects.all().count(), 1)
         self._delete_response(self.user, booking)
-        # booking deleted
-        self.assertEqual(Booking.objects.all().count(), 0)
+        # booking not deleted
+        booking.refresh_from_db()
+        assert booking.status == "CANCELLED"
         # no emails sent
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_cancel_unpaid_rebooking(self):
         """
@@ -2169,7 +2170,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         """
         Can still be cancelled but not refundable
         Paid booking stays OPEN but is set to no_show
-        Unpaid booking is deleted
+        Unpaid booking is set to cancelled
         """
         event = baker.make_recipe(
             'booking.future_PC', allow_booking_cancellation=False
@@ -2189,7 +2190,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             'booking.booking', event=event1, user=self.user
         )
         self._delete_response(self.user, unpaid_booking)
-        self.assertFalse(Booking.objects.filter(id=unpaid_booking.id).exists())
+        unpaid_booking.refresh_from_db()
+        assert unpaid_booking.status == "CANCELLED"
+        assert unpaid_booking.no_show is False
 
         # no transfer blocks made
         self.assertFalse(Block.objects.filter(user=self.user).exists())
@@ -2269,9 +2272,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self._delete_response(self.user, booking)
-        # unpaid booking deleted, only waiting list emails sent
-        self.assertEqual(len(mail.outbox), 1)
-        waiting_list_mail = mail.outbox[0]
+        # unpaid booking deleted, cancel and  waiting list emails sent
+        self.assertEqual(len(mail.outbox), 2)
+        waiting_list_mail = mail.outbox[1]
         self.assertEqual(waiting_list_mail.bcc, [wluser.user.email])
 
     @patch('booking.views.booking_views.send_mail')
@@ -2292,22 +2295,21 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self._delete_response(self.user, booking)
-        self.assertEqual(len(mail.outbox), 1)
+        # Error emails for both cancellation and waiting list
+        self.assertEqual(len(mail.outbox), 2)
 
-        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
-        self.assertEqual(
-            mail.outbox[0].subject,
-            '{} An error occurred! '
-            '(DeleteBookingView - waiting list email)'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+        for email in mail.outbox:
+            self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
+            self.assertTrue(
+                email.subject.startswith(
+                    f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} An error occurred! (DeleteBookingView - '
+                )
             )
-        )
 
     @patch('booking.views.booking_views.send_mail')
     @patch('booking.views.booking_views.send_waiting_list_email')
     @patch('booking.email_helpers.send_mail')
-    def test_errors_sending_all_emails(
-            self, mock_send, mock_send_wl_emails, mock_send_emails):
+    def test_errors_sending_all_emails(self, mock_send, mock_send_wl_emails, mock_send_emails):
         mock_send.side_effect = Exception('Error sending mail')
         mock_send_emails.side_effect = Exception('Error sending mail')
         mock_send_wl_emails.side_effect = Exception('Error sending mail')
@@ -2618,11 +2620,11 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         self._delete_response(user, unpaid_booking)
 
-        self.assertFalse(Booking.objects.filter(id=unpaid_booking.id).exists())
+        self.assertTrue(Booking.objects.filter(id=unpaid_booking.id).exists())
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
-        # block paid
+        # block paidtest_cancel_unpaid_booking
         user1 = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user1)
         baker.make_recipe('booking.online_disclaimer', user=user1)

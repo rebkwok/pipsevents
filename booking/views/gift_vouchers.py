@@ -154,7 +154,7 @@ class GiftVoucherPurchaseView(FormView):
             invoice_id = create_gift_voucher_paypal_transaction(voucher_type=voucher_type, voucher_code=voucher.code).invoice_id
             paypal_form = PayPalPaymentsUpdateForm(
                 initial=get_paypal_dict(
-                    'http://{}'.format(self.request.META.get('HTTP_HOST')),
+                    self.request,
                     voucher_type.cost,
                     f"gift voucher - {voucher_type}",
                     invoice_id,

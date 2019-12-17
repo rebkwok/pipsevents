@@ -1,4 +1,4 @@
-Django==2.2.6
+Django==2.2.8
 coverage==4.5.4
 dj-database-url==0.5.0
 django-allauth==0.40.0
@@ -12,7 +12,7 @@ django-extensions==2.2.3
 django-migration-testcase==0.0.15
 django-paypal==1.0.0
 djangorestframework==3.10.3
-django-suit==0.2.26
+django-suit==0.2.28
 dj-static==0.0.6
 psycopg2==2.8.4
 python-dateutil==2.8.0
