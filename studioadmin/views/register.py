@@ -5,7 +5,7 @@ from datetime import datetime, time, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.urls import reverse
+from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 from django.template.loader import render_to_string
@@ -17,13 +17,10 @@ from django.views.decorators.http import require_http_methods
 
 from braces.views import LoginRequiredMixin
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
 from booking.email_helpers import send_waiting_list_email
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from booking.views.views_utils import _get_active_user_block
-from payments.models import PaypalBookingTransaction
-from studioadmin.forms import SimpleBookingRegisterFormSet, StatusFilter, \
-    RegisterDayForm, AddRegisterBookingForm
+from studioadmin.forms import StatusFilter,  RegisterDayForm, AddRegisterBookingForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin
 
@@ -35,327 +32,8 @@ logger = logging.getLogger(__name__)
 
 @login_required
 @is_instructor_or_staff
-def register_view(request, event_slug, status_choice='OPEN', print_view=False):
-    event = get_object_or_404(Event, slug=event_slug)
+def register_view(request, event_slug):
 
-    if request.method == 'POST':
-
-        if request.POST.get("print"):
-            print_view = True
-
-        status_choice = request.POST.getlist('status_choice')[0]
-
-        formset = SimpleBookingRegisterFormSet(
-            request.POST,
-            instance=event,
-        )
-        if formset.is_valid():
-            if not formset.has_changed() and \
-                    request.POST.get('formset_submitted'):
-                messages.info(request, "No changes were made")
-            else:
-                attended_checked = []
-                attended_unchecked = []
-                no_show_checked = []
-                no_show_unchecked = []
-                deposit_updates = {}
-                paid_updates = {}
-                # for messages; show separate message if booking created or
-                # reopened; show combined message for other updates; show
-                # additional payment info in log (but not messages)
-                updated = []
-
-                for form in formset:
-                    booking = form.save(commit=False)
-
-                    if form.has_changed():
-                        if 'attended' in form.changed_data:
-                            attended_checked.append(booking.user.username) \
-                                if booking.attended \
-                                else attended_unchecked.append(booking.user.username)
-                        if 'no_show' in form.changed_data:
-                            no_show_checked.append(booking.user.username) \
-                                if booking.no_show \
-                                else no_show_unchecked.append(booking.user.username)
-                        # new booking
-                        if 'user' in form.changed_data:
-
-                            try:
-                                new_booking = Booking.objects\
-                                    .select_related('event', 'user').get(
-                                        user=booking.user, event=booking.event,
-                                        status='CANCELLED'
-                                    )
-                                new = False
-                            except Booking.DoesNotExist:
-                                new = True
-                                booking.save()
-
-                            if new:
-                                ActivityLog.objects.create(
-                                    log='(Register) Booking id {} for event '
-                                        '{}, user {} created by admin '
-                                        'user {} '.format(
-                                        booking.id, booking.event,
-                                        booking.user.username,
-                                        request.user.username
-                                    )
-                                )
-                                messages.success(
-                                    request,
-                                    "Booking created for user {}".format(
-                                        booking.user.username
-                                    )
-                                )
-                            else:
-                                new_booking.status = 'OPEN'
-                                new_booking.attended = booking.attended
-                                new_booking.save()
-
-                                ActivityLog.objects.create(
-                                    log='(Register) Cancelled booking id {} '
-                                        'for event {}, user {} reopened by '
-                                        'admin user {}'.format(
-                                        new_booking.id, new_booking.event,
-                                        new_booking.user.username,
-                                        request.user.username
-                                    )
-                                )
-                                messages.success(
-                                    request,
-                                    "Cancelled booking reopened for user "
-                                    "{}".format(
-                                        booking.user.username
-                                    )
-                                )
-
-                        elif 'block' in form.changed_data:
-                            booking.paid = bool(booking.block)
-                            booking.payment_confirmed = bool(booking.block)
-                            booking.save()
-
-                            ActivityLog.objects.create(
-                                log='(Register) Block {} for booking id {} for '
-                                    'event {}, user {} by admin user {}'.format(
-                                    'added' if booking.block else 'removed',
-                                    booking.id, booking.event,
-                                    booking.user.username,
-                                    request.user.username
-                                )
-                            )
-                            updated.append(booking)
-
-                        else:
-                            # add to updated list if something more than just
-                            # attended checkbox has changed
-                            booking.save()
-                            if form.changed_data != ['attended']:
-                                updated.append(booking)
-
-                            # activity logs for changed to payment status
-                            if 'deposit_paid' in form.changed_data:
-                                change = 'yes' if booking.deposit_paid else 'no'
-                                deposit_updates[booking.user.username] = change
-
-                            if 'paid' in form.changed_data:
-                                if booking.paid:
-                                    change = 'yes'
-                                    booking.payment_confirmed = True
-                                    booking.save()
-                                else:
-                                    change = 'no'
-                                paid_updates[booking.user.username] = change
-
-                if deposit_updates:
-                    ActivityLog.objects.create(
-                        log='(Register) Deposit paid updated for user{} {} for '
-                            'event {} by admin user {}'.format(
-                                's' if len(deposit_updates) > 1 else '',
-                                ', '.join(
-                                    ['{} ({})'.format(k, v)
-                                     for k, v in deposit_updates.items()]
-                                ),
-                                booking.event,
-                                request.user.username
-                            )
-                        )
-
-                if paid_updates:
-                    ActivityLog.objects.create(
-                        log='(Register) Fully paid updated for user{} {} for '
-                            'event {} by admin user {}'.format(
-                                's' if len(paid_updates) > 1 else '',
-                                ', '.join(
-                                    ['{} ({})'.format(k, v)
-                                     for k, v in paid_updates.items()]
-                                ),
-                                booking.event,
-                                request.user.username
-                            )
-                        )
-
-                if updated:
-                    messages.success(
-                        request,
-                        "Booking updated for user{} {}".format(
-                            's' if len(updated) > 1 else '',
-                            ', '.join([bk.user.username for bk in updated])
-                        )
-                    )
-                if attended_checked:
-                    messages.success(
-                        request,
-                        "Booking changed to attended for user{} {}".format(
-                            's' if len(attended_checked) > 1 else '',
-                            ', '.join(attended_checked)
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="(Register) User{} {} marked as attended for "
-                            "event {} by admin user {}".format(
-                            's' if len(attended_checked) > 1 else '',
-                            ', '.join(attended_checked),
-                            booking.event, request.user.username
-                        )
-                    )
-
-                if attended_unchecked:
-                    messages.success(
-                        request,
-                        "Booking changed to unattended for user{} {}".format(
-                            's' if len(attended_unchecked) > 1 else '',
-                            ', '.join(attended_unchecked)
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="(Register) User{} {} marked as unattended for "
-                            "event {} by admin user {}".format(
-                            's' if len(attended_unchecked) > 1 else '',
-                            ', '.join(attended_unchecked),
-                            booking.event, request.user.username
-                        )
-                    )
-                if no_show_checked:
-                    messages.success(
-                        request,
-                        "Booking changed to 'no-show' for user{} {}".format(
-                            's' if len(no_show_checked) > 1 else '',
-                            ', '.join(no_show_checked)
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="(Register) User{} {} marked as no-show for event "
-                            "{} by admin user {}".format(
-                            's' if len(no_show_checked) > 1 else '',
-                            ', '.join(no_show_checked),
-                            booking.event, request.user.username
-                        )
-                    )
-
-                if no_show_unchecked:
-                    messages.success(
-                        request,
-                        "Booking changed to not no-show for user{} {}".format(
-                            's' if len(no_show_unchecked) > 1 else '',
-                            ', '.join(no_show_unchecked)
-                        )
-                    )
-                    ActivityLog.objects.create(
-                        log="(Register) User{} {} unmarked as no-show for "
-                            "event {} by admin user {}".format(
-                            's' if len(no_show_unchecked) > 1 else '',
-                            ', '.join(no_show_unchecked),
-                            booking.event, request.user.username
-                        )
-                    )
-
-            register_url = 'studioadmin:event_register_old'
-            if print_view:
-                register_url = 'studioadmin:event_register_print'
-
-            return HttpResponseRedirect(
-                reverse(register_url,
-                        kwargs={'event_slug': event.slug,
-                                'status_choice': status_choice}
-                        )
-            )
-        else:
-            messages.error(
-                request,
-                mark_safe(
-                    "Please correct the following errors:{}{}".format(
-                        ''.join(["{}".format(error) for error in formset.errors]),
-                        ''.join(["{}".format(err)
-                                 for err in formset.non_form_errors()])
-                    )
-                )
-            )
-
-    else:
-        if status_choice == 'ALL':
-            queryset = Booking.objects\
-                .select_related('event', 'user', 'event__event_type').all()
-        else:
-            queryset = Booking.objects\
-                .select_related('event', 'user', 'event__event_type')\
-                .filter(status=status_choice)
-
-        formset = SimpleBookingRegisterFormSet(
-            instance=event,
-            queryset=queryset
-        )
-
-    status_filter = StatusFilter(initial={'status_choice': status_choice})
-
-    if status_choice == 'CANCELLED':
-        extra_lines = 0
-    elif event.max_participants:
-        extra_lines = event.spaces_left
-    elif event.bookings.count() < 15:
-        open_bookings = Booking.objects.filter(
-            event=event, status='OPEN', no_show=False
-        )
-        extra_lines = 15 - open_bookings.count()
-    else:
-        extra_lines = 2
-
-    template = 'studioadmin/register.html'
-    if print_view:
-        template = 'studioadmin/register_print.html'
-
-    sidenav_selection = 'lessons_register'
-    if event.event_type.event_type == 'EV':
-        sidenav_selection = 'events_register'
-
-    available_block_type = BlockType.objects.filter(event_type=event.event_type)
-    users_with_online_disclaimers = OnlineDisclaimer.objects.filter(
-        user__in=Booking.objects.filter(event=event).values_list('user__id', flat=True)
-    ).values_list('user__id', flat=True)
-    users_with_print_disclaimers = PrintDisclaimer.objects.filter(
-        user__in=Booking.objects.filter(event=event).values_list('user__id', flat=True)
-    ).values_list('user__id', flat=True)
-
-    bookings_paid_by_paypal = PaypalBookingTransaction.objects.filter(
-        booking__event=event, transaction_id__isnull=False
-    ).values_list('booking__id', flat=True)
-
-    return TemplateResponse(
-        request, template, {
-            'formset': formset, 'event': event, 'status_filter': status_filter,
-            'extra_lines': extra_lines, 'print': print_view,
-            'status_choice': status_choice,
-            'available_block_type': bool(available_block_type),
-            'sidenav_selection': sidenav_selection,
-            'users_with_online_disclaimers': users_with_online_disclaimers,
-            'users_with_print_disclaimers': users_with_print_disclaimers,
-            'bookings_paid_by_paypal': bookings_paid_by_paypal,
-        }
-    )
-
-
-@login_required
-@is_instructor_or_staff
-def register_view_new(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
     status_choice = request.GET.get('status_choice', 'OPEN')
     if status_choice == 'ALL':
@@ -365,7 +43,7 @@ def register_view_new(request, event_slug):
 
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
-    template = 'studioadmin/register_new.html'
+    template = 'studioadmin/register.html'
 
     sidenav_selection = 'lessons_register'
     if event.event_type.event_type == 'EV':
@@ -551,21 +229,27 @@ class EventRegisterListView(
         context['sidenav_selection'] = '{}_register'.format(
             self.kwargs['ev_type'])
 
+        page = self.request.GET.get('page', 1)
+        all_paginator = Paginator(self.get_queryset(), 20)
+        queryset = all_paginator.get_page(page)
+
         location_events = [{
             'index': 0,
-            'queryset': self.get_queryset(),
+            'queryset': queryset,
             'location': 'All locations'
         }]
-        for i, location in enumerate(
-                [lc[0] for lc in Event.LOCATION_CHOICES], 1
-        ):
-            location_obj = {
-                'index': i,
-                'queryset': self.get_queryset().filter(location=location),
-                'location': location
-            }
-            if location_obj['queryset']:
-                location_events.append(location_obj)
+        # TODO: NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
+        # TODO: If we do add it, the pagination will need to be updated too (see bookings event list view)
+        # for i, location in enumerate(
+        #         [lc[0] for lc in Event.LOCATION_CHOICES], 1
+        # ):
+        #     location_obj = {
+        #         'index': i,
+        #         'queryset': self.get_queryset().filter(location=location),
+        #         'location': location
+        #     }
+        #     if location_obj['queryset']:
+        #         location_events.append(location_obj)
         context['location_events'] = location_events
 
         return context

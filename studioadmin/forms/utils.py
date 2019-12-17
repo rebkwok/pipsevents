@@ -4,7 +4,7 @@ from django import forms
 class StatusFilter(forms.Form):
 
     status_choice = forms.ChoiceField(
-        widget=forms.Select,
+        widget=forms.Select(attrs={'onchange': "this.form.submit()"}),
         choices=(('OPEN', 'Open bookings only'),
                  ('CANCELLED', 'Cancelled Bookings only'),
                  ('ALL', 'All'),),
