@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from django.conf import settings
 
 from django.core.exceptions import MultipleObjectsReturned
@@ -14,6 +15,7 @@ from booking.models import Block, BlockVoucher, Booking, EventVoucher, TicketBoo
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
     PaypalTicketBookingTransaction
 
+logger = logging.getLogger(__name__)
 
 """
 def view_that_asks_for_money(request):
@@ -84,6 +86,7 @@ def paypal_confirm_return(request):
                    'test_paypal_email': custom[3] if objs[0] == 'paypal_test'
                    else ''
                    }
+        logging.info("Paypal return (complete): %s", custom)
 
     if not custom or objs == ['unknown']:
         # find cart items; check they're not paid yet set and paypal pending
@@ -107,6 +110,7 @@ def paypal_confirm_return(request):
             'cart_items':  cart_item_names if cart_items else [],
             'organiser_email': settings.DEFAULT_STUDIO_EMAIL
         }
+        logging.info("Paypal return (paypal_pending set): %s", cart_items)
 
     return TemplateResponse(request, 'payments/confirmed_payment.html', context)
 
@@ -166,8 +170,12 @@ def paypal_cancel_return(request):
                 for item in cart_items:
                     item.paid = True
                     item.save()
+            logging.info("Resubmitted paypal invoice updated for: %s", cart_items_from_session)
+        else:
+            logging.info("Paypal cancelled for: %s", cart_items_from_session)
 
         del request.session['cart_items']
+
     return render(
         request, 'payments/cancelled_payment.html',
         {'already_paid': already_paid}
