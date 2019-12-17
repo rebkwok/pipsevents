@@ -39,11 +39,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
         user = baker.make_recipe('booking.user', username="testuser")
         booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
-            event__date=datetime(2016, 1, 1, 17, 30)
+            event__date=datetime(2016, 1, 1, 17, 30, tzinfo=timezone.utc)
         )
         booking1 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
-            event__date=datetime(2016, 1, 2, 17, 30)
+            event__date=datetime(2016, 1, 2, 17, 30, tzinfo=timezone.utc)
         )
 
         invoice1 = helpers.create_multibooking_paypal_transaction(
@@ -52,11 +52,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
 
         booking2 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
-            event__date=datetime(2016, 1, 3, 17, 30)
+            event__date=datetime(2016, 1, 3, 17, 30, tzinfo=timezone.utc)
         )
         booking3 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
-            event__date=datetime(2016, 1, 4, 17, 30)
+            event__date=datetime(2016, 1, 4, 17, 30, tzinfo=timezone.utc)
         )
 
         invoice2 = helpers.create_multibooking_paypal_transaction(

@@ -1,5 +1,6 @@
 import logging
 import operator
+import pytz
 
 from datetime import datetime
 from functools import reduce
@@ -46,7 +47,7 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
         if search_date:
             try:
-                search_date = datetime.strptime(search_date, '%d-%b-%Y')
+                search_date = datetime.strptime(search_date, '%d-%b-%Y').replace(tzinfo=pytz.timezone("Europe/London")).astimezone(pytz.utc)
                 start_datetime = search_date
                 end_datetime = search_date.replace(hour=23, minute=59, second=59, microsecond=999999)
                 queryset = queryset.filter(

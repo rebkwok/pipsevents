@@ -15,7 +15,6 @@ class Command(BaseCommand):
             management.call_command('load_users')
             users = list(User.objects.all())
 
-
         if not EVENTS:
             self.stdout.write('There are no test events set up yet.  '
                               'No bookings will be created.\nRun create_events '
@@ -24,16 +23,9 @@ class Command(BaseCommand):
             self.stdout.write('Creating bookings')
 
             for event in EVENTS:
-                users = random.sample(users, 3)
-                Booking.objects.get_or_create(
-                    user=users[0],
-                    event=event
-                )
-                Booking.objects.get_or_create(
-                    user=users[1],
-                    event=event
-                )
-                Booking.objects.get_or_create(
-                    user=users[2],
-                    event=event
-                )
+                sampled_users = random.sample(users, min(3, event.max_participants or 3))
+                for user in sampled_users:
+                    Booking.objects.get_or_create(
+                        user=user,
+                        event=event
+                    )

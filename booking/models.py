@@ -136,7 +136,7 @@ class Event(models.Model):
             models.Index(fields=['event_type', 'name', 'date', 'cancelled']),
         ]
 
-    @cached_property
+    @property
     def spaces_left(self):
         if self.max_participants:
             booked_number = Booking.objects.filter(
@@ -145,10 +145,11 @@ class Event(models.Model):
         else:
             return 100
 
-    @cached_property
+    @property
     def bookable(self):
         return self.booking_open and self.spaces_left > 0
 
+    @cached_property
     def can_cancel(self):
         time_until_event = self.date - timezone.now()
         time_until_event = time_until_event.total_seconds() / 3600
@@ -229,7 +230,7 @@ class BlockType(models.Model):
             self.size
         )
 
-    @property
+    @cached_property
     def description(self):
         return f'{self.event_type.subtype} - {self.size} classes (block)'
 
@@ -328,7 +329,7 @@ class Block(models.Model):
 
         return self._get_end_of_day(expiry_datetime)
 
-    @property
+    @cached_property
     def expired(self):
         return self.expiry_date < timezone.now()
 
@@ -489,7 +490,7 @@ class Booking(models.Model):
             or self.payment_confirmed
     space_confirmed.boolean = True
 
-    @property
+    @cached_property
     def can_cancel(self):
         if not self.event.allow_booking_cancellation:
             return False
@@ -509,7 +510,7 @@ class Booking(models.Model):
         ]
         return bool(available_blocks)
 
-    @property
+    @cached_property
     def has_unpaid_block(self):
         available_blocks = [
             block for block in
@@ -904,13 +905,13 @@ class BaseVoucher(models.Model):
     def __str__(self):
         return self.code
 
-    @property
+    @cached_property
     def has_expired(self):
         if self.expiry_date and self.expiry_date < timezone.now():
             return True
         return False
 
-    @property
+    @cached_property
     def has_started(self):
         return bool(self.start_date < timezone.now() and self.activated)
 
@@ -968,7 +969,7 @@ class GiftVoucherType(models.Model):
     )
     active = models.BooleanField(default=True, help_text="Display on site; set to False instead of deleting unused voucher types")
 
-    @property
+    @cached_property
     def cost(self):
         if self.block_type:
             return self.block_type.cost

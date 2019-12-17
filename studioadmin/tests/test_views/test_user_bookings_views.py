@@ -1008,12 +1008,12 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         event = baker.make_recipe(
             'booking.future_EV', name='Test event', max_participants=2
         )
-        baker.make_recipe('booking.booking', event=event, _quantity=2)
         user = baker.make_recipe('booking.user')
         booking = baker.make_recipe(
             'booking.booking', event=event, status='OPEN', paid=True,
             payment_confirmed=True, user=user, no_show=True
         )
+        baker.make_recipe('booking.booking', event=event, _quantity=2)
 
         data = {
             'bookings-TOTAL_FORMS': 1,

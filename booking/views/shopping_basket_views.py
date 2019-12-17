@@ -36,12 +36,6 @@ from payments.helpers import (
 
 
 def get_unpaid_bookings_context(user):
-    # unpaid_bookings_all = Booking.objects.select_related("user", "event").filter(
-    #     user=user, paid=False, status='OPEN',
-    #     event__date__gte=timezone.now(),
-    #     no_show=False, paypal_pending=False
-    # )
-    # unpaid_bookings_all_open = unpaid_bookings_all.filter(event__payment_open=True)
     unpaid_bookings_all_open = user.bookings.filter(
         event__payment_open=True,
         paid=False, status='OPEN', event__date__gte=timezone.now(), no_show=False, paypal_pending=False
@@ -105,7 +99,7 @@ def add_booking_voucher_context(booking_code, user, context):
     return context
 
 
-def add_total_bookings_and_paypal_context(user, host, context):
+def add_total_bookings_and_paypal_context(request, context):
     unpaid_bookings = context['unpaid_bookings']
     booking_code = context.get('booking_code')
     if 'total_unpaid_booking_cost' not in context:
@@ -124,18 +118,21 @@ def add_total_bookings_and_paypal_context(user, host, context):
                 item_type='booking',
                 item_ids=item_ids_str,
                 voucher_code=booking_code if context.get('valid_booking_voucher') else '',
-                user_email=user.email
+                user_email=request.user.email
             )
+            if not context.get("unpaid_blocks"):
+                # If we only have bookings to be paid, we can add the cart items to the session for paypal checks
+                request.session["cart_items"] = custom
 
             if len(unpaid_bookings) == 1:
                 booking = unpaid_bookings[0]
                 invoice_id = create_booking_paypal_transaction(
-                    user, booking
+                    request.user, booking
                 ).invoice_id
 
                 paypal_booking_form = PayPalPaymentsShoppingBasketForm(
                     initial=context_helpers.get_paypal_dict(
-                        host,
+                        request,
                         context['total_unpaid_booking_cost'],
                         booking.event,
                         invoice_id,
@@ -143,14 +140,13 @@ def add_total_bookings_and_paypal_context(user, host, context):
                         paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
                     )
                 )
-
             else:
                 invoice_id = create_multibooking_paypal_transaction(
-                    user, unpaid_bookings
+                    request.user, unpaid_bookings
                 )
                 paypal_booking_form = PayPalPaymentsShoppingBasketForm(
                     initial=context_helpers.get_paypal_cart_dict(
-                        host,
+                        request,
                         'booking',
                         unpaid_bookings,
                         invoice_id,
@@ -214,7 +210,7 @@ def add_block_voucher_context(block_code, user, context):
     return context
 
 
-def add_total_blocks_and_paypal_context(user, host, context):
+def add_total_blocks_and_paypal_context(request, context):
     unpaid_blocks = context['unpaid_blocks']
     block_code = context.get('block_code')
     unpaid_block_costs = context.pop('unpaid_block_costs')
@@ -232,14 +228,14 @@ def add_total_blocks_and_paypal_context(user, host, context):
                 item_ids=item_ids_str,
                 voucher_code=block_code
                 if context.get('valid_block_voucher') else '',
-                user_email=user.email
+                user_email=request.user.email
             )
             invoice_id = create_multiblock_paypal_transaction(
-                    user, unpaid_blocks
+                    request.user, unpaid_blocks
                 )
             paypal_block_form = PayPalPaymentsShoppingBasketForm(
                 initial=context_helpers.get_paypal_cart_dict(
-                    host,
+                    request,
                     'block',
                     unpaid_blocks,
                     invoice_id,
@@ -250,6 +246,10 @@ def add_total_blocks_and_paypal_context(user, host, context):
                 )
             )
             context["blocks_paypalform"] = paypal_block_form
+
+            if not context.get("unpaid_bookings"):
+                # If we only have blocks to be paid, we can add the cart items to the session for paypal checks
+                request.session["cart_items"] = custom
     return context
 
 
@@ -262,10 +262,16 @@ def shopping_basket(request):
         )
 
     template_name = 'booking/shopping_basket.html'
-    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+
+    # Make sure the cart items is up to date; it'll be repopulated if necessary
+    if "cart_items" in request.session:
+        del request.session["cart_items"]
+
+    # unpaid status for both bookings and blocks
+    context = get_unpaid_bookings_context(request.user)
+    context = get_unpaid_block_context(request.user, context)
 
     # bookings
-    context = get_unpaid_bookings_context(request.user)
     booking_code = request.GET.get('booking_code', None)
     if "booking_code" in request.GET and "remove_booking_voucher" not in request.GET:
         booking_code = request.GET['booking_code'].strip()
@@ -275,9 +281,8 @@ def shopping_basket(request):
         context['booking_voucher_form'] = BookingVoucherForm(
             initial={'booking_code': booking_code}
         )
-        context = add_total_bookings_and_paypal_context(request.user, host, context)
+        context = add_total_bookings_and_paypal_context(request, context)
     # blocks
-    context = get_unpaid_block_context(request.user, context)
     block_code = request.GET.get('block_code', None)
     if "block_code" in request.GET and "remove_block_voucher" not in request.GET:
         block_code = request.GET['block_code'].strip()
@@ -286,7 +291,7 @@ def shopping_basket(request):
         context['block_voucher_form'] = BlockVoucherForm(
             initial={'block_code': block_code}
         )
-        context = add_total_blocks_and_paypal_context(request.user, host, context)
+        context = add_total_blocks_and_paypal_context(request, context)
     return TemplateResponse(
         request,
         template_name,
@@ -598,25 +603,35 @@ def submit_zero_block_payment(request):
 
 
 def ajax_shopping_basket_bookings_total(request):
+    """Called when a booking is deleted/cancelled from the shopping basket page"""
     # context requires total_unpaid_booking_cost and paypal booking form
     booking_code = request.GET.get('code', '').strip()
-    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
     context = get_unpaid_bookings_context(request.user)
+    context.update(get_unpaid_block_context(request.user))
     if booking_code:
         context = add_booking_voucher_context(booking_code, request.user, context)
-    context = add_total_bookings_and_paypal_context(request.user, host, context)
+    context = add_total_bookings_and_paypal_context(request, context)
+    if not context.get("unpaid_bookings"):
+        # If we've removed all unpaid bookings, also update the blocks context, to update the session cart items with
+        # any unpaid bookings
+        context = add_total_blocks_and_paypal_context(request, context)
     return render(
         request, 'booking/includes/shopping_basket_bookings_total.html', context
     )
 
 
 def ajax_shopping_basket_blocks_total(request):
+    """Called when a block is deleted/cancelled from the shopping basket page"""
     block_code = request.GET.get('code', '').strip()
-    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
     context = get_unpaid_block_context(request.user)
+    context.update(get_unpaid_bookings_context(request.user))
     if block_code:
         context = add_block_voucher_context(block_code, request.user, context)
-    context = add_total_blocks_and_paypal_context(request.user, host, context)
+    context = add_total_blocks_and_paypal_context(request, context)
+    if not context.get("unpaid_blocks"):
+        # If we've removed all unpaid blocks, also update the bookings context, to update the session cart items with
+        # any unpaid blocks
+        context = add_total_bookings_and_paypal_context(request, context)
     return render(
         request, 'booking/includes/shopping_basket_blocks_total.html', context
     )
