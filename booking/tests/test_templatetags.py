@@ -132,6 +132,30 @@ class BookingtagTests(TestSetupMixin, TestCase):
             resp.rendered_content
         )
 
+    def test_disclaimer_medical_info(self):
+        Group.objects.get_or_create(name='instructors')
+        user = baker.make_recipe('booking.user')
+        event = baker.make_recipe('booking.future_PC')
+        baker.make_recipe('booking.booking', event=event, user=user)
+
+        self.client.login(username=self.user.username, password='test')
+
+        resp = self.client.get(reverse('studioadmin:event_register', args=[event.slug]))
+
+        assert '<span id="disclaimer" class="far fa-file-alt"></span> *' not in resp.rendered_content
+        assert '<span id="disclaimer" class="fas fa-times"></span>' in resp.rendered_content
+
+        disclaimer = baker.make_recipe('booking.online_disclaimer', user=user)
+        assert '<span id="disclaimer" class="far fa-file-alt"></span> *</a>' in resp.rendered_content
+        assert '<span id="disclaimer" class="far fa-file-alt"></span></a>' not in resp.rendered_content
+
+        disclaimer.delete()
+        baker.make_recipe(
+            'booking.online_disclaimer', user=user, medical_conditions=False, joint_problems=False, allergies=False
+        )
+        assert '<span id="disclaimer" class="far fa-file-alt"></span> *</a>' not in resp.rendered_content
+        assert '<span id="disclaimer" class="far fa-file-alt"></span></a>' in resp.rendered_content
+
     @patch('booking.templatetags.bookingtags.timezone')
     def test_temporary_banner_on(self, mock_tz):
         mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
