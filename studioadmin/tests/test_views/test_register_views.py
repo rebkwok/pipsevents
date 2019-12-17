@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 import pytz
-from datetime import  date, datetime
-
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from model_bakery import baker
 
-from django.urls import reverse
-from django.test import TestCase
+from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core import mail
+from django.urls import reverse
 from django.utils import timezone
+from django.test import RequestFactory, TestCase
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
-from booking.models import Event, Booking, BlockType
+from booking.models import Event, Block, BlockType, WaitingListUser
 from common.tests.helpers import _create_session, format_content
-from studioadmin.views import (
-    EventRegisterListView,
-    register_view,
-    register_print_day,
-)
+from studioadmin.views.register import EventRegisterListView, process_event_booking_updates, register_print_day
+from studioadmin.forms.register_forms import AddRegisterBookingForm
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -143,700 +140,585 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         )
 
 
-class EventRegisterViewTests(TestPermissionMixin, TestCase):
+class RegisterViewTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
+        cls.pc_no_max = baker.make_recipe('booking.future_PC')
+        cls.ev = baker.make_recipe('booking.future_EV', max_participants=3)
+        cls.pc_url = reverse('studioadmin:event_register', args=(cls.pc.slug,))
+        cls.pc_no_max_url = reverse('studioadmin:event_register', args=(cls.pc_no_max.slug,))
+        cls.ev_url = reverse('studioadmin:event_register', args=(cls.ev.slug,))
 
     def setUp(self):
-        super(EventRegisterViewTests, self).setUp()
-        self.event = baker.make_recipe(
-            'booking.future_EV', max_participants=16
-        )
-        self.booking1 = baker.make_recipe('booking.booking', event=self.event)
-        self.booking2 = baker.make_recipe('booking.booking', event=self.event)
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
 
-    def _get_response(
-            self, user, event_slug,
-            status_choice='OPEN', print_view=False, ev_type='event'
-            ):
-        if not print:
-            url = reverse(
-                'studioadmin:{}_register'.format(ev_type),
-                args=[event_slug, status_choice]
-                )
-        else:
-            url = reverse(
-                'studioadmin:{}_register_print'.format(ev_type),
-                args=[event_slug, status_choice]
-                )
-
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return register_view(
-            request,
-            event_slug,
-            status_choice=status_choice,
-            print_view=print_view)
-
-    def _post_response(
-            self, user, event_slug, form_data,
-            status_choice='OPEN', print_view=False, ev_type='event'
-            ):
-        if not print:
-            url = reverse(
-                'studioadmin:{}_register'.format(ev_type),
-                args=[event_slug, status_choice]
-                )
-        else:
-            url = reverse(
-                'studioadmin:{}_register_print'.format(ev_type),
-                args=[event_slug, status_choice]
-                )
-
-        session = _create_session()
-        request = self.factory.post(url, data=form_data, follow=True)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return register_view(
-            request,
-            event_slug,
-            status_choice=status_choice,
-            print_view=print_view)
-
-    def formset_data(self, extra_data={}, status_choice='OPEN'):
-
-        data = {
-            'bookings-TOTAL_FORMS': 2,
-            'bookings-INITIAL_FORMS': 2,
-            'bookings-0-id': self.booking1.id,
-            'bookings-0-user': self.booking1.user.id,
-            'bookings-0-paid': self.booking1.paid,
-            'bookings-0-deposit_paid': self.booking1.paid,
-            'bookings-0-attended': self.booking1.attended,
-            'bookings-0-no_show': self.booking1.no_show,
-            'bookings-1-id': self.booking2.id,
-            'bookings-1-user': self.booking2.user.id,
-            'bookings-1-deposit_paid': self.booking2.paid,
-            'bookings-1-paid': self.booking2.paid,
-            'bookings-1-attended': self.booking2.attended,
-            'bookings-1-no_show': self.booking2.no_show,
-            'status_choice': status_choice
-            }
-
-        for key, value in extra_data.items():
-            data[key] = value
-
-        return data
-
-    def test_cannot_access_if_not_logged_in(self):
-        """
-        test that the page redirects if user is not logged in
-        """
-        url = reverse(
-            'studioadmin:event_register_old',
-            args=[self.event.slug, 'OPEN']
-            )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+    def test_login_required(self):
+        self.client.logout()
+        resp = self.client.get(self.pc_url)
         self.assertEqual(resp.status_code, 302)
-        self.assertIn(redirected_url, resp.url)
+        self.assertEqual(resp.url, reverse('account_login') + "?next={}".format(self.pc_url))
 
-    def test_cannot_access_if_not_staff(self):
-        """
-        test that the page redirects if user is not a staff user
-        """
-        resp = self._get_response(self.user, self.event.slug)
+    def test_staff_or_instructor_required(self):
+        self.client.logout()
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.pc_url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-    def test_can_access_if_instructor(self):
-        """
-        test that the page can be accessed by a non staff user if in the
-        instructors group
-        """
-        resp = self._get_response(self.instructor_user, self.event.slug)
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.pc_url)
         self.assertEqual(resp.status_code, 200)
 
-    def test_can_access_as_staff_user(self):
-        """
-        test that the page can be accessed by a staff user
-        """
-        resp = self._get_response(self.staff_user, self.event.slug)
+        self.client.logout()
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.pc_url)
         self.assertEqual(resp.status_code, 200)
 
-    def test_block_format_block_used(self):
-        event = baker.make_recipe(
-            'booking.future_EV', max_participants=1, event_type__subtype='Event'
-        )
-        # block used
-        block_type = baker.make(
-            BlockType, event_type=event.event_type, size=3
-        )
-        block = baker.make_recipe(
-            'booking.block', block_type=block_type, user=self.user, paid=True
-        )
-        baker.make_recipe(
-            'booking.booking', user=self.user, event=event,
-            block=block, paid=True, payment_confirmed=True
+    def test_sidenav_selection(self):
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.context_data['sidenav_selection'], 'lessons_register')
+
+        resp = self.client.get(self.ev_url)
+        self.assertEqual(resp.context_data['sidenav_selection'], 'events_register')
+
+    def test_register_no_bookings(self):
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.context_data['event'], self.pc)
+        self.assertFalse(resp.context_data['bookings'].exists())
+        self.assertTrue(resp.context_data['can_add_more'])
+
+    def test_register_shows_event_bookings(self):
+        bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', status='OPEN', event=self.ev, _quantity=3)
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in bookings]))
+
+    def test_cancelled_bookings_not_shown(self):
+        bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        baker.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in bookings]))
+
+    def test_no_show_bookings_shown(self):
+        bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        no_show_bookings = baker.make_recipe('booking.booking', status='OPEN', no_show=True, event=self.pc, _quantity=1)
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in bookings + no_show_bookings]))
+
+    def test_full_event_shows_no_new_booking_button(self):
+        baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        resp = self.client.get(self.pc_url)
+        self.assertTrue(resp.context_data['can_add_more'])
+
+        baker.make_recipe('booking.booking', status='OPEN', event=self.pc)
+        resp = self.client.get(self.pc_url)
+        self.assertFalse(resp.context_data['can_add_more'])
+
+    def test_with_available_block_type_for_event(self):
+        baker.make(BlockType, event_type=self.pc.event_type)
+        resp = self.client.get(self.pc_url)
+        self.assertTrue(resp.context_data['available_block_type'])
+
+    def test_status_choices(self):
+        open_bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
+        cancelled_bookings = baker.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
+
+        resp = self.client.get(self.pc_url + '?status_choice=CANCELLED')
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in cancelled_bookings])
         )
 
-        resp = self._get_response(self.staff_user, event.slug)
-
-        # block is hidden as booking is paid
-        self.assertIn(
-            '<span class="hide"><select name="bookings-0-block"',
-            resp.rendered_content
-        )
-        # block info is displayed
-        self.assertIn(
-            'Event (2/3 left); exp {}'.format(
-                block.expiry_date.strftime('%d %b %y')
-            ),
-            resp.rendered_content
+        resp = self.client.get(self.pc_url + '?status_choice=OPEN')
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in open_bookings])
         )
 
-    def test_block_format_block_available_not_used(self):
-        # paid (user has available block not used)
-        event = baker.make_recipe(
-            'booking.future_EV', max_participants=1, event_type__subtype='Event'
-        )
-        # block used
-        block_type = baker.make(
-            BlockType, event_type=event.event_type, size=3
-        )
-        block = baker.make_recipe(
-            'booking.block', block_type=block_type, user=self.user, paid=True
-        )
-        baker.make_recipe(
-            'booking.booking',  event=event, user=self.user, paid=True,
-            payment_confirmed=True
-        )
-        resp = self._get_response(self.staff_user, event.slug)
-        # block is hidden as booking is paid
-        self.assertIn(
-            '<span class="hide"><select name="bookings-0-block"',
-            resp.rendered_content
-        )
-        # block info is displayed
-        self.assertIn(
-            'Active block not used', resp.rendered_content
+        resp = self.client.get(self.pc_url + '?status_choice=ALL')
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in open_bookings + cancelled_bookings])
         )
 
-    def test_block_format_paid_no_block_available(self):
-        # paid (user has available block not used)
-        event = baker.make_recipe('booking.future_EV', max_participants=1)
-        # block used
-        block_type = baker.make(
-            BlockType, event_type=event.event_type, size=3
-        )
-        # paid (user has no available block)
+
+class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
+        cls.ev = baker.make_recipe('booking.future_EV', max_participants=3)
+        cls.pc_url = reverse('studioadmin:bookingregisteradd', args=(cls.pc.id,))
+        cls.ev_url = reverse('studioadmin:bookingregisteradd', args=(cls.ev.id,))
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
+
+    def test_add_booking_user_permissions(self):
+        self.client.logout()
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('account_login') + "?next={}".format(self.pc_url))
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 200)
+
+        self.client.logout()
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.pc_url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_add_booking(self):
+        self.assertFalse(self.pc.bookings.exists())
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        self.assertEqual(booking.user.id, self.user.id)
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertFalse(booking.no_show)
+        self.assertFalse(booking.paid)
+        self.assertFalse(booking.payment_confirmed)
+
+    def test_reopen_cancelled_booking(self):
+        booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='CANCELLED')
+        self.assertEqual(self.pc.bookings.count(), 1)
+
+        self.client.post(self.pc_url, {'user': booking.user.id})
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertFalse(booking.no_show)
+
+    def test_reopen_no_show_booking(self):
+        booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN', no_show=True)
+        self.assertEqual(self.pc.bookings.count(), 1)
+
+        self.client.post(self.pc_url, {'user': booking.user.id})
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'OPEN')
+        self.assertFalse(booking.no_show)
+
+    def test_user_choices(self):
+        user = baker.make_recipe('booking.user')
         user1 = baker.make_recipe('booking.user')
-        baker.make_recipe(
-            'booking.booking',  event=event, user=user1, paid=True,
-            payment_confirmed=True
-        )
+        user2 = baker.make_recipe('booking.user')
+        # open booking
+        baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
+        # no_show_booking
+        baker.make_recipe('booking.booking', user=user, event=self.pc, status='OPEN', no_show=True)
+        # cancelled_booking
+        baker.make_recipe('booking.booking', user=user1, event=self.pc, status='CANCELLED')
 
-        resp = self._get_response(self.staff_user, event.slug)
-
-        # block is hidden as booking is paid
-        self.assertIn(
-            '<span class="hide"><select name="bookings-0-block"',
-            resp.rendered_content
-        )
-        # block info is displayed
-        self.assertIn(
-            'No active block', resp.rendered_content
-        )
-
-    def test_status_choice_filter(self):
-        open_bookings = baker.make_recipe(
-            'booking.booking', event=self.event, status='OPEN', _quantity=5
-            )
-        cancelled_bookings = baker.make_recipe(
-            'booking.booking',
-            event=self.event,
-            status='CANCELLED',
-            _quantity=5
-            )
-        resp = self._get_response(
-            self.staff_user, self.event.slug, status_choice='ALL'
-        )
-        # bookings: open - 5 plus 2 created in setup, cancelled = 5 (12)
-        # also shows forms for available spaces (16 max, 9 spaces)
-        self.assertEqual(len(resp.context_data['formset'].forms), 21)
-
-        resp = self._get_response(
-            self.staff_user, self.event.slug, status_choice='OPEN'
-        )
-        # 5 open plus 2 created in setup, plus empty forms for available
-        # spaces to max participants 16
-        forms = resp.context_data['formset'].forms
-        self.assertEqual(len(forms), 16)
+        # form shows users with cancelled, no-show or no bookings
+        form = AddRegisterBookingForm(event=self.pc)
         self.assertEqual(
-            set([form.instance.status for form in forms]), {'OPEN'}
-            )
-
-        resp = self._get_response(
-            self.staff_user, self.event.slug, status_choice='CANCELLED'
-        )
-        forms = resp.context_data['formset'].forms
-        # 5 cancelled plus empty forms for 9 available spaces
-        self.assertEqual(len(forms), 14)
-
-    def test_can_update_booking(self):
-        self.assertFalse(self.booking1.paid)
-        self.assertFalse(self.booking2.attended)
-
-        formset_data = self.formset_data({
-            'bookings-0-paid': True,
-            'bookings-1-attended': True,
-            'formset_submitted': 'Save changes'
-        })
-
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
+            sorted([choice[0] for choice in form.fields['user'].choices]),
+            sorted([user.id for user in User.objects.exclude(id=self.user.id)])
         )
 
-        self.booking1.refresh_from_db()
-        self.assertTrue(self.booking1.paid)
-        self.booking2.refresh_from_db()
-        self.assertTrue(self.booking2.attended)
+    @patch('studioadmin.views.register.messages.info')
+    def test_already_open_booking(self, mock_messages):
+        # The user choices in the form exclude users with open bookings already, but we could post a form with an open
+        # booking if the booking was made in another session and the add booking forw was still open
 
-        formset_data = self.formset_data({
-            'bookings-0-paid': False,
-            'bookings-1-attended': False,
-            'formset_submitted': 'Save changes'
-        })
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
+        # get the user form
+        form = AddRegisterBookingForm({'user': self.user.id}, event=self.pc)
+        self.assertTrue(form.is_valid())
+
+        # make booking for this user
+        baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
+
+        # try to process the form
+        request = self.factory.get(self.pc_url)
+        process_event_booking_updates(form, self.pc, request)
+
+        mock_messages.assert_called_once_with(request, 'Open booking for this user already exists')
+
+    def test_full_class(self):
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        # fetch from db again b/c spaces left is cached
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.pc_url, {'user': self.user.id})
+        form = resp.context_data['form']
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            ['Class is now full, booking could not be created. Please close this window and refresh register page.']
         )
 
-        self.booking1.refresh_from_db()
-        self.assertFalse(self.booking1.paid)
-        self.booking2.refresh_from_db()
-        self.assertFalse(self.booking2.attended)
-
-    def test_post_with_no_changes_booking(self):
-        formset_data = self.formset_data({
-            'formset_submitted': 'Save changes'
-        })
-
-        url = reverse(
-            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
-            )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(url, formset_data, follow=True)
-        content = format_content(resp.rendered_content)
-        self.assertIn('No changes were made', content)
-
-    def test_can_update_booking_deposit_paid(self):
-        self.assertFalse(self.booking1.paid)
-        self.assertFalse(self.booking1.deposit_paid)
-
-        formset_data = self.formset_data({
-            'bookings-0-deposit_paid': True,
-            'formset_submitted': 'Save changes'
-        })
-
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
+    def test_full_event(self):
+        baker.make_recipe('booking.booking', event=self.ev, _quantity=3)
+        # fetch from db again b/c spaces left is cached
+        ev = Event.objects.get(id=self.ev.id)
+        self.assertEqual(ev.spaces_left, 0)
+        resp = self.client.post(self.ev_url, {'user': self.user.id})
+        form = resp.context_data['form']
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.non_field_errors(),
+            ['Event is now full, booking could not be created. Please close this window and refresh register page.']
         )
 
-        self.booking1.refresh_from_db()
-        self.assertTrue(self.booking1.deposit_paid)
-        self.assertFalse(self.booking1.paid)
+    def test_assigns_available_block(self):
+        self.assertFalse(self.pc.bookings.exists())
+        baker.make_recipe('booking.block', user=self.user)  # block for different event type
 
-    def test_can_update_booking_no_show(self):
-        self.assertFalse(self.booking1.no_show)
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        self.assertEqual(booking.user, self.user)
+        self.assertIsNone(booking.block)
+        self.assertFalse(booking.paid)
 
-        formset_data = self.formset_data({
-            'bookings-0-no_show': True,
-            'formset_submitted': 'Save changes'
-        })
+        booking.status = 'CANCELLED'
+        booking.save()
 
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
-        )
-
-        self.booking1.refresh_from_db()
-        self.assertTrue(self.booking1.no_show)
-
-        formset_data = self.formset_data({
-            'bookings-0-no_show': False,
-            'formset_submitted': 'Save changes'
-        })
-
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
-        )
-
-        self.booking1.refresh_from_db()
-        self.assertFalse(self.booking1.no_show)
-
-    def test_can_select_block_for_existing_booking(self):
-        self.assertFalse(self.booking1.block)
-        block_type = baker.make(
-            BlockType, event_type=self.event.event_type
-        )
-        block = baker.make_recipe(
-            'booking.block', block_type=block_type, user=self.user, paid=True
-        )
-        self.assertTrue(block.active_block())
-
-        formset_data = self.formset_data({
-            'bookings-0-block': block.id,
-            'formset_submitted': 'Save changes'
-        })
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
-        )
-        booking = Booking.objects.get(id=self.booking1.id)
-        self.assertEqual(booking.block, block)
-
-    def test_selecting_block_makes_booking_paid(self):
-        self.booking1.paid = False
-        self.booking1.save()
-        self.assertFalse(self.booking1.block)
-        block_type = baker.make(
-            BlockType, event_type=self.event.event_type
-        )
-        block = baker.make_recipe(
-            'booking.block', block_type=block_type, user=self.user, paid=True
-        )
-        self.assertTrue(block.active_block())
-
-        formset_data = self.formset_data({
-            'bookings-0-block': block.id,
-            'formset_submitted': 'Save changes'
-        })
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
-        )
-        booking = Booking.objects.get(id=self.booking1.id)
+        block_type = baker.make_recipe('booking.blocktype5', event_type=self.pc.event_type)
+        block = baker.make_recipe('booking.block', user=self.user, block_type=block_type, paid=True)
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        self.assertEqual(booking.user, self.user)
         self.assertEqual(booking.block, block)
         self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
 
-    def test_can_add_new_booking(self):
+    def test_remove_user_from_waiting_list(self):
+        baker.make(WaitingListUser, user=self.user, event=self.pc)
+        self.assertEqual(WaitingListUser.objects.count(), 1)
 
-        user = baker.make_recipe('booking.user')
-        formset_data = self.formset_data({
-            'bookings-TOTAL_FORMS': 3,
-            'bookings-2-user': user.id,
-            'bookings-2-paid': True,
-            'bookings-2-attended': True,
-            'bookings-2-status': 'OPEN'
-        })
-        self.assertEqual(Booking.objects.all().count(), 2)
-        self._post_response(
-            self.staff_user, self.event.slug,
-            formset_data, status_choice='OPEN'
-        )
-        self.assertEqual(Booking.objects.all().count(), 3)
-        booking = Booking.objects.last()
-        self.assertTrue(booking.paid)
-        self.assertTrue(booking.attended)
+        self.client.post(self.pc_url, {'user': self.user.id})
+        self.assertFalse(WaitingListUser.objects.exists())
 
-    def test_printable_version_does_not_show_status_filter(self):
-        resp = self._get_response(
-            self.staff_user, self.event.slug, print_view=False,
-            status_choice='OPEN'
-        )
-        resp.render()
-        self.assertIn(
-            '<select name="status_choice" id="id_status_choice">',
-            str(resp.content),
-        )
-        resp = self._get_response(
-            self.staff_user, self.event.slug, print_view=True,
-            status_choice='OPEN'
-        )
-        resp.render()
-        self.assertNotIn(
-            '<select name="status_choice" id="id_status_choice">',
-            str(resp.content),
-        )
-        self.assertIn(
-            'id="print-button"',
-            str(resp.content),
-        )
 
-    def test_selecting_printable_version_redirects_to_print_view(self):
-        resp = self._post_response(
-            self.staff_user, self.event.slug,
-            form_data=self.formset_data({'print': 'printable version'}),
-            print_view=False,
-            status_choice='OPEN'
-        )
+class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
 
-        self.assertEqual(resp.status_code, 302)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
+        cls.block_type = baker.make(BlockType, size=2, event_type=cls.pc.event_type)
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
+        self.booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc)
+        self.assign_block_url = reverse('studioadmin:assign_block', args=(self.booking.id,))
+        self.toggle_paid_url = reverse('studioadmin:toggle_paid', args=(self.booking.id,))
+        self.toggle_attended_url = reverse('studioadmin:toggle_attended', args=(self.booking.id,))
+
+    def test_ajax_assign_block_get(self):
+        # get just returns block display html for current booking
+        # no block, not paid
+        resp = self.client.get(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
+        self.assertEqual(resp.context['alert_msg'], {})
+        self.assertEqual(resp.context['available_block_type'], True)
+        self.assertIn('No active block', resp.content.decode('utf-8'))
+
+        # no block, paid
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('N/A', resp.content.decode('utf-8'))
+
+        # available block, paid
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('Available block not used', resp.content.decode('utf-8'))
+
+        # available block, not paid
+        # We shouldn't get here, because the main register page should be showing the "assign available block" button instead for
+        # unpaid bookings, but just in case
+        self.booking.paid = False
+        self.booking.save()
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('Block is available', resp.content.decode('utf-8'))
+
+        # block used
+        self.booking.block = block
+        self.booking.save()
+        resp = self.client.get(self.assign_block_url)
+        self.assertIn('{} (1/2 left)'.format(self.pc.event_type.subtype), resp.content.decode('utf-8'))
+
+    def test_ajax_assign_block_post_paid_no_block(self):
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.post(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
         self.assertEqual(
-            resp.url,
-            reverse(
-                'studioadmin:event_register_print',
-            args=[self.event.slug, 'OPEN']
-            )
+            resp.context['alert_msg'],
+            {'status': 'error', 'msg': 'Booking is already marked as paid; uncheck "Paid" checkbox and try again.'}
         )
+        self.assertEqual(resp.context['available_block_type'], True)
+        self.assertIn('N/A', resp.content.decode('utf-8'))
 
-    def test_submitting_form_for_events_redirects_to_event_register(self):
-        resp = self._post_response(
-            self.staff_user, self.event.slug,
-            form_data=self.formset_data(),
-            print_view=False,
-            ev_type='event',
-            status_choice='OPEN'
-        )
-        self.assertEqual(resp.status_code, 302)
+    def test_ajax_assign_block_post_paid_with_block_already(self):
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.block = block
+        self.booking.save()
+        resp = self.client.post(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
         self.assertEqual(
-            resp.url,
-            reverse(
-                'studioadmin:event_register_old',
-            args=[self.event.slug, 'OPEN']
-            )
+            resp.context['alert_msg'],
+            {'status': 'warning', 'msg': 'Block already assigned.'}
         )
 
-    def test_number_of_extra_lines_displayed(self):
-        """
-        Test form shows extra lines correctly
-        """
-        # if there is a max_participants, and filter is 'OPEN',
-        # show extra lines to this number
-        baker.make('booking.booking', event=self.event, status='CANCELLED')
-        baker.make(
-            'booking.booking', event=self.event, status='OPEN', no_show=True
-        )
-        self.event.max_participants = 10
-        self.event.save()
-
-        # need to get event again as spaces_left is cached property
-        event = Event.objects.get(id=self.event.id)
-        self.assertEqual(event.spaces_left, 8)
-        resp = self._get_response(
-            self.staff_user, event.slug,
-            status_choice='OPEN'
-        )
-        self.assertEqual(resp.context_data['extra_lines'], 8)
-
-        # if there is a max_participants, and filter is not 'OPEN',
-        # show extra lines to this number, plus the number of cancelled
-        # bookings (extra lines is always equal to number of spaces left).
-        self.assertEqual(event.spaces_left, 8)
+    def test_ajax_assign_block_post_not_paid_no_available_block(self):
+        resp = self.client.post(self.assign_block_url)
+        self.assertEqual(resp.context['booking'], self.booking)
         self.assertEqual(
-            Booking.objects.filter(
-                event=event, status='CANCELLED'
-            ).count(), 1
+            resp.context['alert_msg'],
+            {'status': 'error', 'msg': 'No available block to assign.'}
         )
-        resp = self._get_response(
-            self.staff_user, event.slug,
-            status_choice='ALL'
-        )
-        self.assertEqual(resp.context_data['extra_lines'], 8)
+        self.assertEqual(resp.context['available_block_type'], True)
+        self.assertIn('No active block', resp.content.decode('utf-8'))
 
-        # if no max_participants, and open bookings < 15, show extra lines for
-        # up to 15 open bookings
-        self.event.max_participants = None
-        self.event.save()
-        # need to get event again as spaces_left is cached property
-        event = Event.objects.get(id=self.event.id)
-        resp = self._get_response(
-            self.staff_user, event.slug,
-            status_choice='OPEN'
-        )
-        open_bookings = [
-            booking for booking in event.bookings.all()
-            if booking.status == 'OPEN'
-        ]
-        self.assertEqual(len(open_bookings), 3)
-        cancelled_bookings = [
-            booking for booking in event.bookings.all()
-            if booking.status == 'CANCELLED'
-        ]
-        self.assertEqual(len(cancelled_bookings), 1)
-        self.assertEqual(resp.context_data['extra_lines'], 13)
-
-        # if 15 or more bookings, just show 2 extra lines
-        baker.make_recipe('booking.booking', event=self.event, _quantity=12)
-        # need to get event again as spaces_left is cached property
-        event = Event.objects.get(id=self.event.id)
-        resp = self._get_response(
-            self.staff_user, event.slug,
-            status_choice='OPEN'
-        )
-        self.assertEqual(resp.context_data['extra_lines'], 2)
-
-    def test_adding_cancelled_booking(self):
-        self.booking2.status = "CANCELLED"
-        self.booking2.save()
-        formset_data = {
-            'bookings-TOTAL_FORMS': 2,
-            'bookings-INITIAL_FORMS': 1,
-            'bookings-0-id': self.booking1.id,
-            'bookings-0-user': self.booking1.user.id,
-            'bookings-0-paid': self.booking1.paid,
-            'bookings-0-deposit_paid': self.booking1.paid,
-            'bookings-0-attended': self.booking1.attended,
-            'bookings-1-user': self.booking2.user.id,
-            'bookings-1-deposit_paid': self.booking2.paid,
-            'bookings-1-paid': self.booking2.paid,
-            'bookings-1-attended': self.booking2.attended,
-            'status_choice': 'OPEN',
-            'formset_submitted': 'Save changes'
-            }
-
-        self.assertEqual(Booking.objects.all().count(), 2)
-
-        self.assertEqual(self.booking2.status, 'CANCELLED')
-        url = reverse(
-            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
-            )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(url, formset_data, follow=True)
-
-        self.booking2.refresh_from_db()
-        self.assertEqual(Booking.objects.all().count(), 2)
-        self.assertEqual(self.booking2.status, 'OPEN')
-
-        content = format_content(resp.rendered_content)
-
-        self.assertIn(
-            'Cancelled booking reopened for user {}'.format(
-                self.booking2.user.username
-            ), content
+    def test_ajax_assign_block_post_not_paid_block_available(self):
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.assign_block_url)
+        self.booking.refresh_from_db()
+        self.assertEqual(self.booking.block, block)
+        self.assertEqual(
+            resp.context['alert_msg'],
+            {'status': 'success', 'msg': 'Block assigned.'}
         )
 
-    def test_can_update_booking_to_unattended(self):
-        self.booking1.attended = True
-        self.booking1.save()
-        self.booking2.attended = True
-        self.booking2.save()
-
-        formset_data = self.formset_data({
-            'bookings-0-attended': False,
-            'bookings-1-attended': False,
-            'formset_submitted': 'Save changes'
-        })
-
-        url = reverse(
-            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
-            )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(url, formset_data, follow=True)
-
-        self.booking1.refresh_from_db()
-        self.booking2.refresh_from_db()
-        self.assertFalse(self.booking1.attended)
-        self.assertFalse(self.booking2.attended)
-
-        content = format_content(resp.rendered_content)
-
-        self.assertIn(
-            'Booking changed to unattended for users {}, {}'.format(
-                self.booking1.user.username, self.booking2.user.username
-            ), content
+    def test_ajax_toggle_paid_get(self):
+        # get just returns paid status for current booking
+        resp = self.client.get(self.toggle_paid_url)
+        self.assertCountEqual(
+            resp.json(), {'paid': False, 'has_available_block': False, 'alert_msg': {}}
         )
 
-    def test_cannot_update_booking_to_attended_and_no_show(self):
-
-        formset_data = self.formset_data({
-            'bookings-0-attended': True,
-            'bookings-0-no_show': True,
-            'formset_submitted': 'Save changes'
-        })
-
-        url = reverse(
-            'studioadmin:event_register_old', args=[self.event.slug, 'OPEN']
-            )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(url, formset_data, follow=True)
-
-        self.booking1.refresh_from_db()
-        self.assertFalse(self.booking1.attended)
-        self.assertFalse(self.booking2.attended)
-
-        content = format_content(resp.rendered_content)
-
-        self.assertIn(
-            'Please correct the following errors:__all__Booking cannot be '
-            'both attended and no-show',
-            content
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.get(self.toggle_paid_url)
+        self.assertCountEqual(
+            resp.json(), {'paid': True, 'has_available_block': False, 'alert_msg': {}}
         )
 
-    def test_disclaimer_display(self):
-        event = baker.make_recipe(
-            'booking.future_EV', max_participants=1
-        )
-        user = baker.make_recipe('booking.user')
-        baker.make_recipe('booking.booking', event=event, user=user)
+    def test_ajax_toggle_paid_post_toggle_to_paid_paid_without_block(self):
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.paid)
+        self.assertTrue(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertTrue(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to paid.')
 
-        url = reverse(
-            'studioadmin:event_register_old', args=[event.slug, 'OPEN']
-        )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(url)
-        # User has no disclaimers
-        self.assertIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fas fa-check">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
+    def test_ajax_toggle_paid_post_toggle_to_paid_with_availble_block(self):
+        baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.paid)
+        self.assertTrue(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertTrue(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'warning')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to paid. Available block NOT assigned.')
 
-        baker.make(PrintDisclaimer, user=user)
-        user.refresh_from_db()
-        resp = self.client.get(url)
-        # User has print disclaimers; no disclaimer link
-        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="fas fa-check"></span>', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
+    def test_ajax_toggle_paid_post_toggle_to_not_paid(self):
+        self.booking.paid = True
+        self.booking.save()
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
 
-        PrintDisclaimer.objects.get(user=user).delete()
-        # online disclaimer with no medical info ticked
-        disclaimer = baker.make(
-            OnlineDisclaimer,
-            user=user, medical_conditions=False, joint_problems=False,
-            allergies=False
-        )
-        user.refresh_from_db()
-        resp = self.client.get(url)
-        # User has online disclaimer; shows disclaimer link; no *
-        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span></a>', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
+    def test_ajax_toggle_paid_with_block_post_toggle_to_not_paid(self):
+        block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.block = block
+        self.booking.save()
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'warning')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid and block unassigned.')
 
-        # shows * if any of medical_conditions, joint_problems or allergies
-        # ticked
-        disclaimer.medical_conditions = True
-        disclaimer.save()
-        resp = self.client.get(url)
-        # User has online disclaimer; shows disclaimer link with *
-        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fas fa-check"></span></a>', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
+    def test_ajax_toggle_paid_post_not_paid_block_available(self):
+        baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.paid = True
+        self.booking.save()
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
 
-        disclaimer.joint_problems = True
-        disclaimer.save()
-        resp = self.client.get(url)
-        # User has online disclaimer; shows disclaimer link with *
-        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fas fa-check"></span></a>', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
+    def test_ajax_toggle_paid_post_free_class(self):
+        baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
+        self.booking.paid = True
+        self.booking.free_class = True
+        self.booking.save()
+        self.assertIsNone(self.booking.block)
+        resp = self.client.post(self.toggle_paid_url)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.paid)
+        self.assertFalse(self.booking.free_class)
+        self.assertFalse(self.booking.payment_confirmed)
+        self.assertIsNone(self.booking.block)
+        self.assertFalse(resp.json()['paid'])
+        self.assertEqual(resp.json()['alert_msg']['status'], 'success')
+        self.assertEqual(resp.json()['alert_msg']['msg'], 'Booking set to unpaid.')
 
-        disclaimer.medical_conditions = False
-        disclaimer.joint_problems = False
-        disclaimer.allergies = True
-        disclaimer.save()
-        resp = self.client.get(url)
-        # User has online disclaimer; shows disclaimer link with *
-        self.assertNotIn('<span id="disclaimer" class="fas fa-times">', resp.rendered_content)
-        self.assertNotIn('<span id="disclaimer" class="fas fa-check"></span></a>', resp.rendered_content)
-        self.assertIn('<span id="disclaimer" class="far fa-file-alt"></span> *</a>', resp.rendered_content)
+    def test_ajax_toggle_attended_get(self):
+        # get not allowed
+        resp = self.client.get(self.toggle_attended_url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_ajax_toggle_attended_no_data(self):
+        resp = self.client.post(self.toggle_attended_url)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_ajax_toggle_attended_bad_data(self):
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'foo'})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_ajax_toggle_attended(self):
+        resp = self.client.post(self.toggle_attended_url,  {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+
+    def test_ajax_toggle_no_show(self):
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.assertFalse(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
+
+    def test_ajax_toggle_no_show_send_waiting_list_email_for_full_event(self):
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        baker.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
+
+        self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].bcc, ["waitinglist@user.com"])
+
+    def test_ajax_toggle_no_show_no_waiting_list_email_for_full_event_within_1_hour(self):
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        baker.make(WaitingListUser, user__email="waitinglist@user.com", event=self.pc)
+
+        pc.date = timezone.now() + timedelta(minutes=58)
+        pc.save()
+        self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
+        # No waiting list email for events within 1 hr of current time
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_ajax_toggle_attended_cancelled_booking(self):
+        self.booking.status = 'CANCELLED'
+        self.booking.save()
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+        self.assertEqual(self.booking.status, 'OPEN')
+
+    def test_ajax_toggle_attended_no_show_booking(self):
+        self.booking.no_show = True
+        self.booking.save()
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+        self.assertEqual(self.booking.status, 'OPEN')
+
+    def test_ajax_toggle_attended_open_booking_full_event(self):
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=2)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertTrue(resp.json()['attended'])
+        self.assertIsNone(resp.json()['alert_msg'])
+
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+
+    def test_ajax_toggle_attended_cancelled_booking_full_event(self):
+        self.booking.status = 'CANCELLED'
+        self.booking.save()
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertFalse(resp.json()['attended'])
+        self.assertEqual(resp.json()['alert_msg'], 'Class is now full, cannot reopen booking.')
+
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertFalse(self.booking.no_show)
+
+    def test_ajax_toggle_attended_no_show_booking_full_event(self):
+        self.booking.no_show = True
+        self.booking.save()
+        baker.make_recipe('booking.booking', event=self.pc, _quantity=3)
+        pc = Event.objects.get(id=self.pc.id)
+        self.assertEqual(pc.spaces_left, 0)
+        resp = self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.assertFalse(resp.json()['attended'])
+        self.assertEqual(resp.json()['alert_msg'], 'Class is now full, cannot reopen booking.')
+
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.attended)
+        self.assertTrue(self.booking.no_show)
 
 
 class RegisterByDateTests(TestPermissionMixin, TestCase):

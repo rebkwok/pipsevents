@@ -125,12 +125,7 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
         self.client.login(username=self.user.username, password='test')
 
-        resp = self.client.get(
-            reverse(
-                'studioadmin:event_register_old',
-                kwargs={'event_slug': event.slug, 'status_choice': 'OPEN'}
-            )
-        )
+        resp = self.client.get(reverse('studioadmin:event_register', args=[event.slug]))
 
         self.assertIn(
             '{} (1/5 left); exp 01 Mar 15'.format(event.event_type.subtype),
