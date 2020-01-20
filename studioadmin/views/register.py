@@ -444,6 +444,11 @@ def ajax_toggle_attended(request, booking_id):
         booking.no_show = True
     booking.save()
 
+    ActivityLog.objects.create(
+        log=f'User {booking.user.username} marked as {attendance} for {booking.event} '
+        f'by admin user {request.user.username}'
+    )
+
     if event_was_full and attendance == 'no-show' and booking.event.date > (timezone.now() + timedelta(hours=1)):
         # Only send waiting list emails if marking booking as no-show more than 1 hr before the event start
         waiting_list_users = WaitingListUser.objects.filter(event=booking.event)
