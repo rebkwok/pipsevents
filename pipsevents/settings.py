@@ -57,7 +57,7 @@ if env('LOCAL'):  # pragma: no cover
 # Application definition
 
 INSTALLED_APPS = (
-    'suit',
+    'apps.SuitConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -284,89 +284,12 @@ if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
         },
     }
 
-ADMINS = [SUPPORT_EMAIL]
+ADMINS = [("Becky Smith", SUPPORT_EMAIL)]
 
 # ####HEROKU#######
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# DJANGO-SUIT
-SUIT_CONFIG = {
-    'ADMIN_NAME': "Watermelon Pips Events",
-    'MENU': (
-        {
-            'label': 'Events and Classes',
-            'icon': 'icon-star',
-            'models': ('booking.event', 'booking.eventtype')
-        },
-        {
-            'label': 'Blocks',
-            'icon': 'icon-star-empty',
-            'models': ('booking.block', 'booking.blocktype')
-        },
-        {
-            'label': 'Bookings',
-            'icon': 'icon-heart',
-            'models': ('booking.booking', 'booking.waitinglistuser')
-        },
-        {
-            'label': 'Ticket Bookings',
-            'icon': 'icon-heart',
-            'models': (
-                'booking.ticketedevent', 'booking.ticketbooking',
-                'booking.ticket',
-            )
-        },
-        {
-            'app': 'timetable',
-            'label': 'Weekly timetable',
-            'icon': 'icon-calendar',
-        },
-        {
-            'label': 'Accounts',
-            'models': (
-                'auth.user',
-                'account.emailaddress',
-                'account.emailconfirmation',
-                'accounts.cookiepolicy',
-                'accounts.dataprivacypolicy',
-                'accounts.onlinedisclaimer',
-                'accounts.printdisclaimer',
-                'accounts.nonregistereddisclaimer'
-            ),
-            'icon': 'icon-user',
-        },
-        {
-            'label': 'Payments',
-            'models': ('payments.paypalbookingtransaction',
-                       'payments.paypalblocktransaction',
-                       'payments.paypalticketbookingtransaction',
-                       'ipn.paypalipn'),
-            'icon': 'icon-asterisk',
-        },
-        {
-            'label': 'Vouchers',
-            'icon': 'icon-asterisk',
-            'models': (
-                'booking.eventvoucher',
-                'booking.blockvoucher',
-                'booking.usedeventvoucher',
-                'booking.usedblockvoucher'
-            )
-        },
-        {
-            'label': 'Activity Log',
-            'app': 'activitylog',
-            'icon': 'icon-asterisk',
-        },
-        {
-            'label': 'Go to main booking site',
-            'url': '/',
-            'icon': 'icon-map-marker',
-        },
-    )
-}
 
 INTERNAL_IPS = ('127.0.0.1', '10.0.2.2')
 
