@@ -1,25 +1,27 @@
-Django==2.2.9
+Django==3.0.3
 coverage==4.5.4
 dj-database-url==0.5.0
 django-allauth==0.40.0
-django-braces==1.13.0
-django-cookie-law==2.0.2
-django-crispy-forms==1.7.0
+django-braces==1.14.0
+django-classy-tags==1.0.0  # for cookie-law
+django-cookie-law==2.0.3
+django-crispy-forms==1.8.1
 git+git://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
 django-debug-toolbar==2.0
 django-environ==0.4.5
-django-extensions==2.2.3
+django-extensions==2.2.8
 django-migration-testcase==0.0.15
 django-paypal==1.0.0
 djangorestframework==3.10.3
-django-suit==0.2.28
+# django-suit v2 branch 15/2/20
+git+git://github.com/darklow/django-suit.git@0d854c9b5e81adf9b9ea2ca9ee0a2856dcef5e15
 dj-static==0.0.6
 psycopg2==2.8.4
 python-dateutil==2.8.0
 PyYAML==5.1.2
 mailchimp3==3.0.9
 model-bakery==1.0.1
-django-ckeditor==5.7.1
+django-ckeditor==5.9.0
 pillow==6.2.0
 gunicorn==19.7.1
 static3==0.7.0

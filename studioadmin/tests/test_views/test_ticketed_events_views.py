@@ -738,7 +738,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         resp = self.client.post(url, data, follow=True)
 
         self.assertIn(
-            "&#39;Send confirmation&#39; checked for &#39;{}&#39; but no "
+            "&#x27;Send confirmation&#x27; checked for &#x27;{}&#x27; but no "
             "changes were made; email has not been sent to user.".format(
                 self.ticket_booking.booking_reference),
             format_content(resp.rendered_content)
