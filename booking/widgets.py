@@ -1,9 +1,6 @@
-from datetime import date, timedelta
-from django.core import exceptions, validators
+from datetime import date
 from django.forms import widgets, Field
-from django.db import models
-from django.utils.translation import ugettext_lazy as _
-from django.utils.html import mark_safe
+
 
 MONTH_CHOICES = {
             1: 'January',
