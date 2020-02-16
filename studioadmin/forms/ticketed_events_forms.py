@@ -7,7 +7,7 @@ from django import forms
 from django.forms.models import modelformset_factory, BaseModelFormSet, \
     inlineformset_factory, BaseInlineFormSet
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
