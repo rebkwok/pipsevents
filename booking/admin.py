@@ -550,7 +550,7 @@ class GiftVoucherTypeAdmin(admin.ModelAdmin):
             return obj.block_type
         return obj.event_type
 
-
+admin.site.site_header = "Watermelon Admin"
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)

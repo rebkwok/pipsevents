@@ -1,0 +1,15 @@
+{% load i18n %}
+<h3>{% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}</h3>
+
+
+    <li style="list-style-type:none">
+    <select style="width: 98%;"
+        onchange="go_from_select(this.options[this.selectedIndex].value)">
+    {% for choice in choices %}
+        <option {% if choice.selected %} selected="selected"{% endif %}
+         value="{{ choice.query_string|iriencode }}">{{ choice.display }}</option>
+    {% endfor %}
+    </select>
+    </li>
+
+<script type="text/javascript">var go_from_select = function(opt) { window.location = window.location.pathname + opt };</script>
