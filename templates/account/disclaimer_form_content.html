@@ -245,7 +245,7 @@
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.terms_accepted.help_text }}</div>
        </div>
        <div class="form-group">
-           <div class="col-xs-12">{{ form.over_18_terms }}</div>
+           <div class="col-xs-12">{{ form.over_18_statement }}</div>
            <div class="col-xs-12 vspace {% if form.age_over_18_confirmed.errors %}ticket-error{% endif %}">
                {{ form.age_over_18_confirmed }}<label for='id_age_over_18_confirmed'></label>
                  <label class="control-label" for='id_age_over_18_confirmed'>{{ form.age_over_18_confirmed.label }}{% if form.age_over_18_confirmed.field.required %}*{% endif %}</label>

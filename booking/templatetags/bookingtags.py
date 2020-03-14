@@ -13,9 +13,8 @@ from django.utils.safestring import mark_safe
 from accounts.models import OnlineDisclaimer
 from accounts.utils import has_active_disclaimer, has_active_online_disclaimer, \
     has_expired_disclaimer
-from booking.models import Block, BlockVoucher, Booking, Event, EventVoucher, \
+from booking.models import BlockVoucher, Booking, Event, EventVoucher, \
     UsedBlockVoucher, UsedEventVoucher
-from payments.models import PaypalBookingTransaction
 from studioadmin.utils import int_str, chaffify
 
 

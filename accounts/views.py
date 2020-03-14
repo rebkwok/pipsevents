@@ -130,7 +130,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         disclaimer = form.save(commit=False)
-
+        disclaimer.version = form.disclaimer_content.version
         password = form.cleaned_data['password']
         if not self.request.user.has_usable_password():
             messages.error(
@@ -167,6 +167,7 @@ class NonRegisteredDisclaimerCreateView(CreateView):
     def form_valid(self, form):
         # email user
         disclaimer = form.save(commit=False)
+        disclaimer.version = form.disclaimer_content.version
         email = disclaimer.email
         host = 'https://{}'.format(self.request.META.get('HTTP_HOST'))
         ctx = {
