@@ -27,6 +27,7 @@ class SuitConfig(DjangoSuitConfig):
             ChildItem(model='accounts.cookiepolicy'),
             ChildItem(model='accounts.dataprivacypolicy'),
             ChildItem(model='accounts.signeddataprivacy'),
+            ChildItem(model='accounts.disclaimercontent'),
             ChildItem(model='accounts.onlinedisclaimer'),
             ChildItem(model='accounts.printdisclaimer'),
             ChildItem(model='accounts.nonregistereddisclaimer'),
