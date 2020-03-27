@@ -110,6 +110,24 @@ def generate_versioned_disclaimers(apps, schema_editor):
             disclaimer.save()
 
 
+def reverse_add_disclaimer_info(apps, schema_editor):
+    DisclaimerContent = apps.get_model('accounts', 'DisclaimerContent')
+    OnlineDisclaimer = apps.get_model('accounts', 'OnlineDisclaimer')
+    NonRegisteredDisclaimer = apps.get_model('accounts', 'OnlineDisclaimer')
+    ArchivedDisclaimer = apps.get_model('accounts', 'ArchivedDisclaimer')
+
+    disclaimer_versions = {
+        disclaimer_content.version: disclaimer_content for disclaimer_content in DisclaimerContent.objects.all()
+    }
+
+    for disclaimer in OnlineDisclaimer.objects.all() + NonRegisteredDisclaimer.objects.all() + ArchivedDisclaimer.objects.all():
+        disclaimer_version = disclaimer_versions[disclaimer.version]
+        disclaimer.disclaimer_terms = disclaimer_version.disclaimer_terms
+        disclaimer.medical_treatment_terms = disclaimer_version.medical_treatment_terms
+        disclaimer.over_18_statement = disclaimer_version.over_18_statement
+        disclaimer.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -118,6 +136,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            generate_versioned_disclaimers, reverse_code=migrations.RunPython.noop
+            generate_versioned_disclaimers, reverse_code=reverse_add_disclaimer_info
         )
     ]
