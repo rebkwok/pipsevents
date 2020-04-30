@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from braces.views import LoginRequiredMixin
 
-from accounts.models import OnlineDisclaimer, NonRegisteredDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
 from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm
 from studioadmin.utils import str_int, dechaffify
 from studioadmin.views.helpers import is_instructor_or_staff, \
@@ -32,8 +32,13 @@ def user_disclaimer(request, encoded_user_id):
     user_id = dechaffify(str_int(encoded_user_id))
 
     disclaimer = OnlineDisclaimer.objects.filter(user__id=user_id).last()
+    disclaimer_content = DisclaimerContent.objects.get(version=disclaimer.version)
 
-    ctx = {'disclaimer': disclaimer, 'encoded_user_id': encoded_user_id}
+    ctx = {
+        'disclaimer': disclaimer,
+        'disclaimer_content': disclaimer_content,
+        'encoded_user_id': encoded_user_id
+   }
 
     return TemplateResponse(
         request, "studioadmin/user_disclaimer.html", ctx
@@ -213,8 +218,9 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
 @is_instructor_or_staff
 def nonregistered_disclaimer(request, user_uuid):
     disclaimer = get_object_or_404(NonRegisteredDisclaimer, user_uuid=user_uuid)
+    disclaimer_content = DisclaimerContent.objects.get(version=disclaimer.version)
 
-    ctx = {'disclaimer': disclaimer}
+    ctx = {'disclaimer': disclaimer, 'disclaimer_content': disclaimer_content}
 
     return TemplateResponse(
         request, "studioadmin/non_registered_disclaimer.html", ctx
