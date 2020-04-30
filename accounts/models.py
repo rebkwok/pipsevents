@@ -384,7 +384,7 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
         return '{} {} - V{} - {}'.format(
             self.first_name,
             self.last_name,
-            self.version.
+            self.version,
             self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'))
 
     def delete(self, using=None, keep_parents=False):
