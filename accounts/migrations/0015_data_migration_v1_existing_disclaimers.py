@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-DISCLAIMER_TERMS_AT_2020_03_14 = """I recognise that I may be asked to participate in some strenuous
+DISCLAIMER_TERMS_AT_2020_05_01 = """I recognise that I may be asked to participate in some strenuous
 exercise during the course and that such participation may present a heightened risk of
 injury or ill health. All risks will be fully explained and I do NOT hold The Watermelon
 Studio and any of their staff responsible for any harm that may come to me should I decide
@@ -18,21 +18,21 @@ chances of any injury to a minimum. I also hereby agree to follow all rules set 
 Watermelon Studio. I understand that photographs taken at the studio may be used on the studio's
 website and social media pages.  I have read and agree to the terms and conditions on the website."""
 
-MEDICAL_TREATMENT_TERMS_AT_2020_03_14 = "I give permission for myself to receive medical treatment in the event of an accident"
+MEDICAL_TREATMENT_TERMS_AT_2020_05_01 = "I give permission for myself to receive medical treatment in the event of an accident"
 
-OVER_18_STATEMENT_AT_2020_03_14 = "I confirm that I am aged 18 or over"
+OVER_18_STATEMENT_AT_2020_05_01 = "I confirm that I am aged 18 or over"
 
 
 def create_v1_disclaimer_content(disclaimer_content_model):
     # Generate a first DisclaimerContent instance with the terms as of 2020-03-14 (as signed by the
     # current active disclaimers
     assert disclaimer_content_model.objects.exists() is False
-    formatted_disclaimer_terms = DISCLAIMER_TERMS_AT_2020_03_14.replace("\n", " ")
+    formatted_disclaimer_terms = DISCLAIMER_TERMS_AT_2020_05_01.replace("\n", " ")
 
     v1_disclaimer_content = disclaimer_content_model.objects.create(
         disclaimer_terms=formatted_disclaimer_terms,
-        medical_treatment_terms=MEDICAL_TREATMENT_TERMS_AT_2020_03_14,
-        over_18_statement=OVER_18_STATEMENT_AT_2020_03_14,
+        medical_treatment_terms=MEDICAL_TREATMENT_TERMS_AT_2020_05_01,
+        over_18_statement=OVER_18_STATEMENT_AT_2020_05_01,
         version=1.0
     )
     return v1_disclaimer_content
@@ -41,7 +41,7 @@ def create_v1_disclaimer_content(disclaimer_content_model):
 def generate_versioned_disclaimers(apps, schema_editor):
     DisclaimerContent = apps.get_model('accounts', 'DisclaimerContent')
     OnlineDisclaimer = apps.get_model('accounts', 'OnlineDisclaimer')
-    NonRegisteredDisclaimer = apps.get_model('accounts', 'OnlineDisclaimer')
+    NonRegisteredDisclaimer = apps.get_model('accounts', 'NonRegisteredDisclaimer')
     ArchivedDisclaimer = apps.get_model('accounts', 'ArchivedDisclaimer')
     v1_disclaimer_content = create_v1_disclaimer_content(DisclaimerContent)
 
@@ -87,12 +87,12 @@ def generate_versioned_disclaimers(apps, schema_editor):
     # Create disclaimer versions for past disclaimers
     version_0x_disclaimers = {}
     for version_increment, terms in enumerate(version_0_disclaimer_terms, start=1):
-        version = 0.1 * 1
+        version = 0.1 * version_increment
         DisclaimerContent.objects.create(
             version=version,
             disclaimer_terms=terms,
-            medical_treatment_terms=MEDICAL_TREATMENT_TERMS_AT_2020_03_14,
-            over_18_statement=OVER_18_STATEMENT_AT_2020_03_14,
+            medical_treatment_terms=MEDICAL_TREATMENT_TERMS_AT_2020_05_01,
+            over_18_statement=OVER_18_STATEMENT_AT_2020_05_01,
         )
         version_0x_disclaimers[terms] = version
 
@@ -113,7 +113,7 @@ def generate_versioned_disclaimers(apps, schema_editor):
 def reverse_add_disclaimer_info(apps, schema_editor):
     DisclaimerContent = apps.get_model('accounts', 'DisclaimerContent')
     OnlineDisclaimer = apps.get_model('accounts', 'OnlineDisclaimer')
-    NonRegisteredDisclaimer = apps.get_model('accounts', 'OnlineDisclaimer')
+    NonRegisteredDisclaimer = apps.get_model('accounts', 'NonRegisteredDisclaimer')
     ArchivedDisclaimer = apps.get_model('accounts', 'ArchivedDisclaimer')
 
     disclaimer_versions = {
