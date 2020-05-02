@@ -9,9 +9,8 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from accounts.models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, \
-    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, \
-    DISCLAIMER_TERMS, MEDICAL_TREATMENT_TERMS, OVER_18_TERMS
+from accounts.models import CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
+    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer
 from accounts.utils import has_active_data_privacy_agreement, \
     active_data_privacy_cache_key
 from common.tests.helpers import make_data_privacy_agreement
@@ -21,8 +20,9 @@ class DisclaimerModelTests(TestCase):
 
     def test_online_disclaimer_str(self,):
         user = baker.make_recipe('booking.user', username='testuser')
-        disclaimer = baker.make(OnlineDisclaimer, user=user)
-        self.assertEqual(str(disclaimer), 'testuser - {}'.format(
+        content = baker.make(DisclaimerContent, version=5.0)
+        disclaimer = baker.make(OnlineDisclaimer, user=user, version=content.version)
+        self.assertEqual(str(disclaimer), 'testuser - V5.0 - {}'.format(
             disclaimer.date.astimezone(
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M')
@@ -38,66 +38,96 @@ class DisclaimerModelTests(TestCase):
         ))
 
     def test_nonregistered_disclaimer_str(self):
+        content = baker.make(DisclaimerContent, version=5.0)
         disclaimer = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='User',
-            event_date=datetime(2019, 1, 1, tzinfo=timezone.utc))
-        self.assertEqual(str(disclaimer), 'Test User - {}'.format(
+            event_date=datetime(2019, 1, 1, tzinfo=timezone.utc), version=content.version
+        )
+        self.assertEqual(str(disclaimer), 'Test User - V5.0 - {}'.format(
             disclaimer.date.astimezone(
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M')
         ))
 
     def test_archived_disclaimer_str(self):
+        content = baker.make(DisclaimerContent, version=5.0)
         disclaimer = baker.make(
             ArchivedDisclaimer, name='Test User',
             date=datetime(2019, 1, 1, tzinfo=timezone.utc),
-            date_archived=datetime(2019, 1, 20, tzinfo=timezone.utc)
+            date_archived=datetime(2019, 1, 20, tzinfo=timezone.utc),
+            version=content.version
         )
-        self.assertEqual(str(disclaimer), 'Test User - {} (archived {})'.format(
+        self.assertEqual(str(disclaimer), 'Test User - V5.0 - {} (archived {})'.format(
             disclaimer.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'),
             disclaimer.date_archived.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
         ))
 
-    def test_default_terms_set_on_new_online_disclaimer(self):
-        disclaimer = baker.make(
-            OnlineDisclaimer, disclaimer_terms="foo", over_18_statement="bar",
-            medical_treatment_terms="foobar"
+    def test_disclaimer_content_first_version(self):
+        DisclaimerContent.objects.all().delete()
+        assert DisclaimerContent.objects.exists() is False
+        assert DisclaimerContent.current_version() == 0
+
+        content = baker.make(DisclaimerContent, version=None)
+        assert content.version == 1.0
+
+        content1 = baker.make(DisclaimerContent, version=None)
+        assert content1.version == 2.0
+
+    def test_new_online_disclaimer_with_current_version_is_active(self):
+        disclaimer_content = baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None  # ensure version is incremented from any existing ones
         )
-        self.assertEqual(disclaimer.disclaimer_terms, DISCLAIMER_TERMS)
-        self.assertEqual(disclaimer.medical_treatment_terms, MEDICAL_TREATMENT_TERMS)
-        self.assertEqual(disclaimer.over_18_statement, OVER_18_TERMS)
+        disclaimer = baker.make(OnlineDisclaimer, version=disclaimer_content.version)
+
+        assert disclaimer.is_active
+        baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo1", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None  # ensure version is incremented from any existing ones
+        )
+        assert disclaimer.is_active is False
+
 
     def test_cannot_update_terms_after_first_save(self):
-        disclaimer = baker.make(OnlineDisclaimer)
-        self.assertEqual(disclaimer.disclaimer_terms, DISCLAIMER_TERMS)
-        self.assertEqual(disclaimer.medical_treatment_terms, MEDICAL_TREATMENT_TERMS)
-        self.assertEqual(disclaimer.over_18_statement, OVER_18_TERMS)
+        disclaimer_content = baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None  # ensure version is incremented from any existing ones
+        )
 
         with self.assertRaises(ValueError):
-            disclaimer.disclaimer_terms = 'foo'
-            disclaimer.save()
+            disclaimer_content.disclaimer_terms = 'foo1'
+            disclaimer_content.save()
 
         with self.assertRaises(ValueError):
-            disclaimer.medical_treatment_terms = 'foo'
-            disclaimer.save()
+            disclaimer_content.medical_treatment_terms = 'foo1'
+            disclaimer_content.save()
 
         with self.assertRaises(ValueError):
-            disclaimer.over_18_statement = 'foo'
-            disclaimer.save()
+            disclaimer_content.over_18_statement = 'foo1'
+            disclaimer_content.save()
 
     def test_cannot_create_new_active_disclaimer(self):
         user = baker.make_recipe('booking.user', username='testuser')
+        disclaimer_content = baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None  # ensure version is incremented from any existing ones
+        )
+        # disclaimer is out of date, so inactive
         disclaimer = baker.make(
             OnlineDisclaimer, user=user,
-            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc), version=disclaimer_content.version
         )
 
         self.assertFalse(disclaimer.is_active)
         # can make a new disclaimer
-        baker.make(OnlineDisclaimer, user=user)
+        baker.make(OnlineDisclaimer, user=user, version=disclaimer_content.version)
         # can't make new disclaimer when one is already active
         with self.assertRaises(ValidationError):
-            baker.make(OnlineDisclaimer, user=user)
+            baker.make(OnlineDisclaimer, user=user, version=disclaimer_content.version)
 
     def test_delete_online_disclaimer(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())
@@ -129,11 +159,16 @@ class DisclaimerModelTests(TestCase):
         self.assertTrue(ArchivedDisclaimer.objects.exists())
 
     def test_nonregistered_disclaimer_is_active(self):
-        disclaimer = baker.make(NonRegisteredDisclaimer, first_name='Test', last_name='User')
+        disclaimer_content = baker.make(
+            DisclaimerContent, version=None  # ensure version is incremented from any existing ones
+        )
+        disclaimer = baker.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User', version=disclaimer_content.version
+        )
         self.assertTrue(disclaimer.is_active)
 
         old_disclaimer = baker.make(
-            NonRegisteredDisclaimer, first_name='Test', last_name='User',
+            NonRegisteredDisclaimer, first_name='Test', last_name='User', version=disclaimer_content.version,
             date=timezone.now() - timedelta(367),
         )
         self.assertFalse(old_disclaimer.is_active)

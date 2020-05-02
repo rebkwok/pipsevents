@@ -16,8 +16,7 @@ from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
 from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, NonRegisteredDisclaimer
-from .utils import has_active_data_privacy_agreement, \
-    has_active_disclaimer, has_expired_disclaimer
+from .utils import has_active_data_privacy_agreement, has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from booking.email_helpers import send_mail
 from common.mailchimp_utils import update_mailchimp

@@ -6,7 +6,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 
-from accounts.models import OnlineDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer
 
 
 
@@ -28,51 +28,70 @@ class Command(BaseCommand):
 
         with open(inputfilepath, 'r') as file:
             reader = csv.DictReader(file)
-            # rows = list(reader)
 
             for i, row in enumerate(reader):
-                if i == 0:
-                    pass
+                try:
+                    user = User.objects.get(username=row["User"])
+                except User.DoesNotExist:
+                    self.stdout.write(
+                        "Unknown user {} in backup data; data on "
+                        "row {} not imported".format(row["User"], i)
+                    )
+                    logger.warning("Unknown user {} in backup data; data on "
+                        "row {} not imported".format(row["User"], i))
+                    continue
+
+                bu_date_updated = datetime.strptime(
+                    row["Date Updated"], '%Y-%m-%d %H:%M:%S:%f %z'
+                ) if row["Date Updated"] else None
+
+                try:
+                    disclaimer = OnlineDisclaimer.objects.get(user=user, version=Decimal(row["Disclaimer Version"]))
+                except OnlineDisclaimer.DoesNotExist:
+                    disclaimer = None
+
+                if disclaimer:
+                    if disclaimer.date == datetime.strptime(
+                            row["Date"], '%Y-%m-%d %H:%M:%S:%f %z'
+                    ) and disclaimer.date_updated == bu_date_updated:
+                        dates_match = True
+                    else:
+                        dates_match = False
+
+                    log_msg = "Disclaimer for {} already exists and has " \
+                              "not been overwritten with backup data. " \
+                              "Dates in db and back up {}match.".format(
+                                    user.username,
+                                    'DO NOT ' if not dates_match else ''
+                                )
+                    self.stdout.write(log_msg)
+                    logger.warning(log_msg)
+
                 else:
                     try:
-                        user = User.objects.get(username=row["User"])
-                    except User.DoesNotExist:
-                        self.stdout.write(
-                            "Unknown user {} in backup data; data on "
-                            "row {} not imported".format(row["User"], i)
+                        content = DisclaimerContent.objects.get(
+                            version=Decimal(row["Disclaimer Version"])
                         )
-                        logger.warning("Unknown user {} in backup data; data on "
-                            "row {} not imported".format(row["User"], i))
-                        continue
+                    except DisclaimerContent.DoesNotExist:
+                        content = DisclaimerContent.objects.create(
+                            version=Decimal(row["Disclaimer Version"]),
+                            medical_treatment_terms=row["Medical Treatment Terms"],
+                            disclaimer_terms=row["Disclaimer Terms"],
+                            over_18_statement=row["Over 18 Statement"]
+                        )
 
-                    bu_date_updated = datetime.strptime(
-                        row["Date Updated"], '%Y-%m-%d %H:%M:%S:%f %z'
-                    ) if row["Date Updated"] else None
-
-                    try:
-                        disclaimer = OnlineDisclaimer.objects.get(user=user, version=Decimal(row["Disclaimer Version"]))
-                    except OnlineDisclaimer.DoesNotExist:
-                        disclaimer = None
-
-                    if disclaimer:
-                        if disclaimer.date == datetime.strptime(
-                                row["Date"], '%Y-%m-%d %H:%M:%S:%f %z'
-                        ) and disclaimer.date_updated == bu_date_updated:
-                            dates_match = True
-                        else:
-                            dates_match = False
-
-
-
-                        log_msg = "Disclaimer for {} already exists and has " \
-                                  "not been overwritten with backup data. " \
-                                  "Dates in db and back up {}match.".format(
-                                        user.username,
-                                        'DO NOT ' if not dates_match else ''
-                                    )
+                    if not (
+                        content.medical_treatment_terms ==  row["Medical Treatment Terms"] and
+                        content.disclaimer_terms ==  row["Disclaimer Terms"] and
+                        content.over_18_statement ==  row["Over 18 Statement"]
+                    ):
+                        log_msg = "Mismatch content in Disclaimer Content Version {} and backup data for " \
+                                  "Disclaimer for {}.  Data has not been updated.".format(
+                                    content.version,
+                                    user.username,
+                                )
                         self.stdout.write(log_msg)
                         logger.warning(log_msg)
-
                     else:
                         OnlineDisclaimer.objects.create(
                             user=user,
