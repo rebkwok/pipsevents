@@ -10,7 +10,7 @@ from django.test import override_settings, TestCase
 from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
-from accounts.models import OnlineDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer
 
 from booking.models import Event, EventType, Booking, Block, WaitingListUser
 from common.tests.helpers import TestSetupMixin, make_data_privacy_agreement
@@ -55,7 +55,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         make_data_privacy_agreement(user)
         disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
-            date=datetime(2015, 2, 1, tzinfo=timezone.utc)
+            date=datetime(2015, 2, 1, tzinfo=timezone.utc),
+            version = DisclaimerContent.current_version()
         )
         self.assertFalse(disclaimer.is_active)
 
@@ -64,7 +65,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
-        baker.make(OnlineDisclaimer, user=user)
+        baker.make(OnlineDisclaimer, user=user, version = DisclaimerContent.current_version())
         resp = self.client.post(self.event_url)
         self.assertEqual(resp.status_code, 200)
 
@@ -133,7 +134,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         watched_user = User.objects.create_user(
             username='foo', email='foo@test.com', password='test'
         )
-        baker.make(OnlineDisclaimer, user=watched_user)
+        baker.make(OnlineDisclaimer, user=watched_user, version=DisclaimerContent.current_version())
         make_data_privacy_agreement(watched_user)
         self.client.login(username=watched_user.username, password='test')
         self.client.post(self.event_url)

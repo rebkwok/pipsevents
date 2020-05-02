@@ -13,9 +13,9 @@ from django.test import TestCase, override_settings
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp, SocialAccount
 
-from ..models import DataPrivacyPolicy, OnlineDisclaimer, NonRegisteredDisclaimer
+from ..models import DataPrivacyPolicy, DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
 from ..utils import has_active_data_privacy_agreement
-from ..views import ProfileUpdateView, profile, DisclaimerCreateView
+from ..views import ProfileUpdateView, DisclaimerCreateView
 from common.tests.helpers import _create_session, Any, \
     assert_mailchimp_post_data, TestSetupMixin, set_up_fb
 
@@ -332,32 +332,31 @@ class ProfileTests(TestSetupMixin, TestCase):
 
     def setUp(self):
         super(ProfileTests, self).setUp()
-        self.user_with_online_disclaimer = baker.make_recipe('booking.user')
-        baker.make(OnlineDisclaimer, user=self.user_with_online_disclaimer)
-        self.user_no_disclaimer = baker.make_recipe('booking.user')
-
-    def _get_response(self, user):
-        url = reverse('profile:profile')
-        request = self.factory.get(url)
-        request.user = user
-        return profile(request)
+        self.user_with_online_disclaimer = User.objects.create_user(username='test_disc', email='test1@test.com', password="test")
+        baker.make(OnlineDisclaimer, user=self.user_with_online_disclaimer, version=DisclaimerContent.current_version())
+        self.user_no_disclaimer = User.objects.create_user(username='test_no_disc', email='test2@test.com', password="test")
+        self.url = reverse('profile:profile')
 
     def test_profile_view(self):
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password="test")
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_profile_view_shows_disclaimer_info(self):
-        resp = self._get_response(self.user)
+        self.client.login(username=self.user.username, password="test")
+        resp = self.client.get(self.url)
         self.assertIn("Completed", str(resp.content))
         self.assertNotIn("Not completed", str(resp.content))
         self.assertNotIn("/accounts/disclaimer", str(resp.content))
 
-        resp = self._get_response(self.user_with_online_disclaimer)
+        self.client.login(username=self.user_with_online_disclaimer.username, password="test")
+        resp = self.client.get(self.url)
         self.assertIn("Completed", str(resp.content))
         self.assertNotIn("Not completed", str(resp.content))
         self.assertNotIn("/accounts/disclaimer", str(resp.content))
 
-        resp = self._get_response(self.user_no_disclaimer)
+        self.client.login(username=self.user_no_disclaimer.username, password="test")
+        resp = self.client.get(self.url)
         self.assertIn("Not completed", str(resp.content))
         self.assertIn("/accounts/disclaimer", str(resp.content))
 

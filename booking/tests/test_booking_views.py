@@ -14,7 +14,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from activitylog.models import ActivityLog
-from accounts.models import OnlineDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer
 
 from booking.models import BlockType, Event, EventType, Booking, \
     Block, EventVoucher,UsedEventVoucher,  WaitingListUser
@@ -447,7 +447,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
-        baker.make(OnlineDisclaimer, user=user)
+        baker.make(OnlineDisclaimer, user=user, version=DisclaimerContent.current_version())
         resp = self._get_response(user, event)
         self.assertEqual(resp.status_code, 200)
 
@@ -635,7 +635,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
         watched_user = User.objects.create(
             username='foo', email='foo@test.com', password='test'
         )
-        baker.make(OnlineDisclaimer, user=watched_user)
+        baker.make(OnlineDisclaimer, user=watched_user, version=DisclaimerContent.current_version())
         make_data_privacy_agreement(watched_user)
         self._post_response(watched_user, event)
         self.assertEqual(Booking.objects.count(), 2)
@@ -1220,7 +1220,7 @@ class BookingCreateViewTests(TestSetupMixin, TestCase):
 
         user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
-        baker.make(OnlineDisclaimer, user=user)
+        baker.make(OnlineDisclaimer, user=user, version=DisclaimerContent.current_version())
         perm = Permission.objects.get(codename='can_request_free_class')
         perm1 = Permission.objects.get(codename='is_regular_student')
         user.user_permissions.add(perm)

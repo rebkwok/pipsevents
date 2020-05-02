@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.test import TestCase
 from django.utils import timezone
 
+from accounts.models import DisclaimerContent
 from activitylog.models import ActivityLog
 
 from booking.models import Ticket, TicketBooking
@@ -134,25 +135,28 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
     def test_disclaimer_medical_info(self):
         Group.objects.get_or_create(name='instructors')
+        self.client.login(username=self.user.username, password='test')
         user = baker.make_recipe('booking.user')
         event = baker.make_recipe('booking.future_PC')
         baker.make_recipe('booking.booking', event=event, user=user)
 
-        self.client.login(username=self.user.username, password='test')
-
         resp = self.client.get(reverse('studioadmin:event_register', args=[event.slug]))
-
         assert '<span id="disclaimer" class="far fa-file-alt"></span> *' not in resp.rendered_content
         assert '<span id="disclaimer" class="fas fa-times"></span>' in resp.rendered_content
-
-        disclaimer = baker.make_recipe('booking.online_disclaimer', user=user)
+        disclaimer = baker.make_recipe(
+            'booking.online_disclaimer', medical_conditions=True, medical_conditions_details="test", user=user,
+            version=DisclaimerContent.current_version()
+        )
+        resp = self.client.get(reverse('studioadmin:event_register', args=[event.slug]))
         assert '<span id="disclaimer" class="far fa-file-alt"></span> *</a>' in resp.rendered_content
         assert '<span id="disclaimer" class="far fa-file-alt"></span></a>' not in resp.rendered_content
 
         disclaimer.delete()
         baker.make_recipe(
-            'booking.online_disclaimer', user=user, medical_conditions=False, joint_problems=False, allergies=False
+            'booking.online_disclaimer', user=user, medical_conditions=False, joint_problems=False, allergies=False,
+            version=DisclaimerContent.current_version()
         )
+        resp = self.client.get(reverse('studioadmin:event_register', args=[event.slug]))
         assert '<span id="disclaimer" class="far fa-file-alt"></span> *</a>' not in resp.rendered_content
         assert '<span id="disclaimer" class="far fa-file-alt"></span></a>' in resp.rendered_content
 

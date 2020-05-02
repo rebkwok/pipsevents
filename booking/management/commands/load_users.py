@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
 
-from accounts.models import OnlineDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer
 from accounts.utils import has_active_disclaimer
 
 
@@ -62,6 +62,7 @@ class Command(BaseCommand):
                     medical_treatment_permission=True,
                     terms_accepted=True,
                     age_over_18_confirmed=True,
+                    version=DisclaimerContent.current_version()
                 )
                 self.stdout.write(
                     "Disclaimer created for user {}".format(user.username)

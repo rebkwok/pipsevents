@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from accounts.models import NonRegisteredDisclaimer, OnlineDisclaimer
+from accounts.models import DisclaimerContent, NonRegisteredDisclaimer, OnlineDisclaimer
 from common.tests.helpers import _create_session, format_content
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import (
@@ -29,7 +29,8 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
             OnlineDisclaimer, user=self.user,
             medical_conditions=False, allergies=False, joint_problems=False,
             medical_treatment_permission=True, terms_accepted=True,
-            age_over_18_confirmed=True, dob=datetime.date(1990, 1, 1)
+            age_over_18_confirmed=True, dob=datetime.date(1990, 1, 1),
+            version=DisclaimerContent.current_version()
         )
         self.post_data = {
             'id': self.disclaimer.id,
@@ -304,19 +305,19 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         super().setUp()
         self.disclaimer1 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser',
-            event_date=datetime.date(2019, 3, 8)
+            event_date=datetime.date(2019, 3, 8), version=DisclaimerContent.current_version()
         )
         self.disclaimer2 =  baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser1',
-            event_date=datetime.date(2019, 3, 7)
+            event_date=datetime.date(2019, 3, 7), version=DisclaimerContent.current_version()
         )
         self.disclaimer3 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='BUser',
-            event_date=datetime.date(2019, 3, 7)
+            event_date=datetime.date(2019, 3, 7), version=DisclaimerContent.current_version()
         )
         self.disclaimer4 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='CUser',
-            event_date=datetime.date(2019, 3, 6)
+            event_date=datetime.date(2019, 3, 6), version=DisclaimerContent.current_version()
         )
         self.url = reverse('studioadmin:event_disclaimers')
 
