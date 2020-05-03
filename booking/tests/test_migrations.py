@@ -287,3 +287,16 @@ class DateWarningSentMigrationTests(MigrationTest):
             self.assertIsNone(booking.date_warning_sent)
 
         self.assertIsNotNone(open_unpaid_booking_with_warning_after.date_warning_sent)
+
+
+class DisclaimerVersioningMingrationTests(MigrationTest):
+
+    before = [
+        ('accounts', '0012_add_indexes'),
+    ]
+    after = [
+        ('accounts', '0016_remove_disclaimer_content_fields_from_signed_disclaimers')
+    ]
+
+    def test_migration(self):
+        self.run_migration()

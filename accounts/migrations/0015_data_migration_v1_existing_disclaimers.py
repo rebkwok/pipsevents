@@ -120,7 +120,7 @@ def reverse_add_disclaimer_info(apps, schema_editor):
         disclaimer_content.version: disclaimer_content for disclaimer_content in DisclaimerContent.objects.all()
     }
 
-    for disclaimer in OnlineDisclaimer.objects.all() + NonRegisteredDisclaimer.objects.all() + ArchivedDisclaimer.objects.all():
+    for disclaimer in [*OnlineDisclaimer.objects.all(), *NonRegisteredDisclaimer.objects.all(), *ArchivedDisclaimer.objects.all()]:
         disclaimer_version = disclaimer_versions[disclaimer.version]
         disclaimer.disclaimer_terms = disclaimer_version.disclaimer_terms
         disclaimer.medical_treatment_terms = disclaimer_version.medical_treatment_terms
