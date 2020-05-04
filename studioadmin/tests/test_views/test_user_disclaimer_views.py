@@ -25,6 +25,8 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         super(UserDisclamersTests, self).setUp()
         self.user.set_password('password')
         self.user.save()
+        # Make sure we have a current disclaimer content
+        DisclaimerContent.objects.create(version=None)
         self.disclaimer = baker.make(
             OnlineDisclaimer, user=self.user,
             medical_conditions=False, allergies=False, joint_problems=False,
@@ -303,6 +305,8 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
+        # Make sure we have a current disclaimer content
+        DisclaimerContent.objects.create(version=None)
         self.disclaimer1 = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='AUser',
             event_date=datetime.date(2019, 3, 8), version=DisclaimerContent.current_version()
