@@ -82,7 +82,7 @@ def generate_versioned_disclaimers(apps, schema_editor):
         latest_disclaimer_per_version_0_dates[version_0_terms] = latest_disclaimer.date
 
     version_0_disclaimer_terms = sorted(
-        latest_disclaimer_per_version_0_dates.keys(), key=lambda x: latest_disclaimer_per_version_0_dates[x]
+        latest_disclaimer_per_version_0_dates.keys(), key=lambda x: latest_disclaimer_per_version_0_dates[x], reverse=True
     )
     # Create disclaimer versions for past disclaimers
     version_0x_disclaimers = {}
