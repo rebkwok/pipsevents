@@ -10,7 +10,7 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.utils.html import strip_tags
 
-from accounts.models import PrintDisclaimer, SignedDataPrivacy, DataPrivacyPolicy
+from accounts.models import DisclaimerContent, PrintDisclaimer, SignedDataPrivacy, DataPrivacyPolicy
 from accounts.utils import has_active_data_privacy_agreement
 
 
@@ -78,6 +78,8 @@ class TestSetupMixin(object):
         )
         baker.make(PrintDisclaimer, user=self.user)
         make_data_privacy_agreement(self.user)
+        # Make sure we have a current disclaimer content
+        DisclaimerContent.objects.create(version=None)
 
     def tearDown(self):
         self.patcher.stop()

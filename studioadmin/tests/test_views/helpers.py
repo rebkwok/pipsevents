@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from django.test import RequestFactory
 from django.contrib.auth.models import Permission, Group, User
 
+from accounts.models import DisclaimerContent
 from common.tests.helpers import set_up_fb
 
 
@@ -28,6 +29,9 @@ class TestPermissionMixin(object):
         group, _ = Group.objects.get_or_create(name="instructors")
         group.permissions.add(perm)
         self.instructor_user.groups.add(group)
+
+        # Make sure we have a current disclaimer content
+        DisclaimerContent.objects.create(version=None)
 
         mockresponse = Mock()
         mockresponse.status_code = 200
