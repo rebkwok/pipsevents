@@ -20,6 +20,7 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         # 10 logs
         # 3 logs when self.user, self.instructor_user and self.staff_user
         # are created in setUp
+        # 1 for disclaimer content creation
         # 2 for empty cron jobs
         # 3 with log messages to test search text
         # 2 with fixed dates to test search date
@@ -92,13 +93,13 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
 
     def test_empty_cron_job_logs_filtered_by_default(self):
         resp = self._get_response(self.staff_user)
-        self.assertEqual(len(resp.context_data['logs']), 8)
+        self.assertEqual(len(resp.context_data['logs']), 9)
 
     def test_filter_out_empty_cron_job_logs(self):
         resp = self._get_response(
             self.staff_user, {'hide_empty_cronjobs': True}
         )
-        self.assertEqual(len(resp.context_data['logs']), 8)
+        self.assertEqual(len(resp.context_data['logs']), 9)
 
     def test_search_text(self):
         resp = self._get_response(self.staff_user, {
@@ -135,7 +136,7 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
                 'search_submitted': 'Search',
                 'search_date': '01-34-2015'}
         )
-        self.assertEqual(len(resp.context_data['logs']), 10)
+        self.assertEqual(len(resp.context_data['logs']), 11)
 
     def test_search_date_and_text(self):
         resp = self._get_response(
@@ -186,4 +187,4 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
                 'reset': 'Reset'
             }
         )
-        self.assertEqual(len(resp.context_data['logs']), 8)
+        self.assertEqual(len(resp.context_data['logs']), 9)
