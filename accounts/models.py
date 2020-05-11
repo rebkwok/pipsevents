@@ -51,37 +51,6 @@ def has_readonly_fields(original_class):
     return original_class
 
 
-DISCLAIMER_TERMS = "I recognise that I may be asked to participate in some " \
-                   "strenuous exercise during the course and that such " \
-                   "participation may present a heightened risk of injury or " \
-                   "ill health. All risks will be fully explained and I do " \
-                   "NOT hold The Watermelon Studio and any of their staff " \
-                   "responsible for any harm that may come to me should I " \
-                   "decide to participate in such tasks. I knowingly assume " \
-                   "all risks associated with participation, even if arising " \
-                   "from negligence of the participants or others and assume " \
-                   "full responsibility for my participation. I certify that " \
-                   "I am in good physical condition can participate in the " \
-                   "courses offered by The Watermelon Studio. I will not " \
-                   "participate if pregnant or if I have given birth within " \
-                   "the previous 6 weeks or C-section within the previous 12 weeks " \
-                   "and I will update my teacher on " \
-                   "any new medical condition/injury throughout my time at " \
-                   "The Watermelon Studio.  I will not participate under the " \
-                   "influence of drugs or alcohol. Other teachers/instructors " \
-                   "may use the information submitted in this form to help " \
-                   "keep the chances of any injury to a minimum. I also " \
-                   "hereby agree to follow all rules set out by The " \
-                   "Watermelon Studio. I understand that photographs taken " \
-                   "at the studio may be used on the studio's website and " \
-                   "social media pages.  I have read and agree to the terms " \
-                   "and conditions on the website."
-
-OVER_18_TERMS = "I confirm that I am aged 18 or over"
-
-MEDICAL_TREATMENT_TERMS = "I give permission for myself to receive medical " \
-                          "treatment in the event of an accident"
-
 BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
 
 
@@ -206,13 +175,51 @@ class SignedDataPrivacy(models.Model):
 
 
 @has_readonly_fields
-class BaseOnlineDisclaimer(models.Model):
+class DisclaimerContent(models.Model):
+    read_only_fields = ('disclaimer_terms', 'medical_treatment_terms', 'over_18_statement', 'version', 'issue_date')
+    disclaimer_terms = models.TextField()
+    medical_treatment_terms = models.TextField()
+    over_18_statement = models.TextField()
+    version = models.DecimalField(unique=True, decimal_places=1, max_digits=100)
+    issue_date = models.DateTimeField(default=timezone.now)
 
-    read_only_fields = (
-        'disclaimer_terms', 'medical_treatment_terms', 'over_18_statement',
-        'date'
-    )
+    @classmethod
+    def current_version(cls):
+        current_content = DisclaimerContent.current()
+        if current_content is None:
+            return 0
+        return current_content.version
+
+    @classmethod
+    def current(cls):
+        return DisclaimerContent.objects.order_by('version').last()
+
+    def __str__(self):
+        return 'Disclaimer Content - Version {}'.format(self.version)
+
+    def save(self, **kwargs):
+        if not self.id:
+            current = DisclaimerContent.current()
+            if (
+                current and current.disclaimer_terms == self.disclaimer_terms
+                and current.medical_treatment_terms == self.medical_treatment_terms
+                and current.over_18_statement == self.over_18_statement
+            ):
+                raise ValidationError('No changes made to content; not saved')
+
+        if not self.id and not self.version:
+            # if no version specified, go to next major version
+            self.version = floor((DisclaimerContent.current_version() + 1))
+        super().save(**kwargs)
+        ActivityLog.objects.create(
+            log='Disclaimer Content version {} created'.format(self.version)
+        )
+
+@has_readonly_fields
+class BaseOnlineDisclaimer(models.Model):
+    read_only_fields = ('date', 'version')
     date = models.DateTimeField(default=timezone.now)
+    version = models.DecimalField(decimal_places=1, max_digits=100)
 
     dob = models.DateField(verbose_name='date of birth')
     address = models.CharField(max_length=512)
@@ -250,19 +257,10 @@ class BaseOnlineDisclaimer(models.Model):
         max_length=2048, null=True, blank=True
     )
 
-    medical_treatment_terms = models.CharField(
-        max_length=2048, default=OVER_18_TERMS
-    )
     medical_treatment_permission = models.BooleanField()
 
-    disclaimer_terms = models.CharField(
-        max_length=2048, default=DISCLAIMER_TERMS
-    )
     terms_accepted = models.BooleanField()
 
-    over_18_statement = models.CharField(
-        max_length=2048, default=OVER_18_TERMS
-    )
     age_over_18_confirmed = models.BooleanField()
 
     class Meta:
@@ -285,22 +283,20 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         ]
 
     def __str__(self):
-        return '{} - {}'.format(self.user.username, self.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M'))
+        return '{} - V{} - {}'.format(
+            self.user.username,
+            self.version,
+            self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'))
 
     @property
     def is_active(self):
-        # Disclaimer is active if it was signed <1 yr ago
+        # Disclaimer is active if it was signed <1 yr ago AND it is the current version
         date_signed = self.date_updated if self.date_updated else self.date
-        return (date_signed + timedelta(days=365)) > timezone.now()
+        return self.version == DisclaimerContent.current_version() and (date_signed + timedelta(days=365)) > timezone.now()
 
     def save(self, **kwargs):
         if not self.id:
-            self.disclaimer_terms = DISCLAIMER_TERMS
-            self.over_18_statement = OVER_18_TERMS
-            self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
-
+            version = DisclaimerContent.current_version()
             existing_disclaimers = OnlineDisclaimer.objects.filter(
                 user=self.user
             )
@@ -381,13 +377,15 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
 
     @property
     def is_active(self):
-        # Disclaimer is active if it was created <1 yr ago
-        return (self.date + timedelta(days=365)) > timezone.now()
+        # Disclaimer is active if it was created <1 yr ago AND it is the current version
+        return self.version == DisclaimerContent.current_version() and (self.date + timedelta(days=365)) > timezone.now()
 
     def __str__(self):
-        return '{} {} - {}'.format(self.first_name, self.last_name, self.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M'))
+        return '{} {} - V{} - {}'.format(
+            self.first_name,
+            self.last_name,
+            self.version,
+            self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'))
 
     def delete(self, using=None, keep_parents=False):
         expiry = timezone.now() - relativedelta(years=6)
@@ -412,8 +410,9 @@ class ArchivedDisclaimer(BaseOnlineDisclaimer):
     event_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        return '{} - {} (archived {})'.format(
+        return '{} - V{} - {} (archived {})'.format(
             self.name,
+            self.version,
             self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'),
             self.date_archived.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
         )

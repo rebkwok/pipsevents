@@ -9,8 +9,7 @@ from django.contrib.auth.models import Group
 from django.utils import timezone
 
 from accounts import validators as account_validators
-from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DISCLAIMER_TERMS, \
-    OVER_18_TERMS, MEDICAL_TREATMENT_TERMS, DataPrivacyPolicy, \
+from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DisclaimerContent, DataPrivacyPolicy, \
     SignedDataPrivacy, NonRegisteredDisclaimer
 from accounts.utils import has_expired_disclaimer
 from activitylog.models import ActivityLog
@@ -198,31 +197,25 @@ class DisclaimerForm(forms.ModelForm):
         # disclaimer
 
         if self.instance.id:
-            # in the DisclaimerForm, these fields are autopoulated based
-            self.medical_treatment_terms = self.instance.medical_treatment_terms
-            self.disclaimer_terms = self.instance.disclaimer_terms
-            self.age_over_18_confirmed = self.instance.age_over_18_confirmed
+            self.disclaimer_content = DisclaimerContent.objects.get(version=self.instance.version)
         else:
-            self.disclaimer_terms = DISCLAIMER_TERMS
-            self.over_18_terms = OVER_18_TERMS
-            self.medical_treatment_terms = MEDICAL_TREATMENT_TERMS
+            self.disclaimer_content = DisclaimerContent.current()
+        # in the DisclaimerForm, these fields are autopoulated
+        self.medical_treatment_terms = self.disclaimer_content.medical_treatment_terms
+        self.disclaimer_terms = self.disclaimer_content.disclaimer_terms
+        self.over_18_statement = self.disclaimer_content.over_18_statement
 
-            if user is not None:
-                if has_expired_disclaimer(user):
-                    last_disclaimer = OnlineDisclaimer.objects.filter(user=user)\
-                        .last()
-                    # set initial on all fields except ^^^ and terms_accepted
-                    # to data from last disclaimer
-                    for field_name in self.fields:
-                        if field_name not in [
-                            'medical_treatment_terms', 'over_18_terms',
-                            'disclaimer_terms', 'terms_accepted',
-                            'password'
-                        ]:
-                            last_value = getattr(last_disclaimer, field_name)
-                            if field_name == 'dob':
-                                last_value = last_value.strftime('%d %b %Y')
-                            self.fields[field_name].initial = last_value
+        if user is not None:
+            if has_expired_disclaimer(user):
+                last_disclaimer = OnlineDisclaimer.objects.filter(user=user).last()
+                # set initial on all fields except password and confirmation fields
+                # to data from last disclaimer
+                for field_name in self.fields:
+                    if field_name not in ['terms_accepted', 'medical_treatment_permission', 'age_over_18_confirmed', 'password']:
+                        last_value = getattr(last_disclaimer, field_name)
+                        if field_name == 'dob':
+                            last_value = last_value.strftime('%d %b %Y')
+                        self.fields[field_name].initial = last_value
 
         self.fields['home_phone'].required = False
 

@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from accounts.models import OnlineDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.forms import BlockCreateForm
 from booking.models import Block, BlockVoucher, UsedBlockVoucher
@@ -364,7 +364,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             username='test_online', email='test@test.com', password='test'
         )
         make_data_privacy_agreement(user_online_disclaimer)
-        baker.make(OnlineDisclaimer, user=user_online_disclaimer)
+        baker.make(OnlineDisclaimer, user=user_online_disclaimer, version=DisclaimerContent.current_version())
         self.client.login(
             username=user_online_disclaimer.username, password='test'
         )
@@ -387,7 +387,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         )
         disclaimer = baker.make(OnlineDisclaimer,
             user=user_expired_disclaimer,
-            date=datetime(2015, 2, 1, tzinfo=timezone.utc)
+            date=datetime(2015, 2, 1, tzinfo=timezone.utc),
         )
         disclaimer.save()
         self.assertFalse(disclaimer.is_active)
