@@ -9,7 +9,9 @@
     <div class="disclaimer">
     <h1>Disclaimer for {{ disclaimer.first_name }} {{ disclaimer.last_name }}</h1>
     <h1>Event date {{ disclaimer.event_date|date:"D d M Y" }}</h1>
+    <div class="divider"></div>
 
+    <h5>Disclaimer Version: {{ disclaimer.version }}</h5>
     <div class="divider"></div>
 
     <h4>Personal Details</h4>
@@ -44,14 +46,14 @@
     <div class="divider"></div>
 
     <h4>EMERGENCY MEDICAL TREATMENT</h4>
-    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer.medical_treatment_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer_content.medical_treatment_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
     <div class="divider"></div>
 
     <h4>DISCLAIMER</h4>
-     {% if disclaimer.terms_accepted %}<p>{{ disclaimer.disclaimer_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+     {% if disclaimer.terms_accepted %}<p>{{ disclaimer_content.disclaimer_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
-     {% if disclaimer.age_over_18_confirmed %}<p>{{ disclaimer.over_18_statement }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+     {% if disclaimer.age_over_18_confirmed %}<p>{{ disclaimer_content.over_18_statement }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
     <div class="divider"></div>
     <h4>DISCLAIMER COMPLETED ONLINE: {{ disclaimer.date }}</h4>

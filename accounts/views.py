@@ -16,8 +16,7 @@ from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
 from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, NonRegisteredDisclaimer
-from .utils import has_active_data_privacy_agreement, \
-    has_active_disclaimer, has_expired_disclaimer
+from .utils import has_active_data_privacy_agreement, has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from booking.email_helpers import send_mail
 from common.mailchimp_utils import update_mailchimp
@@ -130,7 +129,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         disclaimer = form.save(commit=False)
-
+        disclaimer.version = form.disclaimer_content.version
         password = form.cleaned_data['password']
         if not self.request.user.has_usable_password():
             messages.error(
@@ -167,6 +166,7 @@ class NonRegisteredDisclaimerCreateView(CreateView):
     def form_valid(self, form):
         # email user
         disclaimer = form.save(commit=False)
+        disclaimer.version = form.disclaimer_content.version
         email = disclaimer.email
         host = 'https://{}'.format(self.request.META.get('HTTP_HOST'))
         ctx = {

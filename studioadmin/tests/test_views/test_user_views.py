@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.contrib.auth.models import Group, User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer, PrintDisclaimer
 from common.tests.helpers import _create_session, assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views import UserListView
@@ -334,7 +334,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         user_with_print_disclaimer = baker.make_recipe('booking.user')
         baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
         user_with_online_disclaimer = baker.make_recipe('booking.user')
-        baker.make(OnlineDisclaimer, user=user_with_online_disclaimer)
+        baker.make(OnlineDisclaimer, user=user_with_online_disclaimer, version=DisclaimerContent.current_version())
         user_with_no_disclaimer = baker.make_recipe('booking.user')
 
         resp = self._get_response(superuser)

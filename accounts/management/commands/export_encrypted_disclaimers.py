@@ -10,7 +10,7 @@ from django.utils.encoding import smart_str
 from simplecrypt import encrypt
 
 from activitylog.models import ActivityLog
-from accounts.models import OnlineDisclaimer
+from accounts.models import OnlineDisclaimer, DisclaimerContent
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class Command(BaseCommand):
             '@@@@@'.join(
                 [
                     smart_str(u"ID"),
+                    smart_str(u"Disclaimer version"),
                     smart_str(u"User"),
                     smart_str(u"Date"),
                     smart_str(u"Date Updated"),
@@ -68,10 +69,12 @@ class Command(BaseCommand):
         )
 
         for obj in OnlineDisclaimer.objects.all():
+            disclaimer_content = DisclaimerContent.objects.get(version=obj.version)
             output_text.append(
                 '@@@@@'.join(
                     [
                         smart_str(obj.pk),
+                        smart_str(obj.version),
                         smart_str(obj.user),
                         smart_str(obj.date.strftime('%Y-%m-%d %H:%M:%S:%f %z')),
                         smart_str(obj.date_updated.strftime(
@@ -95,11 +98,11 @@ class Command(BaseCommand):
                         smart_str(obj.joint_problems_details),
                         smart_str('Yes' if obj.allergies else 'No'),
                         smart_str(obj.allergies_details),
-                        smart_str(obj.medical_treatment_terms),
+                        smart_str(disclaimer_content.medical_treatment_terms),
                         smart_str('Yes' if obj.medical_treatment_permission else 'No'),
-                        smart_str(obj.disclaimer_terms),
+                        smart_str(disclaimer_content.disclaimer_terms),
                         smart_str('Yes' if obj.terms_accepted else 'No'),
-                        smart_str(obj.over_18_statement),
+                        smart_str(disclaimer_content.over_18_statement),
                         smart_str('Yes' if obj.age_over_18_confirmed else 'No'),
                     ]
                 )

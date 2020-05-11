@@ -3,6 +3,8 @@ import os
 
 from datetime import date, datetime, timedelta
 from unittest.mock import Mock, patch
+from pathlib import Path
+
 from model_bakery import baker
 
 from django.conf import settings
@@ -14,7 +16,7 @@ from django.utils import timezone
 from accounts.management.commands.import_disclaimer_data import logger as \
     import_disclaimer_data_logger
 from accounts.management.commands.export_encrypted_disclaimers import EmailMessage
-from accounts.models import ArchivedDisclaimer, NonRegisteredDisclaimer, PrintDisclaimer, OnlineDisclaimer
+from accounts.models import ArchivedDisclaimer, DisclaimerContent, NonRegisteredDisclaimer, PrintDisclaimer, OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.models import Booking
 from common.tests.helpers import TestSetupMixin, PatchRequestMixin
@@ -156,38 +158,69 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 class ExportDisclaimersTests(TestCase):
 
     def setUp(self):
-        baker.make(OnlineDisclaimer, _quantity=10)
+        content = baker.make(DisclaimerContent, version=None)
+        baker.make(OnlineDisclaimer, version=content.version, _quantity=10)
+        self.log_path = Path(settings.LOG_FOLDER)
+        self.disclaimer_types = ["online", "archived", "non_registered"]
 
     def test_export_disclaimers_creates_default_bu_file(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers_bu.csv')
-        self.assertFalse(os.path.exists(bu_file))
+        bu_files = [
+            self.log_path / f"{disclaimer_type}_disclaimers_bu.csv" for disclaimer_type in self.disclaimer_types
+        ]
+        for bu_file in bu_files:
+            assert bu_file.exists() is False
         management.call_command('export_disclaimers')
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
+        for bu_file in bu_files:
+            assert bu_file.exists() is True
+            bu_file.unlink()
 
     def test_export_disclaimers_writes_correct_number_of_rows(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers_bu.csv')
+        bu_files = [
+            self.log_path / f"{disclaimer_type}_disclaimers_bu.csv" for disclaimer_type in self.disclaimer_types
+        ]
+        for bu_file in bu_files:
+            assert bu_file.exists() is False
         management.call_command('export_disclaimers')
 
-        with open(bu_file, 'r') as exported:
+        with open(bu_files[0], 'r') as exported:  # online disclaimers
             reader = csv.reader(exported)
             rows = list(reader)
         self.assertEqual(len(rows), 11)  # 10 records plus header row
-        os.unlink(bu_file)
+
+        with open(bu_files[1], 'r') as exported:  # archived disclaimers
+            reader = csv.reader(exported)
+            rows = list(reader)
+        self.assertEqual(len(rows), 1)  # 0 records plus header row
+
+        with open(bu_files[2], 'r') as exported:  # non-reg disclaimers
+            reader = csv.reader(exported)
+            rows = list(reader)
+        self.assertEqual(len(rows), 1)  # 0 records plus header row
+
+        for bu_file in bu_files:
+            assert bu_file.exists() is True
+            bu_file.unlink()
 
     def test_export_disclaimers_with_filename_argument(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'test_file.csv')
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_disclaimers', file=bu_file)
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
+        bu_files = [
+            self.log_path / f"{disclaimer_type}_test.csv" for disclaimer_type in self.disclaimer_types
+        ]
+        input_file = self.log_path / "test.csv"
+
+        for bu_file in bu_files:
+            assert bu_file.exists() is False
+        management.call_command('export_disclaimers', file=input_file)
+        for bu_file in bu_files:
+            assert bu_file.exists() is True
+            bu_file.unlink()
 
 
 @override_settings(LOG_FOLDER=os.path.dirname(__file__))
 class ExportEncryptedDisclaimersTests(TestCase):
 
     def setUp(self):
-        baker.make(OnlineDisclaimer, _quantity=10)
+        content = baker.make(DisclaimerContent, version=None)
+        baker.make(OnlineDisclaimer, version=content.version, _quantity=10)
 
     def test_export_disclaimers_creates_default_bu_file(self):
         bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
@@ -230,9 +263,7 @@ class ImportDisclaimersTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.bu_file = os.path.join(
-            os.path.dirname(__file__), 'test_data/test_disclaimers_backup.csv'
-        )
+        cls.bu_file = Path(__file__).resolve().parent / 'test_data/test_disclaimers_backup.csv'
 
     def test_import_disclaimers_no_matching_users(self):
         import_disclaimer_data_logger.warning = Mock()
@@ -242,15 +273,15 @@ class ImportDisclaimersTests(TestCase):
 
         self.assertEqual(import_disclaimer_data_logger.warning.call_count, 3)
         self.assertIn(
-            "Unknown user test_1 in backup data; data on row 1 not imported",
+            "Unknown user test_1 in backup data; data on row 0 not imported",
             str(import_disclaimer_data_logger.warning.call_args_list[0])
         )
         self.assertIn(
-            "Unknown user test_2 in backup data; data on row 2 not imported",
+            "Unknown user test_2 in backup data; data on row 1 not imported",
             str(import_disclaimer_data_logger.warning.call_args_list[1])
         )
         self.assertIn(
-            "Unknown user test_3 in backup data; data on row 3 not imported",
+            "Unknown user test_3 in backup data; data on row 2 not imported",
             str(import_disclaimer_data_logger.warning.call_args_list[2])
         )
 
@@ -265,12 +296,14 @@ class ImportDisclaimersTests(TestCase):
         import_disclaimer_data_logger.warning = Mock()
         import_disclaimer_data_logger.info = Mock()
 
+        # One DisclaimerContent is already created during migrations
+        assert DisclaimerContent.objects.count() == 1
+
         # if disclaimer already exists for a user, it isn't imported
         for username in ['test_1', 'test_2']:
             baker.make_recipe('booking.user', username=username)
         test_3 = baker.make_recipe('booking.user', username='test_3')
-        baker.make(
-            OnlineDisclaimer, user=test_3, name='Donald Duck')
+        baker.make(OnlineDisclaimer, user=test_3, name='Donald Duck', version=3.0)
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
         management.call_command('import_disclaimer_data', file=self.bu_file)
@@ -298,9 +331,15 @@ class ImportDisclaimersTests(TestCase):
             str(import_disclaimer_data_logger.warning.call_args_list[0])
         )
 
+        # Missing DisclaimerContents matching the disclaimers terms are imported
+        assert DisclaimerContent.objects.count() == 3
+
     def test_import_disclaimers_existing_data_matching_dates(self):
         import_disclaimer_data_logger.warning = Mock()
         import_disclaimer_data_logger.info = Mock()
+
+        # One DisclaimerContent is already created during migrations
+        assert DisclaimerContent.objects.count() == 1
 
         test_1 = baker.make_recipe('booking.user', username='test_1')
         test_2 = baker.make_recipe('booking.user', username='test_2')
@@ -310,11 +349,13 @@ class ImportDisclaimersTests(TestCase):
             date=datetime(2015, 1, 15, 15, 43, 19, 747445, tzinfo=timezone.utc),
             date_updated=datetime(
                 2016, 1, 6, 15, 9, 16, 920219, tzinfo=timezone.utc
-            )
+            ),
+            version=3.0
         ),
         baker.make(
             OnlineDisclaimer, user=test_3,
             date=datetime(2016, 2, 18, 16, 9, 16, 920219, tzinfo=timezone.utc),
+            version=3.0
         )
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
@@ -341,7 +382,12 @@ class ImportDisclaimersTests(TestCase):
             str(import_disclaimer_data_logger.warning.call_args_list[1])
         )
 
+        assert DisclaimerContent.objects.count() == 2
+
     def test_imported_data_is_correct(self):
+        # One DisclaimerContent is already created during migrations
+        assert DisclaimerContent.objects.count() == 1
+
         test_1 = baker.make_recipe('booking.user', username='test_1')
         management.call_command('import_disclaimer_data', file=self.bu_file)
         test_1_disclaimer = OnlineDisclaimer.objects.get(user=test_1)
@@ -376,13 +422,14 @@ class ImportDisclaimersTests(TestCase):
         self.assertEqual(test_1_disclaimer.joint_problems_details, 'knee problems')
         self.assertFalse(test_1_disclaimer.allergies)
         self.assertEqual(test_1_disclaimer.allergies_details, '')
-        self.assertIsNotNone(test_1_disclaimer.medical_treatment_terms)
         self.assertTrue(test_1_disclaimer.medical_treatment_permission)
-        self.assertIsNotNone(test_1_disclaimer.disclaimer_terms)
         self.assertTrue(test_1_disclaimer.terms_accepted)
-        self.assertIsNotNone(test_1_disclaimer.over_18_statement)
         self.assertTrue(test_1_disclaimer.age_over_18_confirmed)
 
+        assert DisclaimerContent.objects.count() == 2
+        new_content = DisclaimerContent.objects.latest("id")
+        assert new_content.disclaimer_terms == "Test terms"
+        assert new_content.version == 2.0
 
 class EmailDuplicateUsersTests(TestCase):
 
