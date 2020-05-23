@@ -128,6 +128,7 @@ class Event(models.Model):
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
+    video_link = models.URLField(null=True, blank=True, help_text="Zoom/Video URL (for online classes only)")
 
     class Meta:
         ordering = ['-date']
@@ -155,8 +156,20 @@ class Event(models.Model):
         time_until_event = time_until_event.total_seconds() / 3600
         return time_until_event > self.cancellation_period
 
+    @property
+    def show_video_link(self):
+        return self.is_online and timezone.now() > self.date - timedelta(minutes=20)
+
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
+
+    @property
+    def is_past(self):
+        return self.date < timezone.now()
+
+    @property
+    def is_online(self):
+        return self.event_type.subtype == "Online class"
 
     def __str__(self):
         return '{} - {} ({})'.format(

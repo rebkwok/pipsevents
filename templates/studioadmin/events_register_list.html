@@ -49,6 +49,9 @@
                                             <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
                                             <td class="table-center studioadmin-tbl">
                                                 <a href="{% url 'studioadmin:event_register' event.slug %}">{{ event.name }}</a>
+                                                {% if event.is_online and not event.video_link %}
+                                                    <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
+                                                {% endif %}
                                             </td>
                                              {%  if location_obj.index == 0 %}
                                                 <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>

@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.test import TestCase
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer
+from accounts.models import PrintDisclaimer, DisclaimerContent
 
 from booking.models import Booking
 from booking.views import EventDetailView, BlockListView
@@ -128,8 +128,6 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         )
 
         resp.render()
-        # check the content for the past text
-        self.assertIn("This workshop/event is now past.", str(resp.content))
         # and check that the payment_text is not there
         self.assertNotIn(resp.context_data['payment_text'], str(resp.content))
 
@@ -318,7 +316,8 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         user_online_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user_online_disclaimer)
         baker.make_recipe(
-            'booking.online_disclaimer', user=user_online_disclaimer
+            'booking.online_disclaimer', user=user_online_disclaimer,
+            version=DisclaimerContent.current_version()
         )
         PrintDisclaimer.objects.create(user=user_print_disclaimer)
 
