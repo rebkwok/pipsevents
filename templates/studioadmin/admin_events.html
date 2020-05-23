@@ -66,6 +66,9 @@
                                 <td class="studioadmin-tbl">
                                     <a href="{% url 'studioadmin:event_register' event.instance.slug %}">{{ event.instance.name }}</a>
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
+                                    {% if event.instance.is_online and not event.instance.video_link %}
+                                        <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
+                                    {% endif %}
                                 </td>
                                 <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.instance.location_index }} label-rounded">{{ event.instance.location }}</span></td>
                                 <td class="table-center studioadmin-tbl">

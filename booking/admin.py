@@ -182,7 +182,7 @@ class EventAdmin(admin.ModelAdmin):
         ('Event details', {
             'fields': (
                 'name', 'date', 'location', 'location_index', 'event_type',
-                'max_participants', 'description')
+                'max_participants', 'description', 'video_link')
         }),
         ('Contacts', {
             'fields': ('contact_person', 'contact_email', 'email_studio_when_booked')

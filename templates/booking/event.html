@@ -17,13 +17,20 @@
                         {{ event.name }}
                 </h3>
             </div>
+            {% if online_class %}
             <div class="panel-body">
-                {% if event.cancelled and past %}
-                    <h3>This {{ event_type_str }} was cancelled and is now past.</h3>
-                {% elif past %}
-                    <h3>This {{ event_type_str }} is now past.</h3>
-                {% elif event.cancelled %}
-                    <h3>This {{ event_type_str }} has been cancelled.</h3>
+                <div class="pull-right">
+                {% if show_video_link and booked and booking.paid %}
+                    <div><a id="video_link_id" class="btn btn-info" href="{{ event.video_link }}">Join online class</a></div>
+                {% else %}
+                    <div id="video_link_disabled_id" class="btn btn-default disabled">Video link enabled 20 mins before class</div>
+                {% endif %}
+            </div>
+            {% endif %}
+                </div>
+            <div class="panel-body">
+                {% if event.cancelled %}
+                    <h3>This {{ event_type__str }} has been cancelled.</h3>
                 {% endif %}
 
                 {% if not disclaimer %}

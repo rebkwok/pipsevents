@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import logging
 
 from django.core.paginator import Paginator
@@ -31,16 +33,18 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             ev_abbr = 'RH'
         name = self.request.GET.get('name')
 
+        cutoff_time = timezone.now() - timedelta(minutes=10)
+
         if name and name not in ['', 'all']:
             return Event.objects.select_related('event_type').filter(
                 event_type__event_type=ev_abbr,
-                date__gte=timezone.now(),
+                date__gte=cutoff_time,
                 name=name,
                 cancelled=False
             ).order_by('date')
         return Event.objects.select_related('event_type').filter(
             event_type__event_type=ev_abbr,
-            date__gte=timezone.now(),
+            date__gte=cutoff_time,
             cancelled=False
         ).order_by('date')
 

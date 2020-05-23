@@ -275,7 +275,7 @@ class EventAdminForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = (
-            'name', 'event_type', 'date', 'description', 'location',
+            'name', 'event_type', 'date', 'video_link', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',
@@ -289,6 +289,9 @@ class EventAdminForm(forms.ModelForm):
             'description': CKEditorWidget(
                 attrs={'class': 'form-control container-fluid'},
                 config_name='studioadmin',
+            ),
+            'video_link': forms.TextInput(
+                attrs={'class': "form-control"}
             ),
             'payment_info': CKEditorWidget(
                 attrs={'class': 'form-control container-fluid'},

@@ -71,6 +71,11 @@ def get_event_context(context, event, user):
     # booking info text and bookable
     booking_info_text = ""
     context['bookable'] = event.bookable
+
+    if event.event_type.subtype == "Online class":
+        context["online_class"] = True
+        context["show_video_link"] = event.show_video_link
+
     if booked:
         context['bookable'] = False
         booking_info_text = "You have booked for this {}.".format(event_type_str)

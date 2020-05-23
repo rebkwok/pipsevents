@@ -131,6 +131,9 @@
 
                                                     compress table-tab">
                                                 {% if user.is_authenticated %}
+                                                    {% if event.is_past %}
+                                                    <td></td>
+                                                    {% else %}
                                                     <td class="table-center table-btns">
                                                             {% if not disclaimer %}
                                                                 {% if type == 'lessons' %}
@@ -175,7 +178,7 @@
                                                             {% else %}
                                                                 <div class="disabled btn btn-success table-btn">Book</div>
                                                             {% endif %}
-
+                                                        {% endif %}
                                                     </td>
                                                   {% endif %}
                                                     <td class="date">{{ event.date | date:"D d M H:i" }}</td>
@@ -185,6 +188,13 @@
                                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                                                         {% elif type == 'room_hires' %}
                                                         <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
+                                                        {% endif %}
+                                                        {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
+                                                            {% if event.show_video_link %}
+                                                                <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">Join online class</a>
+                                                            {% else %}
+                                                                <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-default table-btn disabled">Join online class</span>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </td>
                                                     {% if location_obj.index == 0 %}

@@ -3,6 +3,10 @@
 <div class="container-fluid row">
     <h2>Register for {{ event }}</h2>
 
+    {% if event.video_link %}
+    <h3><a href="{{ event.video_link }}">{{ event.video_link }}</a></h3>
+    {% endif %}
+
     <div class="row">
         <div class="col-sm-12">
             <div class="panel panel-success">

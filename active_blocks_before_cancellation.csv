@@ -1,0 +1,171 @@
+block_id,user,first_name,last_name,block_type,block_size,duration,expiry_date,extended_expiry_date,transferred_booking_id,bookings_made
+8220,13_magpies,Helen,Corby,Class - Pole level class (standard),15,5,26-May-2020,,,14
+8468,13_magpies,Helen,Corby,Class - Pole level class (standard),15,5,10-Jun-2020,,,3
+8783,abidiack,Abi,Diack,Class - Pole level class (Free - 5 classes),5,1,29-Mar-2020,,,0
+8803,abidiack,Abi,Diack,Class - Pole level class (transferred),1,1,02-Apr-2020,,54825,0
+8719,agataugorenko@gmail.com,Agata,Ugorenko,Class - Pole level class (standard),5,2,20-Apr-2020,,,4
+8625,aishats,Aisha,Taylor-Sinclair,Class - Pole level class (free class),1,1,19-May-2020,,,0
+8635,aishats,Aisha,Taylor-Sinclair,Class - Pole level class (standard),15,5,10-Jul-2020,,,7
+8758,akuleyogi,Ieva,Kazlaučiūnaitė,Class - Pole level class (standard),5,2,26-Apr-2020,,,1
+8832,al6,Aneta,Lisowska,Class - Pole level class (standard),15,5,06-Aug-2020,,,8
+8861,AlexaHay,Alexa,Hay,Class - Pole level class (transferred),1,1,10-Apr-2020,,55770,0
+8888,Alexia,Alexia,Hirt,Class - Pole level class (transferred),1,1,16-Apr-2020,,56892,0
+8872,Alexia,Alexia,Hirt,Class - Pole level class (transferred),1,1,13-Apr-2020,,56651,0
+8219,alextreid,Alexandra,Reid,Class - Pole level class (standard),15,5,26-May-2020,,,12
+8380,AlicePalmer,Alice,Palmer,Class - Pole level class (standard),10,4,02-May-2020,,,7
+8224,AlicePalmer,Alice,Palmer,Class - Pole level class (standard),10,4,26-Apr-2020,,,8
+8825,AlisonD,Alison,Daniels,Class - Pole level class (standard),10,4,05-Jul-2020,,,1
+8806,AlixDunlop,Alix,Dunlop,Class - Pole level class (standard),5,2,02-May-2020,,,1
+8871,AmandaAdd,Amanda,Addison,Class - Pole level class (free class),1,1,07-May-2020,,,0
+8886,AmandaAdd,Amanda,Addison,Class - Pole level class (transferred),1,1,16-Apr-2020,,54164,0
+8165,AmeliaMay,Amelia,Hallas-Potts,Class - Pole level class (standard),15,5,03-May-2020,,,14
+8354,AmeliaMay,Amelia,Hallas-Potts,Class - Pole level class (standard),15,5,30-May-2020,,,14
+8457,amy5,Amy,Stewart,Class - Pole level class (standard),10,4,10-May-2020,,,7
+8459,amy5,Amy,Stewart,Class - Pole practice (standard),10,4,10-May-2020,,,7
+8678,ashleighk,Ashleigh,Kelly,Class - Pole level class (free class),1,1,26-Apr-2020,,,0
+8248,ashleighk,Ashleigh,Kelly,Class - Pole practice (standard),10,4,26-Apr-2020,,,6
+8805,ashleighk,Ashleigh,Kelly,Class - Pole level class (free class),1,1,06-May-2020,,,0
+8842,Ashyy,Ashleigh,Forrester,Class - Pole level class (transferred),1,1,08-Apr-2020,,56446,0
+8592,BellyMap,Ilyana,Bell,Class - Pole level class (standard),5,2,02-Apr-2020,,,3
+8749,bethb,Beth,Biller,Class - Pole level class (standard),15,5,24-Jul-2020,,,9
+8461,BillieArmstrong,billie,armstrong,Class - Pole level class (standard),10,4,10-May-2020,,,3
+8614,C8linR,Caitlin,Ritchie,Class - Pole practice (standard),10,4,05-Jun-2020,,,0
+8881,CaitlinTurner93,Caitlin,Turner,Class - Pole level class (standard),5,2,15-May-2020,,,4
+8309,cathiggins1997,Catriona,Higgins,Class - Pole level class (standard),15,5,26-May-2020,,,5
+8240,catrionadick,Catriona,Dick,Class - Pole level class (standard),15,5,26-May-2020,,,12
+8465,catrionadick,Catriona,Dick,Class - Pole level class (standard),10,4,10-May-2020,,,9
+8763,Chloe92,Chloe,Elder,Class - Pole level class (standard),15,5,26-Jul-2020,,,3
+8370,Cjwhittingham,Carol,Whittingham,Class - Pole level class (standard),15,5,01-Jun-2020,,,0
+8542,ClaireCC,Claire,Clifton Coles,Class - Pole practice (standard),10,4,26-May-2020,,,5
+8416,ClaireCC,Claire,Clifton Coles,Class - Pole level class (standard),15,5,07-Jun-2020,,,13
+8243,claire.simpson91@hotmail.co.uk,Claire,Simpson,Class - Pole level class (standard),10,4,26-Apr-2020,,,7
+8796,Courtney949,Courtney,Admans,Class - Pole level class (transferred),1,1,01-Apr-2020,,54936,0
+8880,Courtney949,Courtney,Admans,Class - Pole level class (transferred),1,1,15-Apr-2020,,56087,0
+8865,daynaa,Dayna,Askew,Class - Pole level class (standard),10,4,11-Jul-2020,,,7
+8388,Debsjs7,Debbie,Stewart,Class - Pole level class (standard),15,5,04-Jun-2020,,,7
+8879,eanightingale@hotmail.co.uk,Elizabeth,Nightingale,Class - Pole level class (free class),1,1,10-Jun-2020,,,0
+8890,eatsleeplaugh,Ellen,Elizabeth,Class - Pole level class (transferred),1,1,16-Apr-2020,,56938,0
+8389,ElaineSC,Elaine,Curran,Class - Pole level class (standard),10,4,04-May-2020,,,1
+8420,ELLEK,Ella,Kluska,Class - Pole level class (standard),10,4,07-May-2020,,,4
+8792,emily.z,Emiliya,Zimovets,Class - Pole level class (standard),5,2,01-May-2020,,,4
+8821,EmmaO,Emma,Ogg,Class - Pole level class (standard),5,2,04-May-2020,,,1
+8717,EmZz,Emily,Barcroft,Class - Pole level class (standard),15,5,19-Jul-2020,,,7
+8527,ERIKAMARIE,Erika Marie,Ni Bhriain,Class - Pole level class (standard),10,4,24-May-2020,,,7
+8292,gabrielem94,Gabriele,Matilionyte,Class - Pole level class (standard),10,4,02-May-2020,,,9
+8863,gillianl,Gillian,Lindsay,Class - Pole level class (standard),5,2,11-May-2020,,,1
+8882,ginafyw,Gina,Farm,Class - Pole level class (transferred),1,1,01-Sep-2020,,55606,0
+8826,ginafyw,Gina,Farm,Class - Pole level class (standard),10,4,01-Sep-2020,,,0
+8684,gwend,Gwen,Dolan,Class - Pole level class (free class),1,1,15-Jun-2020,,,0
+8813,hellogeorgie,Georgie,Hand,Class - Pole level class (transferred),1,1,03-Apr-2020,,55968,0
+8562,hmcpherson2,Hannah,McPherson,Class - Pole level class (standard),10,4,29-May-2020,,,8
+8246,Hollyt,Holly,Judge,Class - Pole level class (standard),15,5,26-May-2020,,,13
+8269,hollyw,Holly,White,Class - Pole level class (standard),10,4,26-Apr-2020,,,9
+8264,hollyw,Holly,White,Class - Pole level class (standard),10,4,26-Apr-2020,,,7
+8266,hollyw,Holly,White,Class - Pole level class (standard),10,4,26-Apr-2020,,,6
+8270,hollyw,Holly,White,Class - Pole practice (standard),10,4,26-Apr-2020,,,8
+8330,hprather,Hillary,Prather,Class - Pole level class (standard),10,4,28-Apr-2020,,,6
+8854,ievgeniia,Ievgeniia,Zlotar,Class - Pole level class (transferred),1,1,10-Apr-2020,,55209,0
+8256,Imogenpersephonehope@gmail.com,Imogen,Zakar-Smith,Class - Pole level class (standard),10,4,26-Apr-2020,,,9
+8689,ISING,Isis,Ingram,Class - Pole level class (transferred),1,1,16-Mar-2020,,54371,0
+8737,iyellow,Edyta,Kedzierawska,Class - Pole level class (standard),15,5,23-Jul-2020,,,3
+8841,Izzekerr,Izzie,Kerr,Class - Pole level class (free class),1,1,28-Jun-2020,,,0
+8253,jb011c7525@blueyonder.co.uk,Jinan,Bottrill,Class - Pole level class (standard),10,4,26-Apr-2020,,,2
+8423,jencoyle1@hotmail.co.uk,Jen,Coyle,Class - Pole level class (standard),10,4,08-May-2020,,,4
+8884,jenelsan,Jenny,Sanger,Class - Pole level class (standard),5,2,16-May-2020,,,2
+8223,JenGates14,Jen,Gates,Class - Pole practice (standard),10,4,26-Apr-2020,,,8
+8035,jessickta,Jessica,Taylor-Ashley,Class - Pole level class (standard),15,5,12-Apr-2020,,,3
+8694,JJ-x,Jia,Wong,Class - Pole level class (standard),10,4,16-Jun-2020,,,1
+8885,Jodiechia11,Jodie,Chiappa,Class - Pole level class (free class),1,1,08-May-2020,,,0
+8845,Kaloho,Kayley,Holdham,Class - Pole level class (free class),1,1,29-Apr-2020,,,0
+8432,Karensee,Karen,See,Class - Pole level class (standard),15,5,08-Jun-2020,,,4
+8686,Kasia.Odolczyk,kasia,Odolczyk,Class - Pole level class (free class),1,1,06-Jun-2020,,,0
+8852,KayCC,Kay,Corbett,Class - Pole level class (standard),15,5,09-Aug-2020,,,1
+8855,kingakarwacka82,Kinga,Karwacka,Class - Pole level class (transferred),1,1,10-Apr-2020,,56193,0
+8561,kirsty_hulme,Kirsty,Hulme,Class - Pole level class (standard),10,4,29-May-2020,,,6
+8829,kirstysutherland4,Kirsty,Sutherland,Class - Pole level class (standard),5,2,06-May-2020,,,2
+8714,ktsimpsxn,Katie,Simpson,Class - Pole level class (standard),15,5,19-Jul-2020,,,6
+8822,LauraFerreri,Laura,Ferreri,Class - Pole level class (standard),10,4,04-Jul-2020,,,6
+8870,lauren5,Lauren,Atwell,Class - Pole level class (standard),15,5,13-Aug-2020,,,1
+8693,lidicec,Lidice,Cabral,Class - Pole level class (standard),10,4,16-Jun-2020,,,7
+8705,Lindzouzou,Lindsey,Reville,Class - Pole level class (standard),5,2,18-Apr-2020,,,4
+8375,lizzyboahl,Elizabeth,Williams,Class - Pole level class (standard),10,4,02-May-2020,,,7
+8230,lornat1512,Lorna,Taylor,Class - Pole level class (standard),15,5,26-May-2020,,,14
+8669,louise68,Louise,Skehan,Class - Pole level class (standard),10,4,13-Jun-2020,,,3
+8897,lsinton,Leigh,Sinton,Class - Pole level class (transferred),1,1,16-Apr-2020,,56600,0
+8899,lsinton,Leigh,Sinton,Class - Pole level class (transferred),1,1,16-Apr-2020,,56645,0
+8898,lsinton,Leigh,Sinton,Class - Pole level class (transferred),1,1,16-Apr-2020,,56646,0
+8671,lucyfdavie@googlemail.com,Lucy,Davie,Class - Pole level class (free class),1,1,27-May-2020,,,0
+8672,lucyfdavie@googlemail.com,Lucy,Davie,Class - Pole practice (standard),10,4,13-Jun-2020,,,7
+8673,lucyfdavie@googlemail.com,Lucy,Davie,Class - Pole level class (standard),15,5,13-Jul-2020,,,2
+8376,LydiaC,Lydia,Cordell - van Duuren,Class - Pole level class (standard),10,4,02-May-2020,,,9
+8453,lynsey,Lynsey,McGreavey,Class - Pole level class (standard),15,5,10-Jun-2020,,,12
+8728,malwilson103,Marilyn,Wilson,Class - Pole level class (standard),5,2,21-Apr-2020,,,4
+8831,MartaPortugal,Marta,Portugal,Class - Pole level class (standard),5,2,06-May-2020,,,1
+8848,melanie24,Melanie,Toutakova,Class - Pole level class (free class),1,1,26-Apr-2020,,,0
+8893,Melinda13,Melinda,Kunz,Class - Pole practice (transferred),1,1,16-Apr-2020,,56936,0
+8869,Melinda13,Melinda,Kunz,Class - Pole level class (standard),5,2,13-May-2020,,,2
+8804,Melinda13,Melinda,Kunz,Class - Pole level class (transferred),1,1,02-Apr-2020,,54952,0
+8891,Melinda13,Melinda,Kunz,Class - Pole practice (transferred),1,1,16-Apr-2020,,56934,0
+8892,Melinda13,Melinda,Kunz,Class - Pole practice (transferred),1,1,16-Apr-2020,,56935,0
+8092,Michaela,Michaela,Raab,Class - Pole level class (standard),10,4,24-Mar-2020,,,4
+8447,Mrsagallager,Alex,Gallagher,Class - Pole level class (standard),10,4,09-May-2020,,,4
+8896,N1c1m00nbeam.,Nici ,Buchan ,Class - Pole level class (transferred),1,1,16-Apr-2020,,56602,0
+8608,Naomigoodchild,Naomi,Goodchild,Class - Pole level class (standard),15,5,05-Jul-2020,,,2
+8452,natalia2,Natalia,Pinska,Class - Pole level class (standard),10,4,10-May-2020,,,5
+8744,Ness,Ness,Kohl,Class - Pole level class (standard),10,4,23-Jun-2020,,,5
+8682,nic_grierson,Nicola,Grierson,Class - Pole level class (free class),1,1,27-Apr-2020,,,0
+8257,NicoleB,Nicole,Barth,Class - Pole level class (standard),10,4,26-Apr-2020,,,9
+8811,orsolya.pall,Orsolya,Pall,Class - Pole level class (transferred),1,1,03-Apr-2020,,55886,0
+8875,orsolya.pall,Orsolya,Pall,Class - Pole level class (transferred),1,1,14-Apr-2020,,56281,0
+8867,orsolya.pall,Orsolya,Pall,Class - Pole level class (transferred),1,1,12-Apr-2020,,56280,0
+8293,paulam,Paula,Mclear,Class - Pole level class (standard),15,5,26-May-2020,,,4
+8801,pennymcgov@gmail.com,Penny,McGovern,Class - Pole level class (free class),1,1,29-May-2020,,,0
+8802,pennymcgov@gmail.com,Penny,McGovern,Class - Pole level class (standard),15,5,02-Aug-2020,,,4
+8784,Pinkie_Pip,Sandi,Wilkie,Class - Pole level class (Free - 5 classes),5,1,29-Mar-2020,,,0
+8800,Pinkie_Pip,Sandi,Wilkie,Class - Pole level class (transferred),1,1,02-Apr-2020,,56143,0
+8814,Pinkie_Pip,Sandi,Wilkie,Class - Pole level class (transferred),1,1,03-Apr-2020,,55598,0
+8344,Pinksoda209,Lisa,Branney,Class - Pole level class (standard),15,5,29-May-2020,,,14
+8715,Poppysh,Poppy,Scott-Henker,Class - Pole level class (free class),1,1,26-Apr-2020,,,0
+8716,Poppysh,Poppy,Scott-Henker,Class - Pole level class (standard),10,4,19-Jun-2020,,,4
+8352,Psychogirl,Katherine,Hegarty,Class - Pole level class (standard),15,5,29-May-2020,,,0
+7937,Psychogirl,Katherine,Hegarty,Class - Pole level class (standard),15,5,23-Mar-2020,,,12
+8656,rachael_93,Rachael,Johnston,Class - Pole level class (free class),1,1,08-May-2020,,,0
+8807,Ravs,Ravana,Eagleheart,Class - Pole level class (standard),10,4,02-Jul-2020,,,5
+8839,RebeccaC96,Rebecca,Cox,Class - Pole level class (standard),5,2,08-May-2020,,,4
+8701,rebkwok,Becky,Smith,Class - Pole level class (transferred),1,1,17-Mar-2020,,53595,0
+8702,rebkwok,Becky,Smith,Class - Pole level class (transferred),1,1,17-Mar-2020,,53597,0
+8700,rebkwok,Becky,Smith,Class - Pole level class (transferred),1,1,17-Mar-2020,,53594,0
+8699,rebkwok,Becky,Smith,Class - Pole level class (transferred),1,1,17-Mar-2020,,53592,0
+8467,rittisoncco,Ritti,Soncco,Class - Pole level class (standard),10,4,10-May-2020,,,7
+8755,robbhollis,Robb,Hollis,Class - Pole level class (transferred),1,1,25-Mar-2020,,54773,0
+8723,robbhollis,Robb,Hollis,Class - Pole level class (transferred),1,1,20-Mar-2020,,54772,0
+8782,robbhollis,Robb,Hollis,Class - Pole level class (Free - 5 classes),5,1,29-Mar-2020,,,0
+8816,robyngrant_95@hotmail.co.uk,Robyn,Grant,Class - Pole level class (transferred),1,1,03-Apr-2020,,55906,0
+8894,RobynMotion,Robyn,Motion,Class - Pole level class (transferred),1,1,16-Apr-2020,,56658,0
+8895,RobynMotion,Robyn,Motion,Class - Pole level class (transferred),1,1,16-Apr-2020,,56576,0
+8302,Romac345,Rocine,Macfarlane,Class - Pole practice (standard),10,4,26-Apr-2020,,,6
+8385,Romac345,Rocine,Macfarlane,Class - Pole level class (standard),15,5,04-Jun-2020,,,14
+8793,rowans,Rowan,Macleod,Class - Pole level class (transferred),1,1,01-Apr-2020,,55282,0
+8794,rowans,Rowan,Macleod,Class - Pole level class (transferred),1,1,01-Apr-2020,,55283,0
+8887,rowans,Rowan,Macleod,Class - Pole level class (transferred),1,1,16-Apr-2020,,55284,0
+8766,samanthab,Samantha,Baker,Class - Pole level class (standard),5,2,27-Apr-2020,,,3
+8406,SamP,Samantha,Purves,Class - Pole level class (standard),15,5,06-Jun-2020,,,0
+8462,SarahT,Sarah,Thomson,Class - Pole level class (standard),10,4,10-May-2020,,,8
+8538,siobfran28,Siobhân,Francis,Class - Pole level class (standard),10,4,26-May-2020,,,5
+8638,spidergirl,Erika,Lau,Class - Pole level class (standard),5,2,10-Apr-2020,,,4
+8753,spiridoulaathanasiadou@gmail.com,Spiridoula,Athanasiadou,Class - Pole level class (standard),5,2,25-Apr-2020,,,4
+8397,sundman,Chloe,Sundman,Class - Pole level class (standard),10,4,06-May-2020,,,4
+8773,suzannehancock,suzanne,hancock,Class - Pole level class (standard),10,4,28-Jun-2020,,,9
+8403,swiejooliem,Swie Joo,Liem,Class - Pole level class (standard),15,5,06-Jun-2020,,,14
+8808,tabbyxcf,tabitha,carless-frost,Class - Pole level class (standard),5,2,09-May-2020,,,1
+8789,Tejal-07,Tejal,Joshi,Class - Pole level class (transferred),1,1,01-Apr-2020,,54910,0
+8732,Tejal-07,Tejal,Joshi,Class - Pole level class (standard),5,2,22-Apr-2020,,,1
+8864,Trakey84,Tracey,Hunter,Class - Pole level class (free class),1,1,26-May-2020,,,0
+8838,Tzeni,Polyxeni,Stavrakoudi,Class - Pole level class (standard),10,4,08-Jul-2020,,,1
+8371,Vandana,vandana,akhramka,Class - Pole level class (standard),10,4,01-May-2020,,,8
+8657,Vandana,vandana,akhramka,Class - Pole level class (standard),10,4,12-Jun-2020,,,9
+8455,WaspsAndCakes,Catriona,MacDonald,Class - Pole level class (standard),15,5,10-Jun-2020,,,12
+8262,wolfsoul13,Mirela-Lucia,Sauca,Class - Pole practice (standard),10,4,16-May-2020,,,7
+8810,wolfsoul13,Mirela-Lucia,Sauca,Class - Pole level class (standard),15,5,24-Aug-2020,,,7
+8878,zaram,Zara,Taylor,Class - Pole level class (free class),1,1,26-Apr-2020,,,0
+8849,Zjanes,Zach,Janes,Class - Pole level class (transferred),1,1,09-Apr-2020,,56607,0

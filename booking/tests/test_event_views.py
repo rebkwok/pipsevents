@@ -14,7 +14,7 @@ from django.contrib.auth.models import Permission
 from django.utils import timezone
 
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
-    DataPrivacyPolicy
+    DataPrivacyPolicy, DisclaimerContent
 from accounts.utils import has_active_data_privacy_agreement
 
 from booking.models import Event, BlockVoucher, Booking, EventVoucher
@@ -92,6 +92,23 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # event listing should still only show future events
         self.assertEqual(resp.context['events'].count(), 3)
+
+    def test_event_list_past_event_within_10_mins_is_listed(self):
+        """
+        Test that past events is not listed
+        """
+        past = baker.make_recipe('booking.past_event', date=timezone.now() - timedelta(minutes=30))
+        # check there are now 4 events (10 altogether)
+        self.assertEqual(Event.objects.all().count(), 10)
+        resp = self.client.get(self.url)
+
+        # event listing should still only show future events
+        self.assertEqual(resp.context['events'].count(), 3)
+
+        past.date = timezone.now() - timedelta(minutes=9)
+        past.save()
+        # event listing should shows future events plus pas within 10 mins
+        self.assertEqual(resp.context['events'].count(), 4)
 
     def test_event_list_with_anonymous_user(self):
         """
@@ -405,7 +422,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
         # expired disclaimer
         disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
-            date=datetime(2015, 2, 1, tzinfo=timezone.utc)
+            date=datetime(2015, 2, 1, tzinfo=timezone.utc),
+            version=DisclaimerContent.current_version()
         )
 
         self.assertFalse(disclaimer.is_active)
@@ -419,7 +437,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
-        baker.make_recipe('booking.online_disclaimer', user=user)
+        # active disclaimer
+        disclaimer = baker.make_recipe(
+            'booking.online_disclaimer', user=user, version=DisclaimerContent.current_version()
+        )
+        assert disclaimer.is_active is True
         resp = self.client.get(self.url)
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
@@ -707,6 +729,55 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             resp.context_data['location_events'][1]['queryset'].number, 1
         )
+
+    def test_online_event_video_link(self):
+        online_class = baker.make_recipe(
+            'booking.future_CL', event_type__subtype="Online class", video_link="https://foo.test"
+        )
+        active_video_link_id = f"video_link_id_{online_class.id}"
+        disabled_video_link_id = f"video_link_id_disabled_{online_class.id}"
+
+        url = reverse('booking:lessons')
+
+        # User is not booked, no links shown
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id not in resp.rendered_content
+
+        booking = baker.make_recipe("booking.booking", event=online_class, user=self.user)
+        # User is booked but not paid, no links shown
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id not in resp.rendered_content
+
+        # User is booked and paid but class is more than 20 mins ahead
+        booking.paid = True
+        booking.save()
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id in resp.rendered_content
+
+        # User is booked and paid, class is less than 20 mins ahead
+        online_class.date = timezone.now() + timedelta(minutes=10)
+        online_class.save()
+        resp = self.client.get(url)
+        assert active_video_link_id in resp.rendered_content
+        assert disabled_video_link_id not in resp.rendered_content
+
+        # User is no show
+        booking.no_show = True
+        booking.save()
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id not in resp.rendered_content
+
+        # user has cancelled
+        booking.no_show = False
+        booking.status = "CANCELLED"
+        booking.save()
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id not in resp.rendered_content
 
 
 class EventDetailViewTests(TestSetupMixin, TestCase):
@@ -1246,19 +1317,67 @@ class LessonDetailViewTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.future_EV', _quantity=3)
         baker.make_recipe('booking.future_PC', _quantity=3)
 
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user.username, password="test")
+
     def test_with_logged_in_user(self):
         """
         test that page loads if there user is available
         """
         url = reverse('booking:lesson_detail', args=[self.lesson.slug])
-        request = self.factory.get(url)
-        # Set the user on the request
-        request.user = self.user
-        view = EventDetailView.as_view()
-        resp = view(request, slug=self.lesson.slug, ev_type='lesson')
-
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context_data['type'], 'lesson')
+
+    def test_online_event_video_link(self):
+        online_class = baker.make_recipe(
+            'booking.future_CL', event_type__subtype="Online class", video_link="https://foo.test"
+        )
+        active_video_link_id = f"video_link_id"
+        disabled_video_link_id = f"video_link_disabled_id"
+
+        url = reverse('booking:lesson_detail', args=[online_class.slug])
+
+        # User is not booked, disabled link shown
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id in resp.rendered_content
+
+        booking = baker.make_recipe("booking.booking", event=online_class, user=self.user)
+        # User is booked but not paid, disabled link shown
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id in resp.rendered_content
+
+        # User is booked and paid but class is more than 20 mins ahead
+        booking.paid = True
+        booking.save()
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id in resp.rendered_content
+
+        # User is booked and paid, class is less than 20 mins ahead
+        online_class.date = timezone.now() + timedelta(minutes=10)
+        online_class.save()
+        resp = self.client.get(url)
+        assert active_video_link_id in resp.rendered_content
+        assert disabled_video_link_id not in resp.rendered_content
+
+        # User is no show
+        booking.no_show = True
+        booking.save()
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id in resp.rendered_content
+
+        # user has cancelled
+        booking.no_show = False
+        booking.status = "CANCELLED"
+        booking.save()
+        resp = self.client.get(url)
+        assert active_video_link_id not in resp.rendered_content
+        assert disabled_video_link_id in resp.rendered_content
 
 
 class RoomHireDetailViewTests(TestSetupMixin, TestCase):

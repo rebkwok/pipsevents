@@ -143,6 +143,27 @@ class EventTests(TestCase):
             str(event), 'Test event - 01 Jan 2015, 00:00 (Beaverbank Place)'
         )
 
+    def test_online_class_show_video_link(self):
+        online_event_type = baker.make(EventType, event_type="CL", subtype="Online class")
+        event = baker.make_recipe('booking.past_event')
+        # not an online event
+        assert event.show_video_link is False
+
+        # online event, past
+        event.event_type = online_event_type
+        event.save()
+        assert event.show_video_link is True
+
+        # future online event, <20 mins ahead
+        event.date = timezone.now() + timedelta(minutes=19)
+        event.save()
+        assert event.show_video_link is True
+
+        # future online event, >20mins ahead
+        event.date = timezone.now() + timedelta(minutes=21)
+        event.save()
+        assert event.show_video_link is False
+
 
 class BookingTests(PatchRequestMixin, TestCase):
 
