@@ -6,23 +6,6 @@ from django.contrib.auth.models import User
 from booking.models import Block
 
 
-class UserChoiceField(forms.ChoiceField):
-
-    def to_python(self, value):
-        if value:
-            return User.objects.get(id=value)
-
-    def validate(self, value):
-        if value:
-            value = value.id
-        super(UserChoiceField, self).validate(value)
-
-    def has_changed(self, initial, data):
-        if str(initial) == str(data):
-            return False
-        return super(UserChoiceField, self).has_changed(initial, data)
-
-
 class UserBlockModelChoiceField(forms.ModelChoiceField):
 
     def label_from_instance(self, obj):
