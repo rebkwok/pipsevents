@@ -112,6 +112,7 @@
                                                 <th>{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% elif type == 'room_hires' %}Room Hire{% endif %}<br/>
                                                     <span class="studioadmin-help">Click for details</span>
                                                 </th>
+                                                <th></th>
                                                 {% if location_obj.index == 0 %}
                                                     <th class="table-center">Location</th>
                                                 {% endif %}
@@ -188,12 +189,13 @@
                                                         <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
                                                         {% elif type == 'room_hires' %}
                                                         <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
-                                                        {% endif %}
+                                                        {% endif %}</td>
+                                                    <td>
                                                         {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
                                                             {% if event.show_video_link %}
                                                                 <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">Join online class</a>
                                                             {% else %}
-                                                                <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-default table-btn disabled">Join online class</span>
+                                                                <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-info table-btn disabled">Join online class</span>
                                                             {% endif %}
                                                         {% endif %}
                                                     </td>

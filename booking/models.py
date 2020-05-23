@@ -70,11 +70,13 @@ class EventType(models.Model):
 class Event(models.Model):
     LOCATION_CHOICES = (
         ("Beaverbank Place", "The Watermelon Studio - Beaverbank Place"),
-        ("Davidson's Mains", "The Watermelon Studio - Davidson's Mains")
+        ("Online", "Online"),
+        ("Davidson's Mains", "The Watermelon Studio - Davidson's Mains"),
     )
     LOCATION_INDEX_MAP = {
         "Beaverbank Place": 1,
-        "Davidson's Mains": 2
+        "Online": 2,
+        "Davidson's Mains": 3,
     }
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType, on_delete=models.CASCADE)
