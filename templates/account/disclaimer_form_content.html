@@ -234,7 +234,7 @@
 
        <div class="col-xs-12">
        <h4>DISCLAIMER</h4>
-       {{ form.disclaimer_terms }}</div>
+       {{ form.disclaimer_terms|linebreaks }}</div>
        <div class="form-group">
            <div class="col-xs-12 vspace {% if form.terms_accepted.errors %}ticket-error{% endif %}">
                {{ form.terms_accepted }}<label for='id_terms_accepted'></label>

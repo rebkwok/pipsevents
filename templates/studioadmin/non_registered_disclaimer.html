@@ -51,7 +51,7 @@
     <div class="divider"></div>
 
     <h4>DISCLAIMER</h4>
-     {% if disclaimer.terms_accepted %}<p>{{ disclaimer_content.disclaimer_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+     {% if disclaimer.terms_accepted %}<p>{{ disclaimer_content.disclaimer_terms|linebreaks }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
      {% if disclaimer.age_over_18_confirmed %}<p>{{ disclaimer_content.over_18_statement }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
