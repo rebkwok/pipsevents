@@ -8,22 +8,63 @@ from django.db.models import Q
 from django.urls import reverse
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404, Http404
-from django.views.generic import UpdateView, DeleteView, ListView
+from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.utils import timezone
 
 from braces.views import LoginRequiredMixin
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
-from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm
+from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm, StudioadminDisclaimerContentForm
 from studioadmin.utils import str_int, dechaffify
 from studioadmin.views.helpers import is_instructor_or_staff, \
-    InstructorOrStaffUserMixin, StaffUserMixin
+    InstructorOrStaffUserMixin, staff_required, StaffUserMixin
 
 from activitylog.models import ActivityLog
 
 
 logger = logging.getLogger(__name__)
 
+
+class DisclaimerContentCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
+
+    model = DisclaimerContent
+    template_name = 'studioadmin/disclaimer_content_create.html'
+    form_class = StudioadminDisclaimerContentForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sidenav_selection'] = 'disclaimer_content_new'
+        return context
+
+    def get_success_url(self):
+        return reverse('studioadmin:disclaimer_content_list')
+
+
+class DisclaimerContentListView(LoginRequiredMixin, StaffUserMixin, ListView):
+
+    model = DisclaimerContent
+    context_object_name = 'disclaimer_contents'
+    template_name = 'studioadmin/disclaimer_content_list.html'
+    ordering = ['-version']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sidenav_selection'] = 'disclaimer_content_list'
+        return context
+
+
+@login_required
+@staff_required
+def disclaimer_content_view(request, version):
+    disclaimer_content = get_object_or_404(DisclaimerContent, version=version)
+    ctx = {
+        'disclaimer_content': disclaimer_content,
+        'sidenav_selection': 'disclaimer_content_view'
+   }
+
+    return TemplateResponse(
+        request, "studioadmin/disclaimer_content_view.html", ctx
+    )
 
 @login_required
 @is_instructor_or_staff

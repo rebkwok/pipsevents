@@ -296,7 +296,6 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
 
     def save(self, **kwargs):
         if not self.id:
-            version = DisclaimerContent.current_version()
             existing_disclaimers = OnlineDisclaimer.objects.filter(
                 user=self.user
             )
@@ -326,8 +325,6 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         # clear active cache if there is any
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_online_disclaimer_cache_key(self.user))
-        # TODO: if disclaimer is < 6 yrs old (date signed or updated), it is being
-        # deleted by user request; copy data to ArchivedDisclaimer model
         expiry = timezone.now() - relativedelta(years=6)
         if self.date > expiry or (self.date_updated and self.date_updated > expiry):
             ignore_fields = ['id', 'user_id', '_state']

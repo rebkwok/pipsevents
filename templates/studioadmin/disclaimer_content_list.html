@@ -1,0 +1,15 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+        <h2>Disclaimer Versions</h2>
+        {% for disclaimer_content in disclaimer_contents %}
+            <div><a href="{% url 'studioadmin:disclaimer_content_view' disclaimer_content.version %}">
+                Version {{ disclaimer_content.version }} - {{ disclaimer_content.issue_date | date:"d M Y" }}
+            </a></div>
+        {% endfor %}
+    </div>
+
+{% endblock studioadmincontent %}

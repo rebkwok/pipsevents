@@ -1,6 +1,7 @@
 from studioadmin.forms.activitylog_forms import ActivityLogSearchForm
 from studioadmin.forms.block_forms import BlockStatusFilter
-from studioadmin.forms.disclaimer_forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm
+from studioadmin.forms.disclaimer_forms import StudioadminDisclaimerForm, \
+    DisclaimerUserListSearchForm, StudioadminDisclaimerContentForm
 from studioadmin.forms.email_users_forms import ChooseUsersFormSet, \
     EmailUsersForm, UserFilterForm
 from studioadmin.forms.event_forms import EventAdminForm, EventFormSet
@@ -23,7 +24,8 @@ __all__ = [
     'EmailUsersForm', 'EventAdminForm', 'EventFormSet',
     'PrintTicketsForm',
     'RegisterDayForm', 'SessionAdminForm',
-    'StudioadminDisclaimerForm', 'DisclaimerUserListSearchForm', 'TicketedEventAdminForm',
+    'StudioadminDisclaimerForm', 'DisclaimerUserListSearchForm', 'StudioadminDisclaimerContentForm',
+    'TicketedEventAdminForm',
     'TicketedEventFormSet', 'TicketBookingInlineFormSet',
     'TimetableSessionFormSet', 'UploadTimetableForm', 'UserBlockFormSet',
     'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',

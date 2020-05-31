@@ -2,7 +2,9 @@
 
 from django import forms
 
+from accounts.admin import DisclaimerContentAdminForm
 from accounts.forms import DisclaimerForm
+from accounts.models import DisclaimerContent
 
 
 class StudioadminDisclaimerForm(DisclaimerForm):
@@ -41,3 +43,27 @@ class DisclaimerUserListSearchForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'onclick': 'this.form.submit();', 'class': "regular-checkbox",})
     )
+
+
+class StudioadminDisclaimerContentForm(DisclaimerContentAdminForm):
+
+    class Meta:
+        fields = ('medical_treatment_terms', 'disclaimer_terms', 'over_18_statement', 'version' )
+        model = DisclaimerContent
+        widgets = {
+            'disclaimer_terms': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 20},
+            ),
+            'medical_treatment_terms': forms.Textarea(
+                attrs={'class': "form-control", 'rows': 2}
+            ),
+            'over_18_statement': forms.Textarea(
+                attrs={'class': "form-control", 'rows': 1}
+            ),
+            'version': forms.TextInput(
+                attrs={'class': "form-control"}
+            ),
+        }
+        help_text = {
+            'disclaimer_terms': 'test'
+        }
