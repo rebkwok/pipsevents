@@ -1,0 +1,19 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+        <h2>Disclaimer Version {{ disclaimer_content.version }} - {{ disclaimer_content.issue_date | date:"d M Y" }}</h2>
+
+        <h4>Medical Treatment Terms</h4>
+        <div>{{ disclaimer_content.medical_treatment_terms|linebreaks }}</div>
+
+        <h4>Disclaimer Terms</h4>
+        <div>{{ disclaimer_content.disclaimer_terms|linebreaks }}</div>
+
+        <h4>Over 18 Statement</h4>
+        <div>{{ disclaimer_content.over_18_statement }}</div>
+    </div>
+
+{% endblock studioadmincontent %}

@@ -107,6 +107,16 @@
                 </ul>
             </li>
 
+            <li class="dropdown">
+                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Disclaimer Versions </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <ul class="dropdown-menu" role="menu">
+                    <li class="active-nav"><a href="{% url 'studioadmin:disclaimer_content_list' %}">{% if sidenav_selection == 'disclaimer_content_list' %}
+                        <span class="sidebar_active">Disclaimer versions</span>{% else %}Disclaimer versions{% endif %}</a></li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:disclaimer_content_new' %}">{% if sidenav_selection == 'disclaimer_content_new' %}
+                        <span class="sidebar_active">Add new disclaimer version</span>{% else %}Add new disclaimer version{% endif %}</a></li>
+                </ul>
+            </li>
+
              <li class="dropdown">
                  <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
                     <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
@@ -311,6 +321,26 @@
                         <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
                         <span class="sidebar_active">Test PayPal Email</span>{% else %}Test PayPal Email{% endif %}</a></li>
                     </span>
+
+                <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#disclaimerversions">
+                            <span class="fa events
+                                {% if sidenav_selection in 'disclaimer_content_list,disclaimer_content_new,disclaimer_content_view' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Disclaimer Versions
+                        </a>
+                    </li>
+                    <span id="disclaimerversions" class="collapse {% if sidenav_selection in 'disclaimer_content_list,disclaimer_content_new,disclaimer_content_view' %} in{% endif %}">
+                         <li><a href="{% url 'studioadmin:disclaimer_content_list' %}">{% if sidenav_selection == 'disclaimer_content_list' %}
+                        <span class="sidebar_active">Disclaimer versions</span>{% else %}Disclaimer versions{% endif %}</a></li>
+                         <li><a href="{% url 'studioadmin:disclaimer_content_new' %}">{% if sidenav_selection == 'disclaimer_content_new' %}
+                        <span class="sidebar_active">Add new version</span>{% else %}Add new version{% endif %}</a></li>
+                    </span>
+
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#log">

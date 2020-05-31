@@ -4,7 +4,8 @@ from studioadmin.views.activity_log import ActivityLogListView
 from studioadmin.views.blocks import BlockListView
 from studioadmin.views.disclaimers import DisclaimerUpdateView, \
     DisclaimerDeleteView, user_disclaimer, NonRegisteredDisclaimersListView, \
-    nonregistered_disclaimer
+    nonregistered_disclaimer, DisclaimerContentCreateView, DisclaimerContentListView, \
+    disclaimer_content_view
 from studioadmin.views.email_users import choose_users_to_email, \
     email_users_view, export_mailing_list
 from studioadmin.views.events import cancel_event_view, event_admin_list, \
@@ -40,6 +41,7 @@ __all__ = [
     'cancel_event_view', 'choose_users_to_email',
     'ConfirmPaymentView', 'ConfirmRefundView', 'DisclaimerDeleteView',
     'DisclaimerUpdateView', 'NonRegisteredDisclaimersListView', 'nonregistered_disclaimer',
+    'DisclaimerContentCreateView', 'DisclaimerContentListView', 'disclaimer_content_view',
     'email_users_view', 'event_admin_list',
     'EventAdminCreateView', 'EventAdminUpdateView'
     'EventRegisterListView', 'EventVoucherDetailView',

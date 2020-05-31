@@ -1,3 +1,6 @@
+from decimal import Decimal
+from math import floor
+
 from django.contrib import admin
 from django import forms
 
@@ -101,11 +104,18 @@ class DisclaimerContentAdminForm(forms.ModelForm):
                 self.fields['disclaimer_terms'].initial = current_content.disclaimer_terms
                 self.fields['medical_treatment_terms'].initial = current_content.medical_treatment_terms
                 self.fields['over_18_statement'].initial = current_content.over_18_statement
-                self.fields['version'].help_text = 'Current version is {}.  Leave ' \
-                                           'blank for next major ' \
-                                           'version'.format(current_content.version)
+                next_default_version = Decimal(floor((DisclaimerContent.current_version() + 1)))
+                self.fields['version'].help_text = f'Current version is {current_content.version}.  Leave ' \
+                                           f'blank for next major version ({next_default_version:.1f})'
             else:
                 self.fields['version'].initial = 1.0
+
+    def clean_version(self):
+        version = self.cleaned_data.get('version')
+        current_version = DisclaimerContent.current_version()
+        if version is None or version > current_version:
+            return version
+        self.add_error('version', f'New version must increment current version (must be greater than {current_version})')
 
     def clean(self):
         new_disclaimer_terms = self.cleaned_data.get('disclaimer_terms')
@@ -122,7 +132,7 @@ class DisclaimerContentAdminForm(forms.ModelForm):
         ):
             self.add_error(
                 None, 'No changes made from previous version; '
-                      'new version must update disclaimer content'
+                      'new version must update disclaimer content (terms, medical terms or age confirmation statement)'
             )
 
     class Meta:
