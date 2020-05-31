@@ -194,7 +194,7 @@
                                                         {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
                                                             {% if event.show_video_link %}
                                                                 <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">Join online class</a>
-                                                            {% else %}
+                                                            {% elif event.is_online %}
                                                                 <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-info table-btn disabled">Join online class</span>
                                                             {% endif %}
                                                         {% endif %}
