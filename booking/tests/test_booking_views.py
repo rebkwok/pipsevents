@@ -18,11 +18,10 @@ from accounts.models import DisclaimerContent, OnlineDisclaimer
 
 from booking.models import BlockType, Event, EventType, Booking, \
     Block, EventVoucher,UsedEventVoucher,  WaitingListUser
-from booking.views import BookingListView, BookingHistoryListView, \
-    BookingCreateView, BookingDeleteView, BookingUpdateView, \
+from booking.views import BookingCreateView, BookingDeleteView, BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
-from common.tests.helpers import _create_session, assert_mailchimp_post_data, \
+from common.tests.helpers import _create_session, \
     TestSetupMixin, format_content, make_data_privacy_agreement
 
 from payments.helpers import create_booking_paypal_transaction
@@ -1801,34 +1800,15 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
 class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
-    def _delete_response(self, user, booking):
-        url = reverse('booking:delete_booking', args=[booking.id])
-        session = _create_session()
-        request = self.factory.delete(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BookingDeleteView.as_view()
-        return view(request, pk=booking.id)
-
     def test_get_delete_booking_page(self):
         """
         Get the delete booking page with the event context
         """
         event = baker.make_recipe('booking.future_EV')
         booking = baker.make_recipe('booking.booking', event=event, user=self.user)
-        url = reverse(
-            'booking:delete_booking', args=[booking.id]
-        )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = self.user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BookingDeleteView.as_view()
-        resp = view(request, pk=booking.id)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password="test")
+        resp = self.client.get(url)
         self.assertEqual(resp.context_data['event'], event)
 
     def test_cancel_booking(self):
@@ -1839,7 +1819,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = baker.make_recipe('booking.booking', event=event,
                                     user=self.user, paid=True)
         self.assertEqual(Booking.objects.all().count(), 1)
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password="test")
+        self.client.post(url)
         # after cancelling, the booking is still there, but status has changed
         self.assertEqual(Booking.objects.all().count(), 1)
         booking = Booking.objects.get(id=booking.id)
@@ -1873,7 +1856,11 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe('booking.future_PC')
         booking = baker.make_recipe('booking.booking', event=event, user=self.user, paid=False)
         self.assertEqual(Booking.objects.all().count(), 1)
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
         # booking not deleted
         booking.refresh_from_db()
         assert booking.status == "CANCELLED"
@@ -1890,7 +1877,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             date_rebooked=datetime(2018, 1, 1, tzinfo=timezone.utc)
         )
         self.assertEqual(Booking.objects.all().count(), 1)
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
         # after cancelling, the booking is still there, but status has changed
         self.assertEqual(Booking.objects.all().count(), 1)
         booking = Booking.objects.get(id=booking.id)
@@ -1913,7 +1903,11 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         ppt.save()
 
         self.assertEqual(Booking.objects.all().count(), 1)
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
         # after cancelling, the booking is still there, but status has changed
         self.assertEqual(Booking.objects.all().count(), 1)
         booking = Booking.objects.get(id=booking.id)
@@ -1933,7 +1927,11 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(Booking.objects.all().count(), 3)
         booking = Booking.objects.all()[0]
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
         self.assertEqual(Booking.objects.all().count(), 3)
         cancelled_bookings = Booking.objects.filter(status='CANCELLED')
         self.assertEqual([cancelled.id for cancelled in cancelled_bookings],
@@ -1945,7 +1943,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
                                     event=event_with_cost)
         booking.confirm_space()
         self.assertTrue(booking.payment_confirmed)
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking = Booking.objects.get(user=self.user,
                                       event=event_with_cost)
@@ -1974,7 +1975,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(block.bookings_made(), 1)
 
         # cancel booking
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking = Booking.objects.get(user=self.user, event=event)
         self.assertEqual('CANCELLED', booking.status)
@@ -2141,7 +2144,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking.confirm_space()
         self.assertTrue(booking.payment_confirmed)
         self.assertTrue(booking.free_class)
-        self._delete_response(self.user, booking)
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking = Booking.objects.get(user=self.user,
                                       event=event_with_cost)
@@ -2155,12 +2161,17 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = baker.make_recipe('booking.booking', event=event,
                                     user=self.user, paid=True)
         self.assertEqual(Booking.objects.all().count(), 1)
-        self._delete_response(self.user, booking)
+
+        self.client.login(username=self.user.username, password='test')
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.post(url)
+
         booking.refresh_from_db()
         self.assertEqual('CANCELLED', booking.status)
 
         # try deleting again, should redirect
-        resp = self._delete_response(self.user, booking)
+        resp = self.client.post(url)
+
         self.assertEqual(resp.status_code, 302)
         self.assertIn(
             resp.url, reverse('booking:already_cancelled', args=[booking.id])
@@ -2177,7 +2188,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
         paid_booking = baker.make_recipe('booking.booking', event=event,
                                     user=self.user, paid=True)
-        self._delete_response(self.user, paid_booking)
+
+        url = reverse('booking:delete_booking', args=[paid_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
         paid_booking.refresh_from_db()
         # still open, but no_show
         self.assertEqual('OPEN', paid_booking.status)
@@ -2189,7 +2203,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         unpaid_booking = baker.make_recipe(
             'booking.booking', event=event1, user=self.user
         )
-        self._delete_response(self.user, unpaid_booking)
+
+        url = reverse('booking:delete_booking', args=[unpaid_booking.id])
+        self.client.post(url)
+
         unpaid_booking.refresh_from_db()
         assert unpaid_booking.status == "CANCELLED"
         assert unpaid_booking.no_show is False
@@ -2205,7 +2222,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = baker.make_recipe(
             'booking.booking', user=self.user, event=event_with_cost, paid=True
         )
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
         # 2 emails sent for cancelled paid booking
         self.assertEqual(len(mail.outbox), 2)
         user_mail = mail.outbox[0]
@@ -2217,7 +2237,8 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             'booking.block_5', start_date=timezone.now()
         )
         booking.save()
-        self._delete_response(self.user, booking)
+
+        self.client.post(url)
         # only 1 email sent for cancelled booking paid with block
         self.assertEqual(len(mail.outbox), 3)
         user_mail = mail.outbox[2]
@@ -2227,7 +2248,8 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking.status = 'OPEN'
         booking.confirm_space()
         booking.save()
-        self._delete_response(self.user, booking)
+
+        self.client.post(url)
         # 2 emails sent this time for direct paid booking
         self.assertEqual(len(mail.outbox), 5)
         user_mail = mail.outbox[3]
@@ -2245,7 +2267,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             'booking.booking', user=self.user, event=event, paid=True
         )
 
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
@@ -2271,7 +2295,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             WaitingListUser, event=event, user__email='wl@test.com'
         )
 
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
         # unpaid booking deleted, cancel and  waiting list emails sent
         self.assertEqual(len(mail.outbox), 2)
         waiting_list_mail = mail.outbox[1]
@@ -2294,7 +2320,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             WaitingListUser, event=event, user__email='wl@test.com'
         )
 
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
         # Error emails for both cancellation and waiting list
         self.assertEqual(len(mail.outbox), 2)
 
@@ -2324,7 +2353,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             WaitingListUser, event=event, user__email='wl@test.com'
         )
 
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
         self.assertEqual(len(mail.outbox), 0)
 
         booking.refresh_from_db()
@@ -2340,7 +2371,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(BlockType.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertEqual(BlockType.objects.count(), 1)
         self.assertEqual(BlockType.objects.first().identifier, 'transferred')
@@ -2359,7 +2392,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(BlockType.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertEqual(BlockType.objects.count(), 1)
         self.assertEqual(BlockType.objects.first().identifier, 'transferred')
@@ -2378,7 +2413,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(BlockType.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertEqual(BlockType.objects.count(), 1)
         self.assertEqual(BlockType.objects.first().identifier, 'transferred')
@@ -2397,7 +2434,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(BlockType.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertEqual(BlockType.objects.count(), 1)
         self.assertEqual(BlockType.objects.first().identifier, 'transferred')
@@ -2416,7 +2455,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(BlockType.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertFalse(BlockType.objects.exists())
 
@@ -2430,7 +2471,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(BlockType.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertFalse(BlockType.objects.exists())
 
@@ -2448,7 +2491,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(Block.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking.refresh_from_db()
         self.assertEqual(Block.objects.count(), 1)
@@ -2479,7 +2524,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(Block.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking.refresh_from_db()
         self.assertEqual(Block.objects.count(), 1)
@@ -2506,7 +2553,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(Block.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking.refresh_from_db()
         self.assertEqual(Block.objects.count(), 1)
@@ -2533,7 +2582,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(Block.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking.refresh_from_db()
         self.assertEqual(Block.objects.count(), 1)
@@ -2560,7 +2611,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(Block.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking.refresh_from_db()
         self.assertFalse(Block.objects.exists())
@@ -2586,7 +2639,9 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         )
 
         self.assertFalse(Block.objects.exists())
-        self._delete_response(self.user, booking)
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         booking.refresh_from_db()
         self.assertFalse(Block.objects.exists())
@@ -2601,49 +2656,62 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertEqual(mail.outbox[0].to, [self.user.email])
         self.assertEqual(mail.outbox[1].to, [settings.DEFAULT_STUDIO_EMAIL])
 
-    def test_cancel_non_direct_paid_does_not_create_transfer_block(self):
+    def test_cancel_unpaid_does_not_create_transfer_block(self):
         """
         unpaid, block paid, free (with block), deposit only paid do not
         create transfers
         """
         self.assertFalse(Block.objects.exists())
-
         event = baker.make_recipe('booking.future_PC', cost=10)
 
         # unpaid
-        user = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user)
-        baker.make_recipe('booking.online_disclaimer', user=user)
         unpaid_booking = baker.make_recipe(
-            'booking.booking', user=user, event=event, paid=False,
+            'booking.booking', user=self.user, event=event, paid=False,
         )
-
-        self._delete_response(user, unpaid_booking)
+        url = reverse('booking:delete_booking', args=[unpaid_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         self.assertTrue(Booking.objects.filter(id=unpaid_booking.id).exists())
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
+
+    def test_cancel_block_paid_does_not_create_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
+
         # block paidtest_cancel_unpaid_booking
-        user1 = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user1)
-        baker.make_recipe('booking.online_disclaimer', user=user1)
         block = baker.make_recipe(
             'booking.block', block_type__event_type=event.event_type,
-            user=user1
+            user=self.user
         )
         block_booking = baker.make_recipe(
-            'booking.booking', user=user1, event=event, block=block,
+            'booking.booking', user=self.user, event=event, block=block,
         )
         self.assertTrue(block_booking.paid)
         self.assertTrue(block_booking.payment_confirmed)
 
-        self._delete_response(user1, block_booking)
+        url = reverse('booking:delete_booking', args=[block_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         block_booking.refresh_from_db()
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
+
+    def test_cancel_free_with_block_does_not_create_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
 
         # free (with block)
         user3 = baker.make_recipe('booking.user')
@@ -2651,76 +2719,99 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.online_disclaimer', user=user3)
         free_block = baker.make_recipe(
             'booking.block', block_type__event_type=event.event_type,
-            block_type__identifier='free class', user=user3
+            block_type__identifier='free class', user=self.user
         )
         free_block_booking = baker.make_recipe(
-            'booking.booking', user=user3, event=event, free_class=True,
+            'booking.booking', user=self.user, event=event, free_class=True,
             block=free_block
         )
         self.assertTrue(free_block_booking.paid)
         self.assertTrue(free_block_booking.payment_confirmed)
 
-        self._delete_response(user3, free_block_booking)
+        url = reverse('booking:delete_booking', args=[free_block_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         free_block_booking.refresh_from_db()
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
 
+    def test_cancel_deposit_only_paid_does_not_create_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
+
         # deposit only paid
-        user4 = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user4)
-        baker.make_recipe('booking.online_disclaimer', user=user4)
         dep_paid_booking = baker.make_recipe(
-            'booking.booking', user=user4, event=event, paid=False,
+            'booking.booking', user=self.user, event=event, paid=False,
             payment_confirmed=False, deposit_paid=True
         )
 
-        self._delete_response(user4, dep_paid_booking)
+        url = reverse('booking:delete_booking', args=[dep_paid_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         dep_paid_booking.refresh_from_db()
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
 
+    def test_cancel_free_without_block_does_create_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
+
         # free (without block) DOES create transfer
-        user2 = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user2)
-        baker.make_recipe('booking.online_disclaimer', user=user2)
         free_booking = baker.make_recipe(
-            'booking.booking', user=user2, event=event, free_class=True,
+            'booking.booking', user=self.user, event=event, free_class=True,
         )
         free_booking.free_class = True
         self.assertTrue(free_booking.paid)
         self.assertTrue(free_booking.payment_confirmed)
 
-        self._delete_response(user2, free_booking)
+        url = reverse('booking:delete_booking', args=[free_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
 
         free_booking.refresh_from_db()
         self.assertTrue(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
         block = Block.objects.get(block_type__identifier='transferred')
-        self.assertEqual(block.user, user2)
+        self.assertEqual(block.user, self.user)
         self.assertEqual(block.transferred_booking_id, free_booking.id)
 
-        # and finally, direct paid
-        user5 = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user5)
-        baker.make_recipe('booking.online_disclaimer', user=user5)
+    def test_cancel_direct_paid_does_create_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
+
         direct_paid_booking = baker.make_recipe(
-            'booking.booking', user=user5, event=event, paid=True,
+            'booking.booking', user=self.user, event=event, paid=True,
             payment_confirmed=True
         )
 
-        self._delete_response(user5, direct_paid_booking)
+        url = reverse('booking:delete_booking', args=[direct_paid_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
         direct_paid_booking.refresh_from_db()
+
         self.assertEqual(
             Block.objects.filter(block_type__identifier='transferred').count(),
-            2
+            1
         )
         block = Block.objects.latest('id')
-        self.assertEqual(block.user, user5)
+        self.assertEqual(block.user, self.user)
         self.assertEqual(block.transferred_booking_id, direct_paid_booking.id)
 
     def test_cancel_expired_block_paid_creates_transfer_block(self):
@@ -2728,28 +2819,30 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         block paid, but block now expired, does create transfers for PC and RH
         """
         self.assertFalse(Block.objects.exists())
+        self.client.login(username=self.user.username, password='test')
 
         pc = baker.make_recipe('booking.future_PC', cost=10)
         ev = baker.make_recipe('booking.future_EV', cost=10)
         rh = baker.make_recipe('booking.future_RH', cost=10)
 
         # PC expired block paid
-        user1 = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user1)
-        baker.make_recipe('booking.online_disclaimer', user=user1)
+        # user1 = baker.make_recipe('booking.user')
+        # make_data_privacy_agreement(user1)
+        # baker.make_recipe('booking.online_disclaimer', user=user1)
         block_pc = baker.make_recipe(
             'booking.block', block_type__event_type=pc.event_type,
             block_type__duration=2,
-            user=user1, start_date=timezone.now() - timedelta(days=100)
+            user=self.user, start_date=timezone.now() - timedelta(days=100)
         )
         pc_block_booking = baker.make_recipe(
-            'booking.booking', user=user1, event=pc, block=block_pc,
+            'booking.booking', user=self.user, event=pc, block=block_pc,
         )
         self.assertTrue(pc_block_booking.paid)
         self.assertTrue(pc_block_booking.payment_confirmed)
         self.assertTrue(block_pc.expired)
 
-        self._delete_response(user1, pc_block_booking)
+        url = reverse('booking:delete_booking', args=[pc_block_booking.id])
+        self.client.post(url)
 
         pc_block_booking.refresh_from_db()
         self.assertTrue(
@@ -2763,16 +2856,17 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         block_rh = baker.make_recipe(
             'booking.block', block_type__event_type=rh.event_type,
             block_type__duration=2,
-            user=user1, start_date=timezone.now() - timedelta(days=100)
+            user=self.user, start_date=timezone.now() - timedelta(days=100)
         )
         rh_block_booking = baker.make_recipe(
-            'booking.booking', user=user1, event=rh, block=block_rh,
+            'booking.booking', user=self.user, event=rh, block=block_rh,
         )
         self.assertTrue(rh_block_booking.paid)
         self.assertTrue(rh_block_booking.payment_confirmed)
         self.assertTrue(block_rh.expired)
 
-        self._delete_response(user1, rh_block_booking)
+        url = reverse('booking:delete_booking', args=[rh_block_booking.id])
+        self.client.post(url)
 
         rh_block_booking.refresh_from_db()
         self.assertTrue(
@@ -2786,16 +2880,17 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         block_ev = baker.make_recipe(
             'booking.block', block_type__event_type=ev.event_type,
             block_type__duration=2,
-            user=user1, start_date=timezone.now() - timedelta(days=100)
+            user=self.user, start_date=timezone.now() - timedelta(days=100)
         )
         ev_block_booking = baker.make_recipe(
-            'booking.booking', user=user1, event=ev, block=block_ev,
+            'booking.booking', user=self.user, event=ev, block=block_ev,
         )
         self.assertTrue(ev_block_booking.paid)
         self.assertTrue(ev_block_booking.payment_confirmed)
         self.assertTrue(block_ev.expired)
 
-        self._delete_response(user1, ev_block_booking)
+        url = reverse('booking:delete_booking', args=[ev_block_booking.id])
+        self.client.post(url)
 
         ev_block_booking.refresh_from_db()
         self.assertFalse(

@@ -15,8 +15,7 @@ from ckeditor.widgets import CKEditorWidget
 from booking.models import Event, Booking, Block, BlockType, \
     EventType, GiftVoucherType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
     BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
-from booking.forms import BookingAdminForm, BlockAdminForm, \
-    TicketBookingAdminForm, WaitingListUserAdminForm
+from booking.forms import TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
 
 
@@ -182,7 +181,7 @@ class EventAdmin(admin.ModelAdmin):
         ('Event details', {
             'fields': (
                 'name', 'date', 'location', 'location_index', 'event_type',
-                'max_participants', 'description', 'video_link')
+                'max_participants', 'description', 'video_link', 'cancelled')
         }),
         ('Contacts', {
             'fields': ('contact_person', 'contact_email', 'email_studio_when_booked')
@@ -204,8 +203,6 @@ class EventAdmin(admin.ModelAdmin):
 
 class BookingAdmin(admin.ModelAdmin):
 
-    form = BookingAdminForm
-
     list_display = ('event_name', 'get_date', 'get_user', 'get_cost', 'paid',
                     'space_confirmed', 'status')
 
@@ -216,6 +213,8 @@ class BookingAdmin(admin.ModelAdmin):
     search_fields = (
         'user__first_name', 'user__last_name', 'user__username', 'event__name'
     )
+
+    raw_id_fields = ('user', 'event', 'block')
 
     actions_on_top = True
     actions_on_bottom = False
@@ -313,16 +312,17 @@ class BlockFilter(admin.SimpleListFilter):
 
 
 class BlockAdmin(admin.ModelAdmin):
-    fields = ('user', 'block_type', 'parent', 'transferred_booking_id',
+    fields = ('user', 'user_name', 'block_type', 'parent',
+              'transferred_booking_id',
               'formatted_cost', 'start_date', 'paypal_pending',
               'paid', 'extended_expiry_date', 'formatted_expiry_date')
-    readonly_fields = ('formatted_cost', 'formatted_expiry_date')
+    readonly_fields = ('formatted_cost', 'formatted_expiry_date', 'user_name',)
     list_display = ('get_user', 'block_type', 'block_size', 'active_block',
                     'get_full', 'paid', 'formatted_start_date', 'formatted_expiry_date')
     list_editable = ('paid', )
     list_filter = (UserFilter, 'block_type__event_type', BlockFilter,)
 
-    form = BlockAdminForm
+    raw_id_fields = ('user', 'parent')
 
     inlines = [BookingInLine, ]
     actions_on_top = True
@@ -333,6 +333,10 @@ class BlockAdmin(admin.ModelAdmin):
         )
     get_user.short_description = 'User'
     get_user.admin_order_field = 'user__first_name'
+
+    def user_name(self, obj):
+        return self.get_user(obj)
+    user_name.short_description = 'User name'
 
     def get_full(self, obj):
         return obj.full

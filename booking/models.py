@@ -285,7 +285,7 @@ class Block(models.Model):
     )
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE, help_text="Used for auto-assigned free classes"
     )
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)

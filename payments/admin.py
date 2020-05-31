@@ -122,6 +122,11 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
                        'get_booking_id', 'cost', 'voucher_code')
     list_filter = (PaypalBookingUserFilter, PaypalBookingCheckFilter, 'booking__event')
 
+    search_fields = (
+        'user__first_name', 'user__last_name', 'user__username',
+        'invoice_id', 'transaction_id'
+    )
+
     def get_booking_id(self, obj):
         return obj.booking.id if obj.booking else None
     get_booking_id.short_description = "Booking id"
@@ -168,6 +173,11 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
                     'block_expiry')
     list_filter = (PaypalBlockUserFilter, PaypalBlockCheckFilter)
 
+    search_fields = (
+        'user__first_name', 'user__last_name', 'user__username',
+        'invoice_id', 'transaction_id'
+    )
+
     def get_block_id(self, obj):
         return obj.block.id if obj.block else None
     get_block_id.short_description = "Block id"
@@ -208,6 +218,11 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
                        'ticket_cost', 'number_of_tickets', 'total_cost')
     list_filter = (
         PaypalTicketBookingUserFilter, 'ticket_booking__ticketed_event'
+    )
+
+    search_fields = (
+        'user__first_name', 'user__last_name', 'user__username',
+        'invoice_id', 'transaction_id'
     )
 
     def get_ticket_booking_id(self, obj):

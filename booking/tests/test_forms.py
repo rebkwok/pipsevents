@@ -2,9 +2,8 @@ from django.test import TestCase
 from model_bakery import baker
 
 from booking.forms import BookingCreateForm, BlockCreateForm, \
-    TicketPurchaseForm, BlockAdminForm, BookingAdminForm, \
-    TicketBookingAdminForm, WaitingListUserAdminForm
-from booking.models import Block, TicketBooking, Ticket
+    TicketPurchaseForm, TicketBookingAdminForm, WaitingListUserAdminForm
+from booking.models import TicketBooking, Ticket
 from common.tests.helpers import PatchRequestMixin
 
 class BookingCreateFormTests(PatchRequestMixin, TestCase):
@@ -284,46 +283,6 @@ class AdminFormsTests(PatchRequestMixin, TestCase):
         self.user2=  baker.make_recipe(
            'booking.user', first_name="b", last_name='a', username='b'
         )
-
-    def test_booking_admin_form_user_display(self):
-       # check ordering of users - should be by first name (user1, user2, user)
-
-       form = BookingAdminForm()
-       userfield = form.fields['user']
-       self.assertEqual(
-           list(userfield.queryset.values_list('id', flat=True)),
-           [self.user1.id, self.user2.id, self.user.id]
-       )
-       self.assertEqual(
-           [ch[1] for ch in userfield.widget.choices],
-           ['---------', 'a b (c)', 'b a (b)', 'c b (a)']
-       )
-
-    def test_block_shows_users_blocks_on_booking_admin_form(self):
-        user = baker.make_recipe('booking.user')
-        block = baker.make_recipe('booking.block_5', user=user)
-        block1 = baker.make_recipe('booking.block_10', user=user)
-        baker.make_recipe('booking.block_10')
-        booking = baker.make_recipe('booking.booking', user=user)
-
-        form = BookingAdminForm(instance=booking)
-        block_field = form.fields['block']
-
-        self.assertEqual(Block.objects.count(), 3)
-        self.assertEqual(block_field.queryset.count(), 2)
-        self.assertEqual(
-            sorted([bl.id for bl in block_field.queryset]),
-            sorted([block.id, block1.id])
-        )
-
-    def test_block_admin_form_user_display(self):
-       # check ordering of users - should be by first name (user1, user2, user)
-       form = BlockAdminForm()
-       userfield = form.fields['user']
-       self.assertEqual(
-           list(userfield.queryset.values_list('id', flat=True)),
-           [self.user1.id, self.user2.id, self.user.id]
-       )
 
     def test_ticket_booking_admin_form_user_display(self):
        # check ordering of users - should be by first name (user1, user2, user)

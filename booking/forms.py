@@ -184,40 +184,6 @@ class UserModelChoiceField(forms.ModelChoiceField):
             return User.objects.get(id=value)
 
 
-class BookingAdminForm(forms.ModelForm):
-
-    class Meta:
-        model = Booking
-        fields = ('__all__')
-
-    def __init__(self, *args, **kwargs):
-        super(BookingAdminForm, self).__init__(*args, **kwargs)
-        if self.instance.id:
-            self.fields['block'].queryset = Block.objects.filter(
-                user=self.instance.user
-            )
-        self.fields['user'] = UserModelChoiceField(
-            queryset=User.objects.all().order_by('first_name')
-        )
-
-
-class BlockAdminForm(forms.ModelForm):
-
-    class Meta:
-        model = Block
-        fields = ('__all__')
-
-    def __init__(self, *args, **kwargs):
-        super(BlockAdminForm, self).__init__(*args, **kwargs)
-        self.fields['user'] = UserModelChoiceField(
-            queryset=User.objects.all().order_by('first_name')
-        )
-        if self.instance.id:
-            self.fields['parent'].queryset = Block.objects.filter(
-                user=self.instance.user
-            ).exclude(id=self.instance.id)
-
-
 class TicketBookingAdminForm(forms.ModelForm):
 
     class Meta:
