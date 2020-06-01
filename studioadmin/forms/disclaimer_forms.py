@@ -64,6 +64,11 @@ class StudioadminDisclaimerContentForm(DisclaimerContentAdminForm):
                 attrs={'class': "form-control"}
             ),
         }
-        help_text = {
-            'disclaimer_terms': 'test'
+        help_texts = {
+            "disclaimer_terms": "Plain text only; use blank lines to separate paragraphs.",
+            "medical_treatment_terms": "Plain text only; use blank lines to separate paragraphs.",
+            "version": "Leave blank to increment to the next major version (i.e. if the current published version " \
+                       "is version 1.1, the next major version will be 2.0). If you are only making minor (e.g. typo) " \
+                       "changes, it's recommended to increment to a minor version (e.g. version 1.1).  " \
+                       "In this case you will need to manually enter the version you require."
         }

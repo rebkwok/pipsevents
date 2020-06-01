@@ -786,7 +786,7 @@ a > span.fa.fa-print {
 
 }
 
-.studioadmin-help {
+.studioadmin-help, .helptext {
     font-size: smaller;
     font-style: italic;
     font-weight: normal;
@@ -1617,4 +1617,8 @@ hr.voucher-divider {
 
 div.override_options {
     border-bottom: lightgrey 1px solid;
+}
+
+span.disclaimer_version {
+  width: 300px;
 }
