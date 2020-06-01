@@ -18,7 +18,7 @@
             {% endif %}
         </div>
         {% if disclaimer_content.is_draft %}
-        <div class="col-xs-5 col-sm-7 col-md-8"><a class="btn btn-sm btn-warning" href="{% url 'studioadmin:disclaimer_content_edit' disclaimer_content.version %}">Edit</a></div>
+        <div id="edit-button-{{ disclaimer_content.version }}" class="col-xs-5 col-sm-7 col-md-8"><a class="btn btn-sm btn-warning" href="{% url 'studioadmin:disclaimer_content_edit' disclaimer_content.version %}">Edit</a></div>
         {% endif %}
 
         {% endfor %}

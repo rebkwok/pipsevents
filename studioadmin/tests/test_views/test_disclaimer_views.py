@@ -1,8 +1,10 @@
 import datetime
+import pytest
 from unittest.mock import patch
 
 from model_bakery import baker
 
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -440,3 +442,262 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         self.client.login(username=self.instructor_user.username, password='test')
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
+
+
+class DisclamerContentListViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse('studioadmin:disclaimer_content_list')
+        self.client.login(username=self.staff_user.username, password='test')
+
+    def test_only_staff_can_access_disclaimer_content(self):
+        self.client.logout()
+
+        # no logged in user
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('login'), resp.url)
+
+        # normal user
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # instructor user
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, 302)
+
+        # staff user
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_edit_button_only_shown_for_draft(self):
+        content = baker.make(DisclaimerContent, version=None)
+        assert content.status == 'published'
+
+        resp = self.client.get(self.list_url)
+        assert 'id="edit-button-' not in resp.rendered_content
+
+        draft = baker.make(DisclaimerContent, is_draft=True, version=None)
+        resp = self.client.get(self.list_url)
+        assert f'id="edit-button-{draft.version}' in resp.rendered_content
+        assert resp.context_data['current_version'] == content.version
+
+
+class DisclamerContentViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        content = baker.make(DisclaimerContent, version=None)
+        self.url = reverse('studioadmin:disclaimer_content_view', args=(content.version,))
+        self.client.login(username=self.staff_user.username, password='test')
+
+    def test_only_staff_can_access_disclaimer_content(self):
+        self.client.logout()
+
+        # no logged in user
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('login'), resp.url)
+
+        # normal user
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # instructor user
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+
+        # staff user
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+
+class DisclamerContentCreateViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('studioadmin:disclaimer_content_new')
+        self.client.login(username=self.staff_user.username, password='test')
+
+    def form_data(self):
+        return {
+            'disclaimer_terms': 'test terms',
+            'medical_treatment_terms': 'ok',
+            'over_18_statement': 'Indeed I am',
+            'version': '',
+        }
+
+    def test_only_staff_can_access_disclaimer_content(self):
+        self.client.logout()
+
+        # no logged in user
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('login'), resp.url)
+
+        # normal user
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # instructor user
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+
+        # staff user
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_revert_button_not_shown(self):
+        resp = self.client.get(self.url)
+        assert 'id="reset_button"' not in resp.rendered_content
+
+    def test_save_as_draft(self):
+        data = self.form_data()
+        data['save_draft'] = ''
+        self.client.post(self.url, data)
+        latest_content = DisclaimerContent.objects.latest('id')
+        assert latest_content.disclaimer_terms == "test terms"
+        assert latest_content.is_draft is True
+
+    def test_publish(self):
+        data = self.form_data()
+        data['publish'] = ''
+        self.client.post(self.url, data)
+        latest_content = DisclaimerContent.objects.latest('id')
+        assert latest_content.disclaimer_terms == "test terms"
+        assert latest_content.is_draft is False
+
+    def test_redirect_to_edit_latest_draft(self):
+        draft = baker.make(DisclaimerContent, is_draft=True, version=None)
+        resp = self.client.get(self.url)
+        assert resp.status_code == 302
+        assert resp.url == reverse('studioadmin:disclaimer_content_edit', args=(draft.version,))
+
+    def test_unknown_action(self):
+        data = self.form_data()
+        with pytest.raises(ValidationError):
+            self.client.post(self.url, data)
+
+
+class DisclamerContentUpdateViewTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+
+        self.current = baker.make(
+            DisclaimerContent,
+            disclaimer_terms='current terms',
+            medical_treatment_terms='current medical terms',
+            over_18_statement='current statement',
+            version=None
+        )
+
+        self.content = baker.make(
+            DisclaimerContent,
+            disclaimer_terms='draft terms',
+            medical_treatment_terms='draft medical terms',
+            over_18_statement='test',
+            is_draft=True,
+            issue_date=datetime.datetime(2020, 1, 1, tzinfo=timezone.utc),
+            version=None
+        )
+        self.url = reverse('studioadmin:disclaimer_content_edit', args=(self.content.version,))
+        self.client.login(username=self.staff_user.username, password='test')
+
+    def form_data(self):
+        return {
+            'disclaimer_terms': 'test terms',
+            'medical_treatment_terms': 'ok',
+            'over_18_statement': 'Indeed I am',
+            'version': self.content.version,
+        }
+
+    def test_only_staff_can_access(self):
+        self.client.logout()
+
+        # no logged in user
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('login'), resp.url)
+
+        # normal user
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # instructor user
+        self.client.login(username=self.instructor_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 302)
+
+        # staff user
+        self.client.login(username=self.staff_user.username, password='test')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_save_as_draft(self):
+        data = self.form_data()
+        data['save_draft'] = ''
+        pre_save_version = self.content.version
+        self.client.post(self.url, data)
+        self.content.refresh_from_db()
+        assert self.content.disclaimer_terms == "test terms"
+        assert self.content.is_draft is True
+        assert self.content.version == pre_save_version
+
+    def test_revert_button_shown_if_terms_differ_to_current_published(self):
+        resp = self.client.get(self.url)
+        assert 'id="reset_button"' in resp.rendered_content
+
+    def test_revert_to_current_terms(self):
+        data = self.form_data()
+        data['version'] = self.content.version
+        data['disclaimer_terms'] = 'terms that will be ignored'
+
+        assert self.content.disclaimer_terms != self.current.disclaimer_terms
+        assert self.content.medical_treatment_terms != self.current.medical_treatment_terms
+        assert self.content.over_18_statement != self.current.over_18_statement
+        data['reset'] = ''
+        self.client.post(self.url, data)
+        self.content.refresh_from_db()
+        assert self.content.disclaimer_terms == self.current.disclaimer_terms
+        assert self.content.medical_treatment_terms == self.current.medical_treatment_terms
+        assert self.content.over_18_statement == self.current.over_18_statement
+        assert self.content.version != self.current.version
+
+    def test_publish(self):
+        # version is draft = sets is_draft = False
+        # issue_date is updated when changing draft to published
+        data = {
+            'disclaimer_terms': self.content.disclaimer_terms,
+            'medical_treatment_terms': self.content.medical_treatment_terms,
+            'over_18_statement': self.content.over_18_statement,
+            'version': self.content.version,
+            'publish': ''
+        }
+        issue_date_pre_publish = self.content.issue_date
+        self.client.post(self.url, data)
+        self.content.refresh_from_db()
+        assert self.content.status == 'published'
+        assert self.content.issue_date > issue_date_pre_publish
+
+    def test_unknown_action(self):
+        data = self.form_data()
+        with pytest.raises(ValidationError):
+            self.client.post(self.url, data)
+
+
