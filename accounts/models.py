@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from decimal import Decimal
 import logging
 import pytz
 import uuid
@@ -216,7 +217,7 @@ class DisclaimerContent(models.Model):
 
         if not self.id and not self.version:
             # if no version specified, go to next major version
-            self.version = floor((DisclaimerContent.current_version() + 1))
+            self.version = float(floor((DisclaimerContent.current_version() + 1)))
 
         # Always update issue date on saving drafts
         if self.is_draft:

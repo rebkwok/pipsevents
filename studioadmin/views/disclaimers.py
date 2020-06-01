@@ -42,6 +42,7 @@ class DisclaimerContentCreateView(LoginRequiredMixin, StaffUserMixin, CreateView
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['sidenav_selection'] = 'disclaimer_content_new'
+        context['same_as_published'] = True
         return context
 
     def form_valid(self, form):
@@ -51,7 +52,7 @@ class DisclaimerContentCreateView(LoginRequiredMixin, StaffUserMixin, CreateView
         elif "publish" in self.request.POST:
             new_content.is_draft = False
         else:
-            raise ValidationError("Action (save draft/publish) cannot be determined")
+            raise ValidationError("Action (save draft/publish/reset) cannot be determined")
         new_content.save()
         ActivityLog.objects.create(
             log=f"New {new_content.status} disclaimer content " \

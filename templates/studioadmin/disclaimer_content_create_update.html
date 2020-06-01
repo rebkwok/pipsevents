@@ -24,7 +24,7 @@
             {% if form.errors %}<div class="form-error">Error in submitted form</div>{% endif %}
             <button class="btn btn-warning" type="submit" name="save_draft">Save as draft</button>
             {% if not same_as_published %}
-            <button class="btn btn-info" type="submit" name="reset">Reset to latest published version</button>
+            <button id="reset_button" class="btn btn-info" type="submit" name="reset">Reset to latest published version</button>
             {% endif %}
             <button class="btn btn-success" type="submit" name="publish">Publish</button>
         </form>

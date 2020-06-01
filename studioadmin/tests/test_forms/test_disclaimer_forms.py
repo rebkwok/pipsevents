@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-import pytz
-
 from model_bakery import baker
 
-from django.conf import settings
 from django.test import TestCase
 
 from accounts.models import DisclaimerContent
