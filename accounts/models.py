@@ -36,6 +36,8 @@ def has_readonly_fields(original_class):
     def check_read_only_fields(sender, instance, **kwargs):
         if not instance.id:
             return
+        elif instance.id and hasattr(instance, "is_draft") and instance.is_draft:
+            return
         for field_name in sender.read_only_fields:
             old_value = getattr(instance, field_name + "_oldval")
             new_value = getattr(instance, field_name)
@@ -182,6 +184,7 @@ class DisclaimerContent(models.Model):
     over_18_statement = models.TextField()
     version = models.DecimalField(unique=True, decimal_places=1, max_digits=100)
     issue_date = models.DateTimeField(default=timezone.now)
+    is_draft = models.BooleanField(default=False)
 
     @classmethod
     def current_version(cls):
@@ -192,10 +195,14 @@ class DisclaimerContent(models.Model):
 
     @classmethod
     def current(cls):
-        return DisclaimerContent.objects.order_by('version').last()
+        return DisclaimerContent.objects.filter(is_draft=False).order_by('version').last()
+
+    @property
+    def status(self):
+        return "draft" if self.is_draft else "published"
 
     def __str__(self):
-        return 'Disclaimer Content - Version {}'.format(self.version)
+        return f'Disclaimer Content - Version {self.version} ({self.status})'
 
     def save(self, **kwargs):
         if not self.id:
@@ -210,6 +217,10 @@ class DisclaimerContent(models.Model):
         if not self.id and not self.version:
             # if no version specified, go to next major version
             self.version = floor((DisclaimerContent.current_version() + 1))
+
+        # Always update issue date on saving drafts
+        if self.is_draft:
+            self.issue_date = timezone.now()
         super().save(**kwargs)
         ActivityLog.objects.create(
             log='Disclaimer Content version {} created'.format(self.version)

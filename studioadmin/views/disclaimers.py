@@ -4,10 +4,11 @@ import logging
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.urls import reverse
 from django.template.response import TemplateResponse
-from django.shortcuts import get_object_or_404, Http404
+from django.shortcuts import get_object_or_404, Http404, HttpResponseRedirect
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.utils import timezone
 
@@ -28,13 +29,84 @@ logger = logging.getLogger(__name__)
 class DisclaimerContentCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
 
     model = DisclaimerContent
-    template_name = 'studioadmin/disclaimer_content_create.html'
+    template_name = 'studioadmin/disclaimer_content_create_update.html'
     form_class = StudioadminDisclaimerContentForm
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            draft = DisclaimerContent.objects.filter(is_draft=True).latest('id')
+            return HttpResponseRedirect(reverse('studioadmin:disclaimer_content_edit', args=(draft.version,)))
+        except DisclaimerContent.DoesNotExist:
+            return super(DisclaimerContentCreateView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['sidenav_selection'] = 'disclaimer_content_new'
         return context
+
+    def form_valid(self, form):
+        new_content = form.save()
+        if "save_draft" in self.request.POST:
+            new_content.is_draft = True
+        elif "publish" in self.request.POST:
+            new_content.is_draft = False
+        else:
+            raise ValidationError("Action (save draft/publish) cannot be determined")
+        new_content.save()
+        ActivityLog.objects.create(
+            log=f"New {new_content.status} disclaimer content " \
+                 f"version {new_content.version} created by admin user {self.request.user}"
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:disclaimer_content_list')
+
+
+class DisclaimerContentUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
+
+    model = DisclaimerContent
+    context_object_name = 'disclaimer_content'
+    template_name = 'studioadmin/disclaimer_content_create_update.html'
+    form_class = StudioadminDisclaimerContentForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sidenav_selection'] = 'disclaimer_content_new'
+        new = self.get_object()
+        current = DisclaimerContent.current()
+        if (
+                new.disclaimer_terms == current.disclaimer_terms and
+                new.over_18_statement == current.over_18_statement and
+                new.medical_treatment_terms == current.medical_treatment_terms
+        ):
+            context['same_as_published'] = True
+        return context
+
+    def get_object(self):
+        return get_object_or_404(DisclaimerContent, version=self.kwargs['version'])
+
+    def form_valid(self, form):
+        updated_content = form.save()
+        if "save_draft" in self.request.POST:
+            updated_content.is_draft = True
+        elif "publish" in self.request.POST:
+            updated_content.is_draft = False
+        elif "reset" in self.request.POST:
+            current = DisclaimerContent.current()
+            updated_content.disclaimer_terms = current.disclaimer_terms
+            updated_content.over_18_statement = current.over_18_statement
+            updated_content.medical_treatment_terms = current.medical_treatment_terms
+        else:
+            raise ValidationError("Action (save draft/publish) cannot be determined")
+        updated_content.save()
+        ActivityLog.objects.create(
+            log=f"Disclaimer content ({updated_content.status})" \
+                 f"version {updated_content.version} updated by admin user {self.request.user}"
+        )
+        if "reset" in self.request.POST:
+            HttpResponseRedirect(reverse('studioadmin:disclaimer_content_edit', args=(updated_content.version,)))
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('studioadmin:disclaimer_content_list')
@@ -50,6 +122,7 @@ class DisclaimerContentListView(LoginRequiredMixin, StaffUserMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['sidenav_selection'] = 'disclaimer_content_list'
+        context['current_version'] = DisclaimerContent.current_version()
         return context
 
 
@@ -59,7 +132,7 @@ def disclaimer_content_view(request, version):
     disclaimer_content = get_object_or_404(DisclaimerContent, version=version)
     ctx = {
         'disclaimer_content': disclaimer_content,
-        'sidenav_selection': 'disclaimer_content_view'
+        'sidenav_selection': 'disclaimer_content_list'
    }
 
     return TemplateResponse(

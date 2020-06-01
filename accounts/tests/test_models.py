@@ -1,4 +1,5 @@
 import pytz
+import pytest
 
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -14,6 +15,92 @@ from accounts.models import CookiePolicy, DataPrivacyPolicy, DisclaimerContent, 
 from accounts.utils import has_active_data_privacy_agreement, \
     active_data_privacy_cache_key
 from common.tests.helpers import make_data_privacy_agreement
+
+
+class DisclaimerContentModelTests(TestCase):
+
+    def test_disclaimer_content_first_version(self):
+        DisclaimerContent.objects.all().delete()
+        assert DisclaimerContent.objects.exists() is False
+        assert DisclaimerContent.current_version() == 0
+
+        content = baker.make(DisclaimerContent, version=None)
+        assert content.version == 1.0
+
+        content1 = baker.make(DisclaimerContent, version=None)
+        assert content1.version == 2.0
+
+    def test_can_edit_draft_disclaimer_content(self):
+        content = baker.make(DisclaimerContent, disclaimer_terms="first version", version=4, is_draft=True)
+        first_issue_date = content.issue_date
+
+        content.disclaimer_terms = "second version"
+        content.save()
+        assert first_issue_date < content.issue_date
+
+        assert content.disclaimer_terms == "second version"
+        content.is_draft = False
+        content.save()
+
+        with pytest.raises(ValueError):
+            content.disclaimer_terms = "third version"
+            content.save()
+
+    def test_cannot_change_existing_published_disclaimer_version(self):
+        content = baker.make(DisclaimerContent, disclaimer_terms="first version", version=4, is_draft=True)
+        content.version = 3.8
+        content.save()
+
+        assert content.version == 3.8
+        content.is_draft = False
+        content.save()
+
+        with pytest.raises(ValueError):
+            content.version = 4
+            content.save()
+
+    def test_cannot_update_terms_after_first_save(self):
+        disclaimer_content = baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None  # ensure version is incremented from any existing ones
+        )
+
+        with self.assertRaises(ValueError):
+            disclaimer_content.disclaimer_terms = 'foo1'
+            disclaimer_content.save()
+
+        with self.assertRaises(ValueError):
+            disclaimer_content.medical_treatment_terms = 'foo1'
+            disclaimer_content.save()
+
+        with self.assertRaises(ValueError):
+            disclaimer_content.over_18_statement = 'foo1'
+            disclaimer_content.save()
+
+    def test_status(self):
+        disclaimer_content = baker.make(DisclaimerContent, version=None)
+        assert disclaimer_content.status == "published"
+        disclaimer_content_draft = baker.make(DisclaimerContent, version=None, is_draft=True)
+        assert disclaimer_content_draft.status == "draft"
+
+    def test_str(self):
+        disclaimer_content = baker.make(DisclaimerContent, version=None)
+        assert str(disclaimer_content) == f'Disclaimer Content - Version {disclaimer_content.version} (published)'
+
+    def test_new_version_must_have_new_terms(self):
+        baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None
+        )
+        with pytest.raises(ValidationError) as e:
+            baker.make(
+                DisclaimerContent,
+                disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+                version=None
+            )
+            assert str(e) == "No changes made to content; not saved"
 
 
 class DisclaimerModelTests(TestCase):
@@ -62,17 +149,6 @@ class DisclaimerModelTests(TestCase):
             disclaimer.date_archived.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
         ))
 
-    def test_disclaimer_content_first_version(self):
-        DisclaimerContent.objects.all().delete()
-        assert DisclaimerContent.objects.exists() is False
-        assert DisclaimerContent.current_version() == 0
-
-        content = baker.make(DisclaimerContent, version=None)
-        assert content.version == 1.0
-
-        content1 = baker.make(DisclaimerContent, version=None)
-        assert content1.version == 2.0
-
     def test_new_online_disclaimer_with_current_version_is_active(self):
         disclaimer_content = baker.make(
             DisclaimerContent,
@@ -88,26 +164,6 @@ class DisclaimerModelTests(TestCase):
             version=None  # ensure version is incremented from any existing ones
         )
         assert disclaimer.is_active is False
-
-
-    def test_cannot_update_terms_after_first_save(self):
-        disclaimer_content = baker.make(
-            DisclaimerContent,
-            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
-            version=None  # ensure version is incremented from any existing ones
-        )
-
-        with self.assertRaises(ValueError):
-            disclaimer_content.disclaimer_terms = 'foo1'
-            disclaimer_content.save()
-
-        with self.assertRaises(ValueError):
-            disclaimer_content.medical_treatment_terms = 'foo1'
-            disclaimer_content.save()
-
-        with self.assertRaises(ValueError):
-            disclaimer_content.over_18_statement = 'foo1'
-            disclaimer_content.save()
 
     def test_cannot_create_new_active_disclaimer(self):
         user = baker.make_recipe('booking.user', username='testuser')

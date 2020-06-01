@@ -11,6 +11,7 @@ from studioadmin.views import (BookingEditView,
                                DisclaimerContentCreateView,
                                DisclaimerContentListView,
                                disclaimer_content_view,
+                               DisclaimerContentUpdateView,
                                NonRegisteredDisclaimersListView,
                                nonregistered_disclaimer,
                                EventAdminUpdateView,
@@ -275,6 +276,10 @@ urlpatterns = [
     re_path(
         r'^disclaimer-version/(?P<version>\d+\.\d+)/$',
         disclaimer_content_view, name='disclaimer_content_view'
+    ),
+    re_path(
+        r'^disclaimer-version/edit/(?P<version>\d+\.\d+)/$',
+        DisclaimerContentUpdateView.as_view(), name='disclaimer_content_edit'
     ),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),

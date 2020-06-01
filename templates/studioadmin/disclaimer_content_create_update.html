@@ -1,0 +1,33 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+    <div class="container-fluid row">
+        <h2>{% if disclaimer_content %}Editing Draft Version {{ disclaimer_content.version }}{% else %}New Disclaimer Version{% endif %}</h2>
+
+        <p>
+            Use this form to update the terms of online disclaimers.  {% if not disclaimer_content %}Fields are autofilled with the current (published) disclaimer content.{% endif %}
+            You can save as draft and review/edit the content from the <a href="{% url 'studioadmin:disclaimer_content_list' %}">list page</a>.
+            Disclaimer content cannot be edited once published.
+        </p>
+
+        <p>
+            <span class="form-error">
+                Note that once a new version is published, all signed disclaimers will be expired and students will be required to sign/re-sign the latest published version.
+            </span>
+        </p>
+
+        <form method="post" action="" class="dirty-check">
+            {% csrf_token %}
+            {{ form.as_p }}
+            {% if form.errors %}<div class="form-error">Error in submitted form</div>{% endif %}
+            <button class="btn btn-warning" type="submit" name="save_draft">Save as draft</button>
+            {% if not same_as_published %}
+            <button class="btn btn-info" type="submit" name="reset">Reset to latest published version</button>
+            {% endif %}
+            <button class="btn btn-success" type="submit" name="publish">Publish</button>
+        </form>
+    </div>
+
+{% endblock studioadmincontent %}

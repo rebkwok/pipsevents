@@ -58,7 +58,7 @@
     <div class="divider"></div>
 
     <h4>EMERGENCY MEDICAL TREATMENT</h4>
-    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer_content.medical_treatment_terms }}<br/><strong>CONFIRMED</strong></p>{% endif %}
+    {% if disclaimer.medical_treatment_permission %}<p>{{ disclaimer_content.medical_treatment_terms|linebreaks }}<br/><strong>CONFIRMED</strong></p>{% endif %}
 
     <div class="divider"></div>
 
