@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
     DataPrivacyPolicy, DisclaimerContent
-from accounts.utils import has_active_data_privacy_agreement
+from accounts.models import has_active_data_privacy_agreement
 
 from booking.models import Event, BlockVoucher, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView

@@ -13,8 +13,8 @@ from django.test import TestCase, override_settings
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp, SocialAccount
 
-from ..models import DataPrivacyPolicy, DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
-from ..utils import has_active_data_privacy_agreement
+from ..models import DataPrivacyPolicy, DisclaimerContent, OnlineDisclaimer, \
+    NonRegisteredDisclaimer, has_active_data_privacy_agreement
 from ..views import ProfileUpdateView, DisclaimerCreateView
 from common.tests.helpers import _create_session, Any, \
     assert_mailchimp_post_data, TestSetupMixin, set_up_fb

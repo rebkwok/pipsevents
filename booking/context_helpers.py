@@ -10,7 +10,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.urls import reverse
 
-from accounts.utils import has_active_disclaimer, has_expired_disclaimer
+from accounts.models import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Block, BlockType, Booking, WaitingListUser
 
 

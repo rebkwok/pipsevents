@@ -2,8 +2,7 @@ from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
 from django.utils import timezone
 
-from accounts.models import DataPrivacyPolicy
-from accounts.utils import has_active_disclaimer, has_active_data_privacy_agreement
+from accounts.models import DataPrivacyPolicy, has_active_disclaimer, has_active_data_privacy_agreement
 from activitylog.models import ActivityLog
 from booking.models import Block, UsedBlockVoucher, UsedEventVoucher
 

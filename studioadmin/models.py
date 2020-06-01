@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Group, User
-from accounts.utils import has_active_print_disclaimer
+from accounts.models import has_active_print_disclaimer
 
 
 def is_regular_student(self):

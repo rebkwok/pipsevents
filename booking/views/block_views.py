@@ -15,7 +15,7 @@ from django.template.loader import get_template
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
-from accounts.utils import has_active_disclaimer, has_expired_disclaimer
+from accounts.models import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Block
 from booking.forms import BlockCreateForm
 import booking.context_helpers as context_helpers

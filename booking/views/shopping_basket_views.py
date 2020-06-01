@@ -17,8 +17,7 @@ from django.template.response import TemplateResponse
 
 from payments.forms import PayPalPaymentsShoppingBasketForm
 
-from accounts.models import DataPrivacyPolicy
-from accounts.utils import has_active_data_privacy_agreement
+from accounts.models import DataPrivacyPolicy, has_active_data_privacy_agreement
 
 from booking.models import (
     Block, BlockType, BlockVoucher, Booking, EventVoucher, UsedBlockVoucher,
