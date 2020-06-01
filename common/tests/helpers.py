@@ -10,8 +10,8 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.utils.html import strip_tags
 
-from accounts.models import DisclaimerContent, PrintDisclaimer, SignedDataPrivacy, DataPrivacyPolicy
-from accounts.utils import has_active_data_privacy_agreement
+from accounts.models import DisclaimerContent, PrintDisclaimer, \
+    SignedDataPrivacy, DataPrivacyPolicy, has_active_data_privacy_agreement
 
 
 def set_up_fb():

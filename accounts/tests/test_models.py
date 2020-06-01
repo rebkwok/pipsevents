@@ -11,8 +11,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
-    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer
-from accounts.utils import has_active_data_privacy_agreement, \
+    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, has_active_data_privacy_agreement, \
     active_data_privacy_cache_key
 from common.tests.helpers import make_data_privacy_agreement
 

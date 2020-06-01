@@ -10,7 +10,7 @@ from django.views.generic import (
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
-from accounts.utils import has_active_disclaimer, has_expired_disclaimer
+from accounts.models import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Booking, Event, WaitingListUser
 from booking.forms import EventFilter, LessonFilter, RoomHireFilter
 import booking.context_helpers as context_helpers

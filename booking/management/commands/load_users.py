@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer
-from accounts.utils import has_active_disclaimer
+from accounts.models import has_active_disclaimer
 
 
 class Command(BaseCommand):

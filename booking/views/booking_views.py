@@ -30,7 +30,7 @@ from braces.views import LoginRequiredMixin
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
-from accounts.utils import has_expired_disclaimer, has_active_disclaimer
+from accounts.models import has_expired_disclaimer, has_active_disclaimer
 
 from booking.models import (
     Block, BlockType, Booking, Event, UsedEventVoucher, EventVoucher,

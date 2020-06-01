@@ -19,8 +19,7 @@ from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
-from accounts.models import PrintDisclaimer
-from accounts.utils import active_print_disclaimer_cache_key
+from accounts.models import PrintDisclaimer, active_print_disclaimer_cache_key
 
 from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email

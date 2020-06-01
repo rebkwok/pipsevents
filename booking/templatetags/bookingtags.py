@@ -10,9 +10,8 @@ from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
-from accounts.models import OnlineDisclaimer
-from accounts.utils import has_active_disclaimer, has_active_online_disclaimer, \
-    has_expired_disclaimer
+from accounts.models import OnlineDisclaimer, has_active_disclaimer, \
+    has_active_online_disclaimer, has_expired_disclaimer
 from booking.models import BlockVoucher, Booking, Event, EventVoucher, \
     UsedBlockVoucher, UsedEventVoucher
 from studioadmin.utils import int_str, chaffify

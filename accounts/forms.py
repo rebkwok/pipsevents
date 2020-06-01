@@ -11,7 +11,7 @@ from django.utils import timezone
 from accounts import validators as account_validators
 from accounts.models import BOOL_CHOICES, OnlineDisclaimer, DisclaimerContent, DataPrivacyPolicy, \
     SignedDataPrivacy, NonRegisteredDisclaimer
-from accounts.utils import has_expired_disclaimer
+from accounts.models import has_expired_disclaimer
 from activitylog.models import ActivityLog
 from common.mailchimp_utils import update_mailchimp
 
