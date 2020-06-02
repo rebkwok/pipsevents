@@ -679,6 +679,10 @@ class DisclamerContentUpdateViewTests(TestPermissionMixin, TestCase):
         assert self.content.over_18_statement == self.current.over_18_statement
         assert self.content.version != self.current.version
 
+        # Since the terms are now the same, the reset button is hidden
+        resp = self.client.get(self.url)
+        assert 'id="reset_button"' not in resp.rendered_content
+
     def test_publish(self):
         # version is draft = sets is_draft = False
         # issue_date is updated when changing draft to published
