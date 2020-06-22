@@ -562,8 +562,7 @@ class BlockTests(PatchRequestMixin, TestCase):
 
     def test_block_expiry_date_with_extended_date(self):
         """
-        Test that expiry_date shows extended expiry date if set AND only if >
-        date calculated by block duration
+        Test that expiry_date shows extended expiry date if set
         """
         # expiry date calculated based on start data and duration
         self.assertEqual(
@@ -591,10 +590,10 @@ class BlockTests(PatchRequestMixin, TestCase):
             self.small_block.extended_expiry_date,
             datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
         )
-        # earlier extended expiry date now ignored
+        # earlier extended expiry date is allowed
         self.assertEqual(
             self.small_block.expiry_date,
-            datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
         )
 
     @patch('booking.models.timezone.now')
