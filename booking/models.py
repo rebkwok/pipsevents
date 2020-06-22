@@ -332,14 +332,11 @@ class Block(models.Model):
         if self.parent:
             duration = self.parent.block_type.duration
 
-        expiry_datetime = self.start_date + relativedelta(
-            months=duration)
+        expiry_datetime = self.start_date + relativedelta(months=duration)
 
-        # if a manual extended expiry date has been set, use that instead
-        # (unless it's been set to be earlier than the calculated expiry date)
+        # if a manual extended expiry date has been set, use that instead (it can be earlier than the data calculated from duration)
         # extended_expiry_date is set to end of day on save, so just return it
-        if self.extended_expiry_date and \
-                self.extended_expiry_date > expiry_datetime:
+        if self.extended_expiry_date:
             return self.extended_expiry_date
 
         return self._get_end_of_day(expiry_datetime)
