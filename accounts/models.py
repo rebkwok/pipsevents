@@ -28,15 +28,23 @@ def has_readonly_fields(original_class):
     def store_read_only_fields(sender, instance, **kwargs):
         if not instance.id:
             return
-        for field_name in sender.read_only_fields:
+        fields_to_store = list(sender.read_only_fields)
+        if hasattr(instance, "is_draft"):
+            fields_to_store.append("is_draft")
+        for field_name in fields_to_store:
             val = getattr(instance, field_name)
             setattr(instance, field_name + "_oldval", val)
 
     def check_read_only_fields(sender, instance, **kwargs):
         if not instance.id:
             return
-        elif instance.id and hasattr(instance, "is_draft") and instance.is_draft:
-            return
+        elif instance.id and hasattr(instance, "is_draft"):
+            if instance.is_draft:
+                # we can edit if we're changing a draft
+                return
+            if instance.is_draft_oldval and not instance.is_draft:
+                # we can edit if we're changing a draft to published
+                return
         for field_name in sender.read_only_fields:
             old_value = getattr(instance, field_name + "_oldval")
             new_value = getattr(instance, field_name)
@@ -217,8 +225,8 @@ class DisclaimerContent(models.Model):
             # if no version specified, go to next major version
             self.version = float(floor((DisclaimerContent.current_version() + 1)))
 
-        # Always update issue date on saving drafts
-        if self.is_draft:
+        # Always update issue date on saving drafts or publishing first version
+        if self.is_draft or getattr(self, "is_draft_oldval", False):
             self.issue_date = timezone.now()
         super().save(**kwargs)
         ActivityLog.objects.create(
