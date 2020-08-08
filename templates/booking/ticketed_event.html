@@ -30,7 +30,7 @@
                     <li class="list-group-item"><p><strong>Payment information</strong></p>
                         <p>{% if not ticketed_event.advance_payment_required and ticketed_event.ticket_cost %}Advance payment is not required for this event.{% endif %}</p>
 
-                        <p>Cost: £ {{ ticketed_event.ticket_cost }} (incl. VAT)</p>
+                        <p>Cost: £ {{ ticketed_event.ticket_cost }}{% if show_vat %} (incl. VAT){% endif %}</p>
 
                         <p>{{ payment_text | safe }}</p>
 

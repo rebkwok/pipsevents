@@ -24,7 +24,8 @@ env = environ.Env(DEBUG=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
                   REGULAR_STUDENT_WHITELIST_IDS=(list, []),
                   WACTHLIST=(list, []),
-                  LOCAL=(bool, False)
+                  LOCAL=(bool, False),
+                  SHOW_VAT=(bool, True),
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -147,6 +148,7 @@ TEMPLATES = [
                 # Required by allauth template tags
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
+                "booking.context_processors.vat",
             ),
             'debug': DEBUG,
         },
@@ -468,3 +470,6 @@ EMPTY_JOB_TEXT = [
 
 S3_LOG_BACKUP_PATH = "s3://backups.polefitstarlet.co.uk/pipsevents_activitylogs"
 S3_LOG_BACKUP_ROOT_FILENAME = "pipsevents_activity_logs_backup"
+
+SHOW_VAT = env("SHOW_VAT")
+VAT_NUMBER = env("VAT_NUMBER")

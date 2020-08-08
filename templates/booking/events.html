@@ -116,7 +116,7 @@
                                                 {% if location_obj.index == 0 %}
                                                     <th class="table-center">Location</th>
                                                 {% endif %}
-                                                <th class="hidden-sm hidden-xs table-center">Cost <span class="vat">(incl VAT)</span></th>
+                                                <th class="hidden-sm hidden-xs table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
                                                 <th class="table-center">Spaces</th>
                                                 <th class="hidden-sm hidden-xs table-center">Booking open</th>
                                                 <th class="hidden-sm hidden-xs table-center">Payment open</th>

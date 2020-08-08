@@ -27,7 +27,7 @@
                     {% if payment_info %}
                         <div><strong>Payment information</strong><p>{{ ticketed_event.payment_info }}</p></div>
                     {% endif %}
-                    <div><strong>Ticket cost:</strong> £ {{ ticketed_event.ticket_cost }} (incl. VAT)</div>
+                    <div><strong>Ticket cost:</strong> £ {{ ticketed_event.ticket_cost }}{% if show_vat %} (incl. VAT){% endif %}</div>
                     {% if not ticketed_event.advance_payment_required and ticketed_event.ticket_cost %}<p>Advance payment is not required for this event.</p>{% endif %}
 
                     {% if user.is_authenticated %}
