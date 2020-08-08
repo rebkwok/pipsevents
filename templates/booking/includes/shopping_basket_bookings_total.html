@@ -1,1 +1,1 @@
-<h3 class="checkout-total">Total: £ {% if total_unpaid_booking_cost %}{{ total_unpaid_booking_cost }}{% else %}0{% endif %} <span class="vat">(incl. VAT)</span>{% include 'payments/shopping_cart_booking_payment.html' %}</h3>
+<h3 class="checkout-total">Total: £ {% if total_unpaid_booking_cost %}{{ total_unpaid_booking_cost }}{% else %}0{% endif %}{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}{% include 'payments/shopping_cart_booking_payment.html' %}</h3>

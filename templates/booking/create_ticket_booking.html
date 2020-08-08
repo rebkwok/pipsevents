@@ -15,7 +15,7 @@
             <div class="panel-body">
                 <h4>Booking reference: {{ ticket_booking.booking_reference }}</h4>
 
-                <p>Ticket price : £ {{ ticketed_event.ticket_cost }} (incl. VAT)</p>
+                <p>Ticket price : £ {{ ticketed_event.ticket_cost }}{% if show_vat %} (incl. VAT){% endif %}</p>
                 {% if not purchase_confirmed %}
                     <form name="ticket_purchase_form" class="form-inline" method="post" action="">
                         {% csrf_token %}

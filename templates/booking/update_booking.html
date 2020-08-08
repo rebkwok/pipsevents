@@ -12,7 +12,7 @@
 
             {% if booking.event.cost != 0 %}
             <div class="panel-body">
-                <h4>Cost: £ {{ paypal_cost|floatformat:2 }} (incl VAT)</h4>
+                <h4>Cost: £ {{ paypal_cost|floatformat:2 }}{% if show_vat %} (incl VAT){% endif %}</h4>
                     {% if booking.event.payment_open %}
                         {% if not valid_voucher %}
                             <form name="voucher_form" class="form-inline" method="post" action="">

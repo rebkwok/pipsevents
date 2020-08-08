@@ -19,7 +19,7 @@
                 {% for block_type in block_types %}
                     <p>{{ block_type.event_type.subtype }}</p>
                     <ul>
-                        <li>Cost: £{{ block_type.cost }} (incl VAT)</li>
+                        <li>Cost: £{{ block_type.cost }}{% if show_vat %} (incl VAT){% endif %}</li>
                         <li>Number of classes in block: {{ block_type.size }}</li>
                         <li>Time until block expires: {{ block_type.duration }} months</li>
                         {% if block_type.assign_free_class_on_completion %}

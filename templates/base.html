@@ -183,7 +183,7 @@
     <div class="footer">
     {% block extra_footer %}
       <div class="footer-credit col-xs-8 pull-left .no-print">
-          All prices are inclusive of VAT (VAT number 281 6986 56)<br/>
+          {% if show_vat %}All prices are inclusive of VAT (VAT number {{ vat_number }})<br/>{% endif %}
           Terms and conditions apply to all purchases, including sale items; for full T&C <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
          <a href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
       </div>

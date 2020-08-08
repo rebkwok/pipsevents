@@ -17,6 +17,7 @@ env: >
   HEROKU=False
   SEND_ALL_STUDIO_EMAILS=True
   SIMPLECRYPT_PASSWORD=secret
+  VAT_NUMBER=123
 
 install:
   - pip install -r requirements.txt

@@ -10,7 +10,7 @@
                 {% if paypal_form %}
                     <div>
                         You are purchasing a voucher for:<br>
-                        <strong>{{ voucher_type }}  <span class="vat">(incl. VAT)</span></strong><br>
+                        <strong>{{ voucher_type }}{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</strong><br>
                     </div>
                     <div>
                         Click below to go to PayPal to make payment.<br>
