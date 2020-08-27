@@ -1,7 +1,7 @@
 {% if has_temporary_banner %}
 
     <div class="jumbotron banner-jumbotron">
-        {{ temporary_banner }}
+        {{ temporary_banner|safe }}
     </div>
 
 {% endif %}
