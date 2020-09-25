@@ -458,6 +458,8 @@ if not (MAILCHIMP_USER and MAILCHIMP_SECRET and MAILCHIMP_LIST_ID
         "MAILCHIMP_LIST_ID and MAILCHIMP_WEBHOOK_SECRET"
     )
 
+EXTENSIONS_MAX_UNIQUE_QUERY_ATTEMPTS = 1000
+
 # Activitylogs
 EMPTY_JOB_TEXT = [
     'email_warnings job run; no unpaid booking warnings to send',
