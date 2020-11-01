@@ -64,31 +64,42 @@ def get_event_names(event_type):
         event_names = set([event.name for event in Event.objects.filter(
             event_type__event_type=event_type, date__gte=timezone.now()
         ).order_by('name')])
-        NAME_CHOICES = [(item, item) for i, item in enumerate(event_names)]
-        NAME_CHOICES.insert(0, ('', 'All'))
-        return tuple(sorted(NAME_CHOICES))
-
+        NAME_CHOICES = sorted([(item, item) for i, item in enumerate(event_names)])
+        NAME_CHOICES.insert(0, ("all", "All"))
+        return tuple(NAME_CHOICES)
     return callable
 
 
-class EventFilter(forms.Form):
-    name = forms.ChoiceField(
-        choices=get_event_names('EV'),
-        widget=forms.Select(attrs={'onchange': 'form.submit()'})
+class BaseFilter(forms.Form):
+
+    date_selection = forms.CharField(
+        widget=forms.TextInput(
+            attrs={"autocomplete": "off",
+                   "class": "form-control form-control-sm filter-form-control filter-form-control-dates"},
+        ),
+        max_length=255, label="Dates",
+        required=False
     )
 
 
-class LessonFilter(forms.Form):
+class EventFilter(BaseFilter):
+    name = forms.ChoiceField(
+        choices=get_event_names('EV'),
+        widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
+    )
+
+
+class LessonFilter(BaseFilter):
     name = forms.ChoiceField(
         choices=get_event_names('CL'),
-        widget=forms.Select(attrs={'onchange': 'form.submit()'})
-     )
+        widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
+    )
 
 
-class RoomHireFilter(forms.Form):
+class RoomHireFilter(BaseFilter):
     name = forms.ChoiceField(
         choices=get_event_names('RH'),
-        widget=forms.Select(attrs={'onchange': 'form.submit()'})
+        widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
     )
 
 
