@@ -102,7 +102,7 @@
                             <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
 
                                     {% if location_obj.queryset %}
-                                        <table class="table-condensed table-striped">
+                                        <table class="table-responsive table-condensed table-striped">
                                             <tr class="table-tab-header">
                                                 {% if user.is_authenticated %}
                                                     <th></th>
