@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import logging
 
@@ -32,21 +32,29 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         else:
             ev_abbr = 'RH'
         name = self.request.GET.get('name')
-
+        date_selection = self.request.GET.get('date_selection')
         cutoff_time = timezone.now() - timedelta(minutes=10)
 
-        if name and name not in ['', 'all']:
-            return Event.objects.select_related('event_type').filter(
-                event_type__event_type=ev_abbr,
-                date__gte=cutoff_time,
-                name=name,
-                cancelled=False
-            ).order_by('date')
-        return Event.objects.select_related('event_type').filter(
+        events = Event.objects.select_related('event_type').filter(
             event_type__event_type=ev_abbr,
             date__gte=cutoff_time,
             cancelled=False
         ).order_by('date')
+
+        if name and name not in ['', 'all']:
+            events = events.filter(name=name)
+
+        if date_selection:
+            date_selection = date_selection.split(",")
+            selected_dates = []
+            for datestring in date_selection:
+                try:
+                    selected_dates.append(datetime.strptime(datestring.strip(), "%d-%b-%Y").date())
+                except ValueError:
+                    pass
+            events = events.filter(date__date__in=selected_dates)
+
+        return events
 
     def get_context_data(self, **kwargs):
         all_events = self.get_queryset()
@@ -60,8 +68,6 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             user_bookings = {booking.event.id: booking for booking in user_bookings}
 
             booked_events = all_events.filter(bookings__user_id=self.request.user.id, bookings__status='OPEN', bookings__no_show=False).values_list('id', flat=True)
-
-            # auto_cancelled_events = user_bookings.filter(status='CANCELLED', auto_cancelled=True).values_list('event__id', flat=True)
             auto_cancelled_events = all_events.filter(bookings__user_id=self.request.user.id, bookings__status='CANCELLED', bookings__auto_cancelled=True).values_list('id', flat=True)
 
             waiting_list_events = self.request.user.waitinglists.filter(event__in=all_events).values_list('event__id', flat=True)
@@ -76,12 +82,13 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         context['type'] = self.kwargs['ev_type']
 
         event_name = self.request.GET.get('name', '')
+        date_selection = self.request.GET.get('date_selection', '')
         if self.kwargs['ev_type'] == 'events':
-            form = EventFilter(initial={'name': event_name})
+            form = EventFilter(initial={'name': event_name, "date_selection": date_selection})
         elif self.kwargs['ev_type'] == 'lessons':
-            form = LessonFilter(initial={'name': event_name})
+            form = LessonFilter(initial={'name': event_name, "date_selection": date_selection})
         else:
-            form = RoomHireFilter(initial={'name': event_name})
+            form = RoomHireFilter(initial={'name': event_name, "date_selection": date_selection})
         context['form'] = form
 
         if not self.request.user.is_anonymous:
