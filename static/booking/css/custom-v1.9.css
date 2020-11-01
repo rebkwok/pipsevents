@@ -866,12 +866,12 @@ a > span.fa.fa-print {
 		white-space: normal !important;
     }
 	tr.compress>th, tr.compress.table-tab>th {
-		font-size: 0.8em;
+		font-size: 0.9em;
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
   tr.compress>td, tr.compress.table-tab>td {
-		font-size: 0.8em !important;
+		font-size: 0.9em !important;
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
@@ -1131,7 +1131,7 @@ tr.unpaid-booking-row {
 
 @media (max-width: 768px) { /* use the max to specify at each container level */
     td.table-event > a {
-        width:110px;  /* adjust to desired wrapping */
+        max-width:120px;  /* adjust to desired wrapping */
         display:table;
         white-space: pre-wrap; /* css-3 */
         white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
@@ -1140,13 +1140,25 @@ tr.unpaid-booking-row {
         word-wrap: break-word; /* Internet Explorer 5.5+ */
     }
     td.date {
-          width:80px;  /* adjust to desired wrapping */
+		    font-size: 0.7em;
+          max-width:100px;  /* adjust to desired wrapping */
           display:table;
           white-space: pre-wrap; /* css-3 */
           white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
           white-space: -pre-wrap; /* Opera 4-6 */
           white-space: -o-pre-wrap; /* Opera 7 */
           word-wrap: break-word; /* Internet Explorer 5.5+ */
+      }
+}
+
+@media (min-width: 768px) { /* use the max to specify at each container level */
+    td.table-event > a {
+       max-width:auto;
+    }
+    td.date {
+          max-width:auto;  /* adjust to desired wrapping */
+          display:table;
+          white-space: nowrap;
       }
 }
 
