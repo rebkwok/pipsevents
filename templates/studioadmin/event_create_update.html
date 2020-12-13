@@ -103,6 +103,14 @@
                                     {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
                                 </div></label>
                             </div>
+                             {% elif field.name == "video_link_available_after_class" %}
+                            <div class="form-group cbox">
+                                <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
+                                <div class="col-sm-9">
+                                    <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='video_link_available_after_class_id'></label></div><div class="col-sm-8 studioadmin-help">  {{ field.help_text }}</div>
+                                    {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
+                                </div></label>
+                            </div>
                              {% else %}
                                 <div class="form-group">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>

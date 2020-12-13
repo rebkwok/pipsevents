@@ -21,7 +21,15 @@
             <div class="panel-body">
                 <div class="pull-right">
                 {% if show_video_link and booked and booking.paid %}
-                    <div><a id="video_link_id" class="btn btn-info" href="{{ event.video_link }}">Join online class</a></div>
+                    {% if past %}
+                        {% if booking.event.video_link_available_after_class %}
+                            <div><a id="video_link_id" class="btn btn-info" href="{{ event.video_link }}">View video link</a></div>
+                        {% else %}
+                            <div id="video_link_disabled_id" class="btn btn-default disabled">Class is past</div>
+                        {% endif %}
+                    {% else %}
+                        <div><a id="video_link_id" class="btn btn-info" href="{{ event.video_link }}">Join online class</a></div>
+                    {% endif %}
                 {% else %}
                     <div id="video_link_disabled_id" class="btn btn-default disabled">Video link enabled 20 mins before class</div>
                 {% endif %}

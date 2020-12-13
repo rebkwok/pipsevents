@@ -275,7 +275,8 @@ class EventAdminForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = (
-            'name', 'event_type', 'date', 'video_link', 'description', 'location',
+            'name', 'event_type', 'date', 'video_link', 'video_link_available_after_class',
+            'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',
@@ -292,6 +293,12 @@ class EventAdminForm(forms.ModelForm):
             ),
             'video_link': forms.TextInput(
                 attrs={'class': "form-control"}
+            ),
+            'video_link_available_after_class': forms.CheckboxInput(
+                attrs={
+                    'class': "form-control regular-checkbox",
+                    'id': 'video_link_available_after_class_id',
+                }
             ),
             'payment_info': CKEditorWidget(
                 attrs={'class': 'form-control container-fluid'},

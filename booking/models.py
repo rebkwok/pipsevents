@@ -131,6 +131,10 @@ class Event(models.Model):
                   'Check this carefully!'
     )
     video_link = models.URLField(null=True, blank=True, help_text="Zoom/Video URL (for online classes only)")
+    video_link_available_after_class = models.BooleanField(
+        default=False,
+        help_text="Zoom/Video URL available after class is past (for online classes only)"
+    )
 
     class Meta:
         ordering = ['-date']
