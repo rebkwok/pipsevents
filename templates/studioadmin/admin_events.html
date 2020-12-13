@@ -99,25 +99,34 @@
                         {% endfor %}
                             <tr>
                                 <td class="studioadmin-tbl" colspan="11">
-
                                         <div class="pagination">
                                             {% if event_page.has_previous %}
-                                                <a href="?page={{ event_page.previous_page_number }}{% if show_past %}&past=true{% endif %}">Previous</a>
+                                                {% if event_page.number != 1 %}
+                                                    <a href="?page=1{% if show_past %}&past=true{% endif %}">First</a>
+                                                {% endif %}
                                             {% else %}
-                                                <a class="disabled" disabled=disabled href="#">Previous</a>
+                                                <a class="disabled" disabled=disabled href="#">First</a>
                                             {% endif %}
-                                            --
-                                            {% for i in event_page.paginator.num_pages|get_range:1 %}
+                                            |
+                                            {% for i in event_page.paginator|get_paginator_range:event_page.number %}
+                                                {% if forloop.first and i != 1 %}
+                                                    ...
+                                                {% endif %}
                                                 {% if i != event_page.number %}
-                                                    <a href="?page={{ i }}">{{ i }}</a>
+                                                    <a href="?page={{ i }}{% if show_past %}&past=true{% endif %}">{{ i }}</a>
                                                 {% else %}{{ i }}
                                                 {% endif %}
+                                                {% if forloop.last and i != event_page.paginator.num_pages %}
+                                                    ...
+                                                {% endif %}
                                             {% endfor %}
-                                            --
+                                            |
                                             {% if event_page.has_next %}
-                                                <a href="?page={{ event_page.next_page_number }}{% if show_past %}&past=true{% endif %}">Next</a>
+                                                {% if event_page.number != event_page.paginator.num_pages %}
+                                                    <a href="?page={{ event_page.paginator.num_pages }}{% if show_past %}&past=true{% endif %}">Last</a>
+                                                {% endif %}
                                             {% else %}
-                                                <a class="disabled" href="#">Next</a>
+                                                <a class="disabled" href="#">Last</a>
                                             {% endif %}
                                         </div>
                                 </td>
