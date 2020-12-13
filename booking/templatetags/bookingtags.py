@@ -66,6 +66,19 @@ def get_range(value, start=0):
 
 
 @register.filter
+def get_paginator_range(paginator, current_page):
+    # start: 0 or 1
+    total_pages = paginator.num_pages
+    if total_pages <= 20:
+        return range(1, total_pages + 1)
+    else:
+        start = current_page - 10
+        start = start if start > 0 else 1
+        end = current_page + 10
+        end = end if end <= total_pages else total_pages
+        return range(start, end + 1)
+
+@register.filter
 def get_index_open(event, extraline_index):
     open_bookings = [
         booking for booking in event.bookings.all() if booking.status == 'OPEN'
