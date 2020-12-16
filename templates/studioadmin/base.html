@@ -39,7 +39,7 @@
                 </ul>
             </li>
 
-                 <li class="dropdown">
+             <li class="dropdown">
                   <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Workshops/Events </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
@@ -50,6 +50,18 @@
                         <span class="sidebar_active">Event registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
                      <li class="active-nav"><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
                     <span class="sidebar_active">Print registers by date</span>{% else %}Print registers by date{% endif %}</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Online Tutorials </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <ul class="dropdown-menu" role="menu">
+                    <li class="active-nav"><a href="{% url 'studioadmin:online_tutorials' %}">{% if sidenav_selection == 'online_tutorials' %}
+                        <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:add_online_tutorial' %}">{% if sidenav_selection == 'add_online_tutorial' %}
+                        <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
+                     <li class="active-nav"><a href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
+                        <span class="sidebar_active">Online Tutorial Registers</span>{% else %}Registers{% endif %}</a></li>
                 </ul>
             </li>
 
@@ -125,6 +137,8 @@
 {% else %}
     <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
         <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
+    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
+        <span class="sidebar_active">Online Tutorials Registers</span>{% else %}Online Tutorials Registers{% endif %}</a></li>
     <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
         <span class="sidebar_active">Event/Workshop Registers</span>{% else %}Event/Workshop Registers{% endif %}</a></li>
     <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
@@ -214,6 +228,27 @@
                         <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
                         <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
                         <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+                    </span>
+
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#tutorials">
+                            <span class="fa events
+                                {% if sidenav_selection in 'online_tutorials,add_online_tutorial,online_tutorials_register' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Online Tutorials
+                        </a>
+                    </li>
+                    <span id="tutorials" class="collapse {% if sidenav_selection in 'online_tutorials,add_online_tutorial,online_tutorials_register' %} in{% endif %}">
+                         <li><a href="{% url 'studioadmin:online_tutorials' %}">{% if sidenav_selection == 'online_tutorials' %}
+                        <span class="sidebar_active">View and edit tutorials</span>{% else %}View and edit tutorials{% endif %}</a></li>
+                         <li><a href="{% url 'studioadmin:add_online_tutorial' %}">{% if sidenav_selection == 'add_online_tutorial' %}
+                        <span class="sidebar_active">Add a new tutorial</span>{% else %}Add a new tutorial{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
+                        <span class="sidebar_active">Registers</span>{% else %}Registers{% endif %}</a></li>
                     </span>
 
                      <li class="sidebar-title">

@@ -102,18 +102,18 @@ class EventAdminForm(forms.ModelForm):
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'
         }
-        
-        if ev_type == 'EV':
-            ev_type_qset = EventType.objects.filter(event_type='EV')
+
+        if ev_type == "CL":
+            ev_type_qset = EventType.objects.filter(event_type__in=["CL", "RH"])
         else:
-            ev_type_qset = EventType.objects.exclude(event_type='EV')
+            ev_type_qset = EventType.objects.filter(event_type=ev_type)
 
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
             queryset=ev_type_qset,
         )
-        ph_type = "event" if ev_type == 'EV' else 'class'
-        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1"
+        ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else "online tutorial"
+        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Spin Combo"
         self.fields['name'] = forms.CharField(
             widget=forms.TextInput(
                 attrs={
@@ -124,7 +124,7 @@ class EventAdminForm(forms.ModelForm):
         )
 
         if self.instance.id:
-            ev_type_str = 'class' if ev_type == 'CL' else 'event'
+            ev_type_str = ph_type
 
             if not self.instance.cancelled:
                 self.not_cancelled_text = 'No'
@@ -320,6 +320,7 @@ class EventAdminForm(forms.ModelForm):
                 attrs={
                     'class': "form-control",
                     'id': "datepicker",
+                    "autocomplete": "off"
                 },
                 format='%d %b %Y'
             ),
@@ -327,6 +328,7 @@ class EventAdminForm(forms.ModelForm):
                 attrs={
                     'class': "form-control",
                     'id': "datetimepicker",
+                    "autocomplete": "off",
                 },
                 format='%d %b %Y %H:%M'
             ),
@@ -415,3 +417,30 @@ class EventAdminForm(forms.ModelForm):
                 'payments will fail or could be paid to the wrong account!'
             ),
         }
+
+
+class OnlineTutorialAdminForm(EventAdminForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hidden_fields = [
+            'external_instructor', 'video_link_available_after_class', 'allow_booking_cancellation',
+            'cancellation_period', 'advance_payment_required', 'email_studio_when_booked', 'payment_due_date',
+            'max_participants', "location"
+        ]
+        if not self.instance.id:
+            self.hidden_fields.append("cancelled")
+        self.fields["date"].label = "Last purchasable date"
+        self.fields["video_link_available_after_class"].initial = True
+        self.fields["advance_payment_required"].initial = True
+        self.fields["allow_booking_cancellation"].initial = False
+        self.fields["email_studio_when_booked"].initial = False
+        self.fields["location"].initial = "Online"
+        self.fields["max_participants"].initial = None
+        self.fields["payment_due_date"].initial = None
+        self.fields["video_link"].required = True
+        self.fields["payment_time_allowed"].initial = 6
+
+        for field in self.hidden_fields:
+            self.fields[field].widget.attrs.update({'class': "hide"})
+            self.fields[field].hidden = True

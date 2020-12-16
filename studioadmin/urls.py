@@ -62,7 +62,8 @@ from studioadmin.views import (BookingEditView,
                                ajax_toggle_paid,
                                ajax_assign_block,
                                GiftVoucherListView,
-                               open_all_classes
+                               open_all_events,
+                               clone_event
                                )
 
 app_name = 'studioadmin'
@@ -94,7 +95,16 @@ urlpatterns = [
         {'ev_type': 'lessons'}, name='class_register_list'),
     path('classes/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'lesson'}, name='add_lesson'),
-    path('classes/open/', open_all_classes, name='open_all_classes'),
+    path('online-tutorials/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
+         {'ev_type': 'online_tutorial'}, name='edit_online_tutorial'),
+    path('online-tutorials/', event_admin_list,
+         {'ev_type': 'online_tutorials'}, name='online_tutorials'),
+    path('online-tutorial-registers/', EventRegisterListView.as_view(),
+         {'ev_type': 'online_tutorials'}, name='online_tutorials_register_list'),
+    path('online-tutorials/new/', EventAdminCreateView.as_view(),
+         {'ev_type': 'online_tutorial'}, name='add_online_tutorial'),
+    path('event/clone/<slug:slug>/', clone_event, name='clone_event'),
+    path('events/<str:event_type>/open/', open_all_events, name='open_all_events'),
     path('timetable', timetable_admin_list, name='timetable'),
     path('timetable/session/<int:pk>/edit/',
         TimetableSessionUpdateView.as_view(), name='edit_session'
