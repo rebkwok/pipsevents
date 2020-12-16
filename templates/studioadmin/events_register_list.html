@@ -5,7 +5,11 @@
 {% block studioadmincontent %}
 
 
-        <h2>Scheduled {% if type == 'events' %}Workshops/Events{% elif type == 'lessons' %}Classes{% endif %}: Registers & Waiting Lists</h2>
+        <h2>Scheduled
+            {% if type == 'events' %}Workshops/Events
+            {% elif type == 'lessons' %}Classes
+            {% elif type == 'online_tutorials' %}Online Tutorials
+            {% endif %}: Registers{% if type != 'online_tutorials' %} & Waiting Lists{% endif %}</h2>
         {% if events %}
         <div class="row">
             <div class="col-sm-12">
@@ -40,8 +44,8 @@
                                              {%  if location_obj.index == 0 %}
                                                 <th class="table-center">Location</th>
                                             {% endif %}
-                                            <th class="table-center">Bookings</th>
-                                            <th class="table-center">View Waiting List</th>
+                                            <th class="table-center">{% if type == 'online_tutorials' %}Purchased{% else %}Bookings{% endif %}</th>
+                                            {% if type != 'online_tutorials' %}<th class="table-center">View Waiting List</th>{% endif %}
                                         </tr>
 
                                         {% for event in location_obj.queryset %}
@@ -57,12 +61,14 @@
                                                 <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>
                                                 {% endif %}
                                             <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
+                                            {% if type != 'online_tutorials' %}
                                             <td class="table-center studioadmin-tbl">
                                                 {% if event.waitinglistusers.count > 0 %}
                                                     <a href="{% url 'studioadmin:event_waiting_list' event.id %}">
                                                         <span class="fas fa-external-link-square-alt fa-lg"></span></a>
                                                 {% endif %}
                                             </td>
+                                            {% endif %}
                                         </tr>
                                         {% endfor %}
                                     </table>

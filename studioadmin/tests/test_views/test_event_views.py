@@ -55,8 +55,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         request._messages = messages
         return event_admin_list(request, ev_type=ev_type)
 
-    def formset_data(self, extra_data={}):
-
+    def formset_data(self, extra_data=None):
+        extra_data = extra_data or {}
         data = {
             'form-TOTAL_FORMS': 1,
             'form-INITIAL_FORMS': 1,
@@ -122,7 +122,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
     def test_classes_url_shows_excludes_events(self):
         classes = baker.make_recipe('booking.future_PC', _quantity=5)
         url = reverse('studioadmin:lessons')
-        resp = self._get_response(self.staff_user, ev_type='classes', url=url)
+        resp = self._get_response(self.staff_user, ev_type='lessons', url=url)
         eventsformset = resp.context_data['eventformset']
 
         self.assertEqual(
@@ -135,7 +135,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         classes = baker.make_recipe('booking.future_PC', _quantity=5)
         room_hires = baker.make_recipe('booking.future_RH', _quantity=5)
         url = reverse('studioadmin:lessons')
-        resp = self._get_response(self.staff_user, ev_type='classes', url=url)
+        resp = self._get_response(self.staff_user, ev_type='lessons', url=url)
         eventsformset = resp.context_data['eventformset']
 
         self.assertEqual(
@@ -258,7 +258,9 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         button shown instead
         :return:
         """
-        event = baker.make_recipe('booking.future_EV')
+        # events are ordered by date and then name, make sure this one is second if the
+        # dates are the same
+        event = baker.make_recipe('booking.future_EV', name="ZZ")
         baker.make_recipe('booking.booking', event=event)
         self.assertEqual(event.bookings.all().count(), 1)
         self.assertEqual(self.event.bookings.all().count(), 0)
@@ -376,7 +378,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, self.event.slug, 'EV')
+        resp = self._get_response(self.user, self.event.slug, 'event')
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -385,7 +387,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, self.event.slug, 'EV')
+        resp = self._get_response(self.instructor_user, self.event.slug, 'event')
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -393,7 +395,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, self.event.slug, 'EV')
+        resp = self._get_response(self.staff_user, self.event.slug, 'event')
         self.assertEqual(resp.status_code, 200)
 
     def test_edit_event_refers_to_events_on_page_and_menu(self):
@@ -603,7 +605,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, 'EV')
+        resp = self._get_response(self.user, 'event')
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -612,7 +614,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, 'EV')
+        resp = self._get_response(self.instructor_user, 'event')
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -620,7 +622,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, 'EV')
+        resp = self._get_response(self.staff_user, 'event')
         self.assertEqual(resp.status_code, 200)
 
     def test_add_event_refers_to_events_on_page(self):
@@ -2139,9 +2141,9 @@ class OpenAllClassesTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.url = reverse("studioadmin:open_all_classes")
+        cls.url = reverse("studioadmin:open_all_events", args=("lessons",))
 
-    def test_open_all_classes(self):
+    def test_open_all_events(self):
         self.client.login(username=self.staff_user.username, password='test')
         baker.make_recipe('booking.future_PC', booking_open=False, payment_open=False, _quantity=5)
         assert Event.objects.count() == 5
@@ -2150,7 +2152,7 @@ class OpenAllClassesTests(TestPermissionMixin, TestCase):
         assert Event.objects.count() == 5
         assert Event.objects.filter(booking_open=True, payment_open=True).count() == 5
 
-    def test_open_all_classes_does_not_affect_events(self):
+    def test_open_all_events_does_not_affect_events(self):
         self.client.login(username=self.staff_user.username, password='test')
         baker.make_recipe('booking.future_PC', booking_open=False, payment_open=False, _quantity=3)
         baker.make_recipe('booking.future_EV', booking_open=False, payment_open=False, _quantity=3)
@@ -2163,3 +2165,45 @@ class OpenAllClassesTests(TestPermissionMixin, TestCase):
             assert event.booking_open is False
             assert event.payment_open is False
 
+
+class CloneEventTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+
+    def test_clone_event(self):
+        self.client.login(username=self.staff_user.username, password='test')
+        event = baker.make_recipe('booking.future_PC', name="Test", booking_open=True, payment_open=True)
+        baker.make_recipe('booking.booking', event=event)
+        url = reverse("studioadmin:clone_event", args=(event.slug,))
+
+        assert Event.objects.count() == 1
+        assert event.bookings.count() == 1
+        self.client.get(url)
+
+        assert Event.objects.count() == 2
+        cloned = Event.objects.latest("id")
+        assert cloned.booking_open is False
+        assert cloned.payment_open is False
+        assert cloned.bookings.exists() is False
+        assert event.bookings.count() == 1
+        assert cloned.name == "[CLONED] Test"
+
+        self.client.get(url)
+        assert Event.objects.count() == 3
+        cloned = Event.objects.latest("id")
+        assert cloned.name == "[CLONED] Test_1"
+
+        self.client.get(url)
+        assert Event.objects.count() == 4
+        cloned = Event.objects.latest("id")
+        assert cloned.name == "[CLONED] Test_2"
+
+        event.name = "Test_test_suffix"
+        event.save()
+        url = reverse("studioadmin:clone_event", args=(event.slug,))
+        self.client.get(url)
+        assert Event.objects.count() == 5
+        cloned = Event.objects.latest("id")
+        assert cloned.name == "[CLONED] Test_test_suffix"

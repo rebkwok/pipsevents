@@ -134,10 +134,13 @@
                         {% elif booking.event.event_type.event_type == 'CL' %}
                         <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
                             {{ booking.event.name }}</a>
+                        {% elif booking.event.event_type.event_type == 'OT' %}
+                            <a href="{% url 'booking:tutorial_detail' booking.event.slug %}">
+                            {{ booking.event.name }}</a>
                         {% else %}
                         <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
                             {{ booking.event.name }}</a>
-                        {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                        {% endif %} - {{ booking.event.location }}{% if booking.event.event_type.event_type != 'OT' %} - {{ booking.event.date |  date:"D d M H:i" }}{% endif %}
                         {% if not booking.can_cancel %}**{% endif %}
                     </div>
                     <div class="col-xs-2">
