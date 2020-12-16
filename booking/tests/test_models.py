@@ -1239,7 +1239,7 @@ class EventTypeTests(TestCase):
         self.assertEqual(str(evtype), 'Event - event subtype')
 
         # unknown event type
-        evtype.event_type = 'OT'
+        evtype.event_type = 'UK'
         evtype.save()
         self.assertEqual(str(evtype), 'Unknown - event subtype')
 

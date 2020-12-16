@@ -4,7 +4,7 @@ from studioadmin.forms.disclaimer_forms import StudioadminDisclaimerForm, \
     DisclaimerUserListSearchForm, StudioadminDisclaimerContentForm
 from studioadmin.forms.email_users_forms import ChooseUsersFormSet, \
     EmailUsersForm, UserFilterForm
-from studioadmin.forms.event_forms import EventAdminForm, EventFormSet
+from studioadmin.forms.event_forms import EventAdminForm, EventFormSet, OnlineTutorialAdminForm
 from studioadmin.forms.misc_forms import ConfirmPaymentForm
 from studioadmin.forms.register_forms import RegisterDayForm, AddRegisterBookingForm
 from studioadmin.forms.ticketed_events_forms import PrintTicketsForm, \
@@ -30,5 +30,5 @@ __all__ = [
     'TimetableSessionFormSet', 'UploadTimetableForm', 'UserBlockFormSet',
     'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',
     'VoucherStudioadminForm', 'EditPastBookingForm', 'EditBookingForm',
-    'AddBookingForm', 'AddRegisterBookingForm'
+    'AddBookingForm', 'AddRegisterBookingForm', 'OnlineTutorialAdminForm'
 ]

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h3 class="panel-title">Online Tutorial</h3>
+            </div>
+
+            <div class="panel-body">
+                <h2>{{ tutorial.name }}</h2>
+                <div class="pull-right">
+                {% if show_video_link and booked and booking.paid %}
+                    <div><a id="video_link_id" class="btn btn-info" href="{{ tutorial.video_link }}">View video link</a></div>
+                {% else %}
+                    <div id="video_link_disabled_id" class="btn btn-default disabled">Video link enabled after purchase</div>
+                {% endif %}
+                </div>
+            </div>
+        
+            <div class="panel-body">
+                {% if tutorial.cancelled %}
+                    <h3>This {{ event_type__str }} has been cancelled.</h3>
+                {% endif %}
+
+                {% if not disclaimer %}
+                    {% if expired_disclaimer %}
+                        <p>Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before purchasing</p>
+                    {% else %}
+                        <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before purchasing</p>
+                    {% endif %}
+                {% endif %}
+
+                <ul class="list-group">
+                    {% if tutorial.description %}
+                        <li class="list-group-item"><p><strong>Description</strong></p>
+                        <p>{{ tutorial.description | safe }}</p>
+                        </li>
+                    {% endif %}
+                    {% if not tutorial.cancelled %}
+                         <li class="list-group-item"><strong>Contact:</strong> {{ tutorial.contact_person }}
+                              (<a href="mailto:{{ tutorial.contact_email }}?Subject=Enquiry regarding {{ tutorial.name }}" target="_blank">{{ tutorial.contact_email }}</a>)</li>
+                        <li class="list-group-item"><p><strong>Payment information</strong></p>
+                            
+                            <p>Cost: £ {{ tutorial.cost }}{% if show_vat %} (incl VAT){% endif %}</p>
+
+                            <p>{{ payment_text | safe }}</p>
+                        </li>
+                    {% endif %}
+                </ul>
+
+                {% if not past %}
+                    {% if not tutorial.cancelled %}
+                        {% if booked %}
+                            <h5>{{ booking_info_text }}</h5>
+                            {% if booked and not booking.paid %}
+                                <a href="{% url 'booking:shopping_basket' %}" {% if not tutorial.payment_open %}class="disabled"{% endif %}>
+                                        <div id='pay_button' class="btn btn-success table-btn {% if not tutorial.payment_open %}disabled{% endif %}">Pay now</div></a>
+                            {% endif %}
+                        {% else %}
+                            <h5>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
+                                {% if bookable %}
+                                    {% if not disclaimer %}
+                                        <div class="btn btn-success table-btn disabled">Purchase</div>
+                                    {% elif auto_cancelled %}
+                                        <div class="btn btn-success table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ tutorial.contact_email }} directly to purchase">Purchase</div>
+                                    {% else %}
+                                        <span
+                                            id="book_{{ tutorial.id }}_0"
+                                            data-event_id="{{ tutorial.id }}"
+                                            data-location_count="1"
+                                            data-location_index="0"
+                                            class="td_ajax_book_btn">
+                                        {% include "booking/includes/ajax_purchase_tutorial_button.txt" %}
+                                        </span>
+                                    {% endif %}
+                                {% elif not tutorial.booking_open %}
+                                    <div id='book_button_disabled' class="disabled btn btn-success table-btn">
+                                        Add to basket</div>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}  <!--- cancelled --->
+                    {% endif %}  <!--- past --->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+<script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
+<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v1.js' %}"></script>
+{% endblock %}

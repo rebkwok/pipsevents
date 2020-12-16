@@ -20,7 +20,7 @@ from dateutil.relativedelta import relativedelta
 
 from booking.models import Block, BlockType, Booking, Event
 from booking.email_helpers import send_support_email
-from studioadmin.forms import EventFormSet,  EventAdminForm
+from studioadmin.forms import EventFormSet,  EventAdminForm, OnlineTutorialAdminForm
 from studioadmin.views.helpers import staff_required, StaffUserMixin
 from activitylog.models import ActivityLog
 
@@ -28,22 +28,33 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
+EVENT_TYPE_PARAM_MAPPING = {
+    "event": {"abbr": "EV", "name": "event", "sidenav": "event", "sidenav_plural": "events"},
+    "events": {"abbr": "EV", "name": "event", "sidenav": "event", "sidenav_plural": "events"},
+    "online_tutorial": {"abbr": "OT", "name": "online tutorial", "sidenav": "online_tutorial", "sidenav_plural": "online_tutorials"},
+    "online_tutorials": {"abbr": "OT", "name": "online tutorial", "sidenav": "online_tutorial", "sidenav_plural": "online_tutorials"},
+    "lesson": {"abbr": "CL", "name": "class", "sidenav": "lesson", "sidenav_plural": "lessons"},
+    "lessons": {"abbr": "CL", "name": "class", "sidenav": "lesson", "sidenav_plural": "lessons"}
+}
+
 def _get_events(ev_type, request, past, page=None):
-    if ev_type == 'events':
+    event_type = EVENT_TYPE_PARAM_MAPPING[ev_type]["abbr"]
+    if event_type == "CL":
         nonpag_events = Event.objects.select_related('event_type').filter(
-            event_type__event_type='EV'
+            event_type__event_type__in=["CL", "RH"]
         )
     else:
         nonpag_events = Event.objects.select_related('event_type').filter(
-        ).exclude(event_type__event_type='EV')
+                event_type__event_type=event_type
+            )
 
     if past:
         nonpag_events = nonpag_events.filter(date__lt=timezone.now())\
-            .order_by('-date')
+            .order_by('-date', 'name')
     else:
         nonpag_events = nonpag_events.filter(
             date__gte=timezone.now() - timedelta(hours=1)
-        ).order_by('date')
+        ).order_by('date', "name")
     paginator = Paginator(nonpag_events, 30)
     if page is None:
         page = request.GET.get('page')
@@ -63,11 +74,7 @@ def _get_events(ev_type, request, past, page=None):
 @login_required
 @staff_required
 def event_admin_list(request, ev_type):
-
-    if ev_type == 'events':
-        ev_type_text = 'event'
-    else:
-        ev_type_text = 'class'
+    ev_type_text = EVENT_TYPE_PARAM_MAPPING[ev_type]["name"]
 
     page = request.GET.get('page', None) or request.POST.get('page', None)
     if request.method == 'POST':
@@ -170,15 +177,16 @@ def event_admin_list(request, ev_type):
 
 class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
-    form_class = EventAdminForm
     model = Event
     template_name = 'studioadmin/event_create_update.html'
     context_object_name = 'event'
 
+    def get_form_class(self):
+        return OnlineTutorialAdminForm if self.kwargs["ev_type"] == "online_tutorial" else EventAdminForm
+
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super(EventAdminUpdateView, self).get_form_kwargs(**kwargs)
-        form_kwargs['ev_type'] = 'EV' if self.kwargs["ev_type"] == 'event' \
-            else 'CL'
+        form_kwargs = super().get_form_kwargs(**kwargs)
+        form_kwargs['ev_type'] = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["abbr"]
         return form_kwargs
 
     def get_object(self):
@@ -187,18 +195,14 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super(EventAdminUpdateView, self).get_context_data(**kwargs)
-        context['type'] = self.kwargs["ev_type"]
-        if self.kwargs["ev_type"] == "lesson":
-            context['type'] = "class"
-        context['sidenav_selection'] = self.kwargs['ev_type'] + 's'
-
+        context['type'] = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["name"]
+        context['sidenav_selection'] = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav_plural"]
         return context
 
     def form_valid(self, form):
-
         if form.has_changed():
             event = form.save()
-            msg_ev_type = 'Event' if self.kwargs["ev_type"] == 'event' else 'Class'
+            msg_ev_type = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["name"].title()
             msg = '<strong>{} {}</strong> has been updated!'.format(
                 msg_ev_type, event.name
             )
@@ -233,33 +237,31 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return HttpResponseRedirect(url)
 
     def get_success_url(self):
-        return reverse('studioadmin:{}'.format(self.kwargs["ev_type"] + 's'))
+        return reverse(f'studioadmin:{EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav_plural"]}')
 
 
 class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
-
-    form_class = EventAdminForm
     model = Event
     template_name = 'studioadmin/event_create_update.html'
     context_object_name = 'event'
 
+    def get_form_class(self):
+        return OnlineTutorialAdminForm if self.kwargs["ev_type"] == "online_tutorial" else EventAdminForm
+
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super(EventAdminCreateView, self).get_form_kwargs(**kwargs)
-        form_kwargs['ev_type'] = 'EV' if self.kwargs["ev_type"] == 'event' \
-            else 'CL'
+        form_kwargs = super().get_form_kwargs(**kwargs)
+        form_kwargs['ev_type'] = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["abbr"]
         return form_kwargs
 
     def get_context_data(self, **kwargs):
         context = super(EventAdminCreateView, self).get_context_data(**kwargs)
-        context['type'] = self.kwargs["ev_type"]
-        if self.kwargs["ev_type"] == "lesson":
-            context['type'] = "class"
-        context['sidenav_selection'] = 'add_{}'.format(self.kwargs['ev_type'])
+        context['type'] = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["name"]
+        context['sidenav_selection'] = 'add_{}'.format(EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav"])
         return context
 
     def form_valid(self, form):
         event = form.save()
-        msg_ev_type = 'Event' if self.kwargs["ev_type"] == 'event' else 'Class'
+        msg_ev_type = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["name"].title()
         messages.success(self.request, mark_safe('<strong>{} {}</strong> has been '
                                     'created!'.format(msg_ev_type, event.name)))
         ActivityLog.objects.create(
@@ -283,14 +285,14 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse('studioadmin:{}'.format(self.kwargs["ev_type"] + 's'))
+        return reverse(f'studioadmin:{EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav_plural"]}')
 
 
 @login_required
 @staff_required
 def cancel_event_view(request, slug):
     event = get_object_or_404(Event, slug=slug)
-    ev_type = 'class' if event.event_type.event_type == 'CL' else 'event'
+    ev_type = event.event_type.readable_name.lower()
 
     open_bookings = Booking.objects.filter(
         event=event, status='OPEN', no_show=False
@@ -525,11 +527,41 @@ def cancel_event_view(request, slug):
 
 @login_required
 @staff_required
-def open_all_classes(request):
-    classes_to_open = Event.objects.filter(
-        event_type__event_type="CL", date__gte=timezone.now(), cancelled=False
+def clone_event(request, slug):
+    event = get_object_or_404(Event, slug=slug)
+    cloned_event = event
+    cloned_event.id = None
+    cloned_event.name = f"[CLONED] {event.name}"
+    split_name = cloned_event.name.rsplit("_", 1)
+    base_name = split_name[0]
+    try:
+        counter = int(split_name[1])
+    except (ValueError, IndexError):
+        counter = 1
+    while Event.objects.filter(name=cloned_event.name).exists():
+        cloned_event.name = f"{base_name}_{counter}"
+        counter += 1
+    # set defaults for cloned event
+    cloned_event.slug = None
+    cloned_event.cancelled = False
+    cloned_event.booking_open = False
+    cloned_event.payment_open = False
+    cloned_event.save()
+    event_type_string, = {event_type["sidenav_plural"] for event_type in EVENT_TYPE_PARAM_MAPPING.values() if event_type["abbr"] == event.event_type.event_type}
+    messages.success(request, f"{event.name} cloned to {cloned_event.name}; booking/payment not open yet")
+    return HttpResponseRedirect(reverse(f"studioadmin:{event_type_string}"))
+
+
+@login_required
+@staff_required
+def open_all_events(request, event_type):
+    event_type_abbr = EVENT_TYPE_PARAM_MAPPING[event_type]["abbr"]
+    suffix = 'es' if event_type_abbr == "CL" else "s"
+    event_type_plural = EVENT_TYPE_PARAM_MAPPING[event_type]["name"] + suffix
+    events_to_open = Event.objects.filter(
+        event_type__event_type=event_type_abbr, date__gte=timezone.now(), cancelled=False
     )
-    classes_to_open.update(booking_open=True, payment_open=True)
-    messages.info(request, "All upcoming classes are now open for booking and payments")
-    ActivityLog.objects.create(log=f"All upcoming classes opened by admin user {request.user.username}")
-    return HttpResponseRedirect(reverse("studioadmin:lessons"))
+    events_to_open.update(booking_open=True, payment_open=True)
+    messages.info(request, f"All upcoming {event_type_plural} are now open for booking and payments")
+    ActivityLog.objects.create(log=f"All upcoming {event_type_plural} opened by admin user {request.user.username}")
+    return HttpResponseRedirect(reverse(f"studioadmin:{event_type}"))

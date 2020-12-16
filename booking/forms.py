@@ -103,6 +103,13 @@ class RoomHireFilter(BaseFilter):
     )
 
 
+class OnlineTutorialFilter(forms.Form):
+    name = forms.ChoiceField(
+        choices=get_event_names('OT'),
+        widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
+    )
+
+
 def get_quantity_choices(ticketed_event, ticket_booking):
 
     current_tickets = ticket_booking.tickets.count()

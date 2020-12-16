@@ -16,8 +16,8 @@ from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_tot
     has_active_block, permission_denied, ticket_purchase_expired, \
     shopping_basket, update_block_bookings, submit_zero_block_payment, \
     submit_zero_booking_payment, update_shopping_basket_count, \
-    update_booking_count, toggle_waiting_list, booking_details
-
+    update_booking_count, toggle_waiting_list, booking_details, \
+    OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView
 
 app_name = 'booking'
 
@@ -28,6 +28,7 @@ urlpatterns = [
         'booking-history/', BookingHistoryListView.as_view(),
         name='booking_history'
     ),
+    path('online-tutorials/purchased/', PurchasedTutorialsListView.as_view(), name='purchased_tutorials'),
     path('booking/update/<int:pk>/', BookingUpdateView.as_view(),
         name='update_booking'),
     path('booking/update/<int:pk>/cancelled/',
@@ -70,6 +71,12 @@ urlpatterns = [
     path(
         'classes/', EventListView.as_view(), {'ev_type': 'lessons'},
         name='lessons'
+    ),
+    path(
+        'online-tutorials/<slug:slug>/',  OnlineTutorialDetailView.as_view(), name='tutorial_detail'),
+    path(
+        'online-tutorials/', OnlineTutorialListView.as_view(), {'ev_type': 'online_tutorials'},
+        name='online_tutorials'
     ),
     path(
         'room-hire/<slug:slug>/',  EventDetailView.as_view(),

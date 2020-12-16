@@ -66,7 +66,8 @@
                         {% block left-nav-items %}
                         <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
                         <li class="active-nav"><a href="{% url 'booking:events' %}">Workshops & Events</a></li>
-                        <li class="active-nav hidden-sm hidden-md"><a href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
+                        <li class="active-nav"><a href="{% url 'booking:online_tutorials' %}">Tutorials</a></li>
+                            <li class="active-nav hidden-sm hidden-md"><a href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
                           <li class="active-nav hidden-sm hidden-md"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
                           <li class="active-nav hidden-sm hidden-md"><a href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
 
@@ -79,6 +80,7 @@
                                   <li class="active-nav visible-sm visible-md"><a href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
                                   <li role="separator" class="divider visible-sm"></li>
                                   <li class="active-nav visible-sm"><a href="{% url 'booking:bookings' %}">My bookings</a></li>
+                                    <li class="active-nav visible-sm"><a href="{% url 'booking:purchased_tutorials' %}">My tutorials</a></li>
                                     <li class="active-nav visible-sm"><a href="{% url 'booking:block_list' %}">My blocks</a></li>
                                     <li class="active-nav visible-sm"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
                                     <li class="active-nav visible-sm"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>
@@ -90,6 +92,7 @@
                                   <a href="#" class="dropdown-toggle" data-toggle="dropdown">My Activity<b class="caret"></b></a>
                                   <ul class="dropdown-menu">
                                     <li class="active-nav"><a href="{% url 'booking:bookings' %}">My bookings</a></li>
+                                  <li class="active-nav"><a href="{% url 'booking:purchased_tutorials' %}">My tutorials</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:block_list' %}">My blocks</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
                                     <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>

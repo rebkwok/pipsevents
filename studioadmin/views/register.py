@@ -23,7 +23,7 @@ from booking.views.views_utils import _get_active_user_block
 from studioadmin.forms import StatusFilter,  RegisterDayForm, AddRegisterBookingForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin
-
+from .events import EVENT_TYPE_PARAM_MAPPING
 from activitylog.models import ActivityLog
 
 
@@ -48,6 +48,8 @@ def register_view(request, event_slug):
     sidenav_selection = 'lessons_register'
     if event.event_type.event_type == 'EV':
         sidenav_selection = 'events_register'
+    elif event.event_type.event_type == 'OT':
+        sidenav_selection = 'online_tutorials_register'
 
     available_block_type = BlockType.objects.filter(event_type=event.event_type)
 
@@ -217,17 +219,17 @@ class EventRegisterListView(
 
     def get_queryset(self):
         today = timezone.now().replace(hour=0, minute=0)
-        if self.kwargs["ev_type"] == 'events':
-            queryset = Event.objects.filter(event_type__event_type='EV', date__gte=today, cancelled=False).order_by('date')
+        event_type = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["abbr"]
+        if event_type == "CL":
+            queryset = Event.objects.filter(event_type__event_type__in=["CL", "RH"], date__gte=today, cancelled=False).order_by('date')
         else:
-            queryset = Event.objects.filter(date__gte=today, cancelled=False).exclude(event_type__event_type='EV').order_by('date')
+            queryset = Event.objects.filter(event_type__event_type=event_type, date__gte=today, cancelled=False).order_by('date')
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super(EventRegisterListView, self).get_context_data(**kwargs)
         context['type'] = self.kwargs['ev_type']
-        context['sidenav_selection'] = '{}_register'.format(
-            self.kwargs['ev_type'])
+        context['sidenav_selection'] = '{}_register'.format(EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav_plural"])
 
         page = self.request.GET.get('page', 1)
         all_paginator = Paginator(self.get_queryset(), 20)

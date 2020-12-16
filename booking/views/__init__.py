@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from booking.views.event_views import EventDetailView, EventListView
+from booking.views.event_views import EventDetailView, EventListView, OnlineTutorialListView, OnlineTutorialDetailView
 from booking.views.booking_views import ajax_create_booking, \
     already_cancelled, already_paid, \
     BookingCreateView, BookingDeleteView, BookingMultiCreateView, \
@@ -8,7 +8,7 @@ from booking.views.booking_views import ajax_create_booking, \
     disclaimer_required, \
     duplicate_booking, update_booking_cancelled, fully_booked, \
     has_active_block, cancellation_period_past, update_shopping_basket_count, \
-    update_booking_count, toggle_waiting_list, booking_details
+    update_booking_count, toggle_waiting_list, booking_details, PurchasedTutorialsListView
 from booking.views.block_views import BlockCreateView, BlockDeleteView, \
     BlockListView, blocks_modal
 from booking.views.gift_vouchers import GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete
@@ -37,7 +37,8 @@ __all__ = [
     'TicketBookingCancelView', 'ticket_purchase_expired', 'update_shopping_basket_count',
     'update_booking_count', 'toggle_waiting_list', 'booking_details',
     'ajax_shopping_basket_bookings_total', 'ajax_shopping_basket_blocks_total',
-    'blocks_modal'
+    'blocks_modal',
+    "OnlineTutorialListView", "PurchasedTutorialsListView", "OnlineTutorialDetailView",
 ]
 
 

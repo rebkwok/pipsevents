@@ -38,12 +38,14 @@ class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
         ('EV', 'Event'),
+        ('OT', "Online tutorial"),
         ('RH', 'Room hire')
     )
+    TYPE_VERBOSE_NAME = dict(TYPE_CHOICE)
     event_type = models.CharField(max_length=2, choices=TYPE_CHOICE,
                                   help_text="This determines whether events "
                                             "of this type are listed on the "
-                                            "'Classes', 'Workshops' or 'Room "
+                                            "'Classes', 'Workshops', 'Tutorials', 'Room "
                                             "Hire' pages")
     subtype = models.CharField(max_length=255,
                                help_text="Type of class/event. Use this to "
@@ -53,15 +55,11 @@ class EventType(models.Model):
                                          "the Block Type.")
 
     def __str__(self):
-        if self.event_type == 'CL':
-            event_type = "Class"
-        elif self.event_type == 'EV':
-            event_type = "Event"
-        elif self.event_type == 'RH':
-            event_type = "Room hire"
-        else:
-            event_type  = "Unknown"
-        return '{} - {}'.format(event_type, self.subtype)
+        return f'{self.TYPE_VERBOSE_NAME.get(self.event_type, "Unknown")} - {self.subtype}'
+
+    @property
+    def readable_name(self):
+        return self.TYPE_VERBOSE_NAME[self.event_type]
 
     class Meta:
         unique_together = ('event_type', 'subtype')
@@ -164,7 +162,7 @@ class Event(models.Model):
 
     @property
     def show_video_link(self):
-        return self.is_online and timezone.now() > self.date - timedelta(minutes=20)
+        return self.is_online and (timezone.now() > self.date - timedelta(minutes=20) or self.event_type.event_type == "OT")
 
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
@@ -175,7 +173,7 @@ class Event(models.Model):
 
     @property
     def is_online(self):
-        return self.event_type.subtype == "Online class"
+        return "online" in self.event_type.subtype.lower()
 
     def __str__(self):
         return '{} - {} ({})'.format(

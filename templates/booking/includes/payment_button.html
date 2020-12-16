@@ -1,3 +1,11 @@
+{% if ev_type == "online_tutorials" %}
+    {% if unpaid and not paypal_pending %}
+    <a href="{% url 'booking:shopping_basket' %}">
+        <span id='pay_button' class="btn table-btn btn-info book_button" >
+            View basket <i class="fa fa-shopping-basket"></i>
+        </span></a>
+    {% endif %}
+{% else %}
 <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="get">
     <input class="btn btn-danger table-btn {% if unpaid %}table-events-cancel-btn{% endif %}" type="submit" value="Cancel"/>
     <input type="hidden" name="next" value="{{ ev_type }}" />
@@ -11,3 +19,4 @@
         </span></a>
     {% endif %}
 </form>
+{% endif %}

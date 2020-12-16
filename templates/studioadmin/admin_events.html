@@ -6,16 +6,16 @@
 
     <div class="container-fluid">
 
-        <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% endif %}</h2>
+        <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% elif type == 'online_tutorials' %}Online Tutorials{% endif %}</h2>
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
-            classes{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
+            classes{% elif type == 'online_tutorials' %}tutorials{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
 
         <div class="row">
             <div class="top-button-row">
-                <a class="btn btn-success filter-btn pull-right" href="{% url 'studioadmin:open_all_classes' %}" >Open all classes</a>
+                <a class="btn btn-success filter-btn pull-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
+            classes{% elif type == 'online_tutorials' %}tutorials{% endif %}</a>
             </div>
         </div>
-
         <div class="row">
 
             <form class="dirty-check" method="post" action="">
@@ -27,9 +27,9 @@
                     <div class="top-button-row">
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
                         {% if show_past %}
-                        <input class="btn btn-info table-btn filter-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                        <input class="btn btn-info table-btn filter-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
                         {% else %}
-                        <input class="btn btn-info table-btn filter-btn pull-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% else %}classes{% endif %}" />
+                        <input class="btn btn-info table-btn filter-btn pull-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
                         {% endif %}
                     </div>
                 {% if events %}
@@ -38,17 +38,22 @@
                         <table class="table">
                             <tr class="success">
                                 <th></th>
-                                <th>Date</th>
-                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</br>
+                                <th>{% if type == "online_tutorials" %}Last Purchasable {% endif %}Date</th>
+                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'online_tutorials' %}Tutorial{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
                                 <th class="table-center">Location</th>
                                 <th class="table-center">Max spaces</th>
-                                <th class="table-center">Bookings</br>
-                                    <span class="studioadmin-help">Click for waiting list</span></th>
-                                <th class="table-center">Booking open</th>
-                                <th class="table-center">Payment open</th>
-                                <th class="table-center">Advance payment<br/>required</th>
-                                <th class="table-center">Cancellation allowed</th>
+                                <th class="table-center">
+                                    {% if type == "online_tutorials" %}Purchases{% else %}
+                                    Bookings</br>
+                                    <span class="studioadmin-help">Click for waiting list</span>{% endif %}</th>
+                                <th class="table-center"><small>Booking open</small></th>
+                                <th class="table-center"><small>Payment open</small></th>
+                                {% if type != "online_tutorials" %}
+                                    <th class="table-center"><small>Adv. payment<br/>required</small></th>
+                                    <th class="table-center"><small>Cancel allowed</small></th>
+                                {% endif %}
+                                <th class="table-center">Clone</th>
                                 <th class="table-center">Delete</th>
                             </tr>
 
@@ -60,6 +65,9 @@
                                     <a href="{% url 'studioadmin:edit_event' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% elif type == 'lessons' %}</a>
                                     <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    {% elif type == 'online_tutorials' %}</a>
+                                    <a href="{% url 'studioadmin:edit_online_tutorial' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+
                                     {% endif %}</a>
                                 </td>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
@@ -82,8 +90,13 @@
                                 </td>
                                 <td class="table-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
+                                {% if type != "online_tutorials" %}
                                 <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
                                 <td class="table-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
+                                {% else %}
+                                    <span class="hide">{{ event.advance_payment_required }}</span>
+                                {% endif %}
+                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:clone_event' event.instance.slug %}"><i class="far fa-clone"></i></a></td>
                                 <td class="table-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED
@@ -132,14 +145,14 @@
                                 </td>
                             </tr>
                         <tr>
-                            <td class="studioadmin-tbl" colspan="11"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl" {% if type == "online_tutorials" %}colspan="10"{% else %}colspan="11"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>
             </div>
             {% else %}
                 <p>There are no {% if show_past %}past{% else %}upcoming{% endif %}
-                    {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% endif %} to display.</p>
+                    {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %} to display.</p>
             {% endif %}
             </form>
 

@@ -26,6 +26,9 @@ def get_event_context(context, event, user):
     elif event.event_type.event_type == 'EV':
         context['type'] = "event"
         event_type_str = "workshop/event"
+    elif event.event_type.event_type == 'OT':
+        context['type'] = "online_tutorial"
+        event_type_str = "online tutorial"
     else:
         context['type'] = "room_hire"
         event_type_str = "room hire"
@@ -78,21 +81,27 @@ def get_event_context(context, event, user):
 
     if booked:
         context['bookable'] = False
-        booking_info_text = "You have booked for this {}.".format(event_type_str)
-        context['booked'] = True
         context['booking'] = user_bookings[0]
+        context['booked'] = True
+        if event.event_type.event_type == 'OT':
+            if context['booking'].paid:
+                booking_info_text = "You have purchased this {}.".format(event_type_str)
+        else:
+            booking_info_text = "You have booked for this {}.".format(event_type_str)
+
     elif not disclaimer:
+        action = "purchasing" if event.event_type.event_type == 'OT' else "booking"
         if expired_disclaimer:
             booking_info_text = "<strong>Please update your <a href='{}' " \
                                 "target=_blank>disclaimer form</a> before " \
-                                "booking.</strong>".format(
-                                    reverse('disclaimer_form')
+                                "{}.</strong>".format(
+                                    reverse('disclaimer_form'), action
                                 )
         else:
             booking_info_text = "<strong>Please complete a <a href='{}' " \
                                 "target=_blank>disclaimer form</a> before " \
-                                "booking.</strong>".format(
-                                    reverse('disclaimer_form')
+                                "{}.</strong>".format(
+                                    reverse('disclaimer_form'), action
                                 )
     elif event.event_type.subtype == "Pole practice" \
             and not user.has_perm("booking.is_regular_student"):
@@ -123,8 +132,9 @@ def get_event_context(context, event, user):
         if event.event_type.subtype == "External instructor class":
             booking_info_text = "Please contact {} directly to book".format(event.contact_person)
         elif not event.booking_open:
-            booking_info_text = "Bookings are not open for this {}.".format(
-                event_type_str
+            target = "Purchases" if event.event_type.event_type == 'OT' else "Bookings"
+            booking_info_text = "{} are not open for this {}.".format(
+                target, event_type_str
             )
         if event.spaces_left <= 0:
             booking_info_text = "This {} is now full.".format(event_type_str)
@@ -174,6 +184,8 @@ def get_booking_create_context(event, request, context):
         ev_type = 'workshop/event'
     elif event.event_type.event_type == 'CL':
         ev_type = 'class'
+    elif event.event_type.event_type == 'OT':
+        ev_type = 'online tutorial'
     else:
         ev_type = 'room hire'
 

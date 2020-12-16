@@ -39,6 +39,7 @@
                                     <th></th>
                                     <th>Date</th>
                                     <th>Class/Event</th>
+                                    <th>Type</th>
                                     <th class="table-center">Deposit</br>Paid</th>
                                     <th class="table-center">Fully</br>Paid</th>
                                     <th class="table-center">PayPal</br>ID</th>
@@ -76,6 +77,7 @@
                                                title="edit booking">Edit</a></td>
                                         <td class="studioadmin-tbl">{% if booking_status == 'future' %}{{ booking.event.date|date:"d M H:i" }}{% else %}{{ booking.event.date|date:"d M Y H:i" }}{% endif %}</td>
                                         <td class="studioadmin-tbl">{{ booking.event.name }}</td>
+                                        <td class="studioadmin-tbl">{{ booking.event.event_type.readable_name }}</td>
                                         {% if booking_status == 'future' %}
                                             {% if booking.event.cost %}
                                                 <td class="table-center studioadmin-tbl">{% if booking.deposit_paid %}<span class="fa fa-check">{% endif %}</span></td>
