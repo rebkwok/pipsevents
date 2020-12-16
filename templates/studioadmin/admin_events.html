@@ -10,12 +10,14 @@
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
 
+    {% if events %}
         <div class="row">
             <div class="top-button-row">
-                <a class="btn btn-success filter-btn pull-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
+                <a class="btn btn-success open-all-btn pull-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %}</a>
             </div>
         </div>
+    {% endif %}
         <div class="row">
 
             <form class="dirty-check" method="post" action="">
@@ -25,7 +27,9 @@
                     {% endif %}
 
                     <div class="top-button-row">
+                    {% if events %}
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                    {% endif %}
                         {% if show_past %}
                         <input class="btn btn-info table-btn filter-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
                         {% else %}
