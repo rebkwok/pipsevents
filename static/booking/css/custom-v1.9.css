@@ -493,6 +493,16 @@ td.table-btns {
 	color: #fff !important;
     }
 
+.open-all-btn {
+	padding-top: 2px;
+  padding-bottom: 2px;
+	padding-left: 10px;
+	padding-right: 10px;
+  margin-bottom: 5px;
+	width: auto;
+	color: #fff !important;
+}
+
 .paypal-table-btn {
     padding-top: 0;
     padding-bottom: -10;

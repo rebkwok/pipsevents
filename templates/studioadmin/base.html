@@ -57,11 +57,11 @@
                   <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Online Tutorials </strong></strong><span class="fa fa-caret-down"></span></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:online_tutorials' %}">{% if sidenav_selection == 'online_tutorials' %}
-                        <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
+                        <span class="sidebar_active">View and edit tutorials</span>{% else %}View and edit tutorials{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:add_online_tutorial' %}">{% if sidenav_selection == 'add_online_tutorial' %}
-                        <span class="sidebar_active">Add a new event</span>{% else %}Add a new event{% endif %}</a></li>
+                        <span class="sidebar_active">Add a new tutorial</span>{% else %}Add a new tutorial{% endif %}</a></li>
                      <li class="active-nav"><a href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
-                        <span class="sidebar_active">Online Tutorial Registers</span>{% else %}Registers{% endif %}</a></li>
+                        <span class="sidebar_active">Registers</span>{% else %}Registers{% endif %}</a></li>
                 </ul>
             </li>
 
