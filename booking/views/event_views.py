@@ -12,7 +12,7 @@ from braces.views import LoginRequiredMixin
 
 from accounts.models import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Booking, Event, WaitingListUser
-from booking.forms import EventFilter, LessonFilter, RoomHireFilter
+from booking.forms import EventFilter, LessonFilter, RoomHireFilter, OnlineTutorialFilter
 import booking.context_helpers as context_helpers
 from booking.views.views_utils import DataPolicyAgreementRequiredMixin
 
@@ -87,6 +87,8 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             form = EventFilter(initial={'name': event_name, "date_selection": date_selection})
         elif self.kwargs['ev_type'] == 'lessons':
             form = LessonFilter(initial={'name': event_name, "date_selection": date_selection})
+        elif self.kwargs['ev_type'] == 'online_tutorials':
+            form = OnlineTutorialFilter(initial={'name': event_name})
         else:
             form = RoomHireFilter(initial={'name': event_name, "date_selection": date_selection})
         context['form'] = form
@@ -167,3 +169,30 @@ class EventDetailView(LoginRequiredMixin, DataPolicyAgreementRequiredMixin, Deta
         return context_helpers.get_event_context(
             context, event, self.request.user
         )
+
+
+class OnlineTutorialListView(EventListView):
+    model = Event
+    template_name = 'booking/online_tutorials.html'
+
+    def get_queryset(self):
+        name = self.request.GET.get('name')
+        events = Event.objects.select_related('event_type').filter(
+            event_type__event_type="OT",
+            date__gte=timezone.now(),
+            cancelled=False
+        ).order_by('date')
+
+        if name and name not in ['', 'all']:
+            events = events.filter(name=name)
+        return events
+
+
+class OnlineTutorialDetailView(EventDetailView):
+    model = Event
+    context_object_name = 'tutorial'
+    template_name = 'booking/tutorial.html'
+
+    def get_object(self):
+        queryset = Event.objects.filter(event_type__event_type="OT")
+        return get_object_or_404(queryset, slug=self.kwargs['slug'])

@@ -74,7 +74,7 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
     paginate_by = 20
 
     def get_queryset(self):
-        return Booking.objects.filter(
+        return Booking.objects.exclude(event__event_type__event_type="OT").filter(
             Q(event__date__gte=timezone.now()) & Q(user=self.request.user)
         ).order_by('event__date')
 
@@ -140,7 +140,7 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
     paginate_by = 20
 
     def get_queryset(self):
-        return Booking.objects.filter(
+        return Booking.objects.exclude(event__event_type__event_type="OT").filter(
             event__date__lte=timezone.now(), user=self.request.user
         ).order_by('-event__date')
 
@@ -163,6 +163,19 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
         return context
+
+
+class PurchasedTutorialsListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
+
+    model = Booking
+    context_object_name = 'purchased_tutorials'
+    template_name = 'booking/purchased_tutorials.html'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return self.request.user.bookings.filter(
+            event__event_type__event_type="OT", paid=True, status="OPEN", no_show=False
+        ).order_by('date_booked')
 
 
 # TODO: unused, delete?
@@ -1154,6 +1167,9 @@ def ajax_create_booking(request, event_id):
     elif event.event_type.event_type == 'EV':
         ev_type_str = 'workshop/event'
         ev_type = 'events'
+    elif event.event_type.event_type == 'OT':
+        ev_type_str = 'online tutorial'
+        ev_type = 'online_tutorials'
     else:
         ev_type_str = 'room hire'
         ev_type = 'room_hires'
@@ -1268,16 +1284,17 @@ def ajax_create_booking(request, event_id):
           'ev_type': ev_type_str
     }
     try:
-        send_mail('{} Booking for {}'.format(
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
-        ),
-            get_template('booking/email/booking_received.txt').render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.user.email],
-            html_message=get_template(
-                'booking/email/booking_received.html'
-                ).render(ctx),
-            fail_silently=False)
+        if ev_type != "online_tutorials":
+            send_mail('{} Booking for {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
+            ),
+                get_template('booking/email/booking_received.txt').render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_received.html'
+                    ).render(ctx),
+                fail_silently=False)
     except Exception as e:
         # send mail to tech support with Exception
         send_support_email(e, __name__, "ajax_create_booking")
@@ -1359,12 +1376,15 @@ def ajax_create_booking(request, event_id):
 
     elif event.cost == 0:
         alert_message['message_type'] = 'success'
-        alert_message['message'] = "Booked."
+        alert_message['message'] = "Booked." if ev_type != "online_tutorials" else "Purchased."
 
     elif not booking.paid:
         alert_message['message_type'] = 'error'
-        alert_message['message'] = "Added to basket; booking not confirmed until payment has been made."
-
+        if booking.event.event_type.event_type == "OT":
+            message = "Added to basket; online tutorial not available until payment has been made."
+        else:
+            message = "Added to basket; booking not confirmed until payment has been made."
+        alert_message['message'] = message
     try:
         waiting_list_user = WaitingListUser.objects.get(
             user=booking.user, event=booking.event

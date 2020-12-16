@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-xs-12">
+        <h1>Online Tutorials</h1>
+    <div class="btn-group btn-group-sm pull-right" role="group">
+        <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+        <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+        <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
+    </div>
+
+    {% if purchased_tutorials %}
+    <div class="col-xs-12">
+        <div class="panel panel-success">
+            <div class="table-responsive">
+                <table class="table">
+                    <tr class="success">
+                        <th>Tutorial</th>
+                        <th>Video Link</th>
+                        <th>Date Purchased</th>
+                    </tr>
+                    {% for purchased_tutorial  in purchased_tutorials %}
+                        <tr>
+                            <td><a href="{% url 'booking:tutorial_detail' purchased_tutorial.event.slug %}">{{ purchased_tutorial.event.name }}</a></td>
+                            <td>
+                                {% if purchased_tutorial.event.show_video_link %}
+                                    <a id="video_link_id_{{ purchased_tutorial.event.id }}" class="btn btn-info table-btn" href="{{ purchased_tutorial.event.video_link }}">View tutorial</a>
+                                {% else %}
+                                    <span id="video_link_id_disabled_{{ purchased_tutorial.event.id }}" class="btn btn-info table-btn disabled">View tutorial</span>
+                                {% endif %}
+                            </td>
+                        <td>{{ purchased_tutorial.date_booked|date:"d M Y" }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+
+                {% include 'booking/includes/pagination.html' %}
+
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-xs-12">
+        <p>You do not have any purchased tutorials yet.</p>
+    {% endif %}
+    </div>
+</div>
+
+{% endblock content %}
