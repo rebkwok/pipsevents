@@ -74,7 +74,7 @@
 
                                     {% endif %}</a>
                                 </td>
-                                <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
+                                <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M Y, H:i" }}</td>
                                 <td class="studioadmin-tbl">
                                     <a href="{% url 'studioadmin:event_register' event.instance.slug %}">{{ event.instance.name }}</a>
                                      <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
