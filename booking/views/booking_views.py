@@ -1281,7 +1281,7 @@ def ajax_create_booking(request, event_id):
           'prev_cancelled_and_direct_paid':
           previously_cancelled_and_direct_paid,
           'claim_free': False,
-          'ev_type': ev_type_str
+          'ev_type': ev_type_str,
     }
     try:
         if ev_type != "online_tutorials":
@@ -1403,7 +1403,7 @@ def ajax_create_booking(request, event_id):
 
     return render(
         request,
-        f"booking/includes/ajax_book_button.txt",
+        "booking/includes/ajax_purchase_tutorial_button.txt" if event.event_type.event_type == "OT" else "booking/includes/ajax_book_button.txt",
         context
     )
 

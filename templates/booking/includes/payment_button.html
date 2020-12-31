@@ -4,6 +4,8 @@
         <span id='pay_button' class="btn table-btn btn-info book_button" >
             View basket <i class="fa fa-shopping-basket"></i>
         </span></a>
+    {% elif booking.paid %}
+        Purchased
     {% endif %}
 {% else %}
 <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="get">
