@@ -162,7 +162,7 @@ class Event(models.Model):
 
     @property
     def show_video_link(self):
-        return self.is_online and (timezone.now() > self.date - timedelta(minutes=20) or self.event_type.event_type == "OT")
+        return (self.is_online and (timezone.now() > self.date - timedelta(minutes=20)) or self.event_type.event_type == "OT")
 
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
