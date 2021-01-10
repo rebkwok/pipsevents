@@ -52,7 +52,6 @@ class GiftVoucherPurchaseView(FormView):
             kwargs["instance"] = voucher
         return kwargs
 
-
     def form_valid(self, form):
         voucher_type = form.cleaned_data["voucher_type"]
         email = form.cleaned_data["user_email"]
