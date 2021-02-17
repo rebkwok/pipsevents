@@ -11,12 +11,10 @@
 {% block perm_banner %}
     {{ block.super }}
     {% if user.is_authenticated %}
-        <div id="message-row"  class="row">
-            <div class="col-xs-12">
-                <div class="message alert alert-info alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
-                </div>
+        <div class="container-fluid mt-2 mb-2" id="message-row">
+            <div class="message alert alert-info alert-dismissible">
+                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
             </div>
         </div>
     {% endif %}
@@ -24,9 +22,6 @@
 
 {% block content %}
 
-
-    <div class="row">
-        <div class="col-xs-12">
         <h1>The Watermelon Studio
             {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}</br>
         </h1>
@@ -52,9 +47,7 @@
                 </p>
                 {% endif %}
             {% endif %}
-        </div>
 
-            <div class="col-xs-12">
                 {% if not disclaimer and user.is_authenticated %}
                     {% if expired_disclaimer %}
                         <p>Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before booking.</p>
@@ -69,14 +62,12 @@
 
 
                 {% if user.is_authenticated %}
-                <div class="btn-group btn-group-sm pull-right" role="group">
+
+                <div class="btn-group btn-group-sm float-right" role="group">
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                     <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
                 </div>
                 {% endif %}
-            </div>
-
-            <div class="col-xs-12">
 
                 <div class="panel with-nav-tabs panel-success">
 
@@ -87,26 +78,23 @@
 {#                    ]  #}
 
                     <div class="panel-heading">
-                        <ul class="nav nav-tabs">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
                             {% for location_obj in location_events %}
                                 {% if location_obj.index != 0 or location_events|length > 2 %}
-                                <li class="nav-tab {{ location_obj.index|get_active_class:tab }}">
-                                    <a class="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a>
+                                <li class="nav-item {{ location_obj.index|get_active_class:tab }}">
+                                    <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
                                 </li>
                                 {% endif %}
                             {%  endfor %}
                         </ul>
                     </div>
-
+                
                     <div class="panel-body">
-                        <div class="tab-content">
+                        <div class="tab-content" id="myTabContent">
                         {% for location_obj in location_events %}
-
                             <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
-
                                     {% if location_obj.queryset %}
-                                        <div class="table-responsive">
-                                        <table class="table table-condensed table-striped">
+                                        <table class="table">
                                             <tr class="table-tab-header">
                                                 {% if user.is_authenticated %}
                                                     <th></th>
@@ -119,10 +107,10 @@
                                                 {% if location_obj.index == 0 %}
                                                     <th class="table-center">Location</th>
                                                 {% endif %}
-                                                <th class="hidden-sm hidden-xs table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
+                                                <th class="d-none d-md-block table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
                                                 <th class="table-center">Spaces</th>
-                                                <th class="hidden-sm hidden-xs table-center">Booking open</th>
-                                                <th class="hidden-sm hidden-xs table-center">Payment open</th>
+                                                <th class="d-none d-md-block table-center">Booking open</th>
+                                                <th class="d-none d-md-block table-center">Payment open</th>
                                             </tr>
 
                                             {% for event in location_obj.queryset %}
@@ -205,14 +193,14 @@
                                                     {% if location_obj.index == 0 %}
                                                         <td class="table-center"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location|truncatechars:11 }}</span></td>
                                                     {% endif %}
-                                                    <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
+                                                    <td class="d-none d-md-block table-center">£{{ event.cost }}</td>
                                                     <td class="table-center" style="vertical-align: middle; horiz-align: center">
                                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                                         {% elif event.max_participants %}
                                                             <span id="booking_count_{{ event.id }}_{{ location_obj.index }}">{% include 'booking/includes/booking_count.html' %}</span>
                                                         {% else %}N/A{% endif %}</td>
-                                                    <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                                    <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
+                                                    <td class="d-none d-md-block table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                                    <td class="d-none d-md-block table-center">{% if event.cost %}
                                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
                                                         {% else %}N/A{% endif %}</td>
                                                 </tr>
@@ -231,7 +219,6 @@
                                                 </tr>
 
                                         </table>
-                                        </div>
                                         {% include 'booking/includes/event_pagination.html' %}
                                     {% else %}
                                     <h3>Coming soon!</h3>
@@ -244,10 +231,9 @@
                                     {% endif %}
                                 </div>
                           {% endfor %}
-                        </div> <!-- tab content -->
+                        </div> <!-- tab-content -->
                     </div> <!-- panel body -->
                 </div>
-            </div>
 
         {% else %}
             {% if request.GET.date_selection %}
@@ -259,9 +245,6 @@
                 <p>There are currently no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} available to book.</p>
             {% endif %}
         {% endif %}
-
-    </div>
-
 
 {% endblock content %}
 

@@ -10,13 +10,13 @@
 {% block content %}
 
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-12">
     {% if history %}
         <h1>My past bookings</h1>
     {% else %}
         <h1>My bookings</h1>
     {% endif %}
-    <div class="btn-group btn-group-sm pull-right" role="group">
+    <div class="btn-group btn-group-sm float-right" role="group">
         <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
         <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My online tutorials</a>
         <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
@@ -27,7 +27,7 @@
     <p>Click on booking title for more class/event details.</p>
     </div>
 
-    <div class="col-xs-12">
+    <div class="col-12">
         <div class="panel panel-success">
             <div class="table-responsive">
                 <table class="table">

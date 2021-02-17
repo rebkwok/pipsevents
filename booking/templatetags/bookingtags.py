@@ -452,5 +452,5 @@ def get_active_class(location_index, tab):
 
 @register.filter
 def get_active_in_class(location_index, tab):
-    return 'active in' if is_active(location_index, tab) else ''
+    return 'show active' if is_active(location_index, tab) else ''
 

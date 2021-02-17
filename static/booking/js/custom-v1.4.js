@@ -29,7 +29,7 @@ jQuery(document).ready(function () {
 
     timeoutID = window.setTimeout(timeoutShoppingBasket, 60*1000);
 
-    $.scrollTrack();
+    // jQuery.scrollTrack();
 
     jQuery('form.dirty-check').areYouSure();
 

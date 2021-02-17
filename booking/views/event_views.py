@@ -78,7 +78,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             context['is_regular_student'] = self.request.user.has_perm(
                 "booking.is_regular_student"
             )
-        context['events_exist'] = any(all_events)
+        context['events_exist'] = all_events.exists()
         context['type'] = self.kwargs['ev_type']
 
         event_name = self.request.GET.get('name', '')
