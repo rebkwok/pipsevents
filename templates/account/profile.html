@@ -9,29 +9,29 @@
                 <h1 class="panel-title">Your Profile</h1>
             </div>
            <div class="panel-body">
-               <div class="col-xs-12">
+               <div class="col-12">
                    <div class="col-xs-3"><p><strong>Username:</strong></p></div>
                    <div class="col-xs-9"><p>{{ user.username }}</p></div>
                </div>
 
-               <div class="col-xs-12">
+               <div class="col-12">
                    <div class="col-xs-3"><p><strong>First name:</strong></p></div>
                    <div class="col-xs-9"><p>{{ user.first_name }}</p></div>
                </div>
 
-               <div class="col-xs-12">
+               <div class="col-12">
                    <div class="col-xs-3"><p><strong>Last name:</strong></p></div>
                    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3"><p>{{ user.last_name }}</p></div>
                   <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'profile:update_profile' %}">Change</a></p></div>
                </div>
 
-               <div class="col-xs-12">
+               <div class="col-12">
                    <div class="col-xs-3"><p><strong>Primary email address:</strong></p></div>
                    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3"><p>{{ user.email }}</p></div>
                     <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'account_email' %}">Change</a></p></div>
                </div>
 
-                <div class="col-xs-12">
+                <div class="col-12">
                    <div class="col-xs-3"><p><strong>Connected social accounts:</strong></p></div>
                    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3">
                        <p>{% if user.socialaccount_set.exists %}
@@ -44,7 +44,7 @@
                     <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'socialaccount_connections' %}">Change</a></p></div>
                </div>
 
-               <div class="col-xs-12">
+               <div class="col-12">
                    <div class="col-xs-3"><p><strong>Account Status:</strong></p></div>
                    <div class="col-xs-9">
                         <p>
@@ -63,7 +63,7 @@
 
 
                    {% if request.user.is_staff or request.user|has_booked_class %}
-                   <div class="col-xs-12">
+                   <div class="col-12">
                    <div class="col-xs-3"><p><strong>Mailing List:</strong></p></div>
                    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3">
                         <p>
@@ -78,7 +78,7 @@
                   </div>
                    {% endif %}
 
-                   <div class="col-xs-12">
+                   <div class="col-12">
                    <div class="col-xs-3"><p><strong>Disclaimer:</strong></p></div>
                    <div class="col-xs-9">
                         <p>
@@ -93,7 +93,7 @@
                    </div>
                    </div>
                    {% if not disclaimer %}
-                   <div class="col-xs-12">
+                   <div class="col-12">
                        <h3>DISCLAIMER</h3>
                        {% if expired_disclaimer %}
                             <p>Your disclaimer has expired.  We require disclaimers to be updated once a year for health and safety reasons.
@@ -111,7 +111,7 @@
 
                        </div>
                    {% endif %}
-                <div class="col-xs-12">
+                <div class="col-12">
                    <p>View our <a href="{% url 'data_privacy_policy' %}">data privacy and cookie policy.</a></p>
                </div>
 

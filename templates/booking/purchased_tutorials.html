@@ -4,16 +4,16 @@
 {% block content %}
 
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-12">
         <h1>Online Tutorials</h1>
-    <div class="btn-group btn-group-sm pull-right" role="group">
+    <div class="btn-group btn-group-sm float-right" role="group">
         <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
         <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
         <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
     </div>
 
     {% if purchased_tutorials %}
-    <div class="col-xs-12">
+    <div class="col-12">
         <div class="panel panel-success">
             <div class="table-responsive">
                 <table class="table">
@@ -43,7 +43,7 @@
         </div>
     </div>
     {% else %}
-    <div class="col-xs-12">
+    <div class="col-12">
         <p>You do not have any purchased tutorials yet.</p>
     {% endif %}
     </div>

@@ -22,15 +22,15 @@
        {% include "account/disclaimer_form_content_shared.html" %}
 
        <div class="form-group">
-           <div class="col-xs-12 vspace {% if password_error %}ticket-error{% endif %}">
+           <div class="col-12 vspace {% if password_error %}ticket-error{% endif %}">
                 <label class="control-label" for='password_id'>{{ form.password.label|safe }}{% if form.password.field.required %}*{% endif %}</label>
-                <div class="col-xs-12 {% if password_error %}ticket-error{% endif %}">
+                <div class="col-12 {% if password_error %}ticket-error{% endif %}">
                     {{ form.password }} {% if password_error %}<span class="errorlist">{{ password_error }}</span>{% endif %}
                 </div>
            </div>
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.password.help_text }}</div>
        </div>
 
-        <div class="col-xs-12 vspace"><input class="btn btn-success" type="submit" value="Submit" /></div>
+        <div class="col-12 vspace"><input class="btn btn-success" type="submit" value="Submit" /></div>
    </form>
 

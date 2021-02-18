@@ -13,7 +13,7 @@
     {% if events %}
         <div class="row">
             <div class="top-button-row">
-                <a class="btn btn-success open-all-btn pull-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
+                <a class="btn btn-success open-all-btn float-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %}</a>
             </div>
         </div>
@@ -31,9 +31,9 @@
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
                     {% endif %}
                         {% if show_past %}
-                        <input class="btn btn-info table-btn filter-btn pull-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
+                        <input class="btn btn-info table-btn filter-btn float-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
                         {% else %}
-                        <input class="btn btn-info table-btn filter-btn pull-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
+                        <input class="btn btn-info table-btn filter-btn float-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
                         {% endif %}
                     </div>
                 {% if events %}

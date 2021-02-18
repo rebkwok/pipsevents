@@ -12,7 +12,7 @@
     {{ block.super }}
     {% if user.is_authenticated %}
         <div id="message-row"  class="row">
-            <div class="col-xs-12">
+            <div class="col-12">
                 <div class="message alert alert-info alert-dismissible">
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
@@ -26,7 +26,7 @@
 
 
     <div class="row">
-        <div class="col-xs-12">
+        <div class="col-12">
         <h1>Online Tutorials</h1>
             <h4>Click to view <a href="{% url 'booking:lessons' %}">Classes</a> or <a href="{% url 'booking:events' %}">Workshops</a></h4>
 
@@ -43,7 +43,7 @@
             {% endif %}
         </div>
 
-            <div class="col-xs-12">
+            <div class="col-12">
                 {% if not disclaimer and user.is_authenticated %}
                     {% if expired_disclaimer %}
                         <p>Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before making a purchase.</p>
@@ -58,7 +58,7 @@
 
 
                 {% if user.is_authenticated %}
-                <div class="btn-group btn-group-sm pull-right" role="group">
+                <div class="btn-group btn-group-sm float-right" role="group">
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                     <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
                     <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
@@ -68,7 +68,7 @@
 
         {% if events_exist %}
 
-            <div class="col-xs-12">
+            <div class="col-12">
 
                 <div class="panel with-nav-tabs panel-success">
 
@@ -195,7 +195,7 @@
             </div>
 
         {% else %}
-            <div class="col-xs-12">
+            <div class="col-12">
             <p>There are currently no online tutorials available to purchase.</p>
             </div>
         {% endif %}

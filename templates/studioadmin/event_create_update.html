@@ -46,7 +46,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                            <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">
+                                            <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">
                                                 {{ field }}{{ form.not_cancelled_text }}<label for='cancelled_id'></label></div>
                                         <div class="col-sm-8 studioadmincbox-help">{{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
@@ -56,7 +56,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                            <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">
+                                            <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">
                                                 {{ field }}<label for='booking_open_id'></label></div>
                                             <div class="col-sm-7 studioadmincbox-help">{{ field.help_text }}</div>
                                             {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
@@ -66,7 +66,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                            <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">
+                                            <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">
                                                 {{ field }}<label for='payment_open_id'></label></div>
                                         <div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
@@ -76,7 +76,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">{{ field.help_text }}</div>
+                                        <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='advance_payment_required_id'></label></div><div class="col-sm-8 studioadmincbox-help">{{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
                                     </div></label>
                                 </div>
@@ -84,7 +84,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='ext_instructor_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='ext_instructor_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
                                     </div></label>
                                 </div>
@@ -92,7 +92,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='email_studio_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='email_studio_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
                                     </div></label>
                                 </div>
@@ -100,7 +100,7 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='allow_booking_cancellation_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='allow_booking_cancellation_id'></label></div><div class="col-sm-8 studioadmincbox-help">  {{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
                                     </div></label>
                                 </div>
@@ -108,14 +108,14 @@
                                 <div class="form-group cbox">
                                     <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
                                     <div class="col-sm-9">
-                                        <div class="col-sm-1 pull-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='video_link_available_after_class_id'></label></div><div class="col-sm-8 studioadmin-help">  {{ field.help_text }}</div>
+                                        <div class="col-sm-1 float-left {% if field.errors %}ticket-error{% endif %}">{{ field }}<label for='video_link_available_after_class_id'></label></div><div class="col-sm-8 studioadmin-help">  {{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}
                                     </div></label>
                                 </div>
                                  {% else %}
                                     <div class="form-group">
                                         <label class="col-sm-12"><div class="control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
-                                            <div class="col-sm-9 pull-left {% if field.errors %}ticket-error{% endif %}">
+                                            <div class="col-sm-9 float-left {% if field.errors %}ticket-error{% endif %}">
                                                 {{ field }}
                                                 <div class="studioadmin-help">{{ field.help_text }}</div>
                                                 {% if field.errors %}<div class="form-error col-sm-9">{{ field.errors }}</div>{% endif %}

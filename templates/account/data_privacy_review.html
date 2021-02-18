@@ -19,7 +19,7 @@
             </p>
             </div>
             <div class="form-group">
-               <div class="col-xs-12 vspace {% if form.confirm.errors %}ticket-error{% endif %}">
+               <div class="col-12 vspace {% if form.confirm.errors %}ticket-error{% endif %}">
                    {{ form.confirm }}<label for='id_confirm'></label>
                      <label class="control-label" for='id_confirm'>{{ form.confirm.label }}</label>
                     {% if form.confirm.errors %} {{ form.confirm.errors }}{% endif %}
@@ -36,7 +36,7 @@
                 {% else %}
                 You are not currently subscribed.  Please confirm if you would like to subscribe.
             {% endif %}</p>
-              <div class="col-xs-12 {% if form.mailing_list.errors %}ticket-error{% endif %}">
+              <div class="col-12 {% if form.mailing_list.errors %}ticket-error{% endif %}">
                   {% for choice in form.mailing_list %}
                     {{ choice }}<br/>
                   {% endfor %}

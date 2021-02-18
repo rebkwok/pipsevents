@@ -4,7 +4,7 @@
 {% block studioadmincontent %}
 
     <div class="container-fluid row">
-        <div class="pull-right"><a class="btn btn-info" href="{% url 'studioadmin:disclaimer_content_list' %}">Back to list</a></div>
+        <div class="float-right"><a class="btn btn-info" href="{% url 'studioadmin:disclaimer_content_list' %}">Back to list</a></div>
 
         <h2>Disclaimer Version {{ disclaimer_content.version }} - {{ disclaimer_content.issue_date | date:"d M Y" }}</h2>
 

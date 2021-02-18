@@ -21,7 +21,7 @@
 
                     <div class="top-button-row">
                         <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
-                        <span class="pull-right">
+                        <span class="float-right">
                             {% if booking_status == 'past' %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_bookings_list' user.id %}">Show Upcoming Bookings</a>
                             {% else %}
