@@ -24,7 +24,7 @@ body {
   width: 100%;
   /* Set the fixed height of the footer here */
   height: 40px;
-  line-height: 40px; /* Vertically center the text there */
+  /*line-height: 40px; !* Vertically center the text there *!*/
   background-color: transparent;
 }
 
