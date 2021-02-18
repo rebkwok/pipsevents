@@ -17,9 +17,11 @@
 {#                        {form: form, location: 'Other', index: 1}#}
 {#                    ]  #}
             <div class="panel-heading">
-                <ul class="nav nav-tabs">
+                <ul class="nav nav-tabs" role="tablist">
                     {% for location_obj in location_forms %}
-                        <li class="nav-tab {%  if location_obj.index == 0 %}active{%  endif %}"><a href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a></li>
+                        <li class="nav-item {%  if location_obj.index == 0 %}show active{%  endif %}">
+                            <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
+                        </li>
                     {%  endfor %}
                 </ul>
             </div>
@@ -28,7 +30,7 @@
             <div class="panel-body">
                 <div class="tab-content">
                 {% for location_obj in location_forms %}
-                    <div class="tab-pane fade {%  if location_obj.index == 0 %}in active{% endif %}" id="tab{{ location_obj.index }}">
+                    <div class="tab-pane fade {%  if location_obj.index == 0 %}show active{% endif %}" id="tab{{ location_obj.index }}">
 
                     {{ location_obj.form.media }}
                     {% if location_obj.form.errors %}

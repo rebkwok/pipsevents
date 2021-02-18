@@ -79,11 +79,11 @@
 {#                    ]  #}
 
                     <div class="panel-heading">
-                        <ul class="nav nav-tabs">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
                             {% for location_obj in location_events %}
                                 {% if location_obj.index != 0 or location_events|length > 2 %}
-                                <li class="nav-tab {{ location_obj.index|get_active_class:tab }}">
-                                    <a class="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a>
+                                <li class="nav-item {{ location_obj.index|get_active_class:tab }}">
+                                    <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
                                 </li>
                                 {% endif %}
                             {%  endfor %}
@@ -93,9 +93,7 @@
                     <div class="panel-body">
                         <div class="tab-content">
                         {% for location_obj in location_events %}
-
                             <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
-
                                     {% if location_obj.queryset %}
                                         <div class="table-responsive">
                                         <table class="table table-condensed table-striped">

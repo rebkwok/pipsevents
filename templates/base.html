@@ -41,7 +41,7 @@
           {% if request.user.is_authenticated %}
         <div class="d-inline-block d-md-none extra-collapsed-menu-icons">
         <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
-        <span class="blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
+        <span class="pr-2 blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
         </div>
         {% endif %}
         {% endblock %}
@@ -88,7 +88,7 @@
 
                     </div>
                 </li>
-                <li id="shopping-basket-menu" class="pl-4 pt-2 nav-item d-none d-sm-block">{% show_shopping_basket_menu request.user %}</li>
+                <li id="shopping-basket-menu" class="pl-1 pt-2 nav-item d-none d-sm-block">{% show_shopping_basket_menu request.user %}</li>
                 <li id="blocks-menu" class="pt-2 pl-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
             {% endif %}
             {% endblock %}
@@ -96,17 +96,18 @@
         
           <span class="float-right">
             <ul class="nav navbar-nav mr-auto">
-            {% block admin-nav %}
-                {% if request.user.is_staff or request.user|in_group:"instructors" %}
-                   <li class="nav-item"><a class="nav-link" href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a></li>
-                {% endif %}
-            {% endblock admin-nav %}
 
             {% if request.user.is_authenticated %}
                 <li class="nav-item dropdown d-none d-sm-block account-menu-nav">
                     <div class="welcome-menu"><small><em>{{request.user}}</em></small></div>
                     <a class="account-menu nav-link dropdown-toggle dropdown-toggle-login" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Your account</a>
                     <div class="dropdown-menu" aria-labelledby="navbarAdminDropdown">
+                    {% block admin-nav %}
+                        {% if request.user.is_staff or request.user|in_group:"instructors" %}
+                           <a class="dropdown-item active-nav-login" href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a>
+                            <div class="dropdown-divider"></div>
+                        {% endif %}
+                    {% endblock admin-nav %}
                         <a class="dropdown-item active-nav-login" href="{% url 'account_change_password' %}">Change password</a>
                         <a class="dropdown-item active-nav-login" href="{% url 'profile:profile' %}">Profile</a>
                         {% if not request.user|has_disclaimer %}
@@ -214,8 +215,7 @@
 
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
-<script src="{% static 'booking/js/jquery.maskedinput.min.js' %}"></script>
-<script src="{% static 'booking/js/custom-v1.4.js' %}"></script>
+<script src="{% static 'booking/js/custom-v1.5.js' %}"></script>
 
 <!--# blocks modal-->
 <script>

@@ -23,9 +23,11 @@
 {#                        {events: queryset, location: 'Other', index: 2}#}
 {#                    ]  #}
                     <div class="panel-heading">
-                        <ul class="nav nav-tabs">
-                            {% for location_obj in location_events %}
-                                <li class="nav-tab {%  if location_obj.index == 0 %}active{%  endif %}"><a href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a></li>
+                        <ul class="nav nav-tabs" role="tablist">
+                            {% for location_obj in location_forms %}
+                                <li class="nav-item {%  if location_obj.index == 0 %}show active{%  endif %}">
+                                    <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
+                                </li>
                             {%  endfor %}
                         </ul>
                     </div>
@@ -33,7 +35,7 @@
                     <div class="panel-body">
                         <div class="tab-content">
                         {% for location_obj in location_events %}
-                            <div class="tab-pane fade {%  if location_obj.index == 0 %}in active{% endif %}" id="tab{{ location_obj.index }}">
+                            <div class="tab-pane fade {%  if location_obj.index == 0 %}show active{% endif %}" id="tab{{ location_obj.index }}">
 
                                 <div class="table-responsive">
                                     <table class="table compress">

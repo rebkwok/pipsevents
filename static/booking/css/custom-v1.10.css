@@ -98,7 +98,7 @@ div .account-content {
 }
 
 .nav-logo {
-    max-height: 55px;
+    max-height: 65px;
 }
 
 
@@ -542,8 +542,17 @@ a.disabled {
 	pointer-events: none;
     }
 
-.pagination > a.disabled {
-	color: #D8D8D8;
+.page-links > a {
+	color: rgb(0, 85, 127);
+}
+
+.page-links > a:hover {
+	color: rgb(240, 139, 165);
+  text-decoration: none;
+}
+
+.page-links > a.disabled {
+	color: rgba(0, 85, 127, 0.3);
 	pointer-events: none;
 }
 
