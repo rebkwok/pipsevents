@@ -22,22 +22,22 @@
                     <tr>
                         <th class="tickets-table-index"></th>
                         {% if 'show_booking_user' in show_fields %}
-                            <th class="table-center tickets-table">Booked by</th>
+                            <th class="text-center tickets-table">Booked by</th>
                         {% endif %}
                         {% if 'show_date_booked' in show_fields %}
-                            <th class="table-center tickets-table">Date booked</th>
+                            <th class="text-center tickets-table">Date booked</th>
                         {% endif %}
                         {% if 'show_booking_reference' in show_fields %}
-                            <th class="table-center tickets-table">Booking reference</th>
+                            <th class="text-center tickets-table">Booking reference</th>
                         {% endif %}
                         {% if 'show_paid' in show_fields %}
-                            <th class="table-center tickets-table">Paid</th>
+                            <th class="text-center tickets-table">Paid</th>
                         {% endif %}
                         {% if 'show_extra_ticket_info' in show_fields %}
-                            <th class="table-center tickets-table">{{ ticketed_event.extra_ticket_info_label }}</th>
+                            <th class="text-center tickets-table">{{ ticketed_event.extra_ticket_info_label }}</th>
                         {% endif %}
                         {% if 'show_extra_ticket_info1'  in show_fields %}
-                            <th class="table-center tickets-table">{{ ticketed_event.extra_ticket_info1_label }}</th>
+                            <th class="text-center tickets-table">{{ ticketed_event.extra_ticket_info1_label }}</th>
                         {% endif %}
                     </tr>
                     </thead>
@@ -46,22 +46,22 @@
                         <tr>
                             <td class="tickets-table-index">{{ forloop.counter }}.</td>
                             {% if 'show_booking_user' in show_fields %}
-                                <td class="table-center studioadmin-tbl;">{{ ticket.ticket_booking.user.first_name }} {{ ticket.ticket_booking.user.last_name }}</td>
+                                <td class="text-center studioadmin-tbl;">{{ ticket.ticket_booking.user.first_name }} {{ ticket.ticket_booking.user.last_name }}</td>
                             {% endif %}
                             {% if 'show_date_booked' in show_fields %}
-                                <td class="table-center studioadmin-tbl">{{ ticket.ticket_booking.date_booked }}</td>
+                                <td class="text-center studioadmin-tbl">{{ ticket.ticket_booking.date_booked }}</td>
                             {% endif %}
                             {% if 'show_booking_reference' in show_fields %}
-                                <td class="table-center studioadmin-tbl">{{ ticket.ticket_booking.booking_reference }}</td>
+                                <td class="text-center studioadmin-tbl">{{ ticket.ticket_booking.booking_reference }}</td>
                             {% endif %}
                             {% if 'show_paid' in show_fields %}
-                                <td class="table-center studioadmin-tbl">{% if ticket.ticket_booking.paid %}Yes{% else %}No{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{% if ticket.ticket_booking.paid %}Yes{% else %}No{% endif %}</td>
                             {% endif %}
                             {% if 'show_extra_ticket_info' in show_fields %}
-                                <td class="table-center studioadmin-tbl">{{ ticket.extra_ticket_info }}</td>
+                                <td class="text-center studioadmin-tbl">{{ ticket.extra_ticket_info }}</td>
                             {% endif %}
                             {% if 'show_extra_ticket_info1' in show_fields %}
-                                <td class="table-center studioadmin-tbl">{{ ticket.extra_ticket_info1 }}</td>
+                                <td class="text-center studioadmin-tbl">{{ ticket.extra_ticket_info1 }}</td>
                             {% endif %}
                         </tr>
                     {% endfor %}

@@ -29,12 +29,12 @@
                                 <th>Block status</th>
                                 <th>Block type</th>
                                 <th>Transferred from</th>
-                                <th class="table-center">Paid</th>
-                                <th class="table-center">Block Size</th>
-                                <th class="table-center">Used</th>
-                                <th class="table-center">Start Date</th>
-                                <th class="table-center">Expiry Date</th>
-                                <th class="table-center">Delete</br>
+                                <th class="text-center">Paid</th>
+                                <th class="text-center">Block Size</th>
+                                <th class="text-center">Used</th>
+                                <th class="text-center">Start Date</th>
+                                <th class="text-center">Expiry Date</th>
+                                <th class="text-center">Delete</br>
                                 <span class="studioadmin-help">Only for unpaid or<br/>unsed free/transfer blocks</span></th>
                             </tr>
                             </thead>
@@ -58,25 +58,25 @@
                                     <td class="studioadmin-tbl">{{ block.instance|transferred_from }}</td>
                                     {% if block.instance.paid %}
                                         <span class="hide">{{ block.paid }}</span>
-                                        <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
+                                        <td class="text-center studioadmin-tbl"><span class="fa fa-check"></span></td>
                                     {% else %}
-                                        <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
                                     {% endif %}
-                                    <td class="table-center studioadmin-tbl">{{ block.instance.block_type.size }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ block.start_date }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ block.instance.expiry_date | date:"d M Y"}}</td>
-                                    <td class="table-center studioadmin-tbl">{{ block.DELETE }}<label for={{ block.DELETE_id }}></label></td>
+                                    <td class="text-center studioadmin-tbl">{{ block.instance.block_type.size }}</td>
+                                    <td class="text-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
+                                    <td class="text-center studioadmin-tbl">{{ block.start_date }}</td>
+                                    <td class="text-center studioadmin-tbl">{{ block.instance.expiry_date | date:"d M Y"}}</td>
+                                    <td class="text-center studioadmin-tbl">{{ block.DELETE }}<label for={{ block.DELETE_id }}></label></td>
 
                                 {% else %}
                                     <td><strong>Add new block</strong></td>
                                     <td class="studioadmin-tbl">
                                         <div class="form-group form-group-sm">{{ block.block_type }}</div></td>
                                     <td></td>
-                                    <td class="table-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                    <td class="text-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
                                     <td></td>
                                     <td></td>
-                                    <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ block.start_date }}</div>
+                                    <td class="text-center studioadmin-tbl"><div class="form-group form-group-sm">{{ block.start_date }}</div>
                                         <span class="studioadmin-help">Leave blank for today</span></td>
                                     <td></td>
                                     <td></td>

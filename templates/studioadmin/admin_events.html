@@ -45,26 +45,26 @@
                                 <th>{% if type == "online_tutorials" %}Last Purchasable {% endif %}Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'online_tutorials' %}Tutorial{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
-                                <th class="table-center">Location</th>
-                                <th class="table-center">Max spaces</th>
-                                <th class="table-center">
+                                <th class="text-center">Location</th>
+                                <th class="text-center">Max spaces</th>
+                                <th class="text-center">
                                     {% if type == "online_tutorials" %}Purchases{% else %}
                                     Bookings</br>
                                     <span class="studioadmin-help">Click for waiting list</span>{% endif %}</th>
-                                <th class="table-center"><small>Booking open</small></th>
-                                <th class="table-center"><small>Payment open</small></th>
+                                <th class="text-center"><small>Booking open</small></th>
+                                <th class="text-center"><small>Payment open</small></th>
                                 {% if type != "online_tutorials" %}
-                                    <th class="table-center"><small>Adv. payment<br/>required</small></th>
-                                    <th class="table-center"><small>Cancel allowed</small></th>
+                                    <th class="text-center"><small>Adv. payment<br/>required</small></th>
+                                    <th class="text-center"><small>Cancel allowed</small></th>
                                 {% endif %}
-                                <th class="table-center">Clone</th>
-                                <th class="table-center">Delete</th>
+                                <th class="text-center">Clone</th>
+                                <th class="text-center">Delete</th>
                             </tr>
 
                             {% for event in eventformset %}
                             <tr {% if event.instance.cancelled %}class="cancelled-event"{% endif %}>
                                 <span class="hide">{{ event.id }}</span>
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl">
                                     {% if type == 'events' %}
                                     <a href="{% url 'studioadmin:edit_event' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% elif type == 'lessons' %}</a>
@@ -82,26 +82,26 @@
                                         <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                     {% endif %}
                                 </td>
-                                <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.instance.location_index }} label-rounded">{{ event.instance.location }}</span></td>
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl"><span class="label label-location label-location-{{ event.instance.location_index }} label-rounded">{{ event.instance.location }}</span></td>
+                                <td class="text-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl">
                                     {% if event.instance.waitinglistusers.count > 0 %}
                                         <a href="{% url 'studioadmin:event_waiting_list' event.instance.id %}">{{ event.instance|bookings_count }}</a>
                                     {% else %}
                                         {{ event.instance|bookings_count }}
                                     {% endif %}
                                 </td>
-                                <td class="table-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 {% if type != "online_tutorials" %}
-                                <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
+                                <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
                                 {% else %}
                                     <span class="hide">{{ event.advance_payment_required }}</span>
                                 {% endif %}
-                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:clone_event' event.instance.slug %}"><i class="far fa-clone"></i></a></td>
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:clone_event' event.instance.slug %}"><i class="far fa-clone"></i></a></td>
+                                <td class="text-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED
                                     {% elif event.instance.id in non_deletable_events %}

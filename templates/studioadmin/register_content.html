@@ -18,14 +18,14 @@
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="compress success">
-                            <th class="table-center"></th>
+                            <th class="text-center"></th>
                             <th >Attended</th>
-                            <th class="table-center" >Status</th>
-                            <th class="table-center">User</th>
-                            <th class="table-center">Disclaimer</th>
-                            <th class="table-center">Paid</th>
+                            <th class="text-center" >Status</th>
+                            <th class="text-center">User</th>
+                            <th class="text-center">Disclaimer</th>
+                            <th class="text-center">Paid</th>
                             {% if available_block_type %}
-                            <th class="table-center">Block</th>
+                            <th class="text-center">Block</th>
                             <th></th>
                             {% endif %}
                         </tr>
@@ -40,8 +40,8 @@
                                     <td></td>
                                     <td></td>
                                 {% else %}
-                                    <td class="table-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
-                                    <td class="table-center studioadmin-tbl">
+                                    <td class="text-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
+                                    <td class="text-center studioadmin-tbl">
                                         <div class="btn-group btn-group-sm" role="group">
                                           <button
                                                   id="booking-attended-{{ booking.id }}"
@@ -60,9 +60,9 @@
                                         </div>
                                     </td>
                                 {% endif %}
-                                <td id="booking-status-{{ booking.id }}" class="table-center studioadmin-tbl">{{ booking.status }}</td>
-                                <td class="table-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</td>
-                                <td class="table-center studioadmin-tbl">
+                                <td id="booking-status-{{ booking.id }}" class="text-center studioadmin-tbl">{{ booking.status }}</td>
+                                <td class="text-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl">
                                     {% if booking.user|has_online_disclaimer %}
                                         <a href="{% url 'studioadmin:user_disclaimer' booking.user.id|encode %}" target="_blank">
                                             <span id="disclaimer" class="far fa-file-alt"></span>{% if booking.user|disclaimer_medical_info %} *{% endif %}</a>
@@ -75,7 +75,7 @@
                                     {% endif %}
                                 </td>
 
-                                <td id="booking-paid-{{ booking.id }}" class="table-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
+                                <td id="booking-paid-{{ booking.id }}" class="text-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
                                     {% if booking.paypal_paid %}
                                         <span class="fas fa-check"></span>
                                     {% else %}
@@ -83,10 +83,10 @@
                                     {% endif %}
                                 </td>
                                 {% if available_block_type %}
-                                <td id="booking-block-{{ booking.id }}" class="table-center no-block-comment studioadmin-tbl booking-block">
+                                <td id="booking-block-{{ booking.id }}" class="text-center no-block-comment studioadmin-tbl booking-block">
                                     {% include 'studioadmin/includes/register_block.html' %}
                                 </td>
-                                <td id="booking-block-btn-{{ booking.id }}" data-booking_id="{{ booking.id }}" class="table-center studioadmin-tbl booking-block-btn">
+                                <td id="booking-block-btn-{{ booking.id }}" data-booking_id="{{ booking.id }}" class="text-center studioadmin-tbl booking-block-btn">
                                      <span id="booking-block-btn-content-{{ booking.id }}" {% if booking.paid or booking.block or not booking.has_available_block %}hidden{% endif %}>
                                         <span class="btn btn-success register-table-btn">Assign available block</span>
                                      </span>

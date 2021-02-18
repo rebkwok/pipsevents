@@ -38,14 +38,14 @@
                         <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success">
-                                <th class="table-center">Block type <span class="fa fa-sort"></span></th>
-                                {% if block_status == 'transfers' %}<th class="table-center">Transferred from</th>{% endif %}
-                                <th class="table-center">User <span class="fa fa-sort"></span></th>
-                                {% if block_status != 'transfers' %}<th class="table-center">Block Size</th>{% endif %}
-                                <th class="table-center">Used</th>
-                                <th class="table-center">Start Date <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Expiry Date <span class="fa fa-sort"></span></th>
-                                {% if block_status != 'transfers' %}<th class="table-center">Paid</th>{% endif %}
+                                <th class="text-center">Block type <span class="fa fa-sort"></span></th>
+                                {% if block_status == 'transfers' %}<th class="text-center">Transferred from</th>{% endif %}
+                                <th class="text-center">User <span class="fa fa-sort"></span></th>
+                                {% if block_status != 'transfers' %}<th class="text-center">Block Size</th>{% endif %}
+                                <th class="text-center">Used</th>
+                                <th class="text-center">Start Date <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Expiry Date <span class="fa fa-sort"></span></th>
+                                {% if block_status != 'transfers' %}<th class="text-center">Paid</th>{% endif %}
                             </tr>
                             </thead>
                             <tbody>
@@ -53,15 +53,15 @@
                             {% if blocks %}
                                 {% for block in blocks %}
                                 <tr {% if block.expired or block.full %}class="expired_block"{% endif %}>
-                                    <td class="table-center studioadmin-tbl">{{ block.block_type.event_type.subtype }} {{ block.block_type.identifier|format_block_type_identifier }}</td>
-                                    {% if block_status == 'transfers' %}<td class="table-center studioadmin-tbl">{{ block|transferred_from }}{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:user_blocks_list' block.user.id %}">{{ block.user.first_name }} {{ block.user.last_name }}</a></td>
-                                    {% if block_status != 'transfers' %}<td class="table-center studioadmin-tbl">{{ block.block_type.size }}</td>{% endif %}
-                                    <td class="table-center studioadmin-tbl">{{ block.bookings_made }}</td>
-                                    <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
-                                    <td class="table-center studioadmin-tbl"><span style="display: none;">{{ block.expiry_date | date:"Ymd"}}</span>{{ block.expiry_date | date:"d M Y"}}</td>
+                                    <td class="text-center studioadmin-tbl">{{ block.block_type.event_type.subtype }} {{ block.block_type.identifier|format_block_type_identifier }}</td>
+                                    {% if block_status == 'transfers' %}<td class="text-center studioadmin-tbl">{{ block|transferred_from }}{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:user_blocks_list' block.user.id %}">{{ block.user.first_name }} {{ block.user.last_name }}</a></td>
+                                    {% if block_status != 'transfers' %}<td class="text-center studioadmin-tbl">{{ block.block_type.size }}</td>{% endif %}
+                                    <td class="text-center studioadmin-tbl">{{ block.bookings_made }}</td>
+                                    <td class="text-center studioadmin-tbl"><span style="display: none;">{{ block.start_date | date:"Ymd"}}</span>{{ block.start_date | date:"d M Y"}}</td>
+                                    <td class="text-center studioadmin-tbl"><span style="display: none;">{{ block.expiry_date | date:"Ymd"}}</span>{{ block.expiry_date | date:"d M Y"}}</td>
                                     {% if block_status != 'transfers' %}
-                                        <td class="table-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
+                                        <td class="text-center studioadmin-tbl">{% if block.paid %}<span class="fa fa-check" aria-label="Yes"></span>
                                         {% else %}<span class="not-confirmed fa fa-times " aria-label="No"></span>{% endif %}</td>
                                     {% endif %}
                                 </tr>

@@ -106,12 +106,12 @@
                                                 </th>
                                                 <th></th>
                                                 {% if location_obj.index == 0 %}
-                                                    <th class="table-center">Location</th>
+                                                    <th class="text-center">Location</th>
                                                 {% endif %}
-                                                <th class="d-none d-md-table-cell table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
-                                                <th class="table-center">Spaces</th>
-                                                <th class="d-none d-md-table-cell table-center">Booking open</th>
-                                                <th class="d-none d-md-table-cell table-center">Payment open</th>
+                                                <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
+                                                <th class="text-center">Spaces</th>
+                                                <th class="d-none d-md-table-cell text-center">Booking open</th>
+                                                <th class="d-none d-md-table-cell text-center">Payment open</th>
                                             </tr>
 
                                             {% for event in location_obj.queryset %}
@@ -192,10 +192,10 @@
                                                         {% endif %}
                                                     </td>
                                                     {% if location_obj.index == 0 %}
-                                                        <td class="table-center"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location|truncatechars:11 }}</span></td>
+                                                        <td class="text-center"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location|truncatechars:11 }}</span></td>
                                                     {% endif %}
-                                                    <td class="d-none d-md-table-cell table-center">£{{ event.cost }}</td>
-                                                    <td class="table-center" style="vertical-align: middle; horiz-align: center">
+                                                    <td class="d-none d-md-table-cell text-center">£{{ event.cost }}</td>
+                                                    <td class="text-center" style="vertical-align: middle; horiz-align: center">
                                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                                         {% elif event.max_participants %}
                                                             <span id="booking_count_{{ event.id }}_{{ location_obj.index }}">{% include 'booking/includes/booking_count.html' %}</span>

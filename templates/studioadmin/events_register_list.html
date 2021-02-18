@@ -41,30 +41,30 @@
                                     <table class="table compress">
                                         <tr class="compress table-tab-header">
                                             <th>Date</th>
-                                            <th class="table-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
+                                            <th class="text-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
                                                 <span class="studioadmin-help">Click to view register</span></th>
                                              {%  if location_obj.index == 0 %}
-                                                <th class="table-center">Location</th>
+                                                <th class="text-center">Location</th>
                                             {% endif %}
-                                            <th class="table-center">{% if type == 'online_tutorials' %}Purchased{% else %}Bookings{% endif %}</th>
-                                            {% if type != 'online_tutorials' %}<th class="table-center">View Waiting List</th>{% endif %}
+                                            <th class="text-center">{% if type == 'online_tutorials' %}Purchased{% else %}Bookings{% endif %}</th>
+                                            {% if type != 'online_tutorials' %}<th class="text-center">View Waiting List</th>{% endif %}
                                         </tr>
 
                                         {% for event in location_obj.queryset %}
                                         <tr class="compress">
                                             <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
-                                            <td class="table-center studioadmin-tbl">
+                                            <td class="text-center studioadmin-tbl">
                                                 <a href="{% url 'studioadmin:event_register' event.slug %}">{{ event.name }}</a>
                                                 {% if event.is_online and not event.video_link %}
                                                     <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                                 {% endif %}
                                             </td>
                                              {%  if location_obj.index == 0 %}
-                                                <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>
+                                                <td class="text-center studioadmin-tbl"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>
                                                 {% endif %}
-                                            <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
+                                            <td class="text-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                             {% if type != 'online_tutorials' %}
-                                            <td class="table-center studioadmin-tbl">
+                                            <td class="text-center studioadmin-tbl">
                                                 {% if event.waitinglistusers.count > 0 %}
                                                     <a href="{% url 'studioadmin:event_waiting_list' event.id %}">
                                                         <span class="fas fa-external-link-square-alt fa-lg"></span></a>

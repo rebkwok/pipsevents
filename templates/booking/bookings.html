@@ -37,13 +37,13 @@
                         {% endif %}
                         <th>Date</th>
                         <th>Booking</th>
-                        <th class="table-center">Location</th>
-                        <th class="table-center">Status</th>
-                        <th class="d-none d-md-table-cell table-center">Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</th>
-                        <th class="table-center">Paid</th>
-                        <th class="table-center">Payment due</th>
-                        <th class="table-center">Block used</th>
-                        <th class="d-none d-md-table-cell table-center">Place confirmed</th>
+                        <th class="text-center">Location</th>
+                        <th class="text-center">Status</th>
+                        <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</th>
+                        <th class="text-center">Paid</th>
+                        <th class="text-center">Payment due</th>
+                        <th class="text-center">Block used</th>
+                        <th class="d-none d-md-table-cell text-center">Place confirmed</th>
                     </tr>
                     {% for bookingform in bookingformlist %}
                         <tr id='booked-{{ bookingform.booking.event.id }}-row' class='{% if bookingform.booking_status == 'CANCELLED' %}expired
@@ -111,14 +111,14 @@
                                     {{ bookingform.booking.event.name }}</a>
                                 {% endif %}
                             </td>
-                            <td class="table-center"><span class="label label-location label-location-{{ bookingform.booking.event.location_index }} label-rounded">{{ bookingform.booking.event.location }}</span></td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking_status }}</span></td>
-                            <td class="d-none d-md-table-cell table-center">£{{ bookingform.booking.event.cost }}</td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-payment_due">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-block">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
+                            <td class="text-center"><span class="label label-location label-location-{{ bookingform.booking.event.location_index }} label-rounded">{{ bookingform.booking.event.location }}</span></td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking_status }}</span></td>
+                            <td class="d-none d-md-table-cell text-center">£{{ bookingform.booking.event.cost }}</td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-payment_due">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-block">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
                                 {% else %}<strong>N/A</strong>{% endif %}</span></td>
-                            <td class="d-none d-md-table-cell table-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
+                            <td class="d-none d-md-table-cell text-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
                                 <span id="booked-{{ bookingform.booking.event.id }}-confirmed">
                                 {% if bookingform.booking.space_confirmed %}
                                     <span class="fa fa-check"></span>

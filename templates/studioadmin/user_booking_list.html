@@ -40,20 +40,20 @@
                                     <th>Date</th>
                                     <th>Class/Event</th>
                                     <th>Type</th>
-                                    <th class="table-center">Deposit</br>Paid</th>
-                                    <th class="table-center">Fully</br>Paid</th>
-                                    <th class="table-center">PayPal</br>ID</th>
-                                    <th class="table-center">Free</br>class?</th>
-                                    <th class="table-center">Block used</th>
-                                    <th class="table-center">Booking status</th>
+                                    <th class="text-center">Deposit</br>Paid</th>
+                                    <th class="text-center">Fully</br>Paid</th>
+                                    <th class="text-center">PayPal</br>ID</th>
+                                    <th class="text-center">Free</br>class?</th>
+                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Booking status</th>
                                 {% else %}
                                     <th></th>
                                     <th>Date</th>
                                     <th>Class/Event</th>
-                                    <th class="table-center">Paid</th>
-                                    <th class="table-center">Free class?</th>
-                                    <th class="table-center">Block used</th>
-                                    <th class="table-center">Booking status</th>
+                                    <th class="text-center">Paid</th>
+                                    <th class="text-center">Free class?</th>
+                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Booking status</th>
                                 {% endif %}
                             </tr>
                             </thead>
@@ -80,23 +80,23 @@
                                         <td class="studioadmin-tbl">{{ booking.event.event_type.readable_name }}</td>
                                         {% if booking_status == 'future' %}
                                             {% if booking.event.cost %}
-                                                <td class="table-center studioadmin-tbl">{% if booking.deposit_paid %}<span class="fa fa-check">{% endif %}</span></td>
-                                                <td class="table-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
+                                                <td class="text-center studioadmin-tbl">{% if booking.deposit_paid %}<span class="fa fa-check">{% endif %}</span></td>
+                                                <td class="text-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
                                             {% else %}
-                                                <td class="table-center studioadmin-tbl">N/A</td>
-                                                <td class="table-center studioadmin-tbl">N/A</td>
+                                                <td class="text-center studioadmin-tbl">N/A</td>
+                                                <td class="text-center studioadmin-tbl">N/A</td>
                                             {% endif %}
-                                            <td class="table-center studioadmin-tbl" id="paypal-td">
+                                            <td class="text-center studioadmin-tbl" id="paypal-td">
                                                 {% if booking.paypal_paid %}
                                                     <span class="fa fa-check"></span>
                                                 {% endif %}
                                             </td>
                                         {% else %}
-                                            <td class="table-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
+                                            <td class="text-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
                                         {% endif %}
-                                        <td class="table-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
                                 </tr>
                                 {% endfor %}
                                 {% if booking_status == 'future' %}

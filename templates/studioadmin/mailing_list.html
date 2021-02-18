@@ -24,21 +24,21 @@
                                 <table class="table tablesorter" id="sortTable">
                                     <thead>
                                     <tr class="success">
-                                        <th class="table-center">Username <span class="fa fa-sort"></span></th>
-                                        <th class="table-center">First Name <span class="fa fa-sort"></span></th>
-                                        <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                        <th class="table-center">Email <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">Username <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">First Name <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">Last Name <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">Email <span class="fa fa-sort"></span></th>
                                         <th></th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     {% for user in users %}
                                     <tr>
-                                        <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
-                                        <td class="table-center studioadmin-tbl">
+                                        <td class="text-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
+                                        <td class="text-center studioadmin-tbl">
                                             <a class="btn table-btn btn-danger" href="{% url 'studioadmin:unsubscribe' user.id %}">Unsubscribe</a>
                                         </td>
                                     </tr>

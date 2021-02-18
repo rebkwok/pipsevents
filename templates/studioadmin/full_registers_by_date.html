@@ -11,34 +11,34 @@
                     <caption><h2>Register for {{ event.event }}</h2></caption>
                     <thead>
                     <tr>
-                        <th class="table-center shrink-col"></th>
-                        <th class="table-center shrink-col">Attended</th>
-                        <th class="table-center" >Status</th>
-                        <th class="table-center">User</th>
-                        <th class="table-center">Disclaimer</th>
-                        <th class="table-center">Deposit Paid</th>
-                        <th class="table-center">Fully Paid</th>
+                        <th class="text-center shrink-col"></th>
+                        <th class="text-center shrink-col">Attended</th>
+                        <th class="text-center" >Status</th>
+                        <th class="text-center">User</th>
+                        <th class="text-center">Disclaimer</th>
+                        <th class="text-center">Deposit Paid</th>
+                        <th class="text-center">Fully Paid</th>
                         {% if event.available_block_type %}
-                        <th class="table-center">Booked with<br/>block</th>
-                        <th class="table-center">User's block</br>expiry date</th>
-                        <th class="table-center">Block size</th>
-                        <th class="table-center">Block bookings</br>used</th>
+                        <th class="text-center">Booked with<br/>block</th>
+                        <th class="text-center">User's block</br>expiry date</th>
+                        <th class="text-center">Block size</th>
+                        <th class="text-center">Block bookings</br>used</th>
                         {% endif %}
                     </tr>
                     </thead>
                     <tbody>
                     {% for booking in event.bookings %}
                         <tr>
-                            <td class="table-center register-index studioadmin-tbl shrink-col">{{ booking.index }}.</td>
-                            <td class="table-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
-                            <td class="table-center studioadmin-tbl">{{ booking.booking.status }}</td>
-                            <td class="table-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.booking.user.last_name }}</td>
-                            <td class="table-center studioadmin-tbl">{% if booking.booking.user|has_disclaimer %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                            <td class="table-center studioadmin-tbl">
+                            <td class="text-center register-index studioadmin-tbl shrink-col">{{ booking.index }}.</td>
+                            <td class="text-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
+                            <td class="text-center studioadmin-tbl">{{ booking.booking.status }}</td>
+                            <td class="text-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.booking.user.last_name }}</td>
+                            <td class="text-center studioadmin-tbl">{% if booking.booking.user|has_disclaimer %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                            <td class="text-center studioadmin-tbl">
                                 {% if booking.booking.deposit_paid %}
                                     <span class="fa fa-check"></span>
                                 {% endif %}
-                            <td class="table-center studioadmin-tbl">
+                            <td class="text-center studioadmin-tbl">
                                 {% if booking.booking.paid %}
                                     <span class="fa fa-check"></span>
                                 {% else %}
@@ -47,42 +47,42 @@
                             </td>
                                 {% if event.available_block_type %}
                                         {% if booking.booking.block %}
-                                            <td class="table-center studioadmin-tbl"><span class="fa fa-check"></span></td>
+                                            <td class="text-center studioadmin-tbl"><span class="fa fa-check"></span></td>
                                         {% elif booking.booking.paid %}
-                                            <td class="table-center studioadmin-tbl"><span class="fa fa-times"></span></td>
+                                            <td class="text-center studioadmin-tbl"><span class="fa fa-times"></span></td>
                                         {% elif booking.booking.available_block %}
-                                            <td class="table-center studioadmin-tbl"><span class="fa fa-times"></span></td>
+                                            <td class="text-center studioadmin-tbl"><span class="fa fa-times"></span></td>
                                         {% else %}
-                                            <td class="table-center studioadmin-tbl">N/A</td>
+                                            <td class="text-center studioadmin-tbl">N/A</td>
                                         {% endif %}</td>
 
                                     {% if booking.booking.available_block %}
-                                        <td class="table-center studioadmin-tbl">{{ booking.booking.available_block.expiry_date|date:"D d M Y" }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.booking.available_block.block_type.size }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.booking.available_block.bookings_made }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.booking.available_block.expiry_date|date:"D d M Y" }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.booking.available_block.block_type.size }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.booking.available_block.bookings_made }}</td>
                                     {% else %}
                                         <!--<td class="no-block-comment" colspan="3">User does not have a relevant active block</td>-->
-                                        <td class="table-center studioadmin-tbl">N/A</td>
-                                        <td class="table-center studioadmin-tbl">N/A</td>
-                                        <td class="table-center studioadmin-tbl">N/A</td>
+                                        <td class="text-center studioadmin-tbl">N/A</td>
+                                        <td class="text-center studioadmin-tbl">N/A</td>
+                                        <td class="text-center studioadmin-tbl">N/A</td>
                                     {% endif %}
                                 {% endif %}
                         </tr>
                         {% endfor %}
                     {% for i in event.extra_lines|get_range %}
                     <tr>
-                        <td class="table-center register-index shrink-col">{{ event.event|get_index_open:i }}.</td>
-                        <td class="table-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
+                        <td class="text-center register-index shrink-col">{{ event.event|get_index_open:i }}.</td>
+                        <td class="text-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
                         {% if event.available_block_type %}
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
-                        <td class="table-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
+                        <td class="text-center studioadmin-tbl"></td>
                         {% endif %}
                     </tr>
                     {% endfor %}

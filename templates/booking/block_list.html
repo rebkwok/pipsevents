@@ -44,8 +44,8 @@
                             <th>Cost</th>
                             <th class="d-none d-md-table-cell">Start date</th>
                             <th>Expiry Date</th>
-                            <th class="table-center" >Block size</th>
-                            <th class="table-center">Bookings made</th>
+                            <th class="text-center" >Block size</th>
+                            <th class="text-center">Bookings made</th>
                         </tr>
                         {% for blockform in blockformlist %}
                             <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
@@ -68,8 +68,8 @@
                                 </td>
                                 <td class="d-none d-md-table-cell">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                 <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
-                                <td class="table-center">{{ blockform.block.block_type.size }}</td>
-                                <td class="table-center">{{ blockform.block.bookings_made  }}</td>
+                                <td class="text-center">{{ blockform.block.block_type.size }}</td>
+                                <td class="text-center">{{ blockform.block.bookings_made  }}</td>
                             </tr>
                         {% endfor %}
                     </table>

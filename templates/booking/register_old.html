@@ -14,21 +14,21 @@
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="success">
-                            <th class="table-center">Attended</th>
-                            <th class="table-center" >Status</th>
-                            <th class="table-center">User</th>
-                            <th class="table-center">Paid</th>
-                            <th class="table-center">Use Available Block</th>
+                            <th class="text-center">Attended</th>
+                            <th class="text-center" >Status</th>
+                            <th class="text-center">User</th>
+                            <th class="text-center">Paid</th>
+                            <th class="text-center">Use Available Block</th>
                         </tr>
 
                         {% for bookingform in formset %}
                             <tr>
                                 <span class="hide">{{ bookingform.id }}</span>
-                                <td class="table-center">{{ bookingform.attended }}</td>
-                                <td class="table-center">{{ bookingform.status }}</td>
-                                <td class="table-center">{{ bookingform.user }}{{ bookingform.userdisplay }}</td>
-                                <td class="table-center">{{ bookingform.paid }}</td>
-                                <td class="table-center">{{ bookingform.block }}</td>
+                                <td class="text-center">{{ bookingform.attended }}</td>
+                                <td class="text-center">{{ bookingform.status }}</td>
+                                <td class="text-center">{{ bookingform.user }}{{ bookingform.userdisplay }}</td>
+                                <td class="text-center">{{ bookingform.paid }}</td>
+                                <td class="text-center">{{ bookingform.block }}</td>
                             </tr>
                         {% endfor %}
                         <tr>

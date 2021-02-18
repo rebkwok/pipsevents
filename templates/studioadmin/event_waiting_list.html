@@ -36,7 +36,7 @@
                                 </td>
                                 <td class="studioadmin-tbl">{{ wluser.date_joined|formatted_uk_date }}</td>
                                 {% if request.user.is_staff %}
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl">
                                     <form class="wl-table-form" method="post">
                                         {% csrf_token %}
                                         <button class="btn table-btn perm-btn btn-success" type="submit" name="remove_user"

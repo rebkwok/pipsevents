@@ -105,8 +105,8 @@
                                                     <span class="studioadmin-help">Click for details</span>
                                                 </th>
                                                 <th></th>
-                                                <th class="d-none d-md-table-cell table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
-                                                <th class="d-none d-md-table-cell table-center">Payment open</th>
+                                                <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
+                                                <th class="d-none d-md-table-cell text-center">Payment open</th>
                                             </tr>
 
                                             {% for event in location_obj.queryset %}
@@ -161,8 +161,8 @@
                                                         {% endif %}
                                                     </td>
 
-                                                    <td class="d-none d-md-table-cell table-center">£{{ event.cost }}</td>
-                                                    <td class="d-none d-md-table-cell table-center">{% if event.cost %}
+                                                    <td class="d-none d-md-table-cell text-center">£{{ event.cost }}</td>
+                                                    <td class="d-none d-md-table-cell text-center">{% if event.cost %}
                                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
                                                         {% else %}N/A{% endif %}</td>
                                                 </tr>
