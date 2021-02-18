@@ -26,7 +26,7 @@
                             <th>Booking Ref</br><span class="studioadmin-help">Click to edit ticket details</span></th>
                             <th>Event</th>
                             <th class="table-center"># Tickets</th>
-                            <th class="hidden-sm hidden-xs table-center">Ticket Cost{% if show_vat %} (incl. VAT){% endif %}</th>
+                            <th class="d-none d-md-table-cell table-center">Ticket Cost{% if show_vat %} (incl. VAT){% endif %}</th>
                         </tr>
                         {% for bookingform in ticketbookinglist %}
                             <tr {% if bookingform.ticket_booking.cancelled or bookingform.ticket_booking.ticketed_event.cancelled %}class="cancelled-event"{% endif %}>
@@ -54,7 +54,7 @@
                                 <td><a href="{% url 'booking:ticket_booking' bookingform.ticket_booking.booking_reference %}">{{ bookingform.ticket_booking.booking_reference }}</a></td>
                                 <td>{{ bookingform.ticket_booking.ticketed_event.name }}</td>
                                 <td class="table-center">{{ bookingform.ticket_booking.tickets.count }}</td>
-                                <td class="hidden-sm hidden-xs table-center">£{{ bookingform.ticket_booking.ticketed_event.ticket_cost }}</td>
+                                <td class="d-none d-md-table-cell table-center">£{{ bookingform.ticket_booking.ticketed_event.ticket_cost }}</td>
                             </tr>
                         {% endfor %}
                     </table>

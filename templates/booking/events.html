@@ -88,12 +88,13 @@
                             {%  endfor %}
                         </ul>
                     </div>
-                
+
                     <div class="panel-body">
                         <div class="tab-content" id="myTabContent">
                         {% for location_obj in location_events %}
                             <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
                                     {% if location_obj.queryset %}
+                                        <div class="table-responsive">
                                         <table class="table">
                                             <tr class="table-tab-header">
                                                 {% if user.is_authenticated %}
@@ -107,10 +108,10 @@
                                                 {% if location_obj.index == 0 %}
                                                     <th class="table-center">Location</th>
                                                 {% endif %}
-                                                <th class="d-none d-md-block table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
+                                                <th class="d-none d-md-table-cell table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
                                                 <th class="table-center">Spaces</th>
-                                                <th class="d-none d-md-block table-center">Booking open</th>
-                                                <th class="d-none d-md-block table-center">Payment open</th>
+                                                <th class="d-none d-md-table-cell table-center">Booking open</th>
+                                                <th class="d-none d-md-table-cell table-center">Payment open</th>
                                             </tr>
 
                                             {% for event in location_obj.queryset %}
@@ -193,14 +194,14 @@
                                                     {% if location_obj.index == 0 %}
                                                         <td class="table-center"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location|truncatechars:11 }}</span></td>
                                                     {% endif %}
-                                                    <td class="d-none d-md-block table-center">£{{ event.cost }}</td>
+                                                    <td class="d-none d-md-table-cell table-center">£{{ event.cost }}</td>
                                                     <td class="table-center" style="vertical-align: middle; horiz-align: center">
                                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                                         {% elif event.max_participants %}
                                                             <span id="booking_count_{{ event.id }}_{{ location_obj.index }}">{% include 'booking/includes/booking_count.html' %}</span>
                                                         {% else %}N/A{% endif %}</td>
-                                                    <td class="d-none d-md-block table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                                    <td class="d-none d-md-block table-center">{% if event.cost %}
+                                                    <td class="d-none d-md-table-cell text-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                                    <td class="d-none d-md-table-cell text-center">{% if event.cost %}
                                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
                                                         {% else %}N/A{% endif %}</td>
                                                 </tr>
@@ -219,6 +220,7 @@
                                                 </tr>
 
                                         </table>
+                                        </div>
                                         {% include 'booking/includes/event_pagination.html' %}
                                     {% else %}
                                     <h3>Coming soon!</h3>
