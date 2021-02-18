@@ -154,7 +154,8 @@ color: #000;
 }
 
 .inset {
-  padding-top, padding-right: 0px;
+  padding-top: 0;
+  padding-right: 0;
   padding-left: 30px;
 }
 
@@ -268,7 +269,8 @@ color: #000;
     }
 
     .inset {
-      padding-top, padding-right: 0px;
+      padding-top: 0;
+      padding-right: 0;
       padding-left: 30px;
     }
 
@@ -524,7 +526,7 @@ td.table-btns {
 
 .paypal-table-btn {
     padding-top: 0;
-    padding-bottom: -10;
+    padding-bottom: -10px;
     margin-top: 0;
     margin-bottom: 0;
     height: 85%;
@@ -662,13 +664,13 @@ a.disabled {
 }
 
 .selectpicker{
-    padding-top: 2;
-    padding-bottom: 2;
-    padding-left: 4;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 4px;
     }
 
 td.table-center.register-table {
-    padding: 5;
+    padding: 5px;
     }
 
 .user-dropdown>span {
@@ -784,7 +786,8 @@ background-color: lightgrey;
 }
 
 tr > td.table-center.register-index {
-    padding-right, padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
 	vertical-align: middle !important;
 }
 
@@ -846,7 +849,7 @@ a > span.fa.fa-print {
 }
 
 .email-message {
-    height: 300 !important;
+    height: 300px !important;
 }
 
 .cancel-warning {
@@ -1109,20 +1112,13 @@ li>a.adminmenu {
     color: green;
 }
 
-.label.label-rounded.label-spaces {
-    display: block;
-    border-radius: 25px;
-    width: 66px;
+.badge-spaces {
+    width: 45px;
     padding-top: 4px;
     padding-bottom: 4px;
 }
 
-td span.label.label-rounded.label-spaces{
-    display:inline-block;
-    text-align:center;
-}
-
-.label.label-rounded.label-location {
+.badge.badge-pill.badge-location {
     display: block;
     border-radius: 25px;
     padding-top: 4px;
@@ -1132,18 +1128,19 @@ td span.label.label-rounded.label-spaces{
     background-color: #ffffff;
 }
 
-td span.label.label-rounded.label-location{
+td span.badge.badge-location{
     display:inline-block;
     text-align:center;
     font-weight: normal;
+    font-size: x-small;
 }
 
-.label-location-1 {
+.badge-location-1 {
   color: #FF6666;
   border-color: #FF6666;
 }
 
-.label-location-2 {
+.badge-location-2 {
   color: #5cb85c;
   border-color: #5cb85c;
 }
@@ -1162,7 +1159,6 @@ tr.unpaid-booking-row {
         display:table;
         white-space: pre-wrap; /* css-3 */
         white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
-        white-space: -pre-wrap; /* Opera 4-6 */
         white-space: -o-pre-wrap; /* Opera 7 */
         word-wrap: break-word; /* Internet Explorer 5.5+ */
     }
@@ -1172,7 +1168,6 @@ tr.unpaid-booking-row {
           display:table;
           white-space: pre-wrap; /* css-3 */
           white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
-          white-space: -pre-wrap; /* Opera 4-6 */
           white-space: -o-pre-wrap; /* Opera 7 */
           word-wrap: break-word; /* Internet Explorer 5.5+ */
       }
@@ -1180,10 +1175,10 @@ tr.unpaid-booking-row {
 
 @media (min-width: 768px) { /* use the max to specify at each container level */
     td.table-event > a {
-       max-width:auto;
+       max-width: none;
     }
     td.date {
-          max-width:auto;  /* adjust to desired wrapping */
+          max-width: none;  /* adjust to desired wrapping */
           display:table;
           white-space: nowrap;
       }

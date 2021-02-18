@@ -60,7 +60,7 @@
                                                 {% endif %}
                                             </td>
                                              {%  if location_obj.index == 0 %}
-                                                <td class="text-center studioadmin-tbl"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>
+                                                <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location }}</span></td>
                                                 {% endif %}
                                             <td class="text-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                             {% if type != 'online_tutorials' %}

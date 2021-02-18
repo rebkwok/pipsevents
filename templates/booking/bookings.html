@@ -111,7 +111,7 @@
                                     {{ bookingform.booking.event.name }}</a>
                                 {% endif %}
                             </td>
-                            <td class="text-center"><span class="label label-location label-location-{{ bookingform.booking.event.location_index }} label-rounded">{{ bookingform.booking.event.location }}</span></td>
+                            <td class="text-center"><span class="badge badge-pill badge-location badge-location-{{ bookingform.booking.event.location_index }}">{{ bookingform.booking.event.location }}</span></td>
                             <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking_status }}</span></td>
                             <td class="d-none d-md-table-cell text-center">£{{ bookingform.booking.event.cost }}</td>
                             <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
