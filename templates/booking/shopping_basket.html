@@ -33,17 +33,17 @@
 
         <div class="col-12 basket-section">
             <div class="row">
-                <div class="col-xs-7 basket-heading"><h4>Block</h4></div>
-                <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
+                <div class="col-7 basket-heading"><h4>Block</h4></div>
+                <div class="col-5 basket-heading"><h4>Cost</h4></div>
             </div>
 
             {% for block in unpaid_blocks %}
             <div id="blockrow-{{ block.id}}">
                 <div class="row basket-row">
-                    <div class="col-xs-7">
+                    <div class="col-7">
                         {{ block.block_type }}
                     </div>
-                    <div class="col-xs-2">
+                    <div class="col-2">
                         {% if block.id in voucher_applied_blocks %}
                             <s>£{{ block.block_type.cost }}</s>
                             £{{ block.block_type.cost|voucher_applied_cost:block_voucher.discount }}
@@ -51,7 +51,7 @@
                             £{{ block.block_type.cost }}
                         {% endif %}
                     </div>
-                    <div class="col-xs-3 text-left">
+                    <div class="col-3 text-left">
                         <button
                             class="btn btn-danger table-btn basket-remove-btn block_remove_btn"
                             data-block_id="{{ block.id }}"
@@ -63,12 +63,12 @@
             {% endfor %}
 
             <div class="row basket-row">
-                <div class="col-xs-6 col-sm-4 col-md-3">
+                <div class="col-6 col-sm-4 col-md-3">
                     <span id="checkout-blocks-total-and-paypalform">
                     {% include 'booking/includes/shopping_basket_blocks_total.html' %}
                     </span>
                 </div>
-                <div class="col-xs-6 col-sm-8 col-md-9">
+                <div class="col-6 col-sm-8 col-md-9">
                     {% if not valid_block_voucher %}
                         <form name="block_voucher_form" class="form-inline" method="get" action="">
                         <label for="block_code_id">{{ block_voucher_form.block_code.label }}</label> {{ block_voucher_form.block_code }}
@@ -120,14 +120,14 @@
             {% endif %}
 
             <div class="row">
-                <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
-                <div class="col-xs-5 basket-heading"><h4>Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</h4></div>
+                <div class="col-7 basket-heading"><h4>Booking</h4></div>
+                <div class="col-5 basket-heading"><h4>Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</h4></div>
             </div>
 
             {% for booking in unpaid_bookings %}
             <div id="bookingrow-{{ booking.id}}">
                 <div class="row basket-row">
-                    <div class="col-xs-7">
+                    <div class="col-7">
                         {% if booking.event.event_type.event_type == 'EV' %}
                         <a href="{% url 'booking:event_detail' booking.event.slug %}">
                             {{ booking.event.name }}</a>
@@ -143,7 +143,7 @@
                         {% endif %} - {{ booking.event.location }}{% if booking.event.event_type.event_type != 'OT' %} - {{ booking.event.date |  date:"D d M H:i" }}{% endif %}
                         {% if not booking.can_cancel %}**{% endif %}
                     </div>
-                    <div class="col-xs-2">
+                    <div class="col-2">
                         {% if booking.id in voucher_applied_bookings %}
                             <s>£{{ booking.event.cost }}</s>
                             £{{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
@@ -151,7 +151,7 @@
                             £{{ booking.event.cost }}
                         {% endif %}
                     </div>
-                    <div class="col-xs-2 text-left">
+                    <div class="col-2 text-left">
                         {% if booking.has_available_block or booking.has_unpaid_block %}
                         <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
                             {% csrf_token %}
@@ -171,7 +171,7 @@
                         </form>
                         {% endif %}
                     </div>
-                    <div class="col-xs-1 text-left">
+                    <div class="col-1 text-left">
                         <button
                             class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
                             data-booking_id="{{ booking.id }}"
@@ -225,12 +225,12 @@
                 Complete your payment above in order to use blocks.
                 </p>
             {% endif %}
-            <div class="col-xs-6 col-sm-4 col-md-3">
+            <div class="col-6 col-sm-4 col-md-3">
                 <span id="checkout-bookings-total-and-paypalform">
                     {% include 'booking/includes/shopping_basket_bookings_total.html' %}
                 </span>
             </div>
-            <div class="col-xs-6 col-sm-8 col-md-9">
+            <div class="col-6 col-sm-8 col-md-9">
                 {% if not valid_booking_voucher %}
                     <form name="booking_voucher_form" class="form-inline" method="get" action="">
                         <label for="booking_code_id">{{ booking_voucher_form.booking_code.label }}</label> {{ booking_voucher_form.booking_code }}
@@ -282,14 +282,14 @@
 
         <div class="col-12 basket-section">
         <div class="row">
-            <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
-            <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
+            <div class="col-7 basket-heading"><h4>Booking</h4></div>
+            <div class="col-5 basket-heading"><h4>Cost</h4></div>
         </div>
 
         {% for booking in unpaid_bookings_non_default_paypal %}
         <div id="bookingrow-{{ booking.id}}">
             <div class="row basket-row">
-            <div class="col-xs-7">
+            <div class="col-7">
                 {% if booking.event.event_type.event_type == 'EV' %}
                 <a href="{% url 'booking:event_detail' booking.event.slug %}">
                     {{ booking.event.name }}</a>
@@ -302,7 +302,7 @@
                 {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
                 {% if not booking.can_cancel %}**{% endif %}
             </div>
-            <div class="col-xs-2">
+            <div class="col-2">
                 {% if booking.id in voucher_applied_bookings %}
                     <s>£ {{ booking.event.cost }}</s>
                     £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
@@ -310,10 +310,10 @@
                     £ {{ booking.event.cost }}
                 {% endif %}
             </div>
-            <div class="col-xs-2">
+            <div class="col-2">
                 <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}">Payment options</a>
             </div>
-            <div class="col-xs-1">
+            <div class="col-1">
                 <button
                     class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
                     data-booking_id="{{ booking.id }}"
@@ -337,14 +337,14 @@
 
        <div class="col-12 basket-section">
         <div class="row">
-            <div class="col-xs-7 basket-heading"><h4>Booking</h4></div>
-            <div class="col-xs-5 basket-heading"><h4>Cost</h4></div>
+            <div class="col-7 basket-heading"><h4>Booking</h4></div>
+            <div class="col-5 basket-heading"><h4>Cost</h4></div>
         </div>
 
         {% for booking in unpaid_bookings_payment_not_open %}
         <div id="bookingrow-{{ booking.id}}">
             <div class="row basket-row">
-            <div class="col-xs-7">
+            <div class="col-7">
                 {% if booking.event.event_type.event_type == 'EV' %}
                 <a href="{% url 'booking:event_detail' booking.event.slug %}">
                     {{ booking.event.name }}</a>
@@ -357,7 +357,7 @@
                 {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
                 {% if not booking.can_cancel %}**{% endif %}
             </div>
-            <div class="col-xs-2">
+            <div class="col-2">
                 {% if booking.id in voucher_applied_bookings %}
                     <s>£ {{ booking.event.cost }}</s>
                     £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
@@ -365,9 +365,9 @@
                     £ {{ booking.event.cost }}
                 {% endif %}
             </div>
-            <div class="col-xs-2">
+            <div class="col-2">
             </div>
-            <div class="col-xs-1">
+            <div class="col-1">
                 <button
                     class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
                     data-booking_id="{{ booking.id }}"
