@@ -39,6 +39,10 @@ body {
 /*  box-sizing: inherit;*/
 /*}*/
 
+h1, h2, h3 {
+  color: rgb(0, 85, 127);
+}
+
 @media only screen and (max-width: 768px) {
   h1 {
     font-size: xx-large;
@@ -278,10 +282,10 @@ color: #000;
 
 
 .sidebar_active{
-    color: #298A08
+    color: rgb(0, 85, 127);
 }
 .sidebar_inactive{
-    color: #173B0B
+    color: rgba(0, 85, 127, 0.6);
 }
 
 .modal-body {
@@ -364,7 +368,7 @@ color: #000;
 
 .nav-user {
     padding-top: 20px;
-    color: green;
+    color: rgb(0, 85, 127);
 }
 
 li.account-menu-nav {
@@ -377,16 +381,17 @@ a.active-nav-login {
 }
 
 a>.btn, a.btn {
-    color: #fff !important;
+    color: #fff;
     text-decoration: none;
 }
 a:visited>.btn, a:link>.btn {
-    color: #fff !important;
+    color: #fff;
     text-decoration: none;
 }
 
-.btn-info-link {
+.btn-info-link, btn.btn-sm.btn-wm-outline.btn-profile {
     background-color: rgb(240, 139, 165);
+    color: #fff;
 }
 
 .btn-info-link, .btn-new-block {
@@ -398,8 +403,13 @@ a:visited>.btn, a:link>.btn {
   border-color: whitesmoke;
 }
 
+a.btn-info-link:hover {
+  background-color: rgba(240, 139, 165, 0.8);
+  color: white;
+}
+
 .confirmed {
-    color: green;
+    color: rgb(0, 85, 127);
 }
 
 .not-confirmed {
@@ -415,7 +425,7 @@ a:visited>.btn, a:link>.btn {
 }
 
 .active_block td {
-    color: green;
+    color: rgb(0, 85, 127);
 }
 
 .active_tr td {
@@ -443,7 +453,7 @@ td {
 }
 
 
-.table-btn, .disabled .btn .btn-success .table-btn {
+.table-btn, .disabled .btn .btn-wm .table-btn {
     padding-top: 0;
     padding-bottom: 0;
 	padding-left: 0;
@@ -462,12 +472,12 @@ td {
 
 .table-pay-btn {
   width: 4em;
-  padding-top: 0px;
-  padding-bottom: 1px;
+  padding-top: 3px;
+  padding-bottom: 3px;
 }
 
 @media(max-width:800px) {
-  .table-btn, .disabled .btn .btn-success .table-btn {
+  .table-btn, .disabled .btn .btn-wm .table-btn {
     font-size: 80%;
   }
 }
@@ -544,7 +554,7 @@ td.table-btns {
 
 
 a.disabled {
-    color: #D8F6CE;
+    color: rgba(0, 85, 127, 0.6);
 	pointer-events: none;
     }
 
@@ -623,7 +633,7 @@ a.disabled {
 
 .bold-divider {
     height: 4px;
-    background-color: green;
+    background-color: rgb(0, 85, 127);
 }
 
 .ticket-divider {
@@ -703,7 +713,7 @@ label {
     box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px 1px 3px rgba(0,0,0,0.1);
 }
 .regular-checkbox:checked + label {
-    background-color: #d6e9c6;
+    background-color: rgba(0, 85, 127, 0.2);
     border: 1px solid #adb8c0;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05), inset 15px 10px -12px rgba(255,255,255,0.1);
     color: #99a1a7;
@@ -737,7 +747,7 @@ background-color: lightgrey;
     color: lightgrey;
 }
 .cancelled-event > td > .reopen.regular-checkbox:checked + label {
-    background-color: #d6e9c6;
+    background-color:  rgba(0, 85, 127, 0.2);
 }
 .cancelled-event > td > .reopen.regular-checkbox:checked + label:after {
     color: #173B0B;
@@ -995,7 +1005,7 @@ a > span.fa.fa-print {
 
 .ticketed-event-info {
     font-style: italic;
-    color: green;
+    color:  rgb(0, 85, 127);
 }
 
 .inc-space {
@@ -1067,7 +1077,12 @@ label.control-label {
     padding-right: 10px;
     padding-top: 2px;
     padding-bottom: 2px;
-    background-color: forestgreen;
+    background-color: rgba(240, 139, 165, 0.8);
+    text-decoration: none;
+}
+
+.td-disclaimer > a {
+  text-decoration: none;
 }
 
 .vspace {
@@ -1111,15 +1126,21 @@ li>a.adminmenu {
     background-color:dimgrey;
     color: white;
 }
+.btn.btn-alph-filter.btn-alph-primary {
+    background-color:rgb(0, 85, 127);
+    color: white;
+};
+
 
 .fa.fa-check {
-    color: green;
+    color:  rgb(0, 85, 127);
 }
 
 .badge-spaces {
-    width: 45px;
+    width: 65px;
     padding-top: 4px;
     padding-bottom: 4px;
+    font-weight: normal;
 }
 
 .badge.badge-pill.badge-location {
@@ -1200,13 +1221,61 @@ tr.unpaid-booking-row {
     padding: 5px;
 }
 
+/*** BTN-WM ***/
+.btn-wm {
+  background-color: rgb(240, 139, 165);
+  border-color: rgb(240, 139, 165);
+  color: white;
+}
+
+.btn-wm-outline {
+  background-color: transparent;
+  border-color: rgb(240, 139, 165);
+  color: rgb(240, 139, 165);
+}
+
+a.btn-wm-outline {
+  color: rgb(240, 139, 165);
+}
+
+a.btn-wm-outline:hover, .btn-wm:hover, .btn-wm:hover button, .btn-wm:hover input {
+  background-color: rgba(240, 139, 165, 0.8);
+  border-color: rgba(240, 139, 165, 0.8);
+  color: white;
+}
+
+.btn-wm.disabled {
+  background-color: rgba(240, 139, 165, 0.6);
+  border-color: rgba(240, 139, 165, 0.6);
+  color: grey;
+}
+
+.btn-wm:focus,.btn-wm:active {
+   background-color: rgba(240, 139, 165, 0.8);
+  border-color: rgba(240, 139, 165, 0.8);
+}
+
+
 /********************************************************************/
-/*** PANEL ***/
+
+
+/********************************************************************/
+/*** CARD ***/
+
+.card-wm .card-header {
+  background-color: rgba(240, 139, 165, 0.4);
+}
+
+.list-group > li.list-group-item.list-group-item-success {
+  background-color: rgba(240, 139, 165, 0.4);
+}
+
 .with-nav-tabs .nav-tabs > li > a,
 .with-nav-tabs .nav-tabs > li > a:hover,
 .with-nav-tabs .nav-tabs > li > a:focus {
-	color: #3c763d;
-  background-color: #E6F8E0;
+	color: rgb(0, 85, 127);
+  background-color: rgba(0, 85, 127, 0.1);
+  border-color: rgba(0, 85, 127, 0.2);
 }
 
 .with-nav-tabs .nav-tabs > .open > a,
@@ -1214,33 +1283,33 @@ tr.unpaid-booking-row {
 .with-nav-tabs .nav-tabs > .open > a:focus,
 .with-nav-tabs .nav-tabs > li > a:hover,
 .with-nav-tabs .nav-tabs > li > a:focus {
-	background-color: #d6e9c6;
+	background-color: rgba(0, 85, 127, 0.1);
 	border-color: transparent;
 }
 
-.with-nav-tabs .nav-tabs > li.active > a,
-.with-nav-tabs .nav-tabs > li.active > a:hover,
-.with-nav-tabs .nav-tabs > li.active > a:focus {
+.with-nav-tabs .nav-tabs > li > a.active,
+.with-nav-tabs .nav-tabs > li > a.active:hover,
+.with-nav-tabs .nav-tabs > li > a.active:focus {
 	background-color: #fff;
-	border-color: #d6e9c6;
+	border-color: rgba(0, 85, 127, 0.2);
 	border-bottom-color: transparent;
 }
-.with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu {
-    background-color: #dff0d8;
-    border-color: #d6e9c6;
+.with-nav-tabs  > .nav-tabs > li.dropdown .dropdown-menu {
+    background-color: rgba(0, 85, 127, 0.1);
+    border-color: rgba(0, 85, 127, 0.2);
 }
-.with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu > li > a {
-    color: #3c763d;
+.with-nav-tabs > .nav-tabs > li.dropdown .dropdown-menu > li > a {
+    color: rgb(0, 85, 127);
 }
 .with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu > li > a:hover,
 .with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu > li > a:focus {
-    background-color: #d6e9c6;
+    background-color: rgba(0, 85, 127, 0.1);
 }
 .with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu > .active > a,
 .with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu > .active > a:hover,
 .with-nav-tabs .nav-tabs > li.dropdown .dropdown-menu > .active > a:focus {
     color: #fff;
-    background-color: #3c763d;
+    background-color: rgb(0, 85, 127);
 }
 
 tr.table-tab-header {
@@ -1277,7 +1346,7 @@ span.basket-count {
 
 
 div .basket-section {
-  border: solid darkgreen 1px;
+  border: solid  rgb(0, 85, 127) 1px;
 }
 
 div .basket-heading {
@@ -1649,9 +1718,9 @@ form.mock-bs-form > p > input {
   font-style: italic;
 }
 
-.voucher-bg {
-  background: url(../images/logo_brand.png) no-repeat center;
-}
+/*.voucher-bg {*/
+/*  background: url(../images/logo_brand.png) no-repeat center;*/
+/*}*/
 
 .voucher-box {
   width:100%;
@@ -1662,12 +1731,15 @@ form.mock-bs-form > p > input {
 
 .voucher-outer-box {
   margin: 20px;
-  border: 6px solid #FF6666
+  border: 4px solid rgba(240, 139, 165, 0.9);
 }
 
 .voucher-inner-box {
   width:100%;
-  border: 4px solid #5cb85c
+  border: 3px solid rgba(0, 85, 127, 0.9);
+  background-image: url(../images/logo_brand_fade.png);
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 hr.voucher-divider {

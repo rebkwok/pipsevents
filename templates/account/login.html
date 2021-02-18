@@ -2,17 +2,19 @@
 
 {% load i18n %}
 {% load account socialaccount %}
+{% load crispy_forms_tags %}
+
 
 {% block head_title %}{% trans "Sign In" %}{% endblock %}
 
 {% block content %}
 
-<h1>{% trans "Sign In" %}</h1>
+<h1 class="mt-2">{% trans "Sign In" %}</h1>
 
 {% get_providers as socialaccount_providers %}
 
 {% if socialaccount_providers  %}
-<p>{% blocktrans with site.name as site_name %}Please <strong>sign in</strong> below. Or, <a class='btn btn-success' href="{{ signup_url }}">sign up</a>
+<p>{% blocktrans with site.name as site_name %}Please <strong>sign in</strong> below. Or, <a class='btn btn-wm' href="{{ signup_url }}">sign up</a>
 for a new account.{% endblocktrans %}</p></br>
 
 <div class="socialaccount_ballot">
@@ -37,12 +39,12 @@ for a new account.{% endblocktrans %}</p></br>
 
 <form class="login mock-bs-form" method="POST" action="{% url 'account_login' %}">
   {% csrf_token %}
-  {{ form.as_p }}
+  {{ form|crispy }}
   {% if redirect_field_value %}
   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
   {% endif %}
 
-  <button class="primaryAction btn btn-success" type="submit">{% trans "Sign In" %}</button>
+  <button class="primaryAction btn btn-wm" type="submit">{% trans "Sign In" %}</button>
   <p><a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a></p>
 </form>
 

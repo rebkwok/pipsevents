@@ -5,7 +5,7 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="card">
+       <div class="card card-wm>
             <div class="card-header">
                 <h1 class="card-title">Cancelling Ticket Booking Ref: {{ ticket_booking.booking_reference }}</h1>
             </div>
@@ -16,7 +16,7 @@
 
                 <form action="" method="post">{% csrf_token %}
                 <span class="hide">{{ form.as_p }}</span>
-                <input class="btn btn-success" type="submit" name="confirm_cancel" value="Yes, cancel my ticket booking" />
+                <input class="btn btn-wm" type="submit" name="confirm_cancel" value="Yes, cancel my ticket booking" />
                 <a href="{% url 'booking:ticket_bookings' %}"><div class="btn btn-danger">No, take me back</div></a>
             </form>
         </div>

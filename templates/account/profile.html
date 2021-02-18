@@ -3,51 +3,49 @@
 
 {% block content %}
 
-<div class="extra-top-margin container-fluid row">
-       <div class="card">
+<div class="row">
+       <div class="card card-wm mt-4">
             <div class="card-header">
                 <h1 class="card-title">Your Profile</h1>
             </div>
            <div class="card-body">
                <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Username:</strong></p></div>
-                   <div class="col-xs-9"><p>{{ user.username }}</p></div>
+                   <span class="col-3"><strong>Username:</strong></span>
+                   <span class="col-9">{{ user.username }}</span>
                </div>
 
                <div class="col-12">
-                   <div class="col-xs-3"><p><strong>First name:</strong></p></div>
-                   <div class="col-xs-9"><p>{{ user.first_name }}</p></div>
+                   <span class="col-3"><strong>First name:</strong></span>
+                   <span class="col-9">{{ user.first_name }}</span>
                </div>
 
                <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Last name:</strong></p></div>
-                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3"><p>{{ user.last_name }}</p></div>
-                  <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'profile:update_profile' %}">Change</a></p></div>
+                   <span class="col-3"><strong>Last name:</strong></span>
+                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.last_name }}</span>
+                  <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'profile:update_profile' %}">Change</a></span>
                </div>
 
                <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Primary email address:</strong></p></div>
-                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3"><p>{{ user.email }}</p></div>
-                    <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'account_email' %}">Change</a></p></div>
+                   <span class="col-3"><strong>Primary email address:</strong></span>
+                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.email }}</span>
+                    <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'account_email' %}">Change</a></span>
                </div>
 
                 <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Connected social accounts:</strong></p></div>
-                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3">
-                       <p>{% if user.socialaccount_set.exists %}
+                   <span class="col-3"><strong>Connected social accounts:</strong></span>
+                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">
+                       {% if user.socialaccount_set.exists %}
                             {% for sacc in user.socialaccount_set.all %}{{ sacc.provider|title }}{% if not forloop.last %}; {% endif %}{% endfor %}
                        {% else %}
                            None
                         {% endif %}
-                       </p>
-                   </div>
-                    <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'socialaccount_connections' %}">Change</a></p></div>
+                   </span>
+                    <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'socialaccount_connections' %}">Change</a></span>
                </div>
 
-               <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Account Status:</strong></p></div>
-                   <div class="col-xs-9">
-                        <p>
+               <div class="col-12 mb-1">
+                   <span class="col-3"><strong>Account Status:</strong></span>
+                   <span class="col-9">
                            {% if user.is_staff %}
                                 Staff
                            {% elif user|in_group:"instructors" %}
@@ -57,31 +55,26 @@
                            {% else %}
                                 Registered Student
                            {% endif %}
-                        </p>
-                   </div>
+                   </span>
                </div>
-
 
                    {% if request.user.is_staff or request.user|has_booked_class %}
                    <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Mailing List:</strong></p></div>
-                   <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3">
-                        <p>
+                   <span class="col-3"><strong>Mailing List:</strong></span>
+                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">
                            {% if request.user|subscribed %}
                                 Subscribed
                            {% else %}
                                 Not subscribed
                            {% endif %}
-                        </p>
-                   </div>
-                  <div class="col-xs-3 col-sm-5 col-md-5 col-lg-6"><p><a href="{% url 'subscribe' %}">Change</a></p></div>
+                   </span>
+                  <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'subscribe' %}">Change</a></span>
                   </div>
                    {% endif %}
 
                    <div class="col-12">
-                   <div class="col-xs-3"><p><strong>Disclaimer:</strong></p></div>
-                   <div class="col-xs-9">
-                        <p>
+                   <span class="col-3"><strong>Disclaimer:</strong></span>
+                   <span class="col-9">
                            {% if disclaimer %}
                                 Completed
                             {% elif expired_disclaimer %}
@@ -89,11 +82,10 @@
                            {% else %}
                                 Not completed
                            {% endif %}
-                        </p>
-                   </div>
+                   </span>
                    </div>
                    {% if not disclaimer %}
-                   <div class="col-12">
+                   <div class="col-12 mt-4">
                        <h3>DISCLAIMER</h3>
                        {% if expired_disclaimer %}
                             <p>Your disclaimer has expired.  We require disclaimers to be updated once a year for health and safety reasons.
@@ -105,7 +97,7 @@
                        <p><a href="{% url 'disclaimer_form' %}">Complete disclaimer form now</a></p>
                    </div>
                    {% else %}
-                       <div class="col-xs-9 col-xs-offset-3">
+                       <div class="col-12">
                            <p>If you have any additional questions or concerns about the information you have provided, please contact
                             <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>.</p>
 

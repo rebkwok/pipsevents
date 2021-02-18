@@ -6,7 +6,7 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="card">
+       <div class="card card-wm>
             <div class="card-header">
                 <h2 class="card-title">You are now booking for
                     {% if ev_type == 'event' %}
@@ -49,15 +49,15 @@
                         <span class="hide">{{ form.user }}</span>
                         {% if blocktype_available %}
                             {%  if active_user_block and not reopening_paid_booking %}
-                                <input class="btn btn-success update-btn" type="submit" name="block_book" value="Book & pay with block" />
-                                <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book & pay by paypal" />
+                                <input class="btn btn-wm update-btn" type="submit" name="block_book" value="Book & pay with block" />
+                                <input class="btn btn-wm update-btn" type="submit" name="book_one_off" value="Book & pay by paypal" />
                                 <p class="studioadmin-help">If you have a voucher code, select Book & pay by paypal; you will will have the option to enter a code on the payment page.</p>
                             {% else %}
-                                <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book" />
+                                <input class="btn btn-wm update-btn" type="submit" name="book_one_off" value="Book" />
                                 <p class="studioadmin-help">If you have a voucher code you will have the option to enter it on the payment page.</p>
                             {% endif %}
                         {% else %}
-                            <input class="btn btn-success update-btn" type="submit" name="book_one_off" value="Book" />
+                            <input class="btn btn-wm update-btn" type="submit" name="book_one_off" value="Book" />
                             {% if event.payment_open %}
                             <p class="studioadmin-help">If you have a voucher code you will have the option to enter it on the payment page.</p>
                             {% endif %}
@@ -77,7 +77,7 @@
 
                         {% if can_be_free_class %}
                         <br/>
-                        <input class="btn btn-success update-btn" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
+                        <input class="btn btn-wm update-btn" type="submit" name="claim_free" value="Claim free class**" /></br><hr>
                         <p class="studioadmin-help">** Please select this option only if you are sure you are eligible for a
                             free class.  Your request to claim your free class will be sent to the studio. <br/><span class="cancel-warning">Your space will not be confirmed
                                 until the studio has reviewed and confirmed that you are eligible.</span></p>

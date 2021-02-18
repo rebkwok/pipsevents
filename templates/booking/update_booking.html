@@ -5,7 +5,7 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-       <div class="card">
+       <div class="card card-wm>
             <div class="card-header">
                 <h1 class="card-title">Your booking for {{ booking.event }}</h1>
             </div>
@@ -18,14 +18,14 @@
                             <form name="voucher_form" class="form-inline" method="post" action="">
                                 {% csrf_token %}
                                     <label for="code_id">{{ voucher_form.code.label }}</label> {{ voucher_form.code }}
-                                    <input class="btn btn-success table-btn" type="submit" name="apply_voucher" value="Apply" />
+                                    <input class="btn btn-wm table-btn" type="submit" name="apply_voucher" value="Apply" />
                                     {% if voucher_error %}
                                         <p class="errorlist">{{ voucher_error }}</p>
                                     {% endif %}
                             </form>
                         {% else %}
                             <p><strong>Voucher applied: {{ voucher.code }} ({{voucher.discount}}% discount)</strong>
-                                <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}" />Remove</a></p>
+                                <a class="btn btn-wm table-btn" href="{% url 'booking:update_booking' booking.id %}" />Remove</a></p>
                             <small>You have already used this voucher {% if times_voucher_used == 1 %}once{% else %}{{ times_voucher_used }} times{% endif %} (max {{ voucher.max_per_user }})</small>
                         {% endif %}
                      {% endif %}
@@ -59,18 +59,18 @@
                         {% if active_user_block %}
                         <h4>Pay with Block</h4>
                             <p>You have an active block; would you like to use your block to pay for this booking?</p>
-                            <input class="btn btn-success update-btn" type="submit" name="block_book" value="Use my block" />
+                            <input class="btn btn-wm update-btn" type="submit" name="block_book" value="Use my block" />
                         {% elif blocktype_available %}
                          <h4>Pay with Block</h4>
                             <p>Block booking is available for this class.  Click below to buy a new block.
                                 Once your block is paid, you can return to this page and use your block to pay for this booking.</p>
-                            <a class="btn btn-success update-btn" href="{% url 'booking:add_block' %}">Buy a block</a>
+                            <a class="btn btn-wm update-btn" href="{% url 'booking:add_block' %}">Buy a block</a>
                         {% endif %}
                     </br></br>
                     </div>
                         {% if can_be_free_class %}
                         <span class="divider"></span></br>
-                        <input class="btn btn-success update-btn" type="submit" name="claim_free" value="Claim free class**" /></br></br>
+                        <input class="btn btn-wm update-btn" type="submit" name="claim_free" value="Claim free class**" /></br></br>
                         <p class="studioadmin-help">** Your request to
                             claim a free class will be sent to the studio. <span class="cancel-warning">Your space will not be confirmed
                             until the studio has reviewed and confirmed that you are eligible.</span></p>

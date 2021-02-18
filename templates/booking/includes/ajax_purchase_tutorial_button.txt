@@ -18,6 +18,6 @@
         {% get_payment_button booking type location_obj.index request.GET.name location_obj.queryset.number %}
     {% endif %}
 {% else %}
-     <button class="btn table-btn btn-success book_button">Add to basket</button>
+     <button class="btn table-btn btn-wm book_button">Add to basket</button>
 {% endif %}
 

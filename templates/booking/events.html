@@ -22,10 +22,9 @@
 
 {% block content %}
     <div class="row">
-
     <div class="col-12">
         <h1>
-            {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}</br>
+            {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}<br/>
         </h1>
 
 
@@ -146,7 +145,7 @@
                                                                 <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                                                              {% elif event.bookable or event.id in booked_events %}
                                                                     {% if event.id in auto_cancelled_events %}
-                                                                        <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+                                                                        <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                                                     {% else %}
                                                                         <span
                                                                                 id="book_{{ event.id }}_{{ location_obj.index }}"
@@ -175,7 +174,7 @@
                                                                 {% include "booking/includes/waiting_list_button.html" %}
                                                                 </span>
                                                             {% else %}
-                                                                <div class="disabled btn btn-success table-btn">Book</div>
+                                                                <div class="disabled btn btn-wm table-btn">Book</div>
                                                             {% endif %}
                                                         {% endif %}
                                                     </td>
@@ -219,7 +218,7 @@
                                                             <label>{{ form.name.label }}</label>{{ form.name }}
                                                             <label>{{ form.date_selection.label }}</label>{{ form.date_selection }}
                                                             <input type="hidden" name="tab" value="{{ location_obj.index }}">
-                                                            <input class="btn btn-sm btn-success" type="submit" value="Go">
+                                                            <input class="btn btn-sm btn-wm" type="submit" value="Go">
                                                         </form>
                                                     </div>
                                                     {% include 'booking/includes/event_pagination.html' %}

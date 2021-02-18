@@ -3,21 +3,18 @@
 {% load bookingtags %}
 
 {% block studioadmincontent %}
-
-    <div class="container-fluid row">
-
         <h2>Registered Users</h2>
 
-        <div class=row>
+        <div class="row">
             <div class="col-sm-12">
             <form action="" method="get">
                 {{ form.search }}
-                <input class="btn btn-info table-btn" type="submit" name='search_submitted' value="Search" />
-                <input class="btn btn-info table-btn" type="submit" name='reset' value="Reset" /><br/>
+                <input class="btn btn-wm table-btn" type="submit" name='search_submitted' value="Search" />
+                <input class="btn btn-sucess table-btn" type="submit" name='reset' value="Reset" /><br/>
                 And/or filter by first name<br/>
                 {% for opt in filter_options %}
                     <input
-                            class="btn btn-alph-filter {% if not opt.available %}btn-disabled{% elif active_filter == opt.value %}btn-primary{% else %}btn-unselected{% endif %} "
+                            class="btn btn-alph-filter {% if not opt.available %}btn-disabled{% elif active_filter == opt.value %}btn-alph-primary{% else %}btn-unselected{% endif %} "
                             {% if not opt.available %}disabled{% endif %}
                             type="submit"
                             name="filter"
@@ -26,14 +23,10 @@
                 {% endfor %}
             </form>
         </div>
-
-
-
         </div>
-
         <div class="row">
             <div class="col-sm-12">
-                <div class="card">
+                <div class="card card-wm>
 
                     <div class="table-responsive">
                         <table class="table tablesorter" id="sortTable">
@@ -81,7 +74,7 @@
                                         </td>
                                     {% endif %}
                                 {% endif %}
-                                <td class="text-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl td-disclaimer">
                                     {% if user|has_online_disclaimer %}
                                         <a href="{% url 'studioadmin:user_disclaimer' user.id|encode %}" target="_blank"><span class="has-disclaimer-pill">Yes</span>
                                     {% elif user|expired_disclaimer %}
@@ -135,8 +128,6 @@
                 </div>
             </div>
          </div>
-
-    </div>
 
 {% endblock studioadmincontent %}
 

@@ -15,22 +15,24 @@
             <div class="col-sm-12">
 
 
-                <div class="cardcard with-nav-tabs">
+                <div class="card with-nav-tabs">
 
 {#                    location_events is a list of objs passed from view: #}
 {#                    [#}
 {#                        {events: queryset, location: 'Beaverbank Place', index: 1}#}
 {#                        {events: queryset, location: 'Other', index: 2}#}
 {#                    ]  #}
+                {% if location_events|length > 1 %}
                     <div class="card-header">
                         <ul class="nav nav-tabs" role="tablist">
-                            {% for location_obj in location_forms %}
-                                <li class="nav-item {%  if location_obj.index == 0 %}show active{%  endif %}">
-                                    <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
+                            {% for location_obj in location_events %}
+                                <li class="nav-item">
+                                    <a class="nav-link {%  if location_obj.index == 0 %}show active{%  endif %}" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
                                 </li>
                             {%  endfor %}
                         </ul>
                     </div>
+                {% endif %}
 
                     <div class="card-body">
                         <div class="tab-content">

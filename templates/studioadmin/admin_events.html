@@ -13,7 +13,7 @@
     {% if events %}
         <div class="row">
             <div class="top-button-row">
-                <a class="btn btn-success open-all-btn float-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
+                <a class="btn btn-wm open-all-btn float-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %}</a>
             </div>
         </div>
@@ -28,7 +28,7 @@
 
                     <div class="top-button-row">
                     {% if events %}
-                        <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                        <input class="btn btn-wm table-btn" name="formset_submitted" type="submit" value="Save changes" />
                     {% endif %}
                         {% if show_past %}
                         <input class="btn btn-info table-btn filter-btn float-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
@@ -37,7 +37,7 @@
                         {% endif %}
                     </div>
                 {% if events %}
-                <div class="card">
+                <div class="card card-wm>
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
@@ -149,7 +149,7 @@
                                 </td>
                             </tr>
                         <tr>
-                            <td class="studioadmin-tbl" {% if type == "online_tutorials" %}colspan="10"{% else %}colspan="11"{% endif %}><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl" {% if type == "online_tutorials" %}colspan="10"{% else %}colspan="11"{% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>

@@ -9,7 +9,7 @@
         <h2>Timetable</h2>
         <div class="row">
             <div class="col-sm-12">
-                <div class="card">
+                <div class="card card-wm>
                 <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ sessionformset.management_form }}
@@ -47,7 +47,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                        <td class="studioadmin-tbl" colspan="10"><input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                        <td class="studioadmin-tbl" colspan="10"><input class="btn btn-wm studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
                         </tr>
                     </table>
                 </div>

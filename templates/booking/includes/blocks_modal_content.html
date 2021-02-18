@@ -3,10 +3,11 @@
 <div class="modal-dialog modal-">
     <div class="modal-content">
 		<div class="modal-header">
+            <h5 id="blocksModalLabel">Blocks</h5>
 		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
-			<h5 id="blocksModalLabel">Blocks</h5>
+
 		</div>
-		<div class="modal-body">
+		<div class="modal-body mb-2">
 			<ul class="list-group">
 				<h5>Active</h5>
 			{% if active_blocks %}
@@ -18,7 +19,7 @@
 			   <li class="list-group-item">No active blocks</li>
 			{% endif %}
 			{% if can_book_block %}
-			<li class="list-group-item"><a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a></li>
+			<li class="list-group-item"><a href="{% url 'booking:add_block' %}" class="btn btn-wm btn-new-block">Get a new block!</a></li>
 			{% endif %}
 			</ul>
 		{% if unpaid_blocks %}

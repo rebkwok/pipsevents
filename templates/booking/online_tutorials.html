@@ -129,7 +129,7 @@
                                                                 Purchased
                                                             {% elif event.bookable %}
                                                                 {% if event.id in auto_cancelled_events %}
-                                                                    <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to purchase">Add to basket</div>
+                                                                    <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to purchase">Add to basket</div>
                                                                 {% else %}
                                                                     <span
                                                                             id="book_{{ event.id }}_{{ location_obj.index }}"
@@ -143,7 +143,7 @@
                                                                     </span>
                                                                 {% endif %}
                                                             {% else %}
-                                                                <div class="disabled btn btn-success table-btn">Add to basket</div>
+                                                                <div class="disabled btn btn-wm table-btn">Add to basket</div>
                                                             {% endif %}
                                                         {% endif %}
                                                     </td>
@@ -173,7 +173,7 @@
                                                             <label>FILTER BY: </label>
                                                             <label>{{ form.name.label }}</label>{{ form.name }}
                                                             <input type="hidden" name="tab" value="{{ location_obj.index }}">
-                                                            <input class="btn btn-sm btn-success" type="submit" value="Go">
+                                                            <input class="btn btn-sm btn-wm" type="submit" value="Go">
                                                         </form>
                                                     </div>
                                                     {% include 'booking/includes/event_pagination.html' %}

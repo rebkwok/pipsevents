@@ -28,7 +28,7 @@
     </div>
 
     <div class="col-12">
-        <div class="card">
+        <div class="card card-wm>
             <div class="table-responsive">
                 <table class="table">
                     <tr class="success">
@@ -74,13 +74,13 @@
                                             {% include "booking/includes/waiting_list_button.html" %}
                                             </span>
                                         {% elif bookingform.booking_status == 'CANCELLED' %}
-                                            <div type="button" id="rebook_button_disabled" class="btn btn-success table-btn disabled">Rebook</div>
+                                            <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
                                         {% endif %}
                                     {% else %}
                                         {% if bookingform.booking.auto_cancelled %}
                                             <div
                                                     id="rebook_button_auto_cancelled_disabled"
-                                                    class="btn btn-success table-btn disabled"
+                                                    class="btn btn-wm table-btn disabled"
                                                     title="Contact {{ bookingform.booking.event.contact_email }} directly to rebook"
                                             >Rebook</div>
                                         {% else %}

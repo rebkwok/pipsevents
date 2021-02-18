@@ -22,11 +22,11 @@
                     Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
                 {% endif %}
             {% elif can_book_block %}
-                <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
+                <a href="{% url 'booking:add_block' %}" class="btn btn-wm btn-new-block">Get a new block!</a>
                 <p>You can only have one block of each available type at a time.  You can add multiple blocks (if available)
                     and checkout for all when you are done.</p>
             {% else %}
-                <div class="btn btn-success btn-new-block" disabled="disabled">Get a new block!</div><br/>
+                <div class="btn btn-wm btn-new-block" disabled="disabled">Get a new block!</div><br/>
                 <small class="errorlist">You currently have a block of each available type.  When your block is used up or has expired, you will be able to add another.</small><br/><br/>
             {% endif %}
     </div>
@@ -34,7 +34,7 @@
 
     <div class="col-12">
         {% if blockformlist %}
-            <div class="card">
+            <div class="card card-wm>
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="success">

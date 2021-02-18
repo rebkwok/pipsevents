@@ -9,13 +9,13 @@
 
 {% block content %}
 
-<div class="extra-top-margin container-fluid row">
+<div class="row pt-2">
     <div class="col-sm-12">
-        <div class="card">
+        <div class="card card-wm">
             <div class="card-header">
                 <h2 class="card-title">{{ event.name }}</h2>
             </div>
-        <div class="card-body">
+        <div class="card-body pb-0">
             {% if online_class %}
             <div class="card-body">
                 <div class="float-right">
@@ -35,7 +35,7 @@
             </div>
             {% endif %}
             </div>
-            <div class="card-body">
+            <div class="card-body pt-0">
                 {% if event.cancelled %}
                     <h3>This {{ event_type__str }} has been cancelled.</h3>
                 {% endif %}
@@ -100,14 +100,14 @@
                 {% if not past %}
                     {% if not event.cancelled %}
                         {% if event.max_participants %}
-                            <h5>Spaces are {% if event.spaces_left <= 0 %}not {% endif %}available for this {{ event_type_str }}.</h5>
+                            <h5 class="pt-1">Spaces are {% if event.spaces_left <= 0 %}not {% endif %}available for this {{ event_type_str }}.</h5>
                         {% endif %}
 
                         {% if booked %}
                             <h5>{{ booking_info_text }}</h5>
                             {% if booked and not booking.paid %}
                                 <a href="{% url 'booking:shopping_basket' %}" {% if not event.payment_open %}class="disabled"{% endif %}>
-                                        <div id='pay_button' class="btn btn-success table-btn {% if not event.payment_open %}disabled{% endif %}">Pay now</div></a>
+                                        <div id='pay_button' class="btn btn-wm table-btn {% if not event.payment_open %}disabled{% endif %}">Pay now</div></a>
                             {% endif %}
                             <h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details{% if event.cost %}, to
                              confirm payment and to check if your place has been confirmed{% endif %}.</h5>
@@ -115,11 +115,11 @@
                             <h5>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
                                     {% if not disclaimer %}
-                                        <div class="btn btn-success table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                                        <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
                                     {% elif not event.booking_open and not unbookable_pole_practice %}
-                                        <div class="btn btn-success table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+                                        <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
                                     {% elif auto_cancelled %}
-                                        <div class="btn btn-success table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+                                        <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                     {% else %}
                                         <span
                                             id="book_{{ event.id }}_0"
@@ -131,7 +131,7 @@
                                         </span>
                                     {% endif %}
                                 {% elif not event.booking_open and not unbookable_pole_practice %}
-                                    <div id='book_button_disabled' class="disabled btn btn-success table-btn">
+                                    <div id='book_button_disabled' class="disabled btn btn-wm table-btn">
                                         {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
                                 {% else %}
                                     {% if not unbookable_pole_practice %}

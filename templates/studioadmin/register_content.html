@@ -9,7 +9,7 @@
 
     <div class="row">
         <div class="col-sm-12">
-            <div class="card">
+            <div class="card card-wm>
                 <div class="card-body">
                     <form class="float-right" action="" method="get">
                                 {{ status_filter.status_choice }}
@@ -48,7 +48,7 @@
                                                   data-booking_id="{{ booking.id }}"
                                                   data-attendance="attended"
                                                   type="button"
-                                                  class="btn btn-attended {% if booking.attended %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                                                  class="btn btn-attended {% if booking.attended %}btn-wm{% else %}btn-outline-secondary{% endif %}"
                                                   >Yes</button>
                                           <button
                                                   id="booking-noshow-{{ booking.id }}"
@@ -88,7 +88,7 @@
                                 </td>
                                 <td id="booking-block-btn-{{ booking.id }}" data-booking_id="{{ booking.id }}" class="text-center studioadmin-tbl booking-block-btn">
                                      <span id="booking-block-btn-content-{{ booking.id }}" {% if booking.paid or booking.block or not booking.has_available_block %}hidden{% endif %}>
-                                        <span class="btn btn-success register-table-btn">Assign available block</span>
+                                        <span class="btn btn-wm register-table-btn">Assign available block</span>
                                      </span>
                                     </td>
                                 </td>
@@ -99,7 +99,7 @@
                         {% if can_add_more %}
                             <tr>
                                 <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="6"{% endif %}>
-                                    <a class="bookingadd btn btn-success register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
+                                    <a class="bookingadd btn btn-wm register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
                                 </td>
                             </tr>
                         {% endif %}

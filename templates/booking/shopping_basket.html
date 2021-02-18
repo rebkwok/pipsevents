@@ -26,7 +26,7 @@
         <div class="row">
             <div class="col-12">
                 <h2>Blocks</h2>
-                <p class="basket-note"><strong>Pay for your blocks first; you will then be able to use them
+                <p class="text-danger"><strong>Pay for your blocks first; you will then be able to use them
                     to pay for eligible class bookings.</strong></p>
             </div>
         </div>
@@ -63,19 +63,15 @@
             {% endfor %}
 
             <div class="row basket-row">
-                <div class="col-6 col-sm-4 col-md-3">
-                    <span id="checkout-blocks-total-and-paypalform">
-                    {% include 'booking/includes/shopping_basket_blocks_total.html' %}
-                    </span>
-                </div>
-                <div class="col-6 col-sm-8 col-md-9">
+
+                <div class="col-12 pt-2">
                     {% if not valid_block_voucher %}
                         <form name="block_voucher_form" class="form-inline" method="get" action="">
                         <label for="block_code_id">{{ block_voucher_form.block_code.label }}</label> {{ block_voucher_form.block_code }}
                         {% if booking_code %}
                             <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
                        {% endif %}
-                        <input class="btn btn-success table-btn" type="submit" value="Apply"/>
+                        <input class="btn btn-wm table-btn" type="submit" value="Apply"/>
                         {% if block_voucher_error %}
                             <p class="errorlist">{{ block_voucher_error }}</p>
                         {% endif %}
@@ -86,11 +82,18 @@
                             {% if booking_code %}
                                 <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
                             {% endif %}
-                            <input class="btn btn-success table-btn" type="submit" name="remove_block_voucher" value="Remove" /><br/>
+                            <input class="btn btn-wm table-btn" type="submit" name="remove_block_voucher" value="Remove" /><br/>
                             <small>You have already used this voucher for {{ times_booking_voucher_used }} block{% if times_block_voucher_used != 1 %}s{% endif %} (max {{block_voucher.max_per_user }})</small>
                             {% for msg in block_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                         </form>
                     {% endif %}
+                </div>
+
+                <hr/>
+                <div class="col-12">
+                    <span id="checkout-blocks-total-and-paypalform">
+                    {% include 'booking/includes/shopping_basket_blocks_total.html' %}
+                    </span>
                 </div>
                 {% if unpaid_blocks and total_unpaid_block_cost > 0 %}
                         <div class="col-12"><p><strong>No PayPal account required - choose "Pay with debit or credit card" at PayPal login to checkout as guest.</strong><br/>
@@ -110,13 +113,14 @@
         </div>
 
         <div class="col-12 basket-section">
-            {% if not block_booking_available and block_types_available %}
+            {% if not unpaid_block_booking_available and not block_booking_available and block_types_available %}
             <p>You do not have any valid blocks for these bookings; click <a href="{% url 'booking:add_block' %}">here</a> to purchase.</p>
             {% endif %}
 
             {% if unpaid_block_booking_available %}
-                <p><strong class="basket-note">You have an unpaid block!</strong>  Once paid,
+                <p><strong class="text-danger">You have an unpaid block!</strong>  Once paid,
                 you will be able to use this block to pay for bookings.</p>
+                <p>Click <a href="{% url 'booking:add_block' %}">here</a> to purchase other blocks</p>
             {% endif %}
 
             <div class="row">
@@ -164,9 +168,9 @@
                             {% endif %}
                             <input type="hidden" name="shopping_basket" value="True"/>
                             {% if booking.has_available_block %}
-                                <input class="btn btn-success table-btn basket-block-btn" type="submit" value="Use block"/>
+                                <input class="btn btn-wm table-btn basket-block-btn" type="submit" value="Use block"/>
                             {% else %}
-                                <div class="btn btn-success table-btn basket-block-btn disabled">Use block</div>
+                                <div class="btn btn-wm table-btn basket-block-btn disabled">Use block</div>
                             {% endif %}
                         </form>
                         {% endif %}
@@ -182,23 +186,19 @@
             </div>
             {% endfor %}
 
-            <div class="row basket-row">
+            <div class="row basket-row mt-2">
                 <div class="col-12 basket-note">
                     PLEASE NOTE:
                     If you are late and/or miss the warm up for any class, you will not be allowed to attend for
                     safety reasons and to avoid disruption to the class. <strong>Please arrive at least
                     5 mins before your class to allow time to change.</strong>
                 </div>
-            </div>
-
-        {% if include_warning %}
-            <div class="row basket-row">
-                <div class="col-12">
+                {% if include_warning %}
+                <div class="col-12 studioadmin-help">
                     ** Note these bookings will not be eligible for refunds or transfer credit once paid
                 </div>
-
+            {% endif %}
             </div>
-        {% endif %}
 
         <div class="row basket-row">
             {% if block_booking_available %}
@@ -213,31 +213,27 @@
                         {% if valid_block_voucher %}
                             <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
-                        <input class="btn btn-success" type="submit" value="Use blocks for all eligible classes"/>
+                        <input class="btn btn-wm" type="submit" value="Use blocks for all eligible classes"/>
                         <p class="studioadmin-help">
                         This will pay for all eligible classes with available blocks.
                     </p>
                     </form>
                 </div>
             {% elif unpaid_block_booking_available %}
-                <div class="btn btn-success disabled">Use blocks for all eligible classes</div>
-                <p class="studioadmin-help"> This will pay for all eligible classes with available blocks.<br/>
+                <span class="btn btn-wm disabled mr-1"><a href="" class="disabled text-white">Use blocks for all eligible classes</a></span>
+                <span class="studioadmin-help"> This will pay for all eligible classes with available blocks.<br/>
                 Complete your payment above in order to use blocks.
-                </p>
-            {% endif %}
-            <div class="col-6 col-sm-4 col-md-3">
-                <span id="checkout-bookings-total-and-paypalform">
-                    {% include 'booking/includes/shopping_basket_bookings_total.html' %}
                 </span>
-            </div>
-            <div class="col-6 col-sm-8 col-md-9">
+            {% endif %}
+
+            <div class="col-12 pt-2">
                 {% if not valid_booking_voucher %}
                     <form name="booking_voucher_form" class="form-inline" method="get" action="">
                         <label for="booking_code_id">{{ booking_voucher_form.booking_code.label }}</label> {{ booking_voucher_form.booking_code }}
                         {% if block_code %}
                             <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
-                        <input class="btn btn-success table-btn" type="submit" value="Apply"/>
+                        <input class="btn btn-wm table-btn" type="submit" value="Apply"/>
                         {% if booking_voucher_error %}
                             <p class="errorlist">{{ booking_voucher_error }}</p>
                         {% endif %}
@@ -248,11 +244,17 @@
                         {% if block_code %}
                             <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
-                        <input class="btn btn-success table-btn" type="submit" name="remove_booking_voucher" value="Remove" /><br/>
+                        <input class="btn btn-wm table-btn" type="submit" name="remove_booking_voucher" value="Remove" /><br/>
                         <small>You have already used this voucher for {% if times_booking_voucher_used == 1 %}1 class/workshop{% else %}{{ times_booking_voucher_used }} classes/workshops{% endif %} (max {{booking_voucher.max_per_user }})</small>
                         {% for msg in booking_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                     </form>
                 {% endif %}
+            </div>
+            <hr/>
+            <div class="col-12">
+                <span id="checkout-bookings-total-and-paypalform">
+                    {% include 'booking/includes/shopping_basket_bookings_total.html' %}
+                </span>
             </div>
             {% if unpaid_bookings and total_unpaid_booking_cost > 0 %}
                 <div class="col-12"><p><strong>No PayPal account required - choose "Pay with debit or credit card" at PayPal login to checkout as guest.</strong>
@@ -311,7 +313,7 @@
                 {% endif %}
             </div>
             <div class="col-2">
-                <a class="btn btn-success table-btn" href="{% url 'booking:update_booking' booking.id %}">Payment options</a>
+                <a class="btn btn-wm table-btn" href="{% url 'booking:update_booking' booking.id %}">Payment options</a>
             </div>
             <div class="col-1">
                 <button

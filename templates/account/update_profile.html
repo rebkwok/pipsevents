@@ -6,15 +6,15 @@
 {% block content %}
 
 <div class="small-margin extra-top-margin container-fluid row">
-    <div class="col-sm-11">
-       <div class="card">
+    <div class="col-12">
+       <div class="card card-wm>
             <div class="card-header">
                 <h1 class="card-title">Edit Your Account Profile</h1>
             </div>
            <div class="card-body">
                 <form action="" method="post" class="mock-bs-form">{% csrf_token %}
                     {{ form.as_p}}
-                    <input class="btn btn-success" type="submit" value="Update" />
+                    <input class="btn btn-wm" type="submit" value="Update" />
                     <a href="{% url 'profile:profile' %}"><div class="btn btn-warning">Cancel</div></a>
                 </form>
                 </br>

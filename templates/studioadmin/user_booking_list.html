@@ -17,7 +17,7 @@
             <div class="col-sm-12">
 
                     <div class="top-button-row">
-                        <a class="bookingadd btn btn-success table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
+                        <a class="bookingadd btn btn-wm table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
                         <span class="float-right">
                             {% if booking_status == 'past' %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_upcoming_bookings_list' user.id %}">Show Upcoming Bookings</a>
@@ -102,7 +102,7 @@
                                 {% if booking_status == 'future' %}
                                     <tr>
                                         <td class="studioadmin-tbl" colspan="10">
-                                            <a class="bookingadd btn btn-success table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
+                                            <a class="bookingadd btn btn-wm table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
                                         </td>
                                     </tr>
                                 {% endif %}
