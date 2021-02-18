@@ -7,11 +7,11 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h1 class="panel-title">{% trans "E-mail Addresses" %}</h1>
+       <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">{% trans "E-mail Addresses" %}</h1>
             </div>
-           <div class="panel-body">
+           <div class="card-body">
 
                 {% if user.emailaddress_set.all %}
                 <p>{% trans 'The following e-mail addresses are associated with your account:' %}</p>
@@ -52,10 +52,10 @@
                 {% endif %}
             </div>
 
-            <div class="panel-heading">
-                <h1 class="panel-title">{% trans "Add E-mail Address" %}</h1>
+            <div class="card-header">
+                <h1 class="card-title">{% trans "Add E-mail Address" %}</h1>
             </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <form method="post" action="{% url 'account_email' %}" class="add_email mock-bs-form">
                         {% csrf_token %}
                         {{ form.as_p}}

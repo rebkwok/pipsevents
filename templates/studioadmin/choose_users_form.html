@@ -20,10 +20,10 @@
         </a>
         <div class="row">
 
-            <div class="panel panel-success">
+            <div class="card">
                 <span id="userfilters" class="collapse {% if not showing_students %} in{% endif %}">
 
-                <div class="panel-body">
+                <div class="card-body">
                     {{ userfilterform.media }}
                     <form action="" method="post">
                         {% csrf_token %}

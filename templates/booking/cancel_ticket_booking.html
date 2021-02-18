@@ -5,11 +5,11 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h1 class="panel-title">Cancelling Ticket Booking Ref: {{ ticket_booking.booking_reference }}</h1>
+       <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">Cancelling Ticket Booking Ref: {{ ticket_booking.booking_reference }}</h1>
             </div>
-       <div class="panel-body">
+       <div class="card-body">
                 <h4>You are about to cancel your ticket booking for
                     {{ ticket_booking.ticketed_event.name }}</a> on {{ ticket_booking.ticketed_event.date | date:"D d F, g:i a" }}</h4>
                 <h4>Are you sure?  Once cancelled, ticket bookings cannot be reopened and tickets will not be held for you.</h4>

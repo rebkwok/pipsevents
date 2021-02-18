@@ -5,13 +5,13 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h1 class="panel-title">Your booking for {{ booking.event }}</h1>
+       <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">Your booking for {{ booking.event }}</h1>
             </div>
 
             {% if booking.event.cost != 0 %}
-            <div class="panel-body">
+            <div class="card-body">
                 <h4>Cost: £ {{ paypal_cost|floatformat:2 }}{% if show_vat %} (incl VAT){% endif %}</h4>
                     {% if booking.event.payment_open %}
                         {% if not valid_voucher %}
@@ -30,7 +30,7 @@
                         {% endif %}
                      {% endif %}
             </div>
-            <div class="panel-body">
+            <div class="card-body">
 
                     {% if booking.event.payment_open %}
                         <span class="divider"></span>
@@ -50,7 +50,7 @@
                         {{ booking.event.payment_info|safe }}
                     {% endif %}
             </div>
-            <div class="panel-body">
+            <div class="card-body">
 
                    <form action="" method="post">{% csrf_token %}
                        <span class="divider"></span>
@@ -79,7 +79,7 @@
            </div>
 
                 {% else %}
-           <div class="panel-body">
+           <div class="card-body">
                <h5>There is no cost associated with this event.</h5>
            </div>
                 {% endif %}

@@ -8,16 +8,16 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
+       <div class="card">
+            <div class="card-header">
                 {% if voucher %}
-                <h2 class="panel-title">Edit Voucher</h2>
+                <h2 class="card-title">Edit Voucher</h2>
                 {% else %}
-                <h2 class="panel-title">Adding new voucher</h2>
+                <h2 class="card-title">Adding new voucher</h2>
                 {% endif %}
             </div>
 
-            <div class="panel-body">
+            <div class="card-body">
                 <div>
                     {% if form.instance.is_gift_voucher %}
                     <a href="{% url 'studioadmin:gift_vouchers' %}" class="btn btn-warning table-btn">Gift Voucher List</a>

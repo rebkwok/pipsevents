@@ -15,14 +15,14 @@
             <div class="col-sm-12">
 
 
-                <div class="panel panel with-nav-tabs panel-success">
+                <div class="cardcard with-nav-tabs">
 
 {#                    location_events is a list of objs passed from view: #}
 {#                    [#}
 {#                        {events: queryset, location: 'Beaverbank Place', index: 1}#}
 {#                        {events: queryset, location: 'Other', index: 2}#}
 {#                    ]  #}
-                    <div class="panel-heading">
+                    <div class="card-header">
                         <ul class="nav nav-tabs" role="tablist">
                             {% for location_obj in location_forms %}
                                 <li class="nav-item {%  if location_obj.index == 0 %}show active{%  endif %}">
@@ -32,7 +32,7 @@
                         </ul>
                     </div>
 
-                    <div class="panel-body">
+                    <div class="card-body">
                         <div class="tab-content">
                         {% for location_obj in location_events %}
                             <div class="tab-pane fade {%  if location_obj.index == 0 %}show active{% endif %}" id="tab{{ location_obj.index }}">
@@ -79,7 +79,7 @@
                             </div>
                           {% endfor %}
                         </div> <!-- tab content -->
-                    </div> <!-- panel body -->
+                    </div> <!--card body -->
 
 
                 </div>

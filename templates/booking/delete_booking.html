@@ -5,11 +5,11 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h2 class="panel-title">Cancel Booking</h2>
+       <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Cancel Booking</h2>
             </div>
-       <div class="panel-body">
+       <div class="card-body">
                 <h3>You are about to cancel your booking for
                     {% if event.event_type.event_type == 'EV' %}<a href="{% url 'booking:event_detail' event.slug %}">
                     {% elif event.event_type.event_type == 'CL' %}<a href="{% url 'booking:lesson_detail' event.slug %}">{% endif %}{{ event.name }}</a> on {{ event.date | date:"D d F, g:i a" }}</h3>

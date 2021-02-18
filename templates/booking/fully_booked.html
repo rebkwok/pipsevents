@@ -4,12 +4,12 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h1 class="panel-title">Attempting to book for {{ event }} ({{ event.location }})</h1>
+       <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">Attempting to book for {{ event }} ({{ event.location }})</h1>
             </div>
 
-            <div class="panel-body">
+            <div class="card-body">
                     <p>I'm sorry, this {{ ev_type }} is now fully booked.</p>
                     <p>Click below to join the waiting list</p>
                     <form action="{% url 'booking:book_event' event.slug %}" method="get">

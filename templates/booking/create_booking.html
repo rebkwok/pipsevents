@@ -6,9 +6,9 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h2 class="panel-title">You are now booking for
+       <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">You are now booking for
                     {% if ev_type == 'event' %}
                     <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
                     {% elif ev_type == 'class' %}
@@ -18,7 +18,7 @@
                     {% endif %} ({{ event.location }})
                     on {{ event.date | date:"D d F, g:i a" }}</h2>
             </div>
-            <div class="panel-body">
+            <div class="card-body">
                 <form action="" method="post">{% csrf_token %}
                     <div class="form-group">
                         {% if blocktype_available %}

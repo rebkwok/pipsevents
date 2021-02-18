@@ -11,32 +11,31 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-        <div class="panel panel-success">
-            <div class="panel-heading">
-                <h3 class="panel-title">
-                        {{ event.name }}
-                </h3>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">{{ event.name }}</h2>
             </div>
+        <div class="card-body">
             {% if online_class %}
-            <div class="panel-body">
+            <div class="card-body">
                 <div class="float-right">
                 {% if show_video_link and booked and booking.paid %}
                     {% if past %}
                         {% if booking.event.video_link_available_after_class %}
                             <div><a id="video_link_id" class="btn btn-info" href="{{ event.video_link }}">View video link</a></div>
                         {% else %}
-                            <div id="video_link_disabled_id" class="btn btn-default disabled">Class is past</div>
+                            <div id="video_link_disabled_id" class="btn btn-outline-secondary disabled">Class is past</div>
                         {% endif %}
                     {% else %}
                         <div><a id="video_link_id" class="btn btn-info" href="{{ event.video_link }}">Join online class</a></div>
                     {% endif %}
                 {% else %}
-                    <div id="video_link_disabled_id" class="btn btn-default disabled">Video link enabled 20 mins before class</div>
+                    <div id="video_link_disabled_id" class="btn btn-outline-secondary disabled">Video link enabled 20 mins before class</div>
                 {% endif %}
             </div>
             {% endif %}
-                </div>
-            <div class="panel-body">
+            </div>
+            <div class="card-body">
                 {% if event.cancelled %}
                     <h3>This {{ event_type__str }} has been cancelled.</h3>
                 {% endif %}
@@ -150,6 +149,7 @@
                         {% endif %}  <!--- cancelled --->
                     {% endif %}  <!--- past --->
             </div>
+        </div>
         </div>
     </div>
 

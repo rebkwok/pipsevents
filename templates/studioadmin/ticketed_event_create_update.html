@@ -8,17 +8,17 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
+       <div class="card">
+            <div class="card-header">
                 {% if ticketed_event %}
-                <h2 class="panel-title">{{ ticketed_event.name }} on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
+                <h2 class="card-title">{{ ticketed_event.name }} on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
                 {% if ticketed_event.cancelled %}<h4>Note: this event has been cancelled</h4>{% endif %}
 
                 {% else %}
-                <h2 class="panel-title">Adding new ticketed event</h2>
+                <h2 class="card-title">Adding new ticketed event</h2>
                 {% endif %}
             </div>
-            <div class="panel-body">
+            <div class="card-body">
                 {% if form.errors %}
                     <div class="form-error">
                         <p>Please correct the errors below:</p>
