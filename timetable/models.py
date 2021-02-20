@@ -38,7 +38,7 @@ class Session(models.Model):
         help_text="Leave blank if no max number of participants"
     )
     contact_person = models.CharField(max_length=255, default="Gwen Holbrey")
-    contact_email = models.EmailField(default="thewatermelonstudio@hotmail.com")
+    contact_email = models.EmailField(default=settings.DEFAULT_STUDIO_EMAIL)
     cost = models.DecimalField(default=8.50, max_digits=8, decimal_places=2)
     booking_open = models.BooleanField(default=True)
     payment_open = models.BooleanField(default=True)

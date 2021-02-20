@@ -148,7 +148,7 @@ TEMPLATES = [
                 # Required by allauth template tags
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
-                "booking.context_processors.vat",
+                "booking.context_processors.booking",
             ),
             'debug': DEBUG,
         },
@@ -205,7 +205,7 @@ if EMAIL_HOST_PASSWORD is None:  # pragma: no cover
     print("No email host password provided!")
 EMAIL_PORT = 587
 DEFAULT_FROM_EMAIL = 'watermelon.bookings@gmail.com'
-DEFAULT_STUDIO_EMAIL = 'thewatermelonstudio@hotmail.com'
+DEFAULT_STUDIO_EMAIL = 'info@thewatermelonstudio.co.uk'
 SUPPORT_EMAIL = 'rebkwok@gmail.com'
 SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 

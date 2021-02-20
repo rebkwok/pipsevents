@@ -294,7 +294,7 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             self.ticketed_event.location, "Watermelon Studio"
         )
         self.assertEqual(
-            self.ticketed_event.contact_email, "thewatermelonstudio@hotmail.com"
+            self.ticketed_event.contact_email, settings.DEFAULT_STUDIO_EMAIL
         )
         resp = self._post_response(
             self.staff_user, self.ticketed_event, self.form_data(

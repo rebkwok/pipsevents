@@ -7,4 +7,4 @@ Unsubscribe from this mailing list: {{ host }}/accounts/mailing-list/
 THE WATERMELON STUDIO
 19 Beaverbank Place
 Edinburgh, EH7 4FB
-thewatermelonstudio@hotmail.com
+info@thewatermelonstudio.co.uk

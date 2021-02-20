@@ -89,9 +89,7 @@ class Event(models.Model):
         help_text="Leave blank if no max number of participants"
     )
     contact_person = models.CharField(max_length=255, default="Gwen Holbrey")
-    contact_email = models.EmailField(
-        default="thewatermelonstudio@hotmail.com"
-        )
+    contact_email = models.EmailField(default=settings.DEFAULT_STUDIO_EMAIL)
     cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=True)
     booking_open = models.BooleanField(default=True)
@@ -725,9 +723,7 @@ class TicketedEvent(models.Model):
         help_text="Leave blank if no max number"
     )
     contact_person = models.CharField(max_length=255, default="Gwen Burns")
-    contact_email = models.EmailField(
-        default="thewatermelonstudio@hotmail.com"
-        )
+    contact_email = models.EmailField(default=settings.DEFAULT_STUDIO_EMAIL)
     ticket_cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     advance_payment_required = models.BooleanField(default=True)
     show_on_site = models.BooleanField(
