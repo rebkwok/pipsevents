@@ -3,30 +3,29 @@
 {% load bookingtags %}
 
 {% block studioadmincontent %}
-
-    <div class="container-fluid">
-
+    <div class="row">
+        <div class="col-12">
         <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% elif type == 'online_tutorials' %}Online Tutorials{% endif %}</h2>
         <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
-
+        </div>
+    </div>
     {% if events %}
         <div class="row">
-            <div class="top-button-row">
-                <a class="btn btn-wm open-all-btn float-right" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
+            <div class="top-button-row col-12">
+                <a class="btn btn-wm open-all-btn" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %}</a>
             </div>
         </div>
     {% endif %}
         <div class="row">
-
             <form class="dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
                     {% if type == 'lessons' %}
                     {% endif %}
 
-                    <div class="top-button-row">
+                    <div class="top-button-row col-12">
                     {% if events %}
                         <input class="btn btn-wm table-btn" name="formset_submitted" type="submit" value="Save changes" />
                     {% endif %}
@@ -37,7 +36,7 @@
                         {% endif %}
                     </div>
                 {% if events %}
-                <div class="card card-wm>
+                <div class="card card-wm">
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
@@ -117,6 +116,7 @@
                             <tr>
                                 <td class="studioadmin-tbl" colspan="11">
                                         <div class="pagination">
+                                        <span class="page-links">
                                             {% if event_page.has_previous %}
                                                 {% if event_page.number != 1 %}
                                                     <a href="?page=1{% if show_past %}&past=true{% endif %}">First</a>
@@ -145,6 +145,7 @@
                                             {% else %}
                                                 <a class="disabled" href="#">Last</a>
                                             {% endif %}
+                                        </span>
                                         </div>
                                 </td>
                             </tr>
@@ -152,16 +153,15 @@
                             <td class="studioadmin-tbl" {% if type == "online_tutorials" %}colspan="10"{% else %}colspan="11"{% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
+                    </div>
                 </div>
-            </div>
+
             {% else %}
                 <p>There are no {% if show_past %}past{% else %}upcoming{% endif %}
                     {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %} to display.</p>
             {% endif %}
             </form>
-
         </div>
- </div>
 
 
 {% endblock studioadmincontent %}
