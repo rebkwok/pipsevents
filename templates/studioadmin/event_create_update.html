@@ -44,8 +44,8 @@
                                 {% elif field.name == "cancelled"%}
                                 <div class="form-group cbox">
                                     <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>
-                                    <div class="{% if field.errors %}ticket-error{% endif %}">
-                                                {{ field }}{{ form.not_cancelled_text }}<label for='cancelled_id'></label></div>
+                                <span {% if field.errors %}class="ticket-error"{% endif %}>
+                                    {{ field }}{{ form.not_cancelled_text }}<label for='cancelled_id'></label></span>
                                         <div class="studioadmincbox-help">{{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
                                     </div>

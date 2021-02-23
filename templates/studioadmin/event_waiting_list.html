@@ -5,13 +5,11 @@
 
 {% block studioadmincontent %}
 
-<div class="container-fluid row">
-
     <h2>Waiting List for {{ event }}</h2>
     <p>(Currently {% if event.spaces_left %}not {% endif %} full)
 
     <div class="row">
-        <div class="col-xs-9">
+        <div class="col-12">
 
             {% if waiting_list_users %}
                 <div class="card card-wm">
@@ -54,7 +52,6 @@
             {% endif %}
         </div>
     </div>
-</div>
 
 
 {% endblock studioadmincontent %}

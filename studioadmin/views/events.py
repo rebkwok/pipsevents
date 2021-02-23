@@ -529,6 +529,7 @@ def cancel_event_view(request, slug):
 @staff_required
 def clone_event(request, slug):
     event = get_object_or_404(Event, slug=slug)
+    event_name = event.name
     cloned_event = event
     cloned_event.id = None
     cloned_event.name = f"[CLONED] {event.name}"
@@ -548,7 +549,7 @@ def clone_event(request, slug):
     cloned_event.payment_open = False
     cloned_event.save()
     event_type_string, = {event_type["sidenav_plural"] for event_type in EVENT_TYPE_PARAM_MAPPING.values() if event_type["abbr"] == event.event_type.event_type}
-    messages.success(request, f"{event.name} cloned to {cloned_event.name}; booking/payment not open yet")
+    messages.success(request, f"{event_name} cloned to {cloned_event.name}; booking/payment not open yet")
     return HttpResponseRedirect(reverse(f"studioadmin:{event_type_string}"))
 
 

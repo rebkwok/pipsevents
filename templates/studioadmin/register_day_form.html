@@ -6,7 +6,6 @@
 
 {{ form.media }}
 
-<div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
        <div class="card card-wm">
             <div class="card-header">
@@ -26,15 +25,12 @@
 
                     <div>Print register for all classes/events on the following date:</div>
                     </br>
-                <form class="form-horizontal" method="post" action="">
+                <form class="form" method="post" action="">
                     {% csrf_token %}
-
-                    <div class="form-group-sm">
 
                         {% for field in form %}
                                 <div class="form-group register-form-group">
-                                    <label class="col-sm-12"><div class="control-label register-form-control-label col-sm-3">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
-                                    <div class="col-sm-9">
+                                    <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                         {% if field.name == 'exclude_ext_instructor'%}
                                         {{ field }}<label for='exclude_ext_instructor_id'></label>
                                         {% elif field.label == 'Register format' %}
@@ -48,21 +44,15 @@
                                         {% else %}{{ field }}{% endif %}
                                         <p class="studioadmin-help">{{ field.help_text }}</p>
                                     </div>
-                                    </label>
-                                </div>
                         {% endfor %}
-                    </div>
 
                     <div class="form-group">
-                        <div class="col-sm-offset-2 col-sm-10">
-                                <button class="btn btn-wm" type="submit" name="print">View and Print registers</button>
-                        </div>
+                        <button class="btn btn-wm" type="submit" name="print">View and Print registers</button>
                     </div>
                 </form>
             </div>
 
         </div>
     </div>
- </div>
 
 {% endblock studioadmincontent %}

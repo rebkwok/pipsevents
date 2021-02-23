@@ -17,15 +17,20 @@
             classes{% elif type == 'online_tutorials' %}tutorials{% endif %}</a>
             </div>
         </div>
+    {% else %}
+        <div>There are no {% if show_past %}past{% else %}upcoming{% endif %}
+                {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %} to display.
+            </div>
     {% endif %}
+
         <div class="row">
-            <form class="dirty-check" method="post" action="">
+            <form class="form dirty-check" method="post" action="">
                     {% csrf_token %}
                     {{ eventformset.management_form }}
                     {% if type == 'lessons' %}
                     {% endif %}
 
-                    <div class="top-button-row col-12">
+                    <div class="top-button-row">
                     {% if events %}
                         <input class="btn btn-wm table-btn" name="formset_submitted" type="submit" value="Save changes" />
                     {% endif %}
@@ -155,13 +160,8 @@
                     </table>
                     </div>
                 </div>
-
-            {% else %}
-                <p>There are no {% if show_past %}past{% else %}upcoming{% endif %}
-                    {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %} to display.</p>
             {% endif %}
             </form>
         </div>
-
 
 {% endblock studioadmincontent %}
