@@ -5,9 +5,6 @@
 {% block studioadmincontent %}
 
 {{ form.media }}
-
-    <div class="container-fluid row">
-
         <h2>Blocks for {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h2>
         <div class="row">
             <div class="col-sm-12">
@@ -71,12 +68,12 @@
                                 {% else %}
                                     <td><strong>Add new block</strong></td>
                                     <td class="studioadmin-tbl">
-                                        <div class="form-group form-group-sm">{{ block.block_type }}</div></td>
+                                        <div class="form-group">{{ block.block_type }}</div></td>
                                     <td></td>
                                     <td class="text-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
                                     <td></td>
                                     <td></td>
-                                    <td class="text-center studioadmin-tbl"><div class="form-group form-group-sm">{{ block.start_date }}</div>
+                                    <td class="text-center studioadmin-tbl"><div class="form-group">{{ block.start_date }}</div>
                                         <span class="studioadmin-help">Leave blank for today</span></td>
                                     <td></td>
                                     <td></td>
@@ -117,7 +114,5 @@
                 </div>
             </div>
          </div>
-
-    </div>
 
 {% endblock studioadmincontent %}

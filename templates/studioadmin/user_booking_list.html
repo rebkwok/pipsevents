@@ -4,8 +4,6 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
-
         <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }}):
             {% if booking_status == 'past' %}
                 Past bookings
@@ -24,9 +22,7 @@
                             {% else %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_past_bookings_list' user.id %}">Show Past Bookings</a>
                             {% endif %}
-                        {% if booking_status == 'future' %}
-                            <div><a href="{% url 'studioadmin:user_bookings_list' user.id %}">View page in old format</a></div>
-                         {% endif %}
+
                         </span>
 
                     <div><a href="{% url 'studioadmin:user_blocks_list' user.id %}">Go to user's blocks</a></div>
@@ -132,8 +128,6 @@
                     </div>
             </div>
          </div>
-    </div>
-
 
 
 {% endblock studioadmincontent %}
