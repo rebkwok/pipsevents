@@ -16,15 +16,15 @@
                         <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success">
-                                <th class="table-center">Voucher code</br><span class="studioadmin-help">Click to edit</span></th>
-                                <th class="table-center">Discount</th>
-                                <th class="table-center">Start Date</th>
-                                <th class="table-center">Expiry Date</th>
-                                <th class="table-center">Max<br/>per user</th>
-                                <th class="table-center">Max<br/>total uses</th>
-                                <th class="table-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
+                                <th class="text-center">Voucher code</br><span class="studioadmin-help">Click to edit</span></th>
+                                <th class="text-center">Discount</th>
+                                <th class="text-center">Start Date</th>
+                                <th class="text-center">Expiry Date</th>
+                                <th class="text-center">Max<br/>per user</th>
+                                <th class="text-center">Max<br/>total uses</th>
+                                <th class="text-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
                                 <th>Event Types</th>
-                                <th class="table-center">Printable<br/>voucher</th>
+                                <th class="text-center">Printable<br/>voucher</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -32,15 +32,15 @@
                                 {% for voucher in vouchers %}
                                 {% voucher_expired voucher as expired %}
                                 <tr {% if expired %}class="expired_block"{% endif %}>
-                                    <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:edit_voucher' voucher.pk %}">{{ voucher.code }}</a></td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.discount }}%</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}
-                                    <td class="table-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{% if voucher.max_per_user %}{{ voucher.max_per_user }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:voucher_uses' voucher.pk %}">{{ voucher|times_voucher_used }}</a></td>
+                                    <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:edit_voucher' voucher.pk %}">{{ voucher.code }}</a></td>
+                                    <td class="text-center studioadmin-tbl">{{ voucher.discount }}%</td>
+                                    <td class="text-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}
+                                    <td class="text-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.max_per_user %}{{ voucher.max_per_user }}{% else %}N/A{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:voucher_uses' voucher.pk %}">{{ voucher|times_voucher_used }}</a></td>
                                     <td class="studioadmin-tbl">{{ voucher.event_types.all|format_event_types }}</td>
-                                    <td class="table-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
+                                    <td class="text-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
                                 </tr>
                                 {% endfor %}
                                 {% if is_paginated %}

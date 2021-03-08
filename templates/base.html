@@ -6,7 +6,7 @@
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
   <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=0.8 user-scalable=yes"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1 user-scalable=yes"/>
         <title>Watermelon Studio Class and Event Booking
         {% block head_title %}{% endblock %}
         </title>
@@ -18,199 +18,204 @@
         <link rel="apple-touch-icon" href="{% static 'booking/images/icon.png' %}">
 
       {% check_debug as is_debug_on %}
-
-        <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap.min.css' %}">
-        <link rel="stylesheet" href="{% static 'booking/bootstrap/bootstrap-theme.min.css' %}">
-
-       <!-- Font awesome -->
-      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-
-        <!--<link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>-->
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css" integrity="sha512-f0tzWhCwVFS3WeYaofoLWkTP62ObhewQ1EZn65oSYDZUg1+CyywGKkWzm8BxaJj5HGKI72PnMH9jYyIFz+GH7g==" crossorigin="anonymous" />
 
        <!-- Custom styles --->
-        <link href="{% static 'booking/css/custom-v1.9.css' %}" rel="stylesheet">
+        <link href="{% static 'booking/css/custom-v1.10.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
-      <link rel="stylesheet" type="text/css" href="{% static 'booking/css/jquery.datetimepicker.css' %}"/>
-
-        <!--<link href="{% static 'booking/css/bootstrap-switch.css' %}" rel="stylesheet">-->
-        <!--<link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" rel="stylesheet">-->
 
       {% block head %}{% endblock %}
 
     </head>
 
     <body>
-      <div class="wrap">
-        <!-- Fixed navbar -->
-        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
-            <div class="container-fluid">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" href="http://www.thewatermelonstudio.co.uk" title="Studio website">
-                    <img class="nav-logo" src="{% static 'booking/images/logo_brand.png' %}">
-                    </a>
-                    {% if request.user.is_authenticated %}
-                    <div class="visible-xs extra-collapsed-menu-icons">
-                    <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
-                    <span class="blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="navbar-collapse collapse">
-                    <ul class="nav navbar-nav pull-left">
-                        {% block left-nav-items %}
-                        <li class="active-nav"><a href="{% url 'booking:lessons' %}">Classes</a></li>
-                        <li class="active-nav"><a href="{% url 'booking:events' %}">Workshops & Events</a></li>
-                        <li class="active-nav"><a href="{% url 'booking:online_tutorials' %}">Tutorials</a></li>
-                            <li class="active-nav hidden-sm hidden-md"><a href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
-                          <li class="active-nav hidden-sm hidden-md"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
-                          <li class="active-nav hidden-sm hidden-md"><a href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
 
-                        <li class="dropdown visible-sm visible-md">
-                              <a href="#" class="dropdown-toggle" data-toggle="dropdown">More<b class="caret"></b></a>
-                              <ul class="dropdown-menu">
-                                <!--<li class="active-nav"><a href="{% url 'booking:room_hires' %}">Room Hire</a></li>-->
-                                <li class="active-nav visible-sm visible-md"><a href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
-                                  <li class="active-nav visible-sm visible-md"><a href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
-                                  <li class="active-nav visible-sm visible-md"><a href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
-                                  <li role="separator" class="divider visible-sm"></li>
-                                  <li class="active-nav visible-sm"><a href="{% url 'booking:bookings' %}">My bookings</a></li>
-                                    <li class="active-nav visible-sm"><a href="{% url 'booking:purchased_tutorials' %}">My tutorials</a></li>
-                                    <li class="active-nav visible-sm"><a href="{% url 'booking:block_list' %}">My blocks</a></li>
-                                    <li class="active-nav visible-sm"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
-                                    <li class="active-nav visible-sm"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>
-                                    <li class="active-nav visible-sm"><a href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a></li>
-                              </ul>
-                        </li>
-                        {% if request.user.is_authenticated %}
-                            <li class="hidden-sm dropdown">
-                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">My Activity<b class="caret"></b></a>
-                                  <ul class="dropdown-menu">
-                                    <li class="active-nav"><a href="{% url 'booking:bookings' %}">My bookings</a></li>
-                                  <li class="active-nav"><a href="{% url 'booking:purchased_tutorials' %}">My tutorials</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:block_list' %}">My blocks</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:booking_history' %}">Booking history</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a></li>
-                                    <li class="active-nav"><a href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a></li>
-                                  </ul>
-                                </li>
-
-                            <li id="shopping-basket-menu" class="hidden-xs">{% show_shopping_basket_menu request.user %}</li>
-                            <li id="blocks-menu" class="hidden-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
-                        <!-- Button trigger modal -->
-                        {% endif %}
-                        {% endblock %}
-                    </ul>
-
-                    <ul class="nav navbar-nav pull-right">
-                        {% block admin-nav %}
-                            {% if request.user.is_staff or request.user|in_group:"instructors" %}
-                               <li class="active-nav"><a href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a></li>
-                            {% endif %}
-                        {% endblock admin-nav %}
-                        {% if request.user.is_authenticated %}
-                        <li class="dropdown">
-                            <div class="welcome-menu">Signed in as {{request.user}}</div>
-                          <a href="#" class="account-menu dropdown-toggle active-nav-login" data-toggle="dropdown" role="button" aria-expanded="false">Your account<span class="caret"></span></a>
-                          <ul class="dropdown-menu" role="menu">
-                            <li class="active-nav-login"><a href="{% url 'account_change_password' %}">Change password</a></li>
-                            <li class="active-nav-login"><a href="{% url 'profile:profile' %}">Profile</a></li>
-                              {% if not request.user|has_disclaimer %}
-                                <li class="active-nav-login"><a href="{% url 'disclaimer_form' %}">Disclaimer Form</a></li>
-                              {% endif %}
-                            <li class="active-nav-login"><a href="{% url 'account_logout' %}">Sign Out</a></li>
-                          </ul>
-                        </li>
-                        {% else %}
-                        <div class="welcome-menu">Not signed in</div>
-                        <li class="active-nav-login account-menu"><a class="account-menu" href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign In</a></li>
-                        {% endif %}
-                    </ul>
-                </div><!--/.nav-collapse -->
-
-            </div>
+    <header>
+      <!-- Fixed navbar -->
+      <nav class="navbar navbar-light navbar-expand-md fixed-top p-1">
+        <a class="navbar-brand p-0" href="http://www.thewatermelonstudio.co.uk" title="Studio Website"><img class="nav-logo" src="{% static 'booking/images/logo_brand.png' %}"></a>
+        <div class="navbar-header">
+        {% block extra-collapsed-menu %}
+          {% if request.user.is_authenticated %}
+        <div class="d-inline-block d-md-none extra-collapsed-menu-icons">
+        <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
+        <span class="pr-2 blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
         </div>
-        {% cookielaw_banner %}
+        {% endif %}
+        {% endblock %}
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
 
+        </div>
+
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav mr-auto">
+            {% block left-nav-items %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'booking:lessons' %}">Classes</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'booking:events' %}">Workshops</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'booking:online_tutorials' %}">Tutorials</a></li>
+            <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
+            <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
+            <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarMoreDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">More</a>
+                <div class="dropdown-menu" aria-labelledby="navbarMoreDropdown">
+{#                    <a class="d-none d-sm-block" href="{% url 'booking:room_hires' %}">Room Hire</a>#}
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>
+                    <span role="separator" class="divider d-none d-sm-block"></span>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:bookings' %}">My bookings</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:block_list' %}">My blocks</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:booking_history' %}">Booking history</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
+            </li>
+            {% if request.user.is_authenticated %}
+                <li class="nav-item dropdown d-none d-sm-block">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarAccountDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">My Activity</a>
+                    <div class="dropdown-menu" aria-labelledby="navbarAccountDropdown">
+                        <a class="dropdown-item" href="{% url 'booking:bookings' %}">My bookings</a>
+                        <a class="dropdown-item" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
+                        <a class="dropdown-item" href="{% url 'booking:block_list' %}">My blocks</a>
+                        <a class="dropdown-item" href="{% url 'booking:booking_history' %}">Booking history</a>
+                        <a class="dropdown-item" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
+                        <a class="dropdown-item" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
+
+                    </div>
+                </li>
+                <li id="shopping-basket-menu" class="pl-1 pt-2 nav-item d-none d-sm-block">{% show_shopping_basket_menu request.user %}</li>
+                <li id="blocks-menu" class="pt-2 pl-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
+            {% endif %}
+            {% endblock %}
+            </ul>
+        
+          <span class="float-right">
+            <ul class="nav navbar-nav mr-auto">
+
+            {% if request.user.is_authenticated %}
+                <li class="nav-item dropdown d-none d-sm-block account-menu-nav">
+                    <div class="welcome-menu"><small><em>{{request.user}}</em></small></div>
+                    <a class="account-menu nav-link dropdown-toggle dropdown-toggle-login" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Your account</a>
+                    <div class="dropdown-menu" aria-labelledby="navbarAdminDropdown">
+                    {% block admin-nav %}
+                        {% if request.user.is_staff or request.user|in_group:"instructors" %}
+                           <a class="dropdown-item active-nav-login" href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a>
+                            <div class="dropdown-divider"></div>
+                        {% endif %}
+                    {% endblock admin-nav %}
+                        <a class="dropdown-item active-nav-login" href="{% url 'account_change_password' %}">Change password</a>
+                        <a class="dropdown-item active-nav-login" href="{% url 'profile:profile' %}">Profile</a>
+                        {% if not request.user|has_disclaimer %}
+                        <a class="dropdown-item active-nav-login" href="{% url 'disclaimer_form' %}">Disclaimer Form</a>
+                        {% endif %}
+                        <a class="dropdown-item active-nav-login" href="{% url 'account_logout' %}">Sign Out</a>
+                    </div>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'account_login' %}?next={{request.get_full_path}}">Log In</a>
+                </li>
+            {% endif %}
+            </ul>
+          </span>
+      </div>
+      </nav>
+    </header>
+
+  <main role="main" class="container-fluid">
+        {% cookielaw_banner %}
         {% block banner %}{% temporary_banner %}{% endblock banner %}
         {% block sale %}{% sale_text %}{% endblock sale %}
 
     {% block perm_banner %}
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
-          <div id="message-row"  class="row">
-            <div class="col-xs-12">
-                <div class="message alert alert-info">
+            <div class="container-fluid">
+                <div class="message alert alert-info alert-dismissible">
                     New to pole? Begin Level 1 at any time!
+                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
             </div>
-          </div>
         {% endif %}
     {% endblock perm_banner %}
         {% if messages %}
-          <div class="row">
-            <div class="col-xs-12">
+          <div class="container-fluid mt-2" id="message-row">
                 {% for message in messages %}
-                <div {% if message.tags and message.tags == 'error' %}
+                    <div
+                        {% if message.tags and message.tags == 'error' %}
                             class="message alert alert-danger alert-dismissible"
-                     {% elif message.tags %}
+                        {% elif message.tags %}
                             class="message alert alert-{{ message.tags }} alert-dismissible"
-                     {% endif %}>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    {% if 'safe' in message.tags %}
-                        {{ message|safe }}
-                    {% else %}
-                        {{ message }}
-                    {% endif %}</div>
+                        {% endif %}>
+                        <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        {% if 'safe' in message.tags %}
+                            {{ message|safe }}
+                        {% else %}
+                            {{ message }}
+                        {% endif %}
+                    </div>
                 {% endfor %}
-            </div>
           </div>
         {% endif %}
 
         {% block body %}
+            <div class="container-fluid content-block">
             {% block content %}
-                <div class="container-fluid">
                     <p>You need to define a content block!</p>
-                </div>
             {% endblock %}
+            </div>
         {% endblock %}
 
       <div class="modal fade" id="BlocksModal" tabindex="-1" role="dialog"></div>
 
-    </div>  <!-- end .wrap-->
+    </main>
 
-    <div class="footer">
-    {% block extra_footer %}
-      <div class="footer-credit col-xs-8 pull-left .no-print">
-          {% if show_vat %}All prices are inclusive of VAT (VAT number {{ vat_number }})<br/>{% endif %}
-          Terms and conditions apply to all purchases, including sale items; for full T&C <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
-         <a href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
+    <footer class="footer">
+      <div class="container-fluid">
+            {% block extra_footer %}
+              <span class="footer-credit float-left .no-print">
+                  {% if show_vat %}All prices are inclusive of VAT (VAT number {{ vat_number }})<br/>{% endif %}
+                  Terms and conditions apply to all purchases, including sale items; for full T&C
+                  <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">click here</a><br/>
+                 <a class="pt-0" href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
+              </span>
+            {% endblock %}
+          <span class="text-muted">
+             <span class="footer-credit float-right mr-0 pr-0 mt-0 pt-0">&#169; <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a>
+          </span>
+        </span>
       </div>
-    {% endblock %}
-      <div class="pull-right">
-         <div class="footer-credit">Site developed by <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a><br/>
-         </div>
-      </div>
-    </div>
+    </footer>
 
 </body>
 
-<script src="{% static 'booking/js/jquery-2.2.4.min.js' %}"></script>
-<script src="{% static 'booking/bootstrap/bootstrap.min.js' %}"></script>
-<script src="{% static 'booking/js/moment.min.js' %}"></script>
-<script src="{% static 'booking/js/bootstrap-dropdown-multilevel.js' %}"></script>
-<script src="{% static 'booking/js/jquery.datetimepicker.js' %}"></script>
-<script src="{% static 'booking/js/jquery.maskedinput.min.js' %}"></script>
-<script src="{% static 'booking/js/jquery.tablesorter.min.js' %}"></script>
-<script src="{% static 'booking/js/jquery.are-you-sure.js' %}"></script>
-<script src="{% static 'booking/js/jquery.cookie.js' %}"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+{#<script src="https://formbuilder.online/assets/js/form-builder.min.js"></script>#}
+<script type='text/javascript'>$.widget.bridge('uitooltip', $.ui.tooltip);</script>
+    <script>
+  /*** Handle jQuery plugin naming conflict between jQuery UI and Bootstrap ***/
+  $.widget.bridge('uibutton', $.ui.button);
+  $.widget.bridge('uitooltip', $.ui.tooltip);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js" integrity="sha512-YSdqvJoZr83hj76AIVdOcvLWYMWzy6sJyIMic2aQz5kh2bPTd9dzY3NtdeEAzPp/PhgZqr4aJObB3ym/vsItMg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.27.0/moment.min.js" integrity="sha512-rmZcZsyhe0/MAjquhTgiUcb4d9knaFc7b5xAfju483gbEXTkeJRUMIPk6s3ySZMYUHEcjKbjLjyddGWMrNEvZg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js" integrity="sha512-AIOTidJAcHBH2G/oZv9viEGXRqDNmfdPVPYOYKGy3fti0xIplnlgMHUGfuNRzC6FkzIo0iIxgFnr9RikFxK+sw==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.AreYouSure/1.9.0/jquery.are-you-sure.min.js" integrity="sha512-YuZemcyQ8r4w8tdxIzkJVgWfHrzSQN9PuF18I490DE8H97DOkrt+bolBf3/mve+9t8SLWODBzFCCPxH/vZYqBg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" integrity="sha512-Meww2sXqNHxI1+5Dyh/9KAtvI9RZSA4c1K2k5iL02oiPO/RH3Q30L3M1albtqMg50u4gRTYdV4EXOQqXEI336A==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.10.2/underscore-min.js" integrity="sha512-HKvDCFVKg8ZPGjecy6on7UECEpE76Y86h3GaE4JMCz+deFWdjcW/tWnh0hCfaBvURvlOa9f5CNVzt7EFkulYbw==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js" integrity="sha512-qzgd5cYSZcosqpzpn7zF2ZId8f/8CHmFKZ8j7mU4OUXTNRd5g+ZHBPsgKEwoqxCtdQvExE5LprwwPAgoicguNg==" crossorigin="anonymous"></script>
+
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
-<script src="{% static 'booking/js/custom-v1.3.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
+<script src="{% static 'booking/js/custom-v1.5.js' %}"></script>
 
 <!--# blocks modal-->
 <script>

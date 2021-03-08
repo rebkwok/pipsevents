@@ -6,13 +6,13 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h2 class="panel-title">Ticket booking for {{ ticketed_event.name }}
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Ticket booking for {{ ticketed_event.name }}
                     on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
             </div>
 
-            <div class="panel-body">
+            <div class="card-body">
                 <h4>Booking reference: {{ ticket_booking.booking_reference }}</h4>
 
             {% if tickets %}
@@ -57,7 +57,7 @@
                         </div>
                             <div class="form-group col-sm-12">
                                 <input
-                                    class="btn btn-success update-btn"
+                                    class="btn btn-wm update-btn"
                                     type="submit" name="ticket_formset-submit"
                                     value="Save"
                                     />

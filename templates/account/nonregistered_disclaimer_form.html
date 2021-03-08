@@ -4,22 +4,22 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-       <div class="panel panel-success">
+       <div class="card card-wm">
 
-            <div class="panel-heading">
-                <h1 class="panel-title">Health & Safety Registration and Disclaimer Form</h1>
+            <div class="card-header">
+                <h1 class="card-title">Health & Safety Registration and Disclaimer Form</h1>
             </div>
-           <div class="panel-body">
+           <div class="card-body">
 
                {% include 'account/nonregistered_disclaimer_form_content.html' %}
 
-               <div class="col-xs-12">
+               <div class="col-12">
                    <p>If you have any additional questions or concerns, please contact
                     <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>.</p>
                </div>
 
 
-               <div class="col-xs-12">
+               <div class="col-12">
                    <p>View our <a href="{% url 'data_privacy_policy' %}">data privacy and cookie policy.</a></p>
                </div>
            </div>

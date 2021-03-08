@@ -1,7 +1,7 @@
 {% load static %}
 {% if unpaid_blocks %}
     {% if total_unpaid_block_cost == 0 %}
-        <div class="col-xs-12">
+        <div class="col-12">
             <form class="table-form" method="post" action="{% url 'booking:submit_zero_block_payment' %}">
                 {% csrf_token %}
                 {% if valid_booking_voucher %}

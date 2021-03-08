@@ -11,25 +11,22 @@
 {% block perm_banner %}
     {{ block.super }}
     {% if user.is_authenticated %}
-        <div id="message-row"  class="row">
-            <div class="col-xs-12">
-                <div class="message alert alert-info alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
-                </div>
+        <div class="container-fluid mt-2 mb-2" id="message-row">
+            <div class="message alert alert-info alert-dismissible">
+                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
             </div>
         </div>
     {% endif %}
 {% endblock %}
 
 {% block content %}
-
-
     <div class="row">
-        <div class="col-xs-12">
-        <h1>The Watermelon Studio
-            {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}</br>
+    <div class="col-12">
+        <h1>
+            {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}<br/>
         </h1>
+
 
         <h4> Click to view
          {% if type == 'lessons' %}
@@ -39,8 +36,9 @@
         {% endif %}
         or <a href="{% url 'booking:online_tutorials' %}">Online Tutorials</a>
         </h4>
-
+    </div>
         {% if events_exist %}
+            <div class="col-12">
             {% if user.is_authenticated %}
                 {% has_shopping_basket_items user as items_in_shopping_basket %}
                 {% if items_in_shopping_basket %}
@@ -52,9 +50,7 @@
                 </p>
                 {% endif %}
             {% endif %}
-        </div>
 
-            <div class="col-xs-12">
                 {% if not disclaimer and user.is_authenticated %}
                     {% if expired_disclaimer %}
                         <p>Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before booking.</p>
@@ -66,19 +62,18 @@
                 {% if not user.is_authenticated %}
                     <p><a href="{% url 'account_login' %}?next={{request.get_full_path}}">Sign in</a> to book</p>
                 {% endif %}
-
+            </div>
 
                 {% if user.is_authenticated %}
-                <div class="btn-group btn-group-sm pull-right" role="group">
+                <div class="col-12">
+                <div class="btn-group btn-group-sm float-right pb-1" role="group">
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                     <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
                 </div>
+                </div>
                 {% endif %}
-            </div>
-
-            <div class="col-xs-12">
-
-                <div class="panel with-nav-tabs panel-success">
+            <div class="col-12">
+                <div class="card with-nav-tabs">
 
 {#                    location_events is a list of objs passed from view: #}
 {#                    [#}
@@ -86,27 +81,27 @@
 {#                        {events: queryset, location: 'Other', index: 2}#}
 {#                    ]  #}
 
-                    <div class="panel-heading">
-                        <ul class="nav nav-tabs">
+                {% if location_events|length > 1 %}
+                    <div class="card-header">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
                             {% for location_obj in location_events %}
                                 {% if location_obj.index != 0 or location_events|length > 2 %}
-                                <li class="nav-tab {{ location_obj.index|get_active_class:tab }}">
-                                    <a class="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a>
+                                <li class="nav-item {{ location_obj.index|get_active_class:tab }}">
+                                    <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
                                 </li>
                                 {% endif %}
                             {%  endfor %}
                         </ul>
                     </div>
+                    {% endif %}
 
-                    <div class="panel-body">
-                        <div class="tab-content">
+                    <div class="card-body">
+                        <div class="tab-content" id="myTabContent">
                         {% for location_obj in location_events %}
-
                             <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
-
                                     {% if location_obj.queryset %}
                                         <div class="table-responsive">
-                                        <table class="table table-condensed table-striped">
+                                        <table class="table">
                                             <tr class="table-tab-header">
                                                 {% if user.is_authenticated %}
                                                     <th></th>
@@ -117,22 +112,21 @@
                                                 </th>
                                                 <th></th>
                                                 {% if location_obj.index == 0 %}
-                                                    <th class="table-center">Location</th>
+                                                    <th class="text-center">Location</th>
                                                 {% endif %}
-                                                <th class="hidden-sm hidden-xs table-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
-                                                <th class="table-center">Spaces</th>
-                                                <th class="hidden-sm hidden-xs table-center">Booking open</th>
-                                                <th class="hidden-sm hidden-xs table-center">Payment open</th>
+                                                <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
+                                                <th class="text-center">Spaces</th>
+                                                <th class="d-none d-md-table-cell text-center">Booking open</th>
+                                                <th class="d-none d-md-table-cell text-center">Payment open</th>
                                             </tr>
 
                                             {% for event in location_obj.queryset %}
                                                 {% get_weekday event.date.weekday as table_shaded %}
                                                 {% get_booking event user user_bookings as booking %}
                                                 <tr class="
-                                                    {% if event.bookable %}active_block{% else %}inactive_block{% endif %}
+                                                    {% if event.bookable %}active_tr{% endif %}
                                                     {{ table_shaded }}
                                                     {% if booking and booking.status == 'OPEN' and not booking.paid %}unpaid-booking-row{% endif %}
-
                                                     compress table-tab">
                                                 {% if user.is_authenticated %}
                                                     {% if event.is_past %}
@@ -151,7 +145,7 @@
                                                                 <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                                                              {% elif event.bookable or event.id in booked_events %}
                                                                     {% if event.id in auto_cancelled_events %}
-                                                                        <div class="disabled btn btn-success table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+                                                                        <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                                                                     {% else %}
                                                                         <span
                                                                                 id="book_{{ event.id }}_{{ location_obj.index }}"
@@ -180,7 +174,7 @@
                                                                 {% include "booking/includes/waiting_list_button.html" %}
                                                                 </span>
                                                             {% else %}
-                                                                <div class="disabled btn btn-success table-btn">Book</div>
+                                                                <div class="disabled btn btn-wm table-btn">Book</div>
                                                             {% endif %}
                                                         {% endif %}
                                                     </td>
@@ -203,28 +197,28 @@
                                                         {% endif %}
                                                     </td>
                                                     {% if location_obj.index == 0 %}
-                                                        <td class="table-center"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location|truncatechars:11 }}</span></td>
+                                                        <td class="text-center"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location|truncatechars:11 }}</span></td>
                                                     {% endif %}
-                                                    <td class="hidden-sm hidden-xs table-center">£{{ event.cost }}</td>
-                                                    <td class="table-center" style="vertical-align: middle; horiz-align: center">
+                                                    <td class="d-none d-md-table-cell text-center">£{{ event.cost }}</td>
+                                                    <td class="text-center" style="vertical-align: middle; horiz-align: center">
                                                         {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
                                                         {% elif event.max_participants %}
                                                             <span id="booking_count_{{ event.id }}_{{ location_obj.index }}">{% include 'booking/includes/booking_count.html' %}</span>
                                                         {% else %}N/A{% endif %}</td>
-                                                    <td class="hidden-sm hidden-xs table-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
-                                                    <td class="hidden-sm hidden-xs table-center">{% if event.cost %}
+                                                    <td class="d-none d-md-table-cell text-center">{% if event.booking_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                                    <td class="d-none d-md-table-cell text-center">{% if event.cost %}
                                                         {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
                                                         {% else %}N/A{% endif %}</td>
                                                 </tr>
                                             {% endfor %}
                                                 <tr>
-                                                    <div class="filter-form-group">
+                                                    <div class="filter-form-group pb-4">
                                                         <form class="filter-row form-inline" action="" method="get">
                                                             <label>FILTER BY: </label>
                                                             <label>{{ form.name.label }}</label>{{ form.name }}
                                                             <label>{{ form.date_selection.label }}</label>{{ form.date_selection }}
                                                             <input type="hidden" name="tab" value="{{ location_obj.index }}">
-                                                            <input class="btn btn-sm btn-success" type="submit" value="Go">
+                                                            <input class="btn btn-sm btn-wm" type="submit" value="Go">
                                                         </form>
                                                     </div>
                                                     {% include 'booking/includes/event_pagination.html' %}
@@ -244,12 +238,13 @@
                                     {% endif %}
                                 </div>
                           {% endfor %}
-                        </div> <!-- tab content -->
-                    </div> <!-- panel body -->
+                        </div> <!-- tab-content -->
+                    </div> <!-- card body -->
                 </div>
             </div>
 
         {% else %}
+            <div class="col-12">
             {% if request.GET.date_selection %}
                 <p>There are no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} that match your selected dates.</p>
                 <a class="btn btn-warning" href="?name={{ request.GET.name }}&tab={{ request.GET.tab }}">
@@ -258,11 +253,9 @@
             {% else %}
                 <p>There are currently no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} available to book.</p>
             {% endif %}
+            </div>
         {% endif %}
-
-    </div>
-
-
+</div>
 {% endblock content %}
 
 

@@ -7,10 +7,10 @@
 
 <div class="row">
 
-    <div class="col-xs-12">
+    <div class="col-12">
         <h1>My blocks</h1>
-        <div class="col-xs-12">
-            <div class="btn-group btn-group-sm pull-right">
+        <div class="col-12">
+            <div class="btn-group btn-group-sm float-right">
                 <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                 <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a> 
             </div>
@@ -22,19 +22,19 @@
                     Please complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before buying a block.
                 {% endif %}
             {% elif can_book_block %}
-                <a href="{% url 'booking:add_block' %}" class="btn btn-success btn-new-block">Get a new block!</a>
+                <a href="{% url 'booking:add_block' %}" class="btn btn-wm btn-new-block">Get a new block!</a>
                 <p>You can only have one block of each available type at a time.  You can add multiple blocks (if available)
                     and checkout for all when you are done.</p>
             {% else %}
-                <div class="btn btn-success btn-new-block" disabled="disabled">Get a new block!</div><br/>
+                <div class="btn btn-wm btn-new-block" disabled="disabled">Get a new block!</div><br/>
                 <small class="errorlist">You currently have a block of each available type.  When your block is used up or has expired, you will be able to add another.</small><br/><br/>
             {% endif %}
     </div>
 
 
-    <div class="col-xs-12">
+    <div class="col-12">
         {% if blockformlist %}
-            <div class="panel panel-success">
+            <div class="card card-wm">
                 <div class="table-responsive">
                     <table class="table">
                         <tr class="success">
@@ -42,10 +42,10 @@
                             <th>Block Status</th>
                             <th>Block Type</th>
                             <th>Cost</th>
-                            <th class="hidden-sm hidden-xs">Start date</th>
+                            <th class="d-none d-md-table-cell">Start date</th>
                             <th>Expiry Date</th>
-                            <th class="table-center" >Block size</th>
-                            <th class="table-center">Bookings made</th>
+                            <th class="text-center" >Block size</th>
+                            <th class="text-center">Bookings made</th>
                         </tr>
                         {% for blockform in blockformlist %}
                             <tr {% if blockform.block.active_block %}class="active_block"{% elif blockform.expired %}class="expired_block"{% else %}class="not_paid_block"{% endif %}>
@@ -66,10 +66,10 @@
                                     -
                                     {% endif %}
                                 </td>
-                                <td class="hidden-sm hidden-xs">{{ blockform.block.start_date|date:"d M Y" }}</td>
+                                <td class="d-none d-md-table-cell">{{ blockform.block.start_date|date:"d M Y" }}</td>
                                 <td>{{ blockform.block.expiry_date|date:"d M Y" }}</td>
-                                <td class="table-center">{{ blockform.block.block_type.size }}</td>
-                                <td class="table-center">{{ blockform.block.bookings_made  }}</td>
+                                <td class="text-center">{{ blockform.block.block_type.size }}</td>
+                                <td class="text-center">{{ blockform.block.bookings_made  }}</td>
                             </tr>
                         {% endfor %}
                     </table>

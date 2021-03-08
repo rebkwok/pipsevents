@@ -4,8 +4,6 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
-
         <h2>Gift Vouchers</h2>
 
 
@@ -16,13 +14,13 @@
                         <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success">
-                                <th class="table-center">Voucher code</br><span class="studioadmin-help">Click to edit</span></th>
-                                <th class="table-center">Purchaser</br>Email</th>
-                                <th class="table-center">Start Date</th>
-                                <th class="table-center">Expiry Date</th>
-                                <th class="table-center">Activated</th>
-                                <th class="table-center">Printable</br>voucher</th>
-                                <th class="table-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
+                                <th class="text-center">Voucher code</br><span class="studioadmin-help">Click to edit</span></th>
+                                <th class="text-center">Purchaser</br>Email</th>
+                                <th class="text-center">Start Date</th>
+                                <th class="text-center">Expiry Date</th>
+                                <th class="text-center">Activated</th>
+                                <th class="text-center">Printable</br>voucher</th>
+                                <th class="text-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
                                 <th>Valid for:</th>
                             </tr>
                             </thead>
@@ -31,19 +29,19 @@
                                 {% for voucher in vouchers %}
                                 {% voucher_expired voucher as expired %}
                                 <tr {% if expired %}class="expired_block"{% endif %}>
-                                    <td class="table-center studioadmin-tbl">
+                                    <td class="text-center studioadmin-tbl">
                                          {% if voucher.block_types.all %}
                                         <a href="{% url 'studioadmin:edit_block_voucher' voucher.pk %}">{{ voucher.code }}</a>
                                         {% else %}
                                         <a href="{% url 'studioadmin:edit_voucher' voucher.pk %}">{{ voucher.code }}</a>
                                         {% endif %}
                                     </td>
-                                    <td class="table-center studioadmin-tbl">{% if voucher.purchaser_email %}{{ voucher.purchaser_email|abbr_email }}{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}</td>
-                                    <td class="table-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
-                                    <td class="table-center studioadmin-tbl">{{ voucher.activated|yesno }}</td>
-                                    <td class="table-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
-                                    <td class="table-center studioadmin-tbl">
+                                    <td class="text-center studioadmin-tbl">{% if voucher.purchaser_email %}{{ voucher.purchaser_email|abbr_email }}{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{{ voucher.activated|yesno }}</td>
+                                    <td class="text-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
+                                    <td class="text-center studioadmin-tbl">
                                         {% if voucher.block_types.exists %}
                                         <a href="{% url 'studioadmin:block_voucher_uses' voucher.pk %}">{{ voucher|times_block_voucher_used }}</a>
                                         {% else %}
@@ -89,6 +87,5 @@
                     </div>
                 </div>
             </div>
-         </div>
 
 {% endblock studioadmincontent %}

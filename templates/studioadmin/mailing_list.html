@@ -4,41 +4,39 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
-
         <h2>Mailing List</h2>
         <p>Go to <a href="{% url 'studioadmin:users' %}">user list</a> to subscribe new users to the mailing list.</p>
 
         {% if users %}
             <div>
-                <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-success">Email mailing list</div></a>
-                <a href="{% url 'studioadmin:export_mailing_list' %}"><div class="btn btn-success">Download mailing list</div></a>
+                <a href="{% url 'studioadmin:mailing_list_email' %}"><div class="btn btn-wm">Email mailing list</div></a>
+                <a href="{% url 'studioadmin:export_mailing_list' %}"><div class="btn btn-wm">Download mailing list</div></a>
             </div>
 
 
             <div class="row">
                     <div class="col-sm-12">
-                        <div class="panel panel-success">
+                        <div class="card card-wm">
 
                             <div class="table-responsive">
                                 <table class="table tablesorter" id="sortTable">
                                     <thead>
                                     <tr class="success">
-                                        <th class="table-center">Username <span class="fa fa-sort"></span></th>
-                                        <th class="table-center">First Name <span class="fa fa-sort"></span></th>
-                                        <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                        <th class="table-center">Email <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">Username <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">First Name <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">Last Name <span class="fa fa-sort"></span></th>
+                                        <th class="text-center">Email <span class="fa fa-sort"></span></th>
                                         <th></th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     {% for user in users %}
                                     <tr>
-                                        <td class="table-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
-                                        <td class="table-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
-                                        <td class="table-center studioadmin-tbl">
+                                        <td class="text-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
+                                        <td class="text-center studioadmin-tbl">{{ user.email|abbr_email }}</td>
+                                        <td class="text-center studioadmin-tbl">
                                             <a class="btn table-btn btn-danger" href="{% url 'studioadmin:unsubscribe' user.id %}">Unsubscribe</a>
                                         </td>
                                     </tr>
@@ -50,7 +48,6 @@
                     </div>
                 </div>
 
-            </div>
         {% else %}
             <p>No users currently subscribed to mailing list</p>
         {% endif %}

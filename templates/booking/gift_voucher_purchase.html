@@ -4,7 +4,7 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-    <div class="col-xs-12">
+    <div class="col-12">
             <h1>{% if paypal_form %}Gift Voucher Checkout{% else %}Buy a Gift Voucher {% endif %}</h1>
 
                 {% if paypal_form %}
@@ -21,7 +21,7 @@
                     {{ paypal_form.render }}
                     </div>
 
-                    <div class="col-xs-12">
+                    <div class="col-12">
                         <p><strong>No PayPal account required - choose "Pay with debit or credit card" at PayPal login to checkout as guest.</strong>
                         <br/>
                         <span class="studioadmin-help">Note: due to a PayPal bug, occasionally you may see "Create an Account" instead of "Pay with debit or credit card" at PayPal login; this should still take you to the Guest Checkout page.</span>
@@ -38,18 +38,18 @@
                 </div>
                 <form id='gift-form' class="dirty-check" action="" method="post">{% csrf_token %}
                     {% for field in form %}
-                    <div class="col-xs-12 vspace-sm">
+                    <div class="col-12 vspace-sm">
                     <div class="form-group-sm">
                     <label class="control-label col-xs" for="{{field.name}}_id">{{ field.label }}</label>
                     <div class="col-xs{% if field.errors %}ticket-error{% endif %}">{{ field }}</div>
                      <div class="col-xs studioadmin-help">{{ field.help_text }}</div>
                     {% if field.errors %}
-                        <div class="col-xs-12">{{ field.errors }}</div>
+                        <div class="col-12">{{ field.errors }}</div>
                     {% endif %}
                         </div>
                     </div>
                     {% endfor %}
-                       <div class="col-xs"><input class="btn btn-success" type="submit" value="Submit" /></div>
+                       <div class="col-xs"><input class="btn btn-wm" type="submit" value="Submit" /></div>
                 </form>
                  {% endif %}
     </div>

@@ -24,16 +24,16 @@
                         <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success">
-                                <th class="table-center">User</th>
-                                <th class="table-center">Times used</th>
+                                <th class="text-center">User</th>
+                                <th class="text-center">Times used</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% if user_list %}
                                 {% for user in user_list %}
                                 <tr>
-                                    <td class="table-center studioadmin-tbl">{{ user.user.first_name }} {{ user.user.last_name }}</td>
-                                    <td class="table-center studioadmin-tbl">{{ user.count }}</td>
+                                    <td class="text-center studioadmin-tbl">{{ user.user.first_name }} {{ user.user.last_name }}</td>
+                                    <td class="text-center studioadmin-tbl">{{ user.count }}</td>
 
                                 </tr>
                                 {% endfor %}

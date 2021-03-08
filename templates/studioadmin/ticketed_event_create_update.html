@@ -8,17 +8,17 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
+       <div class="card card-wm">
+            <div class="card-header">
                 {% if ticketed_event %}
-                <h2 class="panel-title">{{ ticketed_event.name }} on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
+                <h2 class="card-title">{{ ticketed_event.name }} on {{ ticketed_event.date | date:"D d F, g:i a" }}</h2>
                 {% if ticketed_event.cancelled %}<h4>Note: this event has been cancelled</h4>{% endif %}
 
                 {% else %}
-                <h2 class="panel-title">Adding new ticketed event</h2>
+                <h2 class="card-title">Adding new ticketed event</h2>
                 {% endif %}
             </div>
-            <div class="panel-body">
+            <div class="card-body">
                 {% if form.errors %}
                     <div class="form-error">
                         <p>Please correct the errors below:</p>
@@ -27,236 +27,197 @@
                 <form class="form-horizontal dirty-check" method="post" action="">
                     {% csrf_token %}
 
-                    <div class="form-group-sm col-sm-12">
-
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.name.field.required %}*{% endif %}{{ form.name.label }}</div>
-                            <div class="col-sm-9 {% if form.name.errors %}ticket-error{% endif %}">{{ form.name }}<p class="studioadmin-help">{{ form.name.help_text }}</p>
-                            {% if form.name.errors %}<div class="form-error col-sm-9">{{ form.name.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.name.field.required %}*{% endif %}{{ form.name.label }}</label>
+                            <div {% if form.name.errors %}ticket-error{% endif %}">{{ form.name }}<p class="studioadmin-help">{{ form.name.help_text }}</p>
+                            {% if form.name.errors %}<div class="form-error ">{{ form.name.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.date.field.required %}*{% endif %}{{ form.date.label }}</div>
-                            <div class="col-sm-9 {% if form.date.errors %}ticket-error{% endif %}">{{ form.date }}<p class="studioadmin-help">{{ form.date.help_text }}</p>
-                            {% if form.date.errors %}<div class="form-error col-sm-9">{{ form.date.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.date.field.required %}*{% endif %}{{ form.date.label }}</label>
+                            <div {% if form.date.errors %}ticket-error{% endif %}">{{ form.date }}<p class="studioadmin-help">{{ form.date.help_text }}</p>
+                            {% if form.date.errors %}<div class="form-error ">{{ form.date.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.description.field.required %}*{% endif %}{{ form.description.label }}</div>
-                            <div class="col-sm-9 {% if form.description.errors %}ticket-error{% endif %}">{{ form.description }}<p class="studioadmin-help">{{ form.description.help_text }}</p>
-                            {% if form.description.errors %}<div class="form-error col-sm-9">{{ form.description.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.description.field.required %}*{% endif %}{{ form.description.label }}</label>
+                            <div {% if form.description.errors %}ticket-error{% endif %}">{{ form.description }}<p class="studioadmin-help">{{ form.description.help_text }}</p>
+                            {% if form.description.errors %}<div class="form-error ">{{ form.description.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.location.field.required %}*{% endif %}{{ form.location.label }}</div>
-                            <div class="col-sm-9 {% if form.location.errors %}ticket-error{% endif %}">{{ form.location }}<p class="studioadmin-help">{{ form.location.help_text }}</p>
-                            {% if form.location.errors %}<div class="form-error col-sm-9">{{ form.location.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.location.field.required %}*{% endif %}{{ form.location.label }}</label>
+                            <div {% if form.location.errors %}ticket-error{% endif %}">{{ form.location }}<p class="studioadmin-help">{{ form.location.help_text }}</p>
+                            {% if form.location.errors %}<div class="form-error ">{{ form.location.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.contact_person.field.required %}*{% endif %}{{ form.contact_person.label }}</div>
-                            <div class="col-sm-9 {% if form.contact_person.errors %}ticket-error{% endif %}">{{ form.contact_person }}<p class="studioadmin-help">{{ form.contact_person.help_text }}</p>
-                            {% if form.contact_person.errors %}<div class="form-error col-sm-9">{{ form.contact_person.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.contact_person.field.required %}*{% endif %}{{ form.contact_person.label }}</label>
+                            <div {% if form.contact_person.errors %}ticket-error{% endif %}">{{ form.contact_person }}<p class="studioadmin-help">{{ form.contact_person.help_text }}</p>
+                            {% if form.contact_person.errors %}<div class="form-error ">{{ form.contact_person.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.contact_email.field.required %}*{% endif %}{{ form.contact_email.label }}</div>
-                            <div class="col-sm-9 {% if form.contact_email.errors %}ticket-error{% endif %}">{{ form.contact_email }}<p class="studioadmin-help">{{ form.contact_email.help_text }}</p>
-                            {% if form.contact_email.errors %}<div class="form-error col-sm-9">{{ form.contact_email.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.contact_email.field.required %}*{% endif %}{{ form.contact_email.label }}</label>
+                            <div {% if form.contact_email.errors %}ticket-error{% endif %}">{{ form.contact_email }}<p class="studioadmin-help">{{ form.contact_email.help_text }}</p>
+                            {% if form.contact_email.errors %}<div class="form-error ">{{ form.contact_email.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.max_tickets.field.required %}*{% endif %}{{ form.max_tickets.label }}</div>
-                            <div class="col-sm-9 {% if form.max_tickets.errors %}ticket-error{% endif %}">{{ form.max_tickets }}<p class="studioadmin-help">{{ form.max_tickets.help_text }}</p>
-                            {% if form.max_tickets.errors %}<div class="form-error col-sm-9">{{ form.max_tickets.errors }}</div>{% endif %}
-                            </div></label>
+                            <label>{% if form.max_tickets.field.required %}*{% endif %}{{ form.max_tickets.label }}</label>
+                            <div {% if form.max_tickets.errors %}ticket-error{% endif %}">{{ form.max_tickets }}<p class="studioadmin-help">{{ form.max_tickets.help_text }}</p>
+                            {% if form.max_tickets.errors %}<div class="form-error ">{{ form.max_tickets.errors }}</div>{% endif %}
+                            </div>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.email_studio_when_purchased.field.required %}*{% endif %}{{ form.email_studio_when_purchased.label }}</div>
-                            <div class="col-sm-9">
-                                <div class="col-sm-1 pull-left {% if form.email_studio_when_purchased.errors %}ticket-error{% endif %}">
-                                    {{ form.email_studio_when_purchased }}<label for='email_studio_id'></label></div>
-                                <div class="col-sm-9 studioadmincbox-help">  {{ form.email_studio_when_purchased.help_text }}</div>
-                                {% if form.email_studio_when_purchased.errors %}<div class="form-error col-sm-9">{{ form.email_studio_when_purchased.errors }}</div>{% endif %}
+                            <label>{% if form.email_studio_when_purchased.field.required %}*{% endif %}{{ form.email_studio_when_purchased.label }}</label>
+                                <span {% if form.email_studio_when_purchased.errors %}class="ticket-error"{% endif %}>
+                                    {{ form.email_studio_when_purchased }}<label for='email_studio_id'></label></span>
+                                <div class="studioadmincbox-help">  {{ form.email_studio_when_purchased.help_text }}</div>
+                                {% if form.email_studio_when_purchased.errors %}<div class="form-error ">{{ form.email_studio_when_purchased.errors }}</div>{% endif %}
                             </div>
-                            </label>
-                        </div>
                         <span class="divider"></span>
                         <h4>Payment information</h4>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.ticket_cost.field.required %}*{% endif %}{{ form.ticket_cost.label }}</div>
+                            <label>{% if form.ticket_cost.field.required %}*{% endif %}{{ form.ticket_cost.label }}</label>
                             <div class="col-sm-9">
                                 <div class="input-group {% if form.ticket_cost.errors %}ticket-error{% endif %}">
                                     <span class="input-group-addon" id="sizing-addon2">£</span>
                                     {{ form.ticket_cost }}
                                 </div>
-                                {% if form.ticket_cost.errors %}<div class="form-error col-sm-9">{{ form.ticket_cost.errors }}</div>{% endif %}
+                                {% if form.ticket_cost.errors %}<div class="form-error ">{{ form.ticket_cost.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.payment_open.field.required %}*{% endif %}{{ form.payment_open.label }}</div>
-                            <div class="col-sm-9">
-                                <div class="col-sm-1 pull-left {% if form.payment_open.errors %}ticket-error{% endif %}">{{ form.payment_open }}<label for='payment_open_id'></label></div>
+                            <label>{% if form.payment_open.field.required %}*{% endif %}{{ form.payment_open.label }}</label>
+                                <span{% if form.payment_open.errors %}class="ticket-error"{% endif %}>{{ form.payment_open }}<label for='payment_open_id'></label></div>
                                 <div class="studioadmincbox-help">  {{ form.payment_open.help_text }}</div>
-                                {% if form.payment_open.errors %}<div class="form-error col-sm-9">{{ form.payment_open.errors }}</div>{% endif %}
-                            </div></label>
+                                {% if form.payment_open.errors %}<div class="form-error ">{{ form.payment_open.errors }}</div>{% endif %}
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.max_ticket_purchase.field.required %}*{% endif %}{{ form.max_ticket_purchase.label }}</div>
-                            <div class="col-sm-9 {% if form.max_ticket_purchase.errors %}ticket-error{% endif %}">
+                            <label>{% if form.max_ticket_purchase.field.required %}*{% endif %}{{ form.max_ticket_purchase.label }}</label>
+                            <div {% if form.max_ticket_purchase.errors %}class="ticket-error"{% endif %}>
                                 {{ form.max_ticket_purchase }}<p class="studioadmin-help">{{ form.max_ticket_purchase.help_text }}</p>
-                                {% if form.max_ticket_purchase.errors %}<div class="form-error col-sm-9">{{ form.max_ticket_purchase.errors }}</div>{% endif %}
+                                {% if form.max_ticket_purchase.errors %}<div class="form-error ">{{ form.max_ticket_purchase.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.advance_payment_required.field.required %}*{% endif %}{{ form.advance_payment_required.label }}</div>
-                            <div class="col-sm-9">
-                                <div class="col-sm-1 pull-left {% if form.advance_payment_required.errors %}ticket-error{% endif %}">
+                            <label>{% if form.advance_payment_required.field.required %}*{% endif %}{{ form.advance_payment_required.label }}</label>
+                                <span {% if form.advance_payment_required.errors %}class="ticket-error"{% endif %}>
                                         {{ form.advance_payment_required }}<label for='advance_payment_required_id'></label>
-                                </div>
-                                <div class="col-sm-8 studioadmincbox-help">  {{ form.advance_payment_required.help_text }}</div>
-                                {% if form.advance_payment_required.errors %}<div class="form-error col-sm-9">{{ form.advance_payment_required.errors }}</div>{% endif %}
-                            </div>
-                            </label>
+                                </span>
+                                <div class="studioadmincbox-help">  {{ form.advance_payment_required.help_text }}</div>
+                                {% if form.advance_payment_required.errors %}<div class="form-error ">{{ form.advance_payment_required.errors }}</div>{% endif %}
                         </div>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.payment_due_date.field.required %}*{% endif %}{{ form.payment_due_date.label }}</div>
-                            <div class="col-sm-9 {% if form.payment_due_date.errors %}ticket-error{% endif %}">{{ form.payment_due_date }}
+                            <label>{% if form.payment_due_date.field.required %}*{% endif %}{{ form.payment_due_date.label }}</label>
+                            <div {% if form.payment_due_date.errors %}class="ticket-error"{% endif %}>{{ form.payment_due_date }}
                                 <p class="studioadmin-help">{{ form.payment_due_date.help_text }}</p>
-                                {% if form.payment_due_date.errors %}<div class="form-error col-sm-9">{{ form.payment_due_date.errors }}</div>{% endif %}
+                                {% if form.payment_due_date.errors %}<div class="form-error ">{{ form.payment_due_date.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.payment_time_allowed.field.required %}*{% endif %}{{ form.payment_time_allowed.label }}</div>
-                            <div class="col-sm-9 {% if form.payment_time_allowed.errors %}ticket-error{% endif %}">{{ form.payment_time_allowed }}<p class="studioadmin-help">{{ form.payment_time_allowed.help_text }}</p>
-                            {% if form.payment_time_allowed.errors %}<div class="form-error col-sm-9">{{ form.payment_time_allowed.errors }}</div>{% endif %}
+                            <label>{% if form.payment_time_allowed.field.required %}*{% endif %}{{ form.payment_time_allowed.label }}</label>
+                            <div {% if form.payment_time_allowed.errors %}class="ticket-error"{% endif %}>{{ form.payment_time_allowed }}<p class="studioadmin-help">{{ form.payment_time_allowed.help_text }}</p>
+                            {% if form.payment_time_allowed.errors %}<div class="form-error ">{{ form.payment_time_allowed.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.payment_info.field.required %}*{% endif %}{{ form.payment_info.label }}</div>
-                            <div class="col-sm-9 {% if form.payment_info.errors %}ticket-error{% endif %}">{{ form.payment_info }}<p class="studioadmin-help">{{ form.payment_info.help_text }}</p>
-                            {% if form.payment_info.errors %}<div class="form-error col-sm-9">{{ form.payment_info.errors }}</div>{% endif %}
+                            <label>{% if form.payment_info.field.required %}*{% endif %}{{ form.payment_info.label }}</label>
+                            <div {% if form.payment_info.errors %}class="ticket-error"{% endif %}>{{ form.payment_info }}<p class="studioadmin-help">{{ form.payment_info.help_text }}</p>
+                            {% if form.payment_info.errors %}<div class="form-error ">{{ form.payment_info.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.paypal_email.field.required %}*{% endif %}{{ form.paypal_email.label }}</div>
-                            <div class="col-sm-9 {% if form.paypal_email.errors %}ticket-error{% endif %}">{{ form.paypal_email }}<p class="studioadmin-help">{{ form.paypal_email.help_text }}</p>
-                            {% if form.paypal_email.errors %}<div class="form-error col-sm-9">{{ form.paypal_email.errors }}</div>{% endif %}
+                            <label>{% if form.paypal_email.field.required %}*{% endif %}{{ form.paypal_email.label }}</label>
+                            <div {% if form.paypal_email.errors %}class="ticket-error"{% endif %}>{{ form.paypal_email }}<p class="studioadmin-help">{{ form.paypal_email.help_text }}</p>
+                            {% if form.paypal_email.errors %}<div class="form-error ">{{ form.paypal_email.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.paypal_email_check.field.required %}*{% endif %}{{ form.paypal_email_check.label }}</div>
-                            <div class="col-sm-9 {% if form.paypal_email_check.errors %}ticket-error{% endif %}">{{ form.paypal_email_check }}<p class="studioadmin-help">{{ form.paypal_email_check.help_text }}</p>
-                            {% if form.paypal_email_check.errors %}<div class="form-error col-sm-9">{{ form.paypal_email_check.errors }}</div>{% endif %}
+                            <label>{% if form.paypal_email_check.field.required %}*{% endif %}{{ form.paypal_email_check.label }}</label>
+                            <div {% if form.paypal_email_check.errors %}class="ticket-error"{% endif %}>{{ form.paypal_email_check }}<p class="studioadmin-help">{{ form.paypal_email_check.help_text }}</p>
+                            {% if form.paypal_email_check.errors %}<div class="form-error ">{{ form.paypal_email_check.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
                         <span class="divider"></span>
                         <h4>Extra ticket information #1</h4>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.extra_ticket_info_label.field.required %}*{% endif %}{{ form.extra_ticket_info_label.label }}</div>
-                            <div class="col-sm-9 {% if form.extra_ticket_info_label.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info_label }}
+                            <label>{% if form.extra_ticket_info_label.field.required %}*{% endif %}{{ form.extra_ticket_info_label.label }}</label>
+                            <div {% if form.extra_ticket_info_label.errors %}class="ticket-error"{% endif %}>{{ form.extra_ticket_info_label }}
                                 <p class="studioadmin-help">{{ form.extra_ticket_info_label.help_text }}</p>
-                                {% if form.extra_ticket_info_label.errors %}<div class="form-error col-sm-9">{{ form.extra_ticket_info_label.errors }}</div>{% endif %}
+                                {% if form.extra_ticket_info_label.errors %}<div class="form-error ">{{ form.extra_ticket_info_label.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.extra_ticket_info_required.field.required %}*{% endif %}{{ form.extra_ticket_info_required.label }}</div>
-                            <div class="col-sm-9">
-                                <div class="col-sm-1 pull-left {% if form.extra_ticket_info_required.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info_required }}<label for='extra_ticket_info_required_id'></label></div>
+                            <label>{% if form.extra_ticket_info_required.field.required %}*{% endif %}{{ form.extra_ticket_info_required.label }}</label>
+                                <span {% if form.extra_ticket_info_required.errors %}class="ticket-error"{% endif %}>{{ form.extra_ticket_info_required }}<label for='extra_ticket_info_required_id'></label></span>
                                 <div class="studioadmincbox-help">  {{ form.extra_ticket_info_required.help_text }}</div>
                                 {% if form.extra_ticket_info_required.errors %}
-                                <div class="form-error col-sm-9">{{ form.extra_ticket_info_required.errors }}</div>{% endif %}
-                            </div>
-                            </label>
+                                <div class="form-error ">{{ form.extra_ticket_info_required.errors }}</div>{% endif %}
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.extra_ticket_info_help.field.required %}*{% endif %}{{ form.extra_ticket_info_help.label }}</div>
-                            <div class="col-sm-9 {% if form.extra_ticket_info_help.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info_help }}
+                            <label>{% if form.extra_ticket_info_help.field.required %}*{% endif %}{{ form.extra_ticket_info_help.label }}</label>
+                            <div {% if form.extra_ticket_info_help.errors %}class="ticket-error"{% endif %}>{{ form.extra_ticket_info_help }}
                                 <p class="studioadmin-help">{{ form.extra_ticket_info_help.help_text }}</p>
-                                {% if form.extra_ticket_info_help.errors %}<div class="form-error col-sm-9">{{ form.extra_ticket_info_help.errors }}</div>{% endif %}
+                                {% if form.extra_ticket_info_help.errors %}<div class="form-error ">{{ form.extra_ticket_info_help.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
 
                         <span class="divider"></span>
                         <h4>Extra ticket information #2</h4>
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.extra_ticket_info1_label.field.required %}*{% endif %}{{ form.extra_ticket_info1_label.label }}</div>
-                            <div class="col-sm-9 {% if form.extra_ticket_info1_label.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info1_label }}
+                            <label>{% if form.extra_ticket_info1_label.field.required %}*{% endif %}{{ form.extra_ticket_info1_label.label }}</label>
+                            <div {% if form.extra_ticket_info1_label.errors %}class="ticket-error"{% endif %}>{{ form.extra_ticket_info1_label }}
                                 <p class="studioadmin-help">{{ form.extra_ticket_info1_label.help_text }}</p>
-                                {% if form.extra_ticket_info1_label.errors %}<div class="form-error col-sm-9">{{ form.extra_ticket_info1_label.errors }}</div>{% endif %}
+                                {% if form.extra_ticket_info1_label.errors %}<div class="form-error ">{{ form.extra_ticket_info1_label.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
 
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.extra_ticket_info1_required.field.required %}*{% endif %}{{ form.extra_ticket_info1_required.label }}</div>
-                            <div class="col-sm-9">
-                                <div class="col-sm-1 pull-left {% if form.extra_ticket_info1_required.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info1_required }}<label for='extra_ticket_info1_required_id'></label></div>
+                            <label>{% if form.extra_ticket_info1_required.field.required %}*{% endif %}{{ form.extra_ticket_info1_required.label }}</label>
+                                <span {% if form.extra_ticket_info1_required.errors %}class="ticket-error"{% endif %}>{{ form.extra_ticket_info1_required }}<label for='extra_ticket_info1_required_id'></label></span>
                                 <div class="studioadmincbox-help">  {{ form.extra_ticket_info1_required.help_text }}</div>
-                                {% if form.extra_ticket_info1_required.errors %}<div class="form-error col-sm-9">{{ form.extra_ticket_info1_required.errors }}</div>{% endif %}
-                            </div>
-                            </label>
+                                {% if form.extra_ticket_info1_required.errors %}<div class="form-error ">{{ form.extra_ticket_info1_required.errors }}</div>{% endif %}
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.extra_ticket_info1_help.field.required %}*{% endif %}{{ form.extra_ticket_info1_help.label }}</div>
-                            <div class="col-sm-9 {% if form.extra_ticket_info1_help.errors %}ticket-error{% endif %}">{{ form.extra_ticket_info1_help }}
+                            <label>{% if form.extra_ticket_info1_help.field.required %}*{% endif %}{{ form.extra_ticket_info1_help.label }}</label>
+                            <div {% if form.extra_ticket_info1_help.errors %}class="ticket-error"{% endif %}">{{ form.extra_ticket_info1_help }}
                                 <p class="studioadmin-help">{{ form.extra_ticket_info1_help.help_text }}</p>
-                                {% if form.extra_ticket_info1_help.errors %}<div class="form-error col-sm-9">{{ form.extra_ticket_info1_help.errors }}</div>{% endif %}
+                                {% if form.extra_ticket_info1_help.errors %}<div class="form-error ">{{ form.extra_ticket_info1_help.errors }}</div>{% endif %}
                             </div>
-                            </label>
                         </div>
 
                         <span class="divider"></span>
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.show_on_site.field.required %}*{% endif %}{{ form.show_on_site.label }}</div>
-                            <div class="col-sm-9">
-                                    <div class="col-sm-1 pull-left {% if form.show_on_site.errors %}ticket-error{% endif %}">{{ form.show_on_site }}<label for='show_on_site_id'></label></div>
-                                <div class="col-sm-9 studioadmincbox-help">  {{ form.show_on_site.help_text }}</div>
-                                {% if form.show_on_site.errors %}<div class="form-error col-sm-9">{{ form.show_on_site.errors }}</div>{% endif %}
+                            <label>{% if form.show_on_site.field.required %}*{% endif %}{{ form.show_on_site.label }}</label>
+                                <span {% if form.show_on_site.errors %}class="ticket-error"{% endif %}>{{ form.show_on_site }}<label for='show_on_site_id'></label></span>
+                                <div class="studioadmincbox-help">  {{ form.show_on_site.help_text }}</div>
+                                {% if form.show_on_site.errors %}<div class="form-error ">{{ form.show_on_site.errors }}</div>{% endif %}
                             </div>
-                            </label>
-                        </div>
 
                         <div class="form-group cbox">
-                            <label class="col-sm-12"><div class="control-label col-sm-3">{% if form.cancelled.field.required %}*{% endif %}{{ form.cancelled.label }}</div>
-                            <div class="col-sm-9">
-                                <div class="col-sm-1 pull-left {% if form.cancelled.errors %}ticket-error{% endif %}">{{ form.cancelled }}<label for='cancelled_id'></label></div>
-                                <div class="col-sm-9 studioadmincbox-help">  {{ form.cancelled.help_text }}</div>
-                                {% if form.cancelled.errors %}<div class="form-error col-sm-9">{{ form.cancelled.errors }}</div>{% endif %}
-                            </div>
-                            </label>
+                            <label>{% if form.cancelled.field.required %}*{% endif %}{{ form.cancelled.label }}</label>
+                                <span {% if form.cancelled.errors %}class="ticket-error"{% endif %}>{{ form.cancelled }}<label for='cancelled_id'></label></span>
+                                <div class="studioadmincbox-help">  {{ form.cancelled.help_text }}</div>
+                                {% if form.cancelled.errors %}<div class="form-error ">{{ form.cancelled.errors }}</div>{% endif %}
                         </div>
-
-
-
-
+                
                     <div class="form-group">
-                        <div class="col-sm-offset-3 col-sm-9">
-                            <button type="submit" class="btn btn-success">Save</button>
-                        </div>
+                            <button type="submit" class="btn btn-wm">Save</button>
                     </div>
-                </div>
                 </form>
 
 

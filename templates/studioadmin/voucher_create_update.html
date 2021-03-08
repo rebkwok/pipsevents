@@ -5,19 +5,16 @@
 {% block studioadmincontent %}
 
 {{ form.media }}
-
-<div class="extra-top-margin container-fluid row">
-    <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
+       <div class="card card-wm">
+            <div class="card-header">
                 {% if voucher %}
-                <h2 class="panel-title">Edit Voucher</h2>
+                <h2 class="card-title">Edit Voucher</h2>
                 {% else %}
-                <h2 class="panel-title">Adding new voucher</h2>
+                <h2 class="card-title">Adding new voucher</h2>
                 {% endif %}
             </div>
 
-            <div class="panel-body">
+            <div class="card-body">
                 <div>
                     {% if form.instance.is_gift_voucher %}
                     <a href="{% url 'studioadmin:gift_vouchers' %}" class="btn btn-warning table-btn">Gift Voucher List</a>
@@ -36,12 +33,10 @@
                 <form class="form-horizontal dirty-check" method="post" action="">
                     {% csrf_token %}
 
-                    <div class="form-group-sm col-sm-12">
-
                         {% for field in form %}
                             <div class="form-group">
-                                <label class="col-sm-12"><div class="col-sm-2 control-label ">{% if field.field.required %}*{% endif %}{{ field.label }}</div>
-                                <div class="col-sm-10 {% if field.errors %}ticket-error{% endif %}">
+                                <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                <div {% if field.errors %}class="ticket-error"{% endif %}>
                                     {% if field.name == "event_types" or field.name == "block_types" %}
                                         {% for choice in field %}
                                             {{ choice.tag }} <label for="id_{{ field.name }}_{{ forloop.counter0 }}">{{ choice.choice_label }}</label></br>
@@ -55,18 +50,13 @@
                         {% endfor %}
 
                     <div class="form-group">
-                        <div class="col-sm-offset-2 col-sm-10">
-                            <button type="submit" class="btn btn-success">Save</button>
+                        <div>
+                            <button type="submit" class="btn btn-wm">Save</button>
                         </div>
-                    </div>
-
                     </div>
                 </form>
 
 
         </div>
     </div>
- </div>
-</div>
-
 {% endblock studioadmincontent %}

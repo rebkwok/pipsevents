@@ -7,11 +7,11 @@
 {% block content %}
 
 <div class="extra-top-margin container-fluid row">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h1 class="panel-title">{% trans "E-mail Addresses" %}</h1>
+       <div class="card card-wm">
+            <div class="card-header">
+                <h1 class="card-title">{% trans "E-mail Addresses" %}</h1>
             </div>
-           <div class="panel-body">
+           <div class="card-body">
 
                 {% if user.emailaddress_set.all %}
                 <p>{% trans 'The following e-mail addresses are associated with your account:' %}</p>
@@ -38,9 +38,9 @@
                   {% endfor %}
 
                 <div class="buttonHolder">
-                      <button class="secondaryAction btn btn-success" type="submit" name="action_primary" >{% trans 'Make Primary' %}</button>
-                      <button class="secondaryAction btn btn-success" type="submit" name="action_send" >{% trans 'Re-send Verification' %}</button>
-                      <button class="primaryAction btn btn-success" type="submit" name="action_remove" >{% trans 'Remove' %}</button>
+                      <button class="secondaryAction btn btn-wm" type="submit" name="action_primary" >{% trans 'Make Primary' %}</button>
+                      <button class="secondaryAction btn btn-wm" type="submit" name="action_send" >{% trans 'Re-send Verification' %}</button>
+                      <button class="primaryAction btn btn-wm" type="submit" name="action_remove" >{% trans 'Remove' %}</button>
                 </div>
 
                 </fieldset>
@@ -52,14 +52,14 @@
                 {% endif %}
             </div>
 
-            <div class="panel-heading">
-                <h1 class="panel-title">{% trans "Add E-mail Address" %}</h1>
+            <div class="card-header">
+                <h1 class="card-title">{% trans "Add E-mail Address" %}</h1>
             </div>
-                <div class="panel-body">
+                <div class="card-body">
                     <form method="post" action="{% url 'account_email' %}" class="add_email mock-bs-form">
                         {% csrf_token %}
                         {{ form.as_p}}
-                        <button class="btn btn-success" name="action_add" type="submit">{% trans "Add E-mail" %}</button>
+                        <button class="btn btn-wm" name="action_add" type="submit">{% trans "Add E-mail" %}</button>
                     </form>
                 </div>
                 {% endblock %}

@@ -5,18 +5,18 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h1 class="panel-title">Cancelling Ticket Booking Ref: {{ ticket_booking.booking_reference }}</h1>
+       <div class="card card-wm">
+            <div class="card-header">
+                <h1 class="card-title">Cancelling Ticket Booking Ref: {{ ticket_booking.booking_reference }}</h1>
             </div>
-       <div class="panel-body">
+       <div class="card-body">
                 <h4>You are about to cancel your ticket booking for
                     {{ ticket_booking.ticketed_event.name }}</a> on {{ ticket_booking.ticketed_event.date | date:"D d F, g:i a" }}</h4>
                 <h4>Are you sure?  Once cancelled, ticket bookings cannot be reopened and tickets will not be held for you.</h4>
 
                 <form action="" method="post">{% csrf_token %}
                 <span class="hide">{{ form.as_p }}</span>
-                <input class="btn btn-success" type="submit" name="confirm_cancel" value="Yes, cancel my ticket booking" />
+                <input class="btn btn-wm" type="submit" name="confirm_cancel" value="Yes, cancel my ticket booking" />
                 <a href="{% url 'booking:ticket_bookings' %}"><div class="btn btn-danger">No, take me back</div></a>
             </form>
         </div>

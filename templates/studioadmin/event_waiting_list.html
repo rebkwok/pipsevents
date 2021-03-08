@@ -5,16 +5,14 @@
 
 {% block studioadmincontent %}
 
-<div class="container-fluid row">
-
     <h2>Waiting List for {{ event }}</h2>
     <p>(Currently {% if event.spaces_left %}not {% endif %} full)
 
     <div class="row">
-        <div class="col-xs-9">
+        <div class="col-12">
 
             {% if waiting_list_users %}
-                <div class="panel panel-success">
+                <div class="card card-wm">
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
@@ -36,10 +34,10 @@
                                 </td>
                                 <td class="studioadmin-tbl">{{ wluser.date_joined|formatted_uk_date }}</td>
                                 {% if request.user.is_staff %}
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl">
                                     <form class="wl-table-form" method="post">
                                         {% csrf_token %}
-                                        <button class="btn table-btn perm-btn btn-success" type="submit" name="remove_user"
+                                        <button class="btn table-btn perm-btn btn-wm" type="submit" name="remove_user"
                                                 id="remove_user_button" value="{{ wluser.id }}">Remove</button>
                                     </form>
                                 </td>
@@ -54,7 +52,6 @@
             {% endif %}
         </div>
     </div>
-</div>
 
 
 {% endblock studioadmincontent %}

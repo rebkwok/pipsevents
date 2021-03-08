@@ -4,15 +4,14 @@
 
 {% block content %}
 
-<div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-        <div class="panel panel-success">
-            <div class="panel-heading">
-                <h3 class="panel-title">
+        <div class="card card-wm">
+            <div class="card-header">
+                <h3 class="card-title">
                         {{ ticketed_event.name }}
                 </h3>
             </div>
-            <div class="panel-body">
+            <div class="card-body">
                 {% if past %}
                 <h3>This event is now past.</h3>
                 {% endif %}
@@ -49,7 +48,7 @@
                         <h5>{{ booking_info_text | safe }}</h5>
                         {% if ticketed_event.bookable %}
                             <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
-                                <div id='book_button' class="btn btn-success table-btn">Book tickets</div>
+                                <div id='book_button' class="btn btn-wm table-btn">Book tickets</div>
                             </a>
                         {% endif %}
                     {% endif %}
@@ -57,7 +56,5 @@
             </div>
         </div>
     </div>
-
-</div>
 
 {% endblock content %}

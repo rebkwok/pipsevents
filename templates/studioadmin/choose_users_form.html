@@ -20,10 +20,10 @@
         </a>
         <div class="row">
 
-            <div class="panel panel-success">
+            <div class="card card-wm">
                 <span id="userfilters" class="collapse {% if not showing_students %} in{% endif %}">
 
-                <div class="panel-body">
+                <div class="card-body">
                     {{ userfilterform.media }}
                     <form action="" method="post">
                         {% csrf_token %}
@@ -31,7 +31,7 @@
                         <div>{{ userfilterform.events }}</div>
                         <div>{{ userfilterform.students }}</div>
 
-                        <div class="col-xs-12">
+                        <div class="col-12">
                             <input class="btn table-btn btn-info" name="filter" type="submit" value="Show Students" /><br/>
                         </div>
                     </form>
@@ -39,7 +39,7 @@
                 </span>
             {% if usersformset.forms %}
                 {% if usersformset.forms %}
-                    <div class="col-xs-12">
+                    <div class="col-12">
                         <span class="header-not-bold">Select/unselect all</span> <input checked="checked" class="regular-checkbox studioadmin-list" id="select-all" type="checkbox"><label for={{ "select-all" }}></label>
                     </div>
                 {% endif %}
@@ -50,11 +50,11 @@
                     <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success compress">
-                                <th class="table-center">Username <span class="fa fa-sort"></span></th>
-                                <th class="table-center">First Name <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Last Name <span class="fa fa-sort"></span></th>
-                                <th class="table-center">Email address</th>
-                                <th class="table-center">Select students to email</th>
+                                <th class="text-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="text-center">First Name <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Last Name <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Email address</th>
+                                <th class="text-center">Select students to email</th>
                             </tr>
                         </thead>
 
@@ -62,18 +62,18 @@
                             {% for userform in usersformset %}
                             <tr class="compress">
                                 <span class="hide">{{ userform.id }}</span>
-                                <td class="table-center studioadmin-tbl">{{ userform.instance.username|abbr_username }}</td>
-                                <td class="table-center studioadmin-tbl">{{ userform.instance.first_name|abbr_name }}</td>
-                                <td class="table-center studioadmin-tbl">{{ userform.instance.last_name|abbr_name }}</td>
-                                <td class="table-center studioadmin-tbl">{{ userform.instance.email|abbr_email }}</td>
-                                <td class="table-center studioadmin-tbl">{{ userform.email_user }}<label for={{ userform.email_user_cbox_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ userform.instance.username|abbr_username }}</td>
+                                <td class="text-center studioadmin-tbl">{{ userform.instance.first_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl">{{ userform.instance.last_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl">{{ userform.instance.email|abbr_email }}</td>
+                                <td class="text-center studioadmin-tbl">{{ userform.email_user }}<label for={{ userform.email_user_cbox_id }}></label></td>
                             </tr>
                             {% endfor %}
                             <tr>
                         </tbody>
                             <tr>
                             <td class="studioadmin-tbl" colspan="5">
-                                <input class="btn btn-success studioadmin-tbl" name="formset_submitted" type="submit" value="Email selected students" />
+                                <input class="btn btn-wm studioadmin-tbl" name="formset_submitted" type="submit" value="Email selected students" />
                             </td>
                             </tr>
 

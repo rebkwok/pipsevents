@@ -8,7 +8,7 @@
 
         <h2>{% if show_past %}Past {% endif %}Ticketed Events</h2>
         <div class="row">
-            <div class="col-xs-12">
+            <div class="col-12">
                 <form class="dirty-check" method="post" action="">
 
                     <div class="top-button-row">
@@ -23,19 +23,19 @@
                     {{ ticketed_event_formset.management_form }}
 
                 {% if ticketed_events %}
-                <div class="panel panel-success">
+                <div class="card card-wm">
                     <div class="table-responsive">
                         <table class="table">
                             <tr class="success">
                                 <th>Date</th>
                                 <th>Event</br><span class="studioadmin-help">Click on name to edit</span></th>
-                                <th class="table-center">Payment open</th>
-                                <th class="table-center">Advance payment required</th>
-                                <th class="table-center">Show on site</th>
-                                <th class="table-center">Max tickets</th>
-                                <th class="table-center">Tickets left</th>
-                                <th class="table-center">View ticket bookings</th>
-                                <th class="table-center">Delete</th>
+                                <th class="text-center">Payment open</th>
+                                <th class="text-center">Advance payment required</th>
+                                <th class="text-center">Show on site</th>
+                                <th class="text-center">Max tickets</th>
+                                <th class="text-center">Tickets left</th>
+                                <th class="text-center">View ticket bookings</th>
+                                <th class="text-center">Delete</th>
                             </tr>
 
                             {% for event in ticketed_event_formset %}
@@ -43,13 +43,13 @@
                                 <span class="hide">{{ event.id }}</span>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_ticketed_event' event.instance.slug %}">{{ event.instance.name }}</a></td>
-                                <td class="table-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
-                                <td class="table-center studioadmin-tbl">{% if event.instance.max_tickets %}{{ event.instance.max_tickets }}{% else %}N/A{% endif %}</td>
-                                <td class="table-center studioadmin-tbl">{% if event.instance.tickets_left < 10000 %}{{ event.instance.tickets_left }}{% else %}N/A{% endif %}</td>
-                                <td class="table-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fas fa-ticket-alt fa-lg"></span></a></td>
-                                <td class="table-center studioadmin-tbl">
+                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{% if event.instance.max_tickets %}{{ event.instance.max_tickets }}{% else %}N/A{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{% if event.instance.tickets_left < 10000 %}{{ event.instance.tickets_left }}{% else %}N/A{% endif %}</td>
+                                <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fas fa-ticket-alt fa-lg"></span></a></td>
+                                <td class="text-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED
                                     {% elif event.cannot_delete %}
@@ -61,7 +61,7 @@
                             </tr>
                             {% endfor %}
                         <tr>
-                            <td class="studioadmin-tbl" colspan="9"><input class="btn btn-success" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl" colspan="9"><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                 </div>

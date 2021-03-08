@@ -5,16 +5,16 @@
 {% providers_media_js %}
 
 
+{% block extra-collapsed-menu %}{% endblock %}
 {% block left-nav-items %}
-<li class="active-nav"><a href="{% url 'booking:lessons' %}" target="_blank">Main booking site</a></li>
+    <li class="active-nav"><a href="{% url 'booking:lessons' %}" target="_blank"><small>Main booking site</small></a></li>
 <!---add to menu at small sizes where side nav disappears-->
-<span class="divider visible-xs"></span>
-    <li class="adminmenu-title visible-xs">Studio Admin</li>
+<span class="divider d-inline-block d-md-none"></span>
+    <li class="adminmenu-title d-block d-md-none">Studio Admin</li>
 {% if request.user.is_staff %}
-    <span class="divider visible-xs"></span>
-
+    <span class="divider d-block d-md-none"></span>
              <li class="dropdown">
-              <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Classes </strong></strong><span class="fa fa-caret-down"></span></a>
+              <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Classes </strong></strong></a>
               <ul class="dropdown-menu" role="menu">
                 <li class="active-nav"><a href="{% url 'studioadmin:lessons' %}">{% if sidenav_selection == 'lessons' %}
                         <span class="sidebar_active">View and edit classes</span>{% else %}View and edit classes{% endif %}</a></li>
@@ -28,7 +28,7 @@
             </li>
 
                  <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Timetable </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Timetable </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:timetable' %}">{% if sidenav_selection == 'timetable' %}
                             <span class="sidebar_active">View and edit timetable</span>{% else %}View and edit timetable{% endif %}</a></li>
@@ -40,7 +40,7 @@
             </li>
 
              <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Workshops/Events </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Workshops/Events </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:events' %}">{% if sidenav_selection == 'events' %}
                         <span class="sidebar_active">View and edit events</span>{% else %}View and edit events{% endif %}</a></li>
@@ -54,7 +54,7 @@
             </li>
 
             <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Online Tutorials </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Online Tutorials </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:online_tutorials' %}">{% if sidenav_selection == 'online_tutorials' %}
                         <span class="sidebar_active">View and edit tutorials</span>{% else %}View and edit tutorials{% endif %}</a></li>
@@ -66,7 +66,7 @@
             </li>
 
                  <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Ticketed Events </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Ticketed Events </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:ticketed_events' %}">{% if sidenav_selection == 'ticketed_events' %}
                          <span class="sidebar_active">View and edit</span>{% else %}View and edit{% endif %}</a></li>
@@ -78,7 +78,7 @@
             </li>
 
                  <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Students </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Students </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
                         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
@@ -95,7 +95,7 @@
             </li>
 
             <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Vouchers </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Vouchers </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
                         <span class="sidebar_active">Class/event vouchers</span>{% else %}Class/event vouchers{% endif %}</a></li>
@@ -112,7 +112,7 @@
             </li>
 
             <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>PayPal Email Check </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>PayPal Email Check </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
                         <span class="sidebar_active">Test PayPal</span>{% else %}Test PayPal{% endif %}</a></li>
@@ -120,7 +120,7 @@
             </li>
 
             <li class="dropdown">
-                  <a href="#" class="dropdown-toggle adminmenu active-nav visible-xs" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Disclaimer Versions </strong></strong><span class="fa fa-caret-down"></span></a>
+                  <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Disclaimer Versions </strong></strong></a>
                   <ul class="dropdown-menu" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:disclaimer_content_list' %}">{% if sidenav_selection == 'disclaimer_content_list' %}
                         <span class="sidebar_active">Disclaimer versions</span>{% else %}Disclaimer versions{% endif %}</a></li>
@@ -130,22 +130,22 @@
             </li>
 
              <li class="dropdown">
-                 <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
+                 <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
                     <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
             </li>
 
 {% else %}
-    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
         <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
         <span class="sidebar_active">Online Tutorials Registers</span>{% else %}Online Tutorials Registers{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
         <span class="sidebar_active">Event/Workshop Registers</span>{% else %}Event/Workshop Registers{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
         <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:users' %}">{% if sidenav_selection == 'users' %}
         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
-    <li class="active-nav visible-xs"><a class='adminmenu' href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'event_disclaimers' %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'event_disclaimers' %}
         <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
 {% endif %}
 {% endblock %}

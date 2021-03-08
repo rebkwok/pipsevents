@@ -15,54 +15,58 @@
             <div class="col-sm-12">
 
 
-                <div class="panel panel with-nav-tabs panel-success">
+                <div class="card with-nav-tabs">
 
 {#                    location_events is a list of objs passed from view: #}
 {#                    [#}
 {#                        {events: queryset, location: 'Beaverbank Place', index: 1}#}
 {#                        {events: queryset, location: 'Other', index: 2}#}
 {#                    ]  #}
-                    <div class="panel-heading">
-                        <ul class="nav nav-tabs">
+                {% if location_events|length > 1 %}
+                    <div class="card-header">
+                        <ul class="nav nav-tabs" role="tablist">
                             {% for location_obj in location_events %}
-                                <li class="nav-tab {%  if location_obj.index == 0 %}active{%  endif %}"><a href="#tab{{ location_obj.index }}" data-toggle="tab">{{ location_obj.location }}</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link {%  if location_obj.index == 0 %}show active{%  endif %}" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
+                                </li>
                             {%  endfor %}
                         </ul>
                     </div>
+                {% endif %}
 
-                    <div class="panel-body">
+                    <div class="card-body">
                         <div class="tab-content">
                         {% for location_obj in location_events %}
-                            <div class="tab-pane fade {%  if location_obj.index == 0 %}in active{% endif %}" id="tab{{ location_obj.index }}">
+                            <div class="tab-pane fade {%  if location_obj.index == 0 %}show active{% endif %}" id="tab{{ location_obj.index }}">
 
                                 <div class="table-responsive">
                                     <table class="table compress">
                                         <tr class="compress table-tab-header">
                                             <th>Date</th>
-                                            <th class="table-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
+                                            <th class="text-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
                                                 <span class="studioadmin-help">Click to view register</span></th>
                                              {%  if location_obj.index == 0 %}
-                                                <th class="table-center">Location</th>
+                                                <th class="text-center">Location</th>
                                             {% endif %}
-                                            <th class="table-center">{% if type == 'online_tutorials' %}Purchased{% else %}Bookings{% endif %}</th>
-                                            {% if type != 'online_tutorials' %}<th class="table-center">View Waiting List</th>{% endif %}
+                                            <th class="text-center">{% if type == 'online_tutorials' %}Purchased{% else %}Bookings{% endif %}</th>
+                                            {% if type != 'online_tutorials' %}<th class="text-center">View Waiting List</th>{% endif %}
                                         </tr>
 
                                         {% for event in location_obj.queryset %}
                                         <tr class="compress">
                                             <td class="studioadmin-tbl">{{ event.date | date:"D d M, H:i" }}</td>
-                                            <td class="table-center studioadmin-tbl">
+                                            <td class="text-center studioadmin-tbl">
                                                 <a href="{% url 'studioadmin:event_register' event.slug %}">{{ event.name }}</a>
                                                 {% if event.is_online and not event.video_link %}
                                                     <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                                 {% endif %}
                                             </td>
                                              {%  if location_obj.index == 0 %}
-                                                <td class="table-center studioadmin-tbl"><span class="label label-location label-location-{{ event.location_index }} label-rounded">{{ event.location }}</span></td>
+                                                <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location }}</span></td>
                                                 {% endif %}
-                                            <td class="table-center studioadmin-tbl">{{ event|bookings_count }}</td>
+                                            <td class="text-center studioadmin-tbl">{{ event|bookings_count }}</td>
                                             {% if type != 'online_tutorials' %}
-                                            <td class="table-center studioadmin-tbl">
+                                            <td class="text-center studioadmin-tbl">
                                                 {% if event.waitinglistusers.count > 0 %}
                                                     <a href="{% url 'studioadmin:event_waiting_list' event.id %}">
                                                         <span class="fas fa-external-link-square-alt fa-lg"></span></a>
@@ -77,7 +81,7 @@
                             </div>
                           {% endfor %}
                         </div> <!-- tab content -->
-                    </div> <!-- panel body -->
+                    </div> <!--card body -->
 
 
                 </div>

@@ -20,8 +20,8 @@
                     {{ userbookingformset.management_form }}
 
                     <div class="top-button-row">
-                        <input class="btn btn-success table-btn" name="formset_submitted" type="submit" value="Save changes" />
-                        <span class="pull-right">
+                        <input class="btn btn-wm table-btn" name="formset_submitted" type="submit" value="Save changes" />
+                        <span class="float-right">
                             {% if booking_status == 'past' %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_bookings_list' user.id %}">Show Upcoming Bookings</a>
                             {% else %}
@@ -41,22 +41,22 @@
                                 {% if booking_status == 'future' %}
                                     <th>Date</th>
                                     <th>Class/Event</th>
-                                    <th class="table-center">Deposit Paid</th>
-                                    <th class="table-center">Fully Paid</th>
-                                    <th class="table-center">PayPal ID</th>
-                                    <th class="table-center">Free class?</th>
-                                    <th class="table-center">Block used</th>
-                                    <th class="table-center">Booking status</th>
-                                    <th class="table-center">No Show</th>
-                                    <th class="table-center">Send confirmation?</th>
+                                    <th class="text-center">Deposit Paid</th>
+                                    <th class="text-center">Fully Paid</th>
+                                    <th class="text-center">PayPal ID</th>
+                                    <th class="text-center">Free class?</th>
+                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Booking status</th>
+                                    <th class="text-center">No Show</th>
+                                    <th class="text-center">Send confirmation?</th>
                                 {% else %}
                                     <th></th>
                                     <th>Date</th>
                                     <th>Class/Event</th>
-                                    <th class="table-center">Paid</th>
-                                    <th class="table-center">Free class?</th>
-                                    <th class="table-center">Block used</th>
-                                    <th class="table-center">Booking status</th>
+                                    <th class="text-center">Paid</th>
+                                    <th class="text-center">Free class?</th>
+                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Booking status</th>
                                 {% endif %}
                             </tr>
                             </thead>
@@ -73,20 +73,20 @@
                                         <td class="studioadmin-tbl">{{ booking.instance.event.name }} {% if booking.instance.event.cancelled %}(cancelled){% endif %}</td>
 
                                         {% if booking.instance.event.cost %}
-                                            <td class="table-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
-                                            <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
+                                            <td class="text-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
+                                            <td class="text-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
                                         {% else %}
-                                            <td class="table-center studioadmin-tbl">N/A</td>
+                                            <td class="text-center studioadmin-tbl">N/A</td>
                                             <span class="hide">{{ booking.paid }}</span>
                                             <span class="hide">{{ booking.deposit_paid }}</span>
                                         {% endif %}
-                                        <td class="table-center studioadmin-tbl">
+                                        <td class="text-center studioadmin-tbl">
                                             {% if booking.paypal %}
                                                 <span class="fa fa-check"></span>
                                             {% endif %}
                                         </td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
-                                        <td class="table-center studioadmin-tbl">
+                                        <td class="text-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl">
                                             {% if booking.instance.block and booking.instance.paid %}
                                                 <div class="form-group form-group-sm">{{ booking.block }}</div>
                                             {% elif booking.instance.free_class %}
@@ -103,21 +103,21 @@
                                                     N/A
                                                 {% endif %}
                                             {% endif %}</td>
-                                        <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.status }}</div></td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.no_show }}<label for={{ booking.no_show_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.status }}</div></td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.no_show }}<label for={{ booking.no_show_id }}></label></td>
                                     {% else %}
                                         <td class="studioadmin-tbl"><strong>New booking</strong></td>
                                         <td class="studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.event }}</div></td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.deposit_paid }}<label for={{ booking.deposit_paid_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.paid }}<label for={{ booking.paid_id }}></label></td>
                                         <td></td>
-                                        <td class="table-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
-                                        <td class="table-center studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.block }}</div></td>
-                                        <td class="table-center studioadmin-tbl">OPEN</td>
+                                        <td class="text-center studioadmin-tbl">{{ booking.free_class }}<label for={{ booking.free_class_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl"><div class="form-group form-group-sm">{{ booking.block }}</div></td>
+                                        <td class="text-center studioadmin-tbl">OPEN</td>
                                         <td></td>
                                         <span class="hide">{{ booking.status }}</span>
                                     {% endif %}
-                                    <td class="table-center studioadmin-tbl">{{ booking.send_confirmation }}<label for={{ booking.send_confirmation_id }}></label></td>
+                                    <td class="text-center studioadmin-tbl">{{ booking.send_confirmation }}<label for={{ booking.send_confirmation_id }}></label></td>
                                 </tr>
                                 {% endfor %}
 
@@ -131,10 +131,10 @@
                                         <td><a class="bookingedit" href="#" data-form="{% url 'studioadmin:bookingedit' booking.id %}" title="edit booking">Edit</a></td>
                                         <td>{{ booking.event.date|date:"d/m/y H:i" }}</td>
                                         <td>{{ booking.event.name }}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
                                     </tr>
                                 {% endfor %}
                                 <tr>

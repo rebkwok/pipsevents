@@ -3,64 +3,60 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid">
-        <div class="row ">
+<div class="row">
 
-            <div class="col-xs-12 voucher-bg voucher-box voucher-outer-box">
-                <div class="voucher-box voucher-inner-box">
-                    <h1 class="voucher-title text-center">Gift Certificate </h1>
-                    {% if voucher.name %}
-                    <div class="voucher-name text-center"> For {{ voucher.name }} </div>
-                    {% endif %}
+    <div class="col-12 voucher-box voucher-outer-box">
+        <div class="voucher-box voucher-inner-box">
+            <h1 class="voucher-title text-center">Gift Certificate </h1>
+            {% if voucher.name %}
+            <div class="voucher-name text-center"> For {{ voucher.name }} </div>
+            {% endif %}
 
-                    <hr class="voucher-divider">
+            <hr class="voucher-divider">
 
-                    <div class="voucher-content">
-                       <p><span class="voucher-content-label">Voucher code:</span> {{ voucher.code }}</p>
-                       <p><span class="voucher-content-label">Valid for:</span> <ul>{% for item in valid_for %}<li>{% if voucher_type == "block" %}{{ item.description }}{% else %}{{ item }}{% endif %}{% if voucher.discount < 100 %} - {{ voucher.discount }}% off{% endif %}</li>{% endfor %}</ul></p>
-                       <p><span class="voucher-content-label">Date issued:</span> {{ voucher.start_date|date:"d M Y" }}</p>
-                       <p><span class="voucher-content-label">Date expired:</span> {{ voucher.expiry_date|date:"d M Y" }}</p>
-                       {% if voucher.max_per_user > 1 %}
-                       <p><span class="voucher-content-label">Maximum uses:</span> {{ voucher.max_per_user }}</p>
-                        {% endif %}
-                    </div>
-
-
-                {% if voucher.message %}
-                    <hr class="voucher-divider">
-                    <div class="voucher-message">
-                    <strong>Message: </strong><br>
-                    {{ voucher.message | linebreaks }}
-                    </div><br>
-                    {% endif %}
-                </div>
+            <div class="voucher-content">
+               <p><span class="voucher-content-label">Voucher code:</span> <strong>{{ voucher.code }}</strong></p>
+               <p><span class="voucher-content-label">Valid for:</span> <ul>{% for item in valid_for %}<li>{% if voucher_type == "block" %}{{ item.description }}{% else %}{{ item }}{% endif %}{% if voucher.discount < 100 %} - {{ voucher.discount }}% off{% endif %}</li>{% endfor %}</ul></p>
+               <p><span class="voucher-content-label">Date issued:</span> {{ voucher.start_date|date:"d M Y" }}</p>
+               <p><span class="voucher-content-label">Date expired:</span> {{ voucher.expiry_date|date:"d M Y" }}</p>
+               {% if voucher.max_per_user > 1 %}
+               <p><span class="voucher-content-label">Maximum uses:</span> {{ voucher.max_per_user }}</p>
+                {% endif %}
             </div>
+
+
+        {% if voucher.message %}
+            <hr class="voucher-divider">
+            <div class="voucher-message">
+            <strong>Message: </strong><br>
+            {{ voucher.message | linebreaks }}
+            </div><br>
+            {% endif %}
         </div>
-        <hr>
-        <div class="row">
-            <div class="text-muted">
-                <div class="col-xs-12 vspace">
-                    <a href="javascript:window.print()" id="print-button" alt="print this page"
-                            class="btn btn-success">Print voucher</a>
-                </div>
+    </div>
+</div>
+<hr>
+<div class="row">
+    <div class="text-muted">
+        <div class="col-12 vspace">
+            <a href="javascript:window.print()" id="print-button" alt="print this page"
+                    class="btn btn-wm">Print voucher</a>
+        </div>
+        <div class="col-12">
+            <h5>Voucher Instructions</h5>
+            <ol>
+                <li>Log in to booking.thewatermelonstudio.co.uk</li>
+                <li>{% if voucher_type == "block" %}Go to "My Blocks", click "Add a new block" and select the block type
+                listed above
+                    {% else %}Book a class of the type listed above to add it to your shopping basket.{% endif %}</li>
+                <li>On the Shopping Basket page, enter your voucher code and click Apply</li>
+                <li>If this was the only item in your basket, the total will now be £0. Click Submit to complete your purchase.</li>
+            </ol>
+            <span class="font-italic"><small>Terms and conditions apply to all purchases, for full T&C see <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">thewatermelonstudio.co.uk/t&s.html</a><small</span>
 
-                <div class="col-xs-12">
-                    <h5>Voucher Instructions</h5>
-                    <ol>
-                        <li>Log in to booking.thewatermelonstudio.co.uk</li>
-                        <li>{% if voucher_type == "block" %}Go to "My Blocks", click "Add a new block" and select the block type
-                        listed above
-                            {% else %}Book a class of the type listed above to add it to your shopping basket.{% endif %}</li>
-                        <li>On the Shopping Basket page, enter your voucher code and click Apply</li>
-                        <li>If this was the only item in your basket, the total will now be £0. Click Submit to complete your purchase.</li>
-                    </ol>
-                    <span class="font-italic">Terms and conditions apply to all purchases, for full T&C see <a href="http://www.thewatermelonstudio.co.uk/t&s.html" target="_blank">thewatermelonstudio.co.uk/t&s.html</a></span>
-
-                </div>
-
-            </div>
         </div>
 
     </div>
+</div>
 
 {% endblock %}

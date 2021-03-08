@@ -3,7 +3,6 @@
 
 {% block studioadmincontent %}
 
-<div class="container-fluid row">
 
     <h2>Cancelling {{ ticketed_event }}</h2>
 
@@ -37,13 +36,12 @@
         <p><strong>Please confirm you want to cancel this event.</strong></p>
 
         <form action="" method="post">{% csrf_token %}
-            <input class="btn btn-success" type="submit" name="confirm" value="Yes, cancel this event" />
+            <input class="btn btn-wm" type="submit" name="confirm" value="Yes, cancel this event" />
             <input class="btn btn-danger" type="submit" name="cancel" value="No, take me back" />
         </form>
     {% else %}
         <h4>This event is already cancelled.</h4>
     {% endif %}
 
-</div>
 
 {% endblock studioadmincontent %}

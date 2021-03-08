@@ -8,12 +8,12 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h2 class="panel-title">Email Students</h2>
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Email Students</h2>
             </div>
            {% if users_to_email %}
-                <div class="panel-body">
+                <div class="card-body">
                         <div>
                             {% if events or lessons %}
                                 You are sending an email regarding:
@@ -40,7 +40,7 @@
                         </div>
                     </div>
                           <span class="divider"></span>
-                    <div class="panel-body">
+                    <div class="card-body">
 
                     <form class="dirty-check" class="form-horizontal" method="post" action="">
                         {% csrf_token %}
@@ -65,15 +65,15 @@
                         </div>
                         <div class="form-group">
                             <div class="col-sm-offset-3 col-sm-9">
-                                <input type="submit" name="send_email" class="btn btn-success" value="Send Email"/>
-                                <input type="submit" name="send_test" class="btn btn-success" value="Send Test Email"/>
+                                <input type="submit" name="send_email" class="btn btn-wm" value="Send Email"/>
+                                <input type="submit" name="send_test" class="btn btn-wm" value="Send Test Email"/>
                                 <span class="studioadmin-help">Test email sends ONLY to the specified from address</span>
                             </div>
                         </div>
                     </form>
                 </div>
            {% else %}
-           <div class="panel-body">
+           <div class="card-body">
                 No students selected for this email!  Go <a href="{% url 'studioadmin:choose_email_users' %}">here</a> to select students.
            </div>
                {% endif %}

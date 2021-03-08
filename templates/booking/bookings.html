@@ -10,13 +10,13 @@
 {% block content %}
 
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-12">
     {% if history %}
         <h1>My past bookings</h1>
     {% else %}
         <h1>My bookings</h1>
     {% endif %}
-    <div class="btn-group btn-group-sm pull-right" role="group">
+    <div class="btn-group btn-group-sm float-right" role="group">
         <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
         <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My online tutorials</a>
         <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
@@ -27,8 +27,8 @@
     <p>Click on booking title for more class/event details.</p>
     </div>
 
-    <div class="col-xs-12">
-        <div class="panel panel-success">
+    <div class="col-12">
+        <div class="card card-wm">
             <div class="table-responsive">
                 <table class="table">
                     <tr class="success">
@@ -37,13 +37,13 @@
                         {% endif %}
                         <th>Date</th>
                         <th>Booking</th>
-                        <th class="table-center">Location</th>
-                        <th class="table-center">Status</th>
-                        <th class="hidden-sm hidden-xs table-center">Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</th>
-                        <th class="table-center">Paid</th>
-                        <th class="table-center">Payment due</th>
-                        <th class="table-center">Block used</th>
-                        <th class="hidden-sm hidden-xs table-center">Place confirmed</th>
+                        <th class="text-center">Location</th>
+                        <th class="text-center">Status</th>
+                        <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</th>
+                        <th class="text-center">Paid</th>
+                        <th class="text-center">Payment due</th>
+                        <th class="text-center">Block used</th>
+                        <th class="d-none d-md-table-cell text-center">Place confirmed</th>
                     </tr>
                     {% for bookingform in bookingformlist %}
                         <tr id='booked-{{ bookingform.booking.event.id }}-row' class='{% if bookingform.booking_status == 'CANCELLED' %}expired
@@ -74,13 +74,13 @@
                                             {% include "booking/includes/waiting_list_button.html" %}
                                             </span>
                                         {% elif bookingform.booking_status == 'CANCELLED' %}
-                                            <div type="button" id="rebook_button_disabled" class="btn btn-success table-btn disabled">Rebook</div>
+                                            <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
                                         {% endif %}
                                     {% else %}
                                         {% if bookingform.booking.auto_cancelled %}
                                             <div
                                                     id="rebook_button_auto_cancelled_disabled"
-                                                    class="btn btn-success table-btn disabled"
+                                                    class="btn btn-wm table-btn disabled"
                                                     title="Contact {{ bookingform.booking.event.contact_email }} directly to rebook"
                                             >Rebook</div>
                                         {% else %}
@@ -111,14 +111,14 @@
                                     {{ bookingform.booking.event.name }}</a>
                                 {% endif %}
                             </td>
-                            <td class="table-center"><span class="label label-location label-location-{{ bookingform.booking.event.location_index }} label-rounded">{{ bookingform.booking.event.location }}</span></td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking_status }}</span></td>
-                            <td class="hidden-sm hidden-xs table-center">£{{ bookingform.booking.event.cost }}</td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-payment_due">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
-                            <td class="table-center"><span id="booked-{{ bookingform.booking.event.id }}-block">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
+                            <td class="text-center"><span class="badge badge-pill badge-location badge-location-{{ bookingform.booking.event.location_index }}">{{ bookingform.booking.event.location }}</span></td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking_status }}</span></td>
+                            <td class="d-none d-md-table-cell text-center">£{{ bookingform.booking.event.cost }}</td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-payment_due">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
+                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-block">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
                                 {% else %}<strong>N/A</strong>{% endif %}</span></td>
-                            <td class="hidden-sm hidden-xs table-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
+                            <td class="d-none d-md-table-cell text-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
                                 <span id="booked-{{ bookingform.booking.event.id }}-confirmed">
                                 {% if bookingform.booking.space_confirmed %}
                                     <span class="fa fa-check"></span>
@@ -140,7 +140,7 @@
         </div>
     </div>
     {% else %}
-    <div class="col-xs-12">
+    <div class="col-12">
         {% if history %}
             <p>You do not have any past class, event or room hire bookings.</p>
         {% else %}

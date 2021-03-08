@@ -5,7 +5,7 @@
 
     {% for event in events %}
 
-        <div class="{% if device_info.type == 'desktop' %}col-xs-6{% else %}col-xs-12{% endif %} register-print-col">
+        <div class="{% if device_info.type == 'desktop' %}col-xs-6{% else %}col-12{% endif %} register-print-col">
 
             <div class="table-responsive">
                 <table class="table">
@@ -13,26 +13,26 @@
                         <caption><h2 class="register-title">Register for {{ event.event }}</h2></caption>
                         <thead>
                         <tr>
-                            <th class="table-center shrink-col"></th>
-                            <th class="table-center shrink-col">Attended</th>
-                            <th class="table-center">User</th>
-                            <th class="table-center">Disclaimer</th>
+                            <th class="text-center shrink-col"></th>
+                            <th class="text-center shrink-col">Attended</th>
+                            <th class="text-center">User</th>
+                            <th class="text-center">Disclaimer</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for booking in event.bookings %}
                             <tr>
-                                <td class="table-center register-index studioadmin-tbl shrink-col">{{ booking.index }}.</td>
-                                <td class="table-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
-                                <td class="table-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.booking.user.last_name }}</td>
-                                <td class="table-center studioadmin-tbl">{% if booking.booking.user|has_disclaimer %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
+                                <td class="text-center register-index studioadmin-tbl shrink-col">{{ booking.index }}.</td>
+                                <td class="text-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ booking.booking.id }}" type="checkbox"><label for='extra_checkbox_{{ booking.booking.id }}'></label></td>
+                                <td class="text-center studioadmin-tbl">{{ booking.booking.user.first_name }} {{ booking.booking.user.last_name }}</td>
+                                <td class="text-center studioadmin-tbl">{% if booking.booking.user|has_disclaimer %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}</td>
                             </tr>
                             {% endfor %}
                         {% for i in event.extra_lines|get_range %}
                         <tr>
-                            <td class="table-center register-index studioadmin-tbl shrink-col">{{ event.event|get_index_open:i }}.</td>
-                            <td class="table-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
-                            <td class="table-center studioadmin-tbl"></td>
+                            <td class="text-center register-index studioadmin-tbl shrink-col">{{ event.event|get_index_open:i }}.</td>
+                            <td class="text-center studioadmin-tbl shrink-col"><input class='regular-checkbox' id="extra_checkbox_{{ i }}" type="checkbox"><label for='extra_checkbox_{{ i }}'></label></td>
+                            <td class="text-center studioadmin-tbl"></td>
                             <td></td>
                         </tr>
                         {% endfor %}

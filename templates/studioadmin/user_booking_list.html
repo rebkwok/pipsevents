@@ -4,8 +4,6 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
-
         <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }}):
             {% if booking_status == 'past' %}
                 Past bookings
@@ -17,16 +15,14 @@
             <div class="col-sm-12">
 
                     <div class="top-button-row">
-                        <a class="bookingadd btn btn-success table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
-                        <span class="pull-right">
+                        <a class="bookingadd btn btn-wm table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
+                        <span class="float-right">
                             {% if booking_status == 'past' %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_upcoming_bookings_list' user.id %}">Show Upcoming Bookings</a>
                             {% else %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_past_bookings_list' user.id %}">Show Past Bookings</a>
                             {% endif %}
-                        {% if booking_status == 'future' %}
-                            <div><a href="{% url 'studioadmin:user_bookings_list' user.id %}">View page in old format</a></div>
-                         {% endif %}
+
                         </span>
 
                     <div><a href="{% url 'studioadmin:user_blocks_list' user.id %}">Go to user's blocks</a></div>
@@ -40,20 +36,20 @@
                                     <th>Date</th>
                                     <th>Class/Event</th>
                                     <th>Type</th>
-                                    <th class="table-center">Deposit</br>Paid</th>
-                                    <th class="table-center">Fully</br>Paid</th>
-                                    <th class="table-center">PayPal</br>ID</th>
-                                    <th class="table-center">Free</br>class?</th>
-                                    <th class="table-center">Block used</th>
-                                    <th class="table-center">Booking status</th>
+                                    <th class="text-center">Deposit</br>Paid</th>
+                                    <th class="text-center">Fully</br>Paid</th>
+                                    <th class="text-center">PayPal</br>ID</th>
+                                    <th class="text-center">Free</br>class?</th>
+                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Booking status</th>
                                 {% else %}
                                     <th></th>
                                     <th>Date</th>
                                     <th>Class/Event</th>
-                                    <th class="table-center">Paid</th>
-                                    <th class="table-center">Free class?</th>
-                                    <th class="table-center">Block used</th>
-                                    <th class="table-center">Booking status</th>
+                                    <th class="text-center">Paid</th>
+                                    <th class="text-center">Free class?</th>
+                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Booking status</th>
                                 {% endif %}
                             </tr>
                             </thead>
@@ -80,29 +76,29 @@
                                         <td class="studioadmin-tbl">{{ booking.event.event_type.readable_name }}</td>
                                         {% if booking_status == 'future' %}
                                             {% if booking.event.cost %}
-                                                <td class="table-center studioadmin-tbl">{% if booking.deposit_paid %}<span class="fa fa-check">{% endif %}</span></td>
-                                                <td class="table-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
+                                                <td class="text-center studioadmin-tbl">{% if booking.deposit_paid %}<span class="fa fa-check">{% endif %}</span></td>
+                                                <td class="text-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
                                             {% else %}
-                                                <td class="table-center studioadmin-tbl">N/A</td>
-                                                <td class="table-center studioadmin-tbl">N/A</td>
+                                                <td class="text-center studioadmin-tbl">N/A</td>
+                                                <td class="text-center studioadmin-tbl">N/A</td>
                                             {% endif %}
-                                            <td class="table-center studioadmin-tbl" id="paypal-td">
+                                            <td class="text-center studioadmin-tbl" id="paypal-td">
                                                 {% if booking.paypal_paid %}
                                                     <span class="fa fa-check"></span>
                                                 {% endif %}
                                             </td>
                                         {% else %}
-                                            <td class="table-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
+                                            <td class="text-center studioadmin-tbl">{% if booking.paid %}<span class="fa fa-check"></span>{% endif %}</td>
                                         {% endif %}
-                                        <td class="table-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
-                                        <td class="table-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
                                 </tr>
                                 {% endfor %}
                                 {% if booking_status == 'future' %}
                                     <tr>
                                         <td class="studioadmin-tbl" colspan="10">
-                                            <a class="bookingadd btn btn-success table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
+                                            <a class="bookingadd btn btn-wm table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
                                         </td>
                                     </tr>
                                 {% endif %}
@@ -132,8 +128,6 @@
                     </div>
             </div>
          </div>
-    </div>
-
 
 
 {% endblock studioadmincontent %}

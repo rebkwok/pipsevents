@@ -5,8 +5,6 @@
 
 {% block content %}
 
-    <div class="container-fluid row">
-
         <h1>Tickets for Shows, Competitions and Events</h1>
         {% if ticketed_events or not_visible_events %}
         <div class="row">
@@ -36,7 +34,7 @@
                             {% if ticketed_event.bookable %}
                                 <div class="inc-space"></div>
                                 <div><a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
-                                    <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
+                                    <div id="book_button" class="btn btn-wm table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
                                 </a></div>
                             {% else %}
                                 <div class="cancel-warning">This event has now sold out.</div>
@@ -45,7 +43,7 @@
                             {% if ticketed_event.bookable %}
                                 <div><a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
                                     <div class="inc-space"></div>
-                                    <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
+                                    <div id="book_button" class="btn btn-wm table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
                                 </a></div>
                             {% else %}
                                 <div class="cancel-warning">This event has now sold out.</div>
@@ -80,7 +78,7 @@
                                 {% if ticketed_event.bookable %}
                                     <div class="inc-space"></div>
                                     <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
-                                        <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
+                                        <div id="book_button" class="btn btn-wm table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
                                     </a>
                                 {% else %}
                                     <div class="cancel-warning">This event has now sold out.</div>
@@ -89,7 +87,7 @@
                                 {% if ticketed_event.bookable  %}
                                     <div class="inc-space"></div>
                                     <a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
-                                        <div id="book_button" class="btn btn-success table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
+                                        <div id="book_button" class="btn btn-wm table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
                                     </a>
                                 {% else %}
                                     <div class="cancel-warning">This event has now sold out.</div>
@@ -106,7 +104,6 @@
     {% else %}
         <p>There are currently no ticketed events available to book.</p>
     {% endif %}
-</div>
 </div>
 
 

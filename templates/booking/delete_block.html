@@ -5,11 +5,11 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-sm-12">
-       <div class="panel panel-success">
-            <div class="panel-heading">
-                <h2 class="panel-title">Delete Block</h2>
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Delete Block</h2>
             </div>
-       <div class="panel-body">
+       <div class="card-body">
                 <h3>You are about to delete a block for {{ block_to_delete.block_type.event_type.subtype }} (x{{ block_to_delete.block_type.size }})</h3>
                 <h4>Are you sure?</h4>
             <form action="" method="post">{% csrf_token %}

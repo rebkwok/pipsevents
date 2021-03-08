@@ -3,8 +3,8 @@
 <!DOCTYPE html>
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
   <head>
-      <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1 user-scalable=yes"/>
         <title>Watermelon Studio Class and Event Booking
         {% block head_title %}{% endblock %}
         </title>
@@ -15,21 +15,14 @@
         <link rel="shortcut icon" type="image/png" href="{% static 'booking/images/icon.png' %}">
         <link rel="apple-touch-icon" href="{% static 'booking/images/icon.png' %}">
 
-        <link rel="stylesheet" href="{% static 'booking/bootstrap-4.3.1-dist/css/bootstrap.min.css' %}">
-
-       <!-- Font awesome -->
-      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-
-        <!--<link rel="stylesheet" href="{% static 'fontawesome-free-5.0.8/web-fonts-with-css/css/fontawesome-all.min.css' %}"/>-->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
 
        <!-- Custom styles --->
-        <link href="{% static 'booking/css/custom-v1.9.css' %}" rel="stylesheet">
+       <link href="{% static 'booking/css/custom-v1.10.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
       <link rel="stylesheet" href="{% static 'booking/css/register_print_screen.css' %}"  type="text/css" media="screen" />
        <link rel="stylesheet" href="{% static 'booking/css/register_print.css' %}"  type="text/css" media="print" />
-
-      <link href="{% static 'booking/css/bootstrap-switch.css' %}" rel="stylesheet">
-        <link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" rel="stylesheet">
 
       {% block head %}{% endblock %}
 
