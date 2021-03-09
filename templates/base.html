@@ -67,13 +67,13 @@
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>
-                    <span role="separator" class="divider d-none d-sm-block"></span>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:bookings' %}">My bookings</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:block_list' %}">My blocks</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:booking_history' %}">Booking history</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
+                    <span role="separator" class="divider d-md-none d-block"></span>
+                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:bookings' %}">My bookings</a>
+                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
+                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:block_list' %}">My blocks</a>
+                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:booking_history' %}">Booking history</a>
+                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
+                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
             </li>
             {% if request.user.is_authenticated %}
                 <li class="nav-item dropdown d-none d-sm-block">
@@ -85,7 +85,6 @@
                         <a class="dropdown-item" href="{% url 'booking:booking_history' %}">Booking history</a>
                         <a class="dropdown-item" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
                         <a class="dropdown-item" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
-
                     </div>
                 </li>
                 <li id="shopping-basket-menu" class="pl-1 pt-2 nav-item d-none d-sm-block">{% show_shopping_basket_menu request.user %}</li>
