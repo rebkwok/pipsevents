@@ -60,23 +60,23 @@
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarMoreDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">More</a>
+            <li class="nav-item dropdown d-none d-sm-block">
+                <a class="nav-link dropdown-toggle " href="#" id="navbarMoreDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">More</a>
                 <div class="dropdown-menu" aria-labelledby="navbarMoreDropdown">
 {#                    <a class="d-none d-sm-block" href="{% url 'booking:room_hires' %}">Room Hire</a>#}
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>
-                    <span role="separator" class="divider d-md-none d-block"></span>
-                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:bookings' %}">My bookings</a>
-                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
-                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:block_list' %}">My blocks</a>
-                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:booking_history' %}">Booking history</a>
-                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
-                    <a class="dropdown-item d-md-none d-block" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
+                    <span role="separator" class="divider d-none d-sm-block"></span>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:bookings' %}">My bookings</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
+                    <a class="dropdown-item d-none d-sm-blockk" href="{% url 'booking:block_list' %}">My blocks</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:booking_history' %}">Booking history</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
             </li>
             {% if request.user.is_authenticated %}
-                <li class="nav-item dropdown d-none d-sm-block">
+                <li class="nav-item dropdown d-block d-md-none">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarAccountDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">My Activity</a>
                     <div class="dropdown-menu" aria-labelledby="navbarAccountDropdown">
                         <a class="dropdown-item" href="{% url 'booking:bookings' %}">My bookings</a>
@@ -97,16 +97,16 @@
             <ul class="nav navbar-nav mr-auto">
 
             {% if request.user.is_authenticated %}
-                <li class="nav-item dropdown d-none d-sm-block account-menu-nav">
-                    <div class="welcome-menu"><small><em>{{request.user}}</em></small></div>
-                    <a class="account-menu nav-link dropdown-toggle dropdown-toggle-login" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Your account</a>
+                {% block admin-nav %}
+                {% if request.user.is_staff or request.user|in_group:"instructors" %}
+                   <li class="nav-item"><a class="nav-link" href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a></li>
+                {% endif %}
+                {% endblock admin-nav %}
+                <li class="nav-item dropdown account-menu-nav">
+                    <div class="welcome-menu d-none d-sm-block"><small><em>{{request.user}}</em></small></div>
+                    <a class="account-menu nav-link dropdown-toggle dropdown-toggle-login" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">My account</a>
                     <div class="dropdown-menu" aria-labelledby="navbarAdminDropdown">
-                    {% block admin-nav %}
-                        {% if request.user.is_staff or request.user|in_group:"instructors" %}
-                           <a class="dropdown-item active-nav-login" href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a>
-                            <div class="dropdown-divider"></div>
-                        {% endif %}
-                    {% endblock admin-nav %}
+
                         <a class="dropdown-item active-nav-login" href="{% url 'account_change_password' %}">Change password</a>
                         <a class="dropdown-item active-nav-login" href="{% url 'profile:profile' %}">Profile</a>
                         {% if not request.user|has_disclaimer %}
