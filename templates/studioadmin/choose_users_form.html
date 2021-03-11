@@ -11,7 +11,12 @@
         <h2>Choose Students to Email </h2>
         <p>Select by class, workshop/event and/or select specific students.</p>
 
-        <a id="toggler" href="#" data-toggle="collapse" data-target="#userfilters" class="collapsed">
+    <div id="spin-container">
+        <i id="spin1" class="fa-2x fas fa-spinner fa-spin email-spinner"></i>
+        <i id="spin2" class="fa-2x fas fa-spinner fa-spin email-spinner"></i>
+        <i id="spin3" class="fa-2x fas fa-spinner fa-spin email-spinner"></i>
+    </div>
+        <a id="toggler" href="#" data-toggle="collapse" data-target="#userfilters">
             <h4><span class="fa fa-plus-square"></span> View/hide selection options</h4>
         </a>
             <div class="card card-wm">
@@ -81,6 +86,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.min.js" integrity="sha512-aFvi2oPv3NjnjQv1Y/hmKD7RNMendo4CZ2DwQqMWzoURKxcqAoktj0nNG4LU8m23+Ws9X5uVDD4OXLqpUVXD5Q==" crossorigin="anonymous"></script>
 <script type="text/javascript">
     $(document).ready(function() {
+        function alerted1 (select, container) {
+            $("#spin1").hide();
+        }
+        function alerted2 (select, container) {
+            $("#spin2").hide();
+        }
+        function alerted3 (select, container) {
+            $("#spin3").hide();
+        }
+
         $('#id_filter-lessons').multiselect({
             buttonClass: 'btn btn-sm btn-wm mt-2',
             buttonWidth: '100%',
@@ -90,6 +105,7 @@
             nonSelectedText: 'Click to choose classes',
             enableFiltering: true,
             enableCaseInsensitiveFiltering: true,
+            onInitialized: alerted1
         });
         $('#id_filter-events').multiselect({
             buttonClass: 'btn btn-sm btn-wm mt-2',
@@ -100,6 +116,7 @@
             nonSelectedText: 'Click to choose workshops/events',
             enableFiltering: true,
             enableCaseInsensitiveFiltering: true,
+            onInitialized: alerted2
         });
         $('#id_filter-students').multiselect({
             buttonClass: 'btn btn-sm btn-wm mt-2',
@@ -110,6 +127,7 @@
             nonSelectedText: 'Click to choose students',
             enableFiltering: true,
             enableCaseInsensitiveFiltering: true,
+            onInitialized: alerted3
         });
 
 
