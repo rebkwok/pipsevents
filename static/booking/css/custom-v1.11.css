@@ -1762,3 +1762,8 @@ div.override_options {
 span.disclaimer_version {
   width: 300px;
 }
+
+.multiselect-container>li>a>label {
+  padding: 3px 10px 3px 10px;
+  white-space: nowrap;
+}

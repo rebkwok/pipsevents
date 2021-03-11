@@ -14,7 +14,7 @@ from ckeditor.widgets import CKEditorWidget
 def get_event_names(event_type):
 
     def callable():
-        EVENT_CHOICES = [(event.id, str(event)) for event in Event.objects.filter(
+        EVENT_CHOICES = [(event.id, f"{event.name} - {event.date.strftime('%d-%b-%y, %H:%M')}") for event in Event.objects.filter(
             event_type__event_type=event_type, date__gte=timezone.now()
         ).order_by('date')]
         return tuple(EVENT_CHOICES)
@@ -39,19 +39,22 @@ class UserFilterForm(forms.Form):
 
     events = forms.MultipleChoiceField(
         choices=get_event_names('EV'),
-        widget=FilteredSelectMultiple('Events/Workshops', False),
-        required=False
+        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        required=False,
+        label=""
     )
 
     lessons = forms.MultipleChoiceField(
         choices=get_event_names('CL'),
-        widget=FilteredSelectMultiple('Classes', False),
-        required=False
+        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        required=False,
+        label=""
     )
     students = forms.MultipleChoiceField(
         choices=get_students(),
-        widget=FilteredSelectMultiple('Students', False),
-        required=False
+        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        required=False,
+        label=""
     )
 
 

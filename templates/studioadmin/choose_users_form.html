@@ -1,38 +1,28 @@
 {% extends "studioadmin/base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% load bookingtags %}
 
-{% block head %}
-    <script type="text/javascript" src="{% url 'studioadmin:jsi18n' %}"></script>
-    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-    <script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'admin/css/widgets.css' %}">
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/css/bootstrap-multiselect.css" integrity="sha512-EvvoSMXERW4Pe9LjDN9XDzHd66p8Z49gcrB7LCUplh0GcEHiV816gXGwIhir6PJiwl0ew8GFM2QaIg2TW02B9A==" crossorigin="anonymous" />
 {% endblock %}
+
 {% block studioadmincontent %}
-
-    <div class="container-fluid">
-
         <h2>Choose Students to Email </h2>
         <p>Select by class, workshop/event and/or select specific students.</p>
 
         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#userfilters">
             <h4><span class="fa fa-plus-square"></span> View/hide selection options</h4>
         </a>
-        <div class="row">
-
             <div class="card card-wm">
-                <span id="userfilters" class="collapse {% if not showing_students %} in{% endif %}">
+                <span id="userfilters" class="active {% if not showing_students %}collapsed{% endif %}">
 
                 <div class="card-body">
-                    {{ userfilterform.media }}
                     <form action="" method="post">
                         {% csrf_token %}
-                        <div>{{ userfilterform.lessons }}</div>
-                        <div>{{ userfilterform.events }}</div>
-                        <div>{{ userfilterform.students }}</div>
-
-                        <div class="col-12">
-                            <input class="btn table-btn btn-info" name="filter" type="submit" value="Show Students" /><br/>
+                        {{ userfilterform|crispy }}
+                        <div class="col-12 mt-2">
+                            <input class="btn table-btn btn-secondary" name="filter" type="submit" value="Show Students" /><br/>
                         </div>
                     </form>
                 </div>
@@ -82,13 +72,48 @@
             {% elif showing_students %}
                 <div>No students match selected options.</div>
             {% endif %}
-                </div>
         </div>
-    </div>
 
 {% endblock studioadmincontent %}
 
 
 {% block extra_js %}
-    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.min.js" integrity="sha512-aFvi2oPv3NjnjQv1Y/hmKD7RNMendo4CZ2DwQqMWzoURKxcqAoktj0nNG4LU8m23+Ws9X5uVDD4OXLqpUVXD5Q==" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#id_filter-lessons').multiselect({
+            buttonClass: 'btn btn-sm btn-wm mt-2',
+            buttonWidth: '100%',
+            maxHeight: 400,
+            disableIfEmpty: true,
+            numberDisplayed: 1,
+            nonSelectedText: 'Click to choose classes',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true,
+        });
+        $('#id_filter-events').multiselect({
+            buttonClass: 'btn btn-sm btn-wm mt-2',
+            buttonWidth: '100%',
+            maxHeight: 400,
+            disableIfEmpty: true,
+            numberDisplayed: 1,
+            nonSelectedText: 'Click to choose workshops/events',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true,
+        });
+        $('#id_filter-students').multiselect({
+            buttonClass: 'btn btn-sm btn-wm mt-2',
+            buttonWidth: '100%',
+            maxHeight: 400,
+            disableIfEmpty: true,
+            numberDisplayed: 1,
+            nonSelectedText: 'Click to choose students',
+            enableFiltering: true,
+            enableCaseInsensitiveFiltering: true,
+        });
+
+
+    });
+</script>
+
 {% endblock %}
