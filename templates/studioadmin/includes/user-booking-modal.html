@@ -15,13 +15,11 @@
                     {% for field in form %}
                          <div class="form-group">
                             {% if field.field.widget.input_type  == "checkbox" %}
-                            <div class="custom-control custom-checkbox mb-3">
                                 {{ field }}
-                                <label class="custom-control-label" for="id_{{ field.name }}">{{ field.label }}</label>
-                            </div>
+                                <label class="control-label" for="id_{{ field.name }}">{{ field.label }}</label>
                             {% else %}
-                                <label>{{ field.label_tag }}</label>
-                                <span>{{ field }}<label for='id_{{ field.name }}'></label></span>
+                                <label for="id_{{ field.name }}">{{ field.label }}</label>
+                                {{ field }}
                             {% endif %}
                             {% if field.errors %}
                                 <div class="form-error">
