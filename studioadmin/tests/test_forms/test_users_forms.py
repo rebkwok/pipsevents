@@ -632,25 +632,20 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         form = EditPastBookingForm(instance=self.booking_for_cancelled)
         for field in fields_to_disable:
             widget_attrs = form.fields[field].widget.attrs
-            self.assertEqual(
-                widget_attrs['class'],
-                'regular-checkbox regular-checkbox-disabled'
-            )
+            self.assertEqual(widget_attrs['class'], "custom-control-input")
+            self.assertEqual(widget_attrs['disabled'], "disabled")
+
             self.assertIn('OnClick', widget_attrs)
             self.assertEqual(
                 widget_attrs['OnClick'], 'javascript:return ReadOnlyCheckBox()'
             )
 
-        # checkboxes greyed out but still usable for no-shows
+        # checkboxes still usable for no-shows
         self.booking.no_show = True
         self.booking.save()
         form = EditPastBookingForm(instance=self.booking)
         for field in fields_to_disable:
             widget_attrs = form.fields[field].widget.attrs
-            self.assertEqual(
-                widget_attrs['class'],
-                'regular-checkbox regular-checkbox-disabled'
-            )
             self.assertNotIn('OnClick', widget_attrs)
 
     def test_changing_status_to_cancelled(self):

@@ -599,7 +599,7 @@ class EditPastBookingForm(forms.ModelForm):
             # disable all for cancelled
             for widget in all_widgets_to_disable:
                 widget.attrs.update({
-                    'class': "custom-control-input", 'disabled': 'disabled',
+                    'class': "custom-control-input", "disabled": "disabled",
                     'OnClick': "javascript:return ReadOnlyCheckBox()"
                 })
         elif self.instance.no_show:
