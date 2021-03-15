@@ -1779,3 +1779,5 @@ span.disclaimer_version {
   position: absolute;
   color: rgba(240, 139, 165, 0.9);
 }
+
+input[type=checkbox] { -webkit-appearance: none; }
