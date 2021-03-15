@@ -89,7 +89,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': "form-check-input",
                 'id': 'paid_{}'.format(index)
             }),
             required=False,
@@ -98,7 +98,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         form.fields['deposit_paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': "form-check-input",
                 'id': 'deposit_paid_{}'.format(index)
             }),
             required=False
@@ -107,7 +107,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         form.fields['free_class'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': "form-check-input",
                 'id': 'free_class_{}'.format(index)
             }),
             required=False
@@ -116,7 +116,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         form.fields['send_confirmation'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': "form-check-input",
                 'id': 'send_confirmation_{}'.format(index)
             }),
             initial=False,
@@ -131,7 +131,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
 
         form.fields['no_show'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': "form-check-input",
                 'id': 'no_show_{}'.format(index)
             }),
             required=False
@@ -373,7 +373,7 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
 
         form.fields['paid'] = forms.BooleanField(
             widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
+                'class': "form-check-input",
                 'id': 'paid_{}'.format(index)
             }),
             required=False
@@ -435,7 +435,7 @@ class UserListSearchForm(forms.Form):
 class AddBookingForm(forms.ModelForm):
 
     send_confirmation = forms.BooleanField(
-            widget=forms.CheckboxInput(),
+            widget=forms.CheckboxInput(attrs={'class': "form-check-input"}),
             initial=False,
             required=False
         )
@@ -450,13 +450,13 @@ class AddBookingForm(forms.ModelForm):
 
         widgets = {
             'user': forms.HiddenInput(),
-            'paid': forms.CheckboxInput(),
+            'paid': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'status': forms.Select(
                 attrs={'class': "form-control input-sm"}
             ),
-            'no_show': forms.CheckboxInput(),
-            'attended': forms.CheckboxInput(),
-            'free_class': forms.CheckboxInput()
+            'no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'attended': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'free_class': forms.CheckboxInput(attrs={'class': "form-check-input"})
         }
 
     def __init__(self, *args, **kwargs):
@@ -547,14 +547,14 @@ class EditPastBookingForm(forms.ModelForm):
         )
 
         widgets = {
-            'deposit_paid': forms.CheckboxInput(),
-            'paid': forms.CheckboxInput(),
+            'deposit_paid': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'paid': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'status': forms.Select(
                 attrs={'class': "form-control input-sm"}
             ),
-            'no_show': forms.CheckboxInput(),
-            'attended': forms.CheckboxInput(),
-            'free_class': forms.CheckboxInput()
+            'no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'attended': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'free_class': forms.CheckboxInput(attrs={'class': "form-check-input"})
         }
 
     def __init__(self, *args, **kwargs):
@@ -690,7 +690,7 @@ class EditBookingForm(EditPastBookingForm):
         super(EditBookingForm, self).__init__(*args, **kwargs)
 
         self.fields['send_confirmation'] = forms.BooleanField(
-            widget=forms.CheckboxInput(),
+            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             initial=False,
             required=False
         )
