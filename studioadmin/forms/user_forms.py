@@ -435,13 +435,10 @@ class UserListSearchForm(forms.Form):
 class AddBookingForm(forms.ModelForm):
 
     send_confirmation = forms.BooleanField(
-            widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
-            }),
+            widget=forms.CheckboxInput(attrs={'class': "custom-control-input"}),
             initial=False,
             required=False
         )
-
 
     class Meta:
         model = Booking
@@ -453,29 +450,13 @@ class AddBookingForm(forms.ModelForm):
 
         widgets = {
             'user': forms.HiddenInput(),
-            'paid': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
+            'paid': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
             'status': forms.Select(
                 attrs={'class': "form-control input-sm"}
             ),
-            'no_show': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
-            'attended': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
-            'free_class': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            )
+            'no_show': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
+            'attended': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
+            'free_class': forms.CheckboxInput(attrs={'class': "custom-control-input"})
         }
 
     def __init__(self, *args, **kwargs):
@@ -566,34 +547,14 @@ class EditPastBookingForm(forms.ModelForm):
         )
 
         widgets = {
-            'deposit_paid': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
-            'paid': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
+            'deposit_paid': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
+            'paid': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
             'status': forms.Select(
                 attrs={'class': "form-control input-sm"}
             ),
-            'no_show': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
-            'attended': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            ),
-            'free_class': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    }
-            )
+            'no_show': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
+            'attended': forms.CheckboxInput(attrs={'class': "custom-control-input"}),
+            'free_class': forms.CheckboxInput(attrs={'class': "custom-control-input"})
         }
 
     def __init__(self, *args, **kwargs):
@@ -638,21 +599,20 @@ class EditPastBookingForm(forms.ModelForm):
             # disable all for cancelled
             for widget in all_widgets_to_disable:
                 widget.attrs.update({
-                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'class': "custom-control-input", 'disabled': 'disabled',
                     'OnClick': "javascript:return ReadOnlyCheckBox()"
                 })
         elif self.instance.no_show:
             # make checkboxes greyed out but still usable for no-shows
             for widget in all_widgets_to_disable:
-                widget.attrs.update({
-                    'class': 'regular-checkbox regular-checkbox-disabled'
-                })
+                widget.attrs.update({'class': "custom-control-input"})
 
         if self.instance.block:
             # also disable payment and free class fields for block bookings
             for widget in [paid_widget, deposit_paid_widget, free_class_widget]:
                 widget.attrs.update({
-                    'class': 'regular-checkbox regular-checkbox-disabled',
+                    'class': "custom-control-input",
+                    'disabled': 'disabled',
                     'OnClick': "javascript:return ReadOnlyCheckBox()"
                 })
 
@@ -735,9 +695,7 @@ class EditBookingForm(EditPastBookingForm):
         super(EditBookingForm, self).__init__(*args, **kwargs)
 
         self.fields['send_confirmation'] = forms.BooleanField(
-            widget=forms.CheckboxInput(attrs={
-                'class': "regular-checkbox",
-            }),
+            widget=forms.CheckboxInput(attrs = {'class': "custom-control-input"}),
             initial=False,
             required=False
         )

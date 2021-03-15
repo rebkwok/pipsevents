@@ -12,8 +12,15 @@
                 {{ form.non_field_errors }}
                     {% for field in form.visible_fields %}
                          <div class="form-group">
-                             <label>{{ field.label_tag }}</label>
-                             <span>{{ field }}<label for='id_new_{{ field.name }}'></label></span>
+                            {% if field.field.widget.input_type  == "checkbox" %}
+                            <div class="custom-control custom-checkbox mb-3">
+                                {{ field }}
+                                <label class="custom-control-label" for="id_new_{{ field.name }}">{{ field.label }}</label>
+                            </div>
+                            {% else %}
+                                <label for="id_new_{{ field.name }}">{{ field.label }}</label>
+                                {{ field }}
+                            {% endif %}
 
                             {% if field.errors %}
                                 <div class="form-error">
