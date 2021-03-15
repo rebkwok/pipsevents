@@ -1,15 +1,46 @@
 <div class="modal-dialog modal-md">
     <div class="modal-content">
+
+    <div class="modal-header">
+            <h4 class="modal-title" id="UserBookingModalLabel">Editing booking for {{ booking.user.first_name }} {{ booking.user.last_name}}</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    </div>
+    <div class="modal-header">
+         <h4 class="modal-title">{{ booking.event }} {% if booking.event.cancelled %}(CANCELLED){% endif %}</h4>
+    </div>
+
+    <form>
+        <div class="modal-body">
+            <input type="checkbox"/>
+            <label for="testa">Test A</label>
+            <div>
+            <input type="checkbox"/>
+            <label for="testb">Test B</label>
+            </div>
+            <div class="form-group">
+                <input class="form-check-inline" type="checkbox"/>
+                <label class="control-label" for="testc">Test C</label>
+            </div>
+    </form>
+
+
         <form id="user-booking-form" method='post' class="form" role="form" action='{% url "studioadmin:bookingedit" booking.id %}'>
 
-            <div class="modal-header">
-                    <h4 class="modal-title" id="UserBookingModalLabel">Editing booking for {{ booking.user.first_name }} {{ booking.user.last_name}}</h4>
-                    <h4>{{ booking.event }} {% if booking.event.cancelled %}(CANCELLED){% endif %}</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-
+            <div class="modal-body">
+            <input type="checkbox"/>
+            <label for="test1">Test 1</label>
+            <div>
+            <input type="checkbox"/>
+            <label for="test2">Test 2</label>
             </div>
 
-            <div class="modal-body">
+            <div class="form-group">
+                <input class="form-check-inline" type="checkbox"/>
+                <label class="control-label" for="test3">Test 3</label>
+            </div>
+
+            <hr/>
+            
                 {% csrf_token %}
                 {{ form.non_field_errors }}
                     {% for field in form %}
