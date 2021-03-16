@@ -377,8 +377,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
                 'javascript:return ReadOnlyCheckBox()'
             )
         self.assertEqual(
-            block_form.fields['no_show'].widget.attrs['class'],
-            'regular-checkbox'
+            block_form.fields['no_show'].widget.attrs['class'], 'form-check-input'
         )
 
         no_show_form = formset.forms[2]
@@ -402,8 +401,7 @@ class UserBookingFormSetTests(PatchRequestMixin, TestCase):
                 'javascript:return ReadOnlyCheckBox()'
             )
         self.assertEqual(
-            block_form.fields['no_show'].widget.attrs['class'],
-            'regular-checkbox'
+            block_form.fields['no_show'].widget.attrs['class'], 'form-check-input'
         )
         self.assertIsNone(
                 no_show_form.fields['no_show'].widget.attrs.get('OnClick', None)
@@ -632,7 +630,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         form = EditPastBookingForm(instance=self.booking_for_cancelled)
         for field in fields_to_disable:
             widget_attrs = form.fields[field].widget.attrs
-            self.assertEqual(widget_attrs['class'], "custom-control-input")
+            self.assertEqual(widget_attrs['class'], "form-check-input")
             self.assertEqual(widget_attrs['disabled'], "disabled")
 
             self.assertIn('OnClick', widget_attrs)

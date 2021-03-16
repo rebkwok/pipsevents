@@ -46,8 +46,6 @@ class TimetableSessionFormSetTests(TestCase):
             data=self.formset_data(), queryset=Session.objects.all())
         form =formset.forms[0]
         self.assertEqual(form.formatted_day, DAY_CHOICES[self.session.day])
-        self.assertEqual(form.booking_open_id, 'booking_open_0')
-        self.assertEqual(form.payment_open_id, 'payment_open_0')
 
     def test_can_delete(self):
         session_to_delete = baker.make(Session)

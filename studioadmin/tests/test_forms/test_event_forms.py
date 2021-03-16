@@ -86,11 +86,11 @@ class EventFormSetTests(TestCase):
             fields['DELETE'].widget
         self.assertEqual(
             delete_no_bookings_widget.attrs['class'],
-            'delete-checkbox studioadmin-list'
+            'form-check-input position-static studioadmin-list'
         )
         self.assertEqual(
             delete_with_bookings_widget.attrs['class'],
-            'delete-checkbox studioadmin-list'
+            'form-check-input position-static studioadmin-list'
         )
 
 
@@ -145,7 +145,7 @@ class EventAdminFormTests(TestCase):
         cancelled_field = form.fields['cancelled']
         self.assertEqual(
             cancelled_field.widget.attrs,
-            {'disabled': 'disabled', 'id': 'cancelled_id', 'class': 'hide'}
+            {'class': 'form-check-input', 'disabled': 'disabled'}
         )
         self.assertEqual(
             cancelled_field.help_text,
@@ -160,7 +160,7 @@ class EventAdminFormTests(TestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(
             cancelled_field.widget.attrs,
-            {'class': 'form-control regular-checkbox', 'id': 'cancelled_id'}
+            {'class': 'form-check-input'}
         )
         self.assertEqual(
             cancelled_field.help_text,
