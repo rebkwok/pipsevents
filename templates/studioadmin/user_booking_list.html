@@ -15,7 +15,7 @@
             <div class="col-sm-12">
 
                     <div class="top-button-row">
-                        <a class="bookingadd btn btn-wm table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
+                        <a class="bookingadd btn btn-wm table-btn" href="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
                         <span class="float-right">
                             {% if booking_status == 'past' %}
                                 <a class="btn btn-info table-btn filter-btn" href="{% url 'studioadmin:user_upcoming_bookings_list' user.id %}">Show Upcoming Bookings</a>
@@ -55,20 +55,14 @@
                             </thead>
                             <tbody>
 
-
-                            <!-- Modal -->
-                            <div class="modal fade" id="UserBookingModal" tabindex="-1" role="dialog" aria-labelledby="UserBookingModalLabel"></div>
-                            <div class="modal fade" id="UserBookingAddModal" tabindex="-1" role="dialog" aria-labelledby="UserBookingAddModalLabel"></div>
-                            <!-- /.modal -->
-
                                 {% for booking in bookings %}
                                     <tr {% if booking.status == 'CANCELLED' or booking.no_show %} class='expired'{% endif %}>
                                         <td class="studioadmin-tbl">
-                                            <a class="bookingedit" href="#"
+                                            <a class="bookingedit"
                                                {% if booking_status == 'future' %}
-                                                   data-form="{% url 'studioadmin:bookingedit' booking.id %}"
+                                                   href="{% url 'studioadmin:bookingedit' booking.id %}"
                                                 {% else %}
-                                                    data-form="{% url 'studioadmin:bookingeditpast' booking.id %}"
+                                                    href="{% url 'studioadmin:bookingeditpast' booking.id %}"
                                                 {% endif %}
                                                title="edit booking">Edit</a></td>
                                         <td class="studioadmin-tbl">{% if booking_status == 'future' %}{{ booking.event.date|date:"d M H:i" }}{% else %}{{ booking.event.date|date:"d M Y H:i" }}{% endif %}</td>
@@ -98,7 +92,7 @@
                                 {% if booking_status == 'future' %}
                                     <tr>
                                         <td class="studioadmin-tbl" colspan="10">
-                                            <a class="bookingadd btn btn-wm table-btn" href="#" data-form="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
+                                            <a class="bookingadd btn btn-wm table-btn" href="{% url 'studioadmin:bookingadd' user.id %}" title="add booking">New booking</a>
                                         </td>
                                     </tr>
                                 {% endif %}
@@ -131,31 +125,3 @@
 
 
 {% endblock studioadmincontent %}
-
-
-{% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.2.2/jquery.form.min.js" integrity="sha384-FzT3vTVGXqf7wRfy8k4BiyzvbNfeYjK+frTVqZeNDFl8woCbF0CYG6g2fMEFFo/i" crossorigin="anonymous"></script>
-<script>
-    $(".bookingedit").click(function(ev) { // for each edit url
-        ev.preventDefault(); // prevent navigation
-        var url = $(this).data("form"); // get the form url
-        $("#UserBookingModal").load(url, function() { // load the url into the modal
-            $(this).modal('show'); // display the modal on url load
-        });
-
-        return false; // prevent the click propagation
-    });
-</script>
-<script>
-    $(".bookingadd").click(function(ev) { // for each add url
-        ev.preventDefault(); // prevent navigation
-        var url = $(this).data("form"); // get the form url
-        $("#UserBookingAddModal").load(url, function() { // load the url into the modal
-            $(this).modal('show'); // display the modal on url load
-        });
-
-        return false; // prevent the click propagation
-    });
-
-</script>
-{% endblock %}

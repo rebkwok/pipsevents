@@ -97,9 +97,9 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.booking_open }}</div></td>
-                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
+                                <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.payment_open }}</div></td>
                                 {% if type != "online_tutorials" %}
-                                <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
+                                    <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.advance_payment_required }}</div></td>
                                 <td class="text-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
                                 {% else %}
                                     <span class="hide">{{ event.advance_payment_required }}</span>
@@ -113,7 +113,7 @@
                                             <div id="cancel_button" class="btn btn-danger table-btn">Cancel {% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% endif %}</div>
                                         </a>
                                     {% else %}
-                                        {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
+                                        <div class="form-check">{{ event.DELETE }}<label for={{ event.DELETE_id }}></label></div>
                                     {% endif %}
                                 </td>
                             </tr>

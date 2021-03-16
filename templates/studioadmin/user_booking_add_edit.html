@@ -1,0 +1,55 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+ {% if new %}
+     <h2 class="modal-title" id="UserBookingAddModalLabel">Adding booking for {{ form_user.first_name }} {{ form_user.last_name}}</h2>
+ {% else %}
+     <h2>Editing booking for {{ booking.user.first_name }} {{ booking.user.last_name}}</h2>
+     <h2>{{ booking.event }} {% if booking.event.cancelled %}(CANCELLED){% endif %}</h2>
+{% endif %}
+
+<form id="user-booking-form" method='post' class="form" role="form" action="">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+        {% for field in form %}
+             <div class="form-group">
+                {% if field.field.widget.input_type  == "checkbox" %}
+                    <div class="form-check form-check-inline">
+                    {{ field }}
+                    <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
+                    </div>
+                {% else %}
+                    {% if field.name != "user" %}
+                    <label for="id_{{ field.name }}">{{ field.label }}</label>
+                    {% endif %}
+                    {{ field }}
+                {% endif %}
+                {% if field.errors %}
+                    <div class="form-error">
+                        {% for error in field.errors %}
+                            <span class="fa fa-exclamation-triangle"></span>{{ error|escape }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if field.errors %}
+                    <div class="form-error">
+                        {% for error in field.errors %}
+                            <span class="fas fa-exclamation-triangle"></span>{{ error|escape }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    <div class="row">
+        <a class="btn btn-secondary mr-2" href="{{request.META.HTTP_REFERER}}">Cancel</a>
+        <input type="submit" class="btn btn-wm" value="Save" />
+    </div>
+
+    {% for field in form.hidden_fields %}
+         <div style="display:none;">{{ field }}</div>
+     {% endfor %}
+</form>
+{% endblock %}

@@ -26,41 +26,28 @@ class SessionBaseFormSet(BaseModelFormSet):
             form.formatted_day = DAY_CHOICES[form.instance.day]
 
             form.fields['booking_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'booking_open_{}'.format(index)
-                }),
+                widget=forms.CheckboxInput(attrs={'class': "form-check-input"}),
                 required=False
             )
-            form.booking_open_id = 'booking_open_{}'.format(index)
 
             form.fields['payment_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'payment_open_{}'.format(index)
-                }),
+                widget=forms.CheckboxInput(attrs={'class': "form-check-input"}),
                 initial=form.instance.payment_open,
                 required=False
             )
-            form.payment_open_id = 'payment_open_{}'.format(index)
 
             form.fields['advance_payment_required'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'advance_payment_required_{}'.format(index)
-                }),
+                widget=forms.CheckboxInput(attrs={'class': ""}),
                 required=False
             )
-            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
             form.fields['DELETE'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
-                    'class': 'delete-checkbox studioadmin-list',
-                    'id': 'DELETE_{}'.format(index)
+                    'class': 'form-check-input studioadmin-list',
                 }),
                 required=False
             )
-            form.DELETE_id = 'DELETE_{}'.format(index)
+
 
 TimetableSessionFormSet = modelformset_factory(
     Session,
@@ -245,42 +232,12 @@ class SessionAdminForm(forms.ModelForm):
                     'class': "form-control",
                     }
             ),
-            'booking_open': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'booking_open_id',
-                    }
-            ),
-            'payment_open': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'payment_open_id',
-                    }
-            ),
-            'advance_payment_required': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'advance_payment_required_id',
-                    }
-            ),
-            'external_instructor': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'ext_instructor_id',
-                    },
-            ),
-            'allow_booking_cancellation': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'allow_booking_cancellation_id',
-                    }
-            ),
-            'email_studio_when_booked': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'email_studio_when_booked_id',
-                    }
-            ),
+            'booking_open': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'payment_open': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'advance_payment_required': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'external_instructor': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'allow_booking_cancellation': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'email_studio_when_booked': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'paypal_email': forms.EmailInput(
                 attrs={'class': "form-control"}
             ),

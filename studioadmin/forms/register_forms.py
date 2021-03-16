@@ -26,12 +26,11 @@ class RegisterDayForm(forms.Form):
             required=True,
             initial=date.today()
         )
-
         self.fields['exclude_ext_instructor'] = forms.BooleanField(
             label="Exclude classes by external instructors:",
             widget=forms.CheckboxInput(
                 attrs={
-                    'class': 'regular-checkbox select-checkbox',
+                    'class': 'form-check-input select-checkbox',
                     'id': 'exclude_ext_instructor_id',
                     'style': 'align-text: top;',
                     'onchange': "this.form.submit()"

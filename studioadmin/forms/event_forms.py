@@ -22,38 +22,33 @@ class EventBaseFormSet(BaseModelFormSet):
             form.fields['booking_open'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
                     'class': "form-check-input position-static studioadmin-list",
-                    'id': 'booking_open_{}'.format(index)
                 }),
                 required=False
             )
-            form.booking_open_id = 'booking_open_{}'.format(index)
 
             form.fields['payment_open'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'payment_open_{}'.format(index)
+                    'class': "form-check-input position-static studioadmin-list",
                 }),
                 required=False
             )
-            form.payment_open_id = 'payment_open_{}'.format(index)
 
             form.fields['advance_payment_required'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'advance_payment_required_{}'.format(index)
+                    'class': "form-check-input position-static  studioadmin-list",
                 }),
                 required=False
             )
-            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
 
             form.fields['DELETE'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
-                    'class': 'delete-checkbox studioadmin-list',
+                    'class': 'form-check-input position-static studioadmin-list',
                     'id': 'DELETE_{}'.format(index)
                 }),
                 required=False
             )
             form.DELETE_id = 'DELETE_{}'.format(index)
+
 
 EventFormSet = modelformset_factory(
     Event,
@@ -127,12 +122,11 @@ class EventAdminForm(forms.ModelForm):
             ev_type_str = ph_type
 
             if not self.instance.cancelled:
-                self.not_cancelled_text = 'No'
                 self.fields['cancelled'].\
                     help_text = 'To cancel, use the Cancel button on the {} ' \
                                 'list page'.format(ev_type_str)
                 self.fields['cancelled'].widget.attrs.update(
-                    {'disabled': 'disabled', 'class': "hide"})
+                    {'disabled': 'disabled'})
             else:
                 self.fields['cancelled'].\
                     help_text = 'Untick to reopen {}; note that this does ' \
@@ -295,10 +289,7 @@ class EventAdminForm(forms.ModelForm):
                 attrs={'class': "form-control"}
             ),
             'video_link_available_after_class': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'video_link_available_after_class_id',
-                }
+                attrs={'class': "form-check-input"}
             ),
             'payment_info': CKEditorWidget(
                 attrs={'class': 'form-control container-fluid'},
@@ -339,46 +330,25 @@ class EventAdminForm(forms.ModelForm):
                     }
             ),
             'booking_open': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'booking_open_id',
-                    }
+                attrs={'class': "form-check-input"}
             ),
             'payment_open': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'payment_open_id',
-                    },
+                attrs={'class': "form-check-input"},
             ),
             'advance_payment_required': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'advance_payment_required_id',
-                    },
+                attrs={'class': "form-check-input"},
             ),
             'external_instructor': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'ext_instructor_id',
-                    },
+                attrs={'class': "form-check-input"},
             ),
             'email_studio_when_booked': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'email_studio_id',
-                    },
+                attrs={'class': "form-check-input"},
             ),
             'cancelled': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'cancelled_id',
-                    }
+                attrs={'class': "form-check-input"}
             ),
             'allow_booking_cancellation': forms.CheckboxInput(
-                attrs={
-                    'class': "form-control regular-checkbox",
-                    'id': 'allow_booking_cancellation_id',
-                    }
+                attrs={'class': "form-check-input"}
             ),
             'paypal_email': forms.EmailInput(
                 attrs={'class': "form-control"}

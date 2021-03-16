@@ -36,13 +36,14 @@
                                             {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
                                         </div>
                                     </div>
-                            {% elif field.name == "booking_open" or field.name == "payment_open" or field.name == "advance_payment_required" or field.name == "external_instructor" or field.name == "email_studio_when_booked" or field.name == "allow_booking_cancellation" or field.name == "video_link_available_after_class" %}
-                                <div class="form-group cbox">
-                                    <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>
-                                    <span {% if field.errors %}class="ticket-error"{% endif %}>
-                                        {{ field }}<label for='{{ field.name }}_id'></label></span>
-                                    <div class="studioadmincbox-help">{{ field.help_text }}</div>
-                                    {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
+                             {% elif field.field.widget.input_type  == "checkbox" %}
+                                    <div class="form-group cbox">
+                                        <div class="form-check form-check-inline {% if field.errors %}ticket-error{% endif %}">
+                                        {{ field }}
+                                         <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>
+                                        </div>
+                                        <div class="studioadmincbox-help">{{ field.help_text }}</div>
+                                        {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
                                     </div>
                              {% else %}
                                 <div class="form-group">

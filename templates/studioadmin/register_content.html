@@ -78,7 +78,9 @@
                                     {% if booking.paypal_paid %}
                                         <span class="fas fa-check"></span>
                                     {% else %}
-                                        <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="regular-checkbox booking-paid-checkbox" {% if booking.paid %}checked="checked"{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
+                                        <div class="form-check position-static">
+                                        <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="form-check-input booking-paid-checkbox" {% if booking.paid %}checked="checked"{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
+                                        </div>
                                     {% endif %}
                                 </td>
                                 {% if available_block_type %}
