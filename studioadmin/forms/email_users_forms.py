@@ -29,7 +29,7 @@ def get_students():
             [
                 (user.id, '{} {} ({})'.format(
                     user.first_name, user.last_name, user.username
-                )) for user in User.objects.all()
+                )) for user in User.objects.all().order_by("first_name")
                 ]
         )
     return callable
