@@ -96,7 +96,7 @@
                                         {{ event.instance|bookings_count }}
                                     {% endif %}
                                 </td>
-                                <td class="text-center studioadmin-tbl">{{ event.booking_open }}<label for={{ event.booking_open_id }}></label></td>
+                                <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.booking_open }}</div></td>
                                 <td class="text-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
                                 {% if type != "online_tutorials" %}
                                 <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>

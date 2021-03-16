@@ -21,7 +21,7 @@ class EventBaseFormSet(BaseModelFormSet):
         if form.instance:
             form.fields['booking_open'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
+                    'class': "form-check-input position-static studioadmin-list",
                     'id': 'booking_open_{}'.format(index)
                 }),
                 required=False

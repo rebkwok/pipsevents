@@ -11,15 +11,17 @@
 
     <form>
         <div class="modal-body">
-            <input type="checkbox"/>
             <label for="testa">Test A</label>
-            <div>
             <input type="checkbox"/>
+            <div>
             <label for="testb">Test B</label>
+            <input type="checkbox"/>
             </div>
             <div class="form-group">
-                <input class="form-check-inline" type="checkbox"/>
-                <label class="control-label" for="testc">Test C</label>
+            <div class="form-check form-check-inline">
+                <label class="form-check-label" for="testc">Test C</label>
+                <input class="form-check-input" type="checkbox"/>
+            </div>
             </div>
     </form>
 
@@ -27,28 +29,30 @@
         <form id="user-booking-form" method='post' class="form" role="form" action='{% url "studioadmin:bookingedit" booking.id %}'>
 
             <div class="modal-body">
-            <input type="checkbox"/>
             <label for="test1">Test 1</label>
-            <div>
             <input type="checkbox"/>
+            <div>
             <label for="test2">Test 2</label>
+            <input type="checkbox"/>
             </div>
 
             <div class="form-group">
-                <input class="form-check-inline" type="checkbox"/>
-                <label class="control-label" for="test3">Test 3</label>
+            <div class="form-check form-check-inline">
+                <label class="form-check-label" for="test3">Test 3</label>
+                <input class="form-check-input" type="checkbox"/>
+            </div>
             </div>
 
             <hr/>
-            
+
                 {% csrf_token %}
                 {{ form.non_field_errors }}
                     {% for field in form %}
                          <div class="form-group">
                             {% if field.field.widget.input_type  == "checkbox" %}
-                                <div class="form-check">
+                                <div class="form-check form-check-inline">
                                 {{ field }}
-                                <label class="control-label" for="id_{{ field.name }}">{{ field.label }}</label>
+                                <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
                                 </div>
                             {% else %}
                                 <label for="id_{{ field.name }}">{{ field.label }}</label>

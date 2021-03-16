@@ -17,6 +17,8 @@ body {
   width: 100%;
   background-color: transparent;
   font-family: "Helvetica Neue", Arial, sans-serif;
+  max-width: 100%;
+  will-change: position;
 }
 .footer {
   position: absolute;
@@ -27,6 +29,34 @@ body {
   /*line-height: 40px; !* Vertically center the text there *!*/
   background-color: transparent;
 }
+
+@supports (-webkit-overflow-scrolling: touch) {
+  /*// Prevent Bootstrap 4.x iOS issue where user*/
+/*// scrolls the body behind the modal when body height > 100vh*/
+body.modal-open {
+    position: fixed;
+    top:    0;
+    right:  0;
+    bottom: 0;
+    left:   0;
+}
+
+.modal {
+  will-change: display;
+  max-width: 400px;
+}
+
+.modal-dialog {
+    will-change: transform;
+}
+
+.modal-body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+}
+
 
 
 /* Custom page CSS
