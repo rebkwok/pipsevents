@@ -22,7 +22,7 @@ PyYAML==5.1.2
 mailchimp3==3.0.9
 model-bakery==1.0.1
 django-ckeditor==5.9.0
-pillow==7.1.2
+pillow==8.1.1
 gunicorn==19.7.1
 static3==0.7.0
 shortuuid==0.5.0
