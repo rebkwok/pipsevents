@@ -12,7 +12,7 @@ django-environ==0.4.5
 django-extensions==3.1.1
 django-migration-testcase==0.0.15
 django-paypal==1.0.0
-djangorestframework==3.10.3
+djangorestframework==3.11.2
 # django-suit v2 branch 15/2/20
 git+git://github.com/darklow/django-suit.git@0d854c9b5e81adf9b9ea2ca9ee0a2856dcef5e15
 dj-static==0.0.6
