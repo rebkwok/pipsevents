@@ -18,7 +18,7 @@ git+git://github.com/darklow/django-suit.git@0d854c9b5e81adf9b9ea2ca9ee0a2856dce
 dj-static==0.0.6
 psycopg2==2.8.4
 python-dateutil==2.8.0
-PyYAML==5.1.2
+PyYAML==5.4
 mailchimp3==3.0.9
 model-bakery==1.0.1
 django-ckeditor==5.9.0
