@@ -4,7 +4,7 @@
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
+    <div>
 
         <h2>{% if is_block_voucher %}Block {% endif %}Voucher Uses: {{ voucher.code }}</h2>
 
@@ -26,6 +26,7 @@
                             <tr class="success">
                                 <th class="text-center">User</th>
                                 <th class="text-center">Times used</th>
+                                <th class="text-center">{% if is_block_voucher %}Block IDs{% else %}Booking IDs{% endif %}</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -34,7 +35,7 @@
                                 <tr>
                                     <td class="text-center studioadmin-tbl">{{ user.user.first_name }} {{ user.user.last_name }}</td>
                                     <td class="text-center studioadmin-tbl">{{ user.count }}</td>
-
+                                    <td class="text-center studioadmin-tbl">{{ user.item_ids }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}

@@ -553,7 +553,6 @@ def payment_received(sender, **kwargs):
                                 voucher__code=paypal_trans.voucher_code,
                                 user=obj.user
                             ).first()
-                            voucher_refunded = True
                         elif obj_type == "gift_voucher":
                             # if this is a refunded gift voucher, deactivate it
                             obj.activated = False
@@ -570,13 +569,13 @@ def payment_received(sender, **kwargs):
                         obj.save()
 
                 ActivityLog.objects.create(
-                    log='Transaction for {} id(s) {} for user {} has been refunded from paypal; '
+                    log='Transaction for {} id(s) {} for user {} has been {} from paypal; '
                         'paypal transaction id {}, invoice id {}.{}'.format(
                             obj_type.title(), obj_ids,
                             obj_list[0].user.username if obj_type != "gift_voucher" else obj_list[0].purchaser_email,
+                            "refunded" if full_refund else "part refunded",
                             ipn_obj.txn_id, paypal_trans_list[0].invoice_id,
-                            ' Used voucher deleted.' if voucher_refunded
-                            else ''
+                            f' Used voucher deleted (code {paypal_trans.voucher_code}).' if voucher_refunded else ''
                         )
                 )
                 if settings.SEND_ALL_STUDIO_EMAILS:

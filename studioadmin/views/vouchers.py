@@ -200,6 +200,9 @@ class EventVoucherDetailView(LoginRequiredMixin, StaffUserMixin, DetailView):
     def get_used_vouchers(self):
         return UsedEventVoucher.objects.filter(voucher=self.object)
 
+    def get_item_ids(self, vouchers):
+        return vouchers.values_list("booking_id", flat=True)
+
     def get_context_data(self, **kwargs):
         context = super(EventVoucherDetailView, self).get_context_data(**kwargs)
         context['sidenav_selection'] = 'vouchers'
@@ -209,11 +212,12 @@ class EventVoucherDetailView(LoginRequiredMixin, StaffUserMixin, DetailView):
             .order_by('user__first_name', 'user__last_name')
         user_ids = used_vouchers.values_list('user', flat=True).distinct()
         for user_id in user_ids:
-            voucher_count = used_vouchers.filter(user__id=user_id).count()
+            vouchers = used_vouchers.filter(user__id=user_id)
             user_list.append(
                 {
                     'user': User.objects.get(id=user_id),
-                    'count': voucher_count}
+                    "item_ids": ", ".join(str(item_id) for item_id in self.get_item_ids(vouchers)),
+                    'count': vouchers.count()}
             )
         context['user_list'] = user_list
         return context
@@ -226,6 +230,9 @@ class BlockVoucherDetailView(EventVoucherDetailView):
 
     def get_used_vouchers(self):
         return UsedBlockVoucher.objects.filter(voucher=self.object)
+
+    def get_item_ids(self, vouchers):
+        return vouchers.values_list("block_id", flat=True)
 
     def get_context_data(self, **kwargs):
         context = super(BlockVoucherDetailView, self).get_context_data(**kwargs)
