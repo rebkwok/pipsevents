@@ -123,7 +123,7 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
     list_filter = (PaypalBookingUserFilter, PaypalBookingCheckFilter, 'booking__event')
 
     search_fields = (
-        'user__first_name', 'user__last_name', 'user__username',
+        'booking__user__first_name', 'booking__user__last_name', 'booking__user__username',
         'invoice_id', 'transaction_id'
     )
 
@@ -164,6 +164,7 @@ class PaypalBookingTransactionAdmin(admin.ModelAdmin):
         else:
             return obj.booking.status
 
+
 class PaypalBlockTransactionAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'get_user', 'get_blocktype', 'invoice_id',
@@ -174,7 +175,7 @@ class PaypalBlockTransactionAdmin(admin.ModelAdmin):
     list_filter = (PaypalBlockUserFilter, PaypalBlockCheckFilter)
 
     search_fields = (
-        'user__first_name', 'user__last_name', 'user__username',
+        'block__user__first_name', 'block__user__last_name', 'block__user__username',
         'invoice_id', 'transaction_id'
     )
 
@@ -221,7 +222,8 @@ class PaypalTicketBookingTransactionAdmin(admin.ModelAdmin):
     )
 
     search_fields = (
-        'user__first_name', 'user__last_name', 'user__username',
+        'ticket_booking__user__first_name', 'ticket_booking__user__last_name',
+        'ticket_booking__user__username',
         'invoice_id', 'transaction_id'
     )
 
