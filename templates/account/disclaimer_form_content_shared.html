@@ -116,6 +116,11 @@
        </div>
 
       <h4>Medical Information</h4>
+      <p>
+          In order for us to keep you safe in the studio, or during any Watermelon activities outside of the studio we
+          need to collect and store your health data. In cases of an emergency we may share your medical data with medical
+          professionals if required.
+      </p>
       <div class="form-group">
            <label class="control-label col-12" for="medical_conditions_id">{{ form.medical_conditions.label }}{% if form.medical_conditions.field.required %}*{% endif %}</label>
           <div class="col-12 {% if form.medical_conditions.errors %}ticket-error{% endif %}">
@@ -200,18 +205,20 @@
             {% endif %}
        </div>
        <div class="col-12">
-       <h4>EMERGENCY MEDICAL TREATMENT</h4>
+       <h4>MEDICAL DATA & EMERGENCY MEDICAL TREATMENT</h4>
        {{ form.medical_treatment_terms|linebreaks }}</div>
        <div class="form-group">
-           <div class="col-12 vspace {% if form.medical_treatment_permission.errors %}ticket-error{% endif %}">
+           <div class="col-12 {% if form.medical_treatment_permission.errors %}ticket-error{% endif %}">
                {{ form.medical_treatment_permission }}<label for='id_medical_treatment_permission'></label>
                  <label class="control-label" for='id_medical_treatment_permission'>{{ form.medical_treatment_permission.label }}{% if form.medical_treatment_permission.field.required %}*{% endif %}</label>
                {% if form.medical_treatment_permission.errors %} {{ form.medical_treatment_permission.errors }}{% endif %}
            </div>
 
            <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.medical_treatment_permission.help_text }}</div>
-
        </div>
+       <div class="col-12 mt-0 mb-2">
+           You can withdraw consent at any time, please check out our <a href="{% url 'data_privacy_policy' %}">privacy policy</a> for more information.
+        </div>
 
        <div class="col-12">
        <h4>DISCLAIMER</h4>

@@ -8,6 +8,10 @@
        {% csrf_token %}
 
        <h4>Personal details</h4>
+        <p>
+            Before providing us with your personal data you can read why we need this data, how we will use it and what
+            your rights are in our <a href="{% url 'data_privacy_policy' %}">privacy policy</a>.
+        </p>
        <div class="form-group">
            <label class="control-label col-xs-2" for="name_id">{{ form.name.label }}{% if form.name.field.required %}*{% endif %}</label>
            <div class="col-xs-10 {% if form.name.errors %}ticket-error{% endif %}">{{ form.name }}</div>

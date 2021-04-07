@@ -19,6 +19,10 @@
        </div>
 
        <h4>Personal details</h4>
+       <p>
+            Before providing us with your personal data you can read why we need this data, how we will use it and what
+            your rights are in our <a href="{% url 'data_privacy_policy' %}">privacy policy</a>.
+        </p>
        <div class="form-group">
            <label class="control-label col-xs-2" for="first_name_id">{{ form.first_name.label }}{% if form.first_name.field.required %}*{% endif %}</label>
            <div class="col-xs-10 {% if form.first_name.errors %}ticket-error{% endif %}">{{ form.first_name }}</div>
