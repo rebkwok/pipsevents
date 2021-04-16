@@ -7,7 +7,7 @@ django-classy-tags==1.0.0  # for cookie-law
 django-cookie-law==2.0.3
 django-crispy-forms==1.8.1
 git+git://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
-django-debug-toolbar==2.0
+django-debug-toolbar==2.2.1
 django-environ==0.4.5
 django-extensions==3.1.1
 django-migration-testcase==0.0.15
