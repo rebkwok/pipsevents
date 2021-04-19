@@ -219,7 +219,9 @@ def upload_timetable_view(request,
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
             session_ids = form.cleaned_data['sessions']
+
             override_options = {
+                "visible_on_site": form.cleaned_data['override_options_visible_on_site'],
                 "booking_open": form.cleaned_data['override_options_booking_open'],
                 "payment_open": form.cleaned_data['override_options_payment_open']
             }
@@ -228,13 +230,18 @@ def upload_timetable_view(request,
                 utils.upload_timetable(
                     start_date, end_date, session_ids, request.user, override_options=override_options
                 )
+
+            def _format_override_option(value):
+                value = int(value)
+                return "yes" if value == 1 else "no"
+
             context = {'start_date': start_date,
                        'end_date': end_date,
                        'created_classes': created_classes,
                        'existing_classes': existing_classes,
                        'duplicate_classes': duplicate_classes,
                        'sidenav_selection': 'upload_timetable',
-                       'override_options': ', '.join([f'{key.replace("_", " ")} ({bool(value)})' for key, value in override_options.items() if value != "default"]),
+                       'override_options': ', '.join([f'{key.replace("_", " ")} ({_format_override_option(value)})' for key, value in override_options.items() if value != "default"]),
                        }
             return render(
                 request, 'studioadmin/upload_timetable_confirmation.html',

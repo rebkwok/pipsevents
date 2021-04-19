@@ -166,7 +166,7 @@ class EventForm(forms.ModelForm):
 
 
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('name', 'date', 'location', 'get_spaces_left')
+    list_display = ('name', 'date', 'location', 'get_spaces_left', 'visible_on_site')
     list_filter = (EventDateListFilter, 'name', EventTypeListFilter)
     actions_on_top = True
     form = EventForm
@@ -188,7 +188,7 @@ class EventAdmin(admin.ModelAdmin):
         }),
         ('Payment Information', {
             'fields': ('cost', 'advance_payment_required', 'booking_open',
-            'payment_open', 'payment_info',  'payment_due_date')
+            'payment_open', 'payment_info',  'payment_due_date', 'visible_on_site')
         }),
         ('Cancellation Period', {
             'fields': ('cancellation_period',),

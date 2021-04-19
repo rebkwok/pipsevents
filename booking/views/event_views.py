@@ -36,6 +36,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         cutoff_time = timezone.now() - timedelta(minutes=10)
 
         events = Event.objects.select_related('event_type').filter(
+            visible_on_site=True,
             event_type__event_type=ev_abbr,
             date__gte=cutoff_time,
             cancelled=False
@@ -158,7 +159,7 @@ class EventDetailView(LoginRequiredMixin, DataPolicyAgreementRequiredMixin, Deta
             ev_abbr = 'CL'
         else:
             ev_abbr = 'RH'
-        queryset = Event.objects.filter(event_type__event_type=ev_abbr)
+        queryset = Event.objects.filter(visible_on_site=True, event_type__event_type=ev_abbr)
 
         return get_object_or_404(queryset, slug=self.kwargs['slug'])
 
@@ -180,7 +181,8 @@ class OnlineTutorialListView(EventListView):
         events = Event.objects.select_related('event_type').filter(
             event_type__event_type="OT",
             date__gte=timezone.now(),
-            cancelled=False
+            cancelled=False,
+            visible_on_site=True,
         ).order_by('date')
 
         if name and name not in ['', 'all']:
@@ -194,5 +196,5 @@ class OnlineTutorialDetailView(EventDetailView):
     template_name = 'booking/tutorial.html'
 
     def get_object(self):
-        queryset = Event.objects.filter(event_type__event_type="OT")
+        queryset = Event.objects.filter(event_type__event_type="OT", visible_on_site=True)
         return get_object_or_404(queryset, slug=self.kwargs['slug'])

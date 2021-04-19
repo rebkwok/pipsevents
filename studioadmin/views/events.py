@@ -545,6 +545,7 @@ def clone_event(request, slug):
     # set defaults for cloned event
     cloned_event.slug = None
     cloned_event.cancelled = False
+    cloned_event.visible_on_site = False
     cloned_event.booking_open = False
     cloned_event.payment_open = False
     cloned_event.save()
@@ -562,7 +563,7 @@ def open_all_events(request, event_type):
     events_to_open = Event.objects.filter(
         event_type__event_type=event_type_abbr, date__gte=timezone.now(), cancelled=False
     )
-    events_to_open.update(booking_open=True, payment_open=True)
-    messages.info(request, f"All upcoming {event_type_plural} are now open for booking and payments")
+    events_to_open.update(booking_open=True, payment_open=True, visible_on_site=True)
+    messages.info(request, f"All upcoming {event_type_plural} are now visible and open for booking and payments")
     ActivityLog.objects.create(log=f"All upcoming {event_type_plural} opened by admin user {request.user.username}")
     return HttpResponseRedirect(reverse(f"studioadmin:{event_type}"))

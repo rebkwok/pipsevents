@@ -538,6 +538,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Sun 14 Jun 2015',
             'sessions': [session.id for session in Session.objects.all()],
+            'override_options_visible_on_site': "1",
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
@@ -558,11 +559,12 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Sun 14 Jun 2015',
             'sessions': [session.id for session in Session.objects.all()],
+            'override_options_visible_on_site': "0",
             'override_options_booking_open': "0",
             'override_options_payment_open': "0",
         }
         self._post_response(self.staff_user, form_data)
-        self.assertEqual(Event.objects.filter(booking_open=False, payment_open=False).count(), 5)
+        self.assertEqual(Event.objects.filter(booking_open=False, payment_open=False, visible_on_site=False).count(), 5)
 
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_does_not_create_duplicate_sessions(self, mock_tz):
@@ -575,6 +577,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Sun 14 Jun 2015',
             'sessions': [session.id for session in Session.objects.all()],
+            'override_options_visible_on_site': "1",
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
@@ -618,6 +621,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'start_date': 'Mon 01 Jun 2015',
             'end_date': 'Wed 03 Jun 2015',
             'sessions': [session.id],
+            'override_options_visible_on_site': "1",
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
@@ -696,6 +700,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'start_date': 'invalid date',
             'end_date': 'Wed 03 Jun 2015',
             'sessions': [session_dm.id],
+            'override_options_visible_on_site': "1",
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }

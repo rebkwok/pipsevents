@@ -269,7 +269,13 @@ class SessionAdminForm(forms.ModelForm):
 
 
 class UploadTimetableForm(forms.Form):
-
+    override_options_visible_on_site = forms.CharField(
+        widget=forms.RadioSelect(
+            choices=(("1", "Yes"), ("0", "No")),
+        ),
+        initial="1",
+        label="Visible on site"
+    )
     override_options_booking_open = forms.CharField(
         widget=forms.RadioSelect(
             choices=(("1", "Yes"), ("0", "No"), ("default", "Use timetable defaults")),
@@ -307,7 +313,6 @@ class UploadTimetableForm(forms.Form):
                 format='%a %d %b %Y'
             ),
             required=True,
-            initial=date.today()
         )
 
         self.fields['end_date'] = forms.DateField(

@@ -90,7 +90,6 @@ jQuery(document).ready(function () {
         jQuery('#datepicker_startdate_' + i).datetimepicker({
             format:'D d M Y',
             timepicker: false,
-            minDate: 0,
             closeOnDateSelect: true,
             scrollMonth: false,
             scrollTime: false,
@@ -100,7 +99,6 @@ jQuery(document).ready(function () {
         jQuery('#datepicker_enddate_' + i).datetimepicker({
             format:'D d M Y',
             timepicker: false,
-            minDate: 0,
             closeOnDateSelect: true,
             scrollMonth: false,
             scrollTime: false,

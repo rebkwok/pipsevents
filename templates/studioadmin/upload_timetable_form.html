@@ -76,6 +76,15 @@
                         </p></div>
 
                         <div class="form-group">
+                            <label class="control-label col-sm-1" for="{{ location_obj.form.override_options_visible_on_site.name }}_id">{{ location_obj.form.override_options_visible_on_site.label }}</label>
+                            <div class="col-sm-11">
+                                <div class="override_options">
+                                {% for radio in location_obj.form.override_options_visible_on_site %}
+                                    {{ radio.tag }} <label class='header-not-bold' for="id_{{ location_obj.form.override_options_visible_on_site.name }}_{{ forloop.counter0 }}">{{ radio.choice_label }}</label></br>
+                                {% endfor %}
+                                </div>
+                            </div>
+
                             <label class="control-label col-sm-1" for="{{ location_obj.form.override_options_booking_open.name }}_id">{{ location_obj.form.override_options_booking_open.label }}</label>
                             <div class="col-sm-11">
                                 <div class="override_options">

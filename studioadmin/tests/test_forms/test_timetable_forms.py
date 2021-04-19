@@ -299,6 +299,7 @@ class UploadTimetableFormTests(TestCase):
             'start_date': 'Mon 08 Jun 2015',
             'end_date': 'Mon 15 Jun 2015',
             'sessions': [self.session.id],
+            'override_options_visible_on_site': "1",
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
@@ -345,6 +346,7 @@ class UploadTimetableFormTests(TestCase):
         form = UploadTimetableForm(
             data={
                 'sessions': [self.session.id],
+                'override_options_visible_on_site': "1",
                 'override_options_booking_open': "default",
                 'override_options_payment_open': "default",
             }

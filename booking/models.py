@@ -131,6 +131,7 @@ class Event(models.Model):
         default=False,
         help_text="Zoom/Video URL available after class is past (for online classes only)"
     )
+    visible_on_site = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-date']

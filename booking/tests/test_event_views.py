@@ -55,6 +55,21 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['events'].count(), 3)
 
+    def test_event_list_visible_on_site(self):
+        """
+        Test that only visible_on_site events are listed
+        """
+        event = baker.make_recipe('booking.future_EV', visible_on_site=False)
+        resp = self.client.get(self.url)
+        assert Event.objects.all().count() == 10
+        assert Event.objects.filter(event_type__event_type="EV").count() == 4
+        assert resp.context['events'].count() == 3
+
+        event.visible_on_site = True
+        event.save()
+        resp = self.client.get(self.url)
+        assert resp.context['events'].count() == 4
+
     def test_event_list_logged_in_no_data_protection_policy(self):
         DataPrivacyPolicy.objects.all().delete()
         user = User.objects.create_user(

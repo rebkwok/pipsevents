@@ -19,6 +19,14 @@ class EventBaseFormSet(BaseModelFormSet):
         super(EventBaseFormSet, self).add_fields(form, index)
 
         if form.instance:
+            form.fields['visible_on_site'] = forms.BooleanField(
+                widget=forms.CheckboxInput(attrs={
+                    'class': "form-check-input position-static studioadmin-list",
+                }),
+                required=False,
+                label="Visible"
+            )
+
             form.fields['booking_open'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
                     'class': "form-check-input position-static studioadmin-list",
@@ -53,7 +61,7 @@ class EventBaseFormSet(BaseModelFormSet):
 EventFormSet = modelformset_factory(
     Event,
     fields=(
-        'booking_open', 'payment_open', 'advance_payment_required'
+        'visible_on_site', 'booking_open', 'payment_open', 'advance_payment_required'
     ),
     formset=EventBaseFormSet,
     extra=0,
@@ -272,7 +280,7 @@ class EventAdminForm(forms.ModelForm):
             'name', 'event_type', 'date', 'video_link', 'video_link_available_after_class',
             'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
-            'external_instructor',
+            'external_instructor', 'visible_on_site',
             'booking_open', 'payment_open', 'advance_payment_required',
             'paypal_email', 'paypal_email_check',
             'payment_info',
@@ -329,6 +337,9 @@ class EventAdminForm(forms.ModelForm):
                     'class': "form-control",
                     }
             ),
+            'visible_on_site': forms.CheckboxInput(
+                attrs={'class': "form-check-input"}
+            ),
             'booking_open': forms.CheckboxInput(
                 attrs={'class': "form-check-input"}
             ),
@@ -355,6 +366,7 @@ class EventAdminForm(forms.ModelForm):
             ),
             }
         help_texts = {
+            'visible_on_site': _('Is this event visible to users?'),
             'payment_open': _('Only applicable if the cost is greater than £0'),
             'payment_due_date': _('Only use this field if the cost is greater '
                                   'than £0.  If a payment due date is set, '

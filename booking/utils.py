@@ -148,7 +148,8 @@ def upload_timetable(start_date, end_date, session_ids, user=None, override_opti
                     email_studio_when_booked=session.email_studio_when_booked,
                     payment_time_allowed=session.payment_time_allowed,
                     allow_booking_cancellation=session.allow_booking_cancellation,
-                    paypal_email=session.paypal_email
+                    paypal_email=session.paypal_email,
+                    visible_on_site=override_options.get("visible_on_site", True),
                 )
                 created_classes.append(cl)
             else:

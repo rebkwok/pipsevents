@@ -451,7 +451,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         form_data = self.form_data(
             event=self.event, extra_data={
                 'cost': self.event.cost,
-                'booking_open': self.event.booking_open
+                'booking_open': self.event.booking_open,
+                'visible_on_site': self.event.visible_on_site
             }
         )
         self.assertTrue(
@@ -2145,12 +2146,12 @@ class OpenAllClassesTests(TestPermissionMixin, TestCase):
 
     def test_open_all_events(self):
         self.client.login(username=self.staff_user.username, password='test')
-        baker.make_recipe('booking.future_PC', booking_open=False, payment_open=False, _quantity=5)
+        baker.make_recipe('booking.future_PC', booking_open=False, payment_open=False, visible_on_site=False, _quantity=5)
         assert Event.objects.count() == 5
-        assert Event.objects.filter(booking_open=False, payment_open=False).count() == 5
+        assert Event.objects.filter(booking_open=False, payment_open=False, visible_on_site=False).count() == 5
         self.client.get(self.url)
         assert Event.objects.count() == 5
-        assert Event.objects.filter(booking_open=True, payment_open=True).count() == 5
+        assert Event.objects.filter(booking_open=True, payment_open=True, visible_on_site=True).count() == 5
 
     def test_open_all_events_does_not_affect_events(self):
         self.client.login(username=self.staff_user.username, password='test')
@@ -2186,6 +2187,7 @@ class CloneEventTests(TestPermissionMixin, TestCase):
         cloned = Event.objects.latest("id")
         assert cloned.booking_open is False
         assert cloned.payment_open is False
+        assert cloned.visible_on_site is False
         assert cloned.bookings.exists() is False
         assert event.bookings.count() == 1
         assert cloned.name == "[CLONED] Test"
