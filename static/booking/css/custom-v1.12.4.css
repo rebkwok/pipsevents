@@ -628,14 +628,12 @@ a.disabled {
   margin-left: 5px;
 }
 .form-control.form-control-sm.filter-form-control {
-  max-width: 30%;
+  max-width: 50%;
   display: inline-block;
+  max-height: 25px;
+  line-height: 1;
   padding-left: 5px;
   padding-right: 5px;
-}
-
-.form-control.form-control-sm.filter-form-control.filter-form-control-dates {
-  max-width: 20%;
 }
 
 .account-menu {
@@ -1812,4 +1810,18 @@ span.disclaimer_version {
   height: 100%;
   position: absolute;
   color: rgba(240, 139, 165, 0.9);
+}
+
+
+
+.ui-state-highlight, .ui-widget-content .ui-state-highlight, .ui-widget-header .ui-state-highlight {
+    border: 1px solid rgba(240, 139, 165, 0.9);
+    background: rgba(240, 139, 165, 0.9);
+    color: rgba(0, 85, 127, 0.9);
+}
+
+#ui-datepicker-div > table > tbody > tr > td.ui-datepicker-today > a.ui-state-highlight.ui-state-default {
+      background: white !important;
+      color: rgba(0, 85, 127, 0.9);
+      border: 1px solid rgba(240, 139, 165, 0.9);
 }

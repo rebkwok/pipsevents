@@ -214,16 +214,21 @@
                                                 <tr>
                                                     <div class="filter-form-group pb-4">
                                                         <form id="filter-form" class="filter-row form-inline" action="" method="get">
-                                                            <div class="form-group form-group-sm">
-                                                                <label>{{ form.name.label }}</label>{{ form.name }}
-                                                                <label>{{ form.date_selection.label }}</label>{{ form.date_selection }}
-                                                                <input class="btn btn-sm btn-wm pt-0 pb-0" type="submit" value="Apply filters"><br/>
+                                                            <small>
+                                                            <div class="form-group">
+                                                                <label>{{ form.name.label }} </label>{{ form.name }}<br/>
+                                                                <label>{{ form.date_selection.label }} </label>{{ form.date_selection }}
                                                             </div>
                                                                 <div class="form-check form-check-inline">
-                                                            {{ form.spaces_only }}
-                                                             <label for="id_spaces_only">{{ form.spaces_only.label }}</label>
+                                                                <label for="id_spaces_only" class="pr-2">{{ form.spaces_only.label }} </label>
+                                                                {{ form.spaces_only }}
                                                             </div>
+                                                                <div class="form-group">
+                                                            <input class="btn btn-sm btn-wm pt-0 pb-0" type="submit" value="Apply filters">
+                                                                <a class="btn btn-sm btn-dark pt-0 pb-0" href="{% url type|reset_url %}">Reset</a><br/>
                                                             <input type="hidden" name="tab" value="{{ location_obj.index }}">
+                                                                </div>
+                                                            </small>
                                                         </form>
                                                     </div>
                                                     {% include 'booking/includes/event_pagination.html' %}

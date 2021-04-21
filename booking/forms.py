@@ -74,8 +74,11 @@ class BaseFilter(forms.Form):
 
     date_selection = forms.CharField(
         widget=forms.TextInput(
-            attrs={"autocomplete": "off",
-                   "class": "form-control form-control-sm filter-form-control filter-form-control-dates"},
+            attrs={
+                "autocomplete": "off",
+                "class": "form-control form-control-sm filter-form-control filter-form-control-dates",
+                "placeholder": "Click to select dates",
+            }
         ),
         max_length=255, label="Dates",
         required=False

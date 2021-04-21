@@ -454,3 +454,7 @@ def get_active_class(location_index, tab):
 def get_active_in_class(location_index, tab):
     return 'show active' if is_active(location_index, tab) else ''
 
+
+@register.filter
+def reset_url(event_type):
+    return f"booking:{event_type}"
