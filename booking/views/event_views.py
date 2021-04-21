@@ -24,38 +24,64 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
     context_object_name = 'events'
     template_name = 'booking/events.html'
 
-    def get_queryset(self):
-        if self.kwargs['ev_type'] == 'events':
-            ev_abbr = 'EV'
-        elif self.kwargs['ev_type'] == 'lessons':
-            ev_abbr = 'CL'
-        else:
-            ev_abbr = 'RH'
-        name = self.request.GET.get('name')
-        date_selection = self.request.GET.get('date_selection')
-        cutoff_time = timezone.now() - timedelta(minutes=10)
+    event_data_by_ev_type = {
+        "events": {"abbr": "EV", "form_class": EventFilter},
+        "lessons": {"abbr": "CL", "form_class": LessonFilter},
+        "online_tutorials": {"abbr": "OT", "form_class": OnlineTutorialFilter},
+        "room_hires": {"abbr": "RH", "form_class": RoomHireFilter},
+    }
 
-        events = Event.objects.select_related('event_type').filter(
-            visible_on_site=True,
-            event_type__event_type=ev_abbr,
-            date__gte=cutoff_time,
-            cancelled=False
-        ).order_by('date')
+    def __init__(self):
+        super().__init__()
+        self._queryset = None
 
-        if name and name not in ['', 'all']:
-            events = events.filter(name=name)
+    def get_filter_form_initial(self):
+        name = self.request.GET.get('name', '')
+        date_selection = self.request.GET.get('date_selection', '')
+        spaces_only = self.request.GET.get('spaces_only')
+        if spaces_only and spaces_only.lower() in ["true", "on", "1"]:
+            spaces_only = True
+        return name, date_selection, spaces_only
 
-        if date_selection:
-            date_selection = date_selection.split(",")
-            selected_dates = []
-            for datestring in date_selection:
-                try:
-                    selected_dates.append(datetime.strptime(datestring.strip(), "%d-%b-%Y").date())
-                except ValueError:
-                    pass
-            events = events.filter(date__date__in=selected_dates)
+    def get_queryset(self, booked_events=None):
+        if self._queryset is None:
+            ev_abbr = self.event_data_by_ev_type[self.kwargs["ev_type"]]["abbr"]
+            name, date_selection, spaces_only = self.get_filter_form_initial()
+            cutoff_time = timezone.now() - timedelta(minutes=10)
 
-        return events
+            events = Event.objects.select_related('event_type').filter(
+                visible_on_site=True,
+                event_type__event_type=ev_abbr,
+                date__gte=cutoff_time,
+                cancelled=False
+            ).order_by('date')
+
+            if name and name not in ['', 'all']:
+                events = events.filter(name=name)
+
+            if date_selection:
+                date_selection = date_selection.split(",")
+                selected_dates = []
+                for datestring in date_selection:
+                    try:
+                        selected_dates.append(datetime.strptime(datestring.strip(), "%d-%b-%Y").date())
+                    except ValueError:
+                        pass
+                events = events.filter(date__date__in=selected_dates)
+
+            if spaces_only:
+                event_ids = [
+                    event.id for event in events if event.spaces_left > 0
+                    or (not self.request.user.is_anonymous
+                    and self.request.user.bookings.filter(
+                        event=event, status='OPEN', no_show=False
+                    ).exists())
+                ]
+                events = events.filter(id__in=event_ids)
+            self._queryset = events
+        if booked_events:
+            return self._queryset.exclude(id__in=booked_events)
+        return self._queryset
 
     def get_context_data(self, **kwargs):
         all_events = self.get_queryset()
@@ -82,16 +108,11 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         context['events_exist'] = all_events.exists()
         context['type'] = self.kwargs['ev_type']
 
-        event_name = self.request.GET.get('name', '')
-        date_selection = self.request.GET.get('date_selection', '')
-        if self.kwargs['ev_type'] == 'events':
-            form = EventFilter(initial={'name': event_name, "date_selection": date_selection})
-        elif self.kwargs['ev_type'] == 'lessons':
-            form = LessonFilter(initial={'name': event_name, "date_selection": date_selection})
-        elif self.kwargs['ev_type'] == 'online_tutorials':
-            form = OnlineTutorialFilter(initial={'name': event_name})
-        else:
-            form = RoomHireFilter(initial={'name': event_name, "date_selection": date_selection})
+        event_name, date_selection, spaces_only = self.get_filter_form_initial()
+        form_class = self.event_data_by_ev_type[self.kwargs["ev_type"]]["form_class"]
+        form = form_class(
+            initial={'name': event_name, "date_selection": date_selection, "spaces_only": spaces_only}
+        )
         context['form'] = form
 
         if not self.request.user.is_anonymous:

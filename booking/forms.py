@@ -81,12 +81,23 @@ class BaseFilter(forms.Form):
         required=False
     )
 
+    spaces_only = forms.BooleanField(
+        widget=forms.CheckboxInput(
+            attrs={"class": "form-check-input", "onclick": "form.submit();"}
+        ),
+        required=False,
+        initial=False
+    )
+
 
 class EventFilter(BaseFilter):
     name = forms.ChoiceField(
         choices=get_event_names('EV'),
         widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
     )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["spaces_only"].label = "Hide full events"
 
 
 class LessonFilter(BaseFilter):
@@ -95,12 +106,20 @@ class LessonFilter(BaseFilter):
         widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["spaces_only"].label = "Hide full classes"
+
 
 class RoomHireFilter(BaseFilter):
     name = forms.ChoiceField(
         choices=get_event_names('RH'),
         widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["spaces_only"].label = "Hide full"
 
 
 class OnlineTutorialFilter(forms.Form):

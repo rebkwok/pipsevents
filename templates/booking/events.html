@@ -213,12 +213,17 @@
                                             {% endfor %}
                                                 <tr>
                                                     <div class="filter-form-group pb-4">
-                                                        <form class="filter-row form-inline" action="" method="get">
-                                                            <label>FILTER BY: </label>
-                                                            <label>{{ form.name.label }}</label>{{ form.name }}
-                                                            <label>{{ form.date_selection.label }}</label>{{ form.date_selection }}
+                                                        <form id="filter-form" class="filter-row form-inline" action="" method="get">
+                                                            <div class="form-group form-group-sm">
+                                                                <label>{{ form.name.label }}</label>{{ form.name }}
+                                                                <label>{{ form.date_selection.label }}</label>{{ form.date_selection }}
+                                                                <input class="btn btn-sm btn-wm pt-0 pb-0" type="submit" value="Apply filters"><br/>
+                                                            </div>
+                                                                <div class="form-check form-check-inline">
+                                                            {{ form.spaces_only }}
+                                                             <label for="id_spaces_only">{{ form.spaces_only.label }}</label>
+                                                            </div>
                                                             <input type="hidden" name="tab" value="{{ location_obj.index }}">
-                                                            <input class="btn btn-sm btn-wm" type="submit" value="Go">
                                                         </form>
                                                     </div>
                                                     {% include 'booking/includes/event_pagination.html' %}
