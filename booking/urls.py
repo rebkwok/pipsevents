@@ -163,8 +163,8 @@ urlpatterns = [
         blocks_modal, name='blocks_modal'
     ),
     path('gift-vouchers/', GiftVoucherPurchaseView.as_view(), name='buy_gift_voucher'),
-    path('gift-voucher/<voucher_code>', gift_voucher_details, name='gift_voucher_details'),
-    path('gift-voucher/<voucher_code>/update', GiftVoucherPurchaseView.as_view(), name='gift_voucher_update'),
-    path('gift-voucher/<voucher_code>/delete', gift_voucher_delete, name='gift_voucher_delete'),
+    path('gift-voucher/<voucher_code>/', gift_voucher_details, name='gift_voucher_details'),
+    path('gift-voucher/<voucher_code>/update/', GiftVoucherPurchaseView.as_view(), name='gift_voucher_update'),
+    path('gift-voucher/<voucher_code>/delete/', gift_voucher_delete, name='gift_voucher_delete'),
     path('', RedirectView.as_view(url='/classes/', permanent=True)),
     ]
