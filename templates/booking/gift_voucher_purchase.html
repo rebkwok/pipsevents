@@ -5,7 +5,7 @@
 
 <div class="extra-top-margin container-fluid row">
     <div class="col-12">
-            <h1>{% if voucher.activated %}Update Gift Voucher{% elif paypal_form %}Gift Voucher Checkout{% else %}Buy a Gift Voucher {% endif %}</h1>
+            <h1>{% if form.instance.activated %}Update Gift Voucher{% elif paypal_form %}Gift Voucher Checkout{% else %}Buy a Gift Voucher {% endif %}</h1>
 
                 {% if paypal_form %}
                     <div>
@@ -32,12 +32,12 @@
                     {% if not voucher.activated %} <a class="btn btn-danger" href="{% url 'booking:gift_voucher_delete' voucher.code %}">Cancel</a></div>
                     {% endif %}
                 {% else %}
-                {% if not voucher.activated %}
-                <div>
-                    Choose your voucher type below.  If you provide a name and/or message, these will be displayed on the voucher.<br>
-                    Please check your email address is correct; your voucher will be sent to this address.
-                </div>
-                {% endif %}
+                    {% if not form.instance.activated %}
+                        <div>
+                            Choose your voucher type below.  If you provide a name and/or message, these will be displayed on the voucher.<br>
+                            Please check your email address is correct; your voucher will be sent to this address.
+                        </div>
+                    {% endif %}
                 <form id='gift-form' class="dirty-check" action="" method="post">{% csrf_token %}
                     {% for field in form %}
                     <div class="col-12 vspace-sm">

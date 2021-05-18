@@ -182,7 +182,7 @@ def get_voucher_details(voucher_code):
 
 def gift_voucher_details(request, voucher_code):
     voucher, voucher_type, valid_for = get_voucher_details(voucher_code)
-    context={"voucher": voucher, "valid_for": valid_for, "voucher_type": voucher_type}
+    context = {"voucher": voucher, "valid_for": valid_for, "voucher_type": voucher_type}
     return TemplateResponse(
         request, template='booking/gift_voucher_detail.html', context=context
 
