@@ -1,7 +1,4 @@
-{% include "account/email/do_not_reply.txt" %}
-=====================================================================
-Please note this {{ ev_type }} is at the {{event.location|upper}} studio
-=====================================================================
+{% include "account/email/do_not_reply.txt" %}s
 
 Your booking has been received for {{ event }}.
 {% if not event.cost %}
