@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from accounts.models import CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
+from accounts.models import AccountBan, CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
     PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, has_active_data_privacy_agreement, \
     active_data_privacy_cache_key
 from common.tests.helpers import make_data_privacy_agreement
@@ -344,3 +344,27 @@ class SignedDataPrivacyModelTests(TestCase):
 
         SignedDataPrivacy.objects.get(user=self.user).delete()
         self.assertIsNone(cache.get(active_data_privacy_cache_key(self.user)))
+
+
+class AccountBanModelTests(TestCase):
+
+    def test_account_ban_default_expiry(self,):
+        user = baker.make_recipe('booking.user', username='testuser')
+        ban = AccountBan.objects.create(user=user)
+        assert ban.end_date.date() == (timezone.now() + timedelta(14)).date()
+
+    def test_account_ban_str(self):
+        user = baker.make_recipe('booking.user', username='testuser')
+        ban = baker.make(AccountBan, user=user, end_date=datetime(2021, 7, 1, 10,0))
+        assert str(ban) == f"testuser - 01 Jul 2021, 10:00"
+
+    def test_currently_banned(self):
+        user = baker.make_recipe('booking.user', username='testuser')
+        ban = AccountBan.objects.create(user=user)
+        user.refresh_from_db()
+        assert user.currently_banned() is True
+
+        ban.end_date = timezone.now() - timedelta(1)
+        ban.save()
+        user.refresh_from_db()
+        assert user.currently_banned() is False

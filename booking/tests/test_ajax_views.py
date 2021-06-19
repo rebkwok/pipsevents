@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 from model_bakery import baker
 
@@ -728,13 +728,17 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test trying to create booking with locked account returns 400
         """
-        AccountBan.objects.create(user=self.user)
+        expires = timezone.now() + timedelta(days=4)
+        AccountBan.objects.create(user=self.user, end_date=expires)
         baker.make_recipe('booking.booking', user=self.user, event=self.event)
 
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(self.event_url)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.content.decode('utf-8'), '')
+        self.assertEqual(
+            resp.content.decode('utf-8'),
+            f"Your account is currently blocked until {expires.strftime('%d %b %Y, %H:%M')}"
+        )
 
 
 class AjaxTests(TestSetupMixin, TestCase):

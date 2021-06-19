@@ -444,7 +444,7 @@ class AccountBan(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user} - {self.end_date}"
+        return f"{self.user} - {self.end_date.strftime('%d %b %Y, %H:%M')}"
 
 
 # CACHING

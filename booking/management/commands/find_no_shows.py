@@ -25,7 +25,7 @@ class Command(BaseCommand):
         days = options["days"]
         no_shows = Booking.objects.filter(
             event__date__gte=timezone.now() - timedelta(days=days),
-            event__date__lt=timezone.now(), no_show=True
+            event__date__lt=timezone.now(), status="OPEN", no_show=True, paid=True
         )
         no_show_users = no_shows.values_list("user", flat=True)
         counter = Counter(no_show_users)

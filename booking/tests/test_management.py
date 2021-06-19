@@ -2991,3 +2991,31 @@ class TestDeactivateRegularStudents(TestCase):
         self.assertTrue(super_user.has_perm(f"booking.{self.permission.codename}"))
         self.assertTrue(staff_user.has_perm(f"booking.{self.permission.codename}"))
         self.assertFalse(normal_user.has_perm(f"booking.{self.permission.codename}"))
+
+
+class TestFindNoShows(TestCase):
+
+    def test_find_no_shows_defaults(self):
+        now = timezone.now()
+        user = baker.make(User)
+        user1 = baker.make(User)
+        baker.make(
+            Booking, user=user, event__date=now - timedelta(3),
+            status="OPEN", no_show=True, paid=True
+        )
+        management.call_command("find_no_shows")
+        assert len(mail.outbox) == 1
+        assert "No repeated no-shows found" in mail.outbox[0].body
+        baker.make(
+            Booking, user=user1, event__date=now - timedelta(3),
+            status="OPEN", no_show=False, paid=True, _quantity=4,
+        )
+        baker.make(
+            Booking, user=user, event__date=now - timedelta(4),
+            status="OPEN", no_show=True, paid=True, _quantity=2
+        )
+
+        management.call_command("find_no_shows")
+        assert len(mail.outbox) == 2
+        assert f"{3}: {user.first_name} {user.last_name} - (id {user.id})" in mail.outbox[1].body
+        assert f"{user1.first_name} {user1.last_name} - (id {user1.id})" not in mail.outbox[1].body

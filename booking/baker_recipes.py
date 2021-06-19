@@ -81,7 +81,7 @@ blocktype10 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
 blocktypePP10 = Recipe(BlockType, event_type=foreign_key(event_type_PP),
                      size=10, duration=4, active=True)
 blocktype_other = Recipe(
-    BlockType, event_type=foreign_key(event_type_OC), active=True
+    BlockType, event_type=foreign_key(event_type_OC), active=True, duration=4,
 )
 
 free_blocktype = Recipe(
