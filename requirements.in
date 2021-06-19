@@ -1,0 +1,35 @@
+Django<3.2
+coverage
+dj-database-url
+django-allauth
+django-braces
+django-classy-tags  # for cookie-law
+django-cookie-law
+django-crispy-forms
+git+git://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
+django-debug-toolbar
+django-environ
+django-extensions
+django-migration-testcase
+django-paypal
+djangorestframework
+# django-suit v2 branch 15/2/20
+git+git://github.com/darklow/django-suit.git@0d854c9b5e81adf9b9ea2ca9ee0a2856dcef5e15
+dj-static
+psycopg2
+python-dateutil
+PyYAML
+mailchimp3
+model-bakery
+django-ckeditor
+pillow
+gunicorn
+static3
+shortuuid
+beautifulsoup4
+# Fork of simple-crypt that replaces pycrypto with pycryptodome
+git+https://github.com/KyleKing/simple-crypt.git
+python-memcached
+pytest
+pytest-django
+pytest-cov

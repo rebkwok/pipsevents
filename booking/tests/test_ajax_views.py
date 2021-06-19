@@ -10,7 +10,7 @@ from django.test import override_settings, TestCase
 from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
-from accounts.models import DisclaimerContent, OnlineDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer, AccountBan
 
 from booking.models import Event, EventType, Booking, Block, WaitingListUser
 from common.tests.helpers import TestSetupMixin, make_data_privacy_agreement
@@ -65,7 +65,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:disclaimer_required'))
 
-        baker.make(OnlineDisclaimer, user=user, version = DisclaimerContent.current_version())
+        baker.make(OnlineDisclaimer, user=user, version=DisclaimerContent.current_version())
         resp = self.client.post(self.event_url)
         self.assertEqual(resp.status_code, 200)
 
@@ -474,18 +474,19 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         )
 
     @patch('booking.models.timezone')
-    def test_booking_with_transfer_block(self, mock_tz):
+    @patch('booking.views.views_utils.timezone')
+    def test_booking_with_transfer_block(self, mock_tz, mock_tz1):
         """
         Usually there should be only one block of each type available, but in
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_tz1.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
         event_type = baker.make_recipe('booking.event_type_PC')
         event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         blocktype = baker.make_recipe(
-            'booking.blocktype', event_type=event_type, identifier="transferred"
+            'booking.blocktype', event_type=event_type, identifier="transferred", duration=1
         )
         transfer = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
@@ -722,6 +723,18 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         # email to student only
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_cannot_make_book_if_account_locked(self):
+        """
+        Test trying to create booking with locked account returns 400
+        """
+        AccountBan.objects.create(user=self.user)
+        baker.make_recipe('booking.booking', user=self.user, event=self.event)
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(self.event_url)
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.content.decode('utf-8'), '')
 
 
 class AjaxTests(TestSetupMixin, TestCase):

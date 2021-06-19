@@ -283,7 +283,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
             baker.make(PaypalBookingTransaction, booking__user=user,
                        _quantity=5
                        )
-            baker.make(PaypalBlockTransaction, block__user=user,
+            baker.make(PaypalBlockTransaction, block__user=user, block__block_type__duration=4,
                        _quantity=5
                        )
             baker.make(

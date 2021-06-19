@@ -72,7 +72,7 @@ past_class = Recipe(Event,
                     payment_due_date=past-timedelta(10)
                     )
 
-blocktype = Recipe(BlockType, active=True)
+blocktype = Recipe(BlockType, active=True, duration=4)
 
 blocktype5 = Recipe(BlockType, event_type=foreign_key(event_type_PC),
                     size=5, duration=2, active=True)
@@ -89,7 +89,7 @@ free_blocktype = Recipe(
     identifier='free class', cost=0
 )
 
-block = Recipe(Block)
+block = Recipe(Block, block_type=foreign_key(blocktype))
 
 block_5 = Recipe(Block,
                  user=foreign_key(user),

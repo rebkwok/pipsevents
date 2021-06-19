@@ -412,7 +412,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
-        cls.block_type = baker.make(BlockType, size=2, event_type=cls.pc.event_type)
+        cls.block_type = baker.make(BlockType, size=2, duration=4, event_type=cls.pc.event_type)
 
     def setUp(self):
         super().setUp()
