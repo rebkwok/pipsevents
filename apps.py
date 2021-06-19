@@ -23,6 +23,7 @@ class SuitConfig(DjangoSuitConfig):
         ], icon='fa fa-star'),
         ParentItem('Accounts', children=[
             ChildItem(model='auth.user'),
+            ChildItem(model='accounts.accountban'),
             ChildItem(model='account.emailaddress'),
             ChildItem(model='accounts.cookiepolicy'),
             ChildItem(model='accounts.dataprivacypolicy'),

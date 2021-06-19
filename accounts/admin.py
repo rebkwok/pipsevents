@@ -1,13 +1,20 @@
+from datetime import timedelta
 from decimal import Decimal
 from math import floor
 
+from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
 from django import forms
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.template.loader import get_template
 
 from ckeditor.widgets import CKEditorWidget
 
 from accounts.models import OnlineDisclaimer, PrintDisclaimer, DisclaimerContent, \
-    CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, NonRegisteredDisclaimer
+    CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, NonRegisteredDisclaimer, AccountBan
 
 
 class OnlineDisclaimerAdmin(admin.ModelAdmin):
@@ -159,6 +166,111 @@ class DisclaimerContentAdmin(admin.ModelAdmin):
     form = DisclaimerContentAdminForm
 
 
+class CurrentlyBannedListFilter(admin.SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = 'currently banned'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'currently_banned'
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        return (
+            ('currently_banned', 'currently banned'),
+            ('previously_banned', 'previously banned'),
+        )
+
+    def queryset(self, request, queryset):
+        """
+        Returns the filtered queryset based on the value
+        provided in the query string and retrievable via
+        `self.value()`.
+        """
+        # Compare the requested value
+        # to decide how to filter the queryset.
+        if self.value() == 'currently_banned':
+            return queryset.filter(end_date__gt=timezone.now())
+        if self.value() == 'previously_banned':
+            return queryset.filter(end_date__lte=timezone.now())
+        return queryset
+
+
+class CurrentlyBannedUserListFilter(CurrentlyBannedListFilter):
+    def lookups(self, request, model_admin):
+        return (
+            ('currently_banned', 'currently banned'),
+            ('not_banned', 'not banned'),
+        )
+
+    def queryset(self, request, queryset):
+        banned = AccountBan.objects.filter(end_date__gt=timezone.now()).values_list("user", flat=True)
+        if self.value() == 'currently_banned':
+            return queryset.filter(id__in=banned)
+        if self.value() == 'not_banned':
+            return queryset.exclude(id__in=banned)
+        return queryset
+
+
+class AccountBanAdmin(admin.ModelAdmin):
+    list_display = ("user", "start_date", "end_date", "currently_banned")
+    list_filter = (CurrentlyBannedListFilter, 'user')
+
+    def currently_banned(self, obj):
+        return obj.user.currently_banned()
+    currently_banned.boolean = True
+
+
+class CustomUserAdmin(UserAdmin):
+    actions = ['ban_account']
+    list_display = UserAdmin.list_display + ("currently_banned",)
+    list_filter = UserAdmin.list_filter + (CurrentlyBannedUserListFilter,)
+
+    def currently_banned(self, obj):
+        return obj.currently_banned()
+    currently_banned.boolean = True
+
+    def ban_account(self, request, queryset):
+        for user in queryset:
+            if user.currently_banned():
+                self.message_user(
+                    request, f"Account for {user.username} is already banned, no updates made", "info"
+                )
+            else:
+                ban, new = AccountBan.objects.get_or_create(user=user)
+                if not new:
+                    ban.start_date = timezone.now()
+                    ban.end_date = timezone.now() + timedelta(days=14)
+                    ban.save()
+
+                ctx = {"user": user}
+                send_mail(
+                    f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Account locked',
+                    get_template('booking/email/account_blocked.txt').render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    html_message=get_template('booking/email/account_blocked.html').render(ctx),
+                    fail_silently=False)
+
+                self.message_user(
+                    request,
+                    f"Account for {user.username} banned until {user.ban.end_date.strftime('%d %b %Y, %H:%M')} UTC",
+                    "success"
+                )
+    ban_account.short_description = "Ban user accounts for 14 days"
+
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+
+admin.site.register(AccountBan, AccountBanAdmin)
 admin.site.register(OnlineDisclaimer, OnlineDisclaimerAdmin)
 admin.site.register(PrintDisclaimer, PrintDisclaimerAdmin)
 admin.site.register(DataPrivacyPolicy, DataPrivacyPolicyAdmin)

@@ -1,0 +1,15 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+<p>Dear {{ user.first_name }} {{ user.last_name }},</p>
+
+<p>Your account has been locked for due to multiple no-shows or late cancellations.
+    You will not be able to make any new bookings until {{ user.ban.end_date|date:"d M Y, H:i" }}.<p>
+
+<p>
+    We apologise for the incovenience, however classes are currently very busy, with long waiting lists and
+    no-shows/late cancellations prevent other students from being able to book into classes.
+</p>
+</div>
+{% endblock %}

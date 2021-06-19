@@ -77,7 +77,9 @@
                                             <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
                                         {% endif %}
                                     {% else %}
-                                        {% if bookingform.booking.auto_cancelled %}
+                                        {% if request.user.currently_banned %}
+                                            <div class="btn btn-wm table-btn disabled">Rebook</div>
+                                        {% elif bookingform.booking.auto_cancelled %}
                                             <div
                                                     id="rebook_button_auto_cancelled_disabled"
                                                     class="btn btn-wm table-btn disabled"
@@ -89,6 +91,7 @@
                                                 data-event_id="{{ bookingform.booking.event.id }}"
                                                 data-location_count="1"
                                                 data-location_index="0"
+                                                data-location_page="1"
                                                 data-ref="bookings"
                                                 class="td_ajax_book_btn">
                                             {% include "booking/includes/ajax_book_button.txt" %}

@@ -1156,6 +1156,10 @@ def ajax_create_booking(request, event_id):
     if not has_active_disclaimer(request.user):
         return HttpResponseRedirect(reverse('booking:disclaimer_required'))
 
+    if request.user.currently_banned():
+        unlocked = request.user.ban.end_date.strftime("%d %b %Y, %H:%M")
+        return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')
+
     event = Event.objects.get(id=event_id)
     location_index = request.GET.get('location_index')
     location_page = request.GET.get('location_page', 1)
