@@ -159,6 +159,14 @@
                 {% endfor %}
           </div>
         {% endif %}
+        {% if user.currently_banned and user.is_authenticated %}
+            <div class="container-fluid">
+                <div class="message alert alert-danger alert-dismissible">
+                    Your account is temporarily locked. You will able to make new bookings again after {{ user.ban.end_date|date:'d M Y, H:i' }}.
+                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+            </div>
+        {% endif %}
 
         {% block body %}
             <div class="container-fluid content-block">

@@ -69,7 +69,9 @@
                         {% else %}
                             <h5 class="pt-1">{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
-                                    {% if not disclaimer %}
+                                    {% if request.user.currently_banned %}
+                                        <div class="btn btn-wm table-btn disabled">Purchase</div>
+                                    {% elif not disclaimer %}
                                         <div class="btn btn-wm table-btn disabled">Purchase</div>
                                     {% elif auto_cancelled %}
                                         <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ tutorial.contact_email }} directly to purchase">Purchase</div>

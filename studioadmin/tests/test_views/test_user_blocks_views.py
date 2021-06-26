@@ -209,7 +209,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
     def test_block_pagination(self):
         # Blocks are paginated by 10
         for i in range(20):
-            baker.make(
+            baker.make_recipe(
                 'booking.block', user=self.user,
                 start_date=timezone.now()+timedelta(1+i)
             )
@@ -263,7 +263,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     def test_post_with_page(self):
         # Post return same page number
-        new_blocks = baker.make('booking.block', user=self.user, _quantity=15)
+        new_blocks = baker.make_recipe('booking.block', user=self.user, _quantity=15)
         self.assertEqual(Block.objects.filter(user=self.user).count(), 16)
 
         self.client.login(username=self.staff_user.username, password='test')

@@ -131,6 +131,8 @@
                                                 {% if user.is_authenticated %}
                                                     {% if event.is_past %}
                                                     <td></td>
+                                                    {% elif user.currently_banned %}
+                                                        <td class="ext-instructor">Account locked</td>
                                                     {% else %}
                                                     <td class="table-btns">
                                                             {% if not disclaimer %}

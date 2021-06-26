@@ -114,7 +114,9 @@
                         {% else %}
                             <h5>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
                                 {% if bookable %}
-                                    {% if not disclaimer %}
+                                    {% if request.user.currently_banned %}
+                                        <div class="btn btn-wm table-btn disabled">Book</div>
+                                    {% elif not disclaimer %}
                                         <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
                                     {% elif not event.booking_open and not unbookable_pole_practice %}
                                         <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
@@ -126,6 +128,7 @@
                                             data-event_id="{{ event.id }}"
                                             data-location_count="1"
                                             data-location_index="0"
+                                            data-location_page="1"
                                             class="td_ajax_book_btn">
                                         {% include "booking/includes/ajax_book_button.txt" %}
                                         </span>

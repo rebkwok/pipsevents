@@ -433,6 +433,20 @@ class ArchivedDisclaimer(BaseOnlineDisclaimer):
         )
 
 
+class AccountBan(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="ban")
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.end_date:
+            self.end_date = self.start_date + timedelta(days=14)
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.end_date.strftime('%d %b %Y, %H:%M')}"
+
+
 # CACHING
 
 def active_disclaimer_cache_key(user):

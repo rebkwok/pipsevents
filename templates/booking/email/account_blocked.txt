@@ -1,0 +1,7 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Dear {{ user.first_name }} {{ user.last_name }},
+
+Your account has been locked due to multiple no-shows or late cancellations. You will not be able to make any new bookings until {{ user.ban.end_date|date:"d M Y, H:i" }}.
+
+We apologise for the incovenience, however classes are currently very busy, with long waiting lists and no-shows/late cancellations prevent other students from being able to book into classes.

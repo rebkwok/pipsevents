@@ -1567,9 +1567,9 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
             )
 
     def test_cancel_block_booked_CL_does_not_creates_transfer_block(self):
-        block = baker.make(
-            Block,
-            user=self.user, block_type__event_type__event_type='CL'
+        block = baker.make_recipe(
+            'booking.block',
+            user=self.user, block_type__event_type__event_type='CL',
         )
         cl_booking = baker.make_recipe(
             'booking.booking',
