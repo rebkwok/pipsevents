@@ -1,0 +1,78 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:9.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci_test
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: psycopg2 prerequisites
+        run: sudo apt-get install libpq-dev
+
+      - name: Install dependencies
+        run: |
+          set -xe
+          python -m pip install --upgrade pip
+          python -m venv venv
+          venv/bin/pip install --progress-bar=off -r requirements.txt
+          venv/bin/pip install coveralls
+
+      - name: Run tests
+        env:
+          SECRET_KEY: 'dummy_secret'
+          EMAIL_HOST_PASSWORD: 'dummy_password'
+          DATABASE_URL: postgres://postgres:postgres@localhost/ci_test
+          DEFAULT_PAYPAL_EMAIL: dummy-email@hotmail.com
+          PAYPAL_TEST: True
+          LOG_FOLDER: log_folder
+          TRAVIS: True
+          HEROKU: False
+          SEND_ALL_STUDIO_EMAILS: True
+          SIMPLECRYPT_PASSWORD: secret
+          VAT_NUMBER: 123
+        run: |
+          source ${{ github.workspace }}/venv/bin/activate
+          pytest --cov-config=.coveragerc --cov=.
+
+      - name: Coveralls
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

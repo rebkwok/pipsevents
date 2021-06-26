@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/rebkwok/pipsevents.svg?branch=master)](https://travis-ci.org/rebkwok/pipsevents)
+![https://github.com/rebkwok/pipsevents/workflows/Run%20tests/badge.svg](https://github.com/rebkwok/pipsevents/workflows/Run%20tests/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/rebkwok/pipsevents/badge.svg)](https://coveralls.io/r/rebkwok/pipsevents)
 
 ## Event bookings website for Watermelon Studio

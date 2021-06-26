@@ -18,7 +18,6 @@ env = environ.Env(DEBUG=(bool, False),
                   SHOW_DEBUG_TOOLBAR=(bool, False),
                   PAYPAL_TEST=(bool, False),
                   USE_MAILCATCHER=(bool, False),
-                  TRAVIS=(bool, False),
                   HEROKU=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
@@ -29,6 +28,8 @@ env = environ.Env(DEBUG=(bool, False),
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
+
+TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
 
 BASE_DIR = root()
 #
@@ -210,7 +211,7 @@ SUPPORT_EMAIL = 'rebkwok@gmail.com'
 SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 # #####LOGGING######
-if not env('HEROKU') and not env('TRAVIS'):  # pragma: no cover
+if not env('HEROKU') and not TESTING:  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
 
     LOGGING = {
@@ -350,11 +351,9 @@ if env('USE_MAILCATCHER'):  # pragma: no cover
 DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
-import sys
-TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
 
-# TRAVIS and HEROKU logging
-if env('TRAVIS') or env('HEROKU') or TESTING:  # pragma: no cover
+# TESTING and HEROKU logging
+if env('HEROKU') or TESTING:  # pragma: no cover
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -443,7 +442,7 @@ MAILCHIMP_SECRET = env('MAILCHIMP_SECRET', default='')
 MAILCHIMP_LIST_ID = env('MAILCHIMP_LIST_ID', default='')
 MAILCHIMP_WEBHOOK_SECRET = env('MAILCHIMP_WEBHOOK_SECRET', default='')
 
-if TESTING or env('TRAVIS'):
+if TESTING:
     MAILCHIMP_USER = 'mailchimp'
     # has to be a valid mailchimp api key pattern
     MAILCHIMP_SECRET = 'abcdef0123456789abcdef0123456789-us6'

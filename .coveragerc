@@ -1,2 +1,3 @@
 [run]
-omit=booking/management/commands/upload_data.py,../*migrations*,../*tests*,../*wsgi*,../*__init__*,timetable/management/commands/create_pip_hire_sessions.py,manage.py
+omit=venv/*,booking/management/commands/upload_data.py,../*migrations*,../*tests*,../*wsgi*,../*__init__*,timetable/management/commands/create_pip_hire_sessions.py,manage.py
+relative_files = True
