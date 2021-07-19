@@ -50,7 +50,7 @@
                                 <th>{% if type == "online_tutorials" %}Last Purchasable {% endif %}Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'online_tutorials' %}Tutorial{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
-                                <th class="text-center">Location</th>
+                                {% if location_count > 1 %}<th class="text-center">Location</th>{% endif %}
                                 <th class="text-center">Max spaces</th>
                                 <th class="text-center">
                                     {% if type == "online_tutorials" %}Purchases{% else %}
@@ -88,7 +88,9 @@
                                         <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                     {% endif %}
                                 </td>
-                                <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.instance.location_index }}">{{ event.instance.location }}</span></td>
+                                {% if location_count > 1 %}
+                                    <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.instance.location_index }}">{{ event.instance.location }}</span></td>
+                                {% endif %}
                                 <td class="text-center studioadmin-tbl">
                                     {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl">
@@ -158,7 +160,12 @@
                                 </td>
                             </tr>
                         <tr>
-                            <td class="studioadmin-tbl" {% if type == "online_tutorials" %}colspan="10"{% else %}colspan="11"{% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
+                            <td class="studioadmin-tbl"
+                                {% if type == "online_tutorials" %}
+                                    {% if location_count > 1 %}colspan="10"{% else %}colspan="9"{% endif %}
+                                {% else %}
+                                    {% if location_count > 1 %}colspan="11"{% else %}colspan="10"{% endif %}
+                                {% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                     </div>

@@ -45,8 +45,8 @@
                                             <th>Date</th>
                                             <th class="text-center">{% if type == 'events' %}Workshop/Event{% elif type == 'lessons' %}Class{% endif %}<br/>
                                                 <span class="studioadmin-help">Click to view register</span></th>
-                                             {%  if location_obj.index == 0 %}
-                                                <th class="text-center">Location</th>
+                                             {%  if location_obj.index == 0 and location_count > 1 %}
+                                                <th class="text-center visible-sm">Location</th>
                                             {% endif %}
                                             <th class="text-center">{% if type == 'online_tutorials' %}Purchased{% else %}Bookings{% endif %}</th>
                                             {% if type != 'online_tutorials' %}<th class="text-center">View Waiting List</th>{% endif %}
@@ -61,7 +61,7 @@
                                                     <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                                 {% endif %}
                                             </td>
-                                             {%  if location_obj.index == 0 %}
+                                             {%  if location_obj.index == 0 and location_count > 1 %}
                                                 <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location }}</span></td>
                                                 {% endif %}
                                             <td class="text-center studioadmin-tbl">{{ event|bookings_count }}</td>

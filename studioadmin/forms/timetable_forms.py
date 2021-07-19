@@ -26,24 +26,24 @@ class SessionBaseFormSet(BaseModelFormSet):
             form.formatted_day = DAY_CHOICES[form.instance.day]
 
             form.fields['booking_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={'class': "form-check-input"}),
+                widget=forms.CheckboxInput(attrs={'class': "form-check-input position-static"}),
                 required=False
             )
 
             form.fields['payment_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={'class': "form-check-input"}),
+                widget=forms.CheckboxInput(attrs={'class': "form-check-input position-static"}),
                 initial=form.instance.payment_open,
                 required=False
             )
 
             form.fields['advance_payment_required'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={'class': ""}),
+                widget=forms.CheckboxInput(attrs={'class': "form-check-input position-static"}),
                 required=False
             )
 
             form.fields['DELETE'] = forms.BooleanField(
                 widget=forms.CheckboxInput(attrs={
-                    'class': 'form-check-input studioadmin-list',
+                    'class': 'form-check-input position-static studioadmin-list',
                 }),
                 required=False
             )

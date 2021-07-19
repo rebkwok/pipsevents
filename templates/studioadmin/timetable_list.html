@@ -18,7 +18,7 @@
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Session<br/><span class="studioadmin-help">Click to edit</span></th>
-                                <th class="text-center">Location</th>
+                                {% if location_count > 1 %}<th class="text-center">Location</th>{% endif %}
                                 <th class="text-center">Cost</th>
                                 <th class="text-center">Max spaces</th>
                                 <th class="text-center">Booking open</th>
@@ -33,8 +33,10 @@
                                 <td class="studioadmin-tbl">{{ session.formatted_day }}</td>
                                 <td class="studioadmin-tbl">{{ session.instance.time|time:"H:i" }}</td>
                                 <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_session' session.instance.id %}">{{ session.instance.name }}</a></td>
-                                <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ session.instance.location_index }}">{{ session.instance.location }}</span></div></td>
-                                <td class="text-center studioadmin-tbl">£ {{ session.instance.cost }}</div></td>
+                                {% if location_count > 1 %}
+                                    <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ session.instance.location_index }}">{{ session.instance.location }}</span></td>
+                                {% endif %}
+                                <td class="text-center studioadmin-tbl">£ {{ session.instance.cost }}</td>
                                 <td class="text-center studioadmin-tbl">
                                     {% if session.instance.max_participants %}{{ session.instance.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl">{{ session.booking_open }}<label for={{ session.booking_open_id }}></label></td>
@@ -45,7 +47,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                        <td class="studioadmin-tbl" colspan="10"><input class="btn btn-wm studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                        <td class="studioadmin-tbl" {% if location_count > 1 %}colspan="10"{% else %}colspan="9"{% endif %}><input class="btn btn-wm studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
                         </tr>
                     </table>
                 </div>
