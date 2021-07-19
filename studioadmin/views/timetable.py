@@ -3,11 +3,11 @@ import logging
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import CreateView, UpdateView
 from django.utils.safestring import mark_safe
-
 from braces.views import LoginRequiredMixin
 
 from booking import utils
@@ -243,6 +243,17 @@ def upload_timetable_view(request,
                        'sidenav_selection': 'upload_timetable',
                        'override_options': ', '.join([f'{key.replace("_", " ")} ({_format_override_option(value)})' for key, value in override_options.items() if value != "default"]),
                        }
+
+            send_mail(
+                '{} New timetable upload'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                ),
+                'New timetable has been uploaded',
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.SUPPORT_EMAIL],
+                fail_silently=False
+            )
+
             return render(
                 request, 'studioadmin/upload_timetable_confirmation.html',
                 context
