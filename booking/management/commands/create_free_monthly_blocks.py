@@ -3,6 +3,7 @@ Create free 5-class blocks for users in 'free_monthly_blocks' group
 Will be run on 1st of each month as cron job
 '''
 import datetime
+import re
 
 from django.contrib.auth.models import User, Group
 from django.conf import settings
@@ -20,46 +21,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         event_type = EventType.objects.get(subtype='Pole level class')
-        free_5_blocktype, _ = BlockType.objects.get_or_create(
-            identifier='Free - 5 classes', active=False, cost=0, duration=1,
-            size=5, event_type=event_type
-        )
-        free_7_blocktype, _ = BlockType.objects.get_or_create(
-            identifier='Free - 7 classes', active=False, cost=0, duration=1,
-            size=7, event_type=event_type
-        )
+        groups = Group.objects.filter(name__regex=r"free_\d+monthly_blocks")
+        results = {}
 
-        group5, _ = Group.objects.get_or_create(name='free_5monthly_blocks')
-        group7, _ = Group.objects.get_or_create(name='free_7monthly_blocks')
+        for group in groups:
+            number_of_classes_match = re.findall(r"free_(\d+)monthly_blocks", group.name)
+            number_of_classes = int(number_of_classes_match[0])
+            free_blocktype, _ = BlockType.objects.get_or_create(
+                identifier=f"Free - {number_of_classes} classes",
+                active=False,
+                cost=0,
+                duration=1,
+                size=number_of_classes,
+                event_type=event_type
+            )
 
-        groupmap = {
-            group5: {
-                'blocktype': free_5_blocktype, 'users': group5.user_set.all()
-            },
-            group7: {
-                'blocktype': free_7_blocktype, 'users': group7.user_set.all()
-            }
-        }
-
-        created_users = []
-        already_active_users = []
-
-        for group in groupmap.keys():
-            free_blocktype = groupmap[group]['blocktype']
-            users = groupmap[group]['users']
-
-            if not users:
-                self.stdout.write('No users in {} group'.format(group.name))
-                send_mail(
-                    '{} Free blocks creation failed'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    ),
-                    'No users in {} group'.format(group.name),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.SUPPORT_EMAIL],
-                    fail_silently=False
-                )
-
+            created_users = []
+            already_active_users = []
+            users = group.user_set.all()
             for user in users:
                 active_free_blocks = [
                     block for block in
@@ -80,41 +59,47 @@ class Command(BaseCommand):
                     )
                     created_users.append(user)
 
-        if created_users:
-            message = 'Free class blocks created for {}'.format(
-                ', '.join(
-                    ['{} {}'.format(user.first_name, user.last_name)
-                     for user in created_users]
-                )
-            )
-            ActivityLog.objects.create(log=message)
-            self.stdout.write(message)
-            send_mail(
-                '{} Free blocks created'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                ),
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.SUPPORT_EMAIL],
-                fail_silently=False
+            results[group.name] = {"created": created_users, "already_active": already_active_users}
+
+        message = ""
+        for group_name, group_results in results.items():
+            message += f"Group: {group_name}\n"
+            if not any(group_results.values()):
+                message += "No users in this group\n"
+
+            if group_results["created"]:
+                message += 'Free class blocks created for {}\n'.format(
+                        ', '.join(
+                            ['{} {}'.format(user.first_name, user.last_name)
+                             for user in group_results["created"]]
+                        )
+                    )
+
+            if group_results["already_active"]:
+                message += 'Active free block already exists for {}\n'.format(
+                        ', '.join(
+                            ['{} {}'.format(user.first_name, user.last_name)
+                             for user in group_results["already_active"]]
+                        )
+                    )
+
+            message += "=====================\n\n"
+            ActivityLog.objects.create(
+                log=f"Free block creation: Group {group_name}; "
+                    f"created {len(group_results['created'])}, "
+                    f"already_active {len(group_results['already_active'])}"
             )
 
-        if already_active_users:
-            message = 'Free monthly class blocks not created for {} as ' \
-                      'active free block already exists'.format(
-                ', '.join(
-                    ['{} {}'.format(user.first_name, user.last_name)
-                     for user in already_active_users]
-                )
-            )
-            ActivityLog.objects.create(log=message)
-            self.stdout.write(message)
-            send_mail(
-                '{} Free blocks not created'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                ),
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [settings.SUPPORT_EMAIL],
-                fail_silently=False
-            )
+        if not message:
+            message = "No free monthly groups found"
+
+        self.stdout.write(message)
+        send_mail(
+            '{} Free monthly blocks creation'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            ),
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.SUPPORT_EMAIL],
+            fail_silently=False
+        )

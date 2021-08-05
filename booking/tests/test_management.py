@@ -2654,66 +2654,41 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
             EventType, event_type='CL', subtype='Pole level class'
         )
 
-    def test_groups_and_blocktypes_created(self):
-        self.assertFalse(Block.objects.exists())
-        self.assertFalse(Group.objects.exists())
-        self.assertFalse(BlockType.objects.exists())
+    def test_no_groups_and_blocktypes_created(self):
+        assert Block.objects.exists() is False
+        assert Group.objects.exists() is False
+        assert BlockType.objects.exists() is False
 
         management.call_command('create_free_monthly_blocks')
-        # groups and blocktypes created
-        self.assertEqual(BlockType.objects.count(), 2)
-        self.assertEqual(Group.objects.count(), 2)
-        # no blocks created as no users in groups
-        self.assertFalse(Block.objects.exists())
+        assert Block.objects.exists() is False
+        assert Group.objects.exists() is False
+        assert BlockType.objects.exists() is False
 
-        # One failed email per group
-        self.assertEqual(len(mail.outbox), 2)
-        email_subjects = [email.subject for email in mail.outbox]
-        for subject in email_subjects:
-            self.assertEqual(
-                subject,
-                '{} Free blocks creation failed'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    )
-            )
-
-        email_bodies = [email.body for email in mail.outbox]
-        self.assertCountEqual(
-            email_bodies,
-            [
-                "No users in free_5monthly_blocks group",
-                "No users in free_7monthly_blocks group"
-            ]
-        )
+        # One email
+        assert len(mail.outbox) == 1
+        email = mail.outbox[0]
+        assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
+        assert email.body == "No free monthly groups found"
 
     def test_no_users_in_group(self):
-        self.assertFalse(Block.objects.exists())
         Group.objects.create(name='free_5monthly_blocks')
         Group.objects.create(name='free_7monthly_blocks')
         management.call_command('create_free_monthly_blocks')
-        # One failed email per group
-        self.assertEqual(len(mail.outbox), 2)
-        email_subjects = [email.subject for email in mail.outbox]
-        for subject in email_subjects:
-            self.assertEqual(
-                subject,
-                '{} Free blocks creation failed'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    )
-            )
 
-        email_bodies = [email.body for email in mail.outbox]
-        self.assertCountEqual(
-            email_bodies,
-            [
-                "No users in free_5monthly_blocks group",
-                "No users in free_7monthly_blocks group"
-            ]
-        )
-        self.assertFalse(Block.objects.exists())
+        assert len(mail.outbox) == 1
+        email = mail.outbox[0]
+        assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
+        assert email.body == "Group: free_5monthly_blocks\n" \
+                             "No users in this group\n" \
+                             "=====================\n\n" \
+                             "Group: free_7monthly_blocks\n" \
+                             "No users in this group\n" \
+                             "=====================\n\n"
+        assert Block.objects.exists() is False
 
     def test_create_free_blocks(self):
-        self.assertFalse(Block.objects.exists())
+        assert Block.objects.exists() is False
+
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
         user1 = baker.make(User, first_name='Test', last_name='User1')
@@ -2724,35 +2699,29 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user2.groups.add(group7)
 
         management.call_command('create_free_monthly_blocks')
-        self.assertEqual(Block.objects.count(), 2)
+        assert Block.objects.count() == 2
 
-        self.assertEqual(
-            Block.objects.get(user=user1).block_type.identifier,
-            'Free - 5 classes'
-        )
-        self.assertEqual(
-            Block.objects.get(user=user2).block_type.identifier,
-            'Free - 7 classes'
-        )
+        user1block = Block.objects.get(user=user1)
+        user2block = Block.objects.get(user=user2)
+        assert user1block.block_type.identifier == 'Free - 5 classes'
+        assert user1block.block_type.size == 5
+        assert user1block.block_type.active is False
+        assert user2block.block_type.identifier == 'Free - 7 classes'
+        assert user2block.block_type.size == 7
+        assert user2block.block_type.active is False
 
-        self.assertEqual(len(mail.outbox), 1)
+        assert len(mail.outbox) == 1
         email = mail.outbox[0]
-        self.assertEqual(
-            email.subject,
-            '{} Free blocks created'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                )
-        )
-        self.assertIn(
-            email.body,
-            [
-                'Free class blocks created for Test User1, Test User2',
-                'Free class blocks created for Test User2, Test User1'
-            ]
-        )
+        assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
+        assert email.body == "Group: free_5monthly_blocks\n" \
+                             "Free class blocks created for Test User1\n" \
+                             "=====================\n\n" \
+                             "Group: free_7monthly_blocks\n" \
+                             "Free class blocks created for Test User2\n" \
+                             "=====================\n\n"
 
     def test_dont_create_duplicate_free_blocks(self):
-        self.assertFalse(Block.objects.exists())
+        assert Block.objects.exists() is False
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
         user1 = baker.make(User, first_name='Test', last_name='User1')
@@ -2762,35 +2731,49 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user2.groups.add(group7)
 
         management.call_command('create_free_monthly_blocks')
-        self.assertEqual(Block.objects.count(), 2)
+        assert Block.objects.count() == 2
+
         user1block = Block.objects.get(user=user1)
-        self.assertEqual(
-            user1block.block_type.identifier, 'Free - 5 classes'
-        )
         user2block = Block.objects.get(user=user2)
-        self.assertEqual(
-            user2block.block_type.identifier, 'Free - 7 classes'
-        )
+
+        assert user1block.block_type.identifier == 'Free - 5 classes'
+        assert user2block.block_type.identifier == 'Free - 7 classes'
+
+        assert len(mail.outbox) == 1
+        email = mail.outbox[0]
+        assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
+        assert email.body == "Group: free_5monthly_blocks\n" \
+                             "Free class blocks created for Test User1\n" \
+                             "=====================\n\n" \
+                             "Group: free_7monthly_blocks\n" \
+                             "Free class blocks created for Test User2\n" \
+                             "=====================\n\n"
+
 
         # call again; no new blocks created
         management.call_command('create_free_monthly_blocks')
-        self.assertEqual(Block.objects.count(), 2)
+        assert Block.objects.count() == 2
+
         blockids = Block.objects.all().values_list('id', flat=True)
         self.assertCountEqual(blockids, [user1block.id, user2block.id])
 
-        email = mail.outbox[-1]
-        self.assertEqual(
-            email.subject,
-            '{} Free blocks not created'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                )
-        )
-        self.assertIn('Free monthly class blocks not created', email.body)
-        self.assertIn('Test User1', email.body)
-        self.assertIn('Test User2', email.body)
+        user1block = Block.objects.get(user=user1)
+        user2block = Block.objects.get(user=user2)
+        assert user1block.block_type.identifier == 'Free - 5 classes'
+        assert user2block.block_type.identifier == 'Free - 7 classes'
+
+        assert len(mail.outbox) == 2
+        email = mail.outbox[1]
+        assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
+        assert email.body == "Group: free_5monthly_blocks\n" \
+                             "Active free block already exists for Test User1\n" \
+                             "=====================\n\n" \
+                             "Group: free_7monthly_blocks\n" \
+                             "Active free block already exists for Test User2\n" \
+                             "=====================\n\n"
 
     def test_only_create_free_blocks_if_not_already_active(self):
-        self.assertFalse(Block.objects.exists())
+        assert Block.objects.exists() is False
         group5 = Group.objects.create(name='free_5monthly_blocks')
         group7 = Group.objects.create(name='free_7monthly_blocks')
         user1 = baker.make_recipe('booking.user', first_name='Test', last_name='User1')
@@ -2801,7 +2784,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user3.groups.add(group7)
 
         management.call_command('create_free_monthly_blocks')
-        self.assertEqual(Block.objects.count(), 3)
+        assert Block.objects.count() == 3
 
         # user1's block has expired
         block1 = Block.objects.get(user=user1)
@@ -2815,44 +2798,13 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         )
 
         block3 = Block.objects.get(user=user3)
-        self.assertFalse(block1.active_block())
-        self.assertFalse(block2.active_block())
-        self.assertTrue(block3.active_block())
+        assert block1.active_block() is False
+        assert block2.active_block() is False
+        assert block3.active_block() is True
 
         # call again; new blocks created for only user1 and user2
         management.call_command('create_free_monthly_blocks')
-        self.assertEqual(Block.objects.count(), 5)
-
-        # 3 emails; 1 for first run when the blocks are created, 2 for second
-        # run
-        self.assertEqual(len(mail.outbox), 3)
-        created_email = mail.outbox[1]
-        self.assertEqual(
-            created_email.subject,
-            '{} Free blocks created'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                )
-        )
-        self.assertIn(
-            created_email.body,
-            [
-                'Free class blocks created for Test User1, Test User2',
-                'Free class blocks created for Test User2, Test User1'
-            ]
-        )
-
-        not_created_email = mail.outbox[2]
-        self.assertEqual(
-            not_created_email.subject,
-            '{} Free blocks not created'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                )
-        )
-        self.assertEqual(
-            not_created_email.body,
-            'Free monthly class blocks not created for Test User3 as '
-            'active free block already exists'
-        )
+        assert Block.objects.count() == 5
 
     def test_blocks_created_with_previous_day_start_date(self):
         """
@@ -2875,7 +2827,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
             ):
             management.call_command('create_free_monthly_blocks')
 
-        self.assertEqual(Block.objects.count(), 3)
+        assert Block.objects.count() == 3
 
         # make blocks on 1st Feb; previous blocks are now inactive, so new
         # blocks made
@@ -2885,12 +2837,10 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
                 return_value=datetime(2016, 1, 1, tzinfo=timezone.utc)
             ):
             # blocks are not full, and are paid, so active unless expired
-            self.assertEqual(
-                [bl for bl in Block.objects.all() if bl.full], []
-            )
-            self.assertEqual(Block.objects.filter(paid=False).count(), 0)
+            assert [bl for bl in Block.objects.all() if bl.full] == []
+            assert Block.objects.filter(paid=False).count() == 0
             management.call_command('create_free_monthly_blocks')
-        self.assertEqual(Block.objects.count(), 3)
+        assert Block.objects.count() == 3
 
 
 class TestDeactivateRegularStudents(TestCase):
