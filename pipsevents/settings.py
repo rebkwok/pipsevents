@@ -59,7 +59,7 @@ if env('LOCAL'):  # pragma: no cover
 # Application definition
 
 INSTALLED_APPS = (
-    'apps.SuitConfig',
+    # 'apps.SuitConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
