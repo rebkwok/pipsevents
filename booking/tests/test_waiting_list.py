@@ -938,8 +938,7 @@ class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
 
     def test_cancel_booking_for_non_full_event(self):
         """
-        Cancelling a booking for a not full event does not email
-        users on the waiting list
+        Cancelling a booking for a not full event still emails users on the waiting list
         """
 
         # make not full event
@@ -970,7 +969,7 @@ class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
             self.staff_user, booking_to_cancel.user.id,
             form_data=data
         )
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 1)
 
         booking_to_cancel.refresh_from_db()
         self.assertEqual(booking_to_cancel.status, 'CANCELLED')

@@ -555,7 +555,6 @@ def process_user_booking_updates(form, request):
                 "sent to user.".format(form.instance.event))
         else:
             extra_msgs = []  # these will be displayed as a list in the email to the user
-            event_was_full = booking.event.spaces_left == 0
             action = 'updated' if form.instance.id else 'created'
             transfer_block_created = False
             block_removed = False
@@ -719,11 +718,10 @@ def process_user_booking_updates(form, request):
                         request,  'Note: this booking has been cancelled. The booking has automatically '
                         'been marked as unpaid (refunded).')
 
-                if event_was_full:
-                    waiting_list_users = WaitingListUser.objects.filter(
-                        event=booking.event
-                    )
-                    if waiting_list_users:
+                waiting_list_users = WaitingListUser.objects.filter(
+                    event=booking.event
+                )
+                if waiting_list_users:
                         try:
                             send_waiting_list_email(
                                 booking.event,
