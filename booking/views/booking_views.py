@@ -830,8 +830,6 @@ class BookingDeleteView(
         # Check here so we can adjust the email message
         block_booked_within_allowed_time = self._block_booked_within_allowed_time(booking)
 
-        event_was_full = event.spaces_left == 0
-
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
 
         # email if this isn't an unpaid/non-rebooked booking
@@ -1022,32 +1020,31 @@ class BookingDeleteView(
                     )
 
         # if applicable, email users on waiting list
-        if event_was_full:
-            waiting_list_users = WaitingListUser.objects.filter(
-                event=event
-            )
-            if waiting_list_users:
-                try:
-                    send_waiting_list_email(
-                        event,
-                        [wluser.user for wluser in waiting_list_users],
-                        host='http://{}'.format(request.META.get('HTTP_HOST'))
+        waiting_list_users = WaitingListUser.objects.filter(
+            event=event
+        )
+        if waiting_list_users:
+            try:
+                send_waiting_list_email(
+                    event,
+                    [wluser.user for wluser in waiting_list_users],
+                    host='http://{}'.format(request.META.get('HTTP_HOST'))
+                )
+                ActivityLog.objects.create(
+                    log='Waiting list email sent to user(s) {} for '
+                    'event {}'.format(
+                        ', '.join(
+                            [wluser.user.username for \
+                            wluser in waiting_list_users]
+                        ),
+                        event
                     )
-                    ActivityLog.objects.create(
-                        log='Waiting list email sent to user(s) {} for '
-                        'event {}'.format(
-                            ', '.join(
-                                [wluser.user.username for \
-                                wluser in waiting_list_users]
-                            ),
-                            event
-                        )
-                    )
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(e, __name__, "DeleteBookingView - waiting list email")
-                    messages.error(self.request, "An error occured, please contact "
-                        "the studio for information")
+                )
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(e, __name__, "DeleteBookingView - waiting list email")
+                messages.error(self.request, "An error occured, please contact "
+                    "the studio for information")
 
         if delete_from_shopping_basket:
             # get rid of messages

@@ -1,0 +1,50 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<h4>CREDIT BLOCK REACTIVATION</h4>
+
+<p>Thank you for your patience and support during studio closures and lockdowns.</p>
+    {% if reactivation_date %}
+        {% if report_type == "reactivation" %}
+            <p>Credit blocks have now been reactivated with a start date of {{ reactivation_date|date:'d M Y' }}</p>
+        {% else %}
+            <p>Credit blocks will be reactivated on <strong>{{ reactivation_date|date:'d M Y' }}</strong>.
+                You will receive another email when this happens.</p>
+        {% endif %}
+    {% else %}
+        <p>Credit blocks will be reactivated in September.  You will receive another email when this happens.</p>
+    {% endif %}
+
+<p>After classes were cancelled for the first lockdown on 17th March 2020, we took an inventory of blocks and
+    transfer credits that were assigned for cancelled classes.  Any blocks/credits that were active on 17th March 2020
+    will be reactivated with the same length of time to expiry.  E.g. if you had a block that expired on 24th March 2020,
+    it will be reactivated with one week left to use.
+</p>
+
+<p>Please see below for a breakdown of your block status.  If you have waived credits, or used them for online classes,
+individual training, raffles etc, these will be listed below.</p>
+
+<p>TOTAL CREDIT DUE: {{ total_due }}</p>
+{% for block_number, block_report in blocks.items %}
+    <strong>Block {{ block_number }}:</strong><br/>
+    Valid for: {{ block_report.valid_for }}<br/>
+    Original start date: {{ block_report.original_start_date|date:'d M Y' }}<br/>
+    Original expiry date: {{ block_report.original_expiry|date:'d M Y' }}<br/>
+    Original block size: {{ block_report.total_credits }}<br/>
+    Credits left on block on 17 Mar 2020: {{ block_report.credits_left }}<br/>
+    {% if block_report.credit_due %}Time left after reactivation: {% if block_report.weeks_left %}{{ block_report.weeks_left }} week{{ block_report.weeks_left|pluralize }}, {% endif %}{{ block_report.days_left }} day{{ block_report.days_left|pluralize }}<br/>{% endif %}
+    {% if block_report.used_for %}<br/>Credits used since 17 Mar 2020:
+        <ul>{% for reason, count in block_report.used_for.items %}<li>{{ reason }}: {{ count }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if reactivation_date and block_report.credit_due %}
+        Block {% if report_type == 'notification' %}will be {% endif %}reactivated on {{ reactivation_date|date:'d M Y' }}<br/>
+        <strong>New expiry date: {{ block_report.new_expiry_date|date:'d M Y' }}</strong><br/>
+    {% endif %}
+    <strong>CREDIT {{ block_report.reporting_action }}: {{ block_report.credit_due }}</strong>
+    <hr>
+{% endfor %}
+
+</div>
+{% endblock %}
