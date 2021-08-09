@@ -153,7 +153,7 @@ class EventTypeListFilter(admin.SimpleListFilter):
 class EventForm(forms.ModelForm):
 
     description = forms.CharField(
-        widget=CKEditorWidget(attrs={'class':'container-fluid'}),
+        widget=CKEditorWidget(attrs={'class': 'container-fluid'}),
         required=False
     )
 
@@ -320,7 +320,7 @@ class BlockAdmin(admin.ModelAdmin):
     list_display = ('get_user', 'block_type', 'block_size', 'active_block',
                     'get_full', 'paid', 'formatted_start_date', 'formatted_expiry_date')
     list_editable = ('paid', )
-    list_filter = (UserFilter, 'block_type__event_type', BlockFilter,)
+    list_filter = (UserFilter, 'block_type__identifier', 'block_type__event_type', BlockFilter,)
 
     raw_id_fields = ('user', 'parent')
 
