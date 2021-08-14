@@ -45,8 +45,9 @@ def get_bookings():
 
     rebooked = Q(date_rebooked__isnull=False)
     not_rebooked = Q(date_rebooked__isnull=True)
-    rebooked_more_than_2hrs_ago= Q(date_rebooked__lte=timezone.now() - timedelta(hours=2))
-    booked_more_than_2hrs_ago = Q(date_booked__lte=timezone.now() - timedelta(hours=2))
+    cutoff = timezone.now() - timedelta(hours=2)
+    rebooked_more_than_2hrs_ago = Q(date_rebooked__lte=cutoff)
+    booked_more_than_2hrs_ago = Q(date_booked__lte=cutoff)
 
     return Booking.objects.filter(
         (rebooked & rebooked_more_than_2hrs_ago) | (not_rebooked & booked_more_than_2hrs_ago ),
@@ -85,10 +86,10 @@ def send_warning_email(self, upcoming_bookings):
                 booking.id, booking.event, booking.user.username
             )
         )
-    # Update the warning_sent flag on all selected bookings
-    upcoming_bookings.update(warning_sent=True)
+        booking.warning_sent = True
+        booking.save()
 
-    if upcoming_bookings:
+    if upcoming_bookings.exists():
         self.stdout.write(
             'Warning emails sent for booking ids {}'.format(
                 ', '.join([str(booking.id) for booking in upcoming_bookings])

@@ -55,12 +55,13 @@ class Command(BaseCommand):
             paypal_pending=False,
         ).exclude(date_warning_sent__gte=warning_time_buffer)  # doesn't exclude date_warning_sent==None
         for booking in bookings_qset:
-            if booking.event.date - timedelta(hours=booking.event.cancellation_period) < now and booking.warning_sent:
-                yield booking
-            elif booking.event.payment_due_date and booking.warning_sent:
+            if (booking.event.date - timedelta(hours=booking.event.cancellation_period)) < now:
+                if booking.warning_sent:
+                    yield booking
+            if booking.event.payment_due_date and booking.warning_sent:
                 if booking.event.payment_due_date < now:
                     yield booking
-            elif booking.event.payment_time_allowed:
+            if booking.event.payment_time_allowed:
                 # if there's a payment time allowed, cancel bookings booked longer ago than this
                 # don't check for warning sent this time
                 # for free class requests, always allow them 24 hrs so admin
@@ -69,13 +70,13 @@ class Command(BaseCommand):
                 if booking.free_class_requested:
                     if last_booked_date < now - timedelta(hours=24):
                         yield booking
-                elif last_booked_date < now - timedelta(hours=booking.event.payment_time_allowed):
+                elif last_booked_date < (now - timedelta(hours=booking.event.payment_time_allowed)):
                     yield booking
 
     def cancel_bookings(self, now):
-        bookings_for_studio_email = [] if settings.SEND_ALL_STUDIO_EMAILS else None
+        bookings_for_studio_email = []
+        send_waiting_list = set()
         for booking in self.get_bookings_to_cancel(now):
-            event_was_full = booking.event.spaces_left == 0
             ctx = {
                   'booking': booking,
                   'event': booking.event,
@@ -83,23 +84,17 @@ class Command(BaseCommand):
                   'time': booking.event.date.strftime('%I:%M %p'),
             }
             # send mails to users
-            try:
-                send_mail('{} Booking cancelled: {}'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
-                    get_template(
-                        'booking/email/booking_auto_cancelled.txt'
+            send_mail('{} Booking cancelled: {}'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event.name),
+                get_template(
+                    'booking/email/booking_auto_cancelled.txt'
+                ).render(ctx),
+                settings.DEFAULT_FROM_EMAIL,
+                [booking.user.email],
+                html_message=get_template(
+                    'booking/email/booking_auto_cancelled.html'
                     ).render(ctx),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [booking.user.email],
-                    html_message=get_template(
-                        'booking/email/booking_auto_cancelled.html'
-                        ).render(ctx),
-                    fail_silently=False)
-            except Exception as e:
-                # send mail to tech support with Exception
-                send_support_email(
-                    e, __name__, "Automatic cancel job - cancelled email"
-                )
+                fail_silently=False)
             booking.status = 'CANCELLED'
             booking.block = None
             booking.auto_cancelled = True
@@ -110,22 +105,24 @@ class Command(BaseCommand):
                         booking.id, booking.event, booking.user
                 )
             )
-            if event_was_full:
-                waiting_list_users = WaitingListUser.objects.filter(
-                    event=booking.event
-                )
+            if settings.SEND_ALL_STUDIO_EMAILS:
+                bookings_for_studio_email.append(booking)
+            send_waiting_list.add(booking.event)
+
+        for event in send_waiting_list:
+            waiting_list_users = WaitingListUser.objects.filter(event=event)
+            if waiting_list_users.exists():
                 try:
                     send_waiting_list_email(
-                        booking.event, [user.user for user in waiting_list_users]
+                        event, [user.user for user in waiting_list_users]
                     )
                     ActivityLog.objects.create(
                         log='Waiting list email sent to user(s) {} for '
                         'event {}'.format(
                             ', '.join(
-                                [wluser.user.username for \
-                                    wluser in waiting_list_users]
+                                [wluser.user.username for wluser in waiting_list_users]
                             ),
-                            booking.event
+                            event
                         )
                     )
                 except Exception as e:
@@ -133,9 +130,6 @@ class Command(BaseCommand):
                     send_support_email(
                         e, __name__, "Automatic cancel job - waiting list email"
                     )
-
-            if bookings_for_studio_email is not None:
-                bookings_for_studio_email.append(booking)
 
         if bookings_for_studio_email:
             # send single mail to Studio
@@ -162,5 +156,3 @@ class Command(BaseCommand):
                 send_support_email(
                     e, __name__, "Automatic cancel job - studio email"
                 )
-        else:
-            self.stdout.write('No bookings to cancel')

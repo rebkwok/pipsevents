@@ -995,29 +995,6 @@ class CancelUnpaidBookingsTests(TestCase):
             sorted([email.to for email in mail.outbox])
         )
 
-    @patch('booking.management.commands.cancel_unpaid_bookings.send_mail')
-    @patch('booking.management.commands.cancel_unpaid_bookings.'
-           'send_waiting_list_email')
-    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_email_errors(self, mock_tz, mock_send, mock_send_waiting_list):
-        mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
-        )
-        mock_send.side_effect = Exception('Error sending email')
-        mock_send_waiting_list.side_effect = Exception('Error sending email')
-        # make full event (setup has one paid and one unpaid)
-        # cancellation period =1, date = 2015, 2, 13, 18, 0
-        self.event.max_participants = 2
-        self.event.save()
-        baker.make_recipe('booking.waiting_list_user', event=self.event)
-
-        management.call_command('cancel_unpaid_bookings')
-        # emails are sent to user per cancelled booking, studio and waiting
-        # list user; 3 failure emails sent to support
-        self.assertEqual(len(mail.outbox), 3)
-        for email in mail.outbox:
-            self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
-
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_cancelling_for_full_event_emails_waiting_list(self, mock_tz):
         """
@@ -1082,21 +1059,21 @@ class CancelUnpaidBookingsTests(TestCase):
         management.call_command('cancel_unpaid_bookings')
         # emails are sent to user per cancelled booking (2) and
         # one email with bcc to waiting list (1) and studio (1)
-        # waiting list email sent after the first cancelled booking
+        # waiting list email sent after the two user emails
         self.assertEqual(len(mail.outbox), 4)
         self.assertEqual(
-            sorted(mail.outbox[1].bcc),
+            sorted(mail.outbox[2].bcc),
             ['test0@test.com', 'test1@test.com', 'test2@test.com']
         )
-        for email in [mail.outbox[0], mail.outbox[2], mail.outbox[3]]:
+        for email in [mail.outbox[0], mail.outbox[1], mail.outbox[3]]:
             self.assertEqual(email.bcc, [])
 
         self.assertEqual(Booking.objects.filter(status='CANCELLED').count(), 2)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
-    def test_cancelling_not_full_event_does_not_email_waiting_list(self, mock_tz):
+    def test_cancelling_not_full_event_emails_waiting_list(self, mock_tz):
         """
-        Test that the waiting list is not emailed if event not full
+        Test that the waiting list is still emailed if event not full
         """
         mock_tz.now.return_value = datetime(
             2015, 2, 13, 17, 15, tzinfo=timezone.utc
@@ -1115,8 +1092,8 @@ class CancelUnpaidBookingsTests(TestCase):
             )
 
         management.call_command('cancel_unpaid_bookings')
-        # emails are sent to user per cancelled booking (1) and studio (1) only
-        self.assertEqual(len(mail.outbox), 2)
+        # emails are sent to user per cancelled booking (1) studio (1) and waitinglist (1, with bcc)
+        self.assertEqual(len(mail.outbox), 3)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_dont_cancel_rebookings_within_cancellation_period_without_warning_sent(self, mock_tz):
