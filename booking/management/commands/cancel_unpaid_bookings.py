@@ -50,6 +50,7 @@ class Command(BaseCommand):
             event__date__gte=now,
             event__advance_payment_required=True,
             status='OPEN',
+            no_show=False,
             paid=False,
             payment_confirmed=False,
             paypal_pending=False,
