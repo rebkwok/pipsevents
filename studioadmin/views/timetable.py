@@ -248,7 +248,7 @@ def upload_timetable_view(request,
                 '{} New timetable upload'.format(
                     settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
                 ),
-                'New timetable has been uploaded',
+                f'New timetable has been uploaded: {len(created_classes)} classes',
                 settings.DEFAULT_FROM_EMAIL,
                 [settings.SUPPORT_EMAIL],
                 fail_silently=False
