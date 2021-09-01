@@ -35,10 +35,6 @@
 
                         {% for booking in bookings %}
                             <tr id='booking-row-{{ booking.id }}' class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
-                                {% if status_choice == 'CANCELLED' %}
-                                    <td></td>
-                                    <td></td>
-                                {% else %}
                                     <td class="text-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
                                     <td class="text-center studioadmin-tbl">
                                         <div class="btn-group btn-group-sm" role="group">
@@ -58,8 +54,9 @@
                                                   >No</button>
                                         </div>
                                     </td>
-                                {% endif %}
-                                <td id="booking-status-{{ booking.id }}" class="text-center studioadmin-tbl">{{ booking.status }}</td>
+                                <td id="booking-status-{{ booking.id }}" class="text-center studioadmin-tbl">
+                                    {{ booking|format_status }}
+                                </td>
                                 <td class="text-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</td>
                                 <td class="text-center studioadmin-tbl">
                                     {% if booking.user|has_online_disclaimer %}

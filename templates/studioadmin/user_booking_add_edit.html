@@ -26,6 +26,7 @@
                     {% endif %}
                     {{ field }}
                 {% endif %}
+                {% if field.field.helptext %}<br/><span class="studioadmin-help">{{ field.field.helptext }}</span>{% endif %}
                 {% if field.errors %}
                     <div class="form-error">
                         {% for error in field.errors %}

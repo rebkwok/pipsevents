@@ -6,7 +6,9 @@ class StatusFilter(forms.Form):
     status_choice = forms.ChoiceField(
         widget=forms.Select(attrs={'onchange': "this.form.submit()"}),
         choices=(('OPEN', 'Open bookings only'),
-                 ('CANCELLED', 'Cancelled Bookings only'),
+                 ('LATE_CANCELLATIONS', 'Late Cancellations only'),
+                 ('CANCELLED', 'All Cancelled Bookings'),
+                 ('NO_SHOWS', 'No-shows Only'),
                  ('ALL', 'All'),),
     )
 

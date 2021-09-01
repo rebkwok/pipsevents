@@ -6,6 +6,7 @@ from datetime import datetime, time, timedelta
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 from django.template.loader import render_to_string
@@ -36,10 +37,29 @@ def register_view(request, event_slug):
 
     event = get_object_or_404(Event, slug=event_slug)
     status_choice = request.GET.get('status_choice', 'OPEN')
-    if status_choice == 'ALL':
-        bookings = event.bookings.all().order_by('date_booked')
+    if status_choice == 'LATE_CANCELLATIONS':
+        # late cancellations are no-shows not confirmed by instructor
+        bookings = event.bookings.filter(
+            status="OPEN", no_show=True, instructor_confirmed_no_show=False
+        ).order_by('date_booked')
+    elif status_choice == "CANCELLED":
+        # all cancelled including late cancelled (no-show, not confirmed by instructor)
+        bookings = event.bookings.filter(
+            Q(status="CANCELLED") | Q(status="OPEN", no_show=True, instructor_confirmed_no_show=False)
+        ).order_by('date_booked')
+    elif status_choice == "NO_SHOWS":
+        # real no-shows, confirmed by instructor
+        bookings = event.bookings.filter(
+            status="OPEN", no_show=True, instructor_confirmed_no_show=True
+        ).order_by('date_booked')
+    elif status_choice == "OPEN":
+        # always show confirmed no-shows
+        bookings = event.bookings.filter(
+            Q(status="OPEN", no_show=False) | Q(instructor_confirmed_no_show=True)
+        ).order_by('date_booked')
     else:
-        bookings = event.bookings.filter(status=status_choice).order_by('date_booked')
+        # ALL bookings
+        bookings = event.bookings.all().order_by('date_booked')
 
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
@@ -300,6 +320,7 @@ def process_event_booking_updates(form, event, request):
         else:
             booking.status = 'OPEN'
             booking.no_show = False
+            booking.instructor_confirmed_no_show = False
             action = 'reopened'
 
         if not booking.block:  # reopened no-show could already have block
@@ -440,13 +461,19 @@ def ajax_toggle_attended(request, booking_id):
             booking.status = 'OPEN'
             booking.attended = True
             booking.no_show = False
+            booking.instructor_confirmed_no_show = False
     elif attendance == 'no-show':
         booking.attended = False
         booking.no_show = True
+        if abs(booking.event.date - timezone.now()) < timedelta(seconds=60*60):
+            # only mark as instructor-no-shows if within an hour of the event time
+            booking.instructor_confirmed_no_show = True
     booking.save()
 
+    action = "late cancellation" if attendance == "no-show" \
+                                    and not booking.instructor_confirmed_no_show else attendance
     ActivityLog.objects.create(
-        log=f'User {booking.user.username} marked as {attendance} for {booking.event} '
+        log=f'User {booking.user.username} marked as {action} for {booking.event} '
         f'by admin user {request.user.username}'
     )
 
@@ -465,4 +492,13 @@ def ajax_toggle_attended(request, booking_id):
                     booking.event
                 )
             )
-    return JsonResponse({'attended': booking.attended, 'alert_msg': alert_msg})
+
+    if booking.instructor_confirmed_no_show:
+        status_text = "No-show"
+    elif booking.no_show:
+        status_text = "Late cancellation"
+    else:
+        status_text = booking.status.title()
+
+    return JsonResponse(
+        {'attended': booking.attended, 'status_text': status_text, 'alert_msg': alert_msg})
