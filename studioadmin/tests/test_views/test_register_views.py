@@ -207,13 +207,18 @@ class RegisterViewTests(TestPermissionMixin, TestCase):
             sorted([booking.id for booking in resp.context_data['bookings']]),
             sorted([booking.id for booking in bookings]))
 
-    def test_no_show_bookings_shown(self):
+    def test_confirmed_no_show_bookings_shown(self):
         bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
-        no_show_bookings = baker.make_recipe('booking.booking', status='OPEN', no_show=True, event=self.pc, _quantity=1)
+        no_show_booking = baker.make_recipe('booking.booking', status='OPEN', no_show=True, event=self.pc)
         resp = self.client.get(self.pc_url)
-        self.assertEqual(
-            sorted([booking.id for booking in resp.context_data['bookings']]),
-            sorted([booking.id for booking in bookings + no_show_bookings]))
+        assert sorted([booking.id for booking in resp.context_data['bookings']]) == sorted([bk.id for bk in bookings])
+
+        # confirmed no-shows are shown
+        no_show_booking.instructor_confirmed_no_show = True
+        no_show_booking.save()
+        resp = self.client.get(self.pc_url)
+        assert sorted([booking.id for booking in resp.context_data['bookings']]) == \
+               sorted([bk.id for bk in [*bookings, no_show_booking]])
 
     def test_full_event_shows_no_new_booking_button(self):
         baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
@@ -306,13 +311,17 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertFalse(booking.no_show)
 
     def test_reopen_no_show_booking(self):
-        booking = baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN', no_show=True)
+        booking = baker.make_recipe(
+            'booking.booking', user=self.user, event=self.pc, status='OPEN', no_show=True,
+            instructor_confirmed_no_show=True
+        )
         self.assertEqual(self.pc.bookings.count(), 1)
 
         self.client.post(self.pc_url, {'user': booking.user.id})
         booking.refresh_from_db()
         self.assertEqual(booking.status, 'OPEN')
         self.assertFalse(booking.no_show)
+        assert booking.instructor_confirmed_no_show is False
 
     def test_user_choices(self):
         user = baker.make_recipe('booking.user')
@@ -611,21 +620,46 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
 
     def test_ajax_toggle_attended(self):
         resp = self.client.post(self.toggle_attended_url,  {'attendance': 'attended'})
-        self.assertTrue(resp.json()['attended'])
-        self.assertIsNone(resp.json()['alert_msg'])
+        assert resp.json()['attended'] is True
+        assert resp.json()['alert_msg'] is None
 
         self.booking.refresh_from_db()
-        self.assertTrue(self.booking.attended)
-        self.assertFalse(self.booking.no_show)
+        assert self.booking.attended
+        assert self.booking.no_show is False
+        assert self.booking.instructor_confirmed_no_show is False
 
     def test_ajax_toggle_no_show(self):
         resp = self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
-        self.assertFalse(resp.json()['attended'])
-        self.assertIsNone(resp.json()['alert_msg'])
+        assert resp.json()['attended'] is False
+        assert resp.json()['alert_msg'] is None
 
         self.booking.refresh_from_db()
-        self.assertFalse(self.booking.attended)
-        self.assertTrue(self.booking.no_show)
+        assert self.booking.attended is False
+        assert self.booking.no_show
+        assert self.booking.instructor_confirmed_no_show is False
+
+    def test_toggle_no_show_within_one_hour_of_class(self):
+        self.booking.event.date = timezone.now() - timedelta(seconds=55)
+        self.booking.event.save()
+        self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        assert self.booking.attended is False
+        assert self.booking.no_show
+        assert self.booking.instructor_confirmed_no_show is True
+
+        self.client.post(self.toggle_attended_url, {'attendance': 'attended'})
+        self.booking.refresh_from_db()
+        assert self.booking.attended
+        assert self.booking.no_show is False
+        assert self.booking.instructor_confirmed_no_show is False
+
+        self.booking.event.date = timezone.now() + timedelta(seconds=55)
+        self.booking.event.save()
+        self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        assert self.booking.attended is False
+        assert self.booking.no_show
+        assert self.booking.instructor_confirmed_no_show is True
 
     def test_ajax_toggle_no_show_send_waiting_list_email_for_full_event(self):
         baker.make_recipe('booking.booking', event=self.pc, _quantity=2)

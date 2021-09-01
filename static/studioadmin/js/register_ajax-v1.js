@@ -38,14 +38,15 @@ const processToggleAttended = function()  {
       //console.log("sf result='" + result.attended + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
 
        if(result.attended === true) {
-           $('#booking-attended-' + booking_id).addClass('btn-success').removeClass('btn-default');
-           $('#booking-noshow-' + booking_id).addClass('btn-default').removeClass('btn-danger');
+           $('#booking-attended-' + booking_id).addClass('btn-wm').removeClass('btn-outline-secondary');
+           $('#booking-noshow-' + booking_id).addClass('btn-outline-secondary').removeClass('btn-danger');
            $('#booking-row-' + booking_id).removeClass('expired');
-           $('#booking-status-' + booking_id).html('OPEN');
+           $('#booking-status-' + booking_id).html(result.status_text);
        } else {
            $('#booking-row-' + booking_id).addClass('expired');
-           $('#booking-attended-' + booking_id).addClass('btn-default').removeClass('btn-success');
-           $('#booking-noshow-' + booking_id).addClass('btn-danger').removeClass('btn-default');
+           $('#booking-attended-' + booking_id).addClass('btn-outline-secondary').removeClass('btn-wm');
+           $('#booking-noshow-' + booking_id).addClass('btn-danger').removeClass('btn-outline-secondary');
+           $('#booking-status-' + booking_id).html(result.status_text);
        }
 
        if (result.alert_msg) {

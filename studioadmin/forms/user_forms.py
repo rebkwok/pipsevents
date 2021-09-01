@@ -444,7 +444,7 @@ class AddBookingForm(forms.ModelForm):
         model = Booking
         fields = (
             'user', 'event',
-            'paid', 'status', 'no_show', 'attended', 'block',
+            'paid', 'status', 'no_show', 'instructor_confirmed_no_show', 'attended', 'block',
             'free_class'
         )
 
@@ -455,6 +455,7 @@ class AddBookingForm(forms.ModelForm):
                 attrs={'class': "form-control input-sm"}
             ),
             'no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'instructor_confirmed_no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'attended': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'free_class': forms.CheckboxInput(attrs={'class': "form-check-input"})
         }
@@ -464,6 +465,9 @@ class AddBookingForm(forms.ModelForm):
         super(AddBookingForm, self).__init__(*args, **kwargs)
 
         self.fields['user'].initial = self.user.id
+        self.fields['no_show'].helptext = "No show OR late cancellation (after allowed period)"
+        self.fields['instructor_confirmed_no_show'].label = "No-show confirmed"
+        self.fields['instructor_confirmed_no_show'].helptext = "True no-show, marked by instructor in class"
 
         already_booked = [
             booking.event.id for booking in
@@ -542,8 +546,8 @@ class EditPastBookingForm(forms.ModelForm):
     class Meta:
         model = Booking
         fields = (
-            'deposit_paid', 'paid', 'status', 'no_show', 'attended', 'block',
-            'free_class'
+            'deposit_paid', 'paid', 'status', 'no_show', 'instructor_confirmed_no_show',
+            'attended', 'block', 'free_class'
         )
 
         widgets = {
@@ -553,12 +557,17 @@ class EditPastBookingForm(forms.ModelForm):
                 attrs={'class': "form-control input-sm"}
             ),
             'no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
+            'instructor_confirmed_no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'attended': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'free_class': forms.CheckboxInput(attrs={'class': "form-check-input"})
         }
 
     def __init__(self, *args, **kwargs):
         super(EditPastBookingForm, self).__init__(*args, **kwargs)
+        self.fields['no_show'].helptext = "No show OR late cancellation (after allowed period)"
+        self.fields['instructor_confirmed_no_show'].label = "No-show confirmed"
+        self.fields['instructor_confirmed_no_show'].helptext = "True no-show, marked by instructor in class"
+
         # find all blocks for this user that are not full (i.e. that we could
         # use for this booking.  We allow admin users to change a past booking
         # to a block that is expired

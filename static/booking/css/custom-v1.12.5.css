@@ -1706,7 +1706,8 @@ form.mock-bs-form > p > input {
 
 .expired .btn-noshow {
   border-color: lightgrey;
-  color: palevioletred;
+  background-color: lightpink;
+  color: lightgrey;
 }
 
 /*GIFT VOUCHERS*/

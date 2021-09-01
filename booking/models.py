@@ -451,6 +451,10 @@ class Booking(models.Model):
     no_show = models.BooleanField(
         default=False, help_text='Student paid but did not attend')
 
+    instructor_confirmed_no_show = models.BooleanField(
+        default=False, help_text="Marked as no-show by instructor (confirmed no-show, not late cancellation)"
+    )
+
     # Flags for email reminders and warnings
     reminder_sent = models.BooleanField(default=False)
     warning_sent = models.BooleanField(default=False)
@@ -654,6 +658,14 @@ class Booking(models.Model):
 
         if self.warning_sent and not self.date_warning_sent:
             self.date_warning_sent = timezone.now()
+
+        if self.status == "CANCELLED":
+            # can't be both cancelled and no-show
+            self.no_show = False
+
+        if not self.no_show:
+            # make sure instructor_confirmed_no_show is always False if no_show is False
+            self.instructor_confirmed_no_show = False
 
         # Done with changes to current booking; call super to save the
         # booking so we can check block status

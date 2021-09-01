@@ -458,3 +458,13 @@ def get_active_in_class(location_index, tab):
 @register.filter
 def reset_url(event_type):
     return f"booking:{event_type}"
+
+
+@register.filter
+def format_status(booking):
+    if booking.instructor_confirmed_no_show:
+        return "No-show"
+    elif booking.no_show:
+        return "Late cancellation"
+    else:
+        return booking.status.title()

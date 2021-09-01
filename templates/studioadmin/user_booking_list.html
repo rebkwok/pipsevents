@@ -86,7 +86,16 @@
                                         {% endif %}
                                         <td class="text-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
                                         <td class="text-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
-                                        <td class="text-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">
+                                            {% if booking.no_show and booking.status == 'OPEN' %}
+                                                {% if booking.instructor_confirmed_no_show %}
+                                                    No show
+                                                {% else %}
+                                                    Late cancellation
+                                                {% endif %}
+                                            {% else %}
+                                                {{ booking.status|title }}
+                                            {% endif %}</td>
                                 </tr>
                                 {% endfor %}
                                 {% if booking_status == 'future' %}
@@ -112,8 +121,9 @@
                                             {% else %}
                                                 <a class="disabled" href="#">Next</a>
                                             {% endif %}
-                                            <p class="studioadmin-help">Showing {{ current_count }} of {{ total_count }} {% if booking_status == 'future' %}upcoming{% else %}past{% endif %} bookings</p>
                                         </div>
+                                            <p class="studioadmin-help">Showing {{ current_count }} of {{ total_count }} {% if booking_status == 'future' %}upcoming{% else %}past{% endif %} bookings</p>
+
                                     </td>
                                 </tr>
 
