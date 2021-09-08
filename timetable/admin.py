@@ -1,18 +1,11 @@
 from django.contrib import admin
 from django import forms
-from suit.widgets import EnclosedInput
 from timetable.models import Session
 from ckeditor.widgets import CKEditorWidget
 
 
 class SessionForm(forms.ModelForm):
     description = forms.CharField(widget=CKEditorWidget(), required=False)
-
-    class Meta:
-        widgets = {
-            # You can also use prepended and appended together
-            'cost': EnclosedInput(prepend=u'\u00A3'),
-        }
 
 
 class SessionAdmin(admin.ModelAdmin):

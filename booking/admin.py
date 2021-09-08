@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django import forms
 from django.urls import reverse
-from suit.widgets import EnclosedInput
 from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Event, Booking, Block, BlockType, \
@@ -159,8 +158,6 @@ class EventForm(forms.ModelForm):
 
     class Meta:
         widgets = {
-            # You can also use prepended and appended together
-            'cost': EnclosedInput(prepend=u'\u00A3'),
             'cancellation_period': DurationSelectorWidget(),
             }
 
