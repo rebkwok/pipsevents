@@ -45,7 +45,7 @@ jQuery(document).ready(function () {
     jQuery('.blockdatepicker').datetimepicker({
         format:'D MMM YYYY',
         widgetPositioning: {
-            horizontal: 'auto',
+            horizontal: 'left',
             vertical: 'bottom'
         }
     });

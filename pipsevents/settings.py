@@ -59,7 +59,6 @@ if env('LOCAL'):  # pragma: no cover
 # Application definition
 
 INSTALLED_APPS = (
-    # 'apps.SuitConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -172,6 +171,9 @@ DATABASES = {
     'default': env.db(),
     # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/

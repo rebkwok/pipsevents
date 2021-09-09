@@ -439,7 +439,6 @@ def user_blocks_view(request,  user_id):
         queryset=queryset,
         user=user
     )
-
     template = 'studioadmin/user_block_list.html'
     return TemplateResponse(
         request,  template,  {

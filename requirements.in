@@ -1,4 +1,4 @@
-Django<3.2
+Django
 coverage
 dj-database-url
 django-allauth
@@ -13,8 +13,6 @@ django-extensions
 django-migration-testcase
 django-paypal
 djangorestframework
-# django-suit v2 branch 15/2/20
-git+git://github.com/darklow/django-suit.git@0d854c9b5e81adf9b9ea2ca9ee0a2856dcef5e15
 dj-static
 psycopg2
 python-dateutil
