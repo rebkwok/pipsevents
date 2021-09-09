@@ -12,13 +12,25 @@
         {% endif %}
         {% if request.user.is_staff %}
             <a class='no-print' href="{% url 'studioadmin:delete_user_disclaimer' encoded_user_id %}"><div class="btn btn-danger">Delete</div></a>
+            {% if disclaimer.can_toggle_expiry %}
+                <a class='no-print' href="{% url 'studioadmin:expire_user_disclaimer' encoded_user_id disclaimer.id %}">
+                    <div class="btn btn-warning">
+                        {% if disclaimer.is_active %}
+                            Expire
+                        {% else %}
+                            Reinstate
+                        {% endif %}
+                    </div>
+                </a>
+            {% endif %}
         {% endif %}
     </div>
 
 
     <div class="disclaimer">
-    <h1>Disclaimer for {{ disclaimer.user.first_name }} {{ disclaimer.user.last_name }} ({{ disclaimer.user.username }})
+    <h1>
         {% if not disclaimer.user|has_disclaimer %}(EXPIRED){% endif %}
+        Disclaimer for {{ disclaimer.user.first_name }} {{ disclaimer.user.last_name }} ({{ disclaimer.user.username }})
     </h1>
 
     <div class="divider"></div>

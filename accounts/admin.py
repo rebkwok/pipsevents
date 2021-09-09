@@ -18,8 +18,8 @@ from accounts.models import OnlineDisclaimer, PrintDisclaimer, DisclaimerContent
 
 
 class OnlineDisclaimerAdmin(admin.ModelAdmin):
-
-    readonly_fields = (
+    search_fields = ("user__first_name", "user__last_name")
+    readonly_fields = [
         'user', 'date', 'date_updated', 'name', 'dob', 'address', 'postcode', 'home_phone',
         'mobile_phone', 'emergency_contact1_name',
         'emergency_contact1_relationship', 'emergency_contact1_phone',
@@ -31,7 +31,8 @@ class OnlineDisclaimerAdmin(admin.ModelAdmin):
         'terms_accepted',
         'age_over_18_confirmed',
         'version'
-    )
+    ]
+    fields = readonly_fields + ["expired"]
 
 
 class PrintDisclaimerAdmin(admin.ModelAdmin):
@@ -40,7 +41,7 @@ class PrintDisclaimerAdmin(admin.ModelAdmin):
 
 
 class NonRegisteredDisclaimerAdmin(admin.ModelAdmin):
-
+    fields = ("expired",)
     readonly_fields = (
         'first_name', 'last_name', 'email', 'date', 'dob', 'address', 'postcode', 'home_phone',
         'mobile_phone', 'emergency_contact1_name',

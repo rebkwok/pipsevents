@@ -300,6 +300,30 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
             'No changes made', format_content(resp.rendered_content)
         )
 
+    def test_toggle_dislaimer_expiry(self):
+        assert self.disclaimer.can_toggle_expiry()
+        self.client.login(username=self.staff_user.username, password="test")
+        encoded_user_id = int_str(chaffify(self.user.id))
+        url = reverse(
+            'studioadmin:expire_user_disclaimer', args=[encoded_user_id, self.disclaimer.id]
+        )
+        self.client.get(url)
+        self.disclaimer.refresh_from_db()
+        assert self.disclaimer.expired
+
+        self.client.get(url)
+        self.disclaimer.refresh_from_db()
+        assert self.disclaimer.expired is False
+
+        # can't toggle if already expired
+        baker.make(DisclaimerContent, version=None)
+        assert self.disclaimer.is_active is False
+        assert self.disclaimer.expired is False
+        assert self.disclaimer.can_toggle_expiry() is False
+        self.client.get(url)
+        self.disclaimer.refresh_from_db()
+        assert self.disclaimer.expired is False
+
 
 class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
 
@@ -703,5 +727,4 @@ class DisclamerContentUpdateViewTests(TestPermissionMixin, TestCase):
         data = self.form_data()
         with pytest.raises(ValidationError):
             self.client.post(self.url, data)
-
 

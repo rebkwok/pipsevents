@@ -281,6 +281,8 @@ class BaseOnlineDisclaimer(models.Model):
 
     age_over_18_confirmed = models.BooleanField()
 
+    expired = models.BooleanField(default=False)
+
     class Meta:
         abstract = True
 
@@ -306,11 +308,26 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
             self.version,
             self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M'))
 
+    def _signed_version_active(self):
+        """
+        Irrespective of manual expiry, is the signed disclaimer still active?  This controls
+        whether manual expiry can be toggled on/off
+        """
+        date_signed = self.date_updated if self.date_updated else self.date
+        return self.version == DisclaimerContent.current_version() and (
+                    date_signed + timedelta(days=365)
+        ) > timezone.now()
+
+    def can_toggle_expiry(self):
+        return self._signed_version_active()
+
     @property
     def is_active(self):
         # Disclaimer is active if it was signed <1 yr ago AND it is the current version
-        date_signed = self.date_updated if self.date_updated else self.date
-        return self.version == DisclaimerContent.current_version() and (date_signed + timedelta(days=365)) > timezone.now()
+        # AND it has not been manually expired
+        if self.expired:
+            return False
+        return self._signed_version_active()
 
     def save(self, **kwargs):
         if not self.id:
@@ -325,24 +342,21 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
             ActivityLog.objects.create(
                 log="Online disclaimer created: {}".format(self.__str__())
             )
-        super(OnlineDisclaimer, self).save()
+        super(OnlineDisclaimer, self).save(**kwargs)
         # cache disclaimer
         if self.is_active:
-            cache.set(
-                active_online_disclaimer_cache_key(self.user), True, timeout=600
-            )
-            cache.set(
-                active_disclaimer_cache_key(self.user), True, timeout=600
-            )
+            cache.set(active_online_disclaimer_cache_key(self.user), True, timeout=600)
+            cache.set(active_disclaimer_cache_key(self.user), True, timeout=600)
         else:
-            cache.set(
-                expired_disclaimer_cache_key(self.user), True, timeout=600
-            )
+            cache.delete(active_online_disclaimer_cache_key(self.user))
+            cache.delete(active_disclaimer_cache_key(self.user))
+            cache.set(expired_disclaimer_cache_key(self.user), True, timeout=600)
 
     def delete(self, using=None, keep_parents=False):
-        # clear active cache if there is any
+        # clear cache if there is any
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_online_disclaimer_cache_key(self.user))
+        cache.delete(expired_disclaimer_cache_key(self.user))
         expiry = timezone.now() - relativedelta(years=6)
         if self.date > expiry or (self.date_updated and self.date_updated > expiry):
             ignore_fields = ['id', 'user_id', '_state']
@@ -376,7 +390,7 @@ class PrintDisclaimer(models.Model):
         # clear active cache if there is any
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_print_disclaimer_cache_key(self.user))
-        super(PrintDisclaimer, self).delete(using, keep_parents)
+        super().delete(using, keep_parents)
 
 
 @has_readonly_fields
@@ -393,6 +407,9 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
     @property
     def is_active(self):
         # Disclaimer is active if it was created <1 yr ago AND it is the current version
+        # AND it has not been manually expired
+        if self.expired:
+            return False
         return self.version == DisclaimerContent.current_version() and (self.date + timedelta(days=365)) > timezone.now()
 
     def __str__(self):

@@ -12,6 +12,7 @@ from studioadmin.views import (BookingEditView,
                                DisclaimerContentListView,
                                disclaimer_content_view,
                                DisclaimerContentUpdateView,
+                               expire_user_disclaimer,
                                NonRegisteredDisclaimersListView,
                                nonregistered_disclaimer,
                                EventAdminUpdateView,
@@ -172,6 +173,10 @@ urlpatterns = [
     path(
         'users/<str:encoded_user_id>/disclaimer/delete/',
         DisclaimerDeleteView.as_view(), name='delete_user_disclaimer'
+    ),
+    path(
+        'users/<str:encoded_user_id>/disclaimer/<int:disclaimer_id>/expire/',
+        expire_user_disclaimer, name='expire_user_disclaimer'
     ),
     path(
         'activitylog/', ActivityLogListView.as_view(), name='activitylog'

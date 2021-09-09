@@ -16,7 +16,7 @@ from braces.views import LoginRequiredMixin
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
 from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm, StudioadminDisclaimerContentForm
-from studioadmin.utils import str_int, dechaffify
+from studioadmin.utils import str_int, dechaffify, int_str, chaffify
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin, staff_required, StaffUserMixin
 
@@ -158,6 +158,19 @@ def user_disclaimer(request, encoded_user_id):
     return TemplateResponse(
         request, "studioadmin/user_disclaimer.html", ctx
     )
+
+
+@login_required
+@staff_required
+def expire_user_disclaimer(request, encoded_user_id, disclaimer_id):
+    disclaimer = get_object_or_404(OnlineDisclaimer, pk=disclaimer_id)
+    if disclaimer.can_toggle_expiry():
+        disclaimer.expired = not disclaimer.expired
+        disclaimer.save()
+        msg = f"Disclaimer for {disclaimer.user.first_name} {disclaimer.user.last_name} " \
+              f"manually {'expired' if disclaimer.expired else 'reinstated'} by admin user {request.user.username}"
+        ActivityLog.objects.create(log=msg)
+    return HttpResponseRedirect(reverse("studioadmin:user_disclaimer", args=(encoded_user_id,)))
 
 
 class DisclaimerUpdateView(InstructorOrStaffUserMixin, UpdateView):
