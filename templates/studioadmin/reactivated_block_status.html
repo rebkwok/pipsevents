@@ -5,14 +5,15 @@
 
 <div class="container-fluid row">
 
-    <h2>Reactivated Credits</h2>
-
-
-    <div class="col-sm-12">
-        <h4><strong>Total reactivated:</strong> {{ total }}</h4>
-        <h4><strong>Still left: {{ still_left }}</strong></h4>
+    <div class="col-12 pt-4">
+    <h1>Reactivated Credits</h1>
     </div>
-    <div><a class="btn btn-wm" href="{% url 'studioadmin:reactivated_block_status' %}">Refresh</a></div>
+
+    <div class="col-12">
+        <h6><strong>Total reactivated:</strong> {{ total }}</h6>
+        <h6><strong>Still left:</strong> {{ still_left }}</h6>
+        <div><a class="btn btn-wm" href="{% url 'studioadmin:reactivated_block_status' %}">Refresh</a></div>
+    </div>
 
 </div>
 
