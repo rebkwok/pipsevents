@@ -8,9 +8,12 @@
 {% block extra-collapsed-menu %}{% endblock %}
 {% block left-nav-items %}
     <li class="active-nav"><a href="{% url 'booking:lessons' %}" target="_blank"><small>Main booking site</small></a></li>
-<!---add to menu at small sizes where side nav disappears-->
+
+    <!---add to menu at small sizes where side nav disappears-->
 <span class="divider d-inline-block d-md-none"></span>
     <li class="adminmenu-title d-block d-md-none">Studio Admin</li>
+    <li class="adminmenu-title d-block d-md-none"><a href="{% url 'studioadmin:reactivated_block_status' %}"><small>Reactivated credit status</small></a></li>
+
 {% if request.user.is_staff %}
     <span class="divider d-block d-md-none"></span>
              <li class="dropdown">
@@ -167,6 +170,8 @@
                 <li class="sidebar-brand">Studio Admin</li>
 
                 {% if request.user.is_staff %}
+                    <li class="bg-warning"><a href="{% url 'studioadmin:reactivated_block_status' %}"><small>Reactivated credit status</small></a></li>
+
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#classes">
                             <span class="fa classes

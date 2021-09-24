@@ -64,13 +64,15 @@ from studioadmin.views import (BookingEditView,
                                ajax_assign_block,
                                GiftVoucherListView,
                                open_all_events,
-                               clone_event
+                               clone_event,
+                               reactivated_block_status,
                                )
 
 app_name = 'studioadmin'
 
 
 urlpatterns = [
+    path('reactivated-credit-status', reactivated_block_status, name="reactivated_block_status"),
     path('confirm-payment/<int:pk>/', ConfirmPaymentView.as_view(),
         name='confirm-payment'),
     path('confirm-refunded/<int:pk>/', ConfirmRefundView.as_view(),

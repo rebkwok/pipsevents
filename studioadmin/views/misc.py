@@ -17,6 +17,7 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 
 from booking.context_helpers import get_paypal_dict
+from booking.management.commands.check_credits import reactivated_status
 from booking.models import Booking
 from studioadmin.forms import ConfirmPaymentForm
 from studioadmin.views.helpers import StaffUserMixin, staff_required
@@ -209,3 +210,15 @@ def test_paypal_view(request):
             ctx.update({'paypalform': paypal_form, 'email': email})
 
     return TemplateResponse(request, 'studioadmin/test_paypal_email.html', ctx)
+
+
+
+@staff_required
+@login_required
+def reactivated_block_status(request):
+    total, still_left_to_use = reactivated_status()
+    context = {
+        "total": total,
+        "still_left": still_left_to_use
+    }
+    return TemplateResponse(request, "studioadmin/reactivated_block_status.html", context)

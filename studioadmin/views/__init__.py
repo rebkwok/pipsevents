@@ -11,7 +11,7 @@ from studioadmin.views.email_users import choose_users_to_email, \
 from studioadmin.views.events import cancel_event_view, event_admin_list, \
     EventAdminCreateView, EventAdminUpdateView, open_all_events, clone_event
 from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
-    test_paypal_view
+    test_paypal_view, reactivated_block_status
 from studioadmin.views.register import EventRegisterListView, \
     register_print_day, register_view, booking_register_add_view, \
     ajax_toggle_attended, ajax_assign_block, ajax_toggle_paid
