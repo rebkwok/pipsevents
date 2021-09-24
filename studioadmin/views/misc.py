@@ -212,9 +212,8 @@ def test_paypal_view(request):
     return TemplateResponse(request, 'studioadmin/test_paypal_email.html', ctx)
 
 
-
-@staff_required
 @login_required
+@staff_required
 def reactivated_block_status(request):
     total, still_left_to_use = reactivated_status()
     context = {
