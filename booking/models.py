@@ -312,7 +312,8 @@ class Block(models.Model):
             self.start_date.strftime('%d %b %Y')
         )
 
-    def _get_end_of_day(self, input_datetime):
+    @classmethod
+    def get_end_of_day(cls, input_datetime):
         next_day = (input_datetime + timedelta(
             days=1)).replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -340,7 +341,7 @@ class Block(models.Model):
         if self.extended_expiry_date:
             return self.extended_expiry_date
 
-        return self._get_end_of_day(expiry_datetime)
+        return self.get_end_of_day(expiry_datetime)
 
     @cached_property
     def expired(self):
@@ -401,7 +402,7 @@ class Block(models.Model):
 
         # make extended expiry date end of day
         if self.extended_expiry_date:
-            self.extended_expiry_date = self._get_end_of_day(
+            self.extended_expiry_date = self.get_end_of_day(
                 self.extended_expiry_date
             )
             self.expiry_date = self.get_expiry_date()

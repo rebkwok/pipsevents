@@ -1,6 +1,6 @@
 import sys
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from io import StringIO
 from unittest.mock import patch
 from model_bakery import baker
@@ -2663,7 +2663,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
                              "=====================\n\n"
         assert Block.objects.exists() is False
 
-    def test_create_free_blocks(self):
+    @patch("booking.management.commands.create_free_monthly_blocks.timezone.now")
+    def test_create_free_blocks(self, mock_now):
+        mock_now.return_value = datetime(2020, 6, 7, 10, 30, tzinfo=timezone.utc)
         assert Block.objects.exists() is False
 
         group5 = Group.objects.create(name='free_5monthly_blocks')
@@ -2686,6 +2688,11 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         assert user2block.block_type.identifier == 'Free - 7 classes'
         assert user2block.block_type.size == 7
         assert user2block.block_type.active is False
+
+        # start/end set to 1st and last of the month
+        for block in [user1block, user2block]:
+            assert block.start_date.date() == date(2020, 6, 1)
+            assert block.expiry_date.date() == date(2020, 6, 30)
 
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
@@ -2743,47 +2750,13 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         email = mail.outbox[1]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
         assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Active free block already exists for Test User1\n" \
+                             "Free block for this month already exists for Test User1\n" \
                              "=====================\n\n" \
                              "Group: free_7monthly_blocks\n" \
-                             "Active free block already exists for Test User2\n" \
+                             "Free block for this month already exists for Test User2\n" \
                              "=====================\n\n"
 
-    def test_only_create_free_blocks_if_not_already_active(self):
-        assert Block.objects.exists() is False
-        group5 = Group.objects.create(name='free_5monthly_blocks')
-        group7 = Group.objects.create(name='free_7monthly_blocks')
-        user1 = baker.make_recipe('booking.user', first_name='Test', last_name='User1')
-        user2 = baker.make_recipe('booking.user', first_name='Test', last_name='User2')
-        user3 = baker.make_recipe('booking.user', first_name='Test', last_name='User3')
-        user1.groups.add(group5)
-        user2.groups.add(group7)
-        user3.groups.add(group7)
-
-        management.call_command('create_free_monthly_blocks')
-        assert Block.objects.count() == 3
-
-        # user1's block has expired
-        block1 = Block.objects.get(user=user1)
-        block1.start_date = timezone.now() - timedelta(50)
-        block1.save()
-
-        # user2's block is full
-        block2 = Block.objects.get(user=user2)
-        baker.make_recipe(
-            'booking.booking', user=user2, block=block2, _quantity=7
-        )
-
-        block3 = Block.objects.get(user=user3)
-        assert block1.active_block() is False
-        assert block2.active_block() is False
-        assert block3.active_block() is True
-
-        # call again; new blocks created for only user1 and user2
-        management.call_command('create_free_monthly_blocks')
-        assert Block.objects.count() == 5
-
-    def test_blocks_created_with_previous_day_start_date(self):
+    def test_blocks_created_with_current_month_start_date(self):
         """
         Check that we can create blocks on 1st of the month, and they will have
         expired on 1st of the next month
@@ -2800,24 +2773,27 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         with patch(
                 'booking.management.commands.create_free_monthly_blocks'
                 '.timezone.now',
-                return_value=datetime(2016, 1, 1, tzinfo=timezone.utc)
+                return_value=datetime(2016, 1, 15, tzinfo=timezone.utc)
             ):
             management.call_command('create_free_monthly_blocks')
 
         assert Block.objects.count() == 3
+        for block in Block.objects.all():
+            assert block.start_date.date() == date(2016, 1, 1)
 
-        # make blocks on 1st Feb; previous blocks are now inactive, so new
-        # blocks made
+        # make blocks on 1st Feb
         with patch(
                 'booking.management.commands.create_free_monthly_blocks'
                 '.timezone.now',
-                return_value=datetime(2016, 1, 1, tzinfo=timezone.utc)
+                return_value=datetime(2016, 2, 1, tzinfo=timezone.utc)
             ):
             # blocks are not full, and are paid, so active unless expired
             assert [bl for bl in Block.objects.all() if bl.full] == []
-            assert Block.objects.filter(paid=False).count() == 0
+            assert Block.objects.filter(paid=True).count() == 3
+            assert [bl for bl in Block.objects.all() if bl.active_block()] == []
             management.call_command('create_free_monthly_blocks')
-        assert Block.objects.count() == 3
+        # 3 new blocks created
+        assert Block.objects.count() == 6
 
 
 class TestDeactivateRegularStudents(TestCase):

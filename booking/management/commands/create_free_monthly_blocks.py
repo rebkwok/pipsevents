@@ -2,6 +2,7 @@
 Create free 5-class blocks for users in 'free_monthly_blocks' group
 Will be run on 1st of each month as cron job
 '''
+import calendar
 import datetime
 import re
 
@@ -39,24 +40,19 @@ class Command(BaseCommand):
             created_users = []
             already_active_users = []
             users = group.user_set.all()
+
+            now = timezone.now()
+            _, end_day = calendar.monthrange(now.year, now.month)
+            start = datetime.datetime(now.year, now.month, 1, 0, 0, tzinfo=timezone.utc)
+            end = datetime.datetime(now.year, now.month, end_day, tzinfo=timezone.utc)
+            end = Block.get_end_of_day(end)
             for user in users:
-                active_free_blocks = [
-                    block for block in
-                    Block.objects.filter(block_type=free_blocktype, user=user)
-                    if block.active_block()
-                ]
-                if active_free_blocks:
+                block, created = Block.objects.get_or_create(
+                    block_type=free_blocktype, user=user, start_date=start, extended_expiry_date=end
+                )
+                if not created:
                     already_active_users.append(user)
                 else:
-                    # Block expiry is set to the end of the date it's created
-                    # create new block with start date previous day, so when
-                    # we run this command on 1st of the month, it
-                    # expires on last day of that month, not 1st of next month
-                    Block.objects.create(
-                        block_type=free_blocktype, user=user, paid=True,
-                        start_date=(timezone.now() - datetime.timedelta(1))
-                        .replace(hour=23, minute=59, second=59)
-                    )
                     created_users.append(user)
 
             results[group.name] = {"created": created_users, "already_active": already_active_users}
@@ -76,7 +72,7 @@ class Command(BaseCommand):
                     )
 
             if group_results["already_active"]:
-                message += 'Active free block already exists for {}\n'.format(
+                message += 'Free block for this month already exists for {}\n'.format(
                         ', '.join(
                             ['{} {}'.format(user.first_name, user.last_name)
                              for user in group_results["already_active"]]
@@ -87,7 +83,7 @@ class Command(BaseCommand):
             ActivityLog.objects.create(
                 log=f"Free block creation: Group {group_name}; "
                     f"created {len(group_results['created'])}, "
-                    f"already_active {len(group_results['already_active'])}"
+                    f"already_exists {len(group_results['already_active'])}"
             )
 
         if not message:
