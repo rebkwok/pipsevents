@@ -22,7 +22,7 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" integrity="sha512-aEe/ZxePawj0+G2R+AaIxgrQuKT68I28qh+wgLrcAJOz3rxCP+TwrK5SPN+E5I+1IQjNtcfvb96HDagwrKRdBw==" crossorigin="anonymous" />
        <!-- Custom styles --->
-        <link href="{% static 'booking/css/custom-v1.12.6.css' %}" rel="stylesheet">
+        <link href="{% static 'booking/css/custom-v1.12.7.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
 
       {% block head %}{% endblock %}
@@ -183,15 +183,14 @@
     <footer class="footer">
       <div class="container-fluid">
             {% block extra_footer %}
-              <span class="footer-credit float-left .no-print">
+              <span class="mt-4 footer-credit float-left .no-print">
                   {% if show_vat %}All prices are inclusive of VAT (VAT number {{ vat_number }})<br/>{% endif %}
-                  Terms and conditions apply to all purchases, including sale items; for full T&C
-                  <a href="http://www.thewatermelonstudio.co.uk/t&c.html" target="_blank">click here</a><br/>
-                 <a class="pt-0" href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
+                   <a href="http://www.thewatermelonstudio.co.uk/t&c.html" target="_blank">Terms and conditions</a> apply to all purchases, including sale items<br/>
+                   <a class="pt-0" href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
               </span>
             {% endblock %}
           <span class="text-muted">
-             <span class="footer-credit float-right mr-0 pr-0 mt-0 pt-0">&#169; <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a>
+             <span class="footer-credit float-right mr-0 pr-0 mt-4 pt-0">&#169; <a href="https://twitter.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a>
           </span>
         </span>
       </div>
