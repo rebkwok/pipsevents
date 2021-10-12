@@ -4,7 +4,6 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
-<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -144,7 +143,7 @@
                         {% else %}
                         <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
                             {{ booking.event.name }}</a>
-                        {% endif %} - {{ booking.event.location }}{% if booking.event.event_type.event_type != 'OT' %} - {{ booking.event.date |  date:"D d M H:i" }}{% endif %}
+                        {% endif %} {% if booking.event.event_type.event_type != 'OT' %} - {{ booking.event.date |  date:"D d M H:i" }}{% endif %}
                         {% if not booking.can_cancel %}**{% endif %}
                     </div>
                     <div class="col-2">
@@ -284,14 +283,14 @@
 
         <div class="col-12 basket-section">
         <div class="row">
-            <div class="col-7 basket-heading"><h4>Booking</h4></div>
-            <div class="col-5 basket-heading"><h4>Cost</h4></div>
+            <div class="col-5 basket-heading"><h4>Booking</h4></div>
+            <div class="col-7 basket-heading"><h4>Cost</h4></div>
         </div>
 
         {% for booking in unpaid_bookings_non_default_paypal %}
         <div id="bookingrow-{{ booking.id}}">
             <div class="row basket-row">
-            <div class="col-7">
+            <div class="col-5">
                 {% if booking.event.event_type.event_type == 'EV' %}
                 <a href="{% url 'booking:event_detail' booking.event.slug %}">
                     {{ booking.event.name }}</a>
@@ -301,10 +300,10 @@
                 {% else %}
                 <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
                     {{ booking.event.name }}</a>
-                {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                {% endif %} - {{ booking.event.date |  date:"D d M H:i" }}
                 {% if not booking.can_cancel %}**{% endif %}
             </div>
-            <div class="col-2">
+            <div class="col-3">
                 {% if booking.id in voucher_applied_bookings %}
                     <s>£ {{ booking.event.cost }}</s>
                     £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
@@ -312,10 +311,8 @@
                     £ {{ booking.event.cost }}
                 {% endif %}
             </div>
-            <div class="col-2">
-                <a class="btn btn-wm table-btn" href="{% url 'booking:update_booking' booking.id %}">Payment options</a>
-            </div>
-            <div class="col-1">
+            <div class="col-4">
+                <a class="btn table-btn table-btn-xs btn-sm btn-wm" href="{% url 'booking:update_booking' booking.id %}">Options</a>
                 <button
                     class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
                     data-booking_id="{{ booking.id }}"
@@ -356,7 +353,7 @@
                 {% else %}
                 <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
                     {{ booking.event.name }}</a>
-                {% endif %} - {{ booking.event.location }} - {{ booking.event.date |  date:"D d M H:i" }}
+                {% endif %} - {{ booking.event.date |  date:"D d M H:i" }}
                 {% if not booking.can_cancel %}**{% endif %}
             </div>
             <div class="col-2">
@@ -367,8 +364,7 @@
                     £ {{ booking.event.cost }}
                 {% endif %}
             </div>
-            <div class="col-2">
-            </div>
+            <div class="col-2"> </div>
             <div class="col-1">
                 <button
                     class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
@@ -393,6 +389,7 @@
 
 
 {% block extra_js %}
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script type='text/javascript' src="{% static 'booking/js/shopping_basket_ajax.js' %}"></script>
 {% endblock %}

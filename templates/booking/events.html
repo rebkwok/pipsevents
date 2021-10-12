@@ -5,7 +5,6 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" integrity="sha512-aOG0c6nPNzGk+5zjwyJaoRUgCdOrfSDhmMID2u4+OIslr0GjpLKo7Xm0Ao3xmpM4T8AmIouRkqwj1nrdVsLKEQ==" crossorigin="anonymous" />
-<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 {% endblock %}
 
 {% block perm_banner %}
@@ -112,7 +111,7 @@
                                                 </th>
                                                 <th></th>
                                                 {% if location_obj.index == 0 %}
-                                                    <th class="text-center">Location</th>
+                                                    <th class="d-none d-md-table-cell text-center">Location</th>
                                                 {% endif %}
                                                 <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
                                                 <th class="text-center">Spaces</th>
@@ -130,7 +129,7 @@
                                                     compress table-tab">
                                                 {% if user.is_authenticated %}
                                                     {% if event.is_past %}
-                                                    <td></td>
+                                                    <td class="studioadmin-help">N/A - started</td>
                                                     {% elif user.currently_banned %}
                                                         <td class="ext-instructor">Account locked</td>
                                                     {% else %}
@@ -199,7 +198,7 @@
                                                         {% endif %}
                                                     </td>
                                                     {% if location_obj.index == 0 %}
-                                                        <td class="text-center"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location|truncatechars:11 }}</span></td>
+                                                        <td class="d-none d-md-table-cell text-center"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location|truncatechars:11 }}</span></td>
                                                     {% endif %}
                                                     <td class="d-none d-md-table-cell text-center">£{{ event.cost }}</td>
                                                     <td class="text-center" style="vertical-align: middle; horiz-align: center">
@@ -272,6 +271,7 @@
 
 
 {% block extra_js %}
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script src="{% static 'booking/js/updateLocation.js' %}"></script>
 <script>
     $(document).ready(function() {

@@ -6,28 +6,26 @@
 
 /* Sticky footer styles
 -------------------------------------------------- */
-html {
-  position: relative;
-  min-height: 100%;
+html, body {
+  height: 100%;
   width: 100%;
 }
 body {
-  /* Margin bottom by footer height */
-  margin-bottom: 60px;
-  width: 100%;
   background-color: transparent;
   font-family: "Helvetica Neue", Arial, sans-serif;
-  max-width: 100%;
-  will-change: position;
 }
+.wrapper {
+  min-height: 100%;
+  /* top margin to allow for navbar */
+  margin-top: 80px;
+  /* bottom margin to offset footer */
+  margin-bottom: 60px;
+}
+
 .footer {
-  position: absolute;
-  bottom: 0;
   width: 100%;
-  /* Set the fixed height of the footer here */
+  /* fixed height of the footer */
   height: 60px;
-  /*line-height: 60px; !* Vertically center the text there *!*/
-  background-color: transparent;
 }
 
 @supports (-webkit-overflow-scrolling: touch) {
@@ -497,6 +495,12 @@ td {
 	color: #fff !important;
     }
 
+.table-btn-xs {
+  width: auto;
+  padding-left: 2px;
+	padding-right: 2px;
+}
+
 .basket-block-btn {
   width: 6em;
 }
@@ -952,7 +956,7 @@ a > span.fa.fa-print {
 		white-space: normal !important;
 	}
   tr.compress>td.date, tr.compress.table-tab>td.date {
-    white-space: nowrap !important;
+    min-width: 90px;
 	}
 
   .message {
@@ -1161,7 +1165,7 @@ li>a.adminmenu {
 .btn.btn-alph-filter.btn-alph-primary {
     background-color:rgb(0, 85, 127);
     color: white;
-};
+}
 
 
 .fa.fa-check {
@@ -1770,7 +1774,7 @@ form.mock-bs-form > p > input {
 .voucher-inner-box {
   width:100%;
   border: 3px solid rgba(0, 85, 127, 0.9);
-  background-image: url(../images/logo_brand_fade.png);
+  background-image: url(../images/logo_brand_fade_new.png);
   background-size: contain;
   background-repeat: no-repeat;
 }

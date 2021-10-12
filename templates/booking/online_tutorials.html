@@ -5,25 +5,21 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" integrity="sha512-aOG0c6nPNzGk+5zjwyJaoRUgCdOrfSDhmMID2u4+OIslr0GjpLKo7Xm0Ao3xmpM4T8AmIouRkqwj1nrdVsLKEQ==" crossorigin="anonymous" />
-<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 {% endblock %}
 
 {% block perm_banner %}
     {{ block.super }}
     {% if user.is_authenticated %}
-        <div id="message-row"  class="row">
-            <div class="col-12">
-                <div class="message alert alert-info alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
-                </div>
+        <div class="container-fluid mt-2 mb-2" id="message-row">
+            <div class="message alert alert-info alert-dismissible">
+                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
             </div>
         </div>
     {% endif %}
 {% endblock %}
 
 {% block content %}
-
 
     <div class="row">
         <div class="col-12">
@@ -214,6 +210,7 @@
         }, 10000); // <-- time in milliseconds, 1000 =  1 sec
     });
 </script>
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-multidatespicker/1.6.6/jquery-ui.multidatespicker.min.js" integrity="sha512-mMP7O0G5Vv01th+kpYux7RbD89Mx/iQnIvxcKdctiPyADgJzacfQJ8k2AsB8695AAuR2uPuxk7dawb1eehjcuQ==" crossorigin="anonymous"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v1.js' %}"></script>
