@@ -30,7 +30,6 @@
     </head>
 
     <body>
-    <div class="wrapper">
     <header>
       <!-- Fixed navbar -->
       <nav class="navbar navbar-light navbar-expand-md fixed-top p-1">
@@ -124,21 +123,21 @@
       </div>
       </nav>
     </header>
-
+<div class="wrapper">
   <main role="main" class="container-fluid">
         {% cookielaw_banner %}
         {% block banner %}{% temporary_banner %}{% endblock banner %}
         {% block sale %}{% sale_text %}{% endblock sale %}
 
     {% block perm_banner %}
+        <div class="container-fluid mb-3">
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
-            <div class="container-fluid">
-                <div class="message alert alert-info alert-dismissible">
-                    New to pole? Begin Level 1 at any time!
-                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
+            <div class="message alert alert-info alert-dismissible">
+                New to pole? Begin Level 1 at any time!
+                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         {% endif %}
+        </div>
     {% endblock perm_banner %}
         {% if messages %}
           <div class="container-fluid mt-2 mb-3" id="message-row">
