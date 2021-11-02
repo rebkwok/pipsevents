@@ -6,7 +6,7 @@ django-braces
 django-classy-tags  # for cookie-law
 django-cookie-law
 django-crispy-forms
-git+git://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
+git+https://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
 django-debug-toolbar
 django-environ
 django-extensions
