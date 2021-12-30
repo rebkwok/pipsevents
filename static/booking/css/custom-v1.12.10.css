@@ -429,7 +429,6 @@ a:visited>.btn, a:link>.btn {
 .btn-info-link, .btn-new-block {
   padding-top: 2px;
   padding-bottom: 2px;
-  font-size: 90%;
 }
 
 .btn-group > .btn-info-link {
@@ -516,8 +515,8 @@ td {
 }
 
 @media(max-width:800px) {
-  .table-btn, .disabled .btn .btn-wm .table-btn {
-    font-size: 80%;
+  .table-btn, .btn, .btn-wm, .table-btn, .btn-group-sm > .btn-info-link, .btn-new-block{
+    font-size: 75%;
   }
 }
 
