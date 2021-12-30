@@ -16,7 +16,7 @@ from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
 from accounts.models import has_active_disclaimer, has_expired_disclaimer
-from booking.models import Block
+from booking.models import Block, BlockType
 from booking.forms import BlockCreateForm
 import booking.context_helpers as context_helpers
 from booking.views.views_utils import (
@@ -120,10 +120,13 @@ class BlockListView(
         context['expired_disclaimer'] = has_expired_disclaimer(
             self.request.user
         )
-        types_available_to_book = context_helpers.\
-            get_blocktypes_available_to_book(self.request.user)
-        if types_available_to_book:
-            context['can_book_block'] = True
+        if not BlockType.objects.filter(active=True):
+            context["new_blocks_available"] = False
+        else:
+            types_available_to_book = context_helpers.\
+                get_blocktypes_available_to_book(self.request.user)
+            if types_available_to_book:
+                context['can_book_block'] = True
 
         blockformlist = []
 
