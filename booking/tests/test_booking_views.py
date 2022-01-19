@@ -2375,12 +2375,15 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         self.client.post(url)
 
-        self.assertEqual(BlockType.objects.count(), 1)
-        self.assertEqual(BlockType.objects.first().identifier, 'transferred')
-        self.assertFalse(BlockType.objects.first().active)
-        self.assertEqual(BlockType.objects.first().size, 1)
-        self.assertEqual(BlockType.objects.first().event_type, event.event_type)
-        self.assertEqual(BlockType.objects.first().duration, 1)
+        assert BlockType.objects.count() == 1
+        block_type = BlockType.objects.first()
+        assert block_type.identifier == 'transferred'
+        assert block_type.active is False
+        assert block_type.size == 1
+        assert block_type.event_type == event.event_type
+        assert block_type.duration is None
+        assert block_type.duration_weeks == 2
+        assert BlockType.get_transfer_block_type(event.event_type) == block_type
 
     def test_cancel_free_non_block_CL_creates_transfer_blocktype(self):
         event = baker.make_recipe(
@@ -2396,12 +2399,15 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         self.client.post(url)
 
-        self.assertEqual(BlockType.objects.count(), 1)
-        self.assertEqual(BlockType.objects.first().identifier, 'transferred')
-        self.assertFalse(BlockType.objects.first().active)
-        self.assertEqual(BlockType.objects.first().size, 1)
-        self.assertEqual(BlockType.objects.first().event_type, event.event_type)
-        self.assertEqual(BlockType.objects.first().duration, 1)
+        assert BlockType.objects.count() == 1
+        block_type = BlockType.objects.first()
+        assert block_type.identifier == 'transferred'
+        assert block_type.active is False
+        assert block_type.size == 1
+        assert block_type.event_type == event.event_type
+        assert block_type.duration is None
+        assert block_type.duration_weeks == 2
+        assert BlockType.get_transfer_block_type(event.event_type) == block_type
 
     def test_cancel_direct_paid_RH_creates_transfer_blocktype(self):
         event = baker.make_recipe(
@@ -2417,12 +2423,15 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         self.client.post(url)
 
-        self.assertEqual(BlockType.objects.count(), 1)
-        self.assertEqual(BlockType.objects.first().identifier, 'transferred')
-        self.assertFalse(BlockType.objects.first().active)
-        self.assertEqual(BlockType.objects.first().size, 1)
-        self.assertEqual(BlockType.objects.first().event_type, event.event_type)
-        self.assertEqual(BlockType.objects.first().duration, 1)
+        assert BlockType.objects.count() == 1
+        block_type = BlockType.objects.first()
+        assert block_type.identifier == 'transferred'
+        assert block_type.active is False
+        assert block_type.size == 1
+        assert block_type.event_type == event.event_type
+        assert block_type.duration is None
+        assert block_type.duration_weeks == 2
+        assert BlockType.get_transfer_block_type(event.event_type) == block_type
 
     def test_free_non_block_RH_creates_transfer_blocktype(self):
         event = baker.make_recipe(
@@ -2438,12 +2447,15 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         self.client.post(url)
 
-        self.assertEqual(BlockType.objects.count(), 1)
-        self.assertEqual(BlockType.objects.first().identifier, 'transferred')
-        self.assertFalse(BlockType.objects.first().active)
-        self.assertEqual(BlockType.objects.first().size, 1)
-        self.assertEqual(BlockType.objects.first().event_type, event.event_type)
-        self.assertEqual(BlockType.objects.first().duration, 1)
+        assert BlockType.objects.count() == 1
+        block_type = BlockType.objects.first()
+        assert block_type.identifier == 'transferred'
+        assert block_type.active is False
+        assert block_type.size == 1
+        assert block_type.event_type == event.event_type
+        assert block_type.duration is None
+        assert block_type.duration_weeks == 2
+        assert BlockType.get_transfer_block_type(event.event_type) == block_type
 
     def test_cancel_direct_paid_EV_does_not_creates_transfer_blocktype(self):
         event = baker.make_recipe(

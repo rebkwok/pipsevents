@@ -227,7 +227,9 @@ class BlockType(models.Model):
     event_type = models.ForeignKey(EventType, on_delete=models.CASCADE)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     duration = models.PositiveIntegerField(
-        help_text="Number of months until block expires")
+        help_text="Number of months until block expires", blank=True, null=True)
+    duration_weeks = models.PositiveIntegerField(
+        help_text="Number of weeks until block expires", blank=True, null=True)    
     active = models.BooleanField(default=False)
     assign_free_class_on_completion = models.BooleanField(default=False)
     paypal_email = models.EmailField(
@@ -245,11 +247,35 @@ class BlockType(models.Model):
             ' ({})'.format(self.identifier) if self.identifier else '',
             self.size
         )
+    
+    def save(self, *args, **kwargs) -> None:
+        if self.duration and self.duration_weeks:
+            raise ValidationError("A block type must have a duration or duration_weeks (not both)") 
+        if not (self.duration or self.duration_weeks):
+            if settings.TESTING:
+                # set a default for tests
+                self.duration = 1
+            else:
+                raise ValidationError("A block type must have a duration or duration_weeks") 
+        return super().save(*args, **kwargs)
+    
+    @property
+    def duration_type(self):
+        return "weeks" if self.duration_weeks else "months"
 
     @cached_property
     def description(self):
         return f'{self.event_type.subtype} - {self.size} classes (block)'
 
+    @classmethod
+    def get_transfer_block_type(cls, event_type):
+        block_type, _ = cls.objects.get_or_create(
+            event_type=event_type,
+            size=1, cost=0, duration_weeks=2,
+            identifier='transferred',
+            active=False
+        )
+        return block_type
 
 @receiver(pre_save)
 def check_duplicate_blocktype(sender, instance, **kwargs):
@@ -260,7 +286,9 @@ def check_duplicate_blocktype(sender, instance, **kwargs):
                     or instance.identifier == "transferred":
                 if BlockType.objects.filter(
                     event_type=instance.event_type,
-                    identifier=instance.identifier
+                    identifier=instance.identifier,
+                    duration=instance.duration,
+                    duration_weeks=instance.duration_weeks,
                 ).count() == 1:
                     raise BlockTypeError(
                         'Block type with event type "{}" and idenitifer "{}" '
@@ -331,10 +359,15 @@ class Block(models.Model):
         # For a with a parent block with a parent (free class block),
         # override blocktype duration to be same as parent's blocktype
         duration = self.block_type.duration
+        duration_weeks = self.block_type.duration_weeks
         if self.parent:
             duration = self.parent.block_type.duration
+            duration_weeks = self.block_type.duration_weeks
 
-        expiry_datetime = self.start_date + relativedelta(months=duration)
+        if duration_weeks:
+            expiry_datetime = self.start_date + timedelta(weeks=duration_weeks)
+        else:
+            expiry_datetime = self.start_date + relativedelta(months=duration)
 
         # if a manual extended expiry date has been set, use that instead (it can be earlier than the data calculated from duration)
         # extended_expiry_date is set to end of day on save, so just return it

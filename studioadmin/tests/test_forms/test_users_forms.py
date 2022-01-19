@@ -477,9 +477,11 @@ class UserBlockFormSetTests(PatchRequestMixin, TestCase):
         self.assertEqual(block_type_queryset.count(), 5)
         self.assertFalse(self.block_type in block_type_queryset)
         # blocktypes of expired blocks are included in the choices
-        self.block.start_date = timezone.now() - timedelta(100)
         self.block_type.duration = 2
         self.block_type.save()
+        self.block.paid = True
+        self.block.save()
+        self.block.start_date = timezone.now() - timedelta(100)
         self.block.save()
         self.assertTrue(self.block.expired)
         formset = UserBlockFormSet(instance=self.user, user=self.user)

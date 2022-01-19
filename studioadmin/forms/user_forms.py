@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 from django.utils import timezone
 
+from booking.context_helpers import get_blocktypes_available_to_book
 from booking.models import Block, Booking, Event, BlockType
 from payments.models import PaypalBookingTransaction
 from studioadmin.fields import UserBlockModelChoiceField
@@ -309,21 +310,10 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
 
     def add_fields(self, form, index):
         super().add_fields(form, index)
-
-        user_blocks = Block.objects.filter(user=self.user)
-        # get the event types for the user's blocks that are currently active
-        # or awaiting payment
-        user_block_event_types = [
-            block.block_type.event_type for block in user_blocks
-            if block.active_block() or
-            (not block.expired and not block.paid and not block.full)
-        ]
-        free_class_block = BlockType.objects.filter(identifier='free class')
-        available_block_types = BlockType.objects.filter(active=True).exclude(
-            event_type__in=user_block_event_types
-        )
-        form.can_buy_block = True if available_block_types else False
-        queryset = available_block_types | free_class_block
+        free_class_block = BlockType.objects.filter(identifier__icontains='free', size=1)
+        available_user_block_types = get_blocktypes_available_to_book(self.user)
+        form.can_buy_block = bool(available_user_block_types)
+        queryset = available_user_block_types | free_class_block
         form.fields['start_date'] = forms.DateField(
             widget=forms.DateInput(
                 attrs={

@@ -28,12 +28,7 @@ def cancel_event(event, transfer_direct_paid=True, transfer_expired_blocks=True)
             # direct paid = paypal and free non-block paid
             # create transfer block and make this booking unpaid
             if booking.event.event_type.event_type != 'EV':
-                block_type, _ = BlockType.objects.get_or_create(
-                    event_type=booking.event.event_type,
-                    size=1, cost=0, duration=1,
-                    identifier='transferred',
-                    active=False
-                )
+                block_type = BlockType.get_transfer_block_type(booking.event.event_type)
                 Block.objects.create(
                     block_type=block_type, user=booking.user,
                     transferred_booking_id=booking.id
