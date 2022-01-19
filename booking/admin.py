@@ -417,7 +417,9 @@ class BlockTypeAdmin(admin.ModelAdmin):
     actions_on_top = True
 
     def formatted_duration(self, obj):
-        return "{} months".format(obj.duration)
+        if obj.duration_type == "months":
+            return "{} months".format(obj.duration)
+        return "{} weeks".format(obj.duration_weeks)
     formatted_duration.short_description = "Duration"
 
     def formatted_cost(self, obj):

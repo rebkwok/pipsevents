@@ -272,10 +272,17 @@ def get_paypal_cart_dict(
 def get_blocktypes_available_to_book(user):
     user_blocks = user.blocks.all()
 
-    available_block_event_types = [block.block_type.event_type
-                                   for block in user_blocks
-                                   if not block.expired
-                                   and not block.full]
+    allowed_identifiers = ["transferred", "free", "substitute", "online transfer"]
+    available_block_event_types = [
+        block.block_type.event_type for block in user_blocks
+        if block.active_block() or not block.paid
+        and not any(
+            [
+                True for allowed_identifier in allowed_identifiers
+                if block.block_type.identifier and block.block_type.identifier.lower().startswith(allowed_identifier)
+            ]  
+        ) 
+    ]
     return BlockType.objects.filter(active=True).exclude(
         event_type__in=available_block_event_types
     )
