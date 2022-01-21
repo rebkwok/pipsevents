@@ -273,9 +273,14 @@ def get_blocktypes_available_to_book(user):
     user_blocks = user.blocks.all()
 
     allowed_identifiers = ["transferred", "free", "substitute", "online transfer"]
+    # A user can only purchase blocks if they don't already have another block of the 
+    # same type that is either:
+    #  - active (paid, unexpired, not full)
+    #  - unpaid, unexpired, not full (i.e. in shopping cart)
+    # transfers/free/substitute blocks don't count
     available_block_event_types = [
         block.block_type.event_type for block in user_blocks
-        if block.active_block() or not block.paid
+        if (block.active_block() or (not block.paid and not block.expired and not block.full))
         and not any(
             [
                 True for allowed_identifier in allowed_identifiers

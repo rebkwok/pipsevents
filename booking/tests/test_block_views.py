@@ -172,9 +172,10 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
             'booking.blocktype5', event_type=event_type
         )
         # this user has a block of this blocktype that has expired
+        # (Note: it doesn't have to be paid to have expired)
         baker.make_recipe(
             'booking.block', user=self.user, block_type=block_type_pc5,
-            start_date=timezone.now() - timedelta(weeks=52), paid=True
+            start_date=timezone.now() - timedelta(weeks=52)
         )
         resp = self._get_response(self.user)
         self.assertEqual(len(resp.context_data['block_types']), 1)
@@ -191,7 +192,7 @@ class BlockCreateViewTests(TestSetupMixin, TestCase):
         )
         # this user has a block of this blocktype
         block = baker.make_recipe(
-            'booking.block', user=self.user, block_type=block_type_pc5, paid=True
+            'booking.block', user=self.user, block_type=block_type_pc5
         )
         # fill block
         baker.make_recipe(
