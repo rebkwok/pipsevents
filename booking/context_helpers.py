@@ -293,10 +293,11 @@ def get_blocktypes_available_to_book(user):
     )
 
 
-def get_paypal_custom(item_type, item_ids, voucher_code, user_email):
-    return '{} {}{}{}'.format(
+def get_paypal_custom(item_type, item_ids, voucher_code, voucher_applied_to, user_email):
+    return '{} {} {}{}'.format(
         item_type,
         item_ids,
-        ' {}'.format(user_email),
-        ' {}'.format(voucher_code) if voucher_code else '',
+        user_email,
+        f' {voucher_code}' if voucher_code else '',
+        f' {voucher_applied_to}' if voucher_applied_to else ''
     )

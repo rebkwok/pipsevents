@@ -241,14 +241,16 @@ def get_obj(ipn_obj):
         obj_type = custom[0]
         ids = custom[1]
         obj_ids = [int(id) for id in ids.split(',')]
+        voucher_code = None
+        voucher_applied_to = None
 
         if obj_type == "gift_voucher":
             gift_voucher_code = custom[3]
-            voucher_code = None
         elif obj_type != 'test':
-            voucher_code = custom[3] if len(custom) == 4 else None
-        else:
-            voucher_code = None
+            voucher_code = custom[3] if len(custom) == 5 else None
+            voucher_applied_to = custom[4] if len(custom) == 5 else None
+            if voucher_applied_to:
+                voucher_applied_to = [int(applied_id) for applied_id in voucher_applied_to]
 
     else:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')
@@ -392,11 +394,12 @@ def get_obj(ipn_obj):
         'obj_list': obj_list,
         'paypal_trans_list': paypal_trans_list,
         'voucher_code': voucher_code,
+        'voucher_applied_to': voucher_applied_to,
         'additional_data': additional_data
     }
 
 
-def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code):
+def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code, voucher_applied_to):
     voucher_error = None
     for obj, paypal_trans in zip(obj_list, paypal_trans_list):
         if obj_type == 'booking':
@@ -439,18 +442,19 @@ def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, vo
 
         if voucher_code and obj_type != 'gift_voucher':
             try:
-                if obj_type == 'booking':
-                    voucher = EventVoucher.objects.get(code=voucher_code)
-                    UsedEventVoucher.objects.create(
-                        voucher=voucher, user=obj.user, booking_id=obj.id
-                    )
-                elif obj_type == 'block':
-                    voucher = BlockVoucher.objects.get(code=voucher_code)
-                    UsedBlockVoucher.objects.create(
-                        voucher=voucher, user=obj.user, block_id=obj.id
-                    )
-                paypal_trans.voucher_code = voucher_code
-                paypal_trans.save()
+                if obj.id in voucher_applied_to:
+                    if obj_type == 'booking':
+                        voucher = EventVoucher.objects.get(code=voucher_code)
+                        UsedEventVoucher.objects.create(
+                            voucher=voucher, user=obj.user, booking_id=obj.id
+                        )
+                    elif obj_type == 'block':
+                        voucher = BlockVoucher.objects.get(code=voucher_code)
+                        UsedBlockVoucher.objects.create(
+                            voucher=voucher, user=obj.user, block_id=obj.id
+                        )
+                    paypal_trans.voucher_code = voucher_code
+                    paypal_trans.save()
 
             except (
                     EventVoucher.DoesNotExist, BlockVoucher.DoesNotExist
@@ -504,6 +508,7 @@ def payment_received(sender, **kwargs):
     obj_type = obj_dict['obj_type']
     paypal_trans_list = obj_dict['paypal_trans_list']
     voucher_code = obj_dict.get('voucher_code')
+    voucher_applied_to = obj_dict.get('voucher_applied_to')
     additional_data = obj_dict.get('additional_data')
     obj_ids = ', '.join([str(obj.id) for obj in obj_list])
 
@@ -626,7 +631,7 @@ def payment_received(sender, **kwargs):
                 )
                 send_processed_test_confirmation_emails(additional_data)
             else:
-                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code)
+                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code, voucher_applied_to)
 
                 ActivityLog.objects.create(
                     log='{} id(s) {} for user {} paid by PayPal; paypal '
@@ -754,6 +759,7 @@ def payment_not_received(sender, **kwargs):
         obj_type = obj_dict['obj_type']
         paypal_trans_list = obj_dict['paypal_trans_list']
         voucher_code = obj_dict.get('voucher_code')
+        voucher_applied_to = obj_dict.get("voucher_applied_to")
         additional_data = obj_dict.get('additional_data')
         obj_ids = ', '.join([str(obj.id) for obj in obj_list])
 
@@ -761,7 +767,7 @@ def payment_not_received(sender, **kwargs):
             # check if the status is completed; mark booking as paid but send warning email too
             # Don't mark as paid if the flag is duplicate transaction id
             if ipn_obj.payment_status == ST_PP_COMPLETED and 'duplicate txn_id' not in ipn_obj.flag_info.lower():
-                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code)
+                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code, voucher_applied_to)
 
                 ActivityLog.objects.create(
                     log='{} id(s) {} for user {} paid by PayPal; paypal '
