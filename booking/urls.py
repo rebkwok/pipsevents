@@ -52,11 +52,6 @@ urlpatterns = [
         duplicate_booking, name='duplicate_booking'),
     path('events/<slug:event_slug>/full/', fully_booked,
         name='fully_booked'),
-    path('events/<slug:event_slug>/book/', BookingCreateView.as_view(),
-        name='book_event'),
-    path('events/<slug:event_slug>/create-booking/',
-        BookingMultiCreateView.as_view(),
-        name='create_booking'),
     path(
         'events/<slug:slug>/', EventDetailView.as_view(),
         {'ev_type': 'event'}, name='event_detail'
