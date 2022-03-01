@@ -91,24 +91,6 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
         bookings = context['bookings']
 
         for booking in bookings:
-            if booking.event.event_type not in active_block_event_types \
-                    and booking.status == 'OPEN' and not booking.paid:
-                # ONLY DO THIS IF PAYPAL BUTTON NEEDED
-                invoice_id = create_booking_paypal_transaction(
-                    self.request.user, booking).invoice_id
-                paypal_form = PayPalPaymentsListForm(
-                    initial=context_helpers.get_paypal_dict(
-                        self.request,
-                        booking.event.cost,
-                        booking.event,
-                        invoice_id,
-                        '{} {}'.format('booking', booking.id),
-                        paypal_email=booking.event.paypal_email,
-                    )
-                )
-            else:
-                paypal_form = None
-
             try:
                 WaitingListUser.objects.get(user=self.request.user, event=booking.event)
                 on_waiting_list = True
@@ -120,7 +102,6 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
                 (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
                 'ev_type': booking.event.event_type.event_type,
                 'booking': booking,
-                'paypalform': paypal_form,
                 'has_available_block': booking.event.event_type in
                 active_block_event_types,
                 'on_waiting_list': on_waiting_list,
