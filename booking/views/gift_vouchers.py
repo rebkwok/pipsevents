@@ -12,7 +12,7 @@ from activitylog.models import ActivityLog
 from payments.forms import PayPalPaymentsUpdateForm
 from payments.helpers import create_gift_voucher_paypal_transaction
 from payments.models import PaypalGiftVoucherTransaction
-from ..context_helpers import get_paypal_dict
+from ..context_helpers import get_paypal_dict, get_paypal_custom
 from ..forms import GiftVoucherForm
 from ..models import BlockVoucher, EventVoucher, GiftVoucherType
 
@@ -151,13 +151,20 @@ class GiftVoucherPurchaseView(FormView):
         if not voucher.activated:
             # unpaid voucher, go to paypal page again
             invoice_id = create_gift_voucher_paypal_transaction(voucher_type=voucher_type, voucher_code=voucher.code).invoice_id
+            custom = get_paypal_custom(
+                item_type="gift_voucher",
+                item_ids=str(voucher.id),
+                user_email=voucher.purchaser_email,
+                voucher_code=voucher.code,
+                voucher_applied_to=None,
+            )
             paypal_form = PayPalPaymentsUpdateForm(
                 initial=get_paypal_dict(
                     self.request,
                     voucher_type.cost,
                     f"gift voucher - {voucher_type}",
                     invoice_id,
-                    f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}',
+                    custom,
                     paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
                 )
             )

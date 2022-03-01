@@ -204,13 +204,18 @@ class TicketCreateView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, Tem
                         self.request.user, self.ticket_booking
                     ).invoice_id
 
+                    custom = context_helpers.get_paypal_custom(
+                        item_type="ticket_booking",
+                        item_ids=str(self.ticket_booking.id),
+                        user_email=request.user.email,
+                    )
                     paypal_form = PayPalPaymentsUpdateForm(
                         initial=context_helpers.get_paypal_dict(
                             self.request,
                             self.ticketed_event.ticket_cost,
                             self.ticketed_event,
                             invoice_id,
-                            '{} {}'.format('ticket_booking', self.ticket_booking.id),
+                            custom,
                             paypal_email=self.ticketed_event.paypal_email,
                             quantity=self.ticket_booking.tickets.count()
                         )
@@ -324,13 +329,18 @@ class TicketBookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin
                 # ONLY DO THIS IF PAYPAL BUTTON NEEDED
                 invoice_id = create_ticket_booking_paypal_transaction(
                     self.request.user, ticket_booking).invoice_id
+                custom = context_helpers.get_paypal_custom(
+                    item_type="ticket_booking",
+                    item_ids=str(self.ticket_booking.id),
+                    user_email=self.request.user.email,
+                )
                 paypal_form = PayPalPaymentsListForm(
                     initial=context_helpers.get_paypal_dict(
                         self.request,
                         ticket_booking.ticketed_event.ticket_cost,
                         ticket_booking.ticketed_event,
                         invoice_id,
-                        '{} {}'.format('ticket_booking', ticket_booking.id),
+                        custom,
                         paypal_email=ticket_booking.ticketed_event.paypal_email,
                         quantity=ticket_booking.tickets.count()
                     )

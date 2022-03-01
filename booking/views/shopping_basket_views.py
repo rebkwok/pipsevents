@@ -113,13 +113,11 @@ def add_total_bookings_and_paypal_context(request, context):
             # total_unpaid_block_cost can be 0 if 100% voucher(s) applied;
             # paypal button replaced with an update button in template
             item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
-            voucher_applied_ids = context.get("voucher_applied_bookings", [])
-            voucher_applied_to = ','.join([str(item_id) for item_id in voucher_applied_ids])
             custom = context_helpers.get_paypal_custom(
                 item_type='booking',
                 item_ids=item_ids_str,
                 voucher_code=booking_code if context.get('valid_booking_voucher') else '',
-                voucher_applied_to=voucher_applied_to,
+                voucher_applied_to=context.get("voucher_applied_bookings", []),
                 user_email=request.user.email
             )
             if not context.get("unpaid_blocks"):

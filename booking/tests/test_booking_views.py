@@ -2118,7 +2118,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(paypal_form.initial['amount'], 10.00)
         self.assertEqual(
             paypal_form.initial['custom'],
-            'booking {} {}'.format(booking.id, booking.user.email)
+            'obj=booking ids={} usr={}'.format(booking.id, booking.user.email)
         )
         self.assertNotIn('voucher', resp.context_data)
 
@@ -2128,9 +2128,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         paypal_form = resp.context_data['paypalform']
         self.assertEqual(paypal_form.initial['amount'], 9.00)
         self.assertEqual(
-            paypal_form.initial['custom'], 'booking {} {} {}'.format(
-                booking.id, booking.user.email, voucher.code
-            )
+            paypal_form.initial['custom'],
+            f'obj=booking ids={booking.id} usr={booking.user.email} cde={voucher.code} apd={booking.id}'
         )
         self.assertEqual(resp.context_data['voucher'], voucher)
 
@@ -2285,9 +2284,8 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         paypal_form = resp.context_data['paypalform']
         self.assertEqual(paypal_form.initial['amount'], 9.00)
         self.assertEqual(
-            paypal_form.initial['custom'], 'booking {} {} {}'.format(
-                booking.id, booking.user.email, voucher.code
-            )
+            paypal_form.initial['custom'],
+            f'obj=booking ids={booking.id} usr={booking.user.email} cde={voucher.code} apd={booking.id}'
         )
 
     def test_update_with_block_from_shopping_basket(self):
@@ -2393,7 +2391,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         # booking added to cart_items on get
         self.assertEqual(
             self.client.session['cart_items'],
-            'booking {} {}'.format(str(booking.id), booking.user.email)
+            'obj=booking ids={} usr={}'.format(str(booking.id), booking.user.email)
         )
 
         # posting means submitting for block payment, so cart_items deleted

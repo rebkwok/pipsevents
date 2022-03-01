@@ -296,10 +296,13 @@ def get_blocktypes_available_to_book(user):
 def get_paypal_custom(item_type, item_ids, voucher_code, voucher_applied_to, user_email):
     if voucher_applied_to:
         voucher_applied_to = ",".join([str(applied_id) for applied_id in voucher_applied_to])
-    return '{} {} {}{}'.format(
-        item_type,
-        item_ids,
-        user_email,
-        f' {voucher_code}' if voucher_code else '',
-        f' {voucher_applied_to}' if voucher_applied_to else ''
-    )
+    # we use k=v pairs for diambiguation in the custom field, but abbreviate because
+    # there is a 256 char limit
+    custom = f"obj={item_type} ids={item_ids}"
+    if user_email:
+        custom = f"{custom} usr={user_email}"
+    if voucher_code:
+        custom = f"{custom} cde={voucher_code}"
+    if voucher_applied_to:
+        custom = f"{custom} apd={voucher_applied_to}"
+    return custom

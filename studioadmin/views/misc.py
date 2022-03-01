@@ -201,7 +201,7 @@ def test_paypal_view(request):
                     0.01,
                     'paypal_test',
                     invoice_id,
-                    'paypal_test 0 {} {} {}'.format(
+                    'obj=paypal_test ids=0 inv={} pp={} usr={}'.format(
                         invoice_id, email, request.user.email
                     ),
                     paypal_email=email,

@@ -41,7 +41,7 @@ IPN_POST_PARAMS = {
     "first_name": b"Test",
     "mc_fee": b"0.44",
     "notify_version": b"3.8",
-    "custom": b"booking 1",
+    "custom": b"obj=booking ids=1",
     "payer_status": b"verified",
     "payment_status": b"Completed",
     "business": b(TEST_RECEIVER_EMAIL),
@@ -119,7 +119,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
     def test_paypal_notify_url_with_unknown_obj_type(self):
         self.assertFalse(PayPalIPN.objects.exists())
         resp = self.paypal_post(
-            {'charset': b(CHARSET), 'custom': b'test 1', 'txn_id': 'test'}
+            {'charset': b(CHARSET), 'custom': b'obj=test ids=1', 'txn_id': 'test'}
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(PayPalIPN.objects.count(), 1)
@@ -147,7 +147,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         self.assertFalse(PayPalIPN.objects.exists())
 
         resp = self.paypal_post(
-            {'custom': b'booking 1', 'charset': b(CHARSET), 'txn_id': 'test'}
+            {'custom': b'obj=booking ids=1', 'charset': b(CHARSET), 'txn_id': 'test'}
         )
 
         self.assertEqual(resp.status_code, 200)
@@ -173,7 +173,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         self.assertFalse(PayPalIPN.objects.exists())
 
         resp = self.paypal_post(
-            {'custom': b'block 1', 'charset': b(CHARSET), 'txn_id': 'test'}
+            {'custom': b'obj=block ids=1', 'charset': b(CHARSET), 'txn_id': 'test'}
         )
 
         self.assertEqual(resp.status_code, 200)
@@ -199,7 +199,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         self.assertFalse(PayPalIPN.objects.exists())
 
         resp = self.paypal_post(
-            {'custom': b'ticket_booking 1', 'charset': b(CHARSET),
+            {'custom': b'obj=ticket_booking ids=1', 'charset': b(CHARSET),
              'txn_id': 'test'}
         )
 
@@ -226,7 +226,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         self.assertFalse(PayPalIPN.objects.exists())
 
         resp = self.paypal_post(
-            {'custom': b'gift_voucher 1 test@test.com ghskfjsl234', 'charset': b(CHARSET), 'txn_id': 'test'}
+            {'custom': b'obj=gift_voucher ids=1 usr=test@test.com cde=ghskfjsl234', 'charset': b(CHARSET), 'txn_id': 'test'}
         )
 
         self.assertEqual(resp.status_code, 200)
@@ -263,7 +263,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b(f'obj=booking ids={booking.id}'),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -299,7 +299,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'custom': b(f'obj=gift_voucher ids={voucher.id} usr={voucher.purchaser_email} cde={voucher.code}'),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -336,7 +336,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'custom': b(f'obj=gift_voucher ids={voucher.id} usr={voucher.purchaser_email} cde={voucher.code}'),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -373,7 +373,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'custom': b(f'obj=gift_voucher ids={voucher.id} usr={voucher.purchaser_email} cde={voucher.code}'),
                 'invoice': b"001",
                 'txn_id': b'test_txn_id'
             }
@@ -415,7 +415,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(
+                'custom': b('obj=booking ids={}'.format(
                     ','.join([str(booking.id) for booking in bookings])
                 )),
                 'invoice': b(invoice),
@@ -475,7 +475,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {},0'.format(
+                'custom': b('obj=booking ids={},0'.format(
                     ','.join([str(booking.id) for booking in bookings])
                 )),
                 'invoice': b(invoice),
@@ -519,7 +519,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {}'.format(
+                'custom': b('obj=block ids={}'.format(
                     ','.join([str(block.id) for block in blocks])
                 )),
                 'invoice': b(invoice),
@@ -578,7 +578,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block 0,{},99999'.format(
+                'custom': b('obj=block ids=0,{},99999'.format(
                     ','.join([str(block.id) for block in blocks])
                 )),
                 'invoice': b(invoice),
@@ -621,7 +621,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking+{}'.format(booking.id)),
+                'custom': b('obj=booking+ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -653,7 +653,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b'booking 1',
+                'custom': b'obj=booking ids=1',
             }
         )
         resp = self.paypal_post(params)
@@ -696,7 +696,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(invoice_id)
             }
         )
@@ -728,7 +728,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(invoice_id)
             }
         )
@@ -755,7 +755,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(invoice_id)
             }
         )
@@ -779,7 +779,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b''
             }
         )
@@ -813,7 +813,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {}'.format(block.id)),
+                'custom': b('obj=block ids={}'.format(block.id)),
                 'invoice': b(invoice_id)
             }
         )
@@ -847,7 +847,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('ticket_booking {}'.format(ticket_booking.id)),
+                'custom': b('obj=ticket_booking ids={}'.format(ticket_booking.id)),
                 'invoice': b(invoice_id)
             }
         )
@@ -883,7 +883,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(invoice_id)
             }
         )
@@ -928,7 +928,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b''
             }
         )
@@ -979,7 +979,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b'invoice_1'
             }
         )
@@ -1019,7 +1019,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b''
             }
         )
@@ -1055,7 +1055,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {}'.format(block.id)),
+                'custom': b('obj=block ids={}'.format(block.id)),
                 'invoice': b''
             }
         )
@@ -1109,7 +1109,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {}'.format(block.id)),
+                'custom': b('obj=block ids={}'.format(block.id)),
                 'invoice': b'invoice_1'
             }
         )
@@ -1149,7 +1149,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {}'.format(block.id)),
+                'custom': b('obj=block ids={}'.format(block.id)),
                 'invoice': b''
             }
         )
@@ -1185,7 +1185,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('ticket_booking {}'.format(tbooking.id)),
+                'custom': b('obj=ticket_booking ids={}'.format(tbooking.id)),
                 'invoice': b''
             }
         )
@@ -1242,7 +1242,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('ticket_booking {}'.format(tbooking.id)),
+                'custom': b('obj=ticket_booking ids={}'.format(tbooking.id)),
                 'invoice': b'invoice_1'
             }
         )
@@ -1285,7 +1285,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('ticket_booking {}'.format(tbooking.id)),
+                'custom': b('obj=ticket_booking ids={}'.format(tbooking.id)),
                 'invoice': b''
             }
         )
@@ -1323,7 +1323,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1364,7 +1364,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('ticket_booking {}'.format(ticket_booking.id)),
+                'custom': b('obj=ticket_booking ids={}'.format(ticket_booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Completed'
             }
@@ -1414,7 +1414,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1449,7 +1449,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} test'.format(booking.id)),
+                'custom': b('obj=booking ids={} cde=test'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1490,7 +1490,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} test'.format(booking.id)),
+                'custom': b('obj=booking ids={} cde=test'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1528,7 +1528,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} test'.format(block.id)),
+                'custom': b('obj=block ids={} cde=test'.format(block.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded',
                 'mc_gross': b('{}'.format(block.block_type.cost))
@@ -1567,7 +1567,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} test'.format(booking.id)),
+                'custom': b('obj=booking ids={} cde=test'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1599,7 +1599,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} test'.format(block.id)),
+                'custom': b('obj=block ids={} cde=test'.format(block.id)),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1629,7 +1629,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b(f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'custom': b(f'obj=gift_voucher ids={voucher.id} usr={voucher.purchaser_email} cde={voucher.code}'),
                 'invoice': b(pptrans.invoice_id),
                 'payment_status': b'Refunded'
             }
@@ -1658,7 +1658,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
             {
                 "payment_date": b"01:21:32  Jan   25  2015 PDT",
                 'invoice': b(pptrans.invoice_id),
-                'custom': b('booking {}'.format(booking.id))
+                'custom': b('obj=booking ids={}'.format(booking.id))
             }
         )
 
@@ -1829,7 +1829,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': 'test_txn_id'
             }
@@ -1868,7 +1868,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': 'test_txn_id'
 
@@ -1914,7 +1914,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': 'test_txn_id'
             }
@@ -1963,7 +1963,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': 'test_txn_id'
             }
@@ -2003,7 +2003,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} {} {} {}'.format(
+                'custom': b('obj=booking ids={} usr={} cde={} apd={}'.format(
                     booking.id, booking.user.email, voucher.code, booking.id
                 )),
                 'invoice': b(pptrans.invoice_id),
@@ -2048,7 +2048,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} {} invalid_code {}'.format(
+                'custom': b('obj=booking ids={} usr={} cde=invalid_code apd={}'.format(
                     booking.id, booking.user.email, booking.id
                 )),
                 'invoice': b(pptrans.invoice_id),
@@ -2101,7 +2101,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} {} {} {}'.format(
+                'custom': b('obj=block ids={} usr={} cde={} apd={}'.format(
                     block.id, block.user.email, voucher.code, block.id
                 )),
                 'invoice': b(pptrans.invoice_id),
@@ -2147,7 +2147,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} {} invalid_code {}'.format(
+                'custom': b('obj=block ids={} usr={} cde=invalid_code apd={}'.format(
                     block.id, block.user.email, block.id
                 )),
                 'invoice': b(pptrans.invoice_id),
@@ -2201,7 +2201,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
             }
@@ -2257,7 +2257,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
                 'payment_status': 'Pending'
@@ -2313,7 +2313,7 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
                 'payment_status': 'Voided'
@@ -2355,8 +2355,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('paypal_test 0 test_invoice_1 '
-                            'test@test.com user@test.com'),
+                'custom': b('obj=paypal_test ids=0 inv=test_invoice_1 '
+                            'pp=test@test.com usr=user@test.com'),
                 'receiver_email': 'test@test.com'
             }
         )
@@ -2390,8 +2390,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('paypal_test 0 test_invoice_1 '
-                            'test@test.com user@test.com'),
+                'custom': b('obj=paypal_test ids=0 inv=test_invoice_1 '
+                            'pp=test@test.com usr=user@test.com'),
                 'receiver_email': 'test@test.com',
                 'payment_status': 'Refunded'
             }
@@ -2423,8 +2423,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('paypal_test 0 test_invoice_1 '
-                            'test@test.com user@test.com'),
+                'custom': b('obj=paypal_test ids=0 inv=test_invoice_1 '
+                            'pp=test@test.com usr=user@test.com'),
                 'receiver_email': 'test@test.com',
                 'payment_status': 'Pending',
             }
@@ -2459,8 +2459,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('paypal_test 0 test_invoice_1 '
-                            'test@test.com user@test.com'),
+                'custom': b('obj=paypal_test ids=0 inv=test_invoice_1 '
+                            'pp=test@test.com usr=user@test.com'),
                 'receiver_email': 'test@test.com',
                 'payment_status': 'Voided',
             }
@@ -2500,8 +2500,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
 
         params.update(
             {
-                'custom': b('paypal_test 0 test_invoice_1 '
-                            'test@test.com user@test.com'),
+                'custom': b('obj=paypal_test ids=0 inv=test_invoice_1 '
+                            'pp=test@test.com usr=user@test.com'),
                 'receiver_email': 'test@test.com',
             }
         )
@@ -2540,7 +2540,7 @@ class PaypalSignalTestsCancelledBooking(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -2587,7 +2587,7 @@ class PaypalSignalTestsCancelledBooking(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -2637,7 +2637,7 @@ class PaypalSignalTestsCancelledBooking(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }
@@ -2683,7 +2683,7 @@ class PaypalSignalTestsCancelledBooking(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {}'.format(booking.id)),
+                'custom': b('obj=booking ids={}'.format(booking.id)),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id'
             }

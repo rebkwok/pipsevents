@@ -184,16 +184,18 @@ def paypal_cancel_return(request):
 
 def get_cart_item_names(cart_items):
     items = cart_items.split(' ')
-    if not (3 <= len(items) <= 4):
-        # incorrect cart_items format
+    items_dict = {
+        key: value for (key, value) in
+        [custom_item.split("=") for custom_item in items]
+    }
+    item_type = items_dict.get("obj")
+    if not item_type:
         item_type = 'unknown'
         user_email = None
+        obj_ids = []
     else:
-        item_type = items[0]
-        item_ids = items[1]
-        user_email = items[2]
-        ids = item_ids.split(',')
-        obj_ids = [int(id) for id in ids]
+        user_email = items_dict.get("usr")
+        obj_ids = [int(id) for id in items_dict.get("ids")]
 
     if item_type == 'booking':
         cart_items = Booking.objects.filter(id__in=obj_ids)

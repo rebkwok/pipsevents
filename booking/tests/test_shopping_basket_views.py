@@ -245,7 +245,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 ]
         )
         self.assertEqual(
-            paypalform.initial['custom'], 'block {} {}'.format(
+            paypalform.initial['custom'], 'obj=block ids={} usr={}'.format(
                 block_ids_str, self.user.email
             )
         )
@@ -540,7 +540,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             ]
         )
         self.assertEqual(
-            paypalform.initial['custom'], 'booking {} {}'.format(
+            paypalform.initial['custom'], 'obj=booking ids={} usr={}'.format(
                 booking_ids_str, Booking.objects.first().user.email
             )
         )
@@ -560,7 +560,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         paypalform = resp.context['bookings_paypalform']
 
         self.assertEqual(
-            paypalform.initial['custom'],'booking {} {}'.format(
+            paypalform.initial['custom'], 'obj=booking ids={} usr={}'.format(
                 booking.id, booking.user.email
             )
         )
@@ -581,9 +581,10 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 str(id) for id in Booking.objects.values_list('id', flat=True)
                 ]
         )
+        # voucher only applied to first booking
         self.assertEqual(
             paypalform.initial['custom'],
-            'booking {} {} foo'.format(booking_ids_str, booking.user.email)
+            f'obj=booking ids={booking_ids_str} usr={self.user.email} cde=foo apd={booking.id}'
         )
         for i, booking in enumerate(Booking.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1), paypalform.initial)
@@ -615,9 +616,10 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 str(id) for id in Block.objects.order_by('id').values_list('id', flat=True)
                 ]
         )
+        # voucher only applied to first block
         self.assertEqual(
             paypalform.initial['custom'],
-            'block {} {} foo'.format(booking_ids_str, self.user.email)
+            f'obj=block ids={booking_ids_str} usr={self.user.email} cde=foo apd={block.id}'
         )
         for i, block in enumerate(Block.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1), paypalform.initial)
@@ -693,7 +695,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(len(resp.context['unpaid_bookings']), 6)
         booking_ids = ','.join(str(booking.id) for booking in self.user.bookings.all().order_by("id"))
-        assert self.client.session["cart_items"] == f"booking {booking_ids} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=booking ids={booking_ids} usr={self.user.email}"
 
     def test_paypal_cart_items_unpaid_blocks(self):
         # If we only have unpaid blocks, add the cart items to the session
@@ -702,7 +704,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             'booking.block', block_type__cost=5, user=self.user, paid=False
         )
         self.client.get(self.url)
-        assert self.client.session["cart_items"] == f"block {block.id} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
     def test_paypal_cart_items_bookings_and_blocks(self):
         # If we have both unpaid bookings and blocks, don't add the cart items to the session as
