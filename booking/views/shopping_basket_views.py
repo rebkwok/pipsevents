@@ -225,15 +225,12 @@ def add_total_blocks_and_paypal_context(request, context):
             # total_unpaid_block_cost can be 0 if 100% voucher(s) applied;
             # paypal button replaced with an update button in template
             item_ids_str = ','.join([str(item.id) for item in unpaid_blocks])
-            voucher_applied_ids = context.get("voucher_applied_blocks", [])
-            voucher_applied_to = ','.join(
-                [str(item_id) for item_id in voucher_applied_ids])
             custom = context_helpers.get_paypal_custom(
                 item_type='block',
                 item_ids=item_ids_str,
                 voucher_code=block_code
                 if context.get('valid_block_voucher') else '',
-                voucher_applied_to=voucher_applied_to,
+                voucher_applied_to=context.get("voucher_applied_blocks", []),
                 user_email=request.user.email
             )
             invoice_id = create_multiblock_paypal_transaction(

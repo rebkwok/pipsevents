@@ -8,6 +8,15 @@
             <div class="card-header">
                 <h1 class="card-title">Your booking for {{ booking.event }} has been cancelled</h1>
             </div>
+
+            <div class="card-body">
+                {% if full %}
+                    <p>This {{ ev_type }} is now full</p>
+                {% elif not booking.event.bookable %}
+                    <p>This {{ ev_type }} cannot currently be booked.</p>
+                {% endif %}
+            </div>
+
        </div>
 </div>
 {% endblock content %}

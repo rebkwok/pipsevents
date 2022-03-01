@@ -294,6 +294,8 @@ def get_blocktypes_available_to_book(user):
 
 
 def get_paypal_custom(item_type, item_ids, voucher_code, voucher_applied_to, user_email):
+    if voucher_applied_to:
+        voucher_applied_to = ",".join([str(applied_id) for applied_id in voucher_applied_to])
     return '{} {} {}{}'.format(
         item_type,
         item_ids,

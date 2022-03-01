@@ -45,7 +45,7 @@ class PayPalPaymentsShoppingBasketFormTests(PatchRequestMixin, TestCase):
                         [booking],
                         invoice_id,
                         get_paypal_custom(
-                            'booking', str(booking.id), None, booking.user.email
+                            'booking', str(booking.id), None, [], booking.user.email
                         )
                     )
         )

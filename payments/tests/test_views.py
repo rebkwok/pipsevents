@@ -314,7 +314,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
         # create ipn with transaction id and custom
         custom = get_paypal_custom(
-            'booking', ','.join([str(bk.id) for bk in bookings]), None,
+            'booking', ','.join([str(bk.id) for bk in bookings]), None, [],
             self.user.email
         )
         baker.make(
@@ -348,7 +348,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
         # create ipn with transaction id and custom
         custom = get_paypal_custom(
-            'block', ','.join([str(bk.id) for bk in blocks]), None,
+            'block', ','.join([str(bk.id) for bk in blocks]), None, [],
             self.user.email
         )
         baker.make(
@@ -382,7 +382,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
         # create ipn with transaction id and custom
         custom = get_paypal_custom(
-            'ticket_booking', str(ticket_booking.id), None,
+            'ticket_booking', str(ticket_booking.id), None, [],
             self.user.email
         )
         baker.make(
@@ -413,7 +413,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
         # create ipn with transaction id and custom
         custom = get_paypal_custom(
-            'booking', ','.join([str(bk.id) for bk in bookings]), 'foo',
+            'booking', ','.join([str(bk.id) for bk in bookings]), 'foo', [bk.id for bk in bookings],
             self.user.email
         )
         baker.make(
@@ -447,7 +447,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
         # create ipn with transaction id and custom
         custom = get_paypal_custom(
-            'booking', ','.join([str(bk.id) for bk in bookings]), None,
+            'booking', ','.join([str(bk.id) for bk in bookings]), None, [],
             'other_user@test.com'
         )
         baker.make(
@@ -480,7 +480,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
         create_multibooking_paypal_transaction(self.user, bookings)
 
         custom = get_paypal_custom(
-            'booking', ','.join([str(bk.id) for bk in bookings]), None,
+            'booking', ','.join([str(bk.id) for bk in bookings]), None, [],
             self.user.email
         )
 
@@ -510,7 +510,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
         # create ipn with transaction id and custom
         custom = get_paypal_custom(
-            'booking', ','.join([str(bk.id) for bk in bookings]), None,
+            'booking', ','.join([str(bk.id) for bk in bookings]), None, [],
             self.user.email
         )
         baker.make(

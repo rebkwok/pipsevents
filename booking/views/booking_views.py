@@ -572,6 +572,7 @@ class BookingUpdateView(
             item_type='booking',
             item_ids=str(self.object.id),
             voucher_code=voucher.code if context.get('valid_voucher', False) else None,
+            voucher_applied_to=[self.object.id] if context.get('valid_voucher') else [],
             user_email=self.request.user.email
         )
         paypal_form = PayPalPaymentsUpdateForm(

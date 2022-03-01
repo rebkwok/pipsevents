@@ -246,11 +246,11 @@ def get_obj(ipn_obj):
 
         if obj_type == "gift_voucher":
             gift_voucher_code = custom[3]
-        elif obj_type != 'test':
+        elif obj_type != 'paypal_test':
             voucher_code = custom[3] if len(custom) == 5 else None
             voucher_applied_to = custom[4] if len(custom) == 5 else None
             if voucher_applied_to:
-                voucher_applied_to = [int(applied_id) for applied_id in voucher_applied_to]
+                voucher_applied_to = [int(applied_id) for applied_id in voucher_applied_to.split(',')]
 
     else:  # in case custom not included in paypal response
         raise PayPalTransactionError('Unknown object type for payment')

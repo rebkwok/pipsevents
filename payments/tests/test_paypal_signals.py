@@ -2003,8 +2003,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} {} {}'.format(
-                    booking.id, booking.user.email, voucher.code
+                'custom': b('booking {} {} {} {}'.format(
+                    booking.id, booking.user.email, voucher.code, booking.id
                 )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
@@ -2048,8 +2048,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('booking {} {} invalid_code'.format(
-                    booking.id, booking.user.email
+                'custom': b('booking {} {} invalid_code {}'.format(
+                    booking.id, booking.user.email, booking.id
                 )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
@@ -2101,8 +2101,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} {} {}'.format(
-                    block.id, block.user.email, voucher.code
+                'custom': b('block {} {} {} {}'.format(
+                    block.id, block.user.email, voucher.code, block.id
                 )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
@@ -2147,8 +2147,8 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         params = dict(IPN_POST_PARAMS)
         params.update(
             {
-                'custom': b('block {} {} invalid_code'.format(
-                    block.id, block.user.email
+                'custom': b('block {} {} invalid_code {}'.format(
+                    block.id, block.user.email, block.id
                 )),
                 'invoice': b(pptrans.invoice_id),
                 'txn_id': b'test_txn_id',
