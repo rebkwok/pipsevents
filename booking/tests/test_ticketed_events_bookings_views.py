@@ -324,7 +324,6 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(TicketBooking.objects.count(), 1)
         self.assertEqual(resp.context_data['ticket_booking'], tb)
 
-
         # add tickets to the booking, but leave unconfirmed
         baker.make(Ticket, ticket_booking=tb)
         self.assertEqual(TicketBooking.objects.count(), 1)

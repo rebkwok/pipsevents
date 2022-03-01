@@ -298,8 +298,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
     def test_update_cancelled_booking(self):
         """
         If booking is cancelled and we try to go to update page, we
-        redirect to update_booking_cancelled, which shows rebook
-        button
+        redirect to update_booking_cancelled
         """
         event = baker.make_recipe('booking.future_PC')
         booking = baker.make_recipe(
@@ -316,14 +315,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
             )
         )
 
-        resp = self._get_booking_update_cancelled(self.user, booking)
-        self.assertIn('rebook_button', str(resp.content))
-
     def test_update_cancelled_booking_full_event(self):
         """
         If booking is cancelled and we try to go to update page, we
-        redirect to update_booking_cancelled, which shows join waiting
-        list button if the event is full
+        redirect to update_booking_cancelled, which shows the event is full
         """
         event = baker.make_recipe(
             'booking.future_PC',
@@ -347,7 +342,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         )
 
         resp = self._get_booking_update_cancelled(self.user, booking)
-        self.assertIn('join_waiting_list_button', str(resp.content))
+        assert "This class is now full" in str(resp.content)
 
     def test_deleting_booking_emails_waiting_list(self):
         """

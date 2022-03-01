@@ -21,14 +21,13 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
     def setUpTestData(cls):
         set_up_fb()
 
-
     def test_confirm_return(self):
         booking = baker.make_recipe('booking.booking')
         url = reverse('payments:paypal_confirm')
         resp = self.client.post(
             url,
             {
-                'custom': '{} {}'.format('booking', booking.id),
+                'custom': 'obj={} ids={}'.format('booking', booking.id),
                 'payment_status': 'paid',
                 'item_name': booking.event.name
             }
@@ -44,7 +43,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         resp = self.client.post(
             url,
             {
-                'custom': '{} {}'.format('block', block.id),
+                'custom': 'obj={} ids={}'.format('block', block.id),
                 'payment_status': 'paid',
                 'item_name': block
             }
@@ -60,7 +59,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         resp = self.client.post(
             url,
             {
-                'custom': '{} {}'.format('ticket_booking', ticket_booking.id),
+                'custom': 'obj={} ids={}'.format('ticket_booking', ticket_booking.id),
                 'payment_status': 'paid',
                 'item_name': ticket_booking.ticketed_event.name
             }
@@ -77,7 +76,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         resp = self.client.post(
             url,
             {
-                'custom': '{} {}'.format('other', block.id),
+                'custom': 'obj={} ids={}'.format('other', block.id),
                 'payment_status': 'paid',
                 'item_name': block
             }
@@ -94,9 +93,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         resp = self.client.post(
             url,
             {
-                'custom': 'paypal_test 0 testpp@test.com_123456 '
-                          'testpp@test.com testpp@test.com '
-                          'user@test.com',
+                'custom': 'obj=paypal_test ids=0 inv=testpp@test.com_123456 '
+                          'pp=testpp@test.com usr=user@test.com',
                 'payment_status': 'paid',
                 'item_name': 'paypal_test'
             }
@@ -119,8 +117,8 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         resp = self.client.post(
             url,
             {
-                'custom': 'paypal_test 0 testpp@test.com_123456 '
-                          'testpp@test.com user@test.com',
+                'custom': 'obj=paypal_test ids=0 inv=testpp@test.com_123456 '
+                          'pp=testpp@test.com usr=user@test.com',
                 'payment_status': 'paid',
                 'item_name': 'paypal_test'
             }
@@ -157,7 +155,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         resp = self.client.post(
             url,
             {
-                'custom': '{} {}'.format(
+                'custom': 'obj={} ids={}'.format(
                     'booking', ','.join([str(booking.id) for booking in bookings])
                 ),
                 'payment_status': 'paid',
@@ -173,7 +171,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         bookings = baker.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'booking {} {}'.format(
+        session['cart_items'] = 'obj=booking ids={} usr={}'.format(
             ','.join([str(booking.id) for booking in bookings]),
             bookings[0].user.email
         )
@@ -202,7 +200,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
 
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'booking {} {}'.format(
+        session['cart_items'] = 'obj=booking ids={} usr={}'.format(
             ','.join([str(booking.id) for booking in all_bookings]),
             all_bookings[0].user.email
         )
@@ -232,7 +230,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         blocks = baker.make_recipe('booking.block', _quantity=2)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'block {} {}'.format(
+        session['cart_items'] = 'obj=block ids={} usr={}'.format(
             ','.join([str(block.id) for block in blocks]),
             blocks[0].user.email
         )
@@ -258,7 +256,7 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
         bookings = baker.make_recipe('booking.booking', _quantity=3)
         url = reverse('payments:paypal_confirm')
         session = self.client.session
-        session['cart_items'] = 'unknown {} {}'.format(
+        session['cart_items'] = 'obj=unknown ids={} usr={}'.format(
             ','.join([str(booking.id) for booking in bookings]),
             bookings[0].user.email
 
@@ -295,7 +293,7 @@ class CancelReturnViewTests(PatchRequestMixin, TestCase):
 
     def test_cancel_return_removes_cart_items_from_session(self):
         session = self.client.session
-        session['cart_items'] = 'booking 1,2,3,4'
+        session['cart_items'] = 'obj=booking ids=1,2,3,4'
         session.save()
 
         self.assertIsNotNone(self.client.session.get('cart_items'))

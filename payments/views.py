@@ -45,11 +45,15 @@ def paypal_confirm_return(request):
     test_ipn_complete = False
     custom = request.POST.get('custom', '')
     custom = custom.replace('+', ' ').split()
+    custom_dict = {
+        key: value for (key, value) in
+        [custom_item.split("=") for custom_item in custom]
+    }
     context = {}
 
     if custom:
-        obj_type = custom[0]
-        ids = custom[1]
+        obj_type = custom_dict["obj"]
+        ids = custom_dict["ids"]
         obj_ids = [int(id) for id in ids.split(',')]
 
         if obj_type == "booking":
@@ -66,7 +70,7 @@ def paypal_confirm_return(request):
             # 'test 0 <invoice_id> <paypal email being tested> <user's email>'
             test_ipn_complete = bool(
                 PayPalIPN.objects.filter(
-                    invoice=custom[2], payment_status='Completed'
+                    invoice=custom_dict["inv"], payment_status='Completed'
                 )
             )
 
@@ -83,8 +87,7 @@ def paypal_confirm_return(request):
                    'sender_email': settings.DEFAULT_FROM_EMAIL,
                    'organiser_email': settings.DEFAULT_STUDIO_EMAIL,
                    'test_ipn_complete': test_ipn_complete,
-                   'test_paypal_email': custom[3] if objs[0] == 'paypal_test'
-                   else ''
+                   'test_paypal_email': custom_dict.get("pp", "")
                    }
         logging.info("Paypal return (complete): %s", custom)
 
@@ -195,7 +198,7 @@ def get_cart_item_names(cart_items):
         obj_ids = []
     else:
         user_email = items_dict.get("usr")
-        obj_ids = [int(id) for id in items_dict.get("ids")]
+        obj_ids = [int(id) for id in items_dict.get("ids").split(",")]
 
     if item_type == 'booking':
         cart_items = Booking.objects.filter(id__in=obj_ids)

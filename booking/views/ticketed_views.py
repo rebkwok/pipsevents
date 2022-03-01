@@ -331,7 +331,7 @@ class TicketBookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin
                     self.request.user, ticket_booking).invoice_id
                 custom = context_helpers.get_paypal_custom(
                     item_type="ticket_booking",
-                    item_ids=str(self.ticket_booking.id),
+                    item_ids=str(ticket_booking.id),
                     user_email=self.request.user.email,
                 )
                 paypal_form = PayPalPaymentsListForm(
