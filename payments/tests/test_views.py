@@ -193,6 +193,29 @@ class ConfirmReturnViewTests(PatchRequestMixin, TestCase):
             booking.refresh_from_db()
             self.assertTrue(booking.paypal_pending)
 
+    def test_confirm_return_with_booking_cart_items_no_obj_type(self):
+        bookings = baker.make_recipe('booking.booking', _quantity=3)
+        url = reverse('payments:paypal_confirm')
+        session = self.client.session
+        session['cart_items'] = 'ids={} usr={}'.format(
+            ','.join([str(booking.id) for booking in bookings]),
+            bookings[0].user.email
+        )
+        session.save()
+
+        resp = self.client.post(url)
+        assert resp.status_code == 200
+        assert resp.context_data['obj_unknown']
+        assert resp.context_data['cart_items'] == []
+        # cart items deleted from session
+        assert self.client.session.get('cart_items') is None
+
+        # paypal_pending not set on bookings
+        for booking in bookings:
+            booking.refresh_from_db()
+            assert booking.paypal_pending is False
+            assert booking.paid is False
+
     def test_confirm_return_with_booking_cart_items_already_paid(self):
         unpaid_bookings = baker.make_recipe('booking.booking', _quantity=2)
         paid_booking = baker.make_recipe('booking.booking', paid=True)

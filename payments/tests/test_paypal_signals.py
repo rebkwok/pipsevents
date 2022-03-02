@@ -143,6 +143,34 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
             )
         )
 
+    def test_paypal_notify_url_with_invalid_custom(self):
+        self.assertFalse(PayPalIPN.objects.exists())
+        resp = self.paypal_post(
+            {'charset': b(CHARSET), 'custom': b'obj=test 1', 'txn_id': 'test'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+
+        ppipn = PayPalIPN.objects.first()
+        self.assertTrue(ppipn.flag)
+
+        # one warning email sent
+        self.assertEqual(len(mail.outbox), 1)
+
+        self.assertEqual(
+            mail.outbox[0].subject,
+            'WARNING! Error processing Invalid Payment Notification from PayPal'
+        )
+        self.assertEqual(
+            mail.outbox[0].body,
+            'PayPal sent an invalid transaction notification while '
+            'attempting to process payment;.\n\nThe flag '
+            'info was "{}"\n\nAn additional error was raised: {}'.format(
+                ppipn.flag_info,
+                'Invalid custom format: obj=test 1'
+            )
+        )
+
     def test_paypal_notify_url_with_no_matching_booking(self):
         self.assertFalse(PayPalIPN.objects.exists())
 
@@ -1390,6 +1418,114 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         assert "Payment processed" in mail.outbox[1].subject
         assert "Payment refund processed" in mail.outbox[2].subject
 
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_refunded_status_old_custom_format(self, mock_postback):
+        """
+        when a paypal payment is refunded, it looks like it posts back to the
+        notify url again (since the PayPalIPN is updated).  Test that we can
+        identify and process refunded payments.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        booking = baker.make_recipe(
+            'booking.booking_with_user', payment_confirmed=True, paid=True,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL, status="CANCELLED"
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'booking {booking.id}'),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        booking.refresh_from_db()
+        self.assertFalse(booking.payment_confirmed)
+        self.assertFalse(booking.paid)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_refunded_status_block_old_custom_format(self, mock_postback):
+        """
+        when a paypal payment is refunded, it looks like it posts back to the
+        notify url again (since the PayPalIPN is updated).  Test that we can
+        identify and process refunded payments.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        block = baker.make_recipe(
+            'booking.block',
+            block_type__paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            paid=True
+        )
+        pptrans = helpers.create_block_paypal_transaction(
+            block.user, block
+        )
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        # blocks are only made unpaid if fully refunded
+        from decimal import Decimal
+        baker.make(
+            PayPalIPN, invoice=pptrans.invoice_id, txn_id=pptrans.transaction_id, payment_status="Completed",
+            mc_gross=Decimal(IPN_POST_PARAMS["mc_gross"].decode())
+        )
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'block {block.id}'),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        block.refresh_from_db()
+        self.assertFalse(block.paid)
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_url_with_refunded_status_ticket_booking_old_custom_format(
+            self, mock_postback
+    ):
+        """
+        when a paypal payment is refunded, it looks like it posts back to the
+        notify url again (since the PayPalIPN is updated).  Test that we can
+        identify and process refunded payments.
+        """
+        mock_postback.return_value = b"VERIFIED"
+        ticket_booking = baker.make_recipe(
+            'booking.ticket_booking', paid=False,
+            ticketed_event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_ticket_booking_paypal_transaction(
+            ticket_booking.user, ticket_booking
+        )
+
+        # First make the ticket booking paid
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(f'ticket_booking {ticket_booking.id}'),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Completed'
+            }
+        )
+
+        self.paypal_post(params)
+        ticket_booking.refresh_from_db()
+        self.assertTrue(ticket_booking.paid)
+        self.assertTrue(PayPalIPN.objects.exists())
+
+        # Now refund same booking
+        params.update({'payment_status': b'Refunded'})
+        self.paypal_post(params)
+        ticket_booking.refresh_from_db()
+        self.assertFalse(ticket_booking.paid)
 
     @override_settings(SEND_ALL_STUDIO_EMAILS=False)
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
@@ -1639,6 +1775,35 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         voucher.refresh_from_db()
         assert voucher.activated is False
 
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_refund_gift_voucher_old_custom_format(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        block_type = baker.make_recipe("booking.blocktype5")
+        voucher_type = baker.make(GiftVoucherType, block_type=block_type)
+        voucher = baker.make_recipe("booking.block_gift_voucher",
+                                    purchaser_email="gift@test.com", code=1234,
+                                    activated=True)
+        voucher.block_types.add(block_type)
+
+        pptrans = helpers.create_gift_voucher_paypal_transaction(voucher_type,
+                                                                 voucher.code)
+        pptrans.transaction_id = "test_trans_id"
+        pptrans.save()
+
+        assert PayPalIPN.objects.exists() is False
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b(
+                    f'gift_voucher {voucher.id} {voucher.purchaser_email} {voucher.code}'),
+                'invoice': b(pptrans.invoice_id),
+                'payment_status': b'Refunded'
+            }
+        )
+        self.paypal_post(params)
+        # refund processed and voucher deactivated
+        voucher.refresh_from_db()
+        assert voucher.activated is False
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_date_format_with_extra_spaces(self, mock_postback):
@@ -2026,6 +2191,61 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
         self.assertEqual(UsedEventVoucher.objects.first().user, user)
 
     @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_notify_with_voucher_code_multiple_bookings(self, mock_postback):
+        mock_postback.return_value = b"VERIFIED"
+        ev_type = baker.make_recipe('booking.event_type_PC')
+        voucher = baker.make(EventVoucher, code='test', discount=10)
+        voucher.event_types.add(ev_type)
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
+            'booking.booking_with_user', event__event_type=ev_type,
+            event__name='pole level 1', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        booking1 = baker.make_recipe(
+            'booking.booking_with_user', event__event_type=ev_type,
+            event__name='pole level 2', user=user,
+            event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
+        pptrans = helpers.create_booking_paypal_transaction(
+            booking.user, booking
+        )
+        pptrans1 = helpers.create_booking_paypal_transaction(
+            booking.user, booking1
+        )
+
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        # From custom, voucher is only applied to first booking
+        params.update(
+            {
+                'custom': b(
+                    f'obj=booking ids={booking.id},{booking1.id} usr={user.email} cde={voucher.code} apd={booking.id}'
+                ),
+                'invoice': b(pptrans.invoice_id),
+                'txn_id': b'test_txn_id',
+            }
+        )
+        self.assertIsNone(pptrans.transaction_id)
+        self.assertIsNone(pptrans1.transaction_id)
+        self.paypal_post(params)
+        self.assertEqual(PayPalIPN.objects.count(), 1)
+        ppipn = PayPalIPN.objects.first()
+        self.assertFalse(ppipn.flag)
+        self.assertEqual(ppipn.flag_info, '')
+
+        booking.refresh_from_db()
+        booking1.refresh_from_db()
+        assert booking.paid
+        assert booking1.paid
+
+        pptrans.refresh_from_db()
+        assert pptrans.voucher_code == voucher.code
+        assert pptrans1.voucher_code is None
+        assert UsedEventVoucher.objects.count() == 1
+        assert UsedEventVoucher.objects.first().user == user
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
     def test_paypal_notify_with_invalid_voucher_code(self, mock_postback):
         """
         Test that paypal is processed properly and marked as paid if an
@@ -2392,6 +2612,38 @@ class PaypalSignalsTests(PaypalSignalsTestBase):
             {
                 'custom': b('obj=paypal_test ids=0 inv=test_invoice_1 '
                             'pp=test@test.com usr=user@test.com'),
+                'receiver_email': 'test@test.com',
+                'payment_status': 'Refunded'
+            }
+        )
+        self.paypal_post(params)
+
+        ipn = PayPalIPN.objects.first()
+        self.assertEqual(ipn.payment_status, 'Refunded')
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, ['user@test.com', settings.SUPPORT_EMAIL])
+        self.assertEqual(
+            email.subject,
+            '{} Payment refund processed for test payment to PayPal email '
+            'test@test.com'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+            )
+        )
+
+    @patch('paypal.standard.ipn.models.PayPalIPN._postback')
+    def test_paypal_email_check_refunded_status_old_custom_format(self, mock_postback):
+        """
+        Test that a refunded paypal test payment is processed properly
+        """
+        mock_postback.return_value = b"VERIFIED"
+        self.assertFalse(PayPalIPN.objects.exists())
+        params = dict(IPN_POST_PARAMS)
+        params.update(
+            {
+                'custom': b('paypal_test 0 test_invoice_1 '
+                            'test@test.com user@test.com'),
                 'receiver_email': 'test@test.com',
                 'payment_status': 'Refunded'
             }

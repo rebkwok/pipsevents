@@ -232,7 +232,6 @@ def send_gift_voucher_email(voucher):
 def get_obj(ipn_obj):
     if not ipn_obj.custom:
         raise PayPalTransactionError('Unknown object type for payment')
-
     if not ipn_obj.custom.startswith("obj="):
         return get_obj_legacy(ipn_obj)
 
@@ -286,6 +285,10 @@ def get_obj(ipn_obj):
 
 
 def get_obj_legacy(ipn_obj):
+    """
+    Deal with legacy custom fields.  This should only happen for refunds of payments
+    processed prior to the custom field refactor
+    """
     additional_data = {}
 
     # custom format: 'obj_type obj_ids user_email voucher_code'
@@ -301,10 +304,9 @@ def get_obj_legacy(ipn_obj):
     if obj_type == "gift_voucher":
         voucher_code = custom[3]
     elif obj_type != 'paypal_test':
-        voucher_code = custom[3] if len(custom) == 5 else None
-        voucher_applied_to = custom[4] if len(custom) == 5 else None
-        if voucher_applied_to:
-            voucher_applied_to = [int(applied_id) for applied_id in voucher_applied_to.split(',')]
+        # Note voucher_applied_to was implemented at the same time as the custom format
+        # refactor, so we will never get voucher_applied_to fields with legacy custom format
+        voucher_code = custom[3] if len(custom) == 4 else None
 
     if obj_type == 'paypal_test':
         # a test payment for paypal email
@@ -610,7 +612,6 @@ def payment_received(sender, **kwargs):
                     full_refund = original_transaction.mc_gross == ipn_obj.mc_gross
                 except PayPalIPN.DoesNotExist:
                     full_refund = False
-
                 for obj, paypal_trans in zip(obj_list, paypal_trans_list):
                     if hasattr(paypal_trans, "voucher_code"):
                         # check for voucher on paypal trans object; delete first
