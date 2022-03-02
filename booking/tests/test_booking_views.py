@@ -9,16 +9,12 @@ from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.test import override_settings, TestCase, RequestFactory
-from django.contrib.auth.models import Group, Permission, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from activitylog.models import ActivityLog
-from accounts.models import DisclaimerContent, OnlineDisclaimer
-
 from booking.models import BlockType, Event, EventType, Booking, \
     Block, EventVoucher,UsedEventVoucher,  WaitingListUser
-from booking.views import BookingCreateView, BookingDeleteView, BookingUpdateView, \
+from booking.views import BookingUpdateView, \
     duplicate_booking, fully_booked, cancellation_period_past, \
     update_booking_cancelled
 from common.tests.helpers import _create_session, \

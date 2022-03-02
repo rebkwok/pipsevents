@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from booking.models import Booking, WaitingListUser
-from booking.views import BookingListView, BookingCreateView, \
+from booking.views import BookingListView, \
     BookingDeleteView, BookingUpdateView, update_booking_cancelled, \
     EventListView, EventDetailView
 from common.tests.helpers import _create_session, TestSetupMixin

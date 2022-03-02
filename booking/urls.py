@@ -6,8 +6,7 @@ from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_tot
     GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete, \
     disclaimer_required,  \
     EventListView, EventDetailView, BookingListView, \
-    BookingHistoryListView, BookingCreateView, BookingMultiCreateView, \
-    BookingUpdateView, \
+    BookingHistoryListView, BookingUpdateView, \
     BookingDeleteView, BlockCreateView, BlockDeleteView, \
     BlockListView, TicketBookingListView, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
