@@ -25,8 +25,7 @@ class PayPalPaymentsUpdateFormTests(PatchRequestMixin, TestCase):
                         booking.event.cost,
                         booking.event,
                         pptrans.invoice_id,
-                        '{} {}'.format('booking', booking.id)
-                    )
+                        get_paypal_custom("booking", str(booking.id), None, None, None))
         )
         self.assertIn('Buy it Now', form.render())
 
@@ -45,7 +44,7 @@ class PayPalPaymentsShoppingBasketFormTests(PatchRequestMixin, TestCase):
                         [booking],
                         invoice_id,
                         get_paypal_custom(
-                            'booking', str(booking.id), None, booking.user.email
+                            'booking', str(booking.id), None, [], booking.user.email
                         )
                     )
         )

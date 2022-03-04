@@ -117,6 +117,7 @@ def add_total_bookings_and_paypal_context(request, context):
                 item_type='booking',
                 item_ids=item_ids_str,
                 voucher_code=booking_code if context.get('valid_booking_voucher') else '',
+                voucher_applied_to=context.get("voucher_applied_bookings", []),
                 user_email=request.user.email
             )
             if not context.get("unpaid_blocks"):
@@ -227,6 +228,7 @@ def add_total_blocks_and_paypal_context(request, context):
                 item_ids=item_ids_str,
                 voucher_code=block_code
                 if context.get('valid_block_voucher') else '',
+                voucher_applied_to=context.get("voucher_applied_blocks", []),
                 user_email=request.user.email
             )
             invoice_id = create_multiblock_paypal_transaction(

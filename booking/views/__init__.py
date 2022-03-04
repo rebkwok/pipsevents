@@ -2,8 +2,7 @@ from django.shortcuts import render
 
 from booking.views.event_views import EventDetailView, EventListView, OnlineTutorialListView, OnlineTutorialDetailView
 from booking.views.booking_views import ajax_create_booking, \
-    already_cancelled, already_paid, \
-    BookingCreateView, BookingDeleteView, BookingMultiCreateView, \
+    already_cancelled, already_paid, BookingDeleteView, \
     BookingHistoryListView, BookingListView, BookingUpdateView, \
     disclaimer_required, \
     duplicate_booking, update_booking_cancelled, fully_booked, \
@@ -23,8 +22,7 @@ from booking.views.ticketed_views import TicketBookingListView, \
 __all__ = [
     'ajax_create_booking', 'already_cancelled', 'already_paid',
     'EventListView', 'EventDetailView', 'BookingListView',
-    'BookingHistoryListView', 'BookingCreateView', 'BookingUpdateView',
-    'BookingMultiCreateView',
+    'BookingHistoryListView', 'BookingUpdateView',
     'BookingDeleteView',
     'disclaimer_required', 'duplicate_booking',
     'GiftVoucherPurchaseView', 'gift_voucher_details', 'gift_voucher_delete',

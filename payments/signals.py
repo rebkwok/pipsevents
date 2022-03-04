@@ -230,43 +230,113 @@ def send_gift_voucher_email(voucher):
 
 
 def get_obj(ipn_obj):
-    from payments import helpers
+    if not ipn_obj.custom:
+        raise PayPalTransactionError('Unknown object type for payment')
+    if not ipn_obj.custom.startswith("obj="):
+        return get_obj_legacy(ipn_obj)
+
+    # custom is in format "k=v k=v"
+    # possible keys:
+    # obj (obj type) - always present; booking/block/ticket_booking/gift_voucher/paypal_test
+    # ids (obj ids) - always present
+    # usr (user email)
+    # cde (voucher code - code used or gift voucher code if obj is gift_voucher)
+    # apd (ids voucher applied to)
+    # pp (paypal email for a paypal_test)
+    # inv (invoice id, for a paypal_test)
+    # occasionally paypal sends back the custom field with the space
+    # replaced with '+'. i.e. "obj=booking+obj_ids=1" instead of "obj=booking obj_ids=1"
+    custom = ipn_obj.custom.replace('+', ' ').split()
+    try:
+        custom_dict = {
+            key: value for (key, value) in [custom_item.split("=") for custom_item in custom]
+        }
+    except ValueError:
+        raise PayPalTransactionError(f"Invalid custom format: {ipn_obj.custom}")
+
+    obj_type = custom_dict["obj"]
+    obj_ids = [int(id) for id in custom_dict["ids"].split(',')]
+
+    voucher_code = custom_dict.get("cde")
+    voucher_applied_to = custom_dict.get("apd")
+    if voucher_applied_to:
+        voucher_applied_to = [int(applied_id) for applied_id in voucher_applied_to.split(',')]
+
+    user_email = custom_dict.get("usr")
+
+    if obj_type == 'paypal_test':
+        # a test payment for paypal email
+        additional_data = {
+            "test_invoice": custom_dict["inv"],
+            "test_paypal_email": custom_dict["pp"],
+            "user_email": user_email
+        }
+        return {
+            'obj_type': obj_type,
+            'obj_list': [],
+            'paypal_trans_list': [],
+            'voucher_code': voucher_code,
+            'voucher_applied_to': voucher_applied_to,
+            'obj_user': user_email,
+            'additional_data': additional_data
+        }
+    else:
+        return build_obj_dict(ipn_obj, obj_type, obj_ids, voucher_code, voucher_applied_to)
+
+
+def get_obj_legacy(ipn_obj):
+    """
+    Deal with legacy custom fields.  This should only happen for refunds of payments
+    processed prior to the custom field refactor
+    """
     additional_data = {}
 
-    if ipn_obj.custom:
-        # custom format: 'obj_type obj_ids user_email voucher_code'
-        # occasionally paypal sends back the custom field with the space
-        # replaced with '+'. i.e. "booking+1" instead of "booking 1"
-        custom = ipn_obj.custom.replace('+', ' ').split()
-        obj_type = custom[0]
-        ids = custom[1]
-        obj_ids = [int(id) for id in ids.split(',')]
+    # custom format: 'obj_type obj_ids user_email voucher_code'
+    # occasionally paypal sends back the custom field with the space
+    # replaced with '+'. i.e. "booking+1" instead of "booking 1"
+    custom = ipn_obj.custom.replace('+', ' ').split()
+    obj_type = custom[0]
+    ids = custom[1]
+    obj_ids = [int(id) for id in ids.split(',')]
+    voucher_code = None
+    voucher_applied_to = None
 
-        if obj_type == "gift_voucher":
-            gift_voucher_code = custom[3]
-            voucher_code = None
-        elif obj_type != 'test':
-            voucher_code = custom[3] if len(custom) == 4 else None
-        else:
-            voucher_code = None
-
-    else:  # in case custom not included in paypal response
-        raise PayPalTransactionError('Unknown object type for payment')
-
-    obj_list = []
-    paypal_trans_list = []
-    invalid_ids = []
+    if obj_type == "gift_voucher":
+        voucher_code = custom[3]
+    elif obj_type != 'paypal_test':
+        # Note voucher_applied_to was implemented at the same time as the custom format
+        # refactor, so we will never get voucher_applied_to fields with legacy custom format
+        voucher_code = custom[3] if len(custom) == 4 else None
 
     if obj_type == 'paypal_test':
         # a test payment for paypal email
         # custom in a test payment is in form
         # 'test 0 <invoice_id> <paypal email being tested> <user's email>'
-
         additional_data['test_invoice'] = custom[2]
         additional_data['test_paypal_email'] = custom[3]
         additional_data['user_email'] = custom[4]
 
-    elif obj_type == 'booking':
+        return {
+            'obj_type': obj_type,
+            'obj_list': [],
+            'paypal_trans_list': [],
+            'voucher_code': voucher_code,
+            'voucher_applied_to': voucher_applied_to,
+            'obj_user': custom[4],
+            'additional_data': additional_data
+        }
+    else:
+        return build_obj_dict(ipn_obj, obj_type, obj_ids, voucher_code, voucher_applied_to)
+
+
+def build_obj_dict(ipn_obj, obj_type, obj_ids, voucher_code, voucher_applied_to):
+    from payments import helpers
+    obj_list = []
+    paypal_trans_list = []
+    invalid_ids = []
+    obj_user = None
+
+    if obj_type == 'booking':
         for id in obj_ids:
             try:
                 obj = Booking.objects.get(id=id)
@@ -294,7 +364,6 @@ def get_obj(ipn_obj):
 
             obj_list.append(obj)
             paypal_trans_list.append(paypal_trans)
-
     elif obj_type == 'block':
         for id in obj_ids:
             try:
@@ -323,7 +392,6 @@ def get_obj(ipn_obj):
 
             obj_list.append(obj)
             paypal_trans_list.append(paypal_trans)
-
     elif obj_type == 'ticket_booking':
         try:
             obj = TicketBooking.objects.get(id=obj_ids[0])
@@ -356,15 +424,15 @@ def get_obj(ipn_obj):
         paypal_trans_list.append(paypal_trans)
     elif obj_type == "gift_voucher":
         try:
-            obj = BlockVoucher.objects.get(id=obj_ids[0], code=gift_voucher_code)
+            obj = BlockVoucher.objects.get(id=obj_ids[0], code=voucher_code)
             voucher_type = GiftVoucherType.objects.get(block_type=obj.block_types.first())
         except BlockVoucher.DoesNotExist:
             try:
-                obj = EventVoucher.objects.get(id=obj_ids[0], code=gift_voucher_code)
+                obj = EventVoucher.objects.get(id=obj_ids[0], code=voucher_code)
                 voucher_type = GiftVoucherType.objects.get(event_type=obj.event_types.first())
             except EventVoucher.DoesNotExist:
                 raise PayPalTransactionError(
-                    'Voucher code with id {} (code {}) does not exist'.format(obj_ids[0], gift_voucher_code)
+                    'Voucher code with id {} (code {}) does not exist'.format(obj_ids[0], voucher_code)
                 )
 
         paypal_trans = PaypalGiftVoucherTransaction.objects.filter(voucher_code=obj.code, voucher_type=voucher_type)
@@ -386,17 +454,22 @@ def get_obj(ipn_obj):
                 obj_type.title(), ', '.join([str(id) for id in invalid_ids])
             )
         )
+    if obj_list:
+        obj_user = obj_list[0].purchaser_email if obj_type == "gift_voucher" else \
+        obj_list[0].user.username
 
     return {
         'obj_type': obj_type,
         'obj_list': obj_list,
         'paypal_trans_list': paypal_trans_list,
         'voucher_code': voucher_code,
-        'additional_data': additional_data
+        'voucher_applied_to': voucher_applied_to,
+        'obj_user': obj_user,
+        'additional_data': {}
     }
 
 
-def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code):
+def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code, voucher_applied_to):
     voucher_error = None
     for obj, paypal_trans in zip(obj_list, paypal_trans_list):
         if obj_type == 'booking':
@@ -439,18 +512,19 @@ def process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, vo
 
         if voucher_code and obj_type != 'gift_voucher':
             try:
-                if obj_type == 'booking':
-                    voucher = EventVoucher.objects.get(code=voucher_code)
-                    UsedEventVoucher.objects.create(
-                        voucher=voucher, user=obj.user, booking_id=obj.id
-                    )
-                elif obj_type == 'block':
-                    voucher = BlockVoucher.objects.get(code=voucher_code)
-                    UsedBlockVoucher.objects.create(
-                        voucher=voucher, user=obj.user, block_id=obj.id
-                    )
-                paypal_trans.voucher_code = voucher_code
-                paypal_trans.save()
+                if obj.id in voucher_applied_to:
+                    if obj_type == 'booking':
+                        voucher = EventVoucher.objects.get(code=voucher_code)
+                        UsedEventVoucher.objects.create(
+                            voucher=voucher, user=obj.user, booking_id=obj.id
+                        )
+                    elif obj_type == 'block':
+                        voucher = BlockVoucher.objects.get(code=voucher_code)
+                        UsedBlockVoucher.objects.create(
+                            voucher=voucher, user=obj.user, block_id=obj.id
+                        )
+                    paypal_trans.voucher_code = voucher_code
+                    paypal_trans.save()
 
             except (
                     EventVoucher.DoesNotExist, BlockVoucher.DoesNotExist
@@ -504,9 +578,10 @@ def payment_received(sender, **kwargs):
     obj_type = obj_dict['obj_type']
     paypal_trans_list = obj_dict['paypal_trans_list']
     voucher_code = obj_dict.get('voucher_code')
+    voucher_applied_to = obj_dict.get('voucher_applied_to')
     additional_data = obj_dict.get('additional_data')
     obj_ids = ', '.join([str(obj.id) for obj in obj_list])
-
+    obj_user = obj_dict["obj_user"]  # username or email address
     try:
         if obj_type != 'paypal_test':
             for obj in obj_list:
@@ -537,7 +612,6 @@ def payment_received(sender, **kwargs):
                     full_refund = original_transaction.mc_gross == ipn_obj.mc_gross
                 except PayPalIPN.DoesNotExist:
                     full_refund = False
-
                 for obj, paypal_trans in zip(obj_list, paypal_trans_list):
                     if hasattr(paypal_trans, "voucher_code"):
                         # check for voucher on paypal trans object; delete first
@@ -572,7 +646,7 @@ def payment_received(sender, **kwargs):
                     log='Transaction for {} id(s) {} for user {} has been {} from paypal; '
                         'paypal transaction id {}, invoice id {}.{}'.format(
                             obj_type.title(), obj_ids,
-                            obj_list[0].user.username if obj_type != "gift_voucher" else obj_list[0].purchaser_email,
+                            obj_user,
                             "refunded" if full_refund else "part refunded",
                             ipn_obj.txn_id, paypal_trans_list[0].invoice_id,
                             f' Used voucher deleted (code {paypal_trans.voucher_code}).' if voucher_refunded else ''
@@ -626,14 +700,13 @@ def payment_received(sender, **kwargs):
                 )
                 send_processed_test_confirmation_emails(additional_data)
             else:
-                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code)
+                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code, voucher_applied_to)
 
                 ActivityLog.objects.create(
-                    log='{} id(s) {} for user {} paid by PayPal; paypal '
-                        '{} ids {}'.format(
+                    log='{} id(s) {} for user {} paid by PayPal; paypal {} ids {}'.format(
                         obj_type.title(),
                         obj_ids,
-                        obj_list[0].user.username if obj_type != "gift_voucher" else obj_list[0].purchaser_email,
+                        obj_user,
                         obj_type,
                         ', '.join([str(pp.id) for pp in paypal_trans_list]),
                     )
@@ -655,7 +728,7 @@ def payment_received(sender, **kwargs):
                             ipn_obj.txn_id,
                             obj_type,
                             obj_ids,
-                            obj_list[0].user.username,
+                            obj_user,
                         )
                     )
 
@@ -754,21 +827,23 @@ def payment_not_received(sender, **kwargs):
         obj_type = obj_dict['obj_type']
         paypal_trans_list = obj_dict['paypal_trans_list']
         voucher_code = obj_dict.get('voucher_code')
+        voucher_applied_to = obj_dict.get("voucher_applied_to")
         additional_data = obj_dict.get('additional_data')
         obj_ids = ', '.join([str(obj.id) for obj in obj_list])
+        obj_user = obj_dict["obj_user"]
 
         if obj_list:
             # check if the status is completed; mark booking as paid but send warning email too
             # Don't mark as paid if the flag is duplicate transaction id
             if ipn_obj.payment_status == ST_PP_COMPLETED and 'duplicate txn_id' not in ipn_obj.flag_info.lower():
-                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code)
+                voucher_error = process_completed_payment(obj_list, paypal_trans_list, ipn_obj, obj_type, voucher_code, voucher_applied_to)
 
                 ActivityLog.objects.create(
                     log='{} id(s) {} for user {} paid by PayPal; paypal '
                         '{} ids {}'.format(
                         obj_type.title(),
                         obj_ids,
-                        obj_list[0].user.username,
+                        obj_user,
                         obj_type,
                         ', '.join([str(pp.id) for pp in paypal_trans_list]),
                     )
@@ -785,7 +860,7 @@ def payment_not_received(sender, **kwargs):
                             ipn_obj.txn_id,
                             obj_type,
                             obj_ids,
-                            obj_list[0].user.username,
+                            obj_user,
                         )
                     )
 

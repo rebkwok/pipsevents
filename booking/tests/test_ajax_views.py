@@ -990,11 +990,11 @@ class AjaxTests(TestSetupMixin, TestCase):
         assert "cart_items" not in self.client.session
         resp = self.client.get(url)
         assert resp.context['total_unpaid_booking_cost'] == 5
-        assert self.client.session["cart_items"] == f"booking {booking.id} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
 
         self.client.session["cart_items"] = "foo 1"
         self.client.get(url)
-        assert self.client.session["cart_items"] == f"booking {booking.id} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
 
     def test_ajax_shopping_basket_bookings_total_updates_cart_items_for_blocks(self):
         # calling the shopping_basket_bookings_total sets the session cart items for unpaid blocks
@@ -1004,7 +1004,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         assert "cart_items" not in self.client.session
         resp = self.client.get(url)
         assert resp.context['total_unpaid_booking_cost'] is None
-        assert self.client.session["cart_items"] == f"block {block.id} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
     def test_ajax_shopping_basket_blocks_total_updates_cart_items(self):
         # calling the shopping_basket_blocks_total sets the session cart items
@@ -1012,7 +1012,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         url = reverse('booking:ajax_shopping_basket_blocks_total')
         resp = self.client.get(url)
         self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
-        assert self.client.session["cart_items"] == f"block {block.id} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
     def test_ajax_shopping_basket_blocks_total_updates_cart_items_for_bookings(self):
         # calling the shopping_basket_blocks_total resets the session cart items for unpaid bookings
@@ -1031,4 +1031,4 @@ class AjaxTests(TestSetupMixin, TestCase):
         block.delete()
         self.client.get(url)
         # After the block is deleted, we can allow booking cart items
-        assert self.client.session["cart_items"] == f"booking {booking.id} {self.user.email}"
+        assert self.client.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"

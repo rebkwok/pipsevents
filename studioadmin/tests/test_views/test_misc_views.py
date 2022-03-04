@@ -368,7 +368,7 @@ class TestPaypalViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(paypal_data['amount'], 0.01)
         self.assertEqual(
             paypal_data['custom'],
-            'paypal_test 0 {} testpp@test.com test@test.com'.format(
+            'obj=paypal_test ids=0 inv={} pp=testpp@test.com usr=test@test.com'.format(
                 paypal_data['invoice']
             )
         )

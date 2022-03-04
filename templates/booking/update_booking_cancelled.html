@@ -10,16 +10,9 @@
             </div>
 
             <div class="card-body">
-                {% if booking.event.bookable and not full %}
-                    <p>Click below to rebook.</p>
-                    <a href="{% url 'booking:book_event' booking.event.slug %}"><div id="rebook_button" class="btn btn-wm table-btn">Rebook</div></a>
-                {% elif full %}
+                {% if full %}
                     <p>This {{ ev_type }} is now full</p>
-                    <p>Click below to join the waiting list</p>
-                    <form action="{% url 'booking:book_event' booking.event.slug %}" method="get">
-                        <input id = "join_waiting_list_button" class="btn btn-wm table-btn" type="submit" value="Join waiting list" name="join waiting list"/>
-                    </form>
-                {% else %}
+                {% elif not booking.event.bookable %}
                     <p>This {{ ev_type }} cannot currently be booked.</p>
                 {% endif %}
             </div>

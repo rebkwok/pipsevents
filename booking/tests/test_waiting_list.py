@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from booking.models import Booking, WaitingListUser
-from booking.views import BookingListView, BookingCreateView, \
+from booking.views import BookingListView, \
     BookingDeleteView, BookingUpdateView, update_booking_cancelled, \
     EventListView, EventDetailView
 from common.tests.helpers import _create_session, TestSetupMixin
@@ -60,31 +60,6 @@ class WaitingListTests(TestSetupMixin, TestCase):
         request._messages = messages
 
         return update_booking_cancelled(request, pk=booking.id)
-
-    def _get_booking_create(self, user, event, extra_data={}):
-        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
-        store = _create_session()
-        data = {'event': event.id}
-        data.update(extra_data)
-        request = self.factory.get(url, data)
-        request.session = store
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BookingCreateView.as_view()
-        return view(request, event_slug=event.slug)
-
-    def _post_booking_create(self, user, event, form_data={}):
-        url = reverse('booking:book_event', kwargs={'event_slug': event.slug})
-        store = _create_session()
-        form_data['event'] = event.id
-        request = self.factory.post(url, form_data)
-        request.session = store
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BookingCreateView.as_view()
-        return view(request, event_slug=event.slug)
 
     def _booking_delete(self, user, booking):
         url = reverse('booking:delete_booking', args=[booking.id])
@@ -320,60 +295,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
         resp = self._get_booking_list(self.user)
         self.assertIn('rebook_button_disabled', resp.rendered_content)
 
-    def test_booking_when_already_on_waiting_list(self):
-        """
-        Test that when booking, a user is removed from the waiting list
-        """
-        event = baker.make_recipe('booking.future_PC', max_participants=3)
-        baker.make_recipe('booking.booking', event=event, _quantity=2)
-        # create waiting list user for this user and event
-        baker.make_recipe(
-            'booking.waiting_list_user', user=self.user, event=event
-        )
-        self.assertEqual(WaitingListUser.objects.count(), 1)
-        self.assertEqual(Booking.objects.filter(event=event).count(), 2)
-        resp = self._post_booking_create(self.user, event)
-        waiting_list = WaitingListUser.objects.filter(event=event)
-        # user now removed from waiting list
-        self.assertEqual(len(waiting_list), 0)
-        self.assertEqual(Booking.objects.filter(event=event).count(), 3)
-        booking = Booking.objects.filter(event=event).last()
-        self.assertEqual(booking.user, self.user)
-
-    def test_booking_only_removes_current_user_from_waiting_list(self):
-        """
-        Test that when booking, a user is removed from the waiting list but
-        other users remain on the waiting list
-        """
-        event = baker.make_recipe('booking.future_PC', max_participants=3)
-        baker.make_recipe('booking.booking', event=event, _quantity=2)
-        # create waiting list user for this user and event
-        baker.make_recipe(
-            'booking.waiting_list_user', user=self.user, event=event
-        )
-        baker.make_recipe(
-            'booking.waiting_list_user', event=event, _quantity=5
-        )
-        waiting_list = WaitingListUser.objects.filter(event=event)
-        self.assertEqual(waiting_list.count(), 6)
-        self.assertEqual(Booking.objects.filter(event=event).count(), 2)
-        resp = self._post_booking_create(self.user, event)
-
-        # user now removed from waiting list
-        waiting_list = WaitingListUser.objects.filter(event=event)
-        self.assertEqual(waiting_list.count(), 5)
-        self.assertEqual(Booking.objects.filter(event=event).count(), 3)
-        booking = Booking.objects.filter(event=event).last()
-        self.assertEqual(booking.user, self.user)
-
-        waiting_list_users = [wluser.user for wluser in waiting_list]
-        self.assertNotIn(self.user, waiting_list_users)
-
     def test_update_cancelled_booking(self):
         """
         If booking is cancelled and we try to go to update page, we
-        redirect to update_booking_cancelled, which shows rebook
-        button
+        redirect to update_booking_cancelled
         """
         event = baker.make_recipe('booking.future_PC')
         booking = baker.make_recipe(
@@ -390,14 +315,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
             )
         )
 
-        resp = self._get_booking_update_cancelled(self.user, booking)
-        self.assertIn('rebook_button', str(resp.content))
-
     def test_update_cancelled_booking_full_event(self):
         """
         If booking is cancelled and we try to go to update page, we
-        redirect to update_booking_cancelled, which shows join waiting
-        list button if the event is full
+        redirect to update_booking_cancelled, which shows the event is full
         """
         event = baker.make_recipe(
             'booking.future_PC',
@@ -421,7 +342,7 @@ class WaitingListTests(TestSetupMixin, TestCase):
         )
 
         resp = self._get_booking_update_cancelled(self.user, booking)
-        self.assertIn('join_waiting_list_button', str(resp.content))
+        assert "This class is now full" in str(resp.content)
 
     def test_deleting_booking_emails_waiting_list(self):
         """
