@@ -419,11 +419,11 @@ class BookingDeleteView(
                 reverse('booking:already_cancelled',
                         args=[booking.id])
             )
-        return super(BookingDeleteView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
-        context = super(BookingDeleteView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         booking = get_object_or_404(Booking, pk=self.kwargs['pk'])
         event = Event.objects.get(id=booking.event.id)
         # Add in the event
@@ -440,6 +440,9 @@ class BookingDeleteView(
             return (booking.date_rebooked and booking.date_rebooked > allowed_datetime) \
                    or (booking.date_booked > allowed_datetime)
         return False
+
+    def form_valid(self, *args, **kwargs):
+        return self.delete(self.request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         booking = self.get_object()
@@ -691,7 +694,7 @@ class BookingDeleteView(
             url += '?{}'.format(urlencode(params))
         return HttpResponseRedirect(url)
 
-    def get_success_url(self, next):
+    def get_success_url(self, next=None):
         if next:
             return reverse('booking:{}'.format(next))
         return reverse('booking:bookings')

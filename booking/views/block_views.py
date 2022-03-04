@@ -162,6 +162,9 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         context['block_to_delete'] = self.block
         return context
 
+    def form_valid(self, *args, **kwargs):
+        return self.delete(self.request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         block_id = self.block.id
         block_user = self.block.user.username
