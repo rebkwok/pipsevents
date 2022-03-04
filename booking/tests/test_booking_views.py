@@ -768,7 +768,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         url = reverse('booking:delete_booking', args=[booking.id])
         self.client.login(username=self.user.username, password='test')
-        resp = self.client.delete(url, follow=True)
+        resp = self.client.post(url, follow=True)
         self.assertIn(
             'Please note that this booking is not eligible for refunds or '
             'transfer credit as the allowed cancellation period has passed.',
@@ -800,7 +800,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         url = reverse('booking:delete_booking', args=[booking.id])
         self.client.login(username=self.user.username, password='test')
-        resp = self.client.delete(url, follow=True)
+        resp = self.client.post(url, follow=True)
         self.assertNotIn(
             'Please note that this booking is not eligible for refunds or '
             'transfer credit as the allowed cancellation period has passed.',
@@ -820,7 +820,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
             date_booked=datetime(2015, 2, 1, 9, 40, tzinfo=timezone.utc)
         )
         url = reverse('booking:delete_booking', args=[booking.id])
-        resp = self.client.delete(url, follow=True)
+        resp = self.client.post(url, follow=True)
 
         self.assertIn(
             'Please note that this booking is not eligible for refunds or '
@@ -855,7 +855,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
 
         url = reverse('booking:delete_booking', args=[booking.id])
         self.client.login(username=self.user.username, password='test')
-        resp = self.client.delete(url, follow=True)
+        resp = self.client.post(url, follow=True)
         self.assertNotIn(
             'Please note that this booking is not eligible for refunds or '
             'transfer credit as the allowed cancellation period has passed.',

@@ -441,13 +441,10 @@ class BookingDeleteView(
                    or (booking.date_booked > allowed_datetime)
         return False
 
-    def form_valid(self, *args, **kwargs):
-        return self.delete(self.request, *args, **kwargs)
-
-    def delete(self, request, *args, **kwargs):
+    def form_valid(self, _form):
         booking = self.get_object()
         event = booking.event
-        delete_from_shopping_basket = request.GET.get('ref') == 'basket'
+        delete_from_shopping_basket = self.request.GET.get('ref') == 'basket'
 
         # Booking can be fully cancelled if the event allows cancellation AND
         # the cancellation period is not past
@@ -653,7 +650,7 @@ class BookingDeleteView(
                 send_waiting_list_email(
                     event,
                     [wluser.user for wluser in waiting_list_users],
-                    host='http://{}'.format(request.META.get('HTTP_HOST'))
+                    host='http://{}'.format(self.request.META.get('HTTP_HOST'))
                 )
                 ActivityLog.objects.create(
                     log='Waiting list email sent to user(s) {} for '
@@ -673,30 +670,30 @@ class BookingDeleteView(
 
         if delete_from_shopping_basket:
             # get rid of messages
-            list(messages.get_messages(request))
+            list(messages.get_messages(self.request))
             return HttpResponse('Booking cancelled')
 
-        next = request.GET.get('next') or request.POST.get('next')
+        next_page = self.request.GET.get('next') or self.request.POST.get('next')
         params = {}
-        if request.GET.get('booking_code'):
-            params['booking_code'] = request.GET['booking_code']
-        if request.GET.get('block_code'):
-            params['block_code'] = request.GET['block_code']
-        if request.GET.get('filter'):
-            params['name'] = request.GET['filter']
-        if request.GET.get('tab'):
-            params['tab'] = request.GET['tab']
-        if request.GET.get('page'):
-            params['page'] = request.GET['page']
+        if self.request.GET.get('booking_code'):
+            params['booking_code'] = self.request.GET['booking_code']
+        if self.request.GET.get('block_code'):
+            params['block_code'] = self.request.GET['block_code']
+        if self.request.GET.get('filter'):
+            params['name'] = self.request.GET['filter']
+        if self.request.GET.get('tab'):
+            params['tab'] = self.request.GET['tab']
+        if self.request.GET.get('page'):
+            params['page'] = self.request.GET['page']
 
-        url = self.get_success_url(next)
+        url = self.get_success_url(next_page)
         if params:
             url += '?{}'.format(urlencode(params))
         return HttpResponseRedirect(url)
 
-    def get_success_url(self, next=None):
-        if next:
-            return reverse('booking:{}'.format(next))
+    def get_success_url(self, next_page=None):
+        if next_page:
+            return reverse('booking:{}'.format(next_page))
         return reverse('booking:bookings')
 
 
