@@ -24,13 +24,6 @@ MONTH_CHOICES = {
         }
 
 
-class BookingCreateForm(forms.ModelForm):
-
-    class Meta:
-        model = Booking
-        fields = ['event', ]
-
-
 class BlockTypeChoiceField(forms.ModelChoiceField):
 
     def label_from_instance(self, obj):

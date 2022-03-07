@@ -53,6 +53,9 @@ ALLOWED_HOSTS = [
     'booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk',
     'vagrant.pipsevents.co.uk', 'vagrant.booking.thewatermelonstudio.co.uk'
 ]
+# https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-CSRF_TRUSTED_ORIGINS
+CSRF_TRUSTED_ORIGINS = ['https://booking.thewatermelonstudio.co.uk']
+
 if env('LOCAL'):  # pragma: no cover
     ALLOWED_HOSTS = ['*']
 

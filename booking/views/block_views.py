@@ -155,47 +155,45 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         self.block = get_object_or_404(Block, id=self.kwargs['pk'])
         if self.block.paid or self.block.bookings.exists():
             return HttpResponseRedirect(reverse('booking:permission_denied'))
-        return super(BlockDeleteView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super(BlockDeleteView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['block_to_delete'] = self.block
         return context
 
-    def delete(self, request, *args, **kwargs):
+    def form_valid(self, _form):
         block_id = self.block.id
         block_user = self.block.user.username
         block_type = self.block.block_type
-        delete_from_shopping_basket = request.GET.get('ref') == 'basket'
+        delete_from_shopping_basket = self.request.GET.get('ref') == 'basket'
 
         ActivityLog.objects.create(
             log='User {} deleted unpaid and unused block {} ({})'.format(
                 block_user, block_id, block_type
             )
         )
-
-        super().delete(request, *args, **kwargs)
+        self.block.delete()
 
         if delete_from_shopping_basket:
             return HttpResponse('Block deleted')
 
         messages.success(self.request, 'Block has been deleted')
 
-        next = request.POST.get('next', 'block_list')
-
+        next_page = self.request.POST.get('next', 'block_list')
         params = {}
-        if request.POST.get('booking_code'):
-            params['booking_code'] = request.POST['booking_code']
-        if request.POST.get('block_code'):
-            params['block_code'] = request.POST['block_code']
+        if self.request.POST.get('booking_code'):
+            params['booking_code'] = self.request.POST['booking_code']
+        if self.request.POST.get('block_code'):
+            params['block_code'] = self.request.POST['block_code']
 
-        url = self.get_success_url(next)
+        url = self.get_success_url(next_page)
         if params:
             url += '?{}'.format(urlencode(params))
         return HttpResponseRedirect(url)
 
-    def get_success_url(self, next='block_list'):
-        return reverse('booking:{}'.format(next))
+    def get_success_url(self, next_page='block_list'):
+        return reverse('booking:{}'.format(next_page))
 
 
 @login_required

@@ -2,21 +2,14 @@ name: Run tests
 
 on:
   push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
-
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-20.04
-
-    strategy:
-      matrix:
-        python-version: [3.7, 3.9]
 
     services:
       # Label used to access the service container
@@ -39,10 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: psycopg2 prerequisites
         run: sudo apt-get install libpq-dev
@@ -53,7 +48,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv
           venv/bin/pip install --progress-bar=off -r requirements.txt
-          venv/bin/pip install coveralls
 
       - name: Run tests
         env:

@@ -1,5 +1,6 @@
 Django
 coverage
+coveralls
 dj-database-url
 django-allauth
 django-braces

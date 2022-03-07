@@ -7,9 +7,6 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from booking.models import Booking, WaitingListUser
-from booking.views import BookingListView, \
-    BookingDeleteView, BookingUpdateView, update_booking_cancelled, \
-    EventListView, EventDetailView
 from common.tests.helpers import _create_session, TestSetupMixin
 from studioadmin.tests.test_views import TestPermissionMixin
 from studioadmin.views import user_bookings_view_old
@@ -17,60 +14,23 @@ from studioadmin.views import user_bookings_view_old
 
 class WaitingListTests(TestSetupMixin, TestCase):
 
-    def _get_event_list(self, user, ev_type):
-        url = reverse('booking:events')
-        request = self.factory.get(url)
-        request.user = user
-        view = EventListView.as_view()
-        return view(request, ev_type=ev_type)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.events_url = reverse('booking:events')
+        cls.classes_url = reverse('booking:lessons')
+        cls.bookings_url = reverse('booking:bookings')
 
-    def _get_event_detail(self, user, event, ev_type):
-        url = reverse('booking:event_detail', args=[event.slug])
-        request = self.factory.get(url)
-        request.user = user
-        view = EventDetailView.as_view()
-        return view(request, slug=event.slug, ev_type=ev_type)
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.user, password="test")
 
-    def _get_booking_list(self, user):
-        url = reverse('booking:bookings')
-        request = self.factory.get(url)
-        request.user = user
-        view = BookingListView.as_view()
-        return view(request)
+    def event_url(self, event, ev_type):
+        return reverse(f'booking:{ev_type}_detail', args=[event.slug])
 
-    def _get_booking_update(self, user, booking):
-        url = reverse('booking:update_booking', args=[booking.id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = BookingUpdateView.as_view()
-        return view(request, pk=booking.id)
-
-    def _get_booking_update_cancelled(self, user, booking):
-        url = reverse('booking:update_booking_cancelled', args=[booking.id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        return update_booking_cancelled(request, pk=booking.id)
-
-    def _booking_delete(self, user, booking):
+    def _booking_delete(self, booking):
         url = reverse('booking:delete_booking', args=[booking.id])
-        session = _create_session()
-        request = self.factory.delete(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BookingDeleteView.as_view()
-        return view(request, pk=booking.id)
+        self.client.post(url)
 
     def test_waiting_list_button_on_events_list(self):
         """
@@ -79,16 +39,16 @@ class WaitingListTests(TestSetupMixin, TestCase):
         """
         event = baker.make_recipe('booking.future_PC', max_participants=3)
         baker.make_recipe('booking.booking', event=event, _quantity=2)
-        resp = self._get_event_list(self.user, "lessons")
+        resp = self.client.get(self.classes_url)
         resp.render()
-        self.assertIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
+        assert 'book_button' in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
 
         baker.make_recipe('booking.booking', event=event)
-        resp = self._get_event_list(self.user, "lessons")
+        resp = self.client.get(self.classes_url)
         resp.render()
-        self.assertIn('join_waiting_list_button', str(resp.content))
-        self.assertNotIn('book_button', str(resp.content))
+        assert 'book_button' not in str(resp.content)
+        assert 'join_waiting_list_button' in str(resp.content)
 
     def test_event_list_for_booked_full_event(self):
         """
@@ -98,11 +58,11 @@ class WaitingListTests(TestSetupMixin, TestCase):
         event = baker.make_recipe('booking.future_PC', max_participants=3)
         baker.make_recipe('booking.booking', event=event, _quantity=2)
         baker.make_recipe('booking.booking', event=event, user=self.user)
-        resp = self._get_event_list(self.user, "lessons")
-        self.assertEqual(list(resp.context_data['booked_events']), [event.id])
+        resp = self.client.get(self.classes_url)
+        assert list(resp.context_data['booked_events']) == [event.id]
         resp.render()
-        self.assertNotIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
+        assert 'book_button' not in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
 
     def test_event_list_already_on_waiting_list_full_event(self):
         """
@@ -114,15 +74,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.waiting_list_user', event=event, user=self.user
         )
-        resp = self._get_event_list(self.user, "lessons")
-        self.assertEqual(
-            list(resp.context_data['waiting_list_events']), [event.id]
-        )
-
+        resp = self.client.get(self.classes_url)
+        assert list(resp.context_data['waiting_list_events']) == [event.id]
         resp.render()
-        self.assertNotIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertIn('leave_waiting_list_button', str(resp.content))
+        assert 'book_button' not in str(resp.content)
+        assert 'join_waiting_list_button', str(resp.content)
+        assert 'leave_waiting_list_button' in str(resp.content)
 
     def test_waiting_list_events_context(self):
         wlevent = baker.make_recipe('booking.future_PC', max_participants=2)
@@ -134,13 +91,9 @@ class WaitingListTests(TestSetupMixin, TestCase):
         )
         baker.make_recipe('booking.booking', event=event, user=self.user)
 
-        resp = self._get_event_list(self.user, "lessons")
-        self.assertEqual(
-            list(resp.context_data['waiting_list_events']), [wlevent.id]
-        )
-        self.assertEqual(
-            list(resp.context_data['booked_events']), [event.id]
-        )
+        resp = self.client.get(self.classes_url)
+        assert list(resp.context_data['waiting_list_events']) == [wlevent.id]
+        assert list(resp.context_data['booked_events']) == [event.id]
 
     def test_event_list_already_on_waiting_list_not_full_event(self):
         """
@@ -152,15 +105,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.waiting_list_user', event=event, user=self.user
         )
-        resp = self._get_event_list(self.user, "lessons")
-        self.assertEqual(
-            list(resp.context_data['waiting_list_events']), [event.id]
-        )
-
+        resp = self.client.get(self.classes_url)
+        assert list(resp.context_data['waiting_list_events']) == [event.id]
         resp.render()
-        self.assertIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertNotIn('leave_waiting_list_button', str(resp.content))
+        assert 'book_button' in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
+        assert 'leave_waiting_list_button' not in str(resp.content)
 
     def test_waiting_list_button_on_event_detail_list(self):
         """
@@ -169,16 +119,16 @@ class WaitingListTests(TestSetupMixin, TestCase):
         """
         event = baker.make_recipe('booking.future_PC', max_participants=3)
         baker.make_recipe('booking.booking', event=event, _quantity=2)
-        resp = self._get_event_detail(self.user, event, "lesson")
+        resp = self.client.get(self.event_url(event, "lesson"))
         resp.render()
-        self.assertIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
+        assert 'book_button' in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
 
         baker.make_recipe('booking.booking', event=event)
-        resp = self._get_event_detail(self.user, event, "lesson")
+        resp = self.client.get(self.event_url(event, "lesson"))
         resp.render()
-        self.assertIn('join_waiting_list_button', str(resp.content))
-        self.assertNotIn('book_button', str(resp.content))
+        assert 'join_waiting_list_button' in str(resp.content)
+        assert 'book_button' not in str(resp.content)
 
     def test_event_detail_for_booked_full_event(self):
         """
@@ -188,12 +138,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         event = baker.make_recipe('booking.future_PC', max_participants=3)
         baker.make_recipe('booking.booking', event=event, _quantity=2)
         baker.make_recipe('booking.booking', event=event, user=self.user)
-        resp = self._get_event_detail(self.user, event, "lesson")
-        self.assertTrue(resp.context_data['booked'])
-        self.assertFalse(resp.context_data['on_waiting_list'])
+        resp = self.client.get(self.event_url(event, "lesson"))
+        assert resp.context_data['booked']
+        assert resp.context_data['on_waiting_list'] is False
         resp.render()
-        self.assertNotIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
+        assert 'book_button' not in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
 
     def test_event_detail_already_on_waiting_list_full_event(self):
         """
@@ -205,12 +155,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.waiting_list_user', event=event, user=self.user
         )
-        resp = self._get_event_detail(self.user, event,  "lesson")
-        self.assertTrue(resp.context_data['on_waiting_list'])
+        resp = self.client.get(self.event_url(event, "lesson"))
+        assert resp.context_data['on_waiting_list']
         resp.render()
-        self.assertNotIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertIn('leave_waiting_list_button', str(resp.content))
+        assert 'book_button' not in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
+        assert 'leave_waiting_list_button' in str(resp.content)
 
     def test_event_detail_already_on_waiting_list_not_full_event(self):
         """
@@ -222,12 +172,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.waiting_list_user', event=event, user=self.user
         )
-        resp = self._get_event_detail(self.user, event, "lesson")
-        self.assertTrue(resp.context_data['on_waiting_list'])
+        resp = self.client.get(self.event_url(event, "lesson"))
+        assert resp.context_data['on_waiting_list']
         resp.render()
-        self.assertIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
-        self.assertNotIn('leave_waiting_list_button', str(resp.content))
+        assert 'book_button' in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
+        assert 'leave_waiting_list_button' not in str(resp.content)
 
     def test_booking_list_cancelled_booking(self):
         """
@@ -239,16 +189,16 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.booking', event=event, user=self.user, status='CANCELLED'
         )
-        resp = self._get_booking_list(self.user)
+        resp = self.client.get(self.bookings_url)
         resp.render()
-        self.assertIn('book_button', str(resp.content))
+        assert 'book_button' in str(resp.content)
 
         baker.make_recipe('booking.booking', event=event)
-        resp = self._get_booking_list(self.user)
+        resp = self.client.get(self.bookings_url)
         resp.render()
-        self.assertNotIn('book_button', str(resp.content))
-        self.assertNotIn('leave_waiting_list_button', str(resp.content))
-        self.assertIn('join_waiting_list_button', str(resp.content))
+        assert 'book_button' not in str(resp.content)
+        assert 'leave_waiting_list_button' not in str(resp.content)
+        assert 'join_waiting_list_button' in str(resp.content)
 
     def test_booking_list_cancelled_booking_already_on_waiting_list(self):
         """
@@ -264,18 +214,18 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.waiting_list_user', user=self.user, event=event
         )
-        resp = self._get_booking_list(self.user)
+        resp = self.client.get(self.bookings_url)
         resp.render()
         # user is on waiting list, but event not full; show "Rebook"
-        self.assertIn('Rebook', str(resp.content))
+        assert 'Rebook' in str(resp.content)
 
         baker.make_recipe('booking.booking', event=event)
-        resp = self._get_booking_list(self.user)
+        resp = self.client.get(self.bookings_url)
         resp.render()
         # user is on waiting list, event is full; show "On waiting list"
-        self.assertIn('leave_waiting_list_button', str(resp.content))
-        self.assertNotIn('book_button', str(resp.content))
-        self.assertNotIn('join_waiting_list_button', str(resp.content))
+        assert 'leave_waiting_list_button' in str(resp.content)
+        assert 'book_button' not in str(resp.content)
+        assert 'join_waiting_list_button' not in str(resp.content)
 
     def test_cancelled_booking_for_non_bookable_not_full_event(self):
         """
@@ -292,8 +242,8 @@ class WaitingListTests(TestSetupMixin, TestCase):
         baker.make_recipe(
             'booking.booking', event=event, user=self.user, status='CANCELLED'
         )
-        resp = self._get_booking_list(self.user)
-        self.assertIn('rebook_button_disabled', resp.rendered_content)
+        resp = self.client.get(self.bookings_url)
+        assert 'rebook_button_disabled' in resp.rendered_content
 
     def test_update_cancelled_booking(self):
         """
@@ -306,14 +256,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
             user=self.user, event=event, status='CANCELLED'
         )
 
-        resp = self._get_booking_update(self.user, booking)
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(
-            resp.url,
-            reverse(
-                'booking:update_booking_cancelled', args=[booking.id]
-            )
-        )
+        url = reverse('booking:update_booking', args=(booking.id,))
+        resp = self.client.get(url)
+        assert resp.status_code == 302
+        assert resp.url == reverse('booking:update_booking_cancelled', args=[booking.id])
 
     def test_update_cancelled_booking_full_event(self):
         """
@@ -332,16 +278,16 @@ class WaitingListTests(TestSetupMixin, TestCase):
             user=self.user, event=event, status='CANCELLED'
         )
 
-        resp = self._get_booking_update(self.user, booking)
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(
-            resp.url,
-            reverse(
-                'booking:update_booking_cancelled', args=[booking.id]
-            )
-        )
+        url = reverse('booking:update_booking', args=(booking.id,))
+        resp = self.client.get(url)
+        assert resp.status_code == 302
 
-        resp = self._get_booking_update_cancelled(self.user, booking)
+        update_booking_cancelled_url = reverse(
+            'booking:update_booking_cancelled', args=[booking.id]
+        )
+        assert resp.url == update_booking_cancelled_url
+
+        resp = self.client.get(update_booking_cancelled_url)
         assert "This class is now full" in str(resp.content)
 
     def test_deleting_booking_emails_waiting_list(self):
@@ -366,23 +312,14 @@ class WaitingListTests(TestSetupMixin, TestCase):
                 user__email='test{}@test.com'.format(i)
             )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self._booking_delete(self.user, booking)
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            2
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+        self._booking_delete(booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 2
         # 2 emails are sent on cancelling; cancel email to user (unpaid booking) and
         # a single email with bcc to waiting list users
-        self.assertEqual(len(mail.outbox), 2)
+        assert len(mail.outbox) == 2
         wl_email = mail.outbox[1]
-        self.assertEqual(
-            sorted(wl_email.bcc),
-            ['test0@test.com', 'test1@test.com', 'test2@test.com']
-        )
+        assert sorted(wl_email.bcc) == ['test0@test.com', 'test1@test.com', 'test2@test.com']
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
     def test_auto_book_user_on_waiting_list(self):
@@ -407,16 +344,10 @@ class WaitingListTests(TestSetupMixin, TestCase):
                 user__email='test{}@test.com'.format(i)
             )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self._booking_delete(self.user, booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+        self._booking_delete(booking)
         # Now there are only 2 booking; no auto-bookings made
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            2
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 2
 
         # foo@test.com on waiting list
         baker.make_recipe(
@@ -427,36 +358,22 @@ class WaitingListTests(TestSetupMixin, TestCase):
         # reopen and cancel booking again
         booking.status = "OPEN"
         booking.save()
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
 
-        self._booking_delete(self.user, booking)
+        self._booking_delete(booking)
         # there are still 3 bookings because foo@test.com has been auto-booked
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
         event.refresh_from_db()
 
-        self.assertIn(
-            'foo@test.com',
-            [booking.user.email for booking in event.bookings.all()]
-        )
+        assert 'foo@test.com' in [booking.user.email for booking in event.bookings.all()]
 
         # 4 emails in mail box;
         # First booking cancellation: 1 cancel email plus single email with bcc to waiting list users
         # 2nd cancellation: 1 cancel email, one email to auto booked user, no waiting list email
-        self.assertEqual(len(mail.outbox), 4)
+        assert len(mail.outbox) == 4
         auto_book_email = mail.outbox[-1]
-        self.assertEqual(auto_book_email.to, ['foo@test.com'])
-        self.assertEqual(
-            auto_book_email.subject,
-            '{} You have been booked into {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
-            )
-        )
+        assert auto_book_email.to == ['foo@test.com']
+        assert auto_book_email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} You have been booked into {event}'
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com', 'bar@test.com'])
     def test_auto_book_only_first_user(self):
@@ -486,30 +403,15 @@ class WaitingListTests(TestSetupMixin, TestCase):
                 user__email=email
             )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self._booking_delete(self.user, booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+        self._booking_delete(booking)
         # there are still 3 bookings because foo@test.com has been auto-booked
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
         event.refresh_from_db()
         # only the first email in the list is autobooked
-        self.assertNotIn(
-            'bar@test.com',
-            [booking.user.email for booking in event.bookings.all()]
-        )
-        self.assertIn(
-            'bar@test.com',
-            [wl.user.email for wl in event.waitinglistusers.all()]
-        )
-        self.assertNotIn(
-            'foo@test.com',
-            [wl.user.email for wl in event.waitinglistusers.all()]
-        )
+        assert 'bar@test.com' not in [booking.user.email for booking in event.bookings.all()]
+        assert 'bar@test.com' in [wl.user.email for wl in event.waitinglistusers.all()]
+        assert 'foo@test.com' not in [wl.user.email for wl in event.waitinglistusers.all()]
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
     def test_auto_book_user_already_booked(self):
@@ -542,31 +444,18 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=auto_book_user
         )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self.assertEqual(
-            WaitingListUser.objects.filter(event=event).count(), 4
-        )
-        self._booking_delete(self.user, booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+        assert WaitingListUser.objects.filter(event=event).count() == 4
+        self._booking_delete(booking)
 
         # there are now only 2 bookings because foo@test.com is already booked
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            2
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 2
         # Auto book user removed from waiting list
-        self.assertEqual(
-            WaitingListUser.objects.filter(event=event).count(), 3
-        )
+        assert WaitingListUser.objects.filter(event=event).count() == 3
 
         # 1 emails: waitinglist email (cancel email and watchlist email)
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertIn(
-            "A space has become available for {}".format(event),
-            mail.outbox[1].body
-        )
+        assert len(mail.outbox) == 2
+        assert f"A space has become available for {event}" in mail.outbox[1].body
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com', 'bar@test.com'])
     def test_first_auto_book_user_already_booked(self):
@@ -603,36 +492,19 @@ class WaitingListTests(TestSetupMixin, TestCase):
             user__email='bar@test.com'
         )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self.assertEqual(
-            WaitingListUser.objects.filter(event=event).count(), 5
-        )
-        self._booking_delete(self.user, booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+        assert WaitingListUser.objects.filter(event=event).count() == 5
+        self._booking_delete(booking)
 
         # there are still 3 bookings because bar@test.com has been autobooked
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
         # Both auto book users removed from waiting list
-        self.assertEqual(
-            WaitingListUser.objects.filter(event=event).count(), 3
-        )
+        assert WaitingListUser.objects.filter(event=event).count() == 3
 
         # 1 email: cancel email and autobook email
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(
-           mail.outbox[1].subject,
-           "{} You have been booked into {}".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
-            )
-        )
-        self.assertEqual(
-           mail.outbox[1].to, ['bar@test.com']
-        )
+        assert len(mail.outbox) == 2
+        assert mail.outbox[1].subject == f"{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} You have been booked into {event}"
+        assert mail.outbox[1].to == ['bar@test.com']
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
     def test_auto_book_user_has_cancelled_booking(self):
@@ -668,35 +540,21 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=auto_book_user
         )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self.assertEqual(
-            WaitingListUser.objects.filter(event=event).count(), 4
-        )
-        self._booking_delete(self.user, booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() ==3
+        assert WaitingListUser.objects.filter(event=event).count() == 4
+        self._booking_delete(booking)
 
         # there are still 3 bookings because foo@test.com has been repopened
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+
         # Auto book user removed from waiting list
-        self.assertEqual(
-            WaitingListUser.objects.filter(event=event).count(), 3
-        )
+        assert WaitingListUser.objects.filter(event=event).count() == 3
 
         # 2 emails in waiting list: cancel and autobook email
-        self.assertEqual(len(mail.outbox), 2)
+        assert len(mail.outbox) == 2
 
-        self.assertEqual(
-            mail.outbox[1].subject,
-            "{} You have been booked into {}".format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event
-            )
-        )
-        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
+        assert mail.outbox[1].subject == f"{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} You have been booked into {event}"
+        assert mail.outbox[1].to == ['foo@test.com']
 
     @override_settings(AUTO_BOOK_EMAILS=['foo@test.com'])
     def test_admin_link_in_auto_book_user_emails(self):
@@ -719,24 +577,18 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=auto_book_user
         )
 
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
-        self._booking_delete(self.user, booking)
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
+        self._booking_delete(booking)
 
         # there are still 3 bookings because foo@test.com has been booked
-        self.assertEqual(
-            Booking.objects.filter(event=event, status='OPEN').count(),
-            3
-        )
+        assert Booking.objects.filter(event=event, status='OPEN').count() == 3
 
         # 2 emails in waiting list: cancel email for unpaid booking and autobook email
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(mail.outbox[1].to, ['foo@test.com'])
-        self.assertIn('Pay for this booking', mail.outbox[1].body)
-        self.assertIn('Cancel this booking', mail.outbox[1].body)
-        self.assertNotIn('Your admin page', mail.outbox[1].body)
+        assert len(mail.outbox) == 2
+        assert mail.outbox[1].to == ['foo@test.com']
+        assert 'Pay for this booking' in mail.outbox[1].body
+        assert 'Cancel this booking' in mail.outbox[1].body
+        assert 'Your admin page' not in mail.outbox[1].body
 
         # make autobook user superuser
         auto_book_user.is_superuser = True
@@ -749,13 +601,12 @@ class WaitingListTests(TestSetupMixin, TestCase):
             'booking.waiting_list_user', event=event, user=auto_book_user
         )
 
-        self._booking_delete(self.user, booking)
+        self._booking_delete(booking)
         # 4 emails in waiting list: original 2, plus second 2 for cancel and autobook
-        self.assertEqual(len(mail.outbox), 4)
-        self.assertEqual(mail.outbox[-1].to, ['foo@test.com'])
-        self.assertIn('Pay for this booking', mail.outbox[-1].body)
-        self.assertIn('Cancel this booking', mail.outbox[-1].body)
-        self.assertIn('Your admin page', mail.outbox[-1].body)
+        assert len(mail.outbox) == 4
+        assert mail.outbox[-1].to == ['foo@test.com']
+        for text in ['Pay for this booking', 'Cancel this booking', 'Your admin page']:
+            assert text in  mail.outbox[-1].body
 
 
 class ToggleWaitingListTests(TestSetupMixin, TestCase):
@@ -765,52 +616,47 @@ class ToggleWaitingListTests(TestSetupMixin, TestCase):
         Test that joining waiting list add WaitingListUser to event
         """
         event = baker.make_recipe('booking.future_PC', max_participants=3)
-        self.assertEqual(WaitingListUser.objects.count(), 0)
+        assert WaitingListUser.objects.count() == 0
 
         self.client.login(username=self.user.username, password='test')
 
         url = reverse('booking:toggle_waiting_list', args=[event.id])
         resp = self.client.get(url)
 
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
         waiting_list = WaitingListUser.objects.filter(event=event)
-        self.assertEqual(len(waiting_list), 1)
-        self.assertEqual(waiting_list[0].user, self.user)
+        assert len(waiting_list) == 1
+        assert waiting_list[0].user == self.user
 
     def test_leave_waiting_list(self):
         event = baker.make_recipe('booking.future_PC', max_participants=3)
         baker.make_recipe('booking.waiting_list_user', event=event, user=self.user)
 
-        self.assertEqual(WaitingListUser.objects.count(), 1)
+        assert WaitingListUser.objects.count() == 1
 
         self.client.login(username=self.user.username, password='test')
 
         url = reverse('booking:toggle_waiting_list', args=[event.id])
         resp = self.client.get(url)
 
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
         waiting_list = WaitingListUser.objects.filter(event=event)
-        self.assertEqual(len(waiting_list), 0)
+        assert len(waiting_list) == 0
 
 
 class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
-        
-    def _post_response(self, user, user_id, form_data):
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user, password="test")
+
+    def _post_response(self, user_id, form_data):
         # helper function to create test bookings; uses the old
         # admin user booking view
-        url = reverse(
-            'studioadmin:user_bookings_list',
-            kwargs={'user_id': user_id}
-        )
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return user_bookings_view_old(request, user_id)
+        url = reverse('studioadmin:user_bookings_list', kwargs={'user_id': user_id})
+        return self.client.post(url, form_data)
 
     def test_cancel_booking_for_full_event(self):
         """
@@ -842,20 +688,14 @@ class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
             'bookings-0-paid': booking_to_cancel.paid,
             }
 
-        self.assertEqual(booking_to_cancel.status, 'OPEN')
+        assert booking_to_cancel.status == 'OPEN'
 
-        self._post_response(
-            self.staff_user, booking_to_cancel.user.id,
-            form_data=data
-        )
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(
-            sorted(mail.outbox[0].bcc),
-            ['test0@test.com', 'test1@test.com', 'test2@test.com']
-        )
+        self._post_response(booking_to_cancel.user.id, form_data=data)
+        assert len(mail.outbox) == 1
+        assert sorted(mail.outbox[0].bcc) == ['test0@test.com', 'test1@test.com', 'test2@test.com']
 
         booking_to_cancel.refresh_from_db()
-        self.assertEqual(booking_to_cancel.status, 'CANCELLED')
+        assert booking_to_cancel.status == 'CANCELLED'
 
     def test_cancel_booking_for_non_full_event(self):
         """
@@ -884,16 +724,13 @@ class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
             'bookings-0-paid': booking_to_cancel.paid,
             }
 
-        self.assertEqual(booking_to_cancel.status, 'OPEN')
+        assert booking_to_cancel.status == 'OPEN'
 
-        self._post_response(
-            self.staff_user, booking_to_cancel.user.id,
-            form_data=data
-        )
-        self.assertEqual(len(mail.outbox), 1)
+        self._post_response(booking_to_cancel.user.id, form_data=data)
+        assert len(mail.outbox) == 1
 
         booking_to_cancel.refresh_from_db()
-        self.assertEqual(booking_to_cancel.status, 'CANCELLED')
+        assert booking_to_cancel.status == 'CANCELLED'
 
     def test_create_booking_for_user_on_waiting_list(self):
         """
@@ -919,10 +756,8 @@ class WaitingListStudioadminUserBookingListTests(TestPermissionMixin, TestCase):
             'bookings-0-paid': 'on',
             }
 
-        self.assertEqual(Booking.objects.count(), 0)
-        self.assertEqual(WaitingListUser.objects.count(), 1)
-        self._post_response(
-            self.staff_user, self.user.id, form_data=data
-        )
-        self.assertEqual(Booking.objects.count(), 1)
-        self.assertEqual(WaitingListUser.objects.count(), 0)
+        assert Booking.objects.count() == 0
+        assert WaitingListUser.objects.count() == 1
+        self._post_response(self.user.id, form_data=data)
+        assert Booking.objects.count() == 1
+        assert WaitingListUser.objects.count() == 0
