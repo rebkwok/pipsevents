@@ -159,7 +159,7 @@ def get_event_context(context, event, user):
     return context
 
 
-def get_booking_create_context(event, request, context):
+def get_booking_update_context(event, request, context):
     # find if block booking is available for this type of event
     blocktypes = BlockType.objects.filter(active=True).values_list('event_type__id', flat=True)
     blocktype_available = event.event_type.id in blocktypes
@@ -173,13 +173,6 @@ def get_booking_create_context(event, request, context):
     if active_user_block:
         context['active_user_block'] = True
 
-    active_user_block_unpaid = [
-        block for block in user_blocks if not block.expired
-        and not block.full and not block.paid
-         ]
-    if active_user_block_unpaid:
-        context['active_user_block_unpaid'] = True
-
     if event.event_type.event_type == 'EV':
         ev_type = 'workshop/event'
     elif event.event_type.event_type == 'CL':
@@ -190,25 +183,6 @@ def get_booking_create_context(event, request, context):
         ev_type = 'room hire'
 
     context['ev_type'] = ev_type
-
-    if event.event_type.subtype in ["Pole level class", "Pole practice"] \
-            and request.user.has_perm('booking.can_request_free_class'):
-        context['can_be_free_class'] = True
-
-    bookings_count = event.bookings.filter(status='OPEN').count()
-    if event.max_participants:
-        event_full = True if \
-            (event.max_participants - bookings_count) <= 0 else False
-        context['event_full'] = event_full
-
-
-    try:
-        # if reopening an already paid booking, we don't want to give option to
-        # book with block
-        Booking.objects.get(event=event, user=request.user, paid=True)
-        context['reopening_paid_booking'] = True
-    except Booking.DoesNotExist:
-        pass
 
     return context
 

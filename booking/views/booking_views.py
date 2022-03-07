@@ -35,7 +35,7 @@ from booking.models import (
     Block, BlockType, Booking, Event, UsedEventVoucher, EventVoucher,
     WaitingListUser
 )
-from booking.forms import BookingCreateForm, VoucherForm
+from booking.forms import VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.views_utils import DisclaimerRequiredMixin, \
@@ -236,7 +236,7 @@ class BookingUpdateView(
         # set cart items so we can set paypal_pending
         self.request.session['cart_items'] = custom
 
-        return context_helpers.get_booking_create_context(
+        return context_helpers.get_booking_update_context(
             self.object.event, self.request, context
         )
 
