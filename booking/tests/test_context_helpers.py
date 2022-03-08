@@ -27,6 +27,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         cls.free_event = baker.make_recipe('booking.future_EV')
         cls.past_event = baker.make_recipe('booking.past_event')
         cls.paid_event = baker.make_recipe('booking.future_EV', cost=10)
+        cls.online_tutorial = baker.make_recipe('booking.future_OT', cost=10)
 
         cls.CONTEXT_OPTIONS = {
             'payment_text_no_cost':         "There is no cost associated with "
@@ -42,6 +43,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
                                               "passed for this workshop/event.  Please "
                                               "make your payment as soon as "
                                               "possible to secure your place.",
+            'booking_info_text_booked_tutorial': "You have purchased this online tutorial.",
         }
         cls.CONTEXT_FLAGS = {
             'booked': True,
@@ -130,6 +132,30 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         resp.render()
         # and check that the payment_text is not there
         self.assertNotIn(resp.context_data['payment_text'], str(resp.content))
+
+    def test_online_tutorial(self):
+        """
+        Test correct context returned for an online tutorial with associated cost
+        """
+        self.client.login(username=self.user.username, password="test")
+        resp = self.client.get(reverse("booking:tutorial_detail", args=(self.online_tutorial.slug,)))
+        flags_not_expected = ['booked', 'past']
+
+        self.assertEqual(resp.context_data['payment_text'],
+                         self.CONTEXT_OPTIONS['payment_text_cost_open'])
+        self.assertEqual(resp.context_data['booking_info_text'],
+                         self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
+        for key in flags_not_expected:
+            self.assertFalse(key in resp.context_data.keys(),
+                             '{} should not be in context_data'.format(key))
+
+        baker.make('booking.booking', user=self.user, paid=True, event=self.online_tutorial)
+
+        resp = self.client.get(reverse("booking:tutorial_detail", args=(self.online_tutorial.slug,)))
+        self.assertEqual(
+            resp.context_data['booking_info_text'],
+            self.CONTEXT_OPTIONS['booking_info_text_booked_tutorial']
+        )
 
     def test_event_with_cost(self):
         """
