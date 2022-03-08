@@ -1,0 +1,24 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Welcome to The Watermelon Studio!
+
+We look forward to welcoming you to your first class at Watermelon.
+
+PLEASE NOTE: IF YOU ARE LATE IN ANY WAY YOU WILL BE TURNED AWAY DUE TO THE HEALTH AND SAFETY OF OUR WARM UP.
+
+You will not be offered a refund or credit if this happens, with no exceptions.
+
+ - When you arrive please follow our signs to the changing room/lockers. All you need to bring into the studio with you is water and your locker key!
+
+ - Please leave all jewellery and shoes in the lockers.
+
+ - Please wait in the reception until your class is called.
+
+ - If you have any questions when you finish, don’t hesitate to ask your instructor.
+
+You can find our full terms and conditions here: https://www.thewatermelonstudio.co.uk/t&c.html.
+
+Thank you,
+
+THE WATERMELON STUDIO
+info@thewatermelonstudio.co.uk

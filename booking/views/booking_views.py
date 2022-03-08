@@ -963,6 +963,22 @@ def ajax_create_booking(request, event_id):
 
     alert_message = {}
 
+    # If this is a user's first booking, send warning email
+    # Check for previous paid bookings
+    # Also store flag on session so we don't send repeated emails if user books multiple
+    # classes
+    if not request.session.get("new_user_email_sent", False) and not booking.user.bookings.filter(paid=True):
+        request.session["new_user_email_sent"] = True
+        send_mail(
+            f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Important studio information - please read!',
+            get_template('booking/email/new_user_booking.txt').render(ctx),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            html_message=get_template(
+                'booking/email/new_user_booking.html'
+            ).render(ctx),
+            fail_silently=False)
+
     if previously_cancelled_and_direct_paid:
         alert_message['message_type'] = 'warning'
         alert_message['message'] = 'You previously paid for this booking; your booking ' \

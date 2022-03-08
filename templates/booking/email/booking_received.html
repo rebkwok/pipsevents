@@ -26,13 +26,13 @@ Your booking has been received for {{ event }}.
         {% endif %}
         {% if event.payment_open %}
             <p><strong>Payment information</strong></p>
-                {{ event.payment_info|safe }}
+            <p>{{ event.payment_info|safe }}</p>
             <p>Payments are open; visit your bookings page at <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a> to
                 make your payment.</p>
         {% else %}
             <p><strong>Payment information</strong></p>
             <p>Payments are not being taken online via the website at this time.
-            {{ event.payment_info|safe }}
+            <p>{{ event.payment_info|safe }}</p>
             </p>
         {% endif %}
 
