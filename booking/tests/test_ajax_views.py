@@ -34,6 +34,11 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         )
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
 
+    def _mock_new_user_email_sent(self):
+        session = self.client.session
+        session["new_user_email_sent"] = True
+        session.save()
+
     def setUp(self):
         super().setUp()
         self.user_no_disclaimer = User.objects.create_user(username='no_disclaimer', password='test')
@@ -75,6 +80,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
         resp = self.client.post(self.event_url)
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertEqual(
@@ -86,6 +92,55 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         # email to student only
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_create_booking_new_user(self):
+        """
+        Test creating a booking for a new user sends new user email
+        """
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(self.event_url)
+        assert Booking.objects.all().count() == 1
+
+        # emails for booking and new user
+        assert len(mail.outbox) == 2
+        prefix = settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+        assert mail.outbox[0].subject.startswith(f"{prefix} Booking for")
+        assert mail.outbox[1].subject == f"{prefix} Important studio information - please read!"
+
+        assert self.client.session.get("new_user_email_sent")
+
+        # Making another booking in the same session doesn't send new user email again
+        event = baker.make_recipe('booking.future_EV', cost=5)
+        event_url = reverse('booking:ajax_create_booking', args=[event.id])
+        self.client.post(event_url)
+        assert Booking.objects.all().count() == 2
+        assert len(mail.outbox) == 3
+        assert mail.outbox[2].subject.startswith(f"{prefix} Booking for")
+
+        # But in a new session, it will be sent
+        self.client.logout()
+        self.client.login(username=self.user.username, password="test")
+        event1 = baker.make_recipe('booking.future_EV', cost=5)
+        event1_url = reverse('booking:ajax_create_booking', args=[event1.id])
+        self.client.post(event1_url)
+        assert Booking.objects.all().count() == 3
+        assert len(mail.outbox) == 5
+        assert mail.outbox[3].subject.startswith(f"{prefix} Booking for")
+        assert mail.outbox[4].subject == f"{prefix} Important studio information - please read!"
+
+        # If one of the bookings is now paid, no new user email is sent
+        booking = Booking.objects.first()
+        booking.paid = True
+        booking.save()
+
+        self.client.logout()
+        self.client.login(username=self.user.username, password="test")
+        event2 = baker.make_recipe('booking.future_EV')
+        event2_url = reverse('booking:ajax_create_booking', args=[event2.id])
+        self.client.post(event2_url, cost=5)
+        assert Booking.objects.all().count() == 4
+        assert len(mail.outbox) == 6
+        assert mail.outbox[5].subject.startswith(f"{prefix} Booking for")
+
     def test_create_booking_free_event(self):
         """
         Test creating a booking
@@ -94,6 +149,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
+
         resp = self.client.post(url)
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertEqual(
@@ -117,6 +174,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
+
         self.client.post(url)
         self.assertEqual(Booking.objects.all().count(), 1)
         # email to student and studio
@@ -125,6 +184,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
     @override_settings(WATCHLIST=['foo@test.com', 'bar@test.com'])
     def test_create_booking_sends_email_to_studio_for_users_on_watchlist(self):
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
         self.client.post(self.event_url)
         self.assertEqual(Booking.objects.count(), 1)
         # email to student only
@@ -137,6 +197,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         baker.make(OnlineDisclaimer, user=watched_user, version=DisclaimerContent.current_version())
         make_data_privacy_agreement(watched_user)
         self.client.login(username=watched_user.username, password='test')
+        self._mock_new_user_email_sent()
+
         self.client.post(self.event_url)
         self.assertEqual(Booking.objects.count(), 2)
         # 2 addition emails in mailbox for this booking, to student and studio
@@ -158,6 +220,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
+
         resp = self.client.post(url)
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertEqual(
@@ -178,6 +242,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:ajax_create_booking', args=[room_hire.id]) + "?ref=events"
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
+
         resp = self.client.post(url)
         self.assertEqual(Booking.objects.all().count(), 1)
         self.assertEqual(
@@ -714,6 +780,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         baker.make(WaitingListUser, user=self.user)
         self.assertEqual(Booking.objects.all().count(), 0)
         self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
 
         self.client.post(self.event_url)
         self.assertEqual(Booking.objects.all().count(), 1)
