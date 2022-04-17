@@ -471,16 +471,11 @@ class AddBookingForm(forms.ModelForm):
         self.fields['instructor_confirmed_no_show'].label = "No-show confirmed"
         self.fields['instructor_confirmed_no_show'].helptext = "True no-show, marked by instructor in class"
 
-        already_booked = [
-            booking.event.id for booking in
-            Booking.objects.select_related('user', 'event').filter(user=self.user)
-        ]
-
+        already_booked = self.user.bookings.values_list("event_id", flat=True)
         self.fields['event'] = forms.ModelChoiceField(
-            queryset=Event.objects.filter(
-                date__gte=timezone.now()
-            ).filter(booking_open=True, cancelled=False).exclude(
-                id__in=already_booked).order_by('date'),
+            queryset=Event.objects.filter(date__gte=timezone.now())
+            .filter(cancelled=False)
+            .exclude(id__in=already_booked).order_by('date'),
             widget=forms.Select(attrs={'class': 'form-control input-sm'}),
             required=True
         )
