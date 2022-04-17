@@ -643,7 +643,7 @@ class Booking(models.Model):
                 self.auto_cancelled = False
 
         if (cancellation and orig.block) or \
-                (orig and orig.block and not self.block ):
+                (orig and orig.block and not self.block):
             # cancelling a booking from a block or removing booking from block
                 # if block has a used free class, move the booking from the
                 #  free

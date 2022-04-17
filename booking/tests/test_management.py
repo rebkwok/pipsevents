@@ -16,6 +16,9 @@ from django.utils import timezone
 
 from allauth.socialaccount.models import SocialApp
 
+from paypal.standard.ipn.models import PayPalIPN
+from paypal.standard.models import ST_PP_COMPLETED
+
 from accounts.models import OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.models import Event, Block, Booking, EventType, BlockType, \
@@ -23,6 +26,7 @@ from booking.models import Event, Block, Booking, EventType, BlockType, \
 from common.tests.helpers import _add_user_email_addresses, PatchRequestMixin
 from payments.models import PaypalBookingTransaction
 from timetable.models import Session
+
 
 class ManagementCommandsTests(PatchRequestMixin, TestCase):
 
@@ -665,6 +669,68 @@ class EmailReminderAndWarningTests(TestCase):
         self.assertTrue(booking1.warning_sent)
         self.assertFalse(booking2.warning_sent)
 
+    @patch('booking.management.commands.email_warnings.timezone')
+    def test_email_warnings_paypal_paid_bookings(self, mock_tz):
+        """
+        test email warning is sent for any future events with advance payment required
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, 10, 0, tzinfo=timezone.utc
+            )
+
+        # cancellation period starts 2015/2/14 17:00
+        # payment_due_date 2015/2/11 23:59
+        event = baker.make_recipe(
+            'booking.future_EV',
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            payment_open=True,
+            cost=10,
+            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            cancellation_period=1)
+
+        baker.make_recipe(
+            'booking.booking', event=event, paid=False,
+            payment_confirmed=False,
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            _quantity=5,
+            )
+        # bookings which are actually paid but for whatever reason haven't been marked so
+        booking_paid_by_paypal = baker.make_recipe(
+            'booking.booking', event=event, paid=False,
+            payment_confirmed=False, paypal_pending=True,
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+        )
+        pptrans = baker.make(PaypalBookingTransaction, booking=booking_paid_by_paypal, invoice_id="test")
+        baker.make(PayPalIPN, invoice="test", txn_id="test", payment_status=ST_PP_COMPLETED)
+
+        booking_paid_by_block = baker.make_recipe(
+            'booking.booking', event=event, paid=False,
+            payment_confirmed=False,
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+        )
+        block = baker.make_recipe("booking.block")
+        # use update to add the block, to bypass the save method
+        Booking.objects.filter(id=booking_paid_by_block.id).update(block=block)
+
+        # assert these paid bookings are currently marked as unpaid
+        booking_paid_by_block.refresh_from_db()
+        booking_paid_by_paypal.refresh_from_db()
+        assert booking_paid_by_block.paid is False
+        assert booking_paid_by_paypal.paid is False
+
+        _add_user_email_addresses(Booking)
+        management.call_command('email_warnings')
+        # only the 5 truely unpaid bookings get emails
+        self.assertEqual(len(mail.outbox), 5)
+
+        # bookings are now marked as paid
+        for booking in [booking_paid_by_paypal, booking_paid_by_block]:
+            booking.refresh_from_db()
+            assert booking.paid is True
+            assert booking.payment_confirmed is True
+            assert booking.paypal_pending is False
+        pptrans.refresh_from_db()
+        assert pptrans.transaction_id == "test"
 
 class CancelUnpaidBookingsTests(TestCase):
 

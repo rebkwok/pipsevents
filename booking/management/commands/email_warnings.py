@@ -17,8 +17,12 @@ from django.template.loader import get_template
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 
+from paypal.standard.ipn.models import PayPalIPN
+from paypal.standard.models import ST_PP_COMPLETED
+
 from booking.models import Booking, Event
 from activitylog.models import ActivityLog
+from payments.models import PaypalBookingTransaction
 
 
 class Command(BaseCommand):
@@ -60,7 +64,10 @@ def get_bookings():
 
 
 def send_warning_email(self, upcoming_bookings):
-    for booking in upcoming_bookings:
+    # First double-check each booking hasn't been paid by PayPal now
+    bookings_to_warn = check_paypal(upcoming_bookings)
+
+    for booking in bookings_to_warn:
         ctx = {
               'booking': booking,
               'event': booking.event,
@@ -89,12 +96,48 @@ def send_warning_email(self, upcoming_bookings):
         booking.warning_sent = True
         booking.save()
 
-    if upcoming_bookings.exists():
+    if bookings_to_warn:
         self.stdout.write(
-            'Warning emails sent for booking ids {}'.format(
-                ', '.join([str(booking.id) for booking in upcoming_bookings])
-            )
+            f"Warning emails sent for booking ids {', '.join(str(bk.id) for bk in bookings_to_warn)}"
         )
 
     else:
         self.stdout.write('No warnings to send')
+
+    already_paid = set(upcoming_bookings) - set(bookings_to_warn)
+    if already_paid:
+        self.stdout.write(f"Bookings set to paid: {', '.join(str(bk.id) for bk in already_paid)}")
+
+
+def _make_paid(booking):
+    booking.payment_confirmed = True
+    booking.paid = True
+    booking.paypal_pending = False
+    booking.save()
+
+
+def check_paypal(bookings):
+    bookings_to_warn = []
+    for booking in bookings:
+        if booking.block:
+            # this should never happen because the model save method should always make
+            # bookings with blocks paid
+            _make_paid(booking)
+        else:
+            try:
+                pptxn = PaypalBookingTransaction.objects.get(booking=booking)
+            except PaypalBookingTransaction.DoesNotExist:
+                # all bookings that went through paypal should have a transaction associated
+                # but if it doesn't, we definitely need to warn
+                bookings_to_warn.append(booking)
+            else:
+                # It has a matching PayPalIPN associated, check the status
+                ppipn = PayPalIPN.objects.get(invoice=pptxn.invoice_id)
+                if ppipn.payment_status == ST_PP_COMPLETED:
+                    _make_paid(booking)
+                    # ensure the transaction ID is set
+                    pptxn.transaction_id = ppipn.txn_id
+                    pptxn.save()
+                else:
+                    bookings_to_warn.append(booking)
+    return bookings_to_warn
