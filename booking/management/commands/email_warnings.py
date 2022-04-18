@@ -124,16 +124,17 @@ def check_paypal(bookings):
             # bookings with blocks paid
             _make_paid(booking)
         else:
-            try:
-                pptxn = PaypalBookingTransaction.objects.get(booking=booking)
-            except PaypalBookingTransaction.DoesNotExist:
+            pptxns = PaypalBookingTransaction.objects.filter(booking=booking)
+            if not pptxns.exists():
                 # all bookings that went through paypal should have a transaction associated
                 # but if it doesn't, we definitely need to warn
                 bookings_to_warn.append(booking)
             else:
-                # It has a matching PayPalIPN associated, check the status
-                ppipn = PayPalIPN.objects.get(invoice=pptxn.invoice_id)
-                if ppipn.payment_status == ST_PP_COMPLETED:
+                pptxn = pptxns.order_by("-transaction_id").first()
+                # It has at least one matching completed PayPalIPN associated
+                ppipns = PayPalIPN.objects.filter(invoice=pptxn.invoice_id, payment_status=ST_PP_COMPLETED)
+                if ppipns.exists():
+                    ppipn = ppipns.first()
                     _make_paid(booking)
                     # ensure the transaction ID is set
                     pptxn.transaction_id = ppipn.txn_id
