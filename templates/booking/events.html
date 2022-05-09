@@ -7,17 +7,17 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" integrity="sha512-aOG0c6nPNzGk+5zjwyJaoRUgCdOrfSDhmMID2u4+OIslr0GjpLKo7Xm0Ao3xmpM4T8AmIouRkqwj1nrdVsLKEQ==" crossorigin="anonymous" />
 {% endblock %}
 
-{% block perm_banner %}
-    {{ block.super }}
-    {% if user.is_authenticated %}
-        <div class="container-fluid mt-2 mb-2" id="message-row">
-            <div class="message alert alert-info alert-dismissible">
-                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>
-            </div>
-        </div>
-    {% endif %}
-{% endblock %}
+{#{% block perm_banner %}#}
+{#    {{ block.super }}#}
+{#    {% if user.is_authenticated %}#}
+{#        <div class="container-fluid mt-2 mb-2" id="message-row">#}
+{#            <div class="message alert alert-info alert-dismissible">#}
+{#                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>#}
+{#                For private lesson availability please email <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>#}
+{#            </div>#}
+{#        </div>#}
+{#    {% endif %}#}
+{#{% endblock %}#}
 
 {% block content %}
     <div class="row">
