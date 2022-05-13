@@ -645,34 +645,34 @@ class Booking(models.Model):
         if (cancellation and orig.block) or \
                 (orig and orig.block and not self.block):
             # cancelling a booking from a block or removing booking from block
-                # if block has a used free class, move the booking from the
-                #  free
-                # class to this block, otherwise delete the free class block
-                free_class_block = orig.block.children.first()
-                if free_class_block:
-                    if free_class_block.bookings.exists():
-                        free_booking = free_class_block.bookings.first()
-                        free_booking.block = orig.block
-                        free_booking.free_class = False
-                        free_booking.save()
-                        ActivityLog.objects.create(
-                            log="Booking {} cancelled from block {} (user {}); "
-                                "free booking {} moved to parent block".format(
-                                self.id, orig.block.id, self.user.username,
-                                free_booking.id
-                            )
+            # if block has a used free class, move the booking from the
+            #  free
+            # class to this block, otherwise delete the free class block
+            free_class_block = orig.block.children.first()
+            if free_class_block:
+                if free_class_block.bookings.exists():
+                    free_booking = free_class_block.bookings.first()
+                    free_booking.block = orig.block
+                    free_booking.free_class = False
+                    free_booking.save()
+                    ActivityLog.objects.create(
+                        log="Booking {} cancelled from block {} (user {}); "
+                            "free booking {} moved to parent block".format(
+                            self.id, orig.block.id, self.user.username,
+                            free_booking.id
                         )
-                    else:
-                        free_class_block.delete()
-                        ActivityLog.objects.create(
-                            log="Booking {} cancelled from block {} (user {}); unused "
-                                "free class block deleted".format(
-                                self.id, orig.block.id, self.user.username
-                            )
+                    )
+                else:
+                    free_class_block.delete()
+                    ActivityLog.objects.create(
+                        log="Booking {} cancelled from block {} (user {}); unused "
+                            "free class block deleted".format(
+                            self.id, orig.block.id, self.user.username
                         )
-                self.block = None
-                self.paid = False
-                self.payment_confirmed = False
+                    )
+            self.block = None
+            self.paid = False
+            self.payment_confirmed = False
 
         if cancellation:
             # reset reminder and warning flags on cancel
