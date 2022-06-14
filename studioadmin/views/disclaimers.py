@@ -17,8 +17,8 @@ from braces.views import LoginRequiredMixin
 from accounts.models import DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
 from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm, StudioadminDisclaimerContentForm
 from studioadmin.utils import str_int, dechaffify, int_str, chaffify
-from studioadmin.views.helpers import is_instructor_or_staff, \
-    InstructorOrStaffUserMixin, staff_required, StaffUserMixin
+from studioadmin.views.helpers import is_instructor_or_staff, can_view_event_disclaimers, \
+    InstructorOrStaffUserMixin, staff_required, StaffUserMixin, CanViewNonRegisteredDIsclaimersMixin
 
 from activitylog.models import ActivityLog
 
@@ -277,7 +277,7 @@ class DisclaimerDeleteView(StaffUserMixin, DeleteView):
         return reverse('studioadmin:users')
 
 
-class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUserMixin, ListView):
+class NonRegisteredDisclaimersListView(LoginRequiredMixin, CanViewNonRegisteredDIsclaimersMixin, ListView):
 
     model = NonRegisteredDisclaimer
     fields = '__all__'
@@ -343,7 +343,7 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, InstructorOrStaffUser
 
 
 @login_required
-@is_instructor_or_staff
+@can_view_event_disclaimers
 def nonregistered_disclaimer(request, user_uuid):
     disclaimer = get_object_or_404(NonRegisteredDisclaimer, user_uuid=user_uuid)
     disclaimer_content = DisclaimerContent.objects.get(version=disclaimer.version)

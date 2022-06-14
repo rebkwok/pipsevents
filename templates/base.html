@@ -98,6 +98,8 @@
                 {% block admin-nav %}
                 {% if request.user.is_staff or request.user|in_group:"instructors" %}
                    <li class="nav-item"><a class="nav-link" href="{% url 'studioadmin:class_register_list' %}">Studio Admin</a></li>
+                {% elif perms.accounts.view_nonregistereddisclaimer %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'studioadmin:event_disclaimers' %}">Studio Admin</a></li>
                 {% endif %}
                 {% endblock admin-nav %}
                 <li class="nav-item dropdown account-menu-nav">

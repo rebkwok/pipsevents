@@ -4,6 +4,8 @@ from unittest.mock import patch
 
 from model_bakery import baker
 
+from django.contrib.auth.models import Permission
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.test import TestCase
@@ -101,11 +103,19 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('booking:permission_denied'), resp.url)
 
+        # normal user with access to event disclaimers cannot view
+        permission = Permission.objects.get(codename='view_nonregistereddisclaimer')
+        self.user.user_permissions.add(permission)
+        resp = self._get_user_disclaimer(self.user, encoded_user_id)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('booking:permission_denied'), resp.url) 
+        self.user.user_permissions.remove(permission)
+
         # staff user
         resp = self._get_user_disclaimer(self.staff_user, encoded_user_id)
         self.assertEqual(resp.status_code, 200)
 
-        # instructpr user
+        # instructor user
         resp = self._get_user_disclaimer(self.instructor_user, encoded_user_id)
         self.assertEqual(resp.status_code, 200)
 
@@ -347,7 +357,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         )
         self.url = reverse('studioadmin:event_disclaimers')
 
-    def test_only_staff_or_instructor_can_access_user_disclaimer(self):
+    def test_only_staff_or_instructor_can_access_event_disclaimer_list(self):
         # no logged in user
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
@@ -358,6 +368,14 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # normal user with access to event disclaimers can view
+        cache.clear()
+        permission = Permission.objects.get(codename='view_nonregistereddisclaimer')
+        self.user.user_permissions.add(permission)
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        self.user.user_permissions.remove(permission)
 
         # staff user
         self.client.login(username=self.staff_user.username, password='test')
@@ -456,6 +474,14 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('booking:permission_denied'), resp.url)
+
+        # normal user with access to event disclaimers can view
+        cache.clear()
+        permission = Permission.objects.get(codename='view_nonregistereddisclaimer')
+        self.user.user_permissions.add(permission)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.user.user_permissions.remove(permission)
 
         # staff user
         self.client.login(username=self.staff_user.username, password='test')

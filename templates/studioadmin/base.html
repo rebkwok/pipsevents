@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% load static %}
+{% load bookingtags %}
 {% load socialaccount %}
 {% providers_media_js %}
 
@@ -136,8 +137,7 @@
                  <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:activitylog' %}">{% if sidenav_selection == 'activitylog' %}
                     <span class="sidebar_active">Activity Log</span>{% else %}Activity Log{% endif %}</a></li>
             </li>
-
-{% else %}
+{% elif request.user|in_group:"instructors" %}
     <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
         <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
     <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
@@ -150,6 +150,9 @@
         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
     <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'event_disclaimers' %}
         <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
+{% elif perms.accounts.view_nonregistereddisclaimer %}
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'event_disclaimers' %}
+    <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
 {% endif %}
 {% endblock %}
 
@@ -399,7 +402,7 @@
                         <span class="sidebar_active">View log</span>{% else %}View log{% endif %}</a></li>
                     </span>
 
-                {% else %}
+                {% elif request.user|in_group:"instructors" %}
                     <li class="sidebar-title">
                             Registers/Waiting lists
                     </li>
@@ -413,6 +416,9 @@
                         <span class="sidebar_active">Registered users</span>{% else %}Registered users{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'event_disclaimers' %}
                         <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
+                {% elif perms.accounts.view_nonregistereddisclaimer %}
+                <li class="active-nav"><a href="{% url 'studioadmin:event_disclaimers' %}">{% if sidenav_selection == 'event_disclaimers' %}
+                    <span class="sidebar_active">Event disclaimers</span>{% else %}Event disclaimers{% endif %}</a></li>
                 {% endif %}
             </ul>
 

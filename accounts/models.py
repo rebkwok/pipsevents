@@ -402,7 +402,7 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
     user_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     class Meta:
-        verbose_name = 'Event disclaimer'
+        verbose_name = 'event disclaimer'
 
     @property
     def is_active(self):
