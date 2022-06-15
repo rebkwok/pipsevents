@@ -13,9 +13,9 @@
     <!---add to menu at small sizes where side nav disappears-->
 <span class="divider d-inline-block d-md-none"></span>
     <li class="adminmenu-title d-block d-md-none">Studio Admin</li>
-    <li class="adminmenu-title d-block d-md-none"><a href="{% url 'studioadmin:reactivated_block_status' %}"><small>Reactivated credit status</small></a></li>
 
 {% if request.user.is_staff %}
+    <li class="adminmenu-title d-block d-md-none"><a href="{% url 'studioadmin:reactivated_block_status' %}"><small>Reactivated credit status</small></a></li>
     <span class="divider d-block d-md-none"></span>
              <li class="dropdown">
               <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Classes </strong></strong></a>
