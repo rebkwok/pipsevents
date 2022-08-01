@@ -101,7 +101,8 @@ def add_booking_voucher_context(booking_code, user, context):
 def add_total_bookings_and_paypal_context(request, context):
     unpaid_bookings = context['unpaid_bookings']
     booking_code = context.get('booking_code')
-    if 'total_unpaid_booking_cost' not in context:
+
+    if context.get('total_unpaid_booking_cost') is None:
         # no voucher, or invalid voucher
         total_agg = unpaid_bookings.aggregate(Sum('event__cost'))
         # pop item from the aggregate dict
@@ -214,7 +215,7 @@ def add_total_blocks_and_paypal_context(request, context):
     unpaid_blocks = context['unpaid_blocks']
     block_code = context.get('block_code')
     unpaid_block_costs = context.pop('unpaid_block_costs')
-    if 'total_unpaid_block_cost' not in context:
+    if context.get('total_unpaid_block_cost') is None:
         # no voucher, or invalid voucher
         context['total_unpaid_block_cost'] = sum(unpaid_block_costs)
 
