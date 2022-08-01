@@ -253,14 +253,14 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
     def test_cannot_make_duplicate_booking(self):
         """
-        Test trying to create duplicate booking returns 400
+        Test trying to create duplicate booking returns 200 and existing booking
         """
-        baker.make_recipe('booking.booking', user=self.user, event=self.event)
+        booking = baker.make_recipe('booking.booking', user=self.user, event=self.event)
 
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(self.event_url)
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.content.decode('utf-8'), '')
+        self.assertEqual(resp.status_code, 200)
+        assert resp.context['booking'] == booking
 
     def test_cannot_book_for_full_event(self):
         """

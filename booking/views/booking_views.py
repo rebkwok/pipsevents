@@ -811,8 +811,13 @@ def ajax_create_booking(request, event_id):
     if Booking.objects.filter(user=request.user, event=event).exists():
         booking = Booking.objects.get(user=request.user, event=event)
         if booking.status == "OPEN" and not booking.no_show:
-            logger.error('Attempt to rebook open booking')
-            return HttpResponseBadRequest()
+            # Already booked; don't do anything else, just update button
+            context['booking'] = booking
+            return render(
+                request,
+                "booking/includes/ajax_purchase_tutorial_button.txt" if event.event_type.event_type == "OT" else "booking/includes/ajax_book_button.txt",
+                context
+            )
 
     # if pole practice, make sure this user has permission
     if event.event_type.subtype == "Pole practice" \
