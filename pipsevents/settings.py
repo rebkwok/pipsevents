@@ -18,6 +18,7 @@ env = environ.Env(DEBUG=(bool, False),
                   SHOW_DEBUG_TOOLBAR=(bool, False),
                   PAYPAL_TEST=(bool, False),
                   USE_MAILCATCHER=(bool, False),
+                  CONSOLE_EMAIL=(bool, False),
                   HEROKU=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
@@ -127,13 +128,15 @@ SOCIALACCOUNT_PROVIDERS = \
         'VERSION': 'v2.2'
         }}
 
-
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 900  # increase cooldown to 15 mins
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "The Watermelon Studio:"
 ACCOUNT_PASSWORD_MIN_LENGTH = 6
 ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.SignupForm'
+ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE=True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 
 SOCIALACCOUNT_QUERY_EMAIL = True
@@ -202,7 +205,10 @@ STATIC_ROOT = root('collected-static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = root('media')
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+if env("CONSOLE_EMAIL"):
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'watermelon.bookings@gmail.com'
