@@ -3,18 +3,22 @@
 {% block messagecontent %}
 <div style="font-family: sans-serif;">
 
-<p>You have cancelled your booking for {{ event }}. {% if block_booked_within_allowed_time %}
- Your block has been updated.</p>{% else %}</p>
+<p>You have cancelled your booking for {{ event }}. 
 
-<p>
+{% if block_booked_within_allowed_time %}
+ Your block has been updated.</p>
+ {% else %}</p>
+ <p>
     {% if not event.allow_booking_cancellation %}
         Please note that this booking is not eligible for refunds or transfer credit on cancellation.
     {% elif not event.can_cancel %}
         Please note that you have cancelled after the allowed cancellation period and therefore you are not eligible for any refund or transfer credit.
     {% else %}
         {% if booking.block %}
-            You used a block to make this booking; your block has been updated.
-        {% elif booking.paid %}
+            You used a block to make this booking; your block has been updated. Please note that your block 
+            expires on <strong>{{ blockform.block.expiry_date|date:"d M Y" }}</strong>.  Please ensure you use your returned
+            credit by this date.
+        {% elif booking.paid 
             {% if event.event_type.event_type == 'CL' %}
                 This booking is not refundable; a transfer block has been created for you as credit and can be used for your next booking for the same class type. Transfer credit is valid for 2 weeks.
             {% elif event.event_type.event_type == 'RH' %}
