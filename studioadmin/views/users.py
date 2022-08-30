@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 
 from django.conf import settings
@@ -7,7 +8,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.template.loader import get_template, render_to_string
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponse, HttpResponseRedirect, \
@@ -28,7 +29,7 @@ from common.mailchimp_utils import update_mailchimp
 
 from studioadmin.forms import AddBookingForm, EditPastBookingForm, \
     EditBookingForm, UserBookingFormSet,  \
-    UserBlockFormSet,  UserListSearchForm
+    UserBlockFormSet,  UserListSearchForm, AttendanceSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
     staff_required, StaffUserMixin
@@ -113,6 +114,67 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['num_results'] = num_results
         context['total_users'] = total_users
         return context
+
+
+@login_required
+@staff_required
+def users_status(request):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        start_date = datetime.strptime(start_date, '%d %b %Y').replace(day=1, tzinfo=timezone.utc)
+    else:
+        start_date = timezone.now().date().replace(day=1)
+
+    if end_date:
+        end_date = datetime.strptime(end_date, '%d %b %Y').replace(tzinfo=timezone.utc)
+    else:
+        end_date = timezone.now().date()
+    form = AttendanceSearchForm(
+        {"start_date": start_date.strftime('%d %b %Y'), "end_date": end_date.strftime('%d %b %Y')}
+    )
+
+    bookings = Booking.objects \
+        .filter(event__date__gte=start_date, attended=True)\
+        .filter(event__date__lte=end_date)
+
+    users_with_bookings = bookings.distinct("user_id")
+    subtype_order = {
+        "Pole level class": 1,
+        "Pole practice": 2,
+        "Private": 3
+    }
+    event_subtypes = list(
+        bookings.distinct("event__event_type__subtype")
+        .values_list("event__event_type__subtype", flat=True)
+    )
+    event_subtypes.sort(key=lambda x: subtype_order.get(x, 9))
+    default_user_dict = {subtype: 0 for subtype in event_subtypes}
+
+    counts_by_user = {}
+    for booking in users_with_bookings:
+        user = booking.user
+        counts = bookings.filter(user_id=user.id) \
+            .values("event__event_type__subtype") \
+            .annotate(count=Count("event__event_type__subtype"))
+        user_dict = {**default_user_dict}
+        for count_item in counts:
+            user_dict[count_item["event__event_type__subtype"]] = count_item["count"]
+        counts_by_user[user] = user_dict
+
+    sorted_counts = dict(
+        sorted(
+            counts_by_user.items(),
+            key=lambda x: tuple(x[1][subtype] for subtype in event_subtypes),
+            reverse=True
+        )
+    )
+
+    return render(
+        request,
+        "studioadmin/users_attendance.html",
+        {"user_counts": sorted_counts, "event_subtypes": event_subtypes, "form": form}
+    )
 
 
 @login_required

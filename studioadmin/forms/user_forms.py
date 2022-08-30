@@ -718,3 +718,28 @@ class EditBookingForm(EditPastBookingForm):
             required=False,
             empty_label="--------None--------"
         ))
+
+
+class AttendanceSearchForm(forms.Form):
+    start_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={
+                'id': "datepicker",
+                'placeholder': "Start date",
+                'style': 'text-align: center'
+            },
+            format='%d %m %Y',
+        ),
+        required=True
+    )
+    end_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={
+                'id': "datepicker1",
+                'placeholder': "End date",
+                'style': 'text-align: center'
+            },
+            format='%d %m %Y',
+        ),
+        required=True
+    )

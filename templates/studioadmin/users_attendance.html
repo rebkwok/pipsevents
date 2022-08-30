@@ -1,0 +1,83 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+        <h2>User Attendance</h2>
+
+        <div class="row">
+            <div class="col-sm-12">
+            <form action="" method="get">
+                <label>From: </label>{{ form.start_date }}
+                <label>To: </label> {{ form.end_date }}
+                <button class="btn btn-info table-btn" type="submit">Search</button>
+            </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card card-wm">
+                    {% if user_counts %}
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="text-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="text-center">First Name <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Last Name <span class="fa fa-sort"></span></th>
+                                {% for event_subtype in event_subtypes %}
+                                    <th class="text-center">{{ event_subtype }} <span class="fa fa-sort"></span></th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for user, counts in user_counts.items %}
+                            <tr>
+                                <td class="text-center studioadmin-tbl">{{ user.username|abbr_username }}</td>
+                                <td class="text-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
+                                {% for event_st, count in counts.items %}
+                                    <td class="text-center studioadmin-tbl">{{ count }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+
+                            {% if is_paginated %}
+                                <tr>
+                                    <td class="studioadmin-tbl" colspan="5">
+                                            <div class="pagination">
+                                                {% if page_obj.has_previous %}
+                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                                                {% else %}
+                                                    <a class="disabled" disabled=disabled href="#">Previous</a>
+                                                {% endif %}
+                                                <span class="page-current">
+                                                    --  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} --
+                                                </span>
+                                                {% if page_obj.has_next %}
+                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                                                {% else %}
+                                                    <a class="disabled" href="#">Next</a>
+                                                {% endif %}
+                                            </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+
+                            </tbody>
+
+                        </table>
+                    </div>
+
+                    {% else %}
+                        No attendance counts found for requested dates.
+                    {% endif %}
+                </div>
+            </div>
+         </div>
+
+{% endblock studioadmincontent %}
+
+{% block extra_js %}
+   <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+{% endblock %}

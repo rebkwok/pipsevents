@@ -66,6 +66,7 @@ from studioadmin.views import (BookingEditView,
                                open_all_events,
                                clone_event,
                                reactivated_block_status,
+                               users_status,
                                )
 
 app_name = 'studioadmin'
@@ -119,6 +120,7 @@ urlpatterns = [
     path('timetable/upload/', upload_timetable_view,
         name='upload_timetable'),
     path('users/', UserListView.as_view(), name="users"),
+    path('users/attendance/', users_status, name="users)status"),
     path('blocks/', BlockListView.as_view(), name="blocks"),
     path('users/email/', choose_users_to_email,
         name="choose_email_users"),
