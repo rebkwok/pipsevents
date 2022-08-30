@@ -170,10 +170,28 @@ def users_status(request):
         )
     )
 
+    paginator = Paginator(list(sorted_counts.items()), 100)
+    page = request.GET.get('page', 1)
+    try:
+        page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+
     return render(
         request,
         "studioadmin/users_attendance.html",
-        {"user_counts": sorted_counts, "event_subtypes": event_subtypes, "form": form}
+        {
+            "user_counts": dict(page.object_list),
+            "event_subtypes": event_subtypes,
+            "form": form,
+            'page_obj': page,
+            'is_paginated': paginator.num_pages > 1,
+            'sidenav_selection': 'attendance'
+        }
     )
 
 
