@@ -485,3 +485,7 @@ S3_LOG_BACKUP_ROOT_FILENAME = "pipsevents_activity_logs_backup"
 
 SHOW_VAT = env("SHOW_VAT")
 VAT_NUMBER = env("VAT_NUMBER")
+
+# for crispy forms
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+USE_CRISPY = True

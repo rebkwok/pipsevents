@@ -8,6 +8,10 @@ from django.contrib.auth.models import User
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 from django.utils import timezone
 
+from crispy_forms.bootstrap import PrependedText
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, Row, Column
+
 from booking.context_helpers import get_blocktypes_available_to_book
 from booking.models import Block, Booking, Event, BlockType
 from payments.models import PaypalBookingTransaction
@@ -726,11 +730,13 @@ class AttendanceSearchForm(forms.Form):
             attrs={
                 'id': "datepicker",
                 'placeholder': "Start date",
-                'style': 'text-align: center'
+                'style': 'text-align: center',
             },
             format='%d %m %Y',
         ),
-        required=True
+        input_formats=['%d %b %Y'],
+        required=True,
+        label=""
     )
     end_date = forms.DateTimeField(
         widget=forms.DateTimeInput(
@@ -741,5 +747,27 @@ class AttendanceSearchForm(forms.Form):
             },
             format='%d %m %Y',
         ),
-        required=True
+        input_formats=['%d %b %Y'],
+        required=True,
+        label=""
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(
+                Column(
+                    PrependedText("start_date", "From", input_size="input-group-sm"),
+                    css_class="col-6"
+                ),
+                Column(
+                    PrependedText("end_date", "To", input_size="input-group-sm"),
+                    css_class="col-6"
+                ),
+            ),
+            Row(
+                Column(Submit('submit', 'Search', css_class="btn btn-sm btn-wm pt-1 pb-1"), css_class="ml-2 mt-1 col-12")
+            )
+
+        )

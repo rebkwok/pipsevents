@@ -119,19 +119,30 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
 @login_required
 @staff_required
 def users_status(request):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    if start_date:
-        start_date = datetime.strptime(start_date, '%d %b %Y').replace(day=1, tzinfo=timezone.utc)
+    date_format = '%d %b %Y'
+    if request.method == "POST":
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
     else:
-        start_date = timezone.now().date().replace(day=1)
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
 
-    if end_date:
-        end_date = datetime.strptime(end_date, '%d %b %Y').replace(tzinfo=timezone.utc)
+    if not start_date_str:
+        # default to beginning of current month
+        start_date = timezone.now().date().replace(day=1)
+        start_date_str = start_date.strftime(date_format)
     else:
+        start_date = datetime.strptime(start_date_str, date_format).replace(tzinfo=timezone.utc)
+
+    if not end_date_str:
+        # default to today
         end_date = timezone.now().date()
+        end_date_str = end_date.strftime(date_format)
+    else:
+        end_date = datetime.strptime(end_date_str, date_format).replace(tzinfo=timezone.utc)
+
     form = AttendanceSearchForm(
-        {"start_date": start_date.strftime('%d %b %Y'), "end_date": end_date.strftime('%d %b %Y')}
+        {"start_date": start_date_str, "end_date": end_date_str}
     )
 
     bookings = Booking.objects \
@@ -170,7 +181,7 @@ def users_status(request):
         )
     )
 
-    paginator = Paginator(list(sorted_counts.items()), 100)
+    paginator = Paginator(list(sorted_counts.items()), 4)
     page = request.GET.get('page', 1)
     try:
         page = paginator.page(page)
@@ -187,6 +198,7 @@ def users_status(request):
         {
             "user_counts": dict(page.object_list),
             "event_subtypes": event_subtypes,
+            "number_of_subtypes": len(event_subtypes),
             "form": form,
             'page_obj': page,
             'is_paginated': paginator.num_pages > 1,
