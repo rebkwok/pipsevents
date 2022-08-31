@@ -181,7 +181,7 @@ def users_status(request):
         )
     )
 
-    paginator = Paginator(list(sorted_counts.items()), 4)
+    paginator = Paginator(list(sorted_counts.items()), 100)
     page = request.GET.get('page', 1)
     try:
         page = paginator.page(page)
