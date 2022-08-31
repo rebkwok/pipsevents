@@ -192,7 +192,7 @@ color: #000;
 .inset {
   padding-top: 0;
   padding-right: 0;
-  padding-left: 30px;
+  padding-left: 20px;
 }
 
 .sidebar-nav {
@@ -307,7 +307,7 @@ color: #000;
     .inset {
       padding-top: 0;
       padding-right: 0;
-      padding-left: 30px;
+      padding-left: 0px;
     }
 
 }
