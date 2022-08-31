@@ -11,6 +11,14 @@
             </form>
 
         <div class="row">
+        {% if is_paginated %}
+            <div class="col-12">
+            <small>
+                {% include 'studioadmin/includes/attendance_pagination.html' %}
+            </small>
+            </div>
+        {% endif %}
+
             <div class="col-sm-12">
                 <div class="card card-wm">
                     {% if user_counts %}
@@ -39,24 +47,9 @@
                             {% endfor %}
 
                             {% if is_paginated %}
-
                                 <tr>
                                     <td class="studioadmin-tbl" colspan={{ number_of_subtypes|add:3 }}>
-                                            <div class="pagination">
-                                                {% if page_obj.has_previous %}
-                                                    <a href="?page={{ page_obj.previous_page_number }}&start_date={{ form.start_date.value }}&end_date={{ form.end_date.value }}">Previous</a>
-                                                {% else %}
-                                                    <a class="disabled" disabled=disabled href="#">Previous</a>
-                                                {% endif %}
-                                                <span class="page-current">
-                                                    --  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} --
-                                                </span>
-                                                {% if page_obj.has_next %}
-                                                    <a href="?page={{ page_obj.next_page_number }}&start_date={{ form.start_date.value }}&end_date={{ form.end_date.value }}">Next</a>
-                                                {% else %}
-                                                    <a class="disabled" href="#">Next</a>
-                                                {% endif %}
-                                            </div>
+                                        {% include 'studioadmin/includes/attendance_pagination.html' %}
                                     </td>
                                 </tr>
                             {% endif %}
