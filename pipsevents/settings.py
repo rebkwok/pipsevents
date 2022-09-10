@@ -57,6 +57,9 @@ ALLOWED_HOSTS = [
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = ['https://booking.thewatermelonstudio.co.uk']
 
+
+# CSRF_FAILURE_VIEW = "common.views.csrf_failure"
+
 if env('LOCAL'):  # pragma: no cover
     ALLOWED_HOSTS = ['*']
 
