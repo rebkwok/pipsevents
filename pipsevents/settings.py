@@ -58,7 +58,7 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = ['https://booking.thewatermelonstudio.co.uk']
 
 
-# CSRF_FAILURE_VIEW = "common.views.csrf_failure"
+CSRF_FAILURE_VIEW = "common.views.csrf_failure"
 
 if env('LOCAL'):  # pragma: no cover
     ALLOWED_HOSTS = ['*']
