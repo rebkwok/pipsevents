@@ -75,7 +75,7 @@
                                     {% if booking.paypal_paid %}
                                         <span class="fas fa-check"></span>
                                     {% else %}
-                                        <div class="form-check position-static">
+                                        <div class="form-check">
                                         <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="form-check-input booking-paid-checkbox" {% if booking.paid %}checked="checked"{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
                                         </div>
                                     {% endif %}
