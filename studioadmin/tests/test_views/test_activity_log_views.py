@@ -1,10 +1,11 @@
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils import timezone
 
 from activitylog.models import ActivityLog
 from common.tests.helpers import _create_session
@@ -37,12 +38,12 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         baker.make(ActivityLog, log='Test log message2 Two')
         baker.make(
             ActivityLog,
-            timestamp=datetime(2015, 1, 1, 16, 0, tzinfo=timezone.utc),
+            timestamp=datetime(2015, 1, 1, 16, 0, tzinfo=dt_timezone.utc),
             log='Log with test date'
         )
         baker.make(
             ActivityLog,
-            timestamp=datetime(2015, 1, 1, 4, 0, tzinfo=timezone.utc),
+            timestamp=datetime(2015, 1, 1, 4, 0, tzinfo=dt_timezone.utc),
             log='Log with test date for search'
         )
 

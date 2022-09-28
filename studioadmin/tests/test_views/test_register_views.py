@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytz
 from datetime import date, datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from unittest.mock import patch
 from model_bakery import baker
 
@@ -9,7 +11,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
-from django.test import RequestFactory, TestCase
+from django.test import TestCase
 
 from booking.models import Event, Block, BlockType, WaitingListUser
 from common.tests.helpers import _create_session, format_content
@@ -808,14 +810,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             self, mock_tz, mock_date
     ):
         mock_tz.now.return_value = datetime(
-            year=2015, month=9, day=7, hour=10, tzinfo=timezone.utc
+            year=2015, month=9, day=7, hour=10, tzinfo=dt_timezone.utc
         )
         mock_date.today.return_value = date(year=2015, month=9, day=7)
         events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -823,7 +825,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_PC',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -844,7 +846,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -852,7 +854,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=6,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -880,7 +882,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -888,7 +890,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_CL',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -896,7 +898,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=6,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -904,7 +906,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_CL',
             date=datetime(
                 year=2015, month=9, day=6,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -933,7 +935,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -963,7 +965,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -993,7 +995,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -1022,7 +1024,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             _quantity=3
         )
@@ -1047,7 +1049,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             name="event1",
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
         )
         event2 = baker.make_recipe(
@@ -1055,7 +1057,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             name='event2',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=19, minute=0, tzinfo=timezone.utc
+                hour=19, minute=0, tzinfo=dt_timezone.utc
             ),
         )
 
@@ -1098,7 +1100,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             name="event1",
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
             max_participants=10,
         )
@@ -1166,7 +1168,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             name="event1",
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
         )
 
@@ -1212,7 +1214,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             name="event1",
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
         )
 
@@ -1270,7 +1272,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             'booking.future_EV',
             date=datetime(
                 year=2015, month=9, day=7,
-                hour=18, minute=0, tzinfo=timezone.utc
+                hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
         )
         url = reverse('studioadmin:register-day')

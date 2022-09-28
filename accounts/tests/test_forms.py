@@ -1,14 +1,14 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
+from datetime import timezone as dt_timezone
 from model_bakery import baker
 
-from django.test import TestCase, override_settings
-from django.contrib.auth.models import User, Group
+from django.test import TestCase
+from django.contrib.auth.models import User
 from django.urls import reverse
-from django.utils import timezone
 
 from accounts.admin import CookiePolicyAdminForm, DataPrivacyPolicyAdminForm
 from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm, NonRegisteredDisclaimerForm
-from accounts.models import CookiePolicy, DataPrivacyPolicy, NonRegisteredDisclaimer, OnlineDisclaimer
+from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer
 from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
@@ -211,7 +211,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
             OnlineDisclaimer, user=self.user, name='Donald Duck',
             dob=date(2000, 10, 5), address='1 Main St',
             postcode='AB1 2CD', terms_accepted=True,
-            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=dt_timezone.utc)
         )
         self.assertFalse(disclaimer.is_active)
 

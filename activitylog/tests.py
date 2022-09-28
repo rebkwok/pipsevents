@@ -4,6 +4,8 @@ from io import StringIO
 from unittest.mock import patch
 
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 from dateutil.relativedelta import relativedelta
 
@@ -46,7 +48,7 @@ class ActivityLogAdminTests(TestCase):
     def test_timestamp_display(self):
         activitylog = ActivityLog.objects.create(
             timestamp=datetime(
-                2016, 9, 15, 13, 45, 10, 12455, tzinfo=timezone.utc
+                2016, 9, 15, 13, 45, 10, 12455, tzinfo=dt_timezone.utc
             ),
             log="Message"
         )
@@ -166,7 +168,7 @@ class DeleteOldActivityLogsTests(TestCase):
     def setUp(self):
 
         # logs 13, 25, 37 months ago, one for each empty job text msg, one other
-        self.mock_now = datetime(2019, 10, 1, tzinfo=timezone.utc)
+        self.mock_now = datetime(2019, 10, 1, tzinfo=dt_timezone.utc)
         self.log_11monthsold = baker.make(ActivityLog, log='message', timestamp=self.mock_now-relativedelta(months=11))
         self.log_25monthsold = baker.make(ActivityLog, log='message', timestamp=self.mock_now-relativedelta(months=25))
         self.log_37monthsold = baker.make(ActivityLog, log='message', timestamp=self.mock_now-relativedelta(months=37))

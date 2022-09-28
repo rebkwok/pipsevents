@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from unittest.mock import patch
 from model_bakery import baker
 
@@ -60,7 +62,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         make_data_privacy_agreement(user)
         disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
-            date=datetime(2015, 2, 1, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 1, tzinfo=dt_timezone.utc),
             version = DisclaimerContent.current_version()
         )
         self.assertFalse(disclaimer.is_active)
@@ -547,7 +549,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_tz.now.return_value = mock_tz1.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = mock_tz1.now.return_value = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
         event_type = baker.make_recipe('booking.event_type_PC')
         event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
@@ -556,7 +558,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         )
         transfer = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
-            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 2, tzinfo=dt_timezone.utc)
         )
 
         self.client.login(username=self.user.username, password='test')
@@ -579,7 +581,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_now = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
         mock_views_tz.now.return_value = mock_now
         event_type = baker.make_recipe('booking.event_type_PC')
@@ -591,11 +593,11 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         )
         block1 = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
-            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 2, tzinfo=dt_timezone.utc)
         )
         block2 = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         # block1 was created first, but block2 has earlier expiry date so
         # should be used first
@@ -610,7 +612,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         # change start dates so block1 now has the earlier expiry date
         bookings[0].delete()
-        block2.start_date = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        block2.start_date = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
         block2.save()
         resp = self.client.post(url)
         self.assertEqual(
@@ -630,7 +632,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         that the original block is used first (free block with parent block
         should always be created after the original block)
         """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
 
         event = baker.make_recipe(
             'booking.future_PC', event_type=self.pole_class_event_type, cost=5
@@ -951,7 +953,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         )
 
         self.event.advance_payment_required = True
-        self.event.payment_due_date = datetime(2018, 1, 1, tzinfo=timezone.utc)
+        self.event.payment_due_date = datetime(2018, 1, 1, tzinfo=dt_timezone.utc)
         self.event.save()
 
         resp = self.client.post(url)
@@ -1014,7 +1016,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['total_unpaid_booking_cost'], 5)
-        self.assertIn('paypal-btn-form', resp.content.decode('utf-8'))
+        self.assertIn('id="id_cmd"', resp.content.decode('utf-8'))
 
     def test_ajax_shopping_basket_bookings_total_no_cost(self):
         baker.make_recipe('booking.booking', event=self.event, user=self.user)
@@ -1022,7 +1024,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertIsNone(resp.context['total_unpaid_booking_cost'])
-        self.assertNotIn('paypal-btn-form', resp.content.decode('utf-8'))
+        self.assertNotIn('id="id_cmd">', resp.content.decode('utf-8'))
 
     def test_ajax_shopping_basket_bookings_total_with_code(self):
         baker.make_recipe('booking.booking', event=self.event, user=self.user)

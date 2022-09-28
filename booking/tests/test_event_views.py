@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 from model_bakery import baker
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from bs4 import BeautifulSoup
 
 from django.contrib.auth.models import User
@@ -257,8 +259,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_sale_message_template_tag(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -274,8 +276,8 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_sale_message_template_tag_sale_off(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
         os.environ['SALE_ON'] = '04-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -287,16 +289,16 @@ class EventListViewTests(TestSetupMixin, TestCase):
     @patch('booking.templatetags.bookingtags.timezone')
     @patch('booking.models.timezone')
     def test_sale_message_template_tag_voucher_code(self, mock_tz, mock_tz1):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
-        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz1.utc=timezone.utc
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz1.utc=dt_timezone.utc
 
         voucher = baker.make(
             EventVoucher, code='testcode',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2015, 1, 15, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2015, 1, 15, tzinfo=dt_timezone.utc)
         )
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -320,16 +322,16 @@ class EventListViewTests(TestSetupMixin, TestCase):
     @patch('booking.templatetags.bookingtags.timezone')
     @patch('booking.models.timezone')
     def test_sale_message_template_tag_block_voucher_code(self, mock_tz, mock_tz1):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
-        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz1.utc=timezone.utc
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz1.utc=dt_timezone.utc
 
         voucher = baker.make(
             BlockVoucher, code='block_testcode',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2015, 1, 15, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2015, 1, 15, tzinfo=dt_timezone.utc)
         )
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -350,16 +352,16 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def test_sale_message_template_tag_expired_voucher_code(
             self, mock_tz, mock_tz1
     ):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
-        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz1.utc=timezone.utc
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz1.utc=dt_timezone.utc
 
         voucher = baker.make(
             EventVoucher, code='testcode',
-            start_date=datetime(2014, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2014, 1, 15, tzinfo=timezone.utc)
+            start_date=datetime(2014, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2014, 1, 15, tzinfo=dt_timezone.utc)
         )
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -378,11 +380,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def test_sale_message_template_tag_no_voucher_code(
             self, mock_tz, mock_tz1
     ):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
-        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz1.utc=timezone.utc
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz1.utc=dt_timezone.utc
 
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -398,16 +400,16 @@ class EventListViewTests(TestSetupMixin, TestCase):
     def test_sale_message_template_tag_not_started_voucher_code(
             self, mock_tz, mock_tz1
     ):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
-        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz1.utc=timezone.utc
+        mock_tz1.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz1.utc=dt_timezone.utc
 
         voucher = baker.make(
             EventVoucher, code='testcode',
-            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2016, 1, 15, tzinfo=timezone.utc)
+            start_date=datetime(2016, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2016, 1, 15, tzinfo=dt_timezone.utc)
         )
         os.environ['SALE_ON'] = '01-Jan-2015'
         os.environ['SALE_OFF'] = '15-Jan-2015'
@@ -437,7 +439,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         # expired disclaimer
         disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
-            date=datetime(2015, 2, 1, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 1, tzinfo=dt_timezone.utc),
             version=DisclaimerContent.current_version()
         )
 
@@ -481,19 +483,19 @@ class EventListViewTests(TestSetupMixin, TestCase):
         Test that events are coloured on alt days
         """
         # mock now to make sure our events are in the future for the test
-        mock_tz.now.return_value = datetime(2017, 3, 19, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2017, 3, 19, tzinfo=dt_timezone.utc)
         events = Event.objects.filter(event_type__event_type='EV')
         ev1 = events[0]
         ev2 = events[1]
         ev3 = events[2]
         # Mon
-        ev1.date = datetime(2017, 3, 20, 10, 0, tzinfo=timezone.utc)
+        ev1.date = datetime(2017, 3, 20, 10, 0, tzinfo=dt_timezone.utc)
         ev1.save()
         # Tue
-        ev2.date = datetime(2017, 3, 21, 10, 0, tzinfo=timezone.utc)
+        ev2.date = datetime(2017, 3, 21, 10, 0, tzinfo=dt_timezone.utc)
         ev2.save()
         # Wed
-        ev3.date = datetime(2017, 3, 22, 10, 0, tzinfo=timezone.utc)
+        ev3.date = datetime(2017, 3, 22, 10, 0, tzinfo=dt_timezone.utc)
         ev3.save()
 
         resp = self.client.get(self.url)

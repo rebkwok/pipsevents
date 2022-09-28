@@ -1,4 +1,6 @@
 from datetime import timedelta, datetime
+from datetime import timezone as dt_timezone
+
 from django.contrib.auth.models import User
 
 from django.utils import timezone
@@ -9,7 +11,7 @@ from allauth.socialaccount.models import SocialApp
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer
 from booking.models import Event, EventType, Block, Booking, \
-    BlockType, WaitingListUser, Ticket, TicketBooking, TicketedEvent, \
+    BlockType, WaitingListUser, TicketBooking, TicketedEvent, \
     EventVoucher, BlockVoucher
 from timetable.models import Session
 
@@ -98,12 +100,12 @@ block = Recipe(Block, block_type=foreign_key(blocktype))
 block_5 = Recipe(Block,
                  user=foreign_key(user),
                  block_type=foreign_key(blocktype5),
-                 start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
+                 start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc))
 
 block_10 = Recipe(Block,
                   user=foreign_key(user),
                   block_type=foreign_key(blocktype10),
-                  start_date=datetime(2015, 1, 1, tzinfo=timezone.utc))
+                  start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc))
 
 booking = Recipe(Booking, user__email=seq("test_user@test.com"))
 booking_with_user = Recipe(Booking, user=foreign_key(user))

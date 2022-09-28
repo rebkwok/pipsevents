@@ -107,12 +107,22 @@ MIDDLEWARE = (
 )
 
 
-CACHES = {
+if TESTING or env('LOCAL'):  # use local cache for tests
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'test-cache',
+        }
+    }
+else:
+    CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '127.0.0.1:11211',
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '127.0.0.1:112211',
+        'KEY_PREFIX': 'pips'
     }
 }
+
 
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
@@ -193,8 +203,6 @@ TIME_ZONE = 'Europe/London'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 
@@ -207,7 +215,6 @@ STATIC_ROOT = root('collected-static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = root('media')
-
 if env("CONSOLE_EMAIL"):
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -404,14 +411,6 @@ if env('HEROKU') or TESTING:  # pragma: no cover
                 'propogate': True,
             },
         },
-    }
-
-if TESTING:  # use local cache for tests
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'test-cache',
-        }
     }
 
 

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from django.utils import timezone
 
 from django_migration_testcase import MigrationTest
@@ -49,14 +51,14 @@ class VoucherMigrationTests(MigrationTest):
         )
         voucher = Voucher.objects.create(
             code='test', discount=10,
-            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2016, 2, 1, tzinfo=timezone.utc),
+            start_date=datetime(2016, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2016, 2, 1, tzinfo=dt_timezone.utc),
             max_vouchers=5
         )
         voucher1 = Voucher.objects.create(
             code='test1', discount=5,
-            start_date=datetime(2016, 3, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2016, 4, 1, tzinfo=timezone.utc),
+            start_date=datetime(2016, 3, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2016, 4, 1, tzinfo=dt_timezone.utc),
             max_vouchers=6
         )
         voucher.event_types.add(event_type1)
@@ -92,10 +94,10 @@ class VoucherMigrationTests(MigrationTest):
         evoucher1 = EventVoucher.objects.get(code='test1')
         self.assertEqual(evoucher.discount, 10)
         self.assertEqual(
-            evoucher.start_date, datetime(2016, 1, 1, tzinfo=timezone.utc)
+            evoucher.start_date, datetime(2016, 1, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(
-            evoucher.expiry_date, datetime(2016, 2, 1, tzinfo=timezone.utc)
+            evoucher.expiry_date, datetime(2016, 2, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(evoucher.max_vouchers, 5)
         # max per user is set to the default (1)
@@ -103,10 +105,10 @@ class VoucherMigrationTests(MigrationTest):
 
         self.assertEqual(evoucher1.discount, 5)
         self.assertEqual(
-            evoucher1.start_date, datetime(2016, 3, 1, tzinfo=timezone.utc)
+            evoucher1.start_date, datetime(2016, 3, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(
-            evoucher1.expiry_date, datetime(2016, 4, 1, tzinfo=timezone.utc)
+            evoucher1.expiry_date, datetime(2016, 4, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(evoucher1.max_vouchers, 6)
         # max per user is set to the default (1)

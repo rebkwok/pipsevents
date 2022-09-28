@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 from unittest.mock import patch
 
@@ -397,13 +399,13 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
     @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
     def test_automatically_cancelled_ticket_booking(self, delete_job_mock_tz):
         delete_job_mock_tz.now.return_value = datetime(
-            2015, 10, 1, 11, 30, tzinfo=timezone.utc
+            2015, 10, 1, 11, 30, tzinfo=dt_timezone.utc
         )
 
         # create a ticket booking
         tb = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 10, 1, 10, 0, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 10, 1, 10, 0, tzinfo=dt_timezone.utc)
         )
         #add some tickets
         self._post_response(
@@ -593,11 +595,11 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
 
     @patch('booking.views.ticketed_views.timezone')
     def test_date_booked_reset_when_purchase_confirmed(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 10, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 10, 10, tzinfo=dt_timezone.utc)
 
         tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 10, 1, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 10, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(tb.tickets.count(), 0)
         # add tickets to the booking
@@ -608,7 +610,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         tb.refresh_from_db()
         self.assertEqual(tb.tickets.count(), 1)
         # date booked is still the same
-        self.assertEqual(tb.date_booked, datetime(2015, 10, 1, tzinfo=timezone.utc))
+        self.assertEqual(tb.date_booked, datetime(2015, 10, 1, tzinfo=dt_timezone.utc))
 
         form_data = {
                 'ticket_booking_id': tb.id,
@@ -622,7 +624,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         tb.refresh_from_db()
         self.assertTrue(tb.purchase_confirmed)
         # date booked has been update to now
-        self.assertEqual(tb.date_booked, datetime(2015, 10, 10, tzinfo=timezone.utc))
+        self.assertEqual(tb.date_booked, datetime(2015, 10, 10, tzinfo=dt_timezone.utc))
 
     def test_email_sent_to_user_when_booked(self):
         tb = baker.make(

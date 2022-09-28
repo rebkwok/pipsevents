@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.urls import reverse
 
 from datetime import timedelta, datetime
+from datetime import timezone as dt_timezone
+
 from unittest.mock import patch
 from model_bakery import baker
 import pytest
@@ -53,11 +55,11 @@ class EventTests(TestCase):
         Test that event bookable logic returns correctly for events with
         payment due dates
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
         event = baker.make_recipe(
             'booking.future_EV',
             cost=10,
-            payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc))
+            payment_due_date=datetime(2015, 2, 2, tzinfo=dt_timezone.utc))
 
         self.assertTrue(event.bookable)
 
@@ -65,7 +67,7 @@ class EventTests(TestCase):
         event1 = baker.make_recipe(
             'booking.future_EV',
             cost=10,
-            payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
+            payment_due_date=datetime(2015, 1, 31, tzinfo=dt_timezone.utc)
         )
         self.assertTrue(event1.bookable)
 
@@ -137,7 +139,7 @@ class EventTests(TestCase):
         event = baker.make_recipe(
             'booking.past_event',
             name='Test event',
-            date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+            date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(
             str(event), 'Test event - 01 Jan 2015, 00:00 (Beaverbank Place)'
@@ -309,7 +311,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking = baker.make_recipe(
             'booking.booking',
             event=baker.make_recipe(
-                'booking.future_EV', name='Test event', date=datetime(2015, 1, 1, 18, 0, tzinfo=timezone.utc)),
+                'booking.future_EV', name='Test event', date=datetime(2015, 1, 1, 18, 0, tzinfo=dt_timezone.utc)),
             user=baker.make_recipe('booking.user', username='Test user'),
             )
         self.assertEqual(str(booking), 'Test event - Test user - 01Jan2015 18:00')
@@ -374,7 +376,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         Test that reopening a cancelled booking for an event with spaces sets
         the rebooking date
         """
-        mock_now = datetime(2015, 1, 1, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
         user = self.users[0]
         booking = baker.make_recipe(
@@ -394,16 +396,16 @@ class BookingTests(PatchRequestMixin, TestCase):
         """
         Test that reopening a second time resets the rebooking date
         """
-        mock_now = datetime(2015, 3, 1, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 3, 1, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
         user = self.users[0]
         booking = baker.make_recipe(
             'booking.booking', event=self.event_with_cost, user=user,
             status='CANCELLED',
-            date_rebooked=datetime(2015, 1, 1, tzinfo=timezone.utc)
+            date_rebooked=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(
-            booking.date_rebooked, datetime(2015, 1, 1, tzinfo=timezone.utc)
+            booking.date_rebooked, datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         booking.status = 'OPEN'
         booking.save()
@@ -478,12 +480,12 @@ class BookingTests(PatchRequestMixin, TestCase):
 
     @patch('booking.models.timezone')
     def test_can_cancel(self, mock_tz):
-        mock_now = datetime(2015, 3, 1, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 3, 1, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
 
         event = baker.make_recipe(
             'booking.future_PC',
-            date=datetime(2015, 3, 3, tzinfo=timezone.utc),
+            date=datetime(2015, 3, 3, tzinfo=dt_timezone.utc),
             cancellation_period=24
         )
         booking = baker.make(Booking, user=self.users[0], event=event)
@@ -502,7 +504,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking = Booking.objects.get(id=booking.id)
         self.assertTrue(booking.can_cancel)
 
-        mock_now = datetime(2015, 3, 2, 18, 0, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 3, 2, 18, 0, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
         # event cancellation allowed but now we're within cancellation period
         booking = Booking.objects.get(id=booking.id)
@@ -525,15 +527,15 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         Test that block expiry dates are populated correctly
         """
-        dt = datetime(2015, 1, 1, tzinfo=timezone.utc)
+        dt = datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         self.assertEqual(self.small_block.start_date, dt)
         # Times are in UTC, but converted from local (GMT/BST)
         # No daylight savings
         self.assertEqual(self.small_block.expiry_date,
-                         datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc))
+                         datetime(2015, 3, 1, 23, 59, 59, tzinfo=dt_timezone.utc))
         # Daylight savings
         self.assertEqual(self.large_block.expiry_date,
-                 datetime(2015, 5, 1, 22, 59, 59, tzinfo=timezone.utc))
+                 datetime(2015, 5, 1, 22, 59, 59, tzinfo=dt_timezone.utc))
 
     def test_block_extended_expiry_date_set_to_end_of_day(self):
         """
@@ -542,22 +544,22 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertIsNone(self.small_block.extended_expiry_date)
 
         self.small_block.extended_expiry_date = datetime(
-            2016, 2, 1, 18, 30, tzinfo=timezone.utc
+            2016, 2, 1, 18, 30, tzinfo=dt_timezone.utc
         )
         self.small_block.save()
         self.assertEqual(
             self.small_block.extended_expiry_date,
-            datetime(2016, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2016, 2, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
 
         # with DST
         self.small_block.extended_expiry_date = datetime(
-            2016, 5, 1, 18, 30, tzinfo=timezone.utc
+            2016, 5, 1, 18, 30, tzinfo=dt_timezone.utc
         )
         self.small_block.save()
         self.assertEqual(
             self.small_block.extended_expiry_date,
-            datetime(2016, 5, 1, 22, 59, 59, tzinfo=timezone.utc)
+            datetime(2016, 5, 1, 22, 59, 59, tzinfo=dt_timezone.utc)
         )
 
     def test_block_expiry_date_with_extended_date(self):
@@ -567,33 +569,33 @@ class BlockTests(PatchRequestMixin, TestCase):
         # expiry date calculated based on start data and duration
         self.assertEqual(
             self.small_block.expiry_date,
-            datetime(2015, 3, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2015, 3, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
 
         self.small_block.extended_expiry_date = datetime(
-            2016, 2, 1, 18, 30, tzinfo=timezone.utc
+            2016, 2, 1, 18, 30, tzinfo=dt_timezone.utc
         )
         self.small_block.save()
         # expiry date is now extended expiry date
         self.assertEqual(
             self.small_block.expiry_date,
-            datetime(2016, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2016, 2, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
 
         # set extended exipry date to a date < the expiry date calculated by
         # start date and duration
         self.small_block.extended_expiry_date = datetime(
-            2015, 2, 1, 18, 30, tzinfo=timezone.utc
+            2015, 2, 1, 18, 30, tzinfo=dt_timezone.utc
         )
         self.small_block.save()
         self.assertEqual(
             self.small_block.extended_expiry_date,
-            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
         # earlier extended expiry date is allowed
         self.assertEqual(
             self.small_block.expiry_date,
-            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
 
     @patch('booking.models.timezone.now')
@@ -601,7 +603,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         """
         Test that a block's start date is set to current date on payment
         """
-        now = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        now = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
         mock_now.return_value = now
 
         # self.small_block has not expired, block isn't full, payment not
@@ -614,7 +616,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertEqual(self.small_block.start_date, now)
 
     @patch.object(timezone, 'now',
-                  return_value=datetime(2015, 2, 1, tzinfo=timezone.utc))
+                  return_value=datetime(2015, 2, 1, tzinfo=dt_timezone.utc))
     def test_active_small_block(self, mock_now):
         """
         Test that a 5 class unexpired block returns active correctly
@@ -628,7 +630,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertTrue(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
-                  return_value=datetime(2015, 3, 2, tzinfo=timezone.utc))
+                  return_value=datetime(2015, 3, 2, tzinfo=dt_timezone.utc))
     def test_active_large_block(self, mock_now):
         """
         Test that a 10 class unexpired block returns active correctly
@@ -646,7 +648,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertFalse(self.small_block.active_block())
 
     @patch.object(timezone, 'now',
-                  return_value=datetime(2015, 2, 1, tzinfo=timezone.utc))
+                  return_value=datetime(2015, 2, 1, tzinfo=dt_timezone.utc))
     def test_active_full_blocks(self, mock_now):
         """
         Test that active is set to False if a block is full
@@ -729,7 +731,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         block = baker.make_recipe(
             'booking.block',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
             user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype,
         )
@@ -746,7 +748,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         block1 = baker.make_recipe(
             'booking.block',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
             user=baker.make_recipe('booking.user', username="TestUser1"),
             block_type=blocktype1,
         )
@@ -762,7 +764,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         )
         block = baker.make_recipe(
             'booking.block',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
             user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype,
         )
@@ -791,7 +793,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         user = baker.make_recipe('booking.user', username="TestUser")
         block = baker.make_recipe(
             'booking.block',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
             user=user,
             block_type=blocktype,
         )
@@ -817,12 +819,12 @@ class BlockTests(PatchRequestMixin, TestCase):
 
         free_block = baker.make_recipe(
             'booking.block', user=user, block_type=free_blocktype,
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
 
         self.assertEqual(
             free_block.expiry_date,
-            datetime(2015, 2, 1, 23, 59, 59, tzinfo=timezone.utc)
+            datetime(2015, 2, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
 
     def test_create_free_class_blocktype(self):
@@ -928,7 +930,7 @@ class BlockTests(PatchRequestMixin, TestCase):
         # make an expired block
         block = baker.make_recipe(
             'booking.block',
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc),
             user=baker.make_recipe('booking.user', username="TestUser"),
             block_type=blocktype, paid=True
         )
@@ -1331,12 +1333,12 @@ class TicketedEventTests(TestCase):
         day
         """
         self.ticketed_event.payment_due_date = datetime(
-            2015, 1, 1, 13, 30, tzinfo=timezone.utc
+            2015, 1, 1, 13, 30, tzinfo=dt_timezone.utc
         )
         self.ticketed_event.save()
         self.assertEqual(
             self.ticketed_event.payment_due_date, datetime(
-            2015, 1, 1, 23, 59, 59, 0, tzinfo=timezone.utc
+            2015, 1, 1, 23, 59, 59, 0, tzinfo=dt_timezone.utc
         )
         )
 
@@ -1344,7 +1346,7 @@ class TicketedEventTests(TestCase):
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             name='Test event',
-            date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+            date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(str(ticketed_event), 'Test event - 01 Jan 2015, 00:00')
 
@@ -1540,39 +1542,39 @@ class VoucherTests(TestCase):
     @patch('booking.models.timezone')
     def test_voucher_dates(self, mock_tz):
         mock_now = datetime(
-            2016, 1, 5, 16, 30, 30, 30, tzinfo=timezone.utc
+            2016, 1, 5, 16, 30, 30, 30, tzinfo=dt_timezone.utc
         )
         mock_tz.now.return_value = mock_now
         voucher = baker.make(EventVoucher, start_date=mock_now)
         self.assertEqual(
             voucher.start_date,
-            datetime(2016, 1, 5, 0, 0, 0, 0, tzinfo=timezone.utc)
+            datetime(2016, 1, 5, 0, 0, 0, 0, tzinfo=dt_timezone.utc)
         )
 
         voucher.expiry_date = datetime(
-            2016, 1, 6, 18, 30, 30, 30, tzinfo=timezone.utc
+            2016, 1, 6, 18, 30, 30, 30, tzinfo=dt_timezone.utc
         )
         voucher.save()
         self.assertEqual(
             voucher.expiry_date,
-            datetime(2016, 1, 6, 23, 59, 59, 0, tzinfo=timezone.utc)
+            datetime(2016, 1, 6, 23, 59, 59, 0, tzinfo=dt_timezone.utc)
         )
 
     @patch('booking.models.timezone')
     def test_has_expired(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2016, 1, 5, 12, 30, tzinfo=timezone.utc
+            2016, 1, 5, 12, 30, tzinfo=dt_timezone.utc
         )
 
         voucher = baker.make(
             EventVoucher,
-            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2016, 1, 4, tzinfo=timezone.utc)
+            start_date=datetime(2016, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2016, 1, 4, tzinfo=dt_timezone.utc)
         )
         self.assertTrue(voucher.has_expired)
 
         mock_tz.now.return_value = datetime(
-            2016, 1, 3, 12, 30, tzinfo=timezone.utc
+            2016, 1, 3, 12, 30, tzinfo=dt_timezone.utc
         )
         # get voucher from id b/c has_expired is cached property
         voucher = EventVoucher.objects.get(id=voucher.id)
@@ -1581,16 +1583,16 @@ class VoucherTests(TestCase):
     @patch('booking.models.timezone')
     def test_has_started(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2016, 1, 5, 12, 30, tzinfo=timezone.utc
+            2016, 1, 5, 12, 30, tzinfo=dt_timezone.utc
         )
 
         voucher = baker.make(
             EventVoucher,
-            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2016, 1, 1, tzinfo=dt_timezone.utc),
         )
         self.assertTrue(voucher.has_started)
 
-        voucher.start_date = datetime(2016, 1, 6, tzinfo=timezone.utc)
+        voucher.start_date = datetime(2016, 1, 6, tzinfo=dt_timezone.utc)
         voucher.save()
         # get voucher from id b/c has_started is cached property
         voucher = EventVoucher.objects.get(id=voucher.id)

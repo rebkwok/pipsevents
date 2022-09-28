@@ -28,7 +28,7 @@ shortuuid
 beautifulsoup4
 # Fork of simple-crypt that replaces pycrypto with pycryptodome
 git+https://github.com/KyleKing/simple-crypt.git
-python-memcached
+pymemcache
 pytest
 pytest-django
 pytest-cov

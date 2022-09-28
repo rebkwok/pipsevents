@@ -2,6 +2,8 @@ import os
 import pytz
 
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from decimal import Decimal
 
 from django.conf import settings
@@ -153,10 +155,10 @@ def temporary_banner():
 
     if banner_start and banner_end:
         banner_start = datetime.strptime(banner_start, '%d-%b-%Y').replace(
-            tzinfo=timezone.utc
+            tzinfo=dt_timezone.utc
         )
         banner_end = datetime.strptime(banner_end, '%d-%b-%Y').replace(
-            hour=23, minute=59, tzinfo=timezone.utc
+            hour=23, minute=59, tzinfo=dt_timezone.utc
         )
         if now > banner_start and now < banner_end:
             return {
@@ -192,10 +194,10 @@ def sale_text():
 
     if sale_start and sale_end:
         sale_start = datetime.strptime(sale_start, '%d-%b-%Y').replace(
-            tzinfo=timezone.utc
+            tzinfo=dt_timezone.utc
         )
         sale_end = datetime.strptime(sale_end, '%d-%b-%Y').replace(
-            hour=23, minute=59, tzinfo=timezone.utc
+            hour=23, minute=59, tzinfo=dt_timezone.utc
         )
         if now > sale_start and now < sale_end:
             return {

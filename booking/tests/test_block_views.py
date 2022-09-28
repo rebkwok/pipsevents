@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from model_bakery import baker
 
 from django.conf import settings
@@ -12,7 +13,7 @@ from django.utils import timezone
 from accounts.models import DisclaimerContent, OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.forms import BlockCreateForm
-from booking.models import Block, BlockVoucher, UsedBlockVoucher
+from booking.models import Block
 from booking.views import BlockCreateView, BlockListView
 from common.tests.helpers import _create_session, format_content, \
     setup_view, TestSetupMixin, make_data_privacy_agreement
@@ -388,7 +389,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         )
         disclaimer = baker.make(OnlineDisclaimer,
             user=user_expired_disclaimer,
-            date=datetime(2015, 2, 1, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 1, tzinfo=dt_timezone.utc),
         )
         disclaimer.save()
         self.assertFalse(disclaimer.is_active)
@@ -421,7 +422,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
         booking = baker.make_recipe(
             'booking.booking', event__name='Test event',
             event__date=datetime(
-                year=2015, month=1, day=12, tzinfo=timezone.utc
+                year=2015, month=1, day=12, tzinfo=dt_timezone.utc
             ), status='CANCELLED'
         )
         baker.make_recipe(

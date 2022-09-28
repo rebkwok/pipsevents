@@ -1,6 +1,7 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
+from datetime import timezone as dt_timezone
+
 from decimal import Decimal
-from django.utils import timezone
 
 from django_migration_testcase import MigrationTest
 
@@ -70,7 +71,7 @@ class DisclaimerVersioningMingrationTests(MigrationTest):
         user2 = User.objects.create(username='user2', password='user2', email='user2@test.com')
         user3 = User.objects.create(username='user3', password='user3', email='user3@test.com')
 
-        date_signed = datetime(2020, 2, 1, tzinfo=timezone.utc)
+        date_signed = datetime(2020, 2, 1, tzinfo=dt_timezone.utc)
         # disclaimer with current terms
         OnlineDisclaimer.objects.create(
             user=user1,
@@ -87,7 +88,7 @@ class DisclaimerVersioningMingrationTests(MigrationTest):
             last_name="user",
             email="test@test.com",
             event_date=date(2020, 3, 4),
-            date=datetime(2019, 12, 1, tzinfo=timezone.utc),
+            date=datetime(2019, 12, 1, tzinfo=dt_timezone.utc),
             disclaimer_terms="foo",
             medical_treatment_terms="foo",
             over_18_statement="foo",
@@ -97,7 +98,7 @@ class DisclaimerVersioningMingrationTests(MigrationTest):
         # 2 disclaimers, one with with the same older terms
         OnlineDisclaimer.objects.create(
             user=user2,
-            date=datetime(2019, 12, 28, tzinfo=timezone.utc),
+            date=datetime(2019, 12, 28, tzinfo=dt_timezone.utc),
             disclaimer_terms="bar",
             medical_treatment_terms="bar",
             over_18_statement="bar",
@@ -105,7 +106,7 @@ class DisclaimerVersioningMingrationTests(MigrationTest):
         )
         OnlineDisclaimer.objects.create(
             user=user3,
-            date=datetime(2019, 12, 15, tzinfo=timezone.utc),
+            date=datetime(2019, 12, 15, tzinfo=dt_timezone.utc),
             disclaimer_terms="foo",
             medical_treatment_terms="foo",
             over_18_statement="foo",
