@@ -1,0 +1,13 @@
+{% if fixed_bookings %}
+Unpaid bookings marked as paypal_pending had completed paypal txns and have been set to paid:
+{% for booking in fixed_bookings %}
+- id {{ booking.id }}, transaction {{ booking.txn_id }}
+{% endfor %}
+{% endif %}
+
+{% if fixed_blocks %}
+Unpaid blocks marked as paypal_pending had completed paypal txns and have been set to paid:
+{% for block in fixed_blocks %}
+- id {{ block.id }}, transaction {{ block.txn_id }}
+{% endfor %}
+{% endif %}

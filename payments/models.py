@@ -2,7 +2,7 @@
 
 import logging
 
-from django.db import models, transaction
+from django.db import models
 
 from booking.models import Booking, Block, TicketBooking, GiftVoucherType
 
