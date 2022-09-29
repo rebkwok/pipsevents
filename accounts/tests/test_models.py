@@ -1,13 +1,15 @@
 import pytz
 import pytest
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from decimal import Decimal
 from model_bakery import baker
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import AccountBan, CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
@@ -140,7 +142,7 @@ class DisclaimerModelTests(TestCase):
         content = baker.make(DisclaimerContent, version=5.0)
         disclaimer = baker.make(
             NonRegisteredDisclaimer, first_name='Test', last_name='User',
-            event_date=datetime(2019, 1, 1, tzinfo=timezone.utc), version=content.version
+            event_date=datetime(2019, 1, 1, tzinfo=dt_timezone.utc), version=content.version
         )
         self.assertEqual(str(disclaimer), 'Test User - V5.0 - {}'.format(
             disclaimer.date.astimezone(
@@ -152,8 +154,8 @@ class DisclaimerModelTests(TestCase):
         content = baker.make(DisclaimerContent, version=5.0)
         disclaimer = baker.make(
             ArchivedDisclaimer, name='Test User',
-            date=datetime(2019, 1, 1, tzinfo=timezone.utc),
-            date_archived=datetime(2019, 1, 20, tzinfo=timezone.utc),
+            date=datetime(2019, 1, 1, tzinfo=dt_timezone.utc),
+            date_archived=datetime(2019, 1, 20, tzinfo=dt_timezone.utc),
             version=content.version
         )
         self.assertEqual(str(disclaimer), 'Test User - V5.0 - {} (archived {})'.format(
@@ -187,7 +189,7 @@ class DisclaimerModelTests(TestCase):
         # disclaimer is out of date, so inactive
         disclaimer = baker.make(
             OnlineDisclaimer, user=user,
-            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc), version=disclaimer_content.version
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=dt_timezone.utc), version=disclaimer_content.version
         )
 
         self.assertFalse(disclaimer.is_active)

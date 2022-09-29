@@ -2,6 +2,7 @@
 import logging
 
 from datetime import datetime, time, timedelta
+from datetime import timezone as dt_timezone
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -10,8 +11,8 @@ from django.db.models import Q
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 from django.template.loader import render_to_string
-from django.shortcuts import HttpResponse, HttpResponseRedirect, get_object_or_404, render
-from django.views.generic import CreateView, ListView
+from django.shortcuts import HttpResponse, get_object_or_404, render
+from django.views.generic import ListView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
@@ -107,10 +108,10 @@ def register_print_day(request):
             events = Event.objects.filter(
                 date__gt=datetime.combine(
                     register_date, time(hour=0, minute=0)
-                ).replace(tzinfo=timezone.utc),
+                ).replace(tzinfo=dt_timezone.utc),
                 date__lt=datetime.combine(
                     register_date, time(hour=23, minute=59)
-                ).replace(tzinfo=timezone.utc),
+                ).replace(tzinfo=dt_timezone.utc),
             ).order_by('date')
 
             new_form = RegisterDayForm(
@@ -218,8 +219,8 @@ def register_print_day(request):
                     )
 
     events = Event.objects.filter(
-                date__gt=datetime.now().replace(hour=0, minute=0, tzinfo=timezone.utc),
-                date__lt=datetime.now().replace(hour=23, minute=59, tzinfo=timezone.utc),
+                date__gt=datetime.now().replace(hour=0, minute=0, tzinfo=dt_timezone.utc),
+                date__lt=datetime.now().replace(hour=23, minute=59, tzinfo=dt_timezone.utc),
             ).order_by('date')
     form = RegisterDayForm(events=events)
 

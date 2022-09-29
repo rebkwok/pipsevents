@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 from model_bakery import baker
 
@@ -246,8 +247,8 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
         super(VoucherUpdateViewTests, self).setUp()
         self.voucher = baker.make(
             EventVoucher, code='test_code', discount=10,
-            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2016, 2, 1, tzinfo=timezone.utc)
+            start_date=datetime(2016, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2016, 2, 1, tzinfo=dt_timezone.utc)
         )
         self.voucher.event_types.add(self.pc_event_type)
         self.data = {
@@ -266,8 +267,8 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
 
         self.block_voucher = baker.make(
             BlockVoucher, code='test_code', discount=10,
-            start_date=datetime(2016, 1, 1, tzinfo=timezone.utc),
-            expiry_date=datetime(2016, 2, 1, tzinfo=timezone.utc)
+            start_date=datetime(2016, 1, 1, tzinfo=dt_timezone.utc),
+            expiry_date=datetime(2016, 2, 1, tzinfo=dt_timezone.utc)
         )
         self.block_voucher.block_types.add(self.block_type)
         self.block_data = {

@@ -1,6 +1,8 @@
 import pytz
 
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from unittest.mock import patch
 from model_bakery import baker
 
@@ -8,7 +10,6 @@ from django.conf import settings
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils import timezone
 
 from booking.models import Event
 from common.tests.helpers import _create_session, format_content
@@ -530,7 +531,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_events_are_created(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 6, 1, 0, 0, tzinfo=timezone.utc
+            2015, 6, 1, 0, 0, tzinfo=dt_timezone.utc
         )
         baker.make_recipe('booking.mon_session', _quantity=5)
         self.assertEqual(Event.objects.count(), 0)
@@ -551,7 +552,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_events_are_created_with_overridden_settings(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 6, 1, 0, 0, tzinfo=timezone.utc
+            2015, 6, 1, 0, 0, tzinfo=dt_timezone.utc
         )
         baker.make_recipe('booking.mon_session', booking_open=True, payment_open=True, _quantity=5)
         self.assertEqual(Event.objects.count(), 0)
@@ -569,7 +570,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
     @patch('studioadmin.forms.timetable_forms.timezone')
     def test_does_not_create_duplicate_sessions(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 6, 1, 0, 0, tzinfo=timezone.utc
+            2015, 6, 1, 0, 0, tzinfo=dt_timezone.utc
         )
         baker.make_recipe('booking.mon_session', _quantity=5)
         self.assertEqual(Event.objects.count(), 0)
@@ -598,14 +599,14 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         add duplicates to context for warning display
         """
         mock_tz.now.return_value = datetime(
-            2015, 6, 1, 0, 0, tzinfo=timezone.utc
+            2015, 6, 1, 0, 0, tzinfo=dt_timezone.utc
         )
         session = baker.make_recipe('booking.tue_session', name='test')
 
         # create date in Europe/London, convert to UTC
         localtz = pytz.timezone('Europe/London')
         local_ev_date = localtz.localize(datetime.combine(
-            datetime(2015, 6, 2, 0, 0, tzinfo=timezone.utc),
+            datetime(2015, 6, 2, 0, 0, tzinfo=dt_timezone.utc),
             session.time)
         )
         converted_ev_date = local_ev_date.astimezone(pytz.utc)

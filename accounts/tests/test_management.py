@@ -2,6 +2,8 @@ import csv
 import os
 
 from datetime import date, datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from unittest.mock import Mock, patch
 from pathlib import Path
 
@@ -346,15 +348,15 @@ class ImportDisclaimersTests(TestCase):
         test_3 = baker.make_recipe('booking.user', username='test_3')
         baker.make(
             OnlineDisclaimer, user=test_2,
-            date=datetime(2015, 1, 15, 15, 43, 19, 747445, tzinfo=timezone.utc),
+            date=datetime(2015, 1, 15, 15, 43, 19, 747445, tzinfo=dt_timezone.utc),
             date_updated=datetime(
-                2016, 1, 6, 15, 9, 16, 920219, tzinfo=timezone.utc
+                2016, 1, 6, 15, 9, 16, 920219, tzinfo=dt_timezone.utc
             ),
             version=3.0
         ),
         baker.make(
             OnlineDisclaimer, user=test_3,
-            date=datetime(2016, 2, 18, 16, 9, 16, 920219, tzinfo=timezone.utc),
+            date=datetime(2016, 2, 18, 16, 9, 16, 920219, tzinfo=dt_timezone.utc),
             version=3.0
         )
 
@@ -395,7 +397,7 @@ class ImportDisclaimersTests(TestCase):
         self.assertEqual(test_1_disclaimer.name, 'Test User1')
         self.assertEqual(
             test_1_disclaimer.date,
-            datetime(2015, 12, 18, 15, 32, 7, 191781, tzinfo=timezone.utc)
+            datetime(2015, 12, 18, 15, 32, 7, 191781, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(test_1_disclaimer.dob, date(1991, 11, 21))
         self.assertEqual(test_1_disclaimer.address, '11 Test Road')

@@ -1,7 +1,8 @@
 from model_bakery import baker
 from datetime import datetime
-from unittest.mock import patch
+from datetime import timezone as dt_timezone
 
+from unittest.mock import patch
 
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.urls import reverse
@@ -206,15 +207,15 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         Test correct context returned for an event with payment due date
         """
         models_mock_tz.now.return_value = datetime(
-            2015, 2, 1, tzinfo=timezone.utc
+            2015, 2, 1, tzinfo=dt_timezone.utc
         )
         helpers_mock_tz.now.return_value = datetime(
-            2015, 2, 1, tzinfo=timezone.utc
+            2015, 2, 1, tzinfo=dt_timezone.utc
         )
         event = baker.make_recipe(
             'booking.future_WS',
             cost=10,
-            payment_due_date=datetime(2015, 2, 2, tzinfo=timezone.utc)
+            payment_due_date=datetime(2015, 2, 2, tzinfo=dt_timezone.utc)
         )
         resp = self._get_response(self.user, event, 'event')
 
@@ -227,11 +228,11 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         """
         Test correct context returned for an event with payment due date
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
         event = baker.make_recipe(
             'booking.future_WS',
             cost=10,
-            payment_due_date=datetime(2015, 1, 31, tzinfo=timezone.utc)
+            payment_due_date=datetime(2015, 1, 31, tzinfo=dt_timezone.utc)
         )
         resp = self._get_response(self.user, event, 'event')
 
@@ -388,7 +389,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         make_data_privacy_agreement(user)
         disclaimer = baker.make_recipe(
            'booking.online_disclaimer', user=user,
-            date=datetime(2015, 2, 10, 19, 0, tzinfo=timezone.utc)
+            date=datetime(2015, 2, 10, 19, 0, tzinfo=dt_timezone.utc)
         )
         self.assertFalse(disclaimer.is_active)
 

@@ -1,6 +1,8 @@
 import sys
 
 from datetime import date, datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from io import StringIO
 from unittest.mock import patch
 from model_bakery import baker
@@ -112,15 +114,15 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
         # check that there are now classes on the Monday of the mocked week
         # (mocked now is Wed 10 Feb 2015)
         mon_classes = Event.objects.filter(
-            Q(date__gte=datetime(2015, 2, 10, tzinfo=timezone.utc)) &
-            Q(date__lte=datetime(2015, 2, 11, tzinfo=timezone.utc))
+            Q(date__gte=datetime(2015, 2, 10, tzinfo=dt_timezone.utc)) &
+            Q(date__lte=datetime(2015, 2, 11, tzinfo=dt_timezone.utc))
         )
         self.assertTrue(mon_classes)
         # check that there are now classes on the Monday of the following week
         # (mocked now is Wed 10 Feb 2015)
         next_mon_classes = Event.objects.filter(
-            Q(date__gte=datetime(2015, 2, 17, tzinfo=timezone.utc)) &
-            Q(date__lte=datetime(2015, 2, 18, tzinfo=timezone.utc))
+            Q(date__gte=datetime(2015, 2, 17, tzinfo=dt_timezone.utc)) &
+            Q(date__lte=datetime(2015, 2, 18, tzinfo=dt_timezone.utc))
         )
         self.assertTrue(next_mon_classes)
 
@@ -218,20 +220,20 @@ class EmailReminderAndWarningTests(TestCase):
         Email reminders 24 hours before cancellation period starts
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 19, 0, tzinfo=timezone.utc
+            2015, 2, 10, 19, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/11 18:00
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 12, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 12, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
         # cancellation period starts 2015/2/12 18:00
         event1 = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -251,13 +253,13 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_not_sent_for_past_events(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/8 00:00
         event = baker.make_recipe(
             'booking.past_event',
-            date=datetime(2015, 2, 9, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -272,13 +274,13 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_not_sent_twice(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 19, 0, tzinfo=timezone.utc
+            2015, 2, 11, 19, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/12 18:00
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -299,13 +301,13 @@ class EmailReminderAndWarningTests(TestCase):
         Test that reminder_sent flag set
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 19, 0, tzinfo=timezone.utc
+            2015, 2, 11, 19, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/12 18:00
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -322,13 +324,13 @@ class EmailReminderAndWarningTests(TestCase):
     @patch('booking.management.commands.email_reminders.timezone')
     def test_email_reminders_only_sent_for_open_bookings(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 12, 19, 0, tzinfo=timezone.utc
+            2015, 2, 12, 19, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/11 18:00
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             cancellation_period=24)
@@ -352,50 +354,50 @@ class EmailReminderAndWarningTests(TestCase):
         test email warning is sent for any future events with advance payment required
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, 0, tzinfo=timezone.utc
+            2015, 2, 10, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/14 17:00
         # payment_due_date 2015/2/11 23:59
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         # cancellation period starts 2015/2/14 17:00
         # payment_due_date 2015/2/12 23:59
         event1 = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 12, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 12, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         # no cost, no warnings sent
         event2 = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=0,
             cancellation_period=1)
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         baker.make_recipe(
             'booking.booking', event=event1, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         baker.make_recipe(
             'booking.booking', event=event2, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 21, 00, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 21, 00, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(Booking)
@@ -409,14 +411,14 @@ class EmailReminderAndWarningTests(TestCase):
         events with no payment_due_date
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 19, 0, tzinfo=timezone.utc
+            2015, 2, 11, 19, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/13 18:00
         # payment_due_date None
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
             payment_due_date=None,
@@ -425,7 +427,7 @@ class EmailReminderAndWarningTests(TestCase):
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(Booking)
@@ -437,7 +439,7 @@ class EmailReminderAndWarningTests(TestCase):
             self, mock_tz
     ):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 19, 0, tzinfo=timezone.utc
+            2015, 2, 11, 19, 0, tzinfo=dt_timezone.utc
             )
 
         # No cancellation period
@@ -445,16 +447,16 @@ class EmailReminderAndWarningTests(TestCase):
         # # SEND WARNING
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=dt_timezone.utc),
             cancellation_period=0)
 
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=dt_timezone.utc),
             )
 
         # Has cancellation period starts 2015/2/13 18:00 (<48 hrs from now)
@@ -462,15 +464,15 @@ class EmailReminderAndWarningTests(TestCase):
         # SEND WARNING
         event1 = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=dt_timezone.utc),
             cancellation_period=24)
         baker.make_recipe(
             'booking.booking', event=event1, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=dt_timezone.utc),
             )
 
         # Has cancellation period starts 2015/2/13 18:00 (>48 hrs from now)
@@ -478,15 +480,15 @@ class EmailReminderAndWarningTests(TestCase):
         # SEND WARNING (ignore cancellation period if payment due date)
         event2 = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 10, 18, 0, tzinfo=dt_timezone.utc),
             cancellation_period=24)
         baker.make_recipe(
             'booking.booking', event=event2, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 14, 30, tzinfo=dt_timezone.utc),
             )
         _add_user_email_addresses(Booking)
         
@@ -500,21 +502,21 @@ class EmailReminderAndWarningTests(TestCase):
     def test_email_warnings_not_sent_twice(self, mock_tz):
 
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
             )
         # cancellation period starts 2015/2/13 17:00
         # payment_due_date 2015/2/11 23:59
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         
@@ -534,31 +536,31 @@ class EmailReminderAndWarningTests(TestCase):
         # payment_due_date 2015/2/11 23:59
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
 
         _add_user_email_addresses(Booking)
 
         # Before 7am warnings not sent
-        mock_tz.now.return_value = datetime(2015, 2, 10, 6, 59, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 6, 59, tzinfo=dt_timezone.utc)
         management.call_command('email_warnings')
         self.assertEqual(len(mail.outbox), 0)
 
         # After 10pm warnings not sent
-        mock_tz.now.return_value = datetime(2015, 2, 10, 22, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 22, 1, tzinfo=dt_timezone.utc)
         management.call_command('email_warnings')
         self.assertEqual(len(mail.outbox), 0)
 
-        mock_tz.now.return_value = datetime(2015, 2, 10, 9, 30, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 9, 30, tzinfo=dt_timezone.utc)
         management.call_command('email_warnings')
         self.assertEqual(len(mail.outbox), 5)
 
@@ -568,26 +570,26 @@ class EmailReminderAndWarningTests(TestCase):
         test email warning is only sent for bookings that are not marked as
         payment_confirmed
         """
-        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=dt_timezone.utc)
         # cancellation period starts 2015/2/13 17:00
         # payment_due_date 2015/2/11 23:59
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=3,
             )
         baker.make_recipe(
             'booking.booking', event=event, paid=True,
             payment_confirmed=True,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=3,
             )
         _add_user_email_addresses(Booking)
@@ -606,25 +608,25 @@ class EmailReminderAndWarningTests(TestCase):
         payment_confirmed
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
             )
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=3,
             )
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='CANCELLED',
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=3,
             )
         _add_user_email_addresses(Booking)
@@ -642,24 +644,24 @@ class EmailReminderAndWarningTests(TestCase):
         test email warning is only sent for bookings made more than 2 hrs ago
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 9, 21, 45, tzinfo=timezone.utc
+            2015, 2, 9, 21, 45, tzinfo=dt_timezone.utc
             )
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
         booking1 = baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc)
             )
         booking2 = baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, status='OPEN',
-            date_booked=datetime(2015, 2, 9, 20, 30, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 9, 20, 30, tzinfo=dt_timezone.utc)
             )
         _add_user_email_addresses(Booking)
         management.call_command('email_warnings')
@@ -675,30 +677,30 @@ class EmailReminderAndWarningTests(TestCase):
         test email warning is sent for any future events with advance payment required
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, 0, tzinfo=timezone.utc
+            2015, 2, 10, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # cancellation period starts 2015/2/14 17:00
         # payment_due_date 2015/2/11 23:59
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             cancellation_period=1)
 
         baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         # bookings which are actually paid but for whatever reason haven't been marked so
         booking_paid_by_paypal = baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False, paypal_pending=True,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
         )
         pptrans = baker.make(PaypalBookingTransaction, booking=booking_paid_by_paypal, invoice_id="test")
         baker.make(PayPalIPN, invoice="test", txn_id="test", payment_status=ST_PP_COMPLETED)
@@ -706,7 +708,7 @@ class EmailReminderAndWarningTests(TestCase):
         booking_paid_by_block = baker.make_recipe(
             'booking.booking', event=event, paid=False,
             payment_confirmed=False,
-            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 19, 30, tzinfo=dt_timezone.utc),
         )
         block = baker.make_recipe("booking.block")
         # use update to add the block, to bypass the save method
@@ -737,10 +739,10 @@ class CancelUnpaidBookingsTests(TestCase):
     def setUp(self):
         self.event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             cost=10,
-            payment_due_date=datetime(2015, 2, 9, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
             advance_payment_required=True,
             cancellation_period=1)
         self.unpaid = baker.make_recipe(
@@ -748,17 +750,17 @@ class CancelUnpaidBookingsTests(TestCase):
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
             date_booked=datetime(
-                2015, 2, 9, 18, 0, tzinfo=timezone.utc
+                2015, 2, 9, 18, 0, tzinfo=dt_timezone.utc
             ),
             warning_sent=True,
-            date_warning_sent = datetime(2015, 2, 9, 20, 0, tzinfo=timezone.utc)
+            date_warning_sent = datetime(2015, 2, 9, 20, 0, tzinfo=dt_timezone.utc)
         )
         self.paid = baker.make_recipe(
             'booking.booking', event=self.event, paid=True,
             payment_confirmed=True, status='OPEN',
             user__email="paid@test.com",
             date_booked= datetime(
-                2015, 2, 9, 18, 0, tzinfo=timezone.utc
+                2015, 2, 9, 18, 0, tzinfo=dt_timezone.utc
             )
         )
 
@@ -768,7 +770,7 @@ class CancelUnpaidBookingsTests(TestCase):
         test unpaid bookings are cancelled
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
         )
         self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
@@ -802,20 +804,20 @@ class CancelUnpaidBookingsTests(TestCase):
             self.unpaid.status, 'OPEN', self.unpaid.status
         )
 
-        mock_tz.now.return_value = datetime(2015, 2, 10, 8, 59, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 8, 59, tzinfo=dt_timezone.utc)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(self.unpaid.status, 'OPEN', self.unpaid.status)
 
-        mock_tz.now.return_value = datetime(2015, 2, 10, 22, 00, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 22, 00, tzinfo=dt_timezone.utc)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(self.unpaid.status, 'OPEN', self.unpaid.status)
 
 
-        mock_tz.now.return_value = datetime(2015, 2, 10, 9, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 9, 10, tzinfo=dt_timezone.utc)
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
         # emails are sent to user per cancelled booking and studio once for all
@@ -833,7 +835,7 @@ class CancelUnpaidBookingsTests(TestCase):
         for event
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
         )
         # set payment_due_date to None, otherwise advance_payment_required is
         # automatically set to True
@@ -869,7 +871,7 @@ class CancelUnpaidBookingsTests(TestCase):
         for event
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
         )
         self.event.cost = 0
         self.event.save()
@@ -902,7 +904,7 @@ class CancelUnpaidBookingsTests(TestCase):
         test don't cancel or send emails for past events
         """
         mock_tz.now.return_value = datetime(
-            2016, 2, 10, 10, tzinfo=timezone.utc
+            2016, 2, 10, 10, tzinfo=dt_timezone.utc
         )
         self.assertEqual(
             self.unpaid.status, 'OPEN', self.unpaid.status
@@ -934,7 +936,7 @@ class CancelUnpaidBookingsTests(TestCase):
         ignore already cancelled bookings
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 10, 10, tzinfo=timezone.utc
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
         )
         self.unpaid.status = 'CANCELLED'
         self.unpaid.save()
@@ -959,7 +961,7 @@ class CancelUnpaidBookingsTests(TestCase):
         """
         Only cancel bookings made within the cancellation period if a warning has been sent
         """
-        mock_tz.now.return_value = datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 18, 0, tzinfo=dt_timezone.utc)
         # reset warning flags
         self.unpaid.warning_sent = False
         self.unpaid.date_warning_sent = None
@@ -975,7 +977,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set the warning sent flag to < 2hrs ago
         self.unpaid.warning_sent = True
-        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 17, 0, tzinfo=timezone.utc)
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 17, 0, tzinfo=dt_timezone.utc)
         self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
@@ -984,7 +986,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set the warning sent flag to > 2hrs ago
         self.unpaid.warning_sent = True
-        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 15, 0, tzinfo=timezone.utc)
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 15, 0, tzinfo=dt_timezone.utc)
         self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
@@ -997,16 +999,16 @@ class CancelUnpaidBookingsTests(TestCase):
         users are emailed per booking, studio just receives one summary
         email
         """
-        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=dt_timezone.utc)
         for i in range(5):
             baker.make_recipe(
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                date_booked= datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
                 warning_sent=True,
-                date_warning_sent= datetime(2015, 2, 9, 2, tzinfo=timezone.utc),
+                date_warning_sent= datetime(2015, 2, 9, 2, tzinfo=dt_timezone.utc),
             )
 
         management.call_command('cancel_unpaid_bookings')
@@ -1037,16 +1039,16 @@ class CancelUnpaidBookingsTests(TestCase):
         users are emailed per booking, studio just receives one summary
         email
         """
-        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 10, tzinfo=dt_timezone.utc)
         for i in range(5):
             baker.make_recipe(
                 'booking.booking', event=self.event,
                 status='OPEN', paid=False,
                 payment_confirmed=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                date_booked= datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
                 warning_sent=True,
-                date_warning_sent= datetime(2015, 2, 9, 2, tzinfo=timezone.utc),
+                date_warning_sent= datetime(2015, 2, 9, 2, tzinfo=dt_timezone.utc),
             )
 
         management.call_command('cancel_unpaid_bookings')
@@ -1068,7 +1070,7 @@ class CancelUnpaidBookingsTests(TestCase):
         any users on the waiting list
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 13, 17, 15, tzinfo=timezone.utc
+            2015, 2, 13, 17, 15, tzinfo=dt_timezone.utc
         )
 
         # make full event (setup has one paid and one unpaid)
@@ -1098,7 +1100,7 @@ class CancelUnpaidBookingsTests(TestCase):
         Test that the waiting list is only emailed once if more than one
         booking is cancelled
         """
-        mock_tz.now.return_value = datetime(2015, 2, 13, 17, 15, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 13, 17, 15, tzinfo=dt_timezone.utc)
 
         # make full event (setup has one paid and one unpaid)
         # cancellation period =1, date = 2015, 2, 13, 18, 0
@@ -1110,9 +1112,9 @@ class CancelUnpaidBookingsTests(TestCase):
             'booking.booking', event=self.event, paid=False,
             payment_confirmed=False, status='OPEN',
             user__email="unpaid@test.com",
-            date_booked=datetime(2015, 2, 9, 18, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 9, 18, 0, tzinfo=dt_timezone.utc),
             warning_sent=True,
-            date_warning_sent=datetime(2015, 2, 9, 20, 0, tzinfo=timezone.utc),
+            date_warning_sent=datetime(2015, 2, 9, 20, 0, tzinfo=dt_timezone.utc),
         )
 
         # make some waiting list users
@@ -1142,7 +1144,7 @@ class CancelUnpaidBookingsTests(TestCase):
         Test that the waiting list is still emailed if event not full
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 13, 17, 15, tzinfo=timezone.utc
+            2015, 2, 13, 17, 15, tzinfo=dt_timezone.utc
         )
 
         # make full event (setup has one paid and one unpaid)
@@ -1166,13 +1168,13 @@ class CancelUnpaidBookingsTests(TestCase):
         """
         Only cancel bookings made within the cancellation period if a warning has been sent
         """
-        mock_tz.now.return_value = datetime(2015, 2, 10, 18, 0, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 10, 18, 0, tzinfo=dt_timezone.utc)
         # cancel booking to reset warning flags
         self.unpaid.status = "CANCELLED"
         self.unpaid.save()
         # rebook
         self.unpaid.status = "OPEN"
-        self.unpaid.date_rebooked = datetime(2015, 2, 10, 12, 30, tzinfo=timezone.utc)
+        self.unpaid.date_rebooked = datetime(2015, 2, 10, 12, 30, tzinfo=dt_timezone.utc)
         self.unpaid.save()
 
         self.assertEqual(self.unpaid.status, 'OPEN')
@@ -1185,7 +1187,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set the warning sent flag to < 2hrs ago
         self.unpaid.warning_sent = True
-        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 17, 0, tzinfo=timezone.utc)
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 17, 0, tzinfo=dt_timezone.utc)
         self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
@@ -1194,7 +1196,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set the warning sent flag to > 2hrs ago
         self.unpaid.warning_sent = True
-        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 15, 0, tzinfo=timezone.utc)
+        self.unpaid.date_warning_sent = datetime(2015, 2, 10, 15, 0, tzinfo=dt_timezone.utc)
         self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
         self.unpaid.refresh_from_db()
@@ -1206,14 +1208,14 @@ class CancelUnpaidBookingsTests(TestCase):
             self, mock_tz
     ):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
         )
         self.event.payment_due_date = None
         self.event.payment_time_allowed = 8
         self.event.save()
 
         self.unpaid.date_booked = datetime(
-            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+            2015, 2, 11, 3, 0, tzinfo=dt_timezone.utc
         )
         self.unpaid.warning_sent = False
         self.unpaid.save()
@@ -1228,7 +1230,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set date booked to >8 hrs ago
         self.unpaid.date_booked = datetime(
-            2015, 2, 11, 1, 59, tzinfo=timezone.utc
+            2015, 2, 11, 1, 59, tzinfo=dt_timezone.utc
         )
         self.unpaid.save()
         # self.unpaid.date_booked is within 4 hrs, so not cancelled
@@ -1246,14 +1248,14 @@ class CancelUnpaidBookingsTests(TestCase):
             self, mock_tz
     ):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
         )
         self.event.payment_due_date = None
         self.event.payment_time_allowed = 6
         self.event.save()
 
         self.unpaid.date_booked = datetime(
-            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+            2015, 2, 11, 3, 0, tzinfo=dt_timezone.utc
         )
         self.unpaid.warning_sent = False
         self.unpaid.free_class_requested = True
@@ -1269,7 +1271,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set date booked to >24 hrs ago
         self.unpaid.date_booked = datetime(
-            2015, 2, 10, 9, 59, tzinfo=timezone.utc
+            2015, 2, 10, 9, 59, tzinfo=dt_timezone.utc
         )
         self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
@@ -1286,17 +1288,17 @@ class CancelUnpaidBookingsTests(TestCase):
             self, mock_tz
     ):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
         )
         self.event.payment_due_date = None
         self.event.payment_time_allowed = 6
         self.event.save()
 
         self.unpaid.date_booked = datetime(
-            2015, 2, 9, 3, 0, tzinfo=timezone.utc
+            2015, 2, 9, 3, 0, tzinfo=dt_timezone.utc
         )
         self.unpaid.date_rebooked = datetime(
-            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+            2015, 2, 11, 3, 0, tzinfo=dt_timezone.utc
         )
         self.unpaid.warning_sent = False
         self.unpaid.free_class_requested = True
@@ -1313,7 +1315,7 @@ class CancelUnpaidBookingsTests(TestCase):
 
         # set date rebooked to >24 hrs ago
         self.unpaid.date_rebooked = datetime(
-            2015, 2, 10, 9, 59, tzinfo=timezone.utc
+            2015, 2, 10, 9, 59, tzinfo=dt_timezone.utc
         )
         self.unpaid.save()
         management.call_command('cancel_unpaid_bookings')
@@ -1334,21 +1336,21 @@ class TicketBookingWarningTests(TestCase):
         test email warning is sent 24 hours before payment_due_date
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
         # advance payment not required - warnings not sent
         ticketed_event1 = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
             advance_payment_required=False
@@ -1356,12 +1358,12 @@ class TicketBookingWarningTests(TestCase):
 
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event1, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
 
@@ -1381,15 +1383,15 @@ class TicketBookingWarningTests(TestCase):
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
 
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
 
@@ -1398,15 +1400,15 @@ class TicketBookingWarningTests(TestCase):
         for ticket_booking in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=ticket_booking)
 
-        mock_tz.now.return_value = datetime(2015, 2, 11, 6, 59, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 6, 59, tzinfo=dt_timezone.utc)
         management.call_command('email_ticket_booking_warnings')
         self.assertEqual(len(mail.outbox), 0)
 
-        mock_tz.now.return_value = datetime(2015, 2, 11, 22, 5, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 22, 5, tzinfo=dt_timezone.utc)
         management.call_command('email_ticket_booking_warnings')
         self.assertEqual(len(mail.outbox), 0)
 
-        mock_tz.now.return_value = datetime(2015, 2, 11, 21, 59, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 21, 59, tzinfo=dt_timezone.utc)
         management.call_command('email_ticket_booking_warnings')
         self.assertEqual(len(mail.outbox), 5)
 
@@ -1414,23 +1416,23 @@ class TicketBookingWarningTests(TestCase):
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_sent_if_both_due_date_and_time_allowed(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         # payment_time_allowed is set
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
             payment_time_allowed=4,
         )
 
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
@@ -1445,21 +1447,21 @@ class TicketBookingWarningTests(TestCase):
     def test_email_warnings_not_sent_twice(self, mock_tz):
 
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
 
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
@@ -1483,26 +1485,26 @@ class TicketBookingWarningTests(TestCase):
         payment_confirmed
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
 
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=True,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
@@ -1519,27 +1521,27 @@ class TicketBookingWarningTests(TestCase):
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_only_sent_for_open_bookings(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
 
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
             cancelled=True,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
@@ -1556,34 +1558,34 @@ class TicketBookingWarningTests(TestCase):
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_only_sent_for_open_events(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
         ticketed_event_cancelled = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
             cancelled=True,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event_cancelled,
             paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
@@ -1604,20 +1606,20 @@ class TicketBookingWarningTests(TestCase):
     @patch('booking.management.commands.email_ticket_booking_warnings.timezone')
     def test_email_warnings_only_sent_for_bookings_with_tickets(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             _quantity=5,
             )
         _add_user_email_addresses(TicketBooking)
@@ -1638,24 +1640,24 @@ class TicketBookingWarningTests(TestCase):
         test email warning is only sent for bookings made more than 2 hrs ago
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
         # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
         )
         booking1 = baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             )
         booking2 = baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 11, 8, 5, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 8, 5, tzinfo=dt_timezone.utc),
             )
         _add_user_email_addresses(TicketBooking)
         for ticket_booking in TicketBooking.objects.all():
@@ -1675,24 +1677,24 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         # payment_due_date 2015/2/10 23:59
         self.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
             advance_payment_required=True,
-            payment_due_date=datetime(2015, 2, 10, tzinfo=timezone.utc),
+            payment_due_date=datetime(2015, 2, 10, tzinfo=dt_timezone.utc),
         )
         self.paid = baker.make(
             TicketBooking,  ticketed_event=self.ticketed_event, paid=True,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             warning_sent=True,
             user__email='paid@test.com', purchase_confirmed=True
             )
         self.unpaid = baker.make(
             TicketBooking,  ticketed_event=self.ticketed_event, paid=False,
-            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 1, 0, 0, tzinfo=dt_timezone.utc),
             warning_sent=True,
             user__email='unpaid@test.com', purchase_confirmed=True,
-            date_warning_sent = datetime(2015, 2, 1, 2, 0, tzinfo=timezone.utc)
+            date_warning_sent = datetime(2015, 2, 1, 2, 0, tzinfo=dt_timezone.utc)
             )
         for booking in [self.paid, self.unpaid]:
             baker.make(Ticket, ticket_booking=booking)
@@ -1714,7 +1716,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         """
         # one min after payment due date
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
 
         self.assertFalse(self.unpaid.cancelled)
@@ -1736,7 +1738,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         """
         self.assertFalse(self.unpaid.cancelled)
 
-        mock_tz.now.return_value = datetime(2015, 2, 12, 8, 59, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 12, 8, 59, tzinfo=dt_timezone.utc)
         management.call_command('cancel_unpaid_ticket_bookings')
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
@@ -1744,7 +1746,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
-        mock_tz.now.return_value = datetime(2015, 2, 12, 22, 00, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 12, 22, 00, tzinfo=dt_timezone.utc)
         management.call_command('cancel_unpaid_ticket_bookings')
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
@@ -1752,7 +1754,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         self.assertEqual(len(mail.outbox), 0)
         self.assertFalse(self.unpaid.cancelled)
 
-        mock_tz.now.return_value = datetime(2015, 2, 12, 9, 5, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 12, 9, 5, tzinfo=dt_timezone.utc)
         management.call_command('cancel_unpaid_ticket_bookings')
         # emails are sent to user per cancelled booking and studio once for all
         # cancelled bookings
@@ -1768,7 +1770,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         for event
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         # set payment_due_date to None, otherwise advance_payment_required is
         # automatically set to True
@@ -1793,7 +1795,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         test unpaid bookings are not cancelled if no cost for event
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         self.ticketed_event.ticket_cost = 0
         self.ticketed_event.save()
@@ -1815,10 +1817,10 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             self, cancel_mock_tz, warn_mock_tz
     ):
         cancel_mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         warn_mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         self.assertFalse(self.unpaid.cancelled)
         self.unpaid.warning_sent = False
@@ -1869,14 +1871,14 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             self, mock_tz
     ):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, 0, tzinfo=timezone.utc
+            2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
         )
         self.ticketed_event.payment_due_date = None
         self.ticketed_event.payment_time_allowed = 8
         self.ticketed_event.save()
 
         self.unpaid.date_booked = datetime(
-            2015, 2, 11, 3, 0, tzinfo=timezone.utc
+            2015, 2, 11, 3, 0, tzinfo=dt_timezone.utc
         )
         self.unpaid.warning_sent = False
         self.unpaid.save()
@@ -1891,7 +1893,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
 
         # set date booked to >8 hrs ago
         self.unpaid.date_booked = datetime(
-            2015, 2, 11, 1, 59, tzinfo=timezone.utc
+            2015, 2, 11, 1, 59, tzinfo=dt_timezone.utc
         )
         self.unpaid.save()
         # self.unpaid.date_booked is within 4 hrs, so not cancelled
@@ -1910,13 +1912,13 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         test don't cancel or send emails for past events
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         self.assertFalse(self.unpaid.cancelled)
         self.assertFalse(self.paid.cancelled)
 
         # make date of event in the past
-        self.ticketed_event.date = datetime(2015, 2, 9, tzinfo=timezone.utc)
+        self.ticketed_event.date = datetime(2015, 2, 9, tzinfo=dt_timezone.utc)
         self.ticketed_event.save()
         self.assertTrue(timezone.now() > self.ticketed_event.date)
 
@@ -1935,7 +1937,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         ignore already cancelled bookings
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         self.unpaid.cancelled = True
         self.unpaid.save()
@@ -1953,7 +1955,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         ignore bookings for cancelled events
         """
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 10, tzinfo=timezone.utc
+            2015, 2, 11, 10, tzinfo=dt_timezone.utc
         )
         self.ticketed_event.cancelled = True
         self.ticketed_event.save()
@@ -1972,7 +1974,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         Avoid immediately cancelling bookings made within the cancellation
         period - don't cancel unless warned at least 2 hrs ago
         """
-        mock_tz.now.return_value = datetime(2015, 2, 11, 12, 0, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 12, 0, tzinfo=dt_timezone.utc)
 
         # self.ticketed_event payment due date 2015/2/11 23:59
 
@@ -1980,24 +1982,24 @@ class CancelUnpaidTicketBookingsTests(TestCase):
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
-            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=dt_timezone.utc),
             warning_sent=False
         )
         unpaid_warning_within_2_hrs = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
-            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=dt_timezone.utc),
             warning_sent=True,
-            date_warning_sent=datetime(2015, 2, 11, 10, 30, tzinfo=timezone.utc),
+            date_warning_sent=datetime(2015, 2, 11, 10, 30, tzinfo=dt_timezone.utc),
         )
         unpaid_warning_more_than_2_hrs_ago = baker.make(
             TicketBooking,
             ticketed_event=self.ticketed_event,
             paid=False,
-            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 10, 5, 30, tzinfo=dt_timezone.utc),
             warning_sent=True,
-            date_warning_sent=datetime(2015, 2, 11, 9, 30, tzinfo=timezone.utc),
+            date_warning_sent=datetime(2015, 2, 11, 9, 30, tzinfo=dt_timezone.utc),
         )
 
         self.assertFalse(unpaid_no_warning.cancelled)
@@ -2018,15 +2020,15 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         users are emailed per booking, studio just receives one summary
         email
         """
-        mock_tz.now.return_value = datetime(2015, 2, 11, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 10, tzinfo=dt_timezone.utc)
         for i in range(5):
             baker.make(
                 TicketBooking, ticketed_event=self.ticketed_event,
                 cancelled=False, paid=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                date_booked= datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
                 warning_sent=True,
-                date_warning_sent=datetime(2015, 2, 9, 2, tzinfo=timezone.utc),
+                date_warning_sent=datetime(2015, 2, 9, 2, tzinfo=dt_timezone.utc),
             )
         for booking in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=booking)
@@ -2055,7 +2057,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
     @patch('booking.management.commands.cancel_unpaid_ticket_bookings.timezone')
     def test_email_errors(self, mock_tz, mock_send):
         mock_send.side_effect = Exception('Error sending email')
-        mock_tz.now.return_value = datetime(2015, 2, 11, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 10, tzinfo=dt_timezone.utc)
 
         management.call_command('cancel_unpaid_ticket_bookings')
         # error emails are sent to user per cancelled booking (self.unpaid)
@@ -2086,15 +2088,15 @@ class CancelUnpaidTicketBookingsTests(TestCase):
         users are emailed per booking, studio only receives summary
         email if SEND_ALL_STUDIO_EMAILS setting is on
         """
-        mock_tz.now.return_value = datetime(2015, 2, 11, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 11, 10, tzinfo=dt_timezone.utc)
         for i in range(5):
             baker.make(
                 TicketBooking, ticketed_event=self.ticketed_event,
                 cancelled=False, paid=False,
                 user__email="unpaid_user{}@test.com".format(i),
-                date_booked= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                date_booked= datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
                 warning_sent=True,
-                date_warning_sent= datetime(2015, 2, 9, tzinfo=timezone.utc),
+                date_warning_sent= datetime(2015, 2, 9, tzinfo=dt_timezone.utc),
             )
         for booking in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=booking)
@@ -2114,16 +2116,16 @@ class CancelUnpaidTicketBookingsTests(TestCase):
     @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
     def test_delete_unconfirmed_ticket_bookings_after_1_hr(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 12, 0, tzinfo=timezone.utc
+            2015, 2, 11, 12, 0, tzinfo=dt_timezone.utc
         )
         unconfirmed_ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 2, 11, 10, 0, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc),
             purchase_confirmed=False
         )
         unconfirmed_ticket_booking1 = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=dt_timezone.utc),
             purchase_confirmed=False
         )
         for booking in TicketBooking.objects.all():
@@ -2157,14 +2159,14 @@ class CancelUnpaidTicketBookingsTests(TestCase):
     @patch('booking.management.commands.delete_unconfirmed_ticket_bookings.timezone')
     def test_no_ticket_bookings_to_delete(self, mock_tz):
         mock_tz.now.return_value = datetime(
-            2015, 2, 11, 12, 0, tzinfo=timezone.utc
+            2015, 2, 11, 12, 0, tzinfo=dt_timezone.utc
         )
         self.unpaid.paid = True
         self.unpaid.save()
 
         unconfirmed_ticket_booking = baker.make(
             TicketBooking, ticketed_event=self.ticketed_event,
-            date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=timezone.utc),
+            date_booked=datetime(2015, 2, 11, 11, 30, tzinfo=dt_timezone.utc),
             purchase_confirmed=False
         )
         baker.make(Ticket, ticket_booking=unconfirmed_ticket_booking)
@@ -2731,7 +2733,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
     @patch("booking.management.commands.create_free_monthly_blocks.timezone.now")
     def test_create_free_blocks(self, mock_now):
-        mock_now.return_value = datetime(2020, 6, 7, 10, 30, tzinfo=timezone.utc)
+        mock_now.return_value = datetime(2020, 6, 7, 10, 30, tzinfo=dt_timezone.utc)
         assert Block.objects.exists() is False
 
         group5 = Group.objects.create(name='free_5monthly_blocks')
@@ -2839,7 +2841,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         with patch(
                 'booking.management.commands.create_free_monthly_blocks'
                 '.timezone.now',
-                return_value=datetime(2016, 1, 15, tzinfo=timezone.utc)
+                return_value=datetime(2016, 1, 15, tzinfo=dt_timezone.utc)
             ):
             management.call_command('create_free_monthly_blocks')
 
@@ -2851,7 +2853,7 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         with patch(
                 'booking.management.commands.create_free_monthly_blocks'
                 '.timezone.now',
-                return_value=datetime(2016, 2, 1, tzinfo=timezone.utc)
+                return_value=datetime(2016, 2, 1, tzinfo=dt_timezone.utc)
             ):
             # blocks are not full, and are paid, so active unless expired
             assert [bl for bl in Block.objects.all() if bl.full] == []
@@ -2875,12 +2877,12 @@ class TestDeactivateRegularStudents(TestCase):
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_class_bookings_more_than_8_months_ago_deactivated(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
         user.user_permissions.add(self.permission)
         baker.make(
             Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc)
+            date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
         )
         management.call_command("deactivate_regular_students")
         user.refresh_from_db()
@@ -2888,17 +2890,17 @@ class TestDeactivateRegularStudents(TestCase):
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_only_pole_practice_in_past_8_months_deactivated(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
         user.user_permissions.add(self.permission)
         # pole class 8 months ago, pole practice less than 8 months
         baker.make(
             Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc)
+            date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
         )
         baker.make(
             Booking, user=user, event=self.pole_practice,
-            date_booked=datetime(2018, 4, 1, tzinfo=timezone.utc)
+            date_booked=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
         )
         management.call_command("deactivate_regular_students")
         user.refresh_from_db()
@@ -2906,17 +2908,17 @@ class TestDeactivateRegularStudents(TestCase):
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_class_bookings_in_past_8_months_not_deactivated(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
         user.user_permissions.add(self.permission)
         # one booking longer ago than 8 months
         baker.make(
             Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=timezone.utc)
+            date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
         )
         baker.make(
             Booking, user=user, event=self.pole_class1,
-            date_booked=datetime(2018, 4, 1, tzinfo=timezone.utc)
+            date_booked=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
         )
         management.call_command("deactivate_regular_students")
         user.refresh_from_db()
@@ -2924,7 +2926,7 @@ class TestDeactivateRegularStudents(TestCase):
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_no_class_bookings_deactivated(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
         user.user_permissions.add(self.permission)
         management.call_command("deactivate_regular_students")
@@ -2934,7 +2936,7 @@ class TestDeactivateRegularStudents(TestCase):
     @override_settings(REGULAR_STUDENT_WHITELIST_IDS=[2, 3, 4])
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_whitelist(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         whitelist_user = baker.make(User, email='foo@test.com', id=3)
         normal_user = baker.make(User, email='bar@test.com', id=9)
         for user in [whitelist_user, normal_user]:
@@ -2947,7 +2949,7 @@ class TestDeactivateRegularStudents(TestCase):
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_do_not_deactivate_superuser(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=timezone.utc)
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         super_user = baker.make(User, email='super@test.com', is_superuser=True)
         staff_user = baker.make(User, email='staff@test.com', is_staff=True)
         normal_user = baker.make(User, email='normal@test.com')

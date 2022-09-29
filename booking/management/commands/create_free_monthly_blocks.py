@@ -4,6 +4,8 @@ Will be run on 1st of each month as cron job
 '''
 import calendar
 import datetime
+from datetime import timezone as dt_timezone
+
 import re
 
 from django.contrib.auth.models import User, Group
@@ -43,8 +45,8 @@ class Command(BaseCommand):
 
             now = timezone.now()
             _, end_day = calendar.monthrange(now.year, now.month)
-            start = datetime.datetime(now.year, now.month, 1, 0, 0, tzinfo=timezone.utc)
-            end = datetime.datetime(now.year, now.month, end_day, tzinfo=timezone.utc)
+            start = datetime.datetime(now.year, now.month, 1, 0, 0, tzinfo=dt_timezone.utc)
+            end = datetime.datetime(now.year, now.month, end_day, tzinfo=dt_timezone.utc)
             end = Block.get_end_of_day(end)
             for user in users:
                 block, created = Block.objects.get_or_create(

@@ -1,10 +1,11 @@
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils import timezone
 
 from booking.models import Block
 from common.tests.helpers import _create_session
@@ -91,13 +92,13 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
 
         expired_blocks = baker.make_recipe(
             'booking.block', paid=True,
-            start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2000, 1, 1, tzinfo=dt_timezone.utc),
             block_type__duration=1,
             _quantity=3
         )
         unpaid_expired_blocks = baker.make_recipe(
             'booking.block', paid=False,
-            start_date=datetime(2000, 1, 1, tzinfo=timezone.utc),
+            start_date=datetime(2000, 1, 1, tzinfo=dt_timezone.utc),
             block_type__duration=1,
             _quantity=3
         )

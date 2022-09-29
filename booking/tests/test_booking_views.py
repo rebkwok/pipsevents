@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from unittest.mock import patch
 from model_bakery import baker
 
@@ -8,7 +10,7 @@ from urllib.parse import urlsplit
 from django.conf import settings
 from django.core import mail
 from django.urls import reverse
-from django.test import override_settings, TestCase, RequestFactory
+from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -132,14 +134,14 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         4) cancellation period --> show time before event datetime
         """
 
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
 
         Event.objects.all().delete()
         Booking.objects.all().delete()
         event = baker.make_recipe(
             'booking.future_PC', advance_payment_required=True, cost=10,
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
-            payment_due_date=datetime(2015, 2, 12, 16, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
+            payment_due_date=datetime(2015, 2, 12, 16, 0, tzinfo=dt_timezone.utc),
         )
         baker.make_recipe('booking.booking', user=self.user, event=event)
 
@@ -161,19 +163,19 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         4) cancellation period --> show time before event datetime
         """
 
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
 
         Event.objects.all().delete()
         Booking.objects.all().delete()
         event = baker.make_recipe(
             'booking.future_PC', advance_payment_required=True,
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_time_allowed=6, cost=10
         )
         booking = baker.make_recipe(
             'booking.booking', user=self.user, event=event
         )
-        booking.date_booked = datetime(2015, 1, 18, tzinfo=timezone.utc)
+        booking.date_booked = datetime(2015, 1, 18, tzinfo=dt_timezone.utc)
         booking.save()
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(self.url)
@@ -182,10 +184,10 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(
             bookingform['due_date_time'],
-            datetime(2015, 1, 18, 6, 0, tzinfo=timezone.utc)
+            datetime(2015, 1, 18, 6, 0, tzinfo=dt_timezone.utc)
         )
 
-        booking.date_rebooked = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        booking.date_rebooked = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
         booking.save()
         resp = self.client.get(self.url)
 
@@ -193,7 +195,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(
             bookingform['due_date_time'],
-            datetime(2015, 2, 1, 6, 0, tzinfo=timezone.utc)
+            datetime(2015, 2, 1, 6, 0, tzinfo=dt_timezone.utc)
         )
 
     @patch('booking.views.booking_views.timezone')
@@ -207,13 +209,13 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         4) cancellation period --> show time before event datetime
         """
 
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
 
         Event.objects.all().delete()
         Booking.objects.all().delete()
         event = baker.make_recipe(
             'booking.future_PC', advance_payment_required=True,
-            date=datetime(2015, 2, 14, 18, 0, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             cancellation_period=24, cost=10
         )
         baker.make_recipe(
@@ -226,7 +228,7 @@ class BookingListViewTests(TestSetupMixin, TestCase):
         bookingform = resp.context_data['bookingformlist'][0]
         self.assertEqual(
             bookingform['due_date_time'],
-            datetime(2015, 2, 13, 18, 0, tzinfo=timezone.utc)
+            datetime(2015, 2, 13, 18, 0, tzinfo=dt_timezone.utc)
         )
 
     def test_paid_status_display(self):
@@ -610,7 +612,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe('booking.future_PC')
         booking = baker.make_recipe(
             'booking.booking', event=event, user=self.user, paid=False,
-            date_rebooked=datetime(2018, 1, 1, tzinfo=timezone.utc)
+            date_rebooked=datetime(2018, 1, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(Booking.objects.all().count(), 1)
 
@@ -729,10 +731,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         Test trying to cancel after cancellation period
         Cancellation is allowed but shows warning message
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 2, tzinfo=dt_timezone.utc),
             cancellation_period=48
         )
         booking = baker.make_recipe(
@@ -756,10 +758,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         """
         Test cancellation after cancellation period sets no_show to True
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, tzinfo=dt_timezone.utc)
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 2, tzinfo=dt_timezone.utc),
             cancellation_period=48
         )
         booking = baker.make_recipe(
@@ -785,17 +787,17 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         Test cancellation after cancellation period for block paid is allowed for
         15 mins after booking time
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, 10, 0, tzinfo=dt_timezone.utc)
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 2, tzinfo=dt_timezone.utc),
             cancellation_period=48
         )
         block = baker.make_recipe('booking.block_5', user=self.user, paid=True)
         # booking made 10 mins ago
         booking = baker.make_recipe(
             'booking.booking', event=event, user=self.user, block=block, paid=True,
-            date_booked=datetime(2015, 2, 1, 9, 50, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 1, 9, 50, tzinfo=dt_timezone.utc)
         )
 
         url = reverse('booking:delete_booking', args=[booking.id])
@@ -817,7 +819,7 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         # block booking made 20 mins ago
         booking = baker.make_recipe(
             'booking.booking', event=event, user=self.user, block=block, paid=True,
-            date_booked=datetime(2015, 2, 1, 9, 40, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 1, 9, 40, tzinfo=dt_timezone.utc)
         )
         url = reverse('booking:delete_booking', args=[booking.id])
         resp = self.client.post(url, follow=True)
@@ -839,18 +841,18 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         Test cancellation after cancellation period for block paid is allowed for
         15 mins after booking time
         """
-        mock_tz.now.return_value = datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 2, 1, 10, 0, tzinfo=dt_timezone.utc)
         event = baker.make_recipe(
             'booking.future_EV',
-            date=datetime(2015, 2, 2, tzinfo=timezone.utc),
+            date=datetime(2015, 2, 2, tzinfo=dt_timezone.utc),
             cancellation_period=48
         )
         block = baker.make_recipe('booking.block_5', user=self.user, paid=True)
         # booking made 60 mins ago, rebooked 10 mins ago
         booking = baker.make_recipe(
             'booking.booking', event=event, user=self.user, block=block, paid=True,
-            date_booked=datetime(2015, 2, 1, 9, 0, tzinfo=timezone.utc),
-            date_rebooked=datetime(2015, 2, 1, 9, 50, tzinfo=timezone.utc)
+            date_booked=datetime(2015, 2, 1, 9, 0, tzinfo=dt_timezone.utc),
+            date_rebooked=datetime(2015, 2, 1, 9, 50, tzinfo=dt_timezone.utc)
         )
 
         url = reverse('booking:delete_booking', args=[booking.id])
@@ -2015,7 +2017,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         case an admin has added additional blocks, ensure that the one with the
         earlier expiry date is used
         """
-        mock_now = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_now = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
         mock_tz1.now.return_value = mock_now
 
@@ -2031,11 +2033,11 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         )
         block1 = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
-            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 2, tzinfo=dt_timezone.utc)
         )
         block2 = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
-            start_date=datetime(2015, 1, 1, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         # block1 was created first, but block2 has earlier expiry date so
         # should be used first
@@ -2054,7 +2056,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         booking.paid = False
         booking.payment_confirmed = False
         booking.save()
-        block2.start_date = datetime(2015, 1, 3, tzinfo=timezone.utc)
+        block2.start_date = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
         block2.save()
 
         self._post_response(self.user, booking, form_data)
@@ -2070,7 +2072,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         available; however, if this is submitted, make the booking without
         the block
         """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=timezone.utc)
+        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
         event_type = baker.make_recipe('booking.event_type_PC')
         event_type1 = baker.make_recipe('booking.event_type_PC')
 
@@ -2085,7 +2087,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         )
         block = baker.make_recipe(
             'booking.block', block_type=blocktype, user=self.user, paid=True,
-            start_date=datetime(2015, 1, 2, tzinfo=timezone.utc)
+            start_date=datetime(2015, 1, 2, tzinfo=dt_timezone.utc)
         )
 
         self.assertTrue(block.active_block())

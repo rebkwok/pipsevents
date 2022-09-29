@@ -1,6 +1,8 @@
 from django.test import TestCase
-from django.utils import timezone
+
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 
 from booking.models import Event
@@ -12,7 +14,7 @@ class UtilsTests(TestCase):
 
     def test_create_classes(self):
         # create classes for a given date (22/3/16 is a Tues)
-        date = datetime(2016, 3, 22, tzinfo=timezone.utc)
+        date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc)
         self.assertEqual(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays
@@ -26,7 +28,7 @@ class UtilsTests(TestCase):
 
     def test_create_classes_with_existing_classes(self):
         # create classes for a given date (22/3/16 is a Tues)
-        date = datetime(2016, 3, 22, tzinfo=timezone.utc)
+        date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc)
         self.assertEqual(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays
@@ -50,8 +52,8 @@ class UtilsTests(TestCase):
         """
         create classes between given dates
         """
-        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tues
-        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # wed
+        start_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tues
+        end_date = datetime(2016, 3, 23, tzinfo=dt_timezone.utc) # wed
         self.assertEqual(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
@@ -80,8 +82,8 @@ class UtilsTests(TestCase):
         """
         create classes between given dates
         """
-        start_date = datetime(2016, 3, 21, tzinfo=timezone.utc) # monday
-        end_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
+        start_date = datetime(2016, 3, 21, tzinfo=dt_timezone.utc) # monday
+        end_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tuesday
         self.assertEqual(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
@@ -105,8 +107,8 @@ class UtilsTests(TestCase):
         self.assertEqual(tue_classes.count(), 3)
 
         # upload timetable with overlapping dates
-        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
-        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
+        start_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tuesday
+        end_date = datetime(2016, 3, 23, tzinfo=dt_timezone.utc) # Wednesday
         upload_timetable(start_date, end_date, session_ids)
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
@@ -129,8 +131,8 @@ class UtilsTests(TestCase):
         location on existing classes and doesn't create duplicates if the
         same class exists with a minor difference
         """
-        start_date = datetime(2016, 3, 21, tzinfo=timezone.utc) # monday
-        end_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
+        start_date = datetime(2016, 3, 21, tzinfo=dt_timezone.utc) # monday
+        end_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tuesday
         self.assertEqual(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays
@@ -160,8 +162,8 @@ class UtilsTests(TestCase):
         tue_class.save()
 
         # upload timetable with overlapping dates
-        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
-        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
+        start_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tuesday
+        end_date = datetime(2016, 3, 23, tzinfo=dt_timezone.utc) # Wednesday
         upload_timetable(start_date, end_date, session_ids)
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
@@ -185,8 +187,8 @@ class UtilsTests(TestCase):
         tue_class.save()
 
         # upload timetable with overlapping dates
-        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tuesday
-        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # Wednesday
+        start_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tuesday
+        end_date = datetime(2016, 3, 23, tzinfo=dt_timezone.utc) # Wednesday
         upload_timetable(start_date, end_date, session_ids)
         tue_classes = Event.objects.filter(
             date__gte=self._start_of_day(start_date),
@@ -204,8 +206,8 @@ class UtilsTests(TestCase):
         self.assertEqual(Event.objects.all().count(), 10)
 
     def upload_timetable_specified_sessions_only(self):
-        start_date = datetime(2016, 3, 22, tzinfo=timezone.utc) # tues
-        end_date = datetime(2016, 3, 23, tzinfo=timezone.utc) # wed
+        start_date = datetime(2016, 3, 22, tzinfo=dt_timezone.utc) # tues
+        end_date = datetime(2016, 3, 23, tzinfo=dt_timezone.utc) # wed
         self.assertEqual(Event.objects.all().count(), 0)
 
         # create some timetabled sessions for mondays, tuesdays and Wednesdays

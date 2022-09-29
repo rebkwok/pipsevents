@@ -1,9 +1,9 @@
 import argparse
 import csv
 from datetime import datetime
-from django.utils import timezone
-from django.core import management
-from django.core.management.base import BaseCommand, CommandError
+from datetime import timezone as dt_timezone
+
+from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 
 from booking.models import Block, BlockType, Booking, Event
@@ -62,7 +62,7 @@ class Command(BaseCommand):
                 )
                 block_start_date = datetime.strptime(
                     line[4], '%d-%b-%Y'
-                ).replace(tzinfo=timezone.utc)
+                ).replace(tzinfo=dt_timezone.utc)
                 block, block_created = Block.objects.get_or_create(
                     block_type=class_block_type,
                     user=user,
@@ -138,7 +138,7 @@ class Command(BaseCommand):
                 )
                 block_start_date = datetime.strptime(
                     line[10], '%d-%b-%Y'
-                ).replace(tzinfo=timezone.utc)
+                ).replace(tzinfo=dt_timezone.utc)
                 block, block_created = Block.objects.get_or_create(
                     block_type=practice_block_type,
                     user=user,

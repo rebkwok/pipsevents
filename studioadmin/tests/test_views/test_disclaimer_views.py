@@ -1,4 +1,6 @@
 import datetime
+from datetime import timezone as dt_timezone
+
 import pytest
 from unittest.mock import patch
 
@@ -10,7 +12,6 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.utils import timezone
 
 from accounts.models import DisclaimerContent, NonRegisteredDisclaimer, OnlineDisclaimer
 from common.tests.helpers import _create_session, format_content
@@ -394,7 +395,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         self.assertEqual([disclaimer.id for disclaimer in disclaimers], [])
         self.assertEqual(resp.context_data['empty_search_message'], 'No disclaimers found.')
 
-    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=dt_timezone.utc))
     def test_all_disclaimers_shown_in_ascending_event_date_order(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.get(self.url)
@@ -405,7 +406,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
         )
 
-    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=dt_timezone.utc))
     def test_disclaimer_name_search(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'search_submitted': '', 'search': 'AUser'})
@@ -442,7 +443,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer2.id, self.disclaimer3.id]
         )
 
-    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=dt_timezone.utc))
     def test_disclaimer_reset_search(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'reset': '', 'search_date': '07-Mar-2019', 'search': 'foo'})
@@ -452,7 +453,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
             [self.disclaimer4.id, self.disclaimer2.id, self.disclaimer3.id, self.disclaimer1.id]
         )
 
-    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=timezone.utc))
+    @patch('studioadmin.views.disclaimers.timezone.now', return_value = datetime.datetime(2019, 3, 1, tzinfo=dt_timezone.utc))
     def test_disclaimer_search_submitted_no_search_terms(self, mock_now):
         self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(self.url, {'search_submitted': '', 'search_date': '', 'search': ''})
@@ -661,7 +662,7 @@ class DisclamerContentUpdateViewTests(TestPermissionMixin, TestCase):
             medical_treatment_terms='draft medical terms',
             over_18_statement='test',
             is_draft=True,
-            issue_date=datetime.datetime(2020, 1, 1, tzinfo=timezone.utc),
+            issue_date=datetime.datetime(2020, 1, 1, tzinfo=dt_timezone.utc),
             version=None
         )
         self.url = reverse('studioadmin:disclaimer_content_edit', args=(self.content.version,))

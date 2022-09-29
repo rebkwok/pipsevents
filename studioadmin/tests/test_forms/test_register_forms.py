@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 
 from django.test import TestCase
-from django.utils import timezone
 
 from studioadmin.forms import RegisterDayForm
 
@@ -27,7 +28,7 @@ class RegisterDayFormTests(TestCase):
     def test_events(self):
         events = baker.make_recipe(
             'booking.future_PC',
-            date=datetime(year=2015, month=9, day=7, tzinfo=timezone.utc), _quantity=3)
+            date=datetime(year=2015, month=9, day=7, tzinfo=dt_timezone.utc), _quantity=3)
         form = RegisterDayForm({'register_date': 'Mon 07 Sep 2015'}, events=events)
 
         eventfield = form.fields['select_events']
@@ -39,13 +40,13 @@ class RegisterDayFormTests(TestCase):
         events = baker.make_recipe(
             'booking.future_PC',
             date=datetime(
-                year=2015, month=9, day=7, tzinfo=timezone.utc
+                year=2015, month=9, day=7, tzinfo=dt_timezone.utc
             ), _quantity=3
         )
         baker.make_recipe(
             'booking.future_PC',
             date=datetime(
-                year=2015, month=9, day=6, tzinfo=timezone.utc
+                year=2015, month=9, day=6, tzinfo=dt_timezone.utc
             ), _quantity=3
         )
         form = RegisterDayForm(
@@ -61,13 +62,13 @@ class RegisterDayFormTests(TestCase):
         events = baker.make_recipe(
             'booking.future_PC',
             date=datetime(
-                year=2015, month=9, day=7, tzinfo=timezone.utc), _quantity=3
+                year=2015, month=9, day=7, tzinfo=dt_timezone.utc), _quantity=3
         )
         ext_instructor_event = baker.make_recipe(
             'booking.future_PC',
             external_instructor=True,
             date=datetime(
-                year=2015, month=9, day=7, tzinfo=timezone.utc)
+                year=2015, month=9, day=7, tzinfo=dt_timezone.utc)
         )
 
         form = RegisterDayForm(

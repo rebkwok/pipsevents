@@ -1,5 +1,7 @@
 import os
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from unittest.mock import patch
 
 from model_bakery import baker
@@ -7,7 +9,6 @@ from model_bakery import baker
 from django.contrib.auth.models import Group
 from django.urls import reverse
 from django.test import TestCase
-from django.utils import timezone
 
 from accounts.models import DisclaimerContent
 from activitylog.models import ActivityLog
@@ -77,12 +78,12 @@ class BookingtagTests(TestSetupMixin, TestCase):
         # activitylog in BST
         baker.make(
             ActivityLog, log="Test log",
-            timestamp=datetime(2016, 7, 1, 18, 0, tzinfo=timezone.utc)
+            timestamp=datetime(2016, 7, 1, 18, 0, tzinfo=dt_timezone.utc)
         )
         # activitylog in GMT (same as UTC)
         baker.make(
             ActivityLog, log="Test log",
-            timestamp=datetime(2016, 1, 1, 18, 0, tzinfo=timezone.utc)
+            timestamp=datetime(2016, 1, 1, 18, 0, tzinfo=dt_timezone.utc)
         )
 
         self.client.login(username=self.user.username, password='test')
@@ -162,8 +163,8 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_temporary_banner_on(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
         os.environ['TEMP_BANNER'] = 'Banner text'
         os.environ['BANNER_START'] = '01-Jan-2015'
@@ -177,8 +178,8 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_temporary_banner_off(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
         os.environ['TEMP_BANNER'] = 'Banner text'
         os.environ['BANNER_START'] = '04-Jan-2015'
@@ -192,8 +193,8 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_temporary_banner_no_start_date(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
         os.environ['TEMP_BANNER'] = 'Banner text'
         os.environ['BANNER_END'] = '15-Jan-2015'
@@ -206,8 +207,8 @@ class BookingtagTests(TestSetupMixin, TestCase):
 
     @patch('booking.templatetags.bookingtags.timezone')
     def test_temporary_banner_no_end_date(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=timezone.utc)
-        mock_tz.utc = timezone.utc
+        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
+        mock_tz.utc = dt_timezone.utc
 
         os.environ['TEMP_BANNER'] = 'Banner text'
         os.environ['BANNER_START'] = '01-Jan-2015'

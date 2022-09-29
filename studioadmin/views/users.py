@@ -1,4 +1,6 @@
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 import logging
 
 from django.conf import settings
@@ -9,9 +11,9 @@ from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from django.db.models import Count, Q
-from django.template.loader import get_template, render_to_string
+from django.template.loader import get_template
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponse, HttpResponseRedirect, \
+from django.shortcuts import HttpResponseRedirect, \
     get_object_or_404, render
 from django.views.generic import CreateView, ListView, UpdateView
 from django.utils import timezone
@@ -132,14 +134,14 @@ def users_status(request):
         start_date = timezone.now().date().replace(day=1)
         start_date_str = start_date.strftime(date_format)
     else:
-        start_date = datetime.strptime(start_date_str, date_format).replace(tzinfo=timezone.utc)
+        start_date = datetime.strptime(start_date_str, date_format).replace(tzinfo=dt_timezone.utc)
 
     if not end_date_str:
         # default to today
         end_date = timezone.now().date()
         end_date_str = end_date.strftime(date_format)
     else:
-        end_date = datetime.strptime(end_date_str, date_format).replace(tzinfo=timezone.utc)
+        end_date = datetime.strptime(end_date_str, date_format).replace(tzinfo=dt_timezone.utc)
 
     form = AttendanceSearchForm(
         {"start_date": start_date_str, "end_date": end_date_str}

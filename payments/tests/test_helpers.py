@@ -1,4 +1,6 @@
 from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 
 from django.test import TestCase
@@ -39,11 +41,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
         user = baker.make_recipe('booking.user', username="testuser")
         booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
-            event__date=datetime(2016, 1, 1, 17, 30, tzinfo=timezone.utc)
+            event__date=datetime(2016, 1, 1, 17, 30, tzinfo=dt_timezone.utc)
         )
         booking1 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
-            event__date=datetime(2016, 1, 2, 17, 30, tzinfo=timezone.utc)
+            event__date=datetime(2016, 1, 2, 17, 30, tzinfo=dt_timezone.utc)
         )
 
         invoice1 = helpers.create_multibooking_paypal_transaction(
@@ -52,11 +54,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
 
         booking2 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
-            event__date=datetime(2016, 1, 3, 17, 30, tzinfo=timezone.utc)
+            event__date=datetime(2016, 1, 3, 17, 30, tzinfo=dt_timezone.utc)
         )
         booking3 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
-            event__date=datetime(2016, 1, 4, 17, 30, tzinfo=timezone.utc)
+            event__date=datetime(2016, 1, 4, 17, 30, tzinfo=dt_timezone.utc)
         )
 
         invoice2 = helpers.create_multibooking_paypal_transaction(
@@ -200,11 +202,11 @@ class TestHelpers(PatchRequestMixin, TestCase):
         user = baker.make_recipe('booking.user', username="testuser")
         booking = baker.make_recipe(
             'booking.booking', user=user, event__name='test event',
-            event__date=datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
+            event__date=datetime(2015, 2, 1, 10, 0, tzinfo=dt_timezone.utc)
         )
         booking1 = baker.make_recipe(
             'booking.booking', user=user, event__name='test event1',
-            event__date=datetime(2015, 2, 1, 10, 0, tzinfo=timezone.utc)
+            event__date=datetime(2015, 2, 1, 10, 0, tzinfo=dt_timezone.utc)
         )
         booking_txn = helpers.create_booking_paypal_transaction(user, booking)
         self.assertEqual(booking_txn.booking, booking)

@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime, timedelta
-from django.utils import timezone
+from datetime import timezone as dt_timezone
+
 from django.conf import settings
 from django.core.mail.message import EmailMultiAlternatives
 from django.template.loader import get_template
@@ -32,7 +33,7 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         reactivation_date = datetime.strptime(options["reactivation_date"], "%d-%b-%Y") if options["reactivation_date"] else None
         if reactivation_date:
-            reactivation_date = reactivation_date.replace(tzinfo=timezone.utc)
+            reactivation_date = reactivation_date.replace(tzinfo=dt_timezone.utc)
         if reactivate and reactivation_date is None:
             raise Exception("Reactivating blocks: reactivation date is required")
         with open(filepath, "r") as infile:
@@ -154,7 +155,7 @@ class Command(BaseCommand):
                         )
 
                     else:
-                        exp = block_to_reactivate["new_expiry_date"].replace(tzinfo=timezone.utc)
+                        exp = block_to_reactivate["new_expiry_date"].replace(tzinfo=dt_timezone.utc)
                         block_type, _ = BlockType.objects.get_or_create(
                             event_type=event_type,
                             identifier="Reactivated",
