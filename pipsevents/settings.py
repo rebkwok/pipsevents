@@ -111,17 +111,16 @@ if TESTING or env('LOCAL'):  # use local cache for tests
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'test-cache',
+            'LOCATION': 'test-pips',
         }
     }
 else:
     CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
-        'LOCATION': '127.0.0.1:112211',
-        'KEY_PREFIX': 'pips'
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'pips',
+        }
     }
-}
 
 
 AUTHENTICATION_BACKENDS = (
