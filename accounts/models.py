@@ -315,7 +315,7 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         """
         date_signed = self.date_updated if self.date_updated else self.date
         return self.version == DisclaimerContent.current_version() and (
-                    date_signed + timedelta(days=365)
+            date_signed + timedelta(days=365)
         ) > timezone.now()
 
     def can_toggle_expiry(self):

@@ -4,6 +4,8 @@ from django.contrib.auth.models import Group
 from django.contrib import messages
 from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView, FormView
+from django.utils.decorators import method_decorator
+from django.views.decorators.debug import sensitive_variables, sensitive_post_parameters
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.template.loader import get_template
@@ -24,7 +26,16 @@ from common.mailchimp_utils import update_mailchimp
 
 @login_required
 def profile(request):
-    disclaimer = has_active_disclaimer(request.user)
+    # don't use the cache here as sometimes just after completing a disclaimer
+    # we seem to miss the cache
+    disclaimer = any(
+        [
+            True for od in list(request.user.online_disclaimer.all())
+            if od.is_active
+        ]
+    )
+    if not disclaimer and hasattr(request.user, "print_disclaimer"):
+        disclaimer = request.user.print_disclaimer.is_active
     expired_disclaimer = has_expired_disclaimer(request.user)
 
     return render(
@@ -104,6 +115,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
     form_class = DisclaimerForm
     template_name = 'account/disclaimer_form.html'
 
+    @method_decorator(sensitive_post_parameters())
     def dispatch(self, request, *args, **kwargs):
         if request.method == 'POST' and not request.user.is_anonymous:
             if has_active_disclaimer(request.user):
@@ -127,6 +139,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
         form_kwargs["user"] = self.request.user
         return form_kwargs
 
+    @method_decorator(sensitive_variables("password"))
     def form_valid(self, form):
         disclaimer = form.save(commit=False)
         disclaimer.version = form.disclaimer_content.version
@@ -163,6 +176,7 @@ class NonRegisteredDisclaimerCreateView(CreateView):
     form_class = NonRegisteredDisclaimerForm
     template_name = 'account/nonregistered_disclaimer_form.html'
 
+    @method_decorator(sensitive_variables("disclaimer", "email"))
     def form_valid(self, form):
         # email user
         disclaimer = form.save(commit=False)
@@ -189,6 +203,7 @@ class NonRegisteredDisclaimerCreateView(CreateView):
 
 def nonregistered_disclaimer_submitted(request):
     return render(request, 'account/nonregistered_disclaimer_created.html')
+
 
 def data_privacy_policy(request):
     return render(
@@ -330,6 +345,3 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
 
     def get_success_url(self, next):
         return HttpResponseRedirect(next)
-
-
-
