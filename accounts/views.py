@@ -119,7 +119,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
     def dispatch(self, request, *args, **kwargs):
         if request.method == 'POST' and not request.user.is_anonymous:
             if has_active_disclaimer(request.user):
-                return HttpResponseRedirect(reverse('disclaimer_form'))
+                return HttpResponseRedirect(reverse('profile'))
         return super(DisclaimerCreateView, self).dispatch(
             request, *args, **kwargs
         )

@@ -18,3 +18,4 @@ accounts/disclaimers.bu
 accounts/test_file.txt
 .coverage
 provision/.vaultpass
+pipsevents.log
