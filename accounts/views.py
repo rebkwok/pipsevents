@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.contrib import messages
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.shortcuts import render, HttpResponseRedirect, get_object_or_404
 from django.views.generic import UpdateView, CreateView, FormView
 from django.utils.decorators import method_decorator
@@ -17,7 +19,7 @@ from allauth.account.views import EmailView, LoginView
 from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
-from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, \
+from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_disclaimer_cache_key, \
     has_active_data_privacy_agreement, has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from booking.email_helpers import send_mail
@@ -119,7 +121,7 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
     def dispatch(self, request, *args, **kwargs):
         if request.method == 'POST' and not request.user.is_anonymous:
             if has_active_disclaimer(request.user):
-                return HttpResponseRedirect(reverse('profile'))
+                return HttpResponseRedirect(reverse('profile:profile'))
         return super(DisclaimerCreateView, self).dispatch(
             request, *args, **kwargs
         )
@@ -160,7 +162,14 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
         if self.request.user.check_password(password):
             disclaimer.user = self.request.user
-            disclaimer.save()
+            try:
+                disclaimer.save()
+            except ValidationError as error:
+                if "Active disclaimer already exists" in str(error):
+                    messages.info(self.request, f"You already have a completed disclaimer")
+                    cache.set(active_disclaimer_cache_key(disclaimer.user), True, timeout=600)
+                    return HttpResponseRedirect(reverse("profile:profile"))
+                raise
         else:
             form = DisclaimerForm(form.data, user=self.request.user)
             return render(self.request, self.template_name, {'form':form, 'password_error': 'Password is incorrect'})
@@ -169,7 +178,6 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse('profile:profile')
-
 
 class NonRegisteredDisclaimerCreateView(CreateView):
 
