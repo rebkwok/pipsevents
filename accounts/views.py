@@ -1,3 +1,4 @@
+from sqlite3 import IntegrityError
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
@@ -19,7 +20,7 @@ from allauth.account.views import EmailView, LoginView
 from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
-from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_disclaimer_cache_key, \
+from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_data_privacy_cache_key, active_disclaimer_cache_key, \
     has_active_data_privacy_agreement, has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from booking.email_helpers import send_mail
@@ -308,9 +309,16 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):        
         user = self.request.user
-        SignedDataPrivacy.objects.create(
-            user=user, version=form.data_privacy_policy.version
-        )
+        
+        try:
+            SignedDataPrivacy.objects.create(
+                user=user, version=form.data_privacy_policy.version
+            )
+        except IntegrityError:
+            cache.set(
+                active_data_privacy_cache_key(self.user), True, timeout=600
+            )
+            return HttpResponseRedirect(self.get_success_url(form))
 
         mailing_list = form.cleaned_data.get('mailing_list') == 'yes'
 
@@ -348,8 +356,9 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
                     user.username
                 )
             )
-        next_url = form.next_url or reverse('booking:lessons')
-        return self.get_success_url(next_url)
+        return HttpResponseRedirect(self.get_success_url(form))
 
-    def get_success_url(self, next):
-        return HttpResponseRedirect(next)
+    def get_success_url(self, form=None):
+        if form and form.next_url:
+            return form.next_url
+        return reverse('booking:lessons')
