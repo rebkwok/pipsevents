@@ -11,7 +11,7 @@ from django.test import RequestFactory
 from django.utils.html import strip_tags
 
 from accounts.models import DisclaimerContent, PrintDisclaimer, \
-    SignedDataPrivacy, DataPrivacyPolicy, has_active_data_privacy_agreement
+    SignedDataPrivacy, DataPrivacyPolicy
 
 
 def set_up_fb():
@@ -50,7 +50,7 @@ def _add_user_email_addresses(model):
 
 
 def make_data_privacy_agreement(user):
-    if not has_active_data_privacy_agreement(user):
+    if not SignedDataPrivacy.has_active_agreement(user):
         if DataPrivacyPolicy.current_version() == 0:
             baker.make(
                 DataPrivacyPolicy, content='Foo', version=1

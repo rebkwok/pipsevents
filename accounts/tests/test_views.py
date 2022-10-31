@@ -14,7 +14,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp, SocialAccount
 
 from ..models import DataPrivacyPolicy, DisclaimerContent, OnlineDisclaimer, \
-    NonRegisteredDisclaimer, has_active_data_privacy_agreement
+    NonRegisteredDisclaimer, SignedDataPrivacy
 from ..views import ProfileUpdateView, DisclaimerCreateView
 from common.tests.helpers import _create_session, Any, \
     assert_mailchimp_post_data, TestSetupMixin, set_up_fb
@@ -733,37 +733,37 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
 
     def test_user_already_has_active_signed_agreement(self):
         # dp agreement is created in setup
-        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        assert SignedDataPrivacy.has_active_agreement(self.user)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:lessons'))
 
         # make new policy
         baker.make(DataPrivacyPolicy, version=None)
-        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        assert not SignedDataPrivacy.has_active_agreement(self.user)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_create_new_agreement(self):
         # make new policy
         baker.make(DataPrivacyPolicy, version=None)
-        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        assert not SignedDataPrivacy.has_active_agreement(self.user)
 
         self.client.post(
             self.url, data={'confirm': True, 'mailing_list': 'no'}
         )
-        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        assert SignedDataPrivacy.has_active_agreement(self.user)
         self.assertFalse(self.user.subscribed())
 
     def test_create_new_agreement_with_subscribe(self):
         # make new policy
         baker.make(DataPrivacyPolicy, version=None)
-        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        assert not SignedDataPrivacy.has_active_agreement(self.user)
 
         self.client.post(
             self.url, data={'confirm': True, 'mailing_list': 'yes'}
         )
-        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        assert SignedDataPrivacy.has_active_agreement(self.user)
         self.assertTrue(self.user.subscribed())
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'subscribed'
@@ -772,13 +772,13 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
     def test_create_new_agreement_with_unsubscribe(self):
         # make new policy
         baker.make(DataPrivacyPolicy, version=None)
-        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        assert not SignedDataPrivacy.has_active_agreement(self.user)
 
         self.subscribed.user_set.add(self.user)
         self.client.post(
             self.url, data={'confirm': True, 'mailing_list': 'no'}
         )
-        self.assertTrue(has_active_data_privacy_agreement(self.user))
+        assert SignedDataPrivacy.has_active_agreement(self.user)
         self.assertFalse(self.user.subscribed())
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'unsubscribed'

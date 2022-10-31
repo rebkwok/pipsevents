@@ -170,17 +170,12 @@ class SignedDataPrivacy(models.Model):
                 log="Signed data privacy policy agreement created: {}".format(self.__str__())
             )
         super(SignedDataPrivacy, self).save()
-        # cache agreement
-        if self.is_active:
-            cache.set(
-                active_data_privacy_cache_key(self.user), True, timeout=600
-            )
 
-    def delete(self, using=None, keep_parents=False):
-        # clear cache if this is the active signed agreement
-        if self.is_active:
-            cache.delete(active_data_privacy_cache_key(self.user))
-        super(SignedDataPrivacy, self).delete(using, keep_parents)
+    @classmethod
+    def has_active_agreement(cls, user):
+        return user.data_privacy_agreement.filter(
+            version=DataPrivacyPolicy.current_version()
+        ).exists()
 
 
 @has_readonly_fields
@@ -542,25 +537,3 @@ def has_expired_disclaimer(user):
     else:
         has_disclaimer = bool(cache.get(key))
     return has_disclaimer
-
-
-def active_data_privacy_cache_key(user):
-    current_version = DataPrivacyPolicy.current_version()
-    return 'user_{}_active_data_privacy_agreement_version_{}'.format(
-        user.id, current_version
-    )
-
-
-def has_active_data_privacy_agreement(user):
-    key = active_data_privacy_cache_key(user)
-    if cache.get(key) is None:
-        has_active_agreement = bool(
-            [
-                True for dp in user.data_privacy_agreement.all()
-                if dp.is_active
-            ]
-        )
-        cache.set(key, has_active_agreement, timeout=600)
-    else:
-        has_active_agreement = bool(cache.get(key))
-    return has_active_agreement

@@ -13,8 +13,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import AccountBan, CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
-    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, has_active_data_privacy_agreement, \
-    active_data_privacy_cache_key
+    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer
 from common.tests.helpers import make_data_privacy_agreement
 
 
@@ -333,19 +332,19 @@ class SignedDataPrivacyModelTests(TestCase):
     def setUp(self):
         self.user = baker.make_recipe('booking.user')
 
-    def test_cached_on_save(self):
+    def test_has_active_agreement(self):
         make_data_privacy_agreement(self.user)
-        self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))
+        assert SignedDataPrivacy.has_active_agreement(self.user)
 
         DataPrivacyPolicy.objects.create(content='New Foo')
-        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        assert not SignedDataPrivacy.has_active_agreement(self.user)
 
     def test_delete(self):
         make_data_privacy_agreement(self.user)
-        self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))
+        assert SignedDataPrivacy.has_active_agreement(self.user)
 
         SignedDataPrivacy.objects.get(user=self.user).delete()
-        self.assertIsNone(cache.get(active_data_privacy_cache_key(self.user)))
+        assert not SignedDataPrivacy.has_active_agreement(self.user)
 
 
 class AccountBanModelTests(TestCase):

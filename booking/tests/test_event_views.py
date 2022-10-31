@@ -16,8 +16,7 @@ from django.contrib.auth.models import Permission
 from django.utils import timezone
 
 from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
-    DataPrivacyPolicy, DisclaimerContent
-from accounts.models import has_active_data_privacy_agreement
+    DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy
 
 from booking.models import Event, BlockVoucher, Booking, EventVoucher
 from booking.views import EventListView, EventDetailView
@@ -78,7 +77,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
             username='testnodp', email='testnodp@test.com', password='test'
         )
         baker.make(PrintDisclaimer, user=user)
-        self.assertFalse(has_active_data_privacy_agreement(user))
+        assert not SignedDataPrivacy.has_active_agreement(user)
 
         self.assertTrue(
             self.client.login(username=user.username, password='test')

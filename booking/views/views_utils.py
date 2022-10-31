@@ -2,7 +2,7 @@ from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
 from django.utils import timezone
 
-from accounts.models import DataPrivacyPolicy, has_active_disclaimer, has_active_data_privacy_agreement
+from accounts.models import DataPrivacyPolicy, SignedDataPrivacy, has_active_disclaimer
 from activitylog.models import ActivityLog
 from booking.models import Block, UsedBlockVoucher, UsedEventVoucher
 
@@ -21,7 +21,7 @@ class DataPolicyAgreementRequiredMixin(object):
     def dispatch(self, request, *args, **kwargs):
         # check if the user has an active disclaimer
         if DataPrivacyPolicy.current_version() > 0 and request.user.is_authenticated \
-                and not has_active_data_privacy_agreement(request.user):
+                and not SignedDataPrivacy.has_active_agreement(request.user):
             return HttpResponseRedirect(
                 reverse('profile:data_privacy_review') + '?next=' + request.path
             )

@@ -20,8 +20,8 @@ from allauth.account.views import EmailView, LoginView
 from braces.views import LoginRequiredMixin
 
 from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
-from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_data_privacy_cache_key, active_disclaimer_cache_key, \
-    has_active_data_privacy_agreement, has_active_disclaimer, has_expired_disclaimer
+from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_disclaimer_cache_key, \
+    has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
 from booking.email_helpers import send_mail
 from common.mailchimp_utils import update_mailchimp
@@ -279,8 +279,7 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
     form_class = DataPrivacyAgreementForm
 
     def dispatch(self, *args, **kwargs):
-        if self.request.user.is_authenticated and \
-                has_active_data_privacy_agreement(self.request.user):
+        if self.request.user.is_authenticated and SignedDataPrivacy.has_active_agreement(self.request.user):
             return HttpResponseRedirect(
                 self.request.GET.get('next', reverse('booking:lessons'))
             )
@@ -297,8 +296,7 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
             SignedDataPrivacy.objects.filter(
                 user=self.request.user,
                 version__lt=DataPrivacyPolicy.current_version()
-            ).exists() and not has_active_data_privacy_agreement(
-                self.request.user)
+            ).exists() and not SignedDataPrivacy.has_active_agreement(self.request.user)
         )
 
         context.update({
