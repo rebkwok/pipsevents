@@ -165,16 +165,13 @@ class SignedDataPrivacy(models.Model):
         return self.version == DataPrivacyPolicy.current_version()
 
     def save(self, **kwargs):
+        # delete the cache key to force re-cache
+        cache.delete(active_data_privacy_cache_key(self.user))
         if not self.id:
             ActivityLog.objects.create(
                 log="Signed data privacy policy agreement created: {}".format(self.__str__())
             )
         super(SignedDataPrivacy, self).save()
-        # cache agreement
-        if self.is_active:
-            cache.set(
-                active_data_privacy_cache_key(self.user), True, timeout=600
-            )
 
     def delete(self, using=None, keep_parents=False):
         # clear cache if this is the active signed agreement
@@ -330,6 +327,10 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         return self._signed_version_active()
 
     def save(self, **kwargs):
+        # delete the cache keys to force re-cache
+        cache.delete(active_disclaimer_cache_key(self.user))
+        cache.delete(active_online_disclaimer_cache_key(self.user))
+        cache.delete(expired_disclaimer_cache_key(self.user))
         if not self.id:
             existing_disclaimers = OnlineDisclaimer.objects.filter(
                 user=self.user
@@ -342,15 +343,7 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
             ActivityLog.objects.create(
                 log="Online disclaimer created: {}".format(self.__str__())
             )
-        super(OnlineDisclaimer, self).save(**kwargs)
-        # cache disclaimer
-        if self.is_active:
-            cache.set(active_online_disclaimer_cache_key(self.user), True, timeout=600)
-            cache.set(active_disclaimer_cache_key(self.user), True, timeout=600)
-        else:
-            cache.delete(active_online_disclaimer_cache_key(self.user))
-            cache.delete(active_disclaimer_cache_key(self.user))
-            cache.set(expired_disclaimer_cache_key(self.user), True, timeout=600)
+        super().save(**kwargs)
 
     def delete(self, using=None, keep_parents=False):
         # clear cache if there is any

@@ -333,16 +333,19 @@ class SignedDataPrivacyModelTests(TestCase):
     def setUp(self):
         self.user = baker.make_recipe('booking.user')
 
-    def test_cached_on_save(self):
+    def test_cache_deleted_on_save(self):
         make_data_privacy_agreement(self.user)
-        self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))
+        assert cache.get(active_data_privacy_cache_key(self.user)) is None
+        # re-cache
+        assert has_active_data_privacy_agreement(self.user)
+        assert cache.get(active_data_privacy_cache_key(self.user)) is True
 
         DataPrivacyPolicy.objects.create(content='New Foo')
-        self.assertFalse(has_active_data_privacy_agreement(self.user))
+        assert not has_active_data_privacy_agreement(self.user)
 
     def test_delete(self):
         make_data_privacy_agreement(self.user)
-        self.assertTrue(cache.get(active_data_privacy_cache_key(self.user)))
+        assert cache.get(active_data_privacy_cache_key(self.user)) is None
 
         SignedDataPrivacy.objects.get(user=self.user).delete()
         self.assertIsNone(cache.get(active_data_privacy_cache_key(self.user)))
