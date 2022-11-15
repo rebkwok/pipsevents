@@ -8,8 +8,6 @@ asgiref==3.5.2
     # via django
 attrs==22.1.0
     # via pytest
-backports-zoneinfo==0.2.1
-    # via django
 beautifulsoup4==4.11.1
     # via -r requirements.in
 certifi==2022.9.24
@@ -96,7 +94,7 @@ oauthlib==3.2.1
     # via requests-oauthlib
 packaging==21.3
     # via pytest
-pillow==9.2.0
+pillow==9.3.0
     # via -r requirements.in
 pluggy==1.0.0
     # via pytest
@@ -158,9 +156,7 @@ static3==0.7.0
     #   -r requirements.in
     #   dj-static
 tomli==2.0.1
-    # via
-    #   coverage
-    #   pytest
+    # via pytest
 types-cryptography==3.3.23
     # via pyjwt
 urllib3==1.26.12
