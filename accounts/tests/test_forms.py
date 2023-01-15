@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from datetime import timezone as dt_timezone
 from model_bakery import baker
+import pytest
 
 from django.test import TestCase
 from django.contrib.auth.models import User

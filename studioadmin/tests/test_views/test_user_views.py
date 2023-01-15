@@ -1,4 +1,5 @@
 from model_bakery import baker
+import pytest
 
 from django.urls import reverse
 from django.db.models import Q

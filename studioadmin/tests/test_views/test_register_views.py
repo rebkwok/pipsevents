@@ -232,7 +232,7 @@ class RegisterViewTests(TestPermissionMixin, TestCase):
         self.assertFalse(resp.context_data['can_add_more'])
 
     def test_with_available_block_type_for_event(self):
-        baker.make(BlockType, event_type=self.pc.event_type)
+        baker.make(BlockType, event_type=self.pc.event_type, duration=1)
         resp = self.client.get(self.pc_url)
         self.assertTrue(resp.context_data['available_block_type'])
 

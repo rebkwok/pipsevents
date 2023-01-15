@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from model_bakery import baker
+import pytest
 
 from django.urls import reverse
 from django.core import mail

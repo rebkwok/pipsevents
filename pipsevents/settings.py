@@ -19,18 +19,20 @@ env = environ.Env(DEBUG=(bool, False),
                   PAYPAL_TEST=(bool, False),
                   USE_MAILCATCHER=(bool, False),
                   CONSOLE_EMAIL=(bool, False),
-                  HEROKU=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
                   REGULAR_STUDENT_WHITELIST_IDS=(list, []),
                   WACTHLIST=(list, []),
                   LOCAL=(bool, False),
                   SHOW_VAT=(bool, True),
+                  TESTING=(bool, False)
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
 
-TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
+TESTING = env("TESTING")
+if not TESTING:  # pragma: no cover
+    TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
 
 BASE_DIR = root()
 #
@@ -231,7 +233,7 @@ SUPPORT_EMAIL = 'rebkwok@gmail.com'
 SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 # #####LOGGING######
-if not env('HEROKU') and not TESTING:  # pragma: no cover
+if not TESTING:  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
 
     LOGGING = {
@@ -309,8 +311,6 @@ if not env('HEROKU') and not TESTING:  # pragma: no cover
 
 ADMINS = [("Becky Smith", SUPPORT_EMAIL)]
 
-# ####HEROKU#######
-
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -372,8 +372,8 @@ DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
 
 
-# TESTING and HEROKU logging
-if env('HEROKU') or TESTING:  # pragma: no cover
+# TESTING logging
+if TESTING:  # pragma: no cover
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,

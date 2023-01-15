@@ -31,3 +31,5 @@ git+https://github.com/KyleKing/simple-crypt.git
 pytest
 pytest-django
 pytest-cov
+pytest-env
+pytest-xdist

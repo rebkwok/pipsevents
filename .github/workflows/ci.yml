@@ -51,20 +51,11 @@ jobs:
 
       - name: Run tests
         env:
-          SECRET_KEY: 'dummy_secret'
-          EMAIL_HOST_PASSWORD: 'dummy_password'
           DATABASE_URL: postgres://postgres:postgres@localhost/ci_test
-          DEFAULT_PAYPAL_EMAIL: dummy-email@hotmail.com
-          PAYPAL_TEST: True
-          LOG_FOLDER: log_folder
-          TRAVIS: True
-          HEROKU: False
-          SEND_ALL_STUDIO_EMAILS: True
-          SIMPLECRYPT_PASSWORD: secret
-          VAT_NUMBER: 123
         run: |
           source ${{ github.workspace }}/venv/bin/activate
-          pytest --cov-config=.coveragerc --cov=.
+          pytest --cov-config=.coveragerc --cov=. -k 'serial'
+          pytest --cov-config=.coveragerc --cov=. --cov-append -n auto -k 'not serial'
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@develop
