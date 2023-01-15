@@ -8,8 +8,6 @@ asgiref==3.5.2
     # via django
 attrs==22.1.0
     # via pytest
-backports-zoneinfo==0.2.1
-    # via django
 beautifulsoup4==4.11.1
     # via -r requirements.in
 certifi==2022.9.24
@@ -25,7 +23,7 @@ coverage[toml]==6.4.4
     #   pytest-cov
 coveralls==3.3.1
     # via -r requirements.in
-cryptography==38.0.1
+cryptography==38.0.3
     # via pyjwt
 defusedxml==0.7.1
     # via python3-openid
@@ -166,9 +164,7 @@ static3==0.7.0
     #   -r requirements.in
     #   dj-static
 tomli==2.0.1
-    # via
-    #   coverage
-    #   pytest
+    # via pytest
 types-cryptography==3.3.23
     # via pyjwt
 urllib3==1.26.12
