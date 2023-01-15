@@ -1510,30 +1510,30 @@ class BlockTypeTests(TestCase):
 
     def test_cannot_create_multiple_free_class_block_types(self):
         ev_type = baker.make_recipe('booking.event_type_PC')
-        baker.make(BlockType, event_type=ev_type, identifier='free class')
+        baker.make(BlockType, event_type=ev_type, identifier='free class', duration=1)
         self.assertEqual(BlockType.objects.count(), 1)
 
         with self.assertRaises(BlockTypeError):
-            baker.make(BlockType, event_type=ev_type, identifier='free class')
+            baker.make(BlockType, event_type=ev_type, identifier='free class', duration=1)
         self.assertEqual(BlockType.objects.count(), 1)
 
     def test_cannot_create_multiple_transfer_block_types(self):
         ev_type = baker.make_recipe('booking.event_type_PC')
-        baker.make(BlockType, event_type=ev_type, identifier='transferred')
+        baker.make(BlockType, event_type=ev_type, identifier='transferred', duration=1)
         self.assertEqual(BlockType.objects.count(), 1)
 
         with self.assertRaises(BlockTypeError):
-            baker.make(BlockType, event_type=ev_type, identifier='transferred')
+            baker.make(BlockType, event_type=ev_type, identifier='transferred', duration=1)
         self.assertEqual(BlockType.objects.count(), 1)
 
     def test_cann_create_transfer_block_types_for_different_events(self):
         pc_ev_type = baker.make_recipe('booking.event_type_PC')
         pp_ev_type = baker.make_recipe('booking.event_type_PP')
 
-        baker.make(BlockType, event_type=pc_ev_type, identifier='transferred')
+        baker.make(BlockType, event_type=pc_ev_type, identifier='transferred', duration=1)
         self.assertEqual(BlockType.objects.count(), 1)
 
-        baker.make(BlockType, event_type=pp_ev_type, identifier='transferred')
+        baker.make(BlockType, event_type=pp_ev_type, identifier='transferred', duration=1)
         self.assertEqual(BlockType.objects.count(), 2)
 
 

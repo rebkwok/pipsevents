@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from pathlib import Path
 
 from model_bakery import baker
+import pytest
 
 from django.conf import settings
 from django.core import management, mail
@@ -217,6 +218,7 @@ class ExportDisclaimersTests(TestCase):
             bu_file.unlink()
 
 
+@pytest.mark.serial
 @override_settings(LOG_FOLDER=os.path.dirname(__file__))
 class ExportEncryptedDisclaimersTests(TestCase):
 

@@ -1,5 +1,7 @@
 from model_bakery import baker
 
+import pytest
+
 from django.contrib.auth.models import Group, User
 from django.urls import reverse
 from django.test import TestCase
