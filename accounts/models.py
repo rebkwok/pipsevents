@@ -97,7 +97,7 @@ class CookiePolicy(models.Model):
         if not self.id and not self.version:
             # if no version specified, go to next major version
             self.version = floor((CookiePolicy.current_version() + 1))
-        super(CookiePolicy, self).save(**kwargs)
+        super().save(**kwargs)
         ActivityLog.objects.create(
             log='Cookie Policy version {} created'.format(self.version)
         )
@@ -138,7 +138,7 @@ class DataPrivacyPolicy(models.Model):
         if not self.id and not self.version:
             # if no version specified, go to next major version
             self.version = floor((DataPrivacyPolicy.current_version() + 1))
-        super(DataPrivacyPolicy, self).save(**kwargs)
+        super().save(**kwargs)
         ActivityLog.objects.create(
             log='Data Privacy Policy version {} created'.format(self.version)
         )
@@ -171,13 +171,13 @@ class SignedDataPrivacy(models.Model):
             ActivityLog.objects.create(
                 log="Signed data privacy policy agreement created: {}".format(self.__str__())
             )
-        super(SignedDataPrivacy, self).save()
+        super().save(**kwargs)
 
     def delete(self, using=None, keep_parents=False):
         # clear cache if this is the active signed agreement
         if self.is_active:
             cache.delete(active_data_privacy_cache_key(self.user))
-        super(SignedDataPrivacy, self).delete(using, keep_parents)
+        super().delete(using, keep_parents)
 
 
 @has_readonly_fields
@@ -360,7 +360,7 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
                     self.user.first_name, self.user.last_name
                 )
             )
-        super(OnlineDisclaimer, self).delete(using, keep_parents)
+        super().delete(using, keep_parents)
 
 
 class PrintDisclaimer(models.Model):
