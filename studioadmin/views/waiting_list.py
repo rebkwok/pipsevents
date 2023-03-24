@@ -6,10 +6,13 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404
+from django.shortcuts import HttpResponseRedirect
+from django.urls import reverse
 
 from booking.models import Event, WaitingListUser
 
 from studioadmin.views.helpers import is_instructor_or_staff
+from studioadmin.views.helpers import url_with_querystring
 from activitylog.models import ActivityLog
 
 
@@ -57,3 +60,24 @@ def event_waiting_list_view(request, event_id):
             'sidenav_selection': '{}_register'.format(ev_type)
         }
     )
+
+
+@login_required
+@is_instructor_or_staff
+def email_waiting_list(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    waiting_list_users = WaitingListUser.objects.filter(
+        event__id=event_id).values_list("user_id", flat=True)
+    request.session['users_to_email'] = list(waiting_list_users)
+    if event.event_type.event_type == "CL":
+        lesson_ids = [event.id]
+        event_ids = []
+    else:
+        event_ids = [event.id]
+        lesson_ids = []
+
+    return HttpResponseRedirect(
+        url_with_querystring(
+            reverse('studioadmin:email_users_view'),
+            events=event_ids, lessons=lesson_ids)
+        )

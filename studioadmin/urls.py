@@ -67,6 +67,7 @@ from studioadmin.views import (BookingEditView,
                                clone_event,
                                reactivated_block_status,
                                users_status,
+                               email_waiting_list,
                                )
 
 app_name = 'studioadmin'
@@ -188,6 +189,10 @@ urlpatterns = [
     path(
         'waitinglists/<int:event_id>/',
         event_waiting_list_view, name='event_waiting_list'
+    ),
+    path(
+        'waitinglists/<int:event_id>/email/',
+        email_waiting_list, name='email_waiting_list'
     ),
     path(
         'ticketed-events/', TicketedEventAdminListView.as_view(),

@@ -6,11 +6,14 @@
 {% block studioadmincontent %}
 
     <h2>Waiting List for {{ event }}</h2>
+
     <p>(Currently {% if event.spaces_left %}not {% endif %} full)
 
     <div class="row">
+    
         <div class="col-12">
-
+            <a class="btn btn-wm mb-2" href="{% url 'studioadmin:email_waiting_list' event.id %}">Email students on waiting list<a/>
+                
             {% if waiting_list_users %}
                 <div class="card card-wm">
                     <div class="table-responsive">
