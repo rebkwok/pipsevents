@@ -450,7 +450,7 @@ class BookingDeleteView(
         # the cancellation period is not past
         # If not, we let people cancel but leave the booking status OPEN and
         # set to no-show
-        can_cancel_and_refund = booking.event.allow_booking_cancellation and event.can_cancel
+        can_cancel_and_refund = booking.can_cancel
 
         # if the booking was made with a block, allow 15 mins to cancel in case user
         # clicked the wrong button by mistake and autobooked with a block

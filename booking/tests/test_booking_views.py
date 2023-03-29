@@ -507,14 +507,10 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
             'booking:cancellation_period_past',
             kwargs={'event_slug': event.slug}
         )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = self.user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        resp = cancellation_period_past(request, event.slug)
-        self.assertIn(event.name, str(resp.content))
+        self.client.login(username=self.user, password="test")
+        resp = self.client.get(url)
+        assert resp.context["event"] == event
+        assert "Bookings cannot be cancelled for this event because the cancellation period has now passed" in str(resp.content)
 
     def test_has_active_block(self):
         response = self.client.get(reverse('booking:has_active_block'))

@@ -510,6 +510,89 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking = Booking.objects.get(id=booking.id)
         self.assertFalse(booking.can_cancel)
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "now,event_date,can_cancel,cancellation_period",
+    [
+        # now = DST, event = not DST
+        # Although there are only 23 hrs between now and the event datetime, cancellation
+        # is allowed because it crosses DST
+        # i.e. in local time, it's currently 9.30am, and the event start is 10am, so users
+        # expect to be able to cancel
+        (
+            datetime(2023, 3, 25, 9, 30, tzinfo=dt_timezone.utc), # not DST
+            datetime(2023, 3, 26, 9, 0, tzinfo=dt_timezone.utc), # DST
+            True,
+            24
+        ),
+        # This is > 24 hrs
+        (
+            datetime(2023, 3, 25, 8, 30, tzinfo=dt_timezone.utc), # not DST
+            datetime(2023, 3, 26, 9, 0, tzinfo=dt_timezone.utc), # DST
+            True,
+            24
+        ),
+        # less than 23 hrs
+        (
+            datetime(2023, 3, 25, 10, 5, tzinfo=dt_timezone.utc), # not DST
+            datetime(2023, 3, 26, 9, 0, tzinfo=dt_timezone.utc), # DST
+            False,
+            24
+        ),
+        # both DST, <24 hrs
+        (
+            datetime(2023, 3, 26, 9, 30, tzinfo=dt_timezone.utc),
+            datetime(2023, 3, 27, 9, 0, tzinfo=dt_timezone.utc),
+            False,
+            24
+        ),
+        # longer cancellation period
+        (
+            datetime(2023, 3, 23, 9, 30, tzinfo=dt_timezone.utc), # not DST
+            datetime(2023, 3, 26, 9, 0, tzinfo=dt_timezone.utc), # DST
+            True,
+            72
+        ),
+        # longer cancellation period
+        (
+            datetime(2023, 3, 23, 8, 30, tzinfo=dt_timezone.utc), # not DST
+            datetime(2023, 3, 26, 9, 0, tzinfo=dt_timezone.utc), # DST
+            True,
+            72
+        ),
+        # longer cancellation period
+        (
+            datetime(2023, 3, 23, 10, 30, tzinfo=dt_timezone.utc), # not DST
+            datetime(2023, 3, 26, 9, 0, tzinfo=dt_timezone.utc), # DST
+            False,
+            72
+        ),
+        # now is DST, event not DST
+        # > 24.5 hrs between now and event date
+        (
+            datetime(2022, 10, 29, 9, 30, tzinfo=dt_timezone.utc), # DST; 10:30 local
+            datetime(2022, 10, 30, 10, 0, tzinfo=dt_timezone.utc), # not DST
+            False,
+            24
+        ),
+        (
+            datetime(2022, 10, 29, 8, 55, tzinfo=dt_timezone.utc), # DST; 10:30 local
+            datetime(2022, 10, 30, 10, 0, tzinfo=dt_timezone.utc), # not DST
+            True,
+            24
+        ),
+    ]
+)
+@patch('booking.models.timezone')
+def test_can_cancel_with_daylight_savings_time(mock_tz, now, event_date, can_cancel, cancellation_period):
+    mock_tz.now.return_value = now
+    event = baker.make_recipe(
+        'booking.future_PC',
+        date=event_date,
+        cancellation_period=cancellation_period
+    )
+    assert event.can_cancel == can_cancel
+
 
 class BlockTests(PatchRequestMixin, TestCase):
 

@@ -153,11 +153,36 @@ class Event(models.Model):
     def bookable(self):
         return self.booking_open and self.spaces_left > 0
 
-    @cached_property
+    @property
     def can_cancel(self):
+        now = timezone.now()
         time_until_event = self.date - timezone.now()
         time_until_event = time_until_event.total_seconds() / 3600
-        return time_until_event > self.cancellation_period
+        # adjust cancellation period if now and event date are in different DST states
+        # in spring, if it's currently before DST and the class is after DST, we need to decrease the
+        # cancellation period by 1 hour i.e.
+        # - currently it is 9.30am and NOT DST
+        # - class is tomorrow at 10am and IS DST
+        # Only 23.5 actual hrs between now and class time, but user would expect to be able to cancel
+        # if cancellation period is 24 hrs
+        
+        # Only bother checking if it's currently March or October; DST only has an impact on cancellations
+        # made within a day or two (depending on cancellation time) of event date 
+        cancellation_period = self.cancellation_period
+        if now.month in [3, 10]:
+            local_tz = pytz.timezone("Europe/London")
+            now_local = now.astimezone(local_tz)
+            event_date_local = self.date.astimezone(local_tz)
+            # find the difference in DST offset between now and the event date (in hours)
+            dst_diff_in_hrs = (now_local.dst().seconds - event_date_local.dst().seconds) / (60 * 60)
+            # add this to the cancellation period
+            # For spring, this means now (0 offset) minus event date (1 hr offset) == -1 hour
+            # We subtract 1 hour from the cancellation period, so for a 24 hr cancellation users can 
+            # cancel in the 23 hrs before
+            # For Autumn we add 1 hour, so the cancellation period is 1 hr more
+            cancellation_period += dst_diff_in_hrs
+
+        return time_until_event > cancellation_period
 
     @property
     def show_video_link(self):
@@ -541,14 +566,11 @@ class Booking(models.Model):
             or self.payment_confirmed
     space_confirmed.boolean = True
 
-    @cached_property
+    @property
     def can_cancel(self):
         if not self.event.allow_booking_cancellation:
             return False
-        if self.event.cancellation_period and \
-            self.event.date < (timezone.now() + timedelta(hours=self.event.cancellation_period)):
-            return False
-        return True
+        return self.event.can_cancel
 
     @property
     def has_available_block(self):
