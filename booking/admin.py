@@ -415,6 +415,8 @@ class BlockTypeAdmin(admin.ModelAdmin):
     list_display = ('event_type', 'identifier', 'size', 'formatted_cost',
                     'formatted_duration', 'active')
     actions_on_top = True
+    list_filter = ("identifier", "active")
+    search_fields = ("identifier",)
 
     def formatted_duration(self, obj):
         if obj.duration_type == "months":
