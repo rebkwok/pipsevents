@@ -477,33 +477,6 @@ class EventListViewTests(TestSetupMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
-    @patch('booking.views.event_views.timezone')
-    def test_event_list_formatting(self, mock_tz):
-        """
-        Test that events are coloured on alt days
-        """
-        # mock now to make sure our events are in the future for the test
-        mock_tz.now.return_value = datetime(2017, 3, 19, tzinfo=dt_timezone.utc)
-        events = Event.objects.filter(event_type__event_type='EV')
-        ev1 = events[0]
-        ev2 = events[1]
-        ev3 = events[2]
-        # Mon
-        ev1.date = datetime(2017, 3, 20, 10, 0, tzinfo=dt_timezone.utc)
-        ev1.save()
-        # Tue
-        ev2.date = datetime(2017, 3, 21, 10, 0, tzinfo=dt_timezone.utc)
-        ev2.save()
-        # Wed
-        ev3.date = datetime(2017, 3, 22, 10, 0, tzinfo=dt_timezone.utc)
-        ev3.save()
-
-        resp = self.client.get(self.url)
-        # Mon and Wed events are shaded, on the All locations tab (currently no location tabs)
-        self.assertEqual(
-            resp.rendered_content.count('table-shaded'), 2
-        )
-
     def test_event_list_tab_parameter_with_locations(self):
         """
         Test that events are coloured on alt days

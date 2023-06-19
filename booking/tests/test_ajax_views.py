@@ -850,49 +850,6 @@ class AjaxTests(TestSetupMixin, TestCase):
         resp = self.client.get(url)
         self.assertIn('<span class="basket-count">1</span>', resp.content.decode('utf-8'))
 
-    def test_update_bookings_count_spaces(self):
-        url = reverse('booking:update_booking_count', args=[self.event.id])
-        resp = self.client.get(url)
-        self.assertIn('AVAILABLE', resp.content.decode('utf-8'))
-        self.assertNotIn('3/3', resp.content.decode('utf-8'))
-
-    def test_update_bookings_count_full(self):
-        url = reverse('booking:update_booking_count', args=[self.event.id])
-        baker.make_recipe('booking.booking', event=self.event, _quantity=3)
-        resp = self.client.get(url)
-        self.assertIn('FULL', resp.content.decode('utf-8'))
-        self.assertNotIn('0/3', resp.content.decode('utf-8'))
-
-    def test_update_bookings_count_spaces_instructor(self):
-        url = reverse('booking:update_booking_count', args=[self.event.id])
-        self.client.login(username=self.instructor_user.username, password='test')
-        resp = self.client.get(url)
-        self.assertNotIn('AVAILABLE', resp.content.decode('utf-8'))
-        self.assertIn('3/3', resp.content.decode('utf-8'))
-
-    def test_update_bookings_count_full_instructor(self):
-        url = reverse('booking:update_booking_count', args=[self.event.id])
-        self.client.login(username=self.instructor_user.username, password='test')
-        baker.make_recipe('booking.booking', event=self.event, _quantity=3)
-        resp = self.client.get(url)
-        self.assertNotIn('FULL', resp.content.decode('utf-8'))
-        self.assertIn('0/3', resp.content.decode('utf-8'))
-
-    def test_update_bookings_count_spaces_staff(self):
-        url = reverse('booking:update_booking_count', args=[self.event.id])
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(url)
-        self.assertNotIn('AVAILABLE', resp.content.decode('utf-8'))
-        self.assertIn('3/3', resp.content.decode('utf-8'))
-
-    def test_update_bookings_count_full_staff(self):
-        url = reverse('booking:update_booking_count', args=[self.event.id])
-        self.client.login(username=self.staff_user.username, password='test')
-        baker.make_recipe('booking.booking', event=self.event, _quantity=3)
-        resp = self.client.get(url)
-        self.assertNotIn('FULL', resp.content.decode('utf-8'))
-        self.assertIn('0/3', resp.content.decode('utf-8'))
-
     def test_toggle_waiting_list_on(self):
         url = reverse('booking:toggle_waiting_list', args=[self.event.id])
         self.assertFalse(WaitingListUser.objects.exists())
@@ -920,10 +877,17 @@ class AjaxTests(TestSetupMixin, TestCase):
         booking = baker.make_recipe(
             'booking.booking', event=self.event, user=self.user, paid=False, status='OPEN'
         )
+
+        def resp_json_without_booking_count_html(resp):
+            rjson = resp.json()
+            # this is tested in the next 3 tests, remove it so we don't need to test it here
+            del rjson["booking_count_html"]
+            return rjson
+    
         resp = self.client.post(url)
         # event has 0 cost, no advance payment required
         self.assertEqual(
-            resp.json(),
+            resp_json_without_booking_count_html(resp),
             {
                 'paid': False,
                 'paid_status': '<strong>N/A</strong>',
@@ -940,7 +904,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         resp = self.client.post(url)
         # event has cost, no advance payment required
         self.assertEqual(
-            resp.json(),
+            resp_json_without_booking_count_html(resp),
             {
                 'paid': False,
                 'paid_status': '<span class="not-confirmed fa fa-times"></span>',
@@ -958,7 +922,7 @@ class AjaxTests(TestSetupMixin, TestCase):
 
         resp = self.client.post(url)
         self.assertEqual(
-            resp.json(),
+            resp_json_without_booking_count_html(resp),
             {
                 'paid': False,
                 'paid_status': '<span class="not-confirmed fa fa-times"></span>',
@@ -976,7 +940,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         resp = self.client.post(url)
         # event has cost, no advance payment required
         self.assertEqual(
-            resp.json(),
+            resp_json_without_booking_count_html(resp),
             {
                 'paid': False,
                 'paid_status': '<span class="not-confirmed fa fa-times"></span>',
@@ -995,7 +959,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         resp = self.client.post(url)
         # event has cost, no advance payment required
         self.assertEqual(
-            resp.json(),
+            resp_json_without_booking_count_html(resp),
             {
                 'paid': True,
                 'paid_status': '<span class="confirmed fa fa-check"></span>',
@@ -1006,6 +970,57 @@ class AjaxTests(TestSetupMixin, TestCase):
                 'no_show': False
             }
         )
+
+    def test_booking_details_spaces_normal_user(self):
+        baker.make_recipe(
+            'booking.booking', event=self.event, user=self.user, paid=False, status='OPEN'
+        )
+        self.client.login(username=self.user.username, password='test')
+        # has spaces
+        url = reverse('booking:booking_details', args=[self.event.id])
+        resp = self.client.get(url).json()
+        self.assertIn('SPACES', resp["booking_count_html"])
+        self.assertNotIn('3/3', resp["booking_count_html"])
+        
+        # full 
+        baker.make_recipe('booking.booking', event=self.event, _quantity=2)
+        resp = self.client.get(url).json()
+        self.assertIn('FULL', resp["booking_count_html"])
+        self.assertNotIn('0/3', resp["booking_count_html"])
+
+    def test_booking_details_spaces_instructor(self):
+        baker.make_recipe(
+            'booking.booking', event=self.event, user=self.instructor_user, paid=False, status='OPEN'
+        )
+        url = reverse('booking:booking_details', args=[self.event.id])
+        self.client.login(username=self.instructor_user.username, password='test')
+        # has spaces
+        resp = self.client.get(url).json()
+        self.assertNotIn('SPACES', resp["booking_count_html"])
+        self.assertIn('2/3', resp["booking_count_html"])
+        
+        # full 
+        baker.make_recipe('booking.booking', event=self.event, _quantity=2)
+        resp = self.client.get(url).json()
+        self.assertNotIn('FULL', resp["booking_count_html"])
+        self.assertIn('0/3', resp["booking_count_html"])
+
+    def test_booking_details_spaces_staff(self):
+        baker.make_recipe(
+            'booking.booking', event=self.event, user=self.staff_user, paid=False, status='OPEN'
+        )
+        url = reverse('booking:booking_details', args=[self.event.id])
+        self.client.login(username=self.staff_user.username, password='test')
+        # has spaces
+        resp = self.client.get(url).json()
+        self.assertNotIn('SPACES', resp["booking_count_html"])
+        self.assertIn('2/3', resp["booking_count_html"])
+        
+        # full 
+        baker.make_recipe('booking.booking', event=self.event, _quantity=2)
+        resp = self.client.get(url).json()
+        self.assertNotIn('FULL', resp["booking_count_html"])
+        self.assertIn('0/3', resp["booking_count_html"])
 
     def test_ajax_shopping_basket_bookings_total(self):
         self.event.cost = 5

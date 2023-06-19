@@ -22,8 +22,9 @@ from django.views.generic import (
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from django.template.response import TemplateResponse
+
 from braces.views import LoginRequiredMixin
 
 from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
@@ -1063,12 +1064,6 @@ def update_shopping_basket_count(request):
 
 
 @login_required
-def update_booking_count(request, event_id):
-    event = Event.objects.get(id=event_id)
-    return render(request, "booking/includes/booking_count.html", {'event': event})
-
-
-@login_required
 def toggle_waiting_list(request, event_id):
     user = request.user
     event = Event.objects.get(id=event_id)
@@ -1105,7 +1100,6 @@ def booking_details(request, event_id):
         confirmed = '<span class="fa fa-check"></span>'
     else:
         confirmed = 'Pending'
-
     return JsonResponse(
         {
             'paid': booking.paid,
@@ -1114,6 +1108,7 @@ def booking_details(request, event_id):
             'payment_due': payment_due,
             'block': '<span class="confirmed fa fa-check"></span>' if booking.block else '<strong>N/A</strong>',
             'confirmed': confirmed,
-            'no_show': booking.no_show
+            'no_show': booking.no_show,
+            'booking_count_html': render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request}),
         }
     )

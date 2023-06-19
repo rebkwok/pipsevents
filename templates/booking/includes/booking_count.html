@@ -9,11 +9,11 @@
         {% endif %}
     </span>
 {% else %}
-    <span class="badge badge-pill badge-spaces badge-secondary">
+    <span class="badge badge-pill badge-spaces badge-spaces-available">
         {% if request.user.is_staff or request.user|in_group:"instructors" %}
             {{ event.spaces_left }}/{{ event.max_participants }}
         {% else %}
-            AVAILABLE
+            SPACES
         {% endif %}
     </span>
 {% endif %}

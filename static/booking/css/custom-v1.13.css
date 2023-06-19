@@ -958,7 +958,9 @@ a > span.fa.fa-print {
   tr.compress>td.date, tr.compress.table-tab>td.date {
     min-width: 90px;
 	}
-
+  .event-card-item {
+    font-size: 0.9em;
+  }
   .message {
     font-size: 95%;
   }
@@ -1173,10 +1175,14 @@ li>a.adminmenu {
 }
 
 .badge-spaces {
-    width: 65px;
-    padding-top: 4px;
-    padding-bottom: 4px;
+    width: 70px;
+    padding: 4px;
     font-weight: normal;
+    font-size: smaller;
+}
+
+.badge-spaces.badge-spaces-available {
+  background-color: rgba(159, 219, 144, 0.8);
 }
 
 .badge.badge-pill.badge-location {
@@ -1210,8 +1216,11 @@ tr.table-shaded{
     background-color: rgba(0, 0, 0, 0.08);
 }
 
-tr.unpaid-booking-row {
+tr.unpaid-booking-row, div.unpaid-booking-row {
     background: rgba(255, 0, 0, 0.15);
+}
+div.past-event-row {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 768px) { /* use the max to specify at each container level */
@@ -1829,4 +1838,8 @@ span.disclaimer_version {
       background: white !important;
       color: rgba(0, 85, 127, 0.9);
       border: 1px solid rgba(240, 139, 165, 0.9);
+}
+
+.event-card-item {
+  border-left: rgb(240, 139, 165) solid;
 }
