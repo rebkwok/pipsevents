@@ -50,17 +50,6 @@ var processBookingRequest = function()  {
             }
         );
 
-        if (ref == 'events') {
-            $.ajax(
-                {
-                    url: '/bookings/ajax-update-booking-count/' + event_id + '/',
-                    dataType: 'html',
-                    success: processBookingCount
-                    //Should also have a "fail" call as well.
-                }
-            );
-        }
-        else if (ref == 'bookings') {
             $.ajax(
                 {
                     url: '/bookings/booking-details/' + event_id + '/',
@@ -69,17 +58,7 @@ var processBookingRequest = function()  {
                     //Should also have a "fail" call as well.
                 }
             );
-        }
     };
-
-    var processBookingCount = function(
-       result, status, jqXHR)  {
-      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
-        for (tab_index = 0; tab_index < location_count ; tab_index++) {
-          // Runs once for each tab
-          $('#booking_count_' + event_id + '_' + tab_index).html(result);
-      }
-   }
 
     var processShoppingBasketCount = function(
        result, status, jqXHR)  {
@@ -92,7 +71,7 @@ var processBookingRequest = function()  {
 
     var processBookingDetails = function(
        result, status, jqXHR)  {
-      //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
+      console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "'");
         $('#booked-' + event_id + '-' + 'status').html(result.status);
         $('#booked-' + event_id + '-' + 'paid_status').html(result.paid_status);
         $('#booked-' + event_id + '-' + 'payment_due').html(result.payment_due);
@@ -102,8 +81,16 @@ var processBookingRequest = function()  {
             $('#booked-' + event_id + '-' + 'row').removeClass('expired');
             if(result.paid === false) {
                 $('#booked-' + event_id + '-' + 'row').addClass('unpaid-booking-row');
+                $('#booking-' + event_id + '-' + 'check').addClass('hide');
+            } else {
+                $('#booking-' + event_id + '-' + 'check').removeClass('hide');
             }
         }
+        for (tab_index = 0; tab_index < location_count ; tab_index++) {
+            // Runs once for each tab
+            $('#booking_count_' + event_id + '_' + tab_index).html(result.booking_count_html);
+        }
+            
    }
 
     var processFailure = function(

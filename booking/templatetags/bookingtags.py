@@ -397,14 +397,6 @@ def get_payment_button(booking, type, tab, filter, page=1):
     }
 
 
-@register.simple_tag
-def get_weekday(weekday_num):
-    if weekday_num in [0, 2, 4]:
-        return 'table-shaded'
-    else:
-        return ''
-
-
 @register.filter
 def full_location(location):
     locations = dict(Event.LOCATION_CHOICES)
