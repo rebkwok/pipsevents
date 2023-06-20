@@ -64,130 +64,121 @@
 
         {% if events_exist %}
 
-            <div class="col-12">
+        <div class="col-12">
+                
+            <div class="card with-nav-tabs">
 
-                <div class="card with-nav-tabs">
-
-{#                    location_events is a list of objs passed from view: #}
-{#                    [#}
-{#                        {events: queryset, location: 'Beaverbank Place', index: 1}#}
-{#                        {events: queryset, location: 'Other', index: 2}#}
-{#                    ]  #}
-
-                    <div class="card-header">
-                        <ul class="nav nav-tabs" id="myTab" role="tablist">
-                            {% for location_obj in location_events %}
-                                {% if location_obj.index != 0 or location_events|length > 2 %}
-                                <li class="nav-item {{ location_obj.index|get_active_class:tab }}">
-                                    <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
-                                </li>
-                                {% endif %}
-                            {%  endfor %}
-                        </ul>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="tab-content">
+                {% comment %} 
+                NOTE: location_events is currently always 1; see event_views.py 
+                This code is kept in case we need it later
+                {% endcomment %}
+                {% comment %} {% if location_events|length > 1 %}
+                <div class="card-header">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
                         {% for location_obj in location_events %}
-                            <div class="tab-pane fade {{ location_obj.index|get_active_in_class:tab }}" id="tab{{ location_obj.index }}">
-                                    {% if location_obj.queryset %}
-                                        <div class="table-responsive">
-                                        <table class="table table-condensed table-striped">
-                                            <tr class="table-tab-header">
-                                                {% if user.is_authenticated %}
-                                                    <th></th>
-                                                {% endif %}
-                                                <th>Tutorial<br/>
-                                                    <span class="studioadmin-help">Click for details</span>
-                                                </th>
-                                                <th></th>
-                                                <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl VAT)</span>{% endif %}</th>
-                                                <th class="d-none d-md-table-cell text-center">Payment open</th>
-                                            </tr>
-
-                                            {% for event in location_obj.queryset %}
-                                                {% get_weekday event.date.weekday as table_shaded %}
-                                                {% get_booking event user user_bookings as booking %}
-                                                <tr class="
-                                                    {% if event.bookable %}active_block{% else %}inactive_block{% endif %}
-                                                    {{ table_shaded }}
-                                                    {% if booking and booking.status == 'OPEN' and not booking.paid %}unpaid-booking-row{% endif %}
-
-                                                    compress table-tab">
-                                                {% if user.is_authenticated %}
-                                                    {% if event.is_past %}
-                                                    <td></td>
-                                                    {% else %}
-                                                    <td class="table-btns">
-                                                            {% if not disclaimer %}
-                                                                <a class="ext-instructor" href="{% url 'booking:tutorial_detail' event.slug %}">N/A - see details</a>
-                                                            {% elif event.id in booked_events and booking.paid %}
-                                                                Purchased
-                                                            {% elif event.bookable %}
-                                                                {% if event.id in auto_cancelled_events %}
-                                                                    <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to purchase">Add to basket</div>
-                                                                {% else %}
-                                                                    <span
-                                                                            id="book_{{ event.id }}_{{ location_obj.index }}"
-                                                                            data-event_id="{{ event.id }}"
-                                                                            data-location_index="{{ location_obj.index }}"
-                                                                            data-location_count="{{ location_events|length }}"
-                                                                            data-location_page="{{ location_obj.queryset.number }}"
-                                                                            data-ref="online_tutorials"
-                                                                            {% if event.id not in booked_events %}class="td_ajax_book_btn"{% endif %}>
-                                                                    {% include "booking/includes/ajax_purchase_tutorial_button.txt" %}
-                                                                    </span>
-                                                                {% endif %}
-                                                            {% else %}
-                                                                <div class="disabled btn btn-wm table-btn">Add to basket</div>
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    </td>
-                                                  {% endif %}
-                                                    <td class="table-event">
-                                                        <a href="{% url 'booking:tutorial_detail' event.slug %}">{{ event.name }}</a>
-                                                    </td>
-                                                    <td>
-                                                        {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
-                                                            {% if event.show_video_link %}
-                                                                <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">View tutorial</a>
-                                                            {% elif event.is_online %}
-                                                                <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-info table-btn disabled">View tutorial</span>
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    </td>
-
-                                                    <td class="d-none d-md-table-cell text-center">£{{ event.cost }}</td>
-                                                    <td class="d-none d-md-table-cell text-center">{% if event.cost %}
-                                                        {% if event.payment_open %}<span class="fa fa-check"></span>{% else %}<span class="fa fa-times"></span>{% endif %}
-                                                        {% else %}N/A{% endif %}</td>
-                                                </tr>
-                                            {% endfor %}
-                                                <tr>
-                                                    <div class="filter-form-group">
-                                                        <form class="filter-row form-inline" action="" method="get">
-                                                            <label>FILTER BY: </label>
-                                                            <label>{{ form.name.label }}</label>{{ form.name }}
-                                                            <input type="hidden" name="tab" value="{{ location_obj.index }}">
-                                                            <input class="btn btn-sm btn-wm" type="submit" value="Go">
-                                                        </form>
-                                                    </div>
-                                                    {% include 'booking/includes/event_pagination.html' %}
-                                                </tr>
-
-                                        </table>
-                                        </div>
-                                        {% include 'booking/includes/event_pagination.html' %}
-                                    {% else %}
-                                    <h3>Coming soon!</h3>
-                                    {% endif %}
-                                </div>
-                          {% endfor %}
-                        </div> <!-- tab content -->
-                    </div> <!--card body -->
+                            {% if location_obj.index != 0 or location_events|length > 2 %}
+                            <li class="nav-item {{ location_obj.index|get_active_class:tab }}">
+                                <a class="nav-link" id="navtab{{ location_obj.index }}" href="#tab{{ location_obj.index }}" data-toggle="tab" role="tab">{{ location_obj.location }}</a>
+                            </li>
+                            {% endif %}
+                        {%  endfor %}
+                    </ul>
                 </div>
-            </div>
+                {% endif %} {% endcomment %}
 
+                <div class="card-body">
+                    <div class="pb-4">
+                        <form id="filter-form" class="filter-row form-inline" action="" method="get">
+                            <div class="form-group">
+                                {{ form.name }}
+                            </div>
+                            <div class="form-group">
+                                <input class="btn btn-sm btn-wm pt-0 pb-0" type="submit" value="Go">
+                                <input type="hidden" name="tab" value="{{ location_obj.index }}">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="tab-content" id="myTabContent">
+                        {% for location_obj in location_events %}
+                        {% if location_obj.queryset %}
+                            {% include 'booking/includes/event_pagination.html' %}
+                            {% regroup location_obj.queryset by event_type.subtype as events_by_type %}
+                            {% for events in events_by_type %}
+                                <div class="row event-card event-card-header list-group-item-dark  mt-1">
+                                    <div class="col-12 p-1">{{ events.grouper }}</div>
+                                </div>
+                                {% for event in events.list %}
+                                    {% get_booking event user user_bookings as booking %}
+                                    <div 
+                                        id="booked-{{ event.id }}-row"
+                                        class="row event-card event-card-item mt-1 pb-1 mb-2
+                                        {% if event.bookable %}active_block{% else %}inactive_block{% endif %}
+                                        {% if booking and booking.status == 'OPEN' and not booking.paid %}  
+                                            unpaid-booking-row
+                                        {% endif %}
+                                    ">
+                                    <div class="col-6 col-md-5">
+                                        <span id="booking-{{ event.id }}-check" class="fas fa-check-circle text-success{% if event.id in booked_events and booking.paid %}{% else %} hide{% endif %}"></span>
+                                        <a href="{% url 'booking:tutorial_detail' event.slug %}">{{ event.name }}</a>
+                                        {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
+                                            {% if event.show_video_link %}
+                                                <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">View tutorial</a>
+                                            {% elif event.is_online %}
+                                                <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-info table-btn disabled">View tutorial</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-3 col-md-2">
+                                        {% comment %} {% if location_obj.index == 0 and location_count > 1 %}
+                                            <span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location|truncatechars:11 }}</span>
+                                        {% endif %} {% endcomment %}
+                                        £{{ event.cost }}
+                                    </div>
+                                    {% comment %} Booking buttons {% endcomment %}
+                                    {% if user.is_authenticated %}
+                                        <div class="col-12 col-md-3">
+                                            {% if user.currently_banned %}
+                                                <span class="ext-instructor">Account locked</span>
+                                            {% elif not event.is_past %}
+                                                <span class="table-btns">
+                                                    {% if not disclaimer %}
+                                                        <a class="ext-instructor" href="{% url 'booking:tutorial_detail' event.slug %}">N/A - see details</a>
+                                                    {% elif event.id in booked_events and booking.paid %}
+                                                        Purchased
+                                                    {% elif event.bookable %}
+                                                        {% if event.id in auto_cancelled_events %}
+                                                            <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to purchase">Add to basket</div>
+                                                        {% else %}
+                                                            <span
+                                                                id="book_{{ event.id }}_{{ location_obj.index }}"
+                                                                data-event_id="{{ event.id }}"
+                                                                data-location_index="{{ location_obj.index }}"
+                                                                data-location_count="{{ location_events|length }}"
+                                                                data-location_page="{{ location_obj.queryset.number }}"
+                                                                data-ref="online_tutorials"
+                                                                {% if event.id not in booked_events %}class="td_ajax_book_btn"{% endif %}>
+                                                            {% include "booking/includes/ajax_purchase_tutorial_button.txt" %}
+                                                            </span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <div class="disabled btn btn-wm table-btn">Add to basket</div>
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    </div> 
+                                {% endfor %}
+                            {% endfor %}
+                            {% include 'booking/includes/event_pagination.html' %}
+                        {% else %}
+                            Coming soon!
+                        {% endif %}
+                        {% endfor %}
+                    </div> <!-- tab-content -->
+                </div> <!-- card body -->
+            </div>
+        </div>
         {% else %}
             <div class="col-12">
             <p>There are currently no online tutorials available to purchase.</p>

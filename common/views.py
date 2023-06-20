@@ -1,3 +1,4 @@
+# pragma: no cover
 from django.http import HttpResponseForbidden
 from django.template import loader
 
