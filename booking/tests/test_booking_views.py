@@ -1782,13 +1782,21 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         return view(request, pk=booking.id)
 
     def test_can_get_page_for_open_booking(self):
-        event = baker.make_recipe('booking.future_EV', cost=10)
-        booking = baker.make_recipe(
-            'booking.booking',
-            user=self.user, event=event, paid=False
-        )
-        resp = self._get_response(self.user, booking)
-        self.assertEqual(resp.status_code, 200)
+        workshop = baker.make_recipe('booking.future_EV', cost=10)
+        tutorial = baker.make_recipe('booking.future_OT', cost=10)
+        room_hire = baker.make_recipe('booking.future_RH', cost=10)
+        pc = baker.make_recipe('booking.future_PC', cost=10)
+        
+        self.client.login(username=self.user.username, password="test")
+
+        for event in [workshop, tutorial, room_hire, pc]:
+            booking = baker.make_recipe(
+                'booking.booking',
+                user=self.user, event=event, paid=False
+            )
+            url = reverse('booking:update_booking', args=[booking.id])
+            resp = self.client.get(url)
+            assert resp.status_code == 200
 
     def test_cannot_get_page_for_paid_booking(self):
         event = baker.make_recipe('booking.future_EV', cost=10)
@@ -1960,6 +1968,24 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self._post_response(self.user, booking, form_data)
         updated_booking = Booking.objects.get(id=booking.id)
         self.assertTrue(updated_booking.paid)
+
+    def test_update_online_tutorial_booking_to_paid(self):
+        """
+        Test updating a booking to paid with block
+        """
+        tutorial = baker.make_recipe('booking.future_OT', cost=10)
+        booking = baker.make_recipe(
+            'booking.booking', user=self.user, event=tutorial, paid=False)
+        baker.make_recipe(
+            'booking.block', block_type__event_type=tutorial.event_type, 
+            user=self.user, paid=True
+        )
+        url = reverse('booking:update_booking', args=[booking.id])
+        form_data = {'block_book': 'yes'}
+        self.client.login(username=self.user.username, password="test")
+        self.client.post(url, form_data)
+        booking.refresh_from_db()
+        self.assertTrue(booking.paid)
 
     def test_requesting_free_class(self):
         """
