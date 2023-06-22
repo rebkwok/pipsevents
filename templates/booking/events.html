@@ -201,13 +201,9 @@
                                                             {% endif %}
                                                             Further details</a>
                                                         {% elif not event.bookable and event.booking_open %}
-                                                            <span
-                                                                id="waiting_list_button_{{ event.id }}_{{ location_obj.index }}"
-                                                                data-event_id="{{ event.id }}"
-                                                                data-location_count="{{ location_events|length }}"
-                                                                class="td_ajax_waiting_list_btn">
-                                                            {% include "booking/includes/waiting_list_button.html" %}
-                                                            </span>
+                                                            <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">
+                                                                {% include "booking/includes/waiting_list_button.html" %}
+                                                            </div>
                                                         {% else %}
                                                             <div class="disabled btn btn-wm table-btn">Book</div>
                                                         {% endif %}
@@ -255,7 +251,6 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-multidatespicker/1.6.6/jquery-ui.multidatespicker.min.js" integrity="sha512-mMP7O0G5Vv01th+kpYux7RbD89Mx/iQnIvxcKdctiPyADgJzacfQJ8k2AsB8695AAuR2uPuxk7dawb1eehjcuQ==" crossorigin="anonymous"></script>
 <script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v2.js' %}"></script>
-<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
 
 <script type="text/javascript">
     $(document).ready(function() {

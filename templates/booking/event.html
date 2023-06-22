@@ -137,19 +137,14 @@
                                         {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
                                 {% else %}
                                     {% if not unbookable_pole_practice %}
-                                        <span
-                                            id="waiting_list_button_{{ event.id }}_0"
-                                            data-event_id="{{ event.id }}"
-                                            data-location_count="1"
-                                            data-ref="event"
-                                            class="td_ajax_waiting_list_btn">
-                                        {% include "booking/includes/waiting_list_button.html" %}
-                                        </span>
+                                        <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">
+                                            {% include "booking/includes/waiting_list_button.html" %}
+                                        </div>
                                     {% endif %}
                                 {% endif %}
                             {% endif %}
-                        {% endif %}  <!--- cancelled --->
-                    {% endif %}  <!--- past --->
+                        {% endif %}  <!-- cancelled -->
+                    {% endif %}  <!-- past -->
             </div>
         </div>
         </div>
@@ -162,6 +157,5 @@
 {% block extra_js %}
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
 <script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v2.js' %}"></script>
 {% endblock %}

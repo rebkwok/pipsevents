@@ -68,13 +68,9 @@
                                         {% if bookingform.ev_type == 'EV' %}EVENT{% elif bookingform.ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
                                     {% elif not bookingform.booking.event.bookable %}
                                         {% if not bookingform.booking.event.spaces_left %}
-                                            <span
-                                                id="waiting_list_button_{{ bookingform.booking.event.id }}_0"
-                                                data-event_id="{{ bookingform.booking.event.id }}"
-                                                data-location_count="1"
-                                                class="td_ajax_waiting_list_btn">
-                                            {% include "booking/includes/waiting_list_button.html" %}
-                                            </span>
+                                            <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">
+                                                {% include "booking/includes/waiting_list_button.html" %}
+                                            </div>
                                         {% elif bookingform.booking_status == 'CANCELLED' %}
                                             <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
                                         {% endif %}
@@ -161,6 +157,5 @@
 {% block extra_js %}
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
 <script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v2.js' %}"></script>
 {% endblock %}
