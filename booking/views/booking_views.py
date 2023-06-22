@@ -778,34 +778,26 @@ def ajax_create_booking(request, event_id):
 
     if request.user.currently_banned():
         unlocked = request.user.ban.end_date.strftime("%d %b %Y, %H:%M")
-        return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')
+        return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')    
 
     event = Event.objects.get(id=event_id)
     location_index = request.GET.get('location_index')
     location_page = request.GET.get('location_page', 1)
     ref = request.GET.get('ref')
 
-    if event.event_type.event_type == 'CL':
-        ev_type_str = 'class'
-        ev_type = 'lessons'
-    elif event.event_type.event_type == 'EV':
-        ev_type_str = 'workshop/event'
-        ev_type = 'events'
-    elif event.event_type.event_type == 'OT':
-        ev_type_str = 'online tutorial'
-        ev_type = 'online_tutorials'
-    else:
-        ev_type_str = 'room hire'
-        ev_type = 'room_hires'
-
     previously_cancelled = False
     previously_no_show = False
 
+    event_context = context_helpers.get_event_context({}, event, request.user)
+    ev_type = event_context["type"] + "s"
+    ev_type_str = event_context["event_type_str"]
     context = {
-        "event": event, "type": ev_type,
+        **event_context,
+        "type": ev_type,
+        "event": event,
         "location_index": location_index,
         "location_page": location_page,
-        "ref": ref
+        "ref": ref,
     }
 
     # make sure this isn't an open booking already
@@ -1045,12 +1037,16 @@ def ajax_create_booking(request, event_id):
         pass
 
     context["alert_message"] = alert_message
+    context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
+    context['shopping_basket_html'] = render_to_string("booking/includes/shopping_basket_icon.html", get_shopping_basket_icon(request.user, True))
 
-    return render(
-        request,
-        "booking/includes/ajax_purchase_tutorial_button.txt" if event.event_type.event_type == "OT" else "booking/includes/ajax_book_button.txt",
-        context
-    )
+    if event.event_type.event_type == "OT":
+        template = "booking/includes/ajax_purchase_tutorial_button.txt"
+    elif ref == "bookings":
+        template = "booking/includes/ajax_book_button.txt"
+    else:
+        template = "booking/includes/events_row_htmx.html"
+    return render(request, template, context)
 
 
 @login_required

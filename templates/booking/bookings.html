@@ -68,7 +68,7 @@
                                         {% if bookingform.ev_type == 'EV' %}EVENT{% elif bookingform.ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
                                     {% elif not bookingform.booking.event.bookable %}
                                         {% if not bookingform.booking.event.spaces_left %}
-                                            <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">
+                                            <div hx-get="{% url 'booking:toggle_waiting_list' bookingform.booking.event.id %}">
                                                 {% include "booking/includes/waiting_list_button.html" %}
                                             </div>
                                         {% elif bookingform.booking_status == 'CANCELLED' %}

@@ -85,7 +85,7 @@
                         <a class="dropdown-item" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
                     </div>
                 </li>
-                <li id="shopping-basket-menu" class="pl-1 pt-2 nav-item d-none d-sm-block">{% show_shopping_basket_menu request.user %}</li>
+                <li class="pl-1 pt-2 nav-item d-none d-sm-block"><span id="shopping-basket-menu">{% show_shopping_basket_menu request.user %}</span></li>
                 <li id="blocks-menu" class="pt-2 pl-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
             {% endif %}
             {% endblock %}
