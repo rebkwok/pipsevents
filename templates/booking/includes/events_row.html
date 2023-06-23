@@ -10,11 +10,11 @@
     <div class="col-6 col-md-5">
         <span {% if booking and booking.status == 'OPEN' and booking.paid %}class="fas fa-check-circle text-success"{% endif %}></span>
         {{ event.date|date:"H:i" }} 
-        {% if type == 'events' %}
+        {% if ev_type_for_url == 'events' %}
             <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
-            {% elif type == 'lessons' %}
+            {% elif ev_type_for_url == 'lessons' %}
             <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
-            {% elif type == 'room_hires' %}
+            {% elif ev_type_for_url == 'room_hires' %}
             <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
         {% endif %}
         {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
@@ -32,7 +32,7 @@
         £{{ event.cost }}
     </div>
     <div class="col-3 col-md-2">
-        {% if type == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
+        {% if ev_type_for_url == 'lessons' and event.external_instructor %}<span class="ext-instructor">Enquire for info</span>
         {% elif event.max_participants %}
             <span id="booking_count_{{ event.id }}_{{ location_index }}">{% include 'booking/includes/booking_count.html' %}</span>
         {% else %}N/A{% endif %}
@@ -47,16 +47,16 @@
             {% else %}
                 <span class="table-btns">
                     {% if not disclaimer %}
-                        {% if type == 'lessons' %}
+                        {% if ev_type_for_url == 'lessons' %}
                             <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
-                        {% elif type == 'events' %}
+                        {% elif ev_type_for_url == 'events' %}
                             <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">N/A - see details</a>
                         {% else %}
                             <a class="ext-instructor" href="{% url 'booking:room_hire_detail' event.slug %}">N/A - see details</a>
                         {% endif %}
                     {% elif event.event_type.subtype == "Pole practice" and not is_regular_student %}
                         <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
-                    {% elif event.bookable or event.id in booked_events %}
+                    {% elif event.bookable or event.id in booked_events or booking_open %}
                         {% if event.id in auto_cancelled_events or auto_cancelled %}
                             <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                         {% else %}
@@ -65,9 +65,9 @@
                             </span>
                         {% endif %}
                     {% elif event.external_instructor %}
-                        {% if type == 'events' %}
+                        {% if ev_type_for_url == 'events' %}
                             <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
-                        {% elif type == 'lessons' %}
+                        {% elif ev_type_for_url == 'lessons' %}
                             <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
                         {% endif %}
                         Further details</a>

@@ -23,14 +23,14 @@
     <div class="row">
     <div class="col-12">
         <h1>
-            {% if type == 'events' %}Workshops & Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hire{% endif %}<br/>
+            {% if ev_type_for_url == 'events' %}Workshops & Events{% elif ev_type_for_url == 'lessons' %}Classes{% elif ev_type_for_url == 'room_hires' %}Room Hire{% endif %}<br/>
         </h1>
 
 
         <h4> Click to view
-         {% if type == 'lessons' %}
+         {% if ev_type_for_url == 'lessons' %}
             <a href="{% url 'booking:events' %}">Workshops</a>
-        {% elif type == 'events' %}
+        {% elif ev_type_for_url == 'events' %}
             <a href="{% url 'booking:lessons' %}">Classes</a>
         {% endif %}
         or <a href="{% url 'booking:online_tutorials' %}">Online Tutorials</a>
@@ -106,7 +106,7 @@
                                 </div>
                                 <div class="form-group">
                                     <input class="btn btn-sm btn-wm pt-0 pb-0" type="submit" value="Apply filters">
-                                        <a class="btn btn-sm btn-dark pt-0 pb-0 ml-1" href="{% url type|reset_url %}">Reset</a><br/>
+                                        <a class="btn btn-sm btn-dark pt-0 pb-0 ml-1" href="{% url ev_type_for_url|reset_url %}">Reset</a><br/>
                                     <input type="hidden" name="tab" value="{{ location_obj.index }}">
                                 </div>
                             </form>
@@ -140,12 +140,12 @@
         {% else %}
             <div class="col-12">
             {% if request.GET.date_selection %}
-                <p>There are no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} that match your selected dates.</p>
+                <p>There are no {% if ev_type_for_url == 'events' %}workshops/events{% elif ev_type_for_url == 'lessons' %}classes{% elif ev_type_for_url == 'room_hires' %}room hires{% endif %} that match your selected dates.</p>
                 <a class="btn btn-warning" href="?name={{ request.GET.name }}&tab={{ request.GET.tab }}">
                     Clear date filters
                 </a>
             {% else %}
-                <p>There are currently no {% if type == 'events' %}workshops/events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% endif %} available to book.</p>
+                <p>There are currently no {% if ev_type_for_url == 'events' %}workshops/events{% elif ev_type_for_url == 'lessons' %}classes{% elif ev_type_for_url == 'room_hires' %}room hires{% endif %} available to book.</p>
             {% endif %}
             </div>
         {% endif %}

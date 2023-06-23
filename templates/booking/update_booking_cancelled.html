@@ -11,9 +11,9 @@
 
             <div class="card-body">
                 {% if full %}
-                    <p>This {{ ev_type }} is now full</p>
+                    <p>This {{ ev_type_str }} is now full</p>
                 {% elif not booking.event.bookable %}
-                    <p>This {{ ev_type }} cannot currently be booked.</p>
+                    <p>This {{ ev_type_str }} cannot currently be booked.</p>
                 {% endif %}
             </div>
 

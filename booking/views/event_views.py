@@ -106,7 +106,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
                 "booking.is_regular_student"
             )
         context['events_exist'] = all_events.exists()
-        context['type'] = self.kwargs['ev_type']
+        context['ev_type_for_url'] = self.kwargs['ev_type']
 
         event_name, date_selection, spaces_only = self.get_filter_form_initial()
         form_class = self.event_data_by_ev_type[self.kwargs["ev_type"]]["form_class"]

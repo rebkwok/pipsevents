@@ -1,7 +1,7 @@
 {% load bookingtags %}
 
 {% if booking and booking.status == "OPEN" and not booking.no_show %}
-    {% get_payment_button booking type location_index request.GET.name location_page %}
+    {% get_payment_button booking ev_type_for_url location_index request.GET.name location_page %}
 {% else %}
      <button class="btn table-btn btn-wm book_button">{% if ref == 'bookings' or booking %}Rebook{% else %}Book{% endif %}</button>
 {% endif %}

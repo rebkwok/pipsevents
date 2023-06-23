@@ -803,7 +803,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         """
         resp = self._get_response(self.user, self.event, 'event')
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context_data['type'], 'event')
+        self.assertEqual(resp.context_data['ev_type_for_url'], 'events')
 
     def test_with_booked_event(self):
         """
@@ -1071,7 +1071,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         """
         resp = self._get_response(self.user, 'lessons')
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context_data['type'], 'lessons')
+        self.assertEqual(resp.context_data['ev_type_for_url'], 'lessons')
         self.assertTrue('booked_events' in resp.context_data)
 
     def test_lesson_list_with_anonymous_user(self):
@@ -1094,7 +1094,7 @@ class LessonListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Event.objects.all().count(), 8)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['events'].count(), 6)
-        self.assertEqual(resp.context['type'], 'lessons')
+        self.assertEqual(resp.context['ev_type_for_url'], 'lessons')
 
     def test_filter_lessons(self):
         """
@@ -1209,7 +1209,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         """
         resp = self._get_response(self.user, 'room_hires')
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context_data['type'], 'room_hires')
+        self.assertEqual(resp.context_data['ev_type_for_url'], 'room_hires')
         self.assertTrue('booked_events' in resp.context_data)
 
     def test_room_hire_list_with_anonymous_user(self):
@@ -1232,7 +1232,7 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Event.objects.all().count(), 12)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['events'].count(), 4)
-        self.assertEqual(resp.context['type'], 'room_hires')
+        self.assertEqual(resp.context['ev_type_for_url'], 'room_hires')
 
     def test_filter_room_hire(self):
         """
@@ -1318,7 +1318,7 @@ class LessonDetailViewTests(TestSetupMixin, TestCase):
         url = reverse('booking:lesson_detail', args=[self.lesson.slug])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context_data['type'], 'lesson')
+        self.assertEqual(resp.context_data['ev_type_for_url'], 'lessons')
 
     def test_online_event_video_link(self):
         online_class = baker.make_recipe(
@@ -1395,4 +1395,4 @@ class RoomHireDetailViewTests(TestSetupMixin, TestCase):
         resp = view(request, slug=self.room_hire.slug, ev_type='room_hire')
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context_data['type'], 'room_hire')
+        self.assertEqual(resp.context_data['ev_type_for_url'], 'room_hires')

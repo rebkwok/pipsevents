@@ -8,10 +8,10 @@
     ">
     <div class="col-12">
         <h4 class="date">{{ booking.event.date |  date:"D d M H:i" }}
-            {% if ev_type == 'EV' %}
+            {% if ev_type_code == 'EV' %}
             <a href="{% url 'booking:event_detail' booking.event.slug %}">
                 {{ booking.event.name }}</a>
-            {% elif ev_type == 'CL' %}
+            {% elif ev_type_code == 'CL' %}
             <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
                 {{ booking.event.name }}</a>
             {% else %}
@@ -38,7 +38,7 @@
                     {% endif %}
                 </a>
             {% elif booking.event.cancelled %}
-                {% if ev_type == 'EV' %}EVENT{% elif ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
+                {% if ev_type_code == 'EV' %}EVENT{% elif ev_type_code == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
             {% elif not booking.event.bookable %}
                 {% if not booking.event.spaces_left %}
                     <div hx-get="{% url 'booking:toggle_waiting_list' booking.event.id %}">

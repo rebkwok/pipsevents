@@ -31,7 +31,7 @@
 
     <div class="col-12">
         {% for bookingform in bookingformlist %}
-            {% with booking=bookingform.booking booking_status=bookingform.booking_status location_page=page_obj.number ev_type=bookingform.ev_type due_date_time=bookingform.due_date_time %}
+            {% with booking=bookingform.booking booking_status=bookingform.booking_status location_page=page_obj.number ev_type_code=bookingform.ev_type_code due_date_time=bookingform.due_date_time %}
             <span id="booked-{{ booking.id }}-row">    
                 {% include 'booking/includes/bookings_row.html' %}
             </span>    

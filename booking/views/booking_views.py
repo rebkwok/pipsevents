@@ -109,7 +109,7 @@ def get_booking_context(booking):
     return {
         'booking_status': 'CANCELLED' if
         (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
-        'ev_type': booking.event.event_type.event_type,
+        'ev_type_code': booking.event.event_type.event_type,
         'booking': booking,
         'due_date_time': due_date_time(booking),
     }
@@ -141,7 +141,7 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
                 'booking_status': 'CANCELLED' if
                 (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
                 'booking': booking,
-                'ev_type': booking.event.event_type.event_type
+                'ev_type_code': booking.event.event_type.event_type
             }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
@@ -702,27 +702,16 @@ class BookingDeleteView(
 
 def duplicate_booking(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    if event.event_type.event_type == 'EV':
-        ev_type = 'event'
-    elif event.event_type.event_type == 'CL':
-        ev_type = 'class'
-    else:
-        ev_type = 'room hire'
-
-    context = {'event': event, 'ev_type': ev_type}
+    _, _, ev_type_str = context_helpers.event_strings(event)
+    context = {'event': event, 'ev_type_str': ev_type_str}
 
     return render(request, 'booking/duplicate_booking.html', context)
 
 
 def update_booking_cancelled(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
-    if booking.event.event_type.event_type == 'EV':
-        ev_type = 'event'
-    elif booking.event.event_type.event_type == 'CL':
-        ev_type = 'class'
-    else:
-        ev_type = 'room hire'
-    context = {'booking': booking, 'ev_type': ev_type}
+    _, _, ev_type_str = context_helpers.event_strings(booking.event)
+    context = {'booking': booking, 'ev_type_str': ev_type_str}
     if booking.event.spaces_left == 0:
         context['full'] = True
     return render(request, 'booking/update_booking_cancelled.html', context)
@@ -730,14 +719,8 @@ def update_booking_cancelled(request, pk):
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    if event.event_type.event_type == 'EV':
-        ev_type = 'event'
-    elif event.event_type.event_type == 'CL':
-        ev_type = 'class'
-    else:
-        ev_type = 'room hire'
-
-    context = {'event': event, 'ev_type': ev_type}
+    _, _, ev_type_str = context_helpers.event_strings(event)
+    context = {'event': event, 'ev_type_str': ev_type_str}
     return render(request, 'booking/fully_booked.html', context)
 
 
@@ -789,6 +772,8 @@ def ajax_create_booking(request, event_id):
         template = "booking/includes/ajax_purchase_tutorial_button.txt"
     elif ref == "bookings":
         template = "booking/includes/bookings_row_htmx.html"
+    elif ref == "event":
+        template = "booking/includes/event_htmx.html"
     else:
         template = "booking/includes/events_row_htmx.html"
 
@@ -801,14 +786,6 @@ def ajax_create_booking(request, event_id):
         "location_page": request.GET.get('location_page', 1),
         "ref": ref,
     }
-
-    if ref in ["events", "online_tutorials", "room_hires"]:
-        event_context = context_helpers.get_event_context(context, event, request.user, pluralise=True)
-        context = {
-            **event_context,
-            "type": event_context["ev_type"],
-            
-        } 
 
     # make sure this isn't an open booking already
     if Booking.objects.filter(user=request.user, event=event).exists():
@@ -838,13 +815,15 @@ def ajax_create_booking(request, event_id):
         return HttpResponseBadRequest(message)
 
     booking, new = Booking.objects.get_or_create(user=request.user, event=event)
-    if ref == "bookings":
-        context["booking"] = booking
-        ev_type, ev_type_str = context_helpers.event_strings(booking.event, pluralise=True)
-        context["type"] = ev_type
-    else:
-        context["booking"] = booking
-        ev_type_str = context["ev_type_str"]
+    context["booking"] = booking
+    ev_type_code, ev_type_for_url, ev_type_str = context_helpers.event_strings(booking.event)
+    context.update(
+        {
+            "ev_type_code": ev_type_code,
+            "ev_type_for_url": ev_type_for_url,
+            "ev_type_str": ev_type_str,
+        }
+    )
 
     if not new:
         if booking.status == 'CANCELLED':
@@ -893,6 +872,16 @@ def ajax_create_booking(request, event_id):
         booking.payment_confirmed = True
 
     booking.save()
+
+    if ref == "bookings":
+        context.update(get_booking_context(booking))
+    else:
+        context.update(
+            context_helpers.get_event_context(context, event, request.user)
+        )
+        context["booking_open"] = context["booked"]
+
+
     ActivityLog.objects.create(
         log='Booking {} {} for "{}" by user {}'.format(
             booking.id,
@@ -921,7 +910,7 @@ def ajax_create_booking(request, event_id):
           'ev_type': ev_type_str,
     }
     try:
-        if ev_type != "online_tutorials":
+        if ev_type_for_url != "online_tutorials":
             send_mail('{} Booking for {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
             ),
@@ -1029,7 +1018,7 @@ def ajax_create_booking(request, event_id):
 
     elif event.cost == 0:
         alert_message['message_type'] = 'success'
-        alert_message['message'] = "Booked." if ev_type != "online_tutorials" else "Purchased."
+        alert_message['message'] = "Booked." if ev_type_for_url != "online_tutorials" else "Purchased."
 
     elif not booking.paid:
         alert_message['message_type'] = 'error'
@@ -1053,17 +1042,13 @@ def ajax_create_booking(request, event_id):
         pass
 
     context["alert_message"] = alert_message
-    if ref == "bookings":
-        # for bookings, update context now, after any changes to the booking 
-        # have been made
-        context.update(get_booking_context(booking))
-
     return render_row(request, template, booking, context)
 
 
 def render_row(request, template, booking, context):
     context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
     context['shopping_basket_html'] = render_to_string("booking/includes/shopping_basket_icon.html", get_shopping_basket_icon(request.user, True))
+    context['event_booked_info'] = render_to_string("booking/includes/event_booked_info.html", context)
     return render(request, template, context)
 
 
