@@ -1,0 +1,11 @@
+{% if alert_message %}
+    {% if alert_message.message_type == 'warning' %}
+        <script>vNotify.warning({text:'{{ alert_message.message }}',title:'{{ event }}',position: 'bottomLeft',});</script>
+    {% elif alert_message.message_type == 'success' %}
+        <script>vNotify.success({text:'{{ alert_message.message }}',title:'{{ event }}',position: 'bottomLeft',});</script>
+    {% elif alert_message.message_type == 'error' %}
+        <script>vNotify.error({text:'{{ alert_message.message }}',title:'{{ event }}',position: 'bottomLeft',sticky: true});</script>
+    {% else %}
+        <script>vNotify.info({text:'{{ alert_message.message }}',title:'{{ event }}',position: 'bottomLeft',});</script>
+    {% endif %}
+{% endif %}

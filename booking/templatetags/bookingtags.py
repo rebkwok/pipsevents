@@ -384,7 +384,6 @@ def get_booking(event, user, user_bookings):
 
 @register.inclusion_tag('booking/includes/payment_button.html')
 def get_payment_button(booking, type, tab, filter, page=1):
-
     return {
         'unpaid': not (booking.paid and booking.payment_confirmed),
         'booking': booking,

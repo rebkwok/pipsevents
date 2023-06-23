@@ -91,26 +91,28 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
         bookings = context['bookings']
 
         for booking in bookings:
+            bookingform = get_booking_context(booking)
+            bookingform['has_available_block'] = booking.event.event_type in active_block_event_types
             try:
                 WaitingListUser.objects.get(user=self.request.user, event=booking.event)
-                on_waiting_list = True
+                bookingform['on_waiting_list'] = True
             except WaitingListUser.DoesNotExist:
-                on_waiting_list = False
-
-            bookingform = {
-                'booking_status': 'CANCELLED' if
-                (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
-                'ev_type': booking.event.event_type.event_type,
-                'booking': booking,
-                'has_available_block': booking.event.event_type in
-                active_block_event_types,
-                'on_waiting_list': on_waiting_list,
-                'due_date_time': due_date_time(booking),
-                }
+                bookingform['on_waiting_list'] = False
             bookingformlist.append(bookingform)
+
         context['bookingformlist'] = bookingformlist
 
         return context
+    
+
+def get_booking_context(booking):
+    return {
+        'booking_status': 'CANCELLED' if
+        (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
+        'ev_type': booking.event.event_type.event_type,
+        'booking': booking,
+        'due_date_time': due_date_time(booking),
+    }
 
 
 class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
@@ -781,36 +783,44 @@ def ajax_create_booking(request, event_id):
         return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')    
 
     event = Event.objects.get(id=event_id)
-    location_index = request.GET.get('location_index')
-    location_page = request.GET.get('location_page', 1)
     ref = request.GET.get('ref')
+
+    if event.event_type.event_type == "OT":
+        template = "booking/includes/ajax_purchase_tutorial_button.txt"
+    elif ref == "bookings":
+        template = "booking/includes/bookings_row_htmx.html"
+    else:
+        template = "booking/includes/events_row_htmx.html"
 
     previously_cancelled = False
     previously_no_show = False
 
-    event_context = context_helpers.get_event_context({}, event, request.user)
-    ev_type = event_context["type"] + "s"
-    ev_type_str = event_context["event_type_str"]
     context = {
-        **event_context,
-        "type": ev_type,
         "event": event,
-        "location_index": location_index,
-        "location_page": location_page,
+        "location_index": request.GET.get('location_index'),
+        "location_page": request.GET.get('location_page', 1),
         "ref": ref,
     }
+
+    if ref in ["events", "online_tutorials", "room_hires"]:
+        event_context = context_helpers.get_event_context(context, event, request.user, pluralise=True)
+        context = {
+            **event_context,
+            "type": event_context["ev_type"],
+            
+        } 
 
     # make sure this isn't an open booking already
     if Booking.objects.filter(user=request.user, event=event).exists():
         booking = Booking.objects.get(user=request.user, event=event)
         if booking.status == "OPEN" and not booking.no_show:
             # Already booked; don't do anything else, just update button
-            context['booking'] = booking
-            return render(
-                request,
-                "booking/includes/ajax_purchase_tutorial_button.txt" if event.event_type.event_type == "OT" else "booking/includes/ajax_book_button.txt",
-                context
-            )
+            if ref == "bookings":
+                context = get_booking_context(booking)
+            else:
+                context["booking"] = booking
+            return render_row(request, template, booking, context)
+
 
     # if pole practice, make sure this user has permission
     if event.event_type.subtype == "Pole practice" \
@@ -828,7 +838,13 @@ def ajax_create_booking(request, event_id):
         return HttpResponseBadRequest(message)
 
     booking, new = Booking.objects.get_or_create(user=request.user, event=event)
-    context['booking'] = booking
+    if ref == "bookings":
+        context["booking"] = booking
+        ev_type, ev_type_str = context_helpers.event_strings(booking.event, pluralise=True)
+        context["type"] = ev_type
+    else:
+        context["booking"] = booking
+        ev_type_str = context["ev_type_str"]
 
     if not new:
         if booking.status == 'CANCELLED':
@@ -1037,15 +1053,17 @@ def ajax_create_booking(request, event_id):
         pass
 
     context["alert_message"] = alert_message
+    if ref == "bookings":
+        # for bookings, update context now, after any changes to the booking 
+        # have been made
+        context.update(get_booking_context(booking))
+
+    return render_row(request, template, booking, context)
+
+
+def render_row(request, template, booking, context):
     context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
     context['shopping_basket_html'] = render_to_string("booking/includes/shopping_basket_icon.html", get_shopping_basket_icon(request.user, True))
-
-    if event.event_type.event_type == "OT":
-        template = "booking/includes/ajax_purchase_tutorial_button.txt"
-    elif ref == "bookings":
-        template = "booking/includes/ajax_book_button.txt"
-    else:
-        template = "booking/includes/events_row_htmx.html"
     return render(request, template, context)
 
 

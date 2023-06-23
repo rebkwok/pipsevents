@@ -14,26 +14,35 @@ from accounts.models import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Block, BlockType, Booking, WaitingListUser
 
 
-def get_event_context(context, event, user):
+def event_strings(event, pluralise=False):
+    """
+    Return
+    - event_type for url matching (plural if the url to match is a list view)
+    - ev_type_str: formatted singular string
+    """
+    if event.event_type.event_type == 'CL':
+        event_type, ev_type_str = "lesson", "class"
+    elif event.event_type.event_type == 'EV':
+        event_type, ev_type_str = "event", "workshop/event"
+    elif event.event_type.event_type == 'OT':
+        event_type, ev_type_str =  "online_tutorial", "online tutorial"
+    else:
+        assert event.event_type.event_type == 'RH'
+        event_type, ev_type_str =  "room_hire", "room hire"
+    if pluralise:
+        return f"{event_type}s", ev_type_str
+    return event_type, ev_type_str
+
+def get_event_context(context, event, user, pluralise=False):
     disclaimer = has_active_disclaimer(user)
     expired_disclaimer = has_expired_disclaimer(user)
     context['disclaimer'] = disclaimer
     context['expired_disclaimer'] = expired_disclaimer
 
-    if event.event_type.event_type == 'CL':
-        context['type'] = "lesson"
-        event_type_str = "class"
-    elif event.event_type.event_type == 'EV':
-        context['type'] = "event"
-        event_type_str = "workshop/event"
-    elif event.event_type.event_type == 'OT':
-        context['type'] = "online_tutorial"
-        event_type_str = "online tutorial"
-    else:
-        context['type'] = "room_hire"
-        event_type_str = "room hire"
-
-    context['event_type_str'] = event_type_str
+    event_type, event_type_str = event_strings(event, pluralise=pluralise)
+    context["ev_type"] = event.event_type.event_type
+    context['type'] = event_type
+    context['ev_type_str'] = event_type_str
 
     if event.date <= timezone.now():
         context['past'] = True
