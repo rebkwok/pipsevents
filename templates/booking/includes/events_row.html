@@ -51,6 +51,8 @@
                             <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                         {% elif ev_type_for_url == 'events' %}
                             <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">N/A - see details</a>
+                        {% elif ev_type_for_url == 'online_tutorials' %}
+                            <a class="ext-instructor" href="{% url 'booking:tutorial_detail' event.slug %}">N/A - see details</a>
                         {% else %}
                             <a class="ext-instructor" href="{% url 'booking:room_hire_detail' event.slug %}">N/A - see details</a>
                         {% endif %}
@@ -87,11 +89,15 @@
                             </span>
                         {% endif %}
                     {% elif event.external_instructor %}
-                        {% if ev_type_for_url == 'events' %}
-                            <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">
-                        {% elif ev_type_for_url == 'lessons' %}
-                            <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">
-                        {% endif %}
+                    {% if ev_type_for_url == 'lessons' %}
+                        <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
+                    {% elif ev_type_for_url == 'events' %}
+                        <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">N/A - see details</a>
+                    {% elif ev_type_for_url == 'online_tutorials' %}
+                        <a class="ext-instructor" href="{% url 'booking:tutorial_detail' event.slug %}">N/A - see details</a>
+                    {% else %}
+                        <a class="ext-instructor" href="{% url 'booking:room_hire_detail' event.slug %}">N/A - see details</a>
+                    {% endif %}
                         Further details</a>
                     {% elif not event.bookable and event.booking_open %}
                         <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">

@@ -9,46 +9,55 @@
 {% block content %}
 
 <div class="row">
-    <div class="col-12">
+    <div class="container">
     {% if history %}
         <h1>My past bookings</h1>
     {% else %}
         <h1>My bookings</h1>
     {% endif %}
     </div>
-    <div class="col-12">
+    <div class="container">
         <div class="btn-group btn-group-sm float-right" role="group">
             <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
             <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My online tutorials</a>
             <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
         </div>
     </div>
-
-    <div class="col-12">
-    {% if bookingformlist %}
-    <p>Click on booking title for more class/event details.</p>
+</row>
+    
+{% if bookingformlist %}
+    <div class="container">
+        <p>Click on booking title for more class/event details.</p>
     </div>
+        <div class="container">
+            <div class="row font-weight-bold py-2 booking-event-card-item">
+                <div class="col"></div>
+                <div class="col"></div>
+                <div class="col text-center">Paid</div>
+                <div class="col text-center">Block used</div>
+                <div class="col text-center">Payment due</div>
+            </div>
 
-    <div class="col-12">
-        {% for bookingform in bookingformlist %}
-            {% with booking=bookingform.booking booking_status=bookingform.booking_status location_page=page_obj.number ev_type_code=bookingform.ev_type_code due_date_time=bookingform.due_date_time %}
-            <span id="booked-{{ booking.id }}-row">    
-                {% include 'booking/includes/bookings_row.html' %}
-            </span>    
-            {% endwith %}
-        {% endfor %}
-        {% include 'booking/includes/pagination.html' %}
-    </div>
-    {% else %}
-    <div class="col-12">
-        {% if history %}
-            <p>You do not have any past class, event or room hire bookings.</p>
-        {% else %}
-            <p>You are not booked into any upcoming classes, events or room hires.</p>
+            {% for bookingform in bookingformlist %}
+                {% with booking=bookingform.booking booking_status=bookingform.booking_status location_page=page_obj.number ev_type_code=bookingform.ev_type_code due_date_time=bookingform.due_date_time %}
+                <span id="booked-{{ booking.id }}-row">    
+                    {% include 'booking/includes/bookings_row.html' %}
+                </span>    
+                {% endwith %}
+            {% endfor %}
+            {% include 'booking/includes/pagination.html' %}
+        </div>
+{% else %}
+    <div class="row">
+        <div class="col-12">
+            {% if history %}
+                <p>You do not have any past class, event or room hire bookings.</p>
+            {% else %}
+                <p>You are not booked into any upcoming classes, events or room hires.</p>
+            {% endif %}
         {% endif %}
-    {% endif %}
-    </div>
-</div>
+        </div>
+    </row>    
 
 {% endblock content %}
 

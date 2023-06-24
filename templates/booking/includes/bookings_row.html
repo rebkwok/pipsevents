@@ -3,11 +3,53 @@
 {% include 'booking/includes/alerts.html' %}
 
 <div 
-    class="row event-card event-card-item mt-1 pb-1 mb-2
+    class="row event-card booking-event-card-item pb-1 pt-1 py-2
     {% if booking_status == 'CANCELLED' %}past-event-row{% elif not booking.paid %}unpaid-booking-row{% endif %}
     ">
-    <div class="col-12">
-        <h6 class="date">{{ booking.event.date |  date:"D d M H:i" }}
+    
+    <div class="col">
+        {{ booking.event.date |  date:"D d M H:i" }}
+            {% if not history %}
+                {% if booking_status == 'OPEN' %}
+                    {% if not booking.paid %}
+                        <a href="{% url 'booking:shopping_basket' %}">
+                            <span id='pay_button' class="btn table-btn btn-info table-pay-btn" >
+                                <i class="fa fa-shopping-basket"></i>
+                            </span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'booking:delete_booking' booking.pk %}?page={{ location_page }}">
+                            <div class="btn btn-danger table-btn {% if not booking.paid %}table-cancel-btn{% endif %}">Cancel</div>
+                        </a>        
+                    {% endif %}
+                {% elif booking.event.cancelled %}
+                    {% if ev_type_code == 'EV' %}EVENT{% elif ev_type_code == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
+                {% elif not booking.event.bookable %}
+                    {% if not booking.event.spaces_left %}
+                        <div hx-get="{% url 'booking:toggle_waiting_list' booking.event.id %}">
+                            {% include "booking/includes/waiting_list_button.html" %}
+                        </div>
+                    {% elif booking_status == 'CANCELLED' %}
+                        <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
+                    {% endif %}
+                {% else %}
+                    {% if request.user.currently_banned %}
+                        <div class="btn btn-wm table-btn disabled">Rebook</div>
+                    {% elif booking.auto_cancelled %}
+                        <div
+                                id="rebook_button_auto_cancelled_disabled"
+                                class="btn btn-wm table-btn disabled"
+                                title="Contact {{ booking.event.contact_email }} directly to rebook"
+                        >Rebook</div>
+                    {% else %}
+                        <span hx-post="{% url 'booking:ajax_create_booking' booking.event.id %}?ref=bookings&location_page={{ location_page }}">
+                        {% include "booking/includes/ajax_book_button.txt" %}
+                        </span>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+    </div>
+    <div class="col">
             {% if ev_type_code == 'EV' %}
             <a href="{% url 'booking:event_detail' booking.event.slug %}">
                 {{ booking.event.name }}</a>
@@ -18,68 +60,35 @@
             <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
                 {{ booking.event.name }}</a>
             {% endif %}
+        <br/>
             {% with status=booking|format_status %}
             <span class="badge badge-pill {% if status == 'Open'%}badge-success{% else %}badge-secondary{% endif %}">
                 {{ status }}
             </span>
             {% endwith %}
-        </h6>
     </div>
-    <div class="col-5 col-sm-3 col-lg-2">
-        {% if not history %}
-            {% if booking_status == 'OPEN' %}
-                {% if not booking.paid %}
-                    <a href="{% url 'booking:shopping_basket' %}">
-                        <span id='pay_button' class="btn table-btn btn-info table-pay-btn" >
-                            <i class="fa fa-shopping-basket"></i>
-                        </span>
-                    </a>
-                {% else %}
-                    <a href="{% url 'booking:delete_booking' booking.pk %}?page={{ location_page }}">
-                        <div class="btn btn-danger table-btn {% if not booking.paid %}table-cancel-btn{% endif %}">Cancel</div>
-                    </a>        
-                {% endif %}
-            {% elif booking.event.cancelled %}
-                {% if ev_type_code == 'EV' %}EVENT{% elif ev_type_code == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
-            {% elif not booking.event.bookable %}
-                {% if not booking.event.spaces_left %}
-                    <div hx-get="{% url 'booking:toggle_waiting_list' booking.event.id %}">
-                        {% include "booking/includes/waiting_list_button.html" %}
-                    </div>
-                {% elif booking_status == 'CANCELLED' %}
-                    <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
-                {% endif %}
-            {% else %}
-                {% if request.user.currently_banned %}
-                    <div class="btn btn-wm table-btn disabled">Rebook</div>
-                {% elif booking.auto_cancelled %}
-                    <div
-                            id="rebook_button_auto_cancelled_disabled"
-                            class="btn btn-wm table-btn disabled"
-                            title="Contact {{ booking.event.contact_email }} directly to rebook"
-                    >Rebook</div>
-                {% else %}
-                    <span hx-post="{% url 'booking:ajax_create_booking' booking.event.id %}?ref=bookings&location_page={{ location_page }}">
-                    {% include "booking/includes/ajax_book_button.txt" %}
-                    </span>
-                {% endif %}
-            {% endif %}
-            <br/>
-        {% endif %}
-    </div>
+   
     
-    <div class="col-7 col-sm-9 col-lg-8">
-        {% if booking.status == "OPEN" %}
-            {% comment %} <span class="text-center"><span class="badge badge-pill badge-location badge-location-{{ booking.event.location_index }}">{{ booking.event.location }}</span></span> {% endcomment %}
-            <span><strong>Paid:</strong> {{ booking|format_paid_status }}</span>
-            {% if booking.paid %}
-                <br/><span><strong>Block used:</strong> 
-                    {% if booking.block %}
-                    <span class="confirmed fa fa-check"></span>
-                    {% else %}N/A{% endif %}</span>
-            {% elif due_date_time %}
-                <br/><span><strong>Due:</strong> {{ due_date_time | date:"D d M H:i"}}</span>
+    {% if booking.status == "OPEN" %}
+        <div class="col text-center">
+                {% comment %} <span class="text-center"><span class="badge badge-pill badge-location badge-location-{{ booking.event.location_index }}">{{ booking.event.location }}</span></span> {% endcomment %}
+                {{ booking|format_paid_status }}
+        </div>
+        <div class="col text-center">
+            {% if booking.block %}
+                <span class="confirmed fa fa-check"></span>
+            {% else %}
+                N/A
             {% endif %}
-        {% endif %}
-    </div>
+        </div>
+        <div class="col text-center">
+            {% if not booking.paid and due_date_time %}
+                {{ due_date_time | date:"d M H:i"}}
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="col"></div>
+        <div class="col"></div>
+        <div class="col"></div>
+    {% endif %}
 </div>

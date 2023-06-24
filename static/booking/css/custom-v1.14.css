@@ -83,7 +83,7 @@ h1, h2, h3 {
   }
 }
 
-body > .container-fluid {
+body > .container-fluid.content-block {
   padding: 65px 25px 0 25px;
   width: 100%;
 }
@@ -1204,10 +1204,10 @@ tr.table-shaded{
 }
 
 tr.unpaid-booking-row, div.unpaid-booking-row {
-    background: rgba(255, 0, 0, 0.15);
+    background: rgba(255, 0, 0, 0.08);
 }
 div.past-event-row {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 768px) { /* use the max to specify at each container level */
@@ -1829,4 +1829,8 @@ span.disclaimer_version {
 
 .event-card-item {
   border-left: rgb(240, 139, 165) solid;
+}
+
+.booking-event-card-item {
+  border-bottom: rgb(240, 139, 165) solid;
 }

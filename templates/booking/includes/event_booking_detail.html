@@ -4,9 +4,14 @@
 
 {% if ev_type_code != "OT" %}
     <p>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</p>
-
     {% if bookable or booked %}
-        {% if request.user.currently_banned %}
+        {% if booked and not booking.paid %}
+            <a href="{% url 'booking:shopping_basket' %}">
+                <span id='pay_button' class="btn btn-info table-btn table-pay-btn">
+                    <i class="fa fa-shopping-basket"></i>
+                </span>
+            </a>
+        {% elif request.user.currently_banned %}
             <div class="btn btn-wm table-btn disabled">Book</div>
         {% elif not disclaimer %}
             <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
@@ -14,12 +19,6 @@
             <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
         {% elif auto_cancelled %}
             <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
-        {% elif booked and not booking.paid %}
-            <a href="{% url 'booking:shopping_basket' %}">
-                <span id='pay_button' class="btn btn-info table-btn table-pay-btn">
-                    <i class="fa fa-shopping-basket"></i>
-                </span>
-            </a>
         {% else %}
             <span hx-post="{% url 'booking:ajax_create_booking' event.id %}?ref=event">
             {% include "booking/includes/ajax_book_button.txt" %}
