@@ -15,7 +15,7 @@ from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_tot
     has_active_block, permission_denied, ticket_purchase_expired, \
     shopping_basket, update_block_bookings, submit_zero_block_payment, \
     submit_zero_booking_payment, update_shopping_basket_count, \
-    toggle_waiting_list, booking_details, \
+    toggle_waiting_list, \
     OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView
 
 app_name = 'booking'
@@ -135,10 +135,6 @@ urlpatterns = [
     path(
         'bookings/ajax-toggle-waiting-list/<int:event_id>/',
         toggle_waiting_list, name='toggle_waiting_list'
-    ),
-    path(
-        'bookings/booking-details/<int:event_id>/',
-        booking_details, name='booking_details'
     ),
     path(
         'bookings/shopping-basket-total/bookings/',

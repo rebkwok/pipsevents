@@ -1083,33 +1083,3 @@ def toggle_waiting_list(request, event_id):
         "booking/includes/waiting_list_button.html",
         {'event': event, 'on_waiting_list': on_waiting_list}
     )
-
-
-@login_required
-def booking_details(request, event_id):
-    booking = request.user.bookings.get(event_id=event_id)
-    if booking.paid:
-        payment_due = "Received"
-    elif due_date_time(booking):
-        payment_due = due_date_time(booking).strftime('%a %d %b %H:%M')
-    else:
-        payment_due = "N/A"
-
-    if booking.status == 'CANCELLED' or booking.no_show:
-        confirmed = '<span class="fa fa-times"></span>'
-    elif booking.space_confirmed():
-        confirmed = '<span class="fa fa-check"></span>'
-    else:
-        confirmed = 'Pending'
-    return JsonResponse(
-        {
-            'paid': booking.paid,
-            'paid_status': format_paid_status(booking),
-            'status': booking.status,
-            'payment_due': payment_due,
-            'block': '<span class="confirmed fa fa-check"></span>' if booking.block else '<strong>N/A</strong>',
-            'confirmed': confirmed,
-            'no_show': booking.no_show,
-            'booking_count_html': render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request}),
-        }
-    )
