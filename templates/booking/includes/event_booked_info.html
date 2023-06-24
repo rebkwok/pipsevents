@@ -1,8 +1,0 @@
-{% include 'booking/includes/alerts.html' %}
-
-<h5>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}
-{% if booked and event.cost and not booking.paid %}
-Payment is required to confirm your space.
-{% endif %}
-</h5>
-<h5>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</h5>

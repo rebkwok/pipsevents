@@ -1,0 +1,64 @@
+{% include 'booking/includes/alerts.html' %}
+
+<p>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}
+
+{% if ev_type_code != "OT" %}
+    <p>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</p>
+
+    {% if bookable or booked %}
+        {% if request.user.currently_banned %}
+            <div class="btn btn-wm table-btn disabled">Book</div>
+        {% elif not disclaimer %}
+            <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+        {% elif not event.booking_open and not unbookable_pole_practice %}
+            <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+        {% elif auto_cancelled %}
+            <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
+        {% elif booked and not booking.paid %}
+            <a href="{% url 'booking:shopping_basket' %}">
+                <span id='pay_button' class="btn btn-info table-btn table-pay-btn">
+                    <i class="fa fa-shopping-basket"></i>
+                </span>
+            </a>
+        {% else %}
+            <span hx-post="{% url 'booking:ajax_create_booking' event.id %}?ref=event">
+            {% include "booking/includes/ajax_book_button.txt" %}
+            </span>
+        {% endif %}
+    {% elif not event.booking_open and not unbookable_pole_practice %}
+        <div id='book_button_disabled' class="disabled btn btn-wm table-btn">
+            {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
+    {% else %}
+        {% if not unbookable_pole_practice %}
+            <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">
+                {% include "booking/includes/waiting_list_button.html" %}
+            </div>
+        {% endif %}
+    {% endif %}
+{% else %}
+    {% comment %} tutorials {% endcomment %}
+    {% if booked %}
+        {% if not booking.paid %}
+            <a href="{% url 'booking:shopping_basket' %}">
+                <span id='pay_button' class="btn btn-info table-btn table-pay-btn {% if not tutorial.payment_open %} disabled{% endif %}">
+                    <i class="fa fa-shopping-basket"></i>
+                </span>
+            </a>
+        {% endif %}
+    {% elif bookable %}
+        {% if request.user.currently_banned %}
+            <div class="btn btn-wm table-btn disabled">Purchase</div>
+        {% elif not disclaimer %}
+            <div class="btn btn-wm table-btn disabled">Purchase</div>
+        {% elif auto_cancelled %}
+            <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ tutorial.contact_email }} directly to purchase">Purchase</div>
+        {% else %}
+            <span hx-post="{% url 'booking:ajax_create_booking' tutorial.id %}?ref=online_tutorial">
+            {% include "booking/includes/ajax_book_button.txt" %}
+            </span>
+        {% endif %}
+    {% elif not tutorial.booking_open %}
+    <div id='book_button_disabled' class="disabled btn btn-wm table-btn">
+        Add to basket</div>
+    {% endif %}
+{% endif %}

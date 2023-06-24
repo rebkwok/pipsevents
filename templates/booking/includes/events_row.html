@@ -54,10 +54,32 @@
                         {% else %}
                             <a class="ext-instructor" href="{% url 'booking:room_hire_detail' event.slug %}">N/A - see details</a>
                         {% endif %}
+                    {% elif  booking and booking.status == "OPEN" and not booking.no_show %}
+                        {% if booking.paid %}   
+                            <form class="table-form" action="{% url 'booking:delete_booking' booking.id %}" method="get">
+                                <input class="btn btn-danger table-btn" type="submit" value="Cancel"/>
+                                <input type="hidden" name="next" value="{{ ev_type_for_url }}" />
+                                <input type="hidden" name="tab" value="{{ location_index }}">
+                                <input type="hidden" name="filter" value="{{ request.GET.name }}">
+                                <input type="hidden" name="page" value="{{ location_page }}">
+                            </form>
+                        {% else %}
+                            <a href="{% url 'booking:shopping_basket' %}">
+                                <span id='pay_button' class="btn btn-info table-btn table-pay-btn">
+                                    <i class="fa fa-shopping-basket"></i>
+                                </span>
+                            </a>
+                        {% endif %}
                     {% elif event.event_type.subtype == "Pole practice" and not is_regular_student %}
                         <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
-                    {% elif event.bookable or event.id in booked_events or booking_open %}
-                        {% if event.id in auto_cancelled_events or auto_cancelled %}
+                    {% elif event.bookable %}
+                        {% if  booking and booking.status == "OPEN" and not booking.no_show and not booking.paid %}
+                            <a href="{% url 'booking:shopping_basket' %}">
+                                <span id='pay_button' class="btn btn-info table-btn table-pay-btn">
+                                    <i class="fa fa-shopping-basket"></i>
+                                </span>
+                            </a>
+                        {% elif event.id in auto_cancelled_events or auto_cancelled %}
                             <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
                         {% else %}
                             <span hx-post="{% url 'booking:ajax_create_booking' event.id %}?location_index={{ location_index }}&location_page={{ location_page }}&ref=events">

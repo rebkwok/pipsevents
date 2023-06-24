@@ -766,16 +766,17 @@ def ajax_create_booking(request, event_id):
         return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')    
 
     event = Event.objects.get(id=event_id)
-    ref = request.GET.get('ref')
+    ref = request.GET.get('ref', "events")
 
-    if event.event_type.event_type == "OT":
-        template = "booking/includes/ajax_purchase_tutorial_button.txt"
-    elif ref == "bookings":
-        template = "booking/includes/bookings_row_htmx.html"
-    elif ref == "event":
-        template = "booking/includes/event_htmx.html"
-    else:
-        template = "booking/includes/events_row_htmx.html"
+    ref_to_template = {
+        "online_tutorial": "booking/includes/event_htmx.html",
+        "event": "booking/includes/event_htmx.html",
+        "bookings": "booking/includes/bookings_row_htmx.html",
+        "events": "booking/includes/events_row_htmx.html",
+        "online_tutorials": "booking/includes/events_row_htmx.html",
+        
+    }
+    template = ref_to_template[ref]
 
     previously_cancelled = False
     previously_no_show = False
@@ -824,6 +825,8 @@ def ajax_create_booking(request, event_id):
             "ev_type_str": ev_type_str,
         }
     )
+    if ev_type_code == "OT":
+        context['tutorial'] = event
 
     if not new:
         if booking.status == 'CANCELLED':
@@ -1048,7 +1051,6 @@ def ajax_create_booking(request, event_id):
 def render_row(request, template, booking, context):
     context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
     context['shopping_basket_html'] = render_to_string("booking/includes/shopping_basket_icon.html", get_shopping_basket_icon(request.user, True))
-    context['event_booked_info'] = render_to_string("booking/includes/event_booked_info.html", context)
     return render(request, template, context)
 
 

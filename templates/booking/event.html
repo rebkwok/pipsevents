@@ -101,31 +101,7 @@
                         {% if event.max_participants %}
                             <h5 class="pt-1">Spaces are {% if event.spaces_left <= 0 %}not {% endif %}available for this {{ ev_type_str }}.</h5>
                         {% endif %}
-                            <span id="booked_text">{% include 'booking/includes/event_booked_info.html' %}</span>
-                            {% if bookable or booked %}
-                                {% if request.user.currently_banned %}
-                                    <div class="btn btn-wm table-btn disabled">Book</div>
-                                {% elif not disclaimer %}
-                                    <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
-                                {% elif not event.booking_open and not unbookable_pole_practice %}
-                                    <div class="btn btn-wm table-btn disabled">{% if cancelled %}Rebook{% else %}Book{% endif %}</div>
-                                {% elif auto_cancelled %}
-                                    <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ event.contact_email }} directly to rebook">Rebook</div>
-                                {% else %}
-                                    <span hx-post="{% url 'booking:ajax_create_booking' event.id %}?ref=event">
-                                    {% include "booking/includes/ajax_book_button.txt" %}
-                                    </span>
-                                {% endif %}
-                            {% elif not event.booking_open and not unbookable_pole_practice %}
-                                <div id='book_button_disabled' class="disabled btn btn-wm table-btn">
-                                    {% if cancelled %}Rebook{% else %}Book{% endif %}</div>
-                            {% else %}
-                                {% if not unbookable_pole_practice %}
-                                    <div hx-get="{% url 'booking:toggle_waiting_list' event.id %}">
-                                        {% include "booking/includes/waiting_list_button.html" %}
-                                    </div>
-                                {% endif %}
-                            {% endif %}
+                            <span id="booked_text">{% include 'booking/includes/event_booking_detail.html' %}</span>
                         {% endif %}  <!-- cancelled -->
                     {% endif %}  <!-- past -->
             </div>

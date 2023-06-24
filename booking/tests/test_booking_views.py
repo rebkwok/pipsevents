@@ -485,7 +485,7 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
         self.assertEqual(event.spaces_left, 0)
         resp = self._get_update_booking_cancelled(self.user, booking)
         self.assertIn(event.name, str(resp.content))
-        self.assertIn("This event is now full", str(resp.content))
+        self.assertIn("This workshop/event is now full", str(resp.content))
 
     def test_already_cancelled(self):
         """
