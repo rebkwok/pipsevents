@@ -51,11 +51,11 @@
                         {% endif %}
                     </div>
                     <div class="col-3 text-right">
-                        <button
-                            class="btn btn-danger table-btn basket-remove-btn block_remove_btn"
-                            data-block_id="{{ block.id }}"
-                            data-block_code="{{ block_code }}"
-                        >X</button>
+                        <form
+                            hx-post="{% url 'booking:delete_block' block.id %}?ref=basket&code={{ block_code}}"
+                        >
+                            <input class="btn btn-danger table-btn basket-remove-btn" type="submit" value="X"/>    
+                        </form>
                     </div>
                 </div>
             </div>
@@ -129,59 +129,7 @@
 
             {% for booking in unpaid_bookings %}
             <div id="bookingrow-{{ booking.id}}">
-                <div class="row basket-row">
-                    <div class="col-6 col-sm-7">
-                        {% if booking.event.event_type.event_type == 'EV' %}
-                        <a href="{% url 'booking:event_detail' booking.event.slug %}">
-                            {{ booking.event.name }}</a>
-                        {% elif booking.event.event_type.event_type == 'CL' %}
-                        <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
-                            {{ booking.event.name }}</a>
-                        {% elif booking.event.event_type.event_type == 'OT' %}
-                            <a href="{% url 'booking:tutorial_detail' booking.event.slug %}">
-                            {{ booking.event.name }}</a>
-                        {% else %}
-                        <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
-                            {{ booking.event.name }}</a>
-                        {% endif %} {% if booking.event.event_type.event_type != 'OT' %} - {{ booking.event.date |  date:"D d M H:i" }}{% endif %}
-                        {% if not booking.can_cancel %}**{% endif %}
-                    </div>
-                    <div class="col-2">
-                        {% if booking.id in voucher_applied_bookings %}
-                            <s>£{{ booking.event.cost }}</s>
-                            £{{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
-                        {% else %}
-                            £{{ booking.event.cost }}
-                        {% endif %}
-                    </div>
-                    <div class="col-3 col-sm-2 text-left">
-                        {% if booking.has_available_block or booking.has_unpaid_block %}
-                        <form class="table-form" method="post" action="{% url 'booking:update_booking' booking.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="block_book" value="True"/>
-                            {% if valid_booking_voucher %}
-                                <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
-                            {% endif %}
-                            {% if valid_block_voucher %}
-                                <input type="hidden" name="block_code" value="{{ block_code }}"/>
-                            {% endif %}
-                            <input type="hidden" name="shopping_basket" value="True"/>
-                            {% if booking.has_available_block %}
-                                <input class="btn btn-wm table-btn basket-block-btn" type="submit" value="Use block"/>
-                            {% else %}
-                                <div class="btn btn-wm table-btn basket-block-btn disabled">Use block</div>
-                            {% endif %}
-                        </form>
-                        {% endif %}
-                    </div>
-                    <div class="col-1 text-right">
-                        <button
-                            class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
-                            data-booking_id="{{ booking.id }}"
-                            data-booking_code="{{ booking_code }}"
-                        >X</button>
-                    </div>
-                </div>
+                {% include 'booking/includes/shopping_basket_booking_row.html' %}
             </div>
             {% endfor %}
 
@@ -289,40 +237,10 @@
 
         {% for booking in unpaid_bookings_non_default_paypal %}
         <div id="bookingrow-{{ booking.id}}">
-            <div class="row basket-row">
-            <div class="col-5">
-                {% if booking.event.event_type.event_type == 'EV' %}
-                <a href="{% url 'booking:event_detail' booking.event.slug %}">
-                    {{ booking.event.name }}</a>
-                {% elif booking.event.event_type.event_type == 'CL' %}
-                <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
-                    {{ booking.event.name }}</a>
-                {% else %}
-                <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
-                    {{ booking.event.name }}</a>
-                {% endif %} - {{ booking.event.date |  date:"D d M H:i" }}
-                {% if not booking.can_cancel %}**{% endif %}
-            </div>
-            <div class="col-3">
-                {% if booking.id in voucher_applied_bookings %}
-                    <s>£ {{ booking.event.cost }}</s>
-                    £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
-                {% else %}
-                    £ {{ booking.event.cost }}
-                {% endif %}
-            </div>
-            <div class="col-4">
-                <a class="btn table-btn table-btn-xs btn-sm btn-wm" href="{% url 'booking:update_booking' booking.id %}">Options</a>
-                <button
-                    class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
-                    data-booking_id="{{ booking.id }}"
-                    data-booking_code="{{ booking_code }}"
-                >X</button>
-            </div>
-        </div>
+            {% include 'booking/includes/shopping_basket_booking_row.html' %}
         </div>
         {% endfor %}
-        </div>
+    </div>
     {% endif %}
 
 
@@ -342,37 +260,7 @@
 
         {% for booking in unpaid_bookings_payment_not_open %}
         <div id="bookingrow-{{ booking.id}}">
-            <div class="row basket-row">
-            <div class="col-7">
-                {% if booking.event.event_type.event_type == 'EV' %}
-                <a href="{% url 'booking:event_detail' booking.event.slug %}">
-                    {{ booking.event.name }}</a>
-                {% elif booking.event.event_type.event_type == 'CL' %}
-                <a href="{% url 'booking:lesson_detail' booking.event.slug %}">
-                    {{ booking.event.name }}</a>
-                {% else %}
-                <a href="{% url 'booking:room_hire_detail' booking.event.slug %}">
-                    {{ booking.event.name }}</a>
-                {% endif %} - {{ booking.event.date |  date:"D d M H:i" }}
-                {% if not booking.can_cancel %}**{% endif %}
-            </div>
-            <div class="col-2">
-                {% if booking.id in voucher_applied_bookings %}
-                    <s>£ {{ booking.event.cost }}</s>
-                    £ {{ booking.event.cost|voucher_applied_cost:booking_voucher.discount }}
-                {% else %}
-                    £ {{ booking.event.cost }}
-                {% endif %}
-            </div>
-            <div class="col-2"> </div>
-            <div class="col-1">
-                <button
-                    class="btn btn-danger table-btn basket-remove-btn booking_remove_btn"
-                    data-booking_id="{{ booking.id }}"
-                    data-booking_code="{{ booking_code }}"
-                >X</button>
-            </div>
-        </div>
+            {% include 'booking/includes/shopping_basket_booking_row.html' %}
         </div>
         {% endfor %}
      </div>
@@ -391,5 +279,4 @@
 {% block extra_js %}
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-<script type='text/javascript' src="{% static 'booking/js/shopping_basket_ajax.js' %}"></script>
 {% endblock %}

@@ -11,9 +11,9 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.views.generic import (
@@ -39,6 +39,7 @@ from booking.models import (
 from booking.forms import VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.views.shopping_basket_views import shopping_basket_bookings_total_context
 from booking.views.views_utils import DisclaimerRequiredMixin, \
     DataPolicyAgreementRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
@@ -674,7 +675,20 @@ class BookingDeleteView(
         if delete_from_shopping_basket:
             # get rid of messages
             list(messages.get_messages(self.request))
-            return HttpResponse('Booking cancelled')
+            context= {
+                "booking": booking,
+                'shopping_basket_bookings_total_html': render_to_string(
+                    "booking/includes/shopping_basket_bookings_total.html",
+                    shopping_basket_bookings_total_context(self.request)
+                )
+            }
+    
+            return render_row(
+                self.request, 
+                "booking/includes/shopping_basket_booking_row_htmx.html", 
+                None,
+                context
+            )
 
         next_page = self.request.GET.get('next') or self.request.POST.get('next')
         params = {}
@@ -1049,7 +1063,8 @@ def ajax_create_booking(request, event_id):
 
 
 def render_row(request, template, booking, context):
-    context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
+    if booking:
+        context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
     context['shopping_basket_html'] = render_to_string("booking/includes/shopping_basket_icon.html", get_shopping_basket_icon(request.user, True))
     return render(request, template, context)
 

@@ -569,19 +569,19 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe('booking.future_PC')
         booking = baker.make_recipe('booking.booking', event=event,
                                     user=self.user, paid=True)
-        self.assertEqual(Booking.objects.all().count(), 1)
+        assert Booking.objects.count() == 1
 
         url = reverse('booking:delete_booking', args=[booking.id]) + '?ref=basket'
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content, b'Booking cancelled')
+        assert resp.status_code == 200
+        assert f"<div id='bookingrow-{booking.id}'></div>"
 
         # after cancelling, the booking is still there, but status has changed
-        self.assertEqual(Booking.objects.all().count(), 1)
-        booking = Booking.objects.get(id=booking.id)
-        self.assertEqual('CANCELLED', booking.status)
-        self.assertEqual(len(mail.outbox), 1)
+        assert Booking.objects.count() == 1
+        booking.refresh_from_db()
+        assert booking.status == 'CANCELLED'
+        assert len(mail.outbox) == 1
 
     def test_cancel_unpaid_booking(self):
         """

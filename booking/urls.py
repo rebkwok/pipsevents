@@ -1,7 +1,6 @@
 from django.urls import path
 from django.views.generic import RedirectView
-from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_total, \
-    ajax_shopping_basket_blocks_total, blocks_modal, \
+from booking.views import ajax_create_booking, blocks_modal, \
     already_cancelled, already_paid, \
     GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete, \
     disclaimer_required,  \
@@ -135,14 +134,6 @@ urlpatterns = [
     path(
         'bookings/ajax-toggle-waiting-list/<int:event_id>/',
         toggle_waiting_list, name='toggle_waiting_list'
-    ),
-    path(
-        'bookings/shopping-basket-total/bookings/',
-        ajax_shopping_basket_bookings_total, name='ajax_shopping_basket_bookings_total'
-    ),
-    path(
-        'bookings/shopping-basket-total/blocks/',
-        ajax_shopping_basket_blocks_total, name='ajax_shopping_basket_blocks_total'
     ),
     path(
         'blocks_modal/',

@@ -10,11 +10,14 @@ from django.core import mail
 from django.urls import reverse
 from django.test import override_settings, TestCase
 from django.contrib.auth.models import Group, User
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, AccountBan
 
 from booking.models import Event, EventType, Booking, Block, WaitingListUser
+from booking.views.shopping_basket_views import shopping_basket_bookings_total_context, \
+    shopping_basket_blocks_total_context
 from common.tests.helpers import TestSetupMixin, make_data_privacy_agreement
 
 from payments.helpers import create_booking_paypal_transaction
@@ -871,47 +874,56 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context['event'], self.event)
         self.assertEqual(resp.context['on_waiting_list'], False)
 
-    def test_ajax_shopping_basket_bookings_total(self):
+    def test_shopping_basket_bookings_total_context(self):
         self.event.cost = 5
         self.event.payment_open = True
         self.event.save()
-        baker.make_recipe('booking.booking', event=self.event, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_bookings_total')
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context['total_unpaid_booking_cost'], 5)
-        self.assertIn('id="id_cmd"', resp.content.decode('utf-8'))
+        booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
+        request = self.factory.post(reverse("booking:delete_booking", args=(booking.id,)))
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_bookings_total_context(request)
+        self.assertEqual(context['total_unpaid_booking_cost'], 5)
 
-    def test_ajax_shopping_basket_bookings_total_no_cost(self):
-        baker.make_recipe('booking.booking', event=self.event, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_bookings_total')
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIsNone(resp.context['total_unpaid_booking_cost'])
-        self.assertNotIn('id="id_cmd">', resp.content.decode('utf-8'))
+    def test_shopping_basket_bookings_total_context_no_cost(self):
+        booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
+        request = self.factory.post(reverse("booking:delete_booking", args=(booking.id,)))
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_bookings_total_context(request)
+        self.assertIsNone(context['total_unpaid_booking_cost'])
 
-    def test_ajax_shopping_basket_bookings_total_with_code(self):
-        baker.make_recipe('booking.booking', event=self.event, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_bookings_total') + '?code=test'
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIsNone(resp.context['total_unpaid_booking_cost'])
-        self.assertEqual(resp.context['booking_code'], 'test')
+    def test_shopping_basket_bookings_total_context_with_code(self):
+        booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
+        request = self.factory.post(
+            reverse("booking:delete_booking", args=(booking.id,)) + "?code=test"
+        )
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_bookings_total_context(request)
+        self.assertIsNone(context['total_unpaid_booking_cost'])
+        self.assertEqual(context['booking_code'], 'test')
 
     def test_ajax_shopping_blocks_total(self):
-        baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_blocks_total')
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
+        block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
+        request = self.factory.post(
+            reverse("booking:delete_block", args=(block.id,))
+        )
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_blocks_total_context(request)
+        self.assertEqual(context['total_unpaid_block_cost'], 20)
 
     def test_ajax_shopping_basket_blocks_total_with_code(self):
-        baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_blocks_total') + '?code=test'
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
-        self.assertEqual(resp.context['block_code'], 'test')
+        block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
+        request = self.factory.post(
+            reverse("booking:delete_block", args=(block.id,)) + '?code=test'
+        )
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_blocks_total_context(request)
+        self.assertEqual(context['total_unpaid_block_cost'], 20)
+        self.assertEqual(context['block_code'], 'test')
 
     def test_ajax_shopping_basket_bookings_total_updates_cart_items(self):
         # calling the shopping_basket_bookings_total resets the session cart items
@@ -919,33 +931,45 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.event.payment_open = True
         self.event.save()
         booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_bookings_total')
-        assert "cart_items" not in self.client.session
-        resp = self.client.get(url)
-        assert resp.context['total_unpaid_booking_cost'] == 5
-        assert self.client.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
 
-        self.client.session["cart_items"] = "foo 1"
-        self.client.get(url)
-        assert self.client.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
+        request = self.factory.post(
+            reverse("booking:delete_booking", args=(booking.id,)) + "?code=test"
+        )
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_bookings_total_context(request)
+        assert context['total_unpaid_booking_cost'] == 5
+        assert request.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
 
-    def test_ajax_shopping_basket_bookings_total_updates_cart_items_for_blocks(self):
+        request.session["cart_items"] = "foo 1"
+        context = shopping_basket_bookings_total_context(request)
+        assert request.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
+
+    def test_shopping_basket_bookings_total_context_updates_cart_items_for_blocks(self):
         # calling the shopping_basket_bookings_total sets the session cart items for unpaid blocks
         # if there are no unpaid bookings left
+        booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
         block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_bookings_total')
-        assert "cart_items" not in self.client.session
-        resp = self.client.get(url)
-        assert resp.context['total_unpaid_booking_cost'] is None
-        assert self.client.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
+        request = self.factory.post(
+            reverse("booking:delete_booking", args=(booking.id,)) + "?code=test"
+        )
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_bookings_total_context(request)
+        assert context['total_unpaid_booking_cost'] is None
+        assert request.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
     def test_ajax_shopping_basket_blocks_total_updates_cart_items(self):
         # calling the shopping_basket_blocks_total sets the session cart items
         block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
-        url = reverse('booking:ajax_shopping_basket_blocks_total')
-        resp = self.client.get(url)
-        self.assertEqual(resp.context['total_unpaid_block_cost'], 20)
-        assert self.client.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
+        request = self.factory.post(
+            reverse("booking:delete_block", args=(block.id,))
+        )
+        request.user = self.user
+        _add_session(request)
+        context = shopping_basket_blocks_total_context(request)
+        self.assertEqual(context['total_unpaid_block_cost'], 20)
+        assert request.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
     def test_ajax_shopping_basket_blocks_total_updates_cart_items_for_bookings(self):
         # calling the shopping_basket_blocks_total resets the session cart items for unpaid bookings
@@ -956,12 +980,25 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.event.save()
         booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
 
-        url = reverse('booking:ajax_shopping_basket_blocks_total')
-        self.client.get(url)
+        request = self.factory.post(
+            reverse("booking:delete_block", args=(block.id,))
+        )
+        request.user = self.user
+        _add_session(request)
+
+        shopping_basket_blocks_total_context(request)
+
         # No cart items because there are both booking and block unpaid
-        assert "cart_items" not in self.client.session
+        assert "cart_items" not in request.session
 
         block.delete()
-        self.client.get(url)
+        shopping_basket_blocks_total_context(request)
+
         # After the block is deleted, we can allow booking cart items
-        assert self.client.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
+        assert request.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
+
+
+def _add_session(request):
+    middleware = SessionMiddleware(lambda x: None)
+    middleware.process_request(request)
+    request.session.save()

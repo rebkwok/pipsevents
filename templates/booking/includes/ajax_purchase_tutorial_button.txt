@@ -1,4 +1,0 @@
-{% load bookingtags %}
-
-     <button class="btn table-btn btn-wm book_button">Add to basket</button>
-
