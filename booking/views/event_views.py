@@ -138,11 +138,11 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         all_paginator = Paginator(all_events, 30)
 
         queryset = all_paginator.get_page(page)
-
         location_events = [{
             'index': 0,
             'queryset': queryset,
-            'location': 'All locations'
+            'location': 'All locations',
+            'paginator_range': queryset.paginator.get_elided_page_range(queryset.number)
         }]
         # TODO: NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
         # for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):

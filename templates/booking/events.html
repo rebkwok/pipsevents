@@ -113,7 +113,6 @@
                         </div>
                         <div class="tab-content" id="myTabContent">
                             {% for location_obj in location_events %}
-                                {% include 'booking/includes/event_pagination.html' %}
                                 {% regroup location_obj.queryset by date.date as events_by_date %}
                                 {% for events in events_by_date %}
                                     <div class="row event-card event-card-header list-group-item-dark  mt-1">
@@ -129,7 +128,12 @@
 
                                     {% endfor %}
                                 {% endfor %}
-                                {% include 'booking/includes/event_pagination.html' %}
+                                
+                                {% get_pagination_params "events" as pagination_params %}
+                                {% with page_obj=location_obj.queryset paginator_range=location_obj.paginator_range %}
+                                    {% include 'booking/includes/pagination.html' %}
+                                {% endwith %}
+
                             {% endfor %}
                         </div> <!-- tab-content -->
                     </div> <!-- card body -->

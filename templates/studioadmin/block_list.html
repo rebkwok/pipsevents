@@ -69,6 +69,10 @@
                             {% endif %}
                             </tbody>
                         </table>
+
+                        {% get_pagination_params "admin_blocks" as pagination_params %}
+                        {% include 'booking/includes/pagination.html' %}
+
                     </div>
                 </div>
             </div>

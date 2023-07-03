@@ -28,6 +28,7 @@ from booking.models import Booking,  Block, BlockType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
 from common.mailchimp_utils import update_mailchimp
+from common.views import _set_pagination_context
 
 from studioadmin.forms import AddBookingForm, EditPastBookingForm, \
     EditBookingForm, UserBookingFormSet,  \
@@ -115,6 +116,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['form'] = form
         context['num_results'] = num_results
         context['total_users'] = total_users
+        _set_pagination_context(context)
         return context
 
 
@@ -194,18 +196,20 @@ def users_status(request):
         # If page is out of range (e.g. 9999), deliver last page of results.
         page = paginator.page(paginator.num_pages)
 
+    context = {
+        "user_counts": dict(page.object_list),
+        "event_subtypes": event_subtypes,
+        "number_of_subtypes": len(event_subtypes),
+        "form": form,
+        'page_obj': page,
+        'is_paginated': paginator.num_pages > 1,
+        'sidenav_selection': 'attendance'
+    }
+    _set_pagination_context(context)
     return render(
         request,
         "studioadmin/users_attendance.html",
-        {
-            "user_counts": dict(page.object_list),
-            "event_subtypes": event_subtypes,
-            "number_of_subtypes": len(event_subtypes),
-            "form": form,
-            'page_obj': page,
-            'is_paginated': paginator.num_pages > 1,
-            'sidenav_selection': 'attendance'
-        }
+        context
     )
 
 
@@ -425,11 +429,11 @@ def user_modal_bookings_view(request, user_id, past=False):
     template = 'studioadmin/user_booking_list.html'
     return TemplateResponse(
         request,  template,  {
-            'bookings': bookings,  'page': page, 'user': user,
+            'bookings': bookings,  'page_obj': page, 
+            "paginator_range": page.paginator.get_elided_page_range(page.number),
+            'user': user,
             'sidenav_selection': 'users',
             'booking_status': 'past' if past else 'future',
-            'total_count': paginator.count,
-            'current_count': bookings.count()
         }
     )
 
@@ -517,7 +521,7 @@ def user_blocks_view(request,  user_id):
         user=user).order_by('-start_date')
 
     paginator = Paginator(queryset, 10)
-    page = request.GET.get('page')
+    page = request.GET.get('page', 1)
     try:
         page = paginator.page(page)
     except PageNotAnInteger:
@@ -526,18 +530,17 @@ def user_blocks_view(request,  user_id):
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         page = paginator.page(paginator.num_pages)
-
-    queryset = queryset.filter(id__in=[obj.id for obj in page])
     userblockformset = UserBlockFormSet(
         instance=user,
-        queryset=queryset,
+        queryset=queryset.filter(id__in=page.object_list.values_list("id", flat=True)),
         user=user
     )
     template = 'studioadmin/user_block_list.html'
     return TemplateResponse(
         request,  template,  {
             'userblockformset': userblockformset,  'user': user, 
-            'sidenav_selection': 'users', 'page': page
+            'sidenav_selection': 'users', 'page_obj': page,
+            "paginator_range": page.paginator.get_elided_page_range(page.number)
         }
     )
 
@@ -546,10 +549,12 @@ class MailingListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = User
     template_name = 'studioadmin/mailing_list.html'
     context_object_name = 'users'
+    paginate_by = 30
 
     def get_context_data(self):
         context_data = super().get_context_data()
         context_data['sidenav_selection'] = 'mailing_list'
+        _set_pagination_context(context_data)
         return context_data
 
     def get_queryset(self, **kwargs):

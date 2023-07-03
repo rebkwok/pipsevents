@@ -55,12 +55,24 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                   'first_name': 'Fred', 'last_name': self.user.last_name}
         )
         self.user.refresh_from_db()
-        self.assertFalse(self.user.subscribed())
+        assert not self.user.subscribed()
+        assert self.user.first_name == "Fred"
+
+        self.user.groups.add(self.group)
+        self.client.post(
+            self.url, {
+                'username': self.user.username,
+                'first_name': 'George', 'last_name': self.user.last_name}
+        )
+        self.user.refresh_from_db()
+        assert self.user.subscribed()
+        assert self.user.first_name == "George"
         assert_mailchimp_post_data(
-            self.mock_request, self.user, 'unsubscribed'
+            self.mock_request, self.user, 'subscribed'
         )
 
     def test_updates_mailchimp_with_last_name(self):
+        self.user.groups.add(self.group)
         self.client.login(username=self.user.username, password='test')
         self.client.post(
             self.url, {'username': self.user.username,
@@ -68,25 +80,11 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         )
         self.user.refresh_from_db()
         assert_mailchimp_post_data(
-            self.mock_request, self.user, 'unsubscribed'
+            self.mock_request, self.user, 'subscribed'
         )
 
     def test_mailchimp_updated_with_existing_subscription_status(self):
         self.client.login(username=self.user.username, password='test')
-        self.client.post(
-            self.url,
-            {
-                'username': self.user.username,
-                'first_name': 'Fred',
-                'last_name': self.user.last_name
-            }
-        )
-
-        self.user.refresh_from_db()
-        self.assertFalse(self.user.subscribed())
-        assert_mailchimp_post_data(
-            self.mock_request, self.user, 'unsubscribed'
-        )
 
         self.group.user_set.add(self.user)
         self.assertTrue(self.user.subscribed())
@@ -107,6 +105,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_username_changes_do_not_update_mailchimp(self):
+        self.user.groups.add(self.group)
         self.client.login(username=self.user.username, password='test')
         self.client.post(
             self.url,
@@ -123,6 +122,7 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
     @override_settings(MAILCHIMP_LIST_ID='fake')
     def test_invalid_mailchimp_list_id(self):
+        self.user.groups.add(self.group)
         self.mock_request.side_effect = HTTPError(
             Mock(return_value={'status': 404}), 'not found'
         )
@@ -145,7 +145,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
 
         # called with the invalid id
         assert_mailchimp_post_data(
-            self.mock_request, self.user, 'unsubscribed', list_id='fake'
+
+            self.mock_request, self.user, 'subscribed', list_id='fake'
         )
 
 

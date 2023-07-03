@@ -64,8 +64,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         first_name_changed = 'first_name' in form.changed_data
         last_name_changed = 'last_name' in form.changed_data
-
-        if first_name_changed or last_name_changed:
+        if (first_name_changed or last_name_changed) and form.instance.subscribed():
             update_mailchimp(form.instance, 'update_profile')
             ActivityLog.objects.create(
                 log='User profile changed for {} ({}); MailChimp list updated '
@@ -73,7 +72,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
                     form.instance.username, form.instance.email
                 )
             )
-        return super(ProfileUpdateView, self).form_valid(form)
+        return super().form_valid(form)
 
 
 class CustomLoginView(LoginView):

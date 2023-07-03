@@ -76,7 +76,10 @@
                                         </tr>
                                         {% endfor %}
                                     </table>
-                                    {% include 'studioadmin/includes/register_pagination.html' %}
+                                    {% get_pagination_params "events" as pagination_params %}
+                                    {% with page_obj=location_obj.queryset paginator_range=location_obj.paginator_range %}
+                                        {% include 'booking/includes/pagination.html' %}
+                                    {% endwith %}
                                 </div>
                             </div>
                           {% endfor %}

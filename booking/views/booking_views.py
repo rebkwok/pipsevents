@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any
 import pytz
 
 from decimal import Decimal
@@ -45,6 +46,8 @@ from booking.views.views_utils import DisclaimerRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
 
 from booking.templatetags.bookingtags import format_paid_status, get_shopping_basket_icon
+
+from common.views import _set_pagination_context
 
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
@@ -102,6 +105,7 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
             bookingformlist.append(bookingform)
 
         context['bookingformlist'] = bookingformlist
+        _set_pagination_context(context)
 
         return context
     
@@ -160,6 +164,11 @@ class PurchasedTutorialsListView(DataPolicyAgreementRequiredMixin, LoginRequired
         return self.request.user.bookings.filter(
             event__event_type__event_type="OT", paid=True, status="OPEN", no_show=False
         ).order_by('date_booked')
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        _set_pagination_context(context)
+        return context
 
 
 class BookingUpdateView(

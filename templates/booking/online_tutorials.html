@@ -101,7 +101,6 @@
                     <div class="tab-content" id="myTabContent">
                         {% for location_obj in location_events %}
                         {% if location_obj.queryset %}
-                            {% include 'booking/includes/event_pagination.html' %}
                             {% regroup location_obj.queryset by event_type.subtype as events_by_type %}
                             {% for events in events_by_type %}
                                 <div class="row event-card event-card-header list-group-item-dark  mt-1">
@@ -116,7 +115,12 @@
                                     </span>
                                 {% endfor %}
                             {% endfor %}
-                            {% include 'booking/includes/event_pagination.html' %}
+
+                            {% get_pagination_params "events" as pagination_params %}
+                            {% with page_obj=location_obj.queryset paginator_range=location_obj.paginator_range %}
+                                {% include 'booking/includes/pagination.html' %}
+                            {% endwith %}
+
                         {% else %}
                             Coming soon!
                         {% endif %}

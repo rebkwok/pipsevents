@@ -11,14 +11,6 @@
             </form>
 
         <div class="row">
-        {% if is_paginated %}
-            <div class="col-12">
-            <small>
-                {% include 'studioadmin/includes/attendance_pagination.html' %}
-            </small>
-            </div>
-        {% endif %}
-
             <div class="col-sm-12">
                 <div class="card card-wm">
                     {% if user_counts %}
@@ -45,18 +37,11 @@
                                 {% endfor %}
                             </tr>
                             {% endfor %}
-
-                            {% if is_paginated %}
-                                <tr>
-                                    <td class="studioadmin-tbl" colspan={{ number_of_subtypes|add:3 }}>
-                                        {% include 'studioadmin/includes/attendance_pagination.html' %}
-                                    </td>
-                                </tr>
-                            {% endif %}
-
                             </tbody>
-
                         </table>
+
+                        {% get_pagination_params "attendance" as pagination_params %}
+                        {% include 'booking/includes/pagination.html' %}
                     </div>
 
                     {% else %}

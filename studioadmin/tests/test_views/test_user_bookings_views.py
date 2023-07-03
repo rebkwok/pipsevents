@@ -1678,7 +1678,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
         bookings = resp.context_data['bookings']
         self.assertEqual(bookings.count(), 20)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
         # page 1
@@ -1689,7 +1689,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
         bookings = resp.context_data['bookings']
         self.assertEqual(bookings.count(), 20)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
         # page number > max pages gets last page
@@ -1700,7 +1700,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
         bookings = resp.context_data['bookings']
         self.assertEqual(bookings.count(), 4)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 2)
 
         # page not a number > gets first page
@@ -1711,7 +1711,7 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         )
         bookings = resp.context_data['bookings']
         self.assertEqual(bookings.count(), 20)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
 

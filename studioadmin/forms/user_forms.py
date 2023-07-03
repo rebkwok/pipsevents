@@ -594,34 +594,25 @@ class EditPastBookingForm(forms.ModelForm):
             empty_label="--------None--------"
         ))
 
-        attended_widget = self.fields['attended'].widget
-        paid_widget = self.fields['paid'].widget
-        deposit_paid_widget = self.fields['deposit_paid'].widget
-        free_class_widget = self.fields['free_class'].widget
-        no_show_widget = self.fields['no_show'].widget
-
-        all_widgets_to_disable = [
-            attended_widget, paid_widget, deposit_paid_widget,
-            free_class_widget, no_show_widget
-        ]
+        widgets_to_disable_for_cancelled = {
+            'attended', 'paid', 'deposit_paid', 'free_class', 'no_show'
+        }
+        widgets_to_disable_for_blocks = {
+            'paid', 'deposit_paid', 'free_class'
+        }
+        self.disabled_attrs = set()
 
         if self.instance.status == 'CANCELLED':
-            # disable all for cancelled
-            for widget in all_widgets_to_disable:
-                widget.attrs.update({
-                    "disabled": "disabled",
-                    'OnClick': "javascript:return ReadOnlyCheckBox()"
-                })
-
+            self.disabled_attrs |= widgets_to_disable_for_cancelled
         if self.instance.block:
-            # also disable payment and free class fields for block bookings
-            for widget in [paid_widget, deposit_paid_widget, free_class_widget]:
-                widget.attrs.update({
-                    'disabled': 'disabled',
-                    'OnClick': "javascript:return ReadOnlyCheckBox()"
-                })
+            self.disabled_attrs |= widgets_to_disable_for_blocks
+        
+        for field in self.disabled_attrs:
+            self.fields[field].disabled = True
 
     def clean(self):
+        for field in self.disabled_attrs:
+            self.cleaned_data[field] = getattr(self.instance, field)
         status = self.cleaned_data.get('status')
         free_class = self.cleaned_data.get('free_class')
         attended = self.cleaned_data.get('attended')
@@ -646,22 +637,6 @@ class EditPastBookingForm(forms.ModelForm):
                 error_msg = 'Cannot reopen booking for cancelled ' \
                             '{}.'.format(ev_type)
                 self.add_error('status', base_error_msg + error_msg)
-            if free_class:
-                error_msg = 'Cannot assign booking for cancelled ' \
-                            '{} as free class.'.format(ev_type)
-                self.add_error('free_class', base_error_msg + error_msg)
-            if paid:
-                error_msg = 'Cannot change booking for cancelled ' \
-                            '{} to paid.'.format(ev_type)
-                self.add_error('paid', base_error_msg + error_msg)
-            if attended:
-                error_msg = 'Cannot mark booking for cancelled ' \
-                            '{} as attended.'.format(ev_type)
-                self.add_error('attended', base_error_msg + error_msg)
-            if no_show:
-                error_msg = 'Cannot mark booking for cancelled ' \
-                            '{} as no-show.'.format(ev_type)
-                self.add_error('no_show', base_error_msg + error_msg)
 
         else:
             if (block and free_class and

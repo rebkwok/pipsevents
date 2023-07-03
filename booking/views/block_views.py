@@ -24,6 +24,7 @@ from booking.views.views_utils import (
 )
 from booking.views.booking_views import render_row
 from booking.views.shopping_basket_views import shopping_basket_blocks_total_context
+from common.views import _set_pagination_context
 
 from activitylog.models import ActivityLog
 
@@ -140,7 +141,7 @@ class BlockListView(
             blockformlist.append(blockform)
 
         context['blockformlist'] = blockformlist
-
+        _set_pagination_context(context)
         return context
 
     def get_queryset(self):

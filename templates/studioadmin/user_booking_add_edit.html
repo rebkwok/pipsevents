@@ -34,14 +34,6 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-
-                {% if field.errors %}
-                    <div class="form-error">
-                        {% for error in field.errors %}
-                            <span class="fas fa-exclamation-triangle"></span>{{ error|escape }}
-                        {% endfor %}
-                    </div>
-                {% endif %}
             </div>
         {% endfor %}
     <div class="row">

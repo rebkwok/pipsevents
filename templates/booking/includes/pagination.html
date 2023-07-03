@@ -1,24 +1,30 @@
 {% load bookingtags %}
 
-<div class="pagination">
-    <span class="page-links">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-        {% else %}
-            <a class="disabled" disabled=disabled href="#">Previous</a>
-        {% endif %}
-        --
-        {% for i in paginator.num_pages|get_range:1 %}
-            {% if i != page_obj.number %}
-                <a href="?page={{ i }}">{{ i }}</a>
-            {% else %}{{ i }}
-            {% endif %}
-        {% endfor %}
-        --
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">Next</a>
-        {% else %}
-            <a class="disabled" href="#">Next</a>
-        {% endif %}
-    </span>
-</div>
+{% if page_obj.paginator.num_pages > 1 %}
+  <nav aria-label="Page navigation" class="pb-1">
+    <ul class="pagination justify-content-center flex-wrap mt-2 mb-4">
+      {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ pagination_params }}">&laquo;</a></li>
+      {% else %}
+          <li class="disabled page-item"><span class="page-link">&laquo;</span></li>
+      {% endif %}
+      {% for i in paginator_range %}
+          {% if page_obj.number == i %}
+              <li class="active page-item"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span>
+              </li>
+          {% else %}
+              {% if i == page_obj.paginator.ELLIPSIS %}
+                  <li class="page-item"><span class="page-link">{{ i }}</span></li>
+              {% else %}
+                  <li class="page-item"><a class="page-link" href="?page={{ i }}{{ pagination_params }}">{{ i }}</a></li>
+              {% endif %}
+          {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{{ pagination_params }}">&raquo;</a></li>
+      {% else %}
+          <li class="disabled page-item"><span class="page-link">&raquo;</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}

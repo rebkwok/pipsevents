@@ -631,22 +631,14 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         # checkboxes made readonly with JS for cancelled bookings
         form = EditPastBookingForm(instance=self.booking_for_cancelled)
         for field in fields_to_disable:
-            widget_attrs = form.fields[field].widget.attrs
-            self.assertEqual(widget_attrs['class'], "form-check-input")
-            self.assertEqual(widget_attrs['disabled'], "disabled")
-
-            self.assertIn('OnClick', widget_attrs)
-            self.assertEqual(
-                widget_attrs['OnClick'], 'javascript:return ReadOnlyCheckBox()'
-            )
+            assert form.fields[field].disabled
 
         # checkboxes still usable for no-shows
         self.booking.no_show = True
         self.booking.save()
         form = EditPastBookingForm(instance=self.booking)
         for field in fields_to_disable:
-            widget_attrs = form.fields[field].widget.attrs
-            self.assertNotIn('OnClick', widget_attrs)
+            assert not form.fields[field].disabled
 
     def test_changing_status_to_cancelled(self):
         # sets paid to False and block to None
@@ -710,58 +702,27 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         # can't change status to free
         data.update(status=self.booking_for_cancelled.status, free_class=True)
         form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(
-            form.errors,
-            {
-                'free_class': [
-                    '{} is cancelled. Cannot assign booking for cancelled ' \
-                    'event as free class.'.format(self.cancelled_event)
-                ]
-             }
-        )
+        assert form.is_valid()
+        assert not form.cleaned_data["free_class"]
+        
 
         # can't change to paid
         data.update(paid=True, free_class=False)
         form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(
-            form.errors,
-            {
-                'paid': [
-                    '{} is cancelled. Cannot change booking for cancelled ' \
-                    'event to paid.'.format(self.cancelled_event)
-                ]
-             }
-        )
-
+        assert form.is_valid()
+        assert not form.cleaned_data["paid"]
+        
         # can't change to attended
         data.update(paid=False, attended=True)
         form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(
-            form.errors,
-            {
-                'attended': [
-                    '{} is cancelled. Cannot mark booking for cancelled ' \
-                    'event as attended.'.format(self.cancelled_event)
-                ]
-             }
-        )
+        assert form.is_valid()
+        assert not form.cleaned_data["attended"]
 
         # can't change to no-show
         data.update(no_show=True, attended=False)
         form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(
-            form.errors,
-            {
-                'no_show': [
-                    '{} is cancelled. Cannot mark booking for cancelled ' \
-                    'event as no-show.'.format(self.cancelled_event)
-                ]
-             }
-        )
+        assert form.is_valid()
+        assert not form.cleaned_data["no_show"]
 
     def test_cannot_assign_free_class_to_block(self):
         block1 = baker.make_recipe(
@@ -826,11 +787,9 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
             'block': self.booking.block.id
         }
         form = EditBookingForm(instance=self.booking, data=data)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(
-            form.errors,
-            {'paid': ['Cannot make block booking unpaid.']}
-        )
+        assert form.is_valid()
+        # paid field in posted data is ignored
+        assert form.cleaned_data["paid"]
 
     def test_cannot_make_both_attended_and_no_show(self):
         data = {

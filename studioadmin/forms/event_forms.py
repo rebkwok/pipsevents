@@ -133,8 +133,7 @@ class EventAdminForm(forms.ModelForm):
                 self.fields['cancelled'].\
                     help_text = 'To cancel, use the Cancel button on the {} ' \
                                 'list page'.format(ev_type_str)
-                self.fields['cancelled'].widget.attrs.update(
-                    {'disabled': 'disabled'})
+                self.fields['cancelled'].disabled = True
             else:
                 self.fields['cancelled'].\
                     help_text = 'Untick to reopen {}; note that this does ' \

@@ -259,7 +259,8 @@ class EventRegisterListView(
         location_events = [{
             'index': 0,
             'queryset': queryset,
-            'location': 'All locations'
+            'location': 'All locations',
+            'paginator_range': queryset.paginator.get_elided_page_range(queryset.number)
         }]
         # TODO: NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
         # TODO: If we do add it, the pagination will need to be updated too (see bookings event list view)

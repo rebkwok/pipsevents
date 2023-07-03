@@ -89,27 +89,10 @@
                                 {% endif %}
                             </tr>
                             {% endfor %}
-                            <tr>
-                                <td class="studioadmin-tbl" colspan="10">
-                                    <div class="pagination">
-                                        {% if page.has_previous %}
-                                            <a href="?page={{ page.previous_page_number }}">Previous</a>
-                                        {% else %}
-                                            <a class="disabled" disabled=disabled href="#">Previous</a>
-                                        {% endif %}
-                                        <span class="page-current">
-                                            --  Page {{ page.number }} of {{ page.paginator.num_pages }} --
-                                        </span>
-                                        {% if page.has_next %}
-                                            <a href="?page={{ page.next_page_number }}">Next</a>
-                                        {% else %}
-                                            <a class="disabled" href="#">Next</a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
+                            
                             </tbody>
                         </table>
+                        {% include 'booking/includes/pagination.html' %}
                     </div>
                 </form>
                 </div>

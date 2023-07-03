@@ -597,6 +597,11 @@ a.disabled {
 	pointer-events: none;
 }
 
+.page-item.active .page-link{
+  background-color: rgb(240, 139, 165);
+  border-color: rgb(240, 139, 165);
+}
+
 .inc-btm-space {
     padding-bottom: 2px;
 }
@@ -1834,3 +1839,4 @@ span.disclaimer_version {
 .booking-event-card-item {
   border-bottom: rgb(240, 139, 165) solid;
 }
+

@@ -15,6 +15,7 @@ from braces.views import LoginRequiredMixin
 from studioadmin.forms import ActivityLogSearchForm
 from studioadmin.views.helpers import StaffUserMixin
 from activitylog.models import ActivityLog
+from common.views import _set_pagination_context
 
 
 logger = logging.getLogger(__name__)
@@ -90,5 +91,5 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
                 'hide_empty_cronjobs': hide_empty_cronjobs
             })
         context['form'] = form
-
+        _set_pagination_context(context)
         return context
