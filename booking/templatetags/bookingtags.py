@@ -86,8 +86,8 @@ def get_pagination_params(context, page_type=None):
             params["block_status"] = context["block_status"]
     elif page_type == "attendance":
         form = context["form"]
-        params["start_date"] = form.start_date.value
-        params["end_date"] = form.end_date.value
+        params["start_date"] = form.data["start_date"]
+        params["end_date"] = form.data["end_date"]
     elif page_type == "activitylog":
         for req_param in ["hide_empty_cronjobs", "search", "search_date", "search_submitted"]:
             if req_param in context["request"].GET:

@@ -130,6 +130,12 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             list(resp.context_data['blocks']),
             list(Block.objects.all().order_by('user__first_name'))
         )
+        # unknown status returns all
+        resp = self._get_response(
+            self.staff_user, form_data={'block_status': 'foo'}
+        )
+        assert len(resp.context_data['blocks']) == Block.objects.count()
+
         # active blocks are paid and not expired
         resp = self._get_response(
             self.staff_user, form_data={'block_status': 'active'}

@@ -125,7 +125,7 @@ class GiftVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
         page = self.request.GET.get('page', 1)
         vouchers = paginator.get_page(page)
 
-        context['vouchers'] = vouchers
+        context['vouchers'] = context['page_obj'] = vouchers
         context['sidenav_selection'] = 'gift_vouchers'
         _set_pagination_context(context)
         return context

@@ -38,6 +38,9 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             event_type=cls.pole_class_event_type, identifier='free class'
         )
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
+        cls.tutorial = baker.make_recipe('booking.future_OT', cost=5, max_participants=3)
+        cls.tutorial_url = reverse('booking:ajax_create_booking', args=[cls.tutorial.id]) + "?ref=events"
+        
 
     def _mock_new_user_email_sent(self):
         session = self.client.session
@@ -83,19 +86,33 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         """
         Test creating a booking
         """
-        self.assertEqual(Booking.objects.all().count(), 0)
+        assert Booking.objects.count() == 0
         self.client.login(username=self.user.username, password='test')
         self._mock_new_user_email_sent()
         resp = self.client.post(self.event_url)
-        self.assertEqual(Booking.objects.all().count(), 1)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            'Added to basket; booking not confirmed until payment has been made.'
-        )
-        self.assertFalse(Booking.objects.first().paid)
-
+        assert Booking.objects.count() == 1
+        msg = 'Added to basket; booking not confirmed until payment has been made.'
+        assert resp.context['alert_message']['message'] == msg, resp.context['alert_message'] 
+        assert not Booking.objects.first().paid
+        assert Booking.objects.first().event == self.event
         # email to student only
-        self.assertEqual(len(mail.outbox), 1)
+        assert len(mail.outbox) == 1
+
+    def test_create_tutorial_booking(self):
+        """
+        Test creating a tutorial booking
+        """
+        assert Booking.objects.count() == 0
+        self.client.login(username=self.user.username, password='test')
+        self._mock_new_user_email_sent()
+        resp = self.client.post(self.tutorial_url)
+        assert Booking.objects.count() == 1
+        msg = 'Added to basket; online tutorial not available until payment has been made.'
+        assert resp.context['alert_message']['message'] == msg
+        assert not Booking.objects.first().paid
+        assert Booking.objects.first().event == self.tutorial
+        # no emails for tutorials
+        assert len(mail.outbox) == 0
 
     def test_create_booking_new_user(self):
         """
@@ -166,6 +183,25 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         # email to student only
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_create_booking_already_booked(self):
+        """
+        Test creating a booking
+        """
+        self.client.login(username=self.user.username, password='test')
+        event = baker.make_recipe('booking.future_EV', cost=0, max_participants=3)
+        baker.make_recipe('booking.booking', user=self.user, event=event, status="OPEN", no_show=False)
+        
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=bookings"
+        
+        assert Booking.objects.count() == 1
+        self._mock_new_user_email_sent()
+
+        resp = self.client.post(url)
+        assert resp.status_code == 200
+        assert Booking.objects.count() == 1
+        assert 'alert_message' not in resp.context
+        assert len(mail.outbox) == 0
 
     def test_create_booking_sends_email_to_studio_if_set(self):
         """

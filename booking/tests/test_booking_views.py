@@ -371,6 +371,30 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context_data['bookings'].count(), 1)
 
 
+class PurchasedListViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('booking:purchased_tutorials')
+
+    def setUp(self):
+        super().setUp()
+        tutorial = baker.make_recipe('booking.future_OT', cost=10)
+        baker.make_recipe('booking.booking', user=self.user, event=tutorial, paid=True)
+
+    def test_tutorial_list(self):
+        """
+        Test that only future bookings are listed)
+        """
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['purchased_tutorials'].count(), 1)
+
+
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
     def _get_duplicate_booking(self, user, event):

@@ -1,3 +1,6 @@
+from datetime import datetime
+from datetime import timezone as dt_timezone
+
 from model_bakery import baker
 import pytest
 
@@ -6,6 +9,7 @@ from django.db.models import Q
 from django.test import TestCase
 from django.contrib.auth.models import Group, User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, PrintDisclaimer
 from common.tests.helpers import _create_session, assert_mailchimp_post_data
@@ -547,6 +551,64 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         self.assertIn(subscribed, subscribed_user.groups.all())
 
 
+@pytest.mark.django_db
+def test_attendance_list(client):
+    user = User.objects.create_user(username="staff", password="test")
+    user.is_staff = True
+    user.save()
+
+    user1 = User.objects.create_user(username="user1", password="test")
+    user2 = User.objects.create_user(username="user2", password="test")
+    user3 = User.objects.create_user(username="user3", password="test")
+
+    booking1 = baker.make("booking.booking", event__date=timezone.now(), attended=True, user=user1)
+    booking2 = baker.make("booking.booking", event__date=timezone.now(), attended=True, user=user2)
+    booking3 = baker.make("booking.booking", event__date=timezone.now(), attended=True, user=user3)
+
+    url = reverse("studioadmin:users_status")
+    client.login(username=user.username, password="test")
+    resp = client.get(url)
+    assert resp.context["sidenav_selection"] == "attendance"
+    assert resp.context["user_counts"][user1] == {
+        booking1.event.event_type.subtype: 1,
+        booking2.event.event_type.subtype: 0,
+        booking3.event.event_type.subtype: 0,
+    }
+    assert resp.context["user_counts"][user2] == {
+        booking1.event.event_type.subtype: 0,
+        booking2.event.event_type.subtype: 1,
+        booking3.event.event_type.subtype: 0,
+    }
+    assert resp.context["user_counts"][user3] == {
+        booking1.event.event_type.subtype: 0,
+        booking2.event.event_type.subtype: 0,
+        booking3.event.event_type.subtype: 1,
+    }
 
 
+@pytest.mark.django_db
+def test_attendance_list_with_dates(client):
+    user = User.objects.create_user(username="staff", password="test")
+    user.is_staff = True
+    user.save()
 
+    user1 = User.objects.create_user(username="user1", password="test")
+
+    event = baker.make_recipe("booking.future_PC", date=datetime(2022, 10, 1, 10, 0, tzinfo=dt_timezone.utc))
+    baker.make(
+        "booking.booking", event=event, attended=True, user=user1
+    )
+
+    # dates miss booking
+    url = reverse("studioadmin:users_status") + "?start_date=01 Jun 2022&end_date=10 Jun 2022"
+    client.login(username=user.username, password="test")
+    resp = client.get(url)
+
+    assert resp.context["user_counts"] == {}
+
+    # booking on end date
+    url = reverse("studioadmin:users_status") + "?start_date=01 Jun 2022&end_date=01 Oct 2022"
+    resp = client.get(url)
+    assert resp.context["user_counts"] == {
+        user1: {event.event_type.subtype: 1}
+    }

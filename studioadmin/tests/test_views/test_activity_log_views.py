@@ -147,6 +147,20 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
                 'search': 'test date for search'}
         )
         self.assertEqual(len(resp.context_data['logs']), 1)
+    
+    def test_search_date_and_text_with_pagination(self):
+        baker.make(
+            ActivityLog,
+            timestamp=datetime(2015, 1, 1, 15, 10, tzinfo=dt_timezone.utc),
+            _quantity=25
+        )
+        resp = self._get_response(
+            self.staff_user, {
+                'search_submitted': 'Search',
+                'search_date': '01-Jan-2015',
+            }
+        )
+        self.assertEqual(len(resp.context_data['logs']), 20)
 
     def test_search_multiple_terms(self):
         """

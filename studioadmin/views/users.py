@@ -139,16 +139,15 @@ def users_status(request):
         start_date = datetime.strptime(start_date_str, date_format).replace(tzinfo=dt_timezone.utc)
 
     if not end_date_str:
-        # default to today
-        end_date = timezone.now().date()
+        # default to now
+        end_date = timezone.now()
         end_date_str = end_date.strftime(date_format)
     else:
-        end_date = datetime.strptime(end_date_str, date_format).replace(tzinfo=dt_timezone.utc)
-
+        end_date = datetime.strptime(end_date_str, date_format).replace(hour=23, minute=59, tzinfo=dt_timezone.utc)
+        
     form = AttendanceSearchForm(
         {"start_date": start_date_str, "end_date": end_date_str}
     )
-
     bookings = Booking.objects \
         .filter(event__date__gte=start_date, attended=True)\
         .filter(event__date__lte=end_date)
