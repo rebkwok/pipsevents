@@ -10,10 +10,11 @@
     <div class="col">
         {{ booking.event.date |  date:"D d M H:i" }}
             {% if not history %}
+                <br/>
                 {% if booking_status == 'OPEN' %}
                     {% if not booking.paid %}
                         <a href="{% url 'booking:shopping_basket' %}">
-                            <span id='pay_button' class="btn table-btn btn-info table-pay-btn" >
+                            <span id='pay_button' class="btn table-btn btn-info" >
                                 <i class="fa fa-shopping-basket"></i>
                             </span>
                         </a>
@@ -68,27 +69,16 @@
             {% endwith %}
     </div>
    
-    
+    <div class="col text-center">
     {% if booking.status == "OPEN" %}
-        <div class="col text-center">
                 {% comment %} <span class="text-center"><span class="badge badge-pill badge-location badge-location-{{ booking.event.location_index }}">{{ booking.event.location }}</span></span> {% endcomment %}
-                {{ booking|format_paid_status }}
-        </div>
-        <div class="col text-center">
+                <span class="studioadmin-help">{{ booking|format_paid_status }}</span>
             {% if booking.block %}
-                <span class="confirmed fa fa-check"></span>
-            {% else %}
-                N/A
+                <br/><span class="studioadmin-help">Block used</span>
             {% endif %}
-        </div>
-        <div class="col text-center">
-            {% if not booking.paid and due_date_time %}
-                {{ due_date_time | date:"d M H:i"}}
-            {% endif %}
-        </div>
-    {% else %}
-        <div class="col"></div>
-        <div class="col"></div>
-        <div class="col"></div>
+        {% if not booking.paid and due_date_time %}
+            <br/><span class="studioadmin-help">Due by: {{ due_date_time | date:"d M H:i"}}</span>
+        {% endif %}
     {% endif %}
+    </div>
 </div>

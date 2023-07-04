@@ -1167,8 +1167,11 @@ li>a.adminmenu {
 }
 
 .badge-spaces {
-    width: 70px;
-    padding: 4px;
+    width: 65px;
+    padding-top: 2px,;
+    padding-bottom: 2px;
+    padding-left: 1px;
+    padding-right: 1px;
     font-weight: normal;
     font-size: smaller;
 }
