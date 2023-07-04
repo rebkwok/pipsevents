@@ -12,6 +12,7 @@ django-debug-toolbar
 django-environ
 django-extensions
 django-migration-testcase
+django-one-time-notices
 django-paypal
 djangorestframework
 dj-static

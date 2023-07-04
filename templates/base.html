@@ -3,6 +3,7 @@
 {% load socialaccount %}
 {% load bookingtags %}
 {% load cookielaw_tags %}
+{% load notices_tags %}
 
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
   <head>
@@ -25,7 +26,9 @@
        <!-- Custom styles -->
         <link href="{% static 'booking/css/custom-v1.14.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
+         <link rel="stylesheet" href="{% static 'notices/css/notices.css' %}"  type="text/css"/>
 
+         
       {% block head %}{% endblock %}
 
     </head>
@@ -132,6 +135,8 @@
         {% block banner %}{% temporary_banner %}{% endblock banner %}
         {% block sale %}{% sale_text %}{% endblock sale %}
 
+        {% NoticesModal %} 
+
     {% block perm_banner %}
         <div class="container-fluid mb-3">
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
@@ -142,41 +147,43 @@
         {% endif %}
         </div>
     {% endblock perm_banner %}
-        {% if messages %}
-          <div class="container-fluid mt-2 mb-3" id="message-row">
-                {% for message in messages %}
-                    <div
-                        {% if message.tags and message.tags == 'error' %}
-                            class="message alert alert-danger alert-dismissible"
-                        {% elif message.tags %}
-                            class="message alert alert-{{ message.tags }} alert-dismissible"
-                        {% endif %}>
-                        <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        {% if 'safe' in message.tags %}
-                            {{ message|safe }}
-                        {% else %}
-                            {{ message }}
-                        {% endif %}
-                    </div>
-                {% endfor %}
-          </div>
-        {% endif %}
-        {% if user.currently_banned and user.is_authenticated %}
-            <div class="container-fluid">
-                <div class="message alert alert-danger alert-dismissible">
-                    Your account is temporarily locked. You will able to make new bookings again after {{ user.ban.end_date|date:'d M Y, H:i' }}.
-                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-            </div>
-        {% endif %}
 
-        {% block body %}
-            <div class="container-fluid content-block">
-            {% block content %}
-                    <p>You need to define a content block!</p>
-            {% endblock %}
+    {% if messages %}
+        <div class="container-fluid mt-2 mb-3" id="message-row">
+            {% for message in messages %}
+                <div
+                    {% if message.tags and message.tags == 'error' %}
+                        class="message alert alert-danger alert-dismissible"
+                    {% elif message.tags %}
+                        class="message alert alert-{{ message.tags }} alert-dismissible"
+                    {% endif %}>
+                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if user.currently_banned and user.is_authenticated %}
+        <div class="container-fluid">
+            <div class="message alert alert-danger alert-dismissible">
+                Your account is temporarily locked. You will able to make new bookings again after {{ user.ban.end_date|date:'d M Y, H:i' }}.
+                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
+        </div>
+    {% endif %}
+
+    {% block body %}
+        <div class="container-fluid content-block">
+        {% block content %}
+                <p>You need to define a content block!</p>
         {% endblock %}
+        </div>
+    {% endblock %}
 
       <div class="modal fade" id="BlocksModal" tabindex="-1" role="dialog"></div>
 
@@ -224,6 +231,7 @@
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
 <script src="{% static 'booking/js/custom-v1.6.js' %}"></script>
+<script src="{% static 'notices/js/notices.js' %}"></script>
 
 <!--# blocks modal-->
 <script>

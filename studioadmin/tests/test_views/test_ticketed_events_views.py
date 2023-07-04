@@ -101,7 +101,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user)
         self.assertEqual(
-            resp.context_data['sidenav_selection'], 'ticketed_events'
+            resp.context_data['sidenav_selection'], 'ticketed_evs'
         )
 
     def test_show_ticketed_events_by_past_or_upcoming(self):
@@ -353,7 +353,7 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user, self.ticketed_event)
         self.assertEqual(
-            resp.context_data['sidenav_selection'], 'ticketed_events'
+            resp.context_data['sidenav_selection'], 'ticketed_evs'
         )
 
     def test_update_paypal_email_to_non_default(self):
@@ -449,7 +449,7 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user)
         self.assertEqual(
-            resp.context_data['sidenav_selection'], 'add_ticketed_event'
+            resp.context_data['sidenav_selection'], 'add_ticketed_ev'
         )
 
     def test_can_create_event(self):
@@ -675,7 +675,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
     def test_side_nav_selection_in_context(self):
         resp = self._get_response(self.staff_user, self.ticketed_event)
         self.assertEqual(
-            resp.context_data['sidenav_selection'], 'ticketed_events'
+            resp.context_data['sidenav_selection'], 'ticketed_evs'
         )
 
     def test_update_booking(self):

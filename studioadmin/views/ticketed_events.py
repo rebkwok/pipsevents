@@ -64,7 +64,7 @@ class TicketedEventAdminListView(
             else None,
         )
         context['ticketed_event_formset'] = ticketed_event_formset
-        context['sidenav_selection'] = 'ticketed_events'
+        context['sidenav_selection'] = 'ticketed_evs'
         return context
 
     def get(self, request, *args, **kwargs):
@@ -163,7 +163,7 @@ class TicketedEventAdminUpdateView(
         context = super(
             TicketedEventAdminUpdateView, self
         ).get_context_data(**kwargs)
-        context['sidenav_selection'] = 'ticketed_events'
+        context['sidenav_selection'] = 'ticketed_evs'
         return context
 
     def form_valid(self, form):
@@ -213,7 +213,7 @@ class TicketedEventAdminCreateView(
         context = super(
             TicketedEventAdminCreateView, self
         ).get_context_data(**kwargs)
-        context['sidenav_selection'] = 'add_ticketed_event'
+        context['sidenav_selection'] = 'add_ticketed_ev'
         return context
 
     def form_valid(self, form):
@@ -291,7 +291,7 @@ class TicketedEventBookingsListView(
             queryset=queryset,
             instance=self.ticketed_event,
         )
-        context['sidenav_selection'] = 'ticketed_events'
+        context['sidenav_selection'] = 'ticketed_evs'
         return context
 
     def get(self, request, *args, **kwargs):
