@@ -14,26 +14,34 @@ from accounts.models import has_active_disclaimer, has_expired_disclaimer
 from booking.models import Block, BlockType, Booking, WaitingListUser
 
 
+def event_strings(event):
+    """
+    Return
+    - event_type for url matching
+    - ev_type_str: formatted singular string
+    """
+    ev_type_code = event.event_type.event_type
+    if ev_type_code == 'CL':
+        ev_type_for_url, ev_type_str = "lessons", "class"
+    elif ev_type_code == 'EV':
+        ev_type_for_url, ev_type_str = "events", "workshop/event"
+    elif ev_type_code == 'OT':
+        ev_type_for_url, ev_type_str =  "online_tutorials", "online tutorial"
+    else:
+        assert event.event_type.event_type == 'RH'
+        ev_type_for_url, ev_type_str =  "room_hires", "room hire"
+    return ev_type_code, ev_type_for_url, ev_type_str
+
 def get_event_context(context, event, user):
     disclaimer = has_active_disclaimer(user)
     expired_disclaimer = has_expired_disclaimer(user)
     context['disclaimer'] = disclaimer
     context['expired_disclaimer'] = expired_disclaimer
 
-    if event.event_type.event_type == 'CL':
-        context['type'] = "lesson"
-        event_type_str = "class"
-    elif event.event_type.event_type == 'EV':
-        context['type'] = "event"
-        event_type_str = "workshop/event"
-    elif event.event_type.event_type == 'OT':
-        context['type'] = "online_tutorial"
-        event_type_str = "online tutorial"
-    else:
-        context['type'] = "room_hire"
-        event_type_str = "room hire"
-
-    context['event_type_str'] = event_type_str
+    ev_type_code, ev_type_for_url, ev_type_str = event_strings(event)
+    context["ev_type_code"] = ev_type_code
+    context['ev_type_for_url'] = ev_type_for_url
+    context['ev_type_str'] = ev_type_str
 
     if event.date <= timezone.now():
         context['past'] = True
@@ -41,7 +49,7 @@ def get_event_context(context, event, user):
     # payment info text to be displayed
     if event.cost == 0:
         payment_text = "There is no cost associated with this {}.".format(
-            event_type_str
+            ev_type_str
         )
     else:
         if not event.payment_open:
@@ -74,7 +82,7 @@ def get_event_context(context, event, user):
     # booking info text and bookable
     booking_info_text = ""
     context['bookable'] = event.bookable
-
+    is_regular_student = context['is_regular_student'] = user.has_perm("booking.is_regular_student")
     if event.event_type.subtype == "Online class":
         context["online_class"] = True
         context["show_video_link"] = event.show_video_link
@@ -85,9 +93,9 @@ def get_event_context(context, event, user):
         context['booked'] = True
         if event.event_type.event_type == 'OT':
             if context['booking'].paid:
-                booking_info_text = "You have purchased this {}.".format(event_type_str)
+                booking_info_text = "You have purchased this {}.".format(ev_type_str)
         else:
-            booking_info_text = "You have booked for this {}.".format(event_type_str)
+            booking_info_text = "You have booked for this {}.".format(ev_type_str)
 
     elif not disclaimer:
         action = "purchasing" if event.event_type.event_type == 'OT' else "booking"
@@ -104,7 +112,7 @@ def get_event_context(context, event, user):
                                     reverse('disclaimer_form'), action
                                 )
     elif event.event_type.subtype == "Pole practice" \
-            and not user.has_perm("booking.is_regular_student"):
+            and not is_regular_student:
         context['bookable'] = False
         context['unbookable_pole_practice'] = True
         booking_info_text = "<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>" \
@@ -119,14 +127,14 @@ def get_event_context(context, event, user):
             context['auto_cancelled'] = True
             booking_info_text_cancelled = "To rebook this {} please contact " \
                                           "{} directly.".format(
-                                            event_type_str, event.contact_email
+                                            ev_type_str, event.contact_email
                                             )
             context['booking_info_text_cancelled'] = booking_info_text_cancelled
         elif cancelled:
             context['cancelled'] = True
             booking_info_text_cancelled = "You have previously booked for " \
                                           "this {} and your booking has been " \
-                                          "cancelled.".format(event_type_str)
+                                          "cancelled.".format(ev_type_str)
             context['booking_info_text_cancelled'] = booking_info_text_cancelled
 
         if event.event_type.subtype == "External instructor class":
@@ -134,16 +142,16 @@ def get_event_context(context, event, user):
         elif not event.booking_open:
             target = "Purchases" if event.event_type.event_type == 'OT' else "Bookings"
             booking_info_text = "{} are not open for this {}.".format(
-                target, event_type_str
+                target, ev_type_str
             )
         if event.spaces_left <= 0:
-            booking_info_text = "This {} is now full.".format(event_type_str)
+            booking_info_text = "This {} is now full.".format(ev_type_str)
         if event.payment_due_date:
             if event.payment_due_date < timezone.now():
                 booking_info_text = "The payment due date has passed for " \
                                     "this {}.  Please make your payment as " \
                                     "soon as possible to secure your " \
-                                    "place.".format(event_type_str)
+                                    "place.".format(ev_type_str)
 
     context['booking_info_text'] = booking_info_text
 

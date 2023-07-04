@@ -1,5 +1,3 @@
-{% load bookingtags %}
-
 {% if alert_message %}
     {% if alert_message.message_type == 'warning' %}
         <script>vNotify.warning({text:'{{ alert_message.message }}',title:'{{ event }}',position: 'bottomLeft',});</script>
@@ -11,13 +9,3 @@
         <script>vNotify.info({text:'{{ alert_message.message }}',title:'{{ event }}',position: 'bottomLeft',});</script>
     {% endif %}
 {% endif %}
-{% if booking and booking.status == "OPEN" and not booking.no_show %}
-    {% if location_index %}
-        {% get_payment_button booking type location_index request.GET.name location_page %}
-    {% else %}
-        {% get_payment_button booking type location_obj.index request.GET.name location_obj.queryset.number %}
-    {% endif %}
-{% else %}
-     <button class="btn table-btn btn-wm book_button">Add to basket</button>
-{% endif %}
-

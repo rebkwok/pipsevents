@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any
 import pytz
 
 from decimal import Decimal
@@ -11,9 +12,9 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.views.generic import (
@@ -39,11 +40,14 @@ from booking.models import (
 from booking.forms import VoucherForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.views.shopping_basket_views import shopping_basket_bookings_total_context
 from booking.views.views_utils import DisclaimerRequiredMixin, \
     DataPolicyAgreementRequiredMixin, \
     _get_active_user_block, _get_block_status, validate_voucher_code
 
 from booking.templatetags.bookingtags import format_paid_status, get_shopping_basket_icon
+
+from common.views import _set_pagination_context
 
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
@@ -91,26 +95,29 @@ class BookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, List
         bookings = context['bookings']
 
         for booking in bookings:
+            bookingform = get_booking_context(booking)
+            bookingform['has_available_block'] = booking.event.event_type in active_block_event_types
             try:
                 WaitingListUser.objects.get(user=self.request.user, event=booking.event)
-                on_waiting_list = True
+                bookingform['on_waiting_list'] = True
             except WaitingListUser.DoesNotExist:
-                on_waiting_list = False
-
-            bookingform = {
-                'booking_status': 'CANCELLED' if
-                (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
-                'ev_type': booking.event.event_type.event_type,
-                'booking': booking,
-                'has_available_block': booking.event.event_type in
-                active_block_event_types,
-                'on_waiting_list': on_waiting_list,
-                'due_date_time': due_date_time(booking),
-                }
+                bookingform['on_waiting_list'] = False
             bookingformlist.append(bookingform)
+
         context['bookingformlist'] = bookingformlist
+        _set_pagination_context(context)
 
         return context
+    
+
+def get_booking_context(booking):
+    return {
+        'booking_status': 'CANCELLED' if
+        (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
+        'ev_type_code': booking.event.event_type.event_type,
+        'booking': booking,
+        'due_date_time': due_date_time(booking),
+    }
 
 
 class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, ListView):
@@ -139,7 +146,7 @@ class BookingHistoryListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixi
                 'booking_status': 'CANCELLED' if
                 (booking.status == 'CANCELLED' or booking.no_show) else 'OPEN',
                 'booking': booking,
-                'ev_type': booking.event.event_type.event_type
+                'ev_type_code': booking.event.event_type.event_type
             }
             bookingformlist.append(bookingform)
         context['bookingformlist'] = bookingformlist
@@ -157,6 +164,11 @@ class PurchasedTutorialsListView(DataPolicyAgreementRequiredMixin, LoginRequired
         return self.request.user.bookings.filter(
             event__event_type__event_type="OT", paid=True, status="OPEN", no_show=False
         ).order_by('date_booked')
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        _set_pagination_context(context)
+        return context
 
 
 class BookingUpdateView(
@@ -672,7 +684,20 @@ class BookingDeleteView(
         if delete_from_shopping_basket:
             # get rid of messages
             list(messages.get_messages(self.request))
-            return HttpResponse('Booking cancelled')
+            context= {
+                "booking": booking,
+                'shopping_basket_bookings_total_html': render_to_string(
+                    "booking/includes/shopping_basket_bookings_total.html",
+                    shopping_basket_bookings_total_context(self.request)
+                )
+            }
+    
+            return render_row(
+                self.request, 
+                "booking/includes/shopping_basket_booking_row_htmx.html", 
+                None,
+                context
+            )
 
         next_page = self.request.GET.get('next') or self.request.POST.get('next')
         params = {}
@@ -700,27 +725,16 @@ class BookingDeleteView(
 
 def duplicate_booking(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    if event.event_type.event_type == 'EV':
-        ev_type = 'event'
-    elif event.event_type.event_type == 'CL':
-        ev_type = 'class'
-    else:
-        ev_type = 'room hire'
-
-    context = {'event': event, 'ev_type': ev_type}
+    _, _, ev_type_str = context_helpers.event_strings(event)
+    context = {'event': event, 'ev_type_str': ev_type_str}
 
     return render(request, 'booking/duplicate_booking.html', context)
 
 
 def update_booking_cancelled(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
-    if booking.event.event_type.event_type == 'EV':
-        ev_type = 'event'
-    elif booking.event.event_type.event_type == 'CL':
-        ev_type = 'class'
-    else:
-        ev_type = 'room hire'
-    context = {'booking': booking, 'ev_type': ev_type}
+    _, _, ev_type_str = context_helpers.event_strings(booking.event)
+    context = {'booking': booking, 'ev_type_str': ev_type_str}
     if booking.event.spaces_left == 0:
         context['full'] = True
     return render(request, 'booking/update_booking_cancelled.html', context)
@@ -728,14 +742,8 @@ def update_booking_cancelled(request, pk):
 
 def fully_booked(request, event_slug):
     event = get_object_or_404(Event, slug=event_slug)
-    if event.event_type.event_type == 'EV':
-        ev_type = 'event'
-    elif event.event_type.event_type == 'CL':
-        ev_type = 'class'
-    else:
-        ev_type = 'room hire'
-
-    context = {'event': event, 'ev_type': ev_type}
+    _, _, ev_type_str = context_helpers.event_strings(event)
+    context = {'event': event, 'ev_type_str': ev_type_str}
     return render(request, 'booking/fully_booked.html', context)
 
 
@@ -778,34 +786,29 @@ def ajax_create_booking(request, event_id):
 
     if request.user.currently_banned():
         unlocked = request.user.ban.end_date.strftime("%d %b %Y, %H:%M")
-        return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')
+        return HttpResponseBadRequest(f'Your account is currently blocked until {unlocked}')    
 
     event = Event.objects.get(id=event_id)
-    location_index = request.GET.get('location_index')
-    location_page = request.GET.get('location_page', 1)
-    ref = request.GET.get('ref')
+    ref = request.GET.get('ref', "events")
 
-    if event.event_type.event_type == 'CL':
-        ev_type_str = 'class'
-        ev_type = 'lessons'
-    elif event.event_type.event_type == 'EV':
-        ev_type_str = 'workshop/event'
-        ev_type = 'events'
-    elif event.event_type.event_type == 'OT':
-        ev_type_str = 'online tutorial'
-        ev_type = 'online_tutorials'
-    else:
-        ev_type_str = 'room hire'
-        ev_type = 'room_hires'
+    ref_to_template = {
+        "online_tutorial": "booking/includes/event_htmx.html",
+        "event": "booking/includes/event_htmx.html",
+        "bookings": "booking/includes/bookings_row_htmx.html",
+        "events": "booking/includes/events_row_htmx.html",
+        "online_tutorials": "booking/includes/events_row_htmx.html",
+        
+    }
+    template = ref_to_template[ref]
 
     previously_cancelled = False
     previously_no_show = False
 
     context = {
-        "event": event, "type": ev_type,
-        "location_index": location_index,
-        "location_page": location_page,
-        "ref": ref
+        "event": event,
+        "location_index": request.GET.get('location_index'),
+        "location_page": request.GET.get('location_page', 1),
+        "ref": ref,
     }
 
     # make sure this isn't an open booking already
@@ -813,12 +816,12 @@ def ajax_create_booking(request, event_id):
         booking = Booking.objects.get(user=request.user, event=event)
         if booking.status == "OPEN" and not booking.no_show:
             # Already booked; don't do anything else, just update button
-            context['booking'] = booking
-            return render(
-                request,
-                "booking/includes/ajax_purchase_tutorial_button.txt" if event.event_type.event_type == "OT" else "booking/includes/ajax_book_button.txt",
-                context
-            )
+            if ref == "bookings":
+                context = get_booking_context(booking)
+            else:
+                context["booking"] = booking
+            return render_row(request, template, booking, context)
+
 
     # if pole practice, make sure this user has permission
     if event.event_type.subtype == "Pole practice" \
@@ -836,7 +839,17 @@ def ajax_create_booking(request, event_id):
         return HttpResponseBadRequest(message)
 
     booking, new = Booking.objects.get_or_create(user=request.user, event=event)
-    context['booking'] = booking
+    context["booking"] = booking
+    ev_type_code, ev_type_for_url, ev_type_str = context_helpers.event_strings(booking.event)
+    context.update(
+        {
+            "ev_type_code": ev_type_code,
+            "ev_type_for_url": ev_type_for_url,
+            "ev_type_str": ev_type_str,
+        }
+    )
+    if ev_type_code == "OT":
+        context['tutorial'] = event
 
     if not new:
         if booking.status == 'CANCELLED':
@@ -885,6 +898,16 @@ def ajax_create_booking(request, event_id):
         booking.payment_confirmed = True
 
     booking.save()
+
+    if ref == "bookings":
+        context.update(get_booking_context(booking))
+    else:
+        context.update(
+            context_helpers.get_event_context(context, event, request.user)
+        )
+        context["booking_open"] = context["booked"]
+
+
     ActivityLog.objects.create(
         log='Booking {} {} for "{}" by user {}'.format(
             booking.id,
@@ -913,7 +936,7 @@ def ajax_create_booking(request, event_id):
           'ev_type': ev_type_str,
     }
     try:
-        if ev_type != "online_tutorials":
+        if ev_type_for_url != "online_tutorials":
             send_mail('{} Booking for {}'.format(
                 settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
             ),
@@ -1021,7 +1044,7 @@ def ajax_create_booking(request, event_id):
 
     elif event.cost == 0:
         alert_message['message_type'] = 'success'
-        alert_message['message'] = "Booked." if ev_type != "online_tutorials" else "Purchased."
+        alert_message['message'] = "Booked." if ev_type_for_url != "online_tutorials" else "Purchased."
 
     elif not booking.paid:
         alert_message['message_type'] = 'error'
@@ -1045,12 +1068,14 @@ def ajax_create_booking(request, event_id):
         pass
 
     context["alert_message"] = alert_message
+    return render_row(request, template, booking, context)
 
-    return render(
-        request,
-        "booking/includes/ajax_purchase_tutorial_button.txt" if event.event_type.event_type == "OT" else "booking/includes/ajax_book_button.txt",
-        context
-    )
+
+def render_row(request, template, booking, context):
+    if booking:
+        context['booking_count_html'] = render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request})
+    context['shopping_basket_html'] = render_to_string("booking/includes/shopping_basket_icon.html", get_shopping_basket_icon(request.user, True))
+    return render(request, template, context)
 
 
 @login_required
@@ -1081,34 +1106,4 @@ def toggle_waiting_list(request, event_id):
         request,
         "booking/includes/waiting_list_button.html",
         {'event': event, 'on_waiting_list': on_waiting_list}
-    )
-
-
-@login_required
-def booking_details(request, event_id):
-    booking = request.user.bookings.get(event_id=event_id)
-    if booking.paid:
-        payment_due = "Received"
-    elif due_date_time(booking):
-        payment_due = due_date_time(booking).strftime('%a %d %b %H:%M')
-    else:
-        payment_due = "N/A"
-
-    if booking.status == 'CANCELLED' or booking.no_show:
-        confirmed = '<span class="fa fa-times"></span>'
-    elif booking.space_confirmed():
-        confirmed = '<span class="fa fa-check"></span>'
-    else:
-        confirmed = 'Pending'
-    return JsonResponse(
-        {
-            'paid': booking.paid,
-            'paid_status': format_paid_status(booking),
-            'status': booking.status,
-            'payment_due': payment_due,
-            'block': '<span class="confirmed fa fa-check"></span>' if booking.block else '<strong>N/A</strong>',
-            'confirmed': confirmed,
-            'no_show': booking.no_show,
-            'booking_count_html': render_to_string("booking/includes/booking_count.html", {'event': booking.event, "request": request}),
-        }
     )

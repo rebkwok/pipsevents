@@ -59,37 +59,8 @@
 
                 {% if not past %}
                     {% if not tutorial.cancelled %}
-                        {% if booked %}
-                            <h5>{{ booking_info_text }}</h5>
-                            {% if booked and not booking.paid %}
-                                <a href="{% url 'booking:shopping_basket' %}" {% if not tutorial.payment_open %}class="disabled"{% endif %}>
-                                        <div id='pay_button' class="btn btn-wm table-btn {% if not tutorial.payment_open %}disabled{% endif %}">Pay now</div></a>
-                            {% endif %}
-                        {% else %}
-                            <h5 class="pt-1">{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}</h5>
-                                {% if bookable %}
-                                    {% if request.user.currently_banned %}
-                                        <div class="btn btn-wm table-btn disabled">Purchase</div>
-                                    {% elif not disclaimer %}
-                                        <div class="btn btn-wm table-btn disabled">Purchase</div>
-                                    {% elif auto_cancelled %}
-                                        <div class="btn btn-wm table-btn disabled" id='book_button_autocancel_disabled' title="Contact {{ tutorial.contact_email }} directly to purchase">Purchase</div>
-                                    {% else %}
-                                        <span
-                                            id="book_{{ tutorial.id }}_0"
-                                            data-event_id="{{ tutorial.id }}"
-                                            data-location_count="1"
-                                            data-location_index="0"
-                                            class="td_ajax_book_btn">
-                                        {% include "booking/includes/ajax_purchase_tutorial_button.txt" %}
-                                        </span>
-                                    {% endif %}
-                                {% elif not tutorial.booking_open %}
-                                    <div id='book_button_disabled' class="disabled btn btn-wm table-btn">
-                                        Add to basket</div>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}  <!-- cancelled -->
+                        <span id="booked_text">{% include 'booking/includes/event_booking_detail.html' %}</span>
+                    {% endif %}  <!-- cancelled -->
                     {% endif %}  <!-- past -->
             </div>
         </div>
@@ -102,6 +73,4 @@
 {% block extra_js %}
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
-<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v2.js' %}"></script>
 {% endblock %}

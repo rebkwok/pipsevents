@@ -248,15 +248,19 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         lesson = baker.make_recipe('booking.future_PC', name='Lesson', cost=10)
 
         resp = self._get_response(self.user, event, 'event')
-        self.assertEqual(resp.context_data['type'], 'event')
+        assert resp.context_data['ev_type_str'] == 'workshop/event'
+        assert resp.context_data['ev_type_for_url'] == 'events'
+        assert resp.context_data['ev_type_code'] == 'EV'
 
         url = reverse('booking:lesson_detail', args=[lesson.slug])
         request = self.factory.get(url)
         request.user = self.user
         view = EventDetailView.as_view()
         resp = view(request, slug=lesson.slug, ev_type='lesson')
-        self.assertEqual(resp.context_data['type'], 'lesson')
-
+        assert resp.context_data['ev_type_str'] == 'class'
+        assert resp.context_data['ev_type_for_url'] == 'lessons'
+        assert resp.context_data['ev_type_code'] == 'CL'
+        
     def test_cancelled_booking(self):
         """
         Test correct context returned for a cancelled booking

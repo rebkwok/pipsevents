@@ -110,6 +110,47 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
         self.assertIn('class="expired_block"', resp.rendered_content)
 
 
+
+class GiftVoucherListViewTests(TestPermissionMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
+        cls.block_type = baker.make_recipe('booking.blocktype')
+        cls.url = reverse('studioadmin:gift_vouchers')
+
+    def test_all_gift_vouchers_listed(self):
+        # gift vouchers
+        ev_vouchers = baker.make(
+            EventVoucher, start_date=timezone.now() + timedelta(10), is_gift_voucher=True, _quantity=2
+        )
+        # not gift vouchers
+        baker.make(
+            EventVoucher, start_date=timezone.now() + timedelta(10), _quantity=2
+        )
+        # block gift vouchers
+        bl_vouchers = baker.make(
+            BlockVoucher, start_date=timezone.now() + timedelta (10), is_gift_voucher=True, _quantity=2
+        )
+        # block non gift vouchers
+        bl__not_gift_vouchers = baker.make(
+            BlockVoucher, start_date=timezone.now() + timedelta (10), _quantity=2
+        )
+        for voucher in [*bl__not_gift_vouchers, *bl_vouchers]:
+            voucher.block_types.add(self.block_type)
+        self.assertTrue(
+            self.client.login(
+                username=self.staff_user.username, password='test'
+            )
+        )
+        resp = self.client.get(self.url)
+        assert len(resp.context_data['vouchers']) == 4
+        assert sorted(obj.id for obj in resp.context_data['vouchers']) == sorted(
+            obj.id for obj in [*ev_vouchers, *bl_vouchers]
+        )
+        assert resp.context_data['sidenav_selection'] == 'gift_vouchers'
+
+
 class VoucherCreateViewTests(TestPermissionMixin, TestCase):
 
     @classmethod

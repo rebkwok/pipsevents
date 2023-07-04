@@ -9,151 +9,51 @@
 {% block content %}
 
 <div class="row">
-    <div class="col-12">
+    <div class="container">
     {% if history %}
         <h1>My past bookings</h1>
     {% else %}
         <h1>My bookings</h1>
     {% endif %}
     </div>
-    <div class="col-12">
+    <div class="container">
         <div class="btn-group btn-group-sm float-right" role="group">
             <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
             <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My online tutorials</a>
             <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
         </div>
     </div>
+</row>
+    
+{% if bookingformlist %}
 
-    <div class="col-12">
-    {% if bookingformlist %}
-    <p>Click on booking title for more class/event details.</p>
-    </div>
-
-    <div class="col-12">
-        <div class="card card-wm">
-            <div class="table-responsive">
-                <table class="table">
-                    <tr class="success">
-                        {% if not history %}
-                        <th> </th>
-                        {% endif %}
-                        <th>Date</th>
-                        <th>Booking</th>
-                        <th class="text-center">Location</th>
-                        <th class="text-center">Status</th>
-                        <th class="d-none d-md-table-cell text-center">Cost{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</th>
-                        <th class="text-center">Paid</th>
-                        <th class="text-center">Payment due</th>
-                        <th class="text-center">Block used</th>
-                        <th class="d-none d-md-table-cell text-center">Place confirmed</th>
-                    </tr>
-                    {% for bookingform in bookingformlist %}
-                        <tr id='booked-{{ bookingform.booking.event.id }}-row' class='{% if bookingform.booking_status == 'CANCELLED' %}expired
-                            {% elif not bookingform.booking.paid %}unpaid-booking-row{% endif %}
-                            compress'>
-
-                            {% if not history %}
-                                <td class="table-btns">
-                                    {% if bookingform.booking_status == 'OPEN'%}
-                                    <a href="{% url 'booking:delete_booking' bookingform.booking.pk %}?page={{ page_obj.number}}">
-                                        <div class="btn btn-danger table-btn {% if not bookingform.booking.paid %}table-cancel-btn{% endif %}">Cancel</div>
-                                        {% if not bookingform.booking.paid %}
-                                            <a href="{% url 'booking:shopping_basket' %}">
-                                                <span id='pay_button' class="btn btn-info table-btn table-pay-btn" >
-                                                    <i class="fa fa-shopping-basket"></i>
-                                                </span></a>
-                                        {% endif %}
-                                    </a>
-                                    {% elif bookingform.booking.event.cancelled %}
-                                        {% if bookingform.ev_type == 'EV' %}EVENT{% elif bookingform.ev_type == 'CL' %}CLASS{% else %}ROOM HIRE{% endif %} CANCELLED
-                                    {% elif not bookingform.booking.event.bookable %}
-                                        {% if not bookingform.booking.event.spaces_left %}
-                                            <span
-                                                id="waiting_list_button_{{ bookingform.booking.event.id }}_0"
-                                                data-event_id="{{ bookingform.booking.event.id }}"
-                                                data-location_count="1"
-                                                class="td_ajax_waiting_list_btn">
-                                            {% include "booking/includes/waiting_list_button.html" %}
-                                            </span>
-                                        {% elif bookingform.booking_status == 'CANCELLED' %}
-                                            <div type="button" id="rebook_button_disabled" class="btn btn-wm table-btn disabled">Rebook</div>
-                                        {% endif %}
-                                    {% else %}
-                                        {% if request.user.currently_banned %}
-                                            <div class="btn btn-wm table-btn disabled">Rebook</div>
-                                        {% elif bookingform.booking.auto_cancelled %}
-                                            <div
-                                                    id="rebook_button_auto_cancelled_disabled"
-                                                    class="btn btn-wm table-btn disabled"
-                                                    title="Contact {{ bookingform.booking.event.contact_email }} directly to rebook"
-                                            >Rebook</div>
-                                        {% else %}
-                                            <span
-                                                id="book_{{ bookingform.booking.event.id }}_0"
-                                                data-event_id="{{ bookingform.booking.event.id }}"
-                                                data-location_count="1"
-                                                data-location_index="0"
-                                                data-location_page="1"
-                                                data-ref="bookings"
-                                                class="td_ajax_book_btn">
-                                            {% include "booking/includes/ajax_book_button.txt" %}
-                                            </span>
-                                        {% endif %}
-                                    {% endif %}
-                                </td>
-                            {% endif %}
-
-                            <td class="date">{{ bookingform.booking.event.date |  date:"D d M H:i" }}</td>
-                            <td>
-                                {% if bookingform.ev_type == 'EV' %}
-                                <a href="{% url 'booking:event_detail' bookingform.booking.event.slug %}">
-                                    {{ bookingform.booking.event.name }}</a>
-                                {% elif bookingform.ev_type == 'CL' %}
-                                <a href="{% url 'booking:lesson_detail' bookingform.booking.event.slug %}">
-                                    {{ bookingform.booking.event.name }}</a>
-                                {% else %}
-                                <a href="{% url 'booking:room_hire_detail' bookingform.booking.event.slug %}">
-                                    {{ bookingform.booking.event.name }}</a>
-                                {% endif %}
-                            </td>
-                            <td class="text-center"><span class="badge badge-pill badge-location badge-location-{{ bookingform.booking.event.location_index }}">{{ bookingform.booking.event.location }}</span></td>
-                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-status">{{ bookingform.booking|format_status }}</span></td>
-                            <td class="d-none d-md-table-cell text-center">£{{ bookingform.booking.event.cost }}</td>
-                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-paid_status">{{ bookingform.booking|format_paid_status }}</span></td>
-                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-payment_due">{% if bookingform.booking.paid %}Received{% elif bookingform.due_date_time %}{{ bookingform.due_date_time | date:"D d M H:i"}}{% else %}N/A{% endif %}</td>
-                            <td class="text-center"><span id="booked-{{ bookingform.booking.event.id }}-block">{% if bookingform.booking.block %}<span class="confirmed fa fa-check"></span>
-                                {% else %}<strong>N/A</strong>{% endif %}</span></td>
-                            <td class="d-none d-md-table-cell text-center {% if bookingform.booking.space_confirmed %}confirmed{% else %}not-confirmed{% endif %}">
-                                <span id="booked-{{ bookingform.booking.event.id }}-confirmed">
-                                {% if bookingform.booking.space_confirmed %}
-                                    <span class="fa fa-check"></span>
-                                    {% elif bookingform.booking_status == 'CANCELLED' %}
-                                    <span class="fa fa-times"></span>
-                                    {% else %}
-                                    Pending
-                                {% endif %}
-                                </span>
-                            </td>
-
-                        </tr>
-                    {% endfor %}
-                </table>
-
-                {% include 'booking/includes/pagination.html' %}
-
+        <div class="container">
+            <div class="row font-weight-bold py-2 booking-event-card-item">
+                <div class="col"></div>
+                <div class="col"></div>
+                <div class="col text-center">Paid</div>
             </div>
+
+            {% for bookingform in bookingformlist %}
+                {% with booking=bookingform.booking booking_status=bookingform.booking_status location_page=page_obj.number ev_type_code=bookingform.ev_type_code due_date_time=bookingform.due_date_time %}
+                <span id="booked-{{ booking.id }}-row">    
+                    {% include 'booking/includes/bookings_row.html' %}
+                </span>    
+                {% endwith %}
+            {% endfor %}
+            {% include 'booking/includes/pagination.html' %}
         </div>
-    </div>
-    {% else %}
-    <div class="col-12">
-        {% if history %}
-            <p>You do not have any past class, event or room hire bookings.</p>
-        {% else %}
-            <p>You are not booked into any upcoming classes, events or room hires.</p>
+{% else %}
+    <div class="row">
+        <div class="col-12">
+            {% if history %}
+                <p>You do not have any past class, event or room hire bookings.</p>
+            {% else %}
+                <p>You are not booked into any upcoming classes, events or room hires.</p>
+            {% endif %}
         {% endif %}
-    {% endif %}
-    </div>
-</div>
+        </div>
+    </row>    
 
 {% endblock content %}
 
@@ -161,6 +61,4 @@
 {% block extra_js %}
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
-<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v2.js' %}"></script>
 {% endblock %}

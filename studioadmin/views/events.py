@@ -168,6 +168,7 @@ def event_admin_list(request, ev_type):
             'type': ev_type,
             'events': events,
             'event_page': ev_page,
+            'paginator_range': ev_page.paginator.get_elided_page_range(ev_page.number),
             'sidenav_selection': ev_type,
             'show_past': show_past,
             'non_deletable_events': non_deletable_events

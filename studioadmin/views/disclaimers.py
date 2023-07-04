@@ -15,6 +15,7 @@ from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, NonRegisteredDisclaimer
+from common.views import _set_pagination_context
 from studioadmin.forms import StudioadminDisclaimerForm, DisclaimerUserListSearchForm, StudioadminDisclaimerContentForm
 from studioadmin.utils import str_int, dechaffify, int_str, chaffify
 from studioadmin.views.helpers import is_instructor_or_staff, can_view_event_disclaimers, \
@@ -339,6 +340,7 @@ class NonRegisteredDisclaimersListView(LoginRequiredMixin, CanViewNonRegisteredD
             if search_text and hide_past and not search_date:
                 context['empty_search_message'] = 'No disclaimers found; you may want to try searching in past events.'
 
+        _set_pagination_context(context)
         return context
 
 

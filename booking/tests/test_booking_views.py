@@ -371,6 +371,30 @@ class BookingHistoryListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context_data['bookings'].count(), 1)
 
 
+class PurchasedListViewTests(TestSetupMixin, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('booking:purchased_tutorials')
+
+    def setUp(self):
+        super().setUp()
+        tutorial = baker.make_recipe('booking.future_OT', cost=10)
+        baker.make_recipe('booking.booking', user=self.user, event=tutorial, paid=True)
+
+    def test_tutorial_list(self):
+        """
+        Test that only future bookings are listed)
+        """
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+
+        self.assertEqual(Booking.objects.all().count(), 1)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context_data['purchased_tutorials'].count(), 1)
+
+
 class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
 
     def _get_duplicate_booking(self, user, event):
@@ -485,7 +509,7 @@ class BookingErrorRedirectPagesTests(TestSetupMixin, TestCase):
         self.assertEqual(event.spaces_left, 0)
         resp = self._get_update_booking_cancelled(self.user, booking)
         self.assertIn(event.name, str(resp.content))
-        self.assertIn("This event is now full", str(resp.content))
+        self.assertIn("This workshop/event is now full", str(resp.content))
 
     def test_already_cancelled(self):
         """
@@ -569,19 +593,19 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         event = baker.make_recipe('booking.future_PC')
         booking = baker.make_recipe('booking.booking', event=event,
                                     user=self.user, paid=True)
-        self.assertEqual(Booking.objects.all().count(), 1)
+        assert Booking.objects.count() == 1
 
         url = reverse('booking:delete_booking', args=[booking.id]) + '?ref=basket'
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content, b'Booking cancelled')
+        assert resp.status_code == 200
+        assert f"<div id='bookingrow-{booking.id}'></div>"
 
         # after cancelling, the booking is still there, but status has changed
-        self.assertEqual(Booking.objects.all().count(), 1)
-        booking = Booking.objects.get(id=booking.id)
-        self.assertEqual('CANCELLED', booking.status)
-        self.assertEqual(len(mail.outbox), 1)
+        assert Booking.objects.count() == 1
+        booking.refresh_from_db()
+        assert booking.status == 'CANCELLED'
+        assert len(mail.outbox) == 1
 
     def test_cancel_unpaid_booking(self):
         """

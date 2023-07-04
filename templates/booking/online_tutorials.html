@@ -101,7 +101,6 @@
                     <div class="tab-content" id="myTabContent">
                         {% for location_obj in location_events %}
                         {% if location_obj.queryset %}
-                            {% include 'booking/includes/event_pagination.html' %}
                             {% regroup location_obj.queryset by event_type.subtype as events_by_type %}
                             {% for events in events_by_type %}
                                 <div class="row event-card event-card-header list-group-item-dark  mt-1">
@@ -109,68 +108,19 @@
                                 </div>
                                 {% for event in events.list %}
                                     {% get_booking event user user_bookings as booking %}
-                                    <div 
-                                        id="booked-{{ event.id }}-row"
-                                        class="row event-card event-card-item mt-1 pb-1 mb-2
-                                        {% if event.bookable %}active_block{% else %}inactive_block{% endif %}
-                                        {% if booking and booking.status == 'OPEN' and not booking.paid %}  
-                                            unpaid-booking-row
-                                        {% endif %}
-                                    ">
-                                    <div class="col-6 col-md-5">
-                                        <span id="booking-{{ event.id }}-check" class="fas fa-check-circle text-success{% if event.id in booked_events and booking.paid %}{% else %} hide{% endif %}"></span>
-                                        <a href="{% url 'booking:tutorial_detail' event.slug %}">{{ event.name }}</a>
-                                        {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
-                                            {% if event.show_video_link %}
-                                                <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">View tutorial</a>
-                                            {% elif event.is_online %}
-                                                <span id="video_link_id_disabled_{{ event.id }}" class="btn btn-info table-btn disabled">View tutorial</span>
-                                            {% endif %}
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-3 col-md-2">
-                                        {% comment %} {% if location_obj.index == 0 and location_count > 1 %}
-                                            <span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location|truncatechars:11 }}</span>
-                                        {% endif %} {% endcomment %}
-                                        £{{ event.cost }}
-                                    </div>
-                                    {% comment %} Booking buttons {% endcomment %}
-                                    {% if user.is_authenticated %}
-                                        <div class="col-12 col-md-3">
-                                            {% if user.currently_banned %}
-                                                <span class="ext-instructor">Account locked</span>
-                                            {% elif not event.is_past %}
-                                                <span class="table-btns">
-                                                    {% if not disclaimer %}
-                                                        <a class="ext-instructor" href="{% url 'booking:tutorial_detail' event.slug %}">N/A - see details</a>
-                                                    {% elif event.id in booked_events and booking.paid %}
-                                                        Purchased
-                                                    {% elif event.bookable %}
-                                                        {% if event.id in auto_cancelled_events %}
-                                                            <div class="disabled btn btn-wm table-btn" id="autocancelled_button" title="Contact {{ event.contact_email }} directly to purchase">Add to basket</div>
-                                                        {% else %}
-                                                            <span
-                                                                id="book_{{ event.id }}_{{ location_obj.index }}"
-                                                                data-event_id="{{ event.id }}"
-                                                                data-location_index="{{ location_obj.index }}"
-                                                                data-location_count="{{ location_events|length }}"
-                                                                data-location_page="{{ location_obj.queryset.number }}"
-                                                                data-ref="online_tutorials"
-                                                                {% if event.id not in booked_events %}class="td_ajax_book_btn"{% endif %}>
-                                                            {% include "booking/includes/ajax_purchase_tutorial_button.txt" %}
-                                                            </span>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        <div class="disabled btn btn-wm table-btn">Add to basket</div>
-                                                    {% endif %}
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                    </div> 
+                                    <span id="booked-{{ event.id }}-row">
+                                        {% with location_index=location_obj.index location_page=location_obj.queryset.number %}
+                                            {% include 'booking/includes/online_tutorials_row.html' %}
+                                        {% endwith %} 
+                                    </span>
                                 {% endfor %}
                             {% endfor %}
-                            {% include 'booking/includes/event_pagination.html' %}
+
+                            {% get_pagination_params "events" as pagination_params %}
+                            {% with page_obj=location_obj.queryset paginator_range=location_obj.paginator_range %}
+                                {% include 'booking/includes/pagination.html' %}
+                            {% endwith %}
+
                         {% else %}
                             Coming soon!
                         {% endif %}
@@ -204,9 +154,7 @@
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-multidatespicker/1.6.6/jquery-ui.multidatespicker.min.js" integrity="sha512-mMP7O0G5Vv01th+kpYux7RbD89Mx/iQnIvxcKdctiPyADgJzacfQJ8k2AsB8695AAuR2uPuxk7dawb1eehjcuQ==" crossorigin="anonymous"></script>
 <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-<script type='text/javascript' src="{% static 'booking/js/events_booking_ajax-v2.js' %}"></script>
-<script type='text/javascript' src="{% static 'booking/js/toggle_waiting_list_ajax.js' %}"></script>
-<script type='text/javascript'>$.widget.bridge('uitooltip', $.ui.tooltip);</script>
+('uitooltip', $.ui.tooltip);</script>
 <script>
   /*** Handle jQuery plugin naming conflict between jQuery UI and Bootstrap ***/
   $.widget.bridge('uibutton', $.ui.button);

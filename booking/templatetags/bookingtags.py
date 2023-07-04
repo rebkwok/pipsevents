@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timezone as dt_timezone
 
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -67,18 +68,34 @@ def get_range(value, start=0):
     return range(start, value + start)
 
 
-@register.filter
-def get_paginator_range(paginator, current_page):
-    # start: 0 or 1
-    total_pages = paginator.num_pages
-    if total_pages <= 20:
-        return range(1, total_pages + 1)
-    else:
-        start = current_page - 10
-        start = start if start > 0 else 1
-        end = current_page + 10
-        end = end if end <= total_pages else total_pages
-        return range(start, end + 1)
+@register.simple_tag(takes_context=True)
+def get_pagination_params(context, page_type=None):
+    params = {}
+    if page_type == "events":
+        location_obj = context.get("location_obj")
+        if location_obj:
+            params["tab"] = location_obj["index"]
+        for req_param in ["name", "date_selection", "spaces_only"]:
+            if req_param in context["request"].GET:
+                params[req_param] = context["request"].GET[req_param]
+    elif page_type == "admin_events":
+        if "show_past" in context:
+            params["past"] = True
+    elif page_type == "admin_blocks":
+        if "block_status" in context:
+            params["block_status"] = context["block_status"]
+    elif page_type == "attendance":
+        form = context["form"]
+        params["start_date"] = form.data["start_date"]
+        params["end_date"] = form.data["end_date"]
+    elif page_type == "activitylog":
+        for req_param in ["hide_empty_cronjobs", "search", "search_date", "search_submitted"]:
+            if req_param in context["request"].GET:
+                params[req_param] = context["request"].GET[req_param]
+
+    if params:
+        return f"&{urlencode(params)}"
+    return ""
 
 @register.filter
 def get_index_open(event, extraline_index):
@@ -380,21 +397,6 @@ def get_booking(event, user, user_bookings):
         # return user_bookings.get(event.id)
         # return Booking.objects.filter(event=event, user=user).first()
     return None
-
-
-@register.inclusion_tag('booking/includes/payment_button.html')
-def get_payment_button(booking, type, tab, filter, page=1):
-
-    return {
-        'unpaid': not (booking.paid and booking.payment_confirmed),
-        'booking': booking,
-        'payment_open': booking.event.payment_open,
-        'paypal_pending': booking.paypal_pending,
-        'ev_type': type,
-        'tab': tab,
-        'filter': filter,
-        'page': page
-    }
 
 
 @register.filter

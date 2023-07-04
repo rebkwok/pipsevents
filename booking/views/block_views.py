@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import ListView, CreateView, DeleteView
 from django.core.mail import send_mail
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
@@ -22,6 +22,9 @@ import booking.context_helpers as context_helpers
 from booking.views.views_utils import (
     DisclaimerRequiredMixin, DataPolicyAgreementRequiredMixin
 )
+from booking.views.booking_views import render_row
+from booking.views.shopping_basket_views import shopping_basket_blocks_total_context
+from common.views import _set_pagination_context
 
 from activitylog.models import ActivityLog
 
@@ -138,7 +141,7 @@ class BlockListView(
             blockformlist.append(blockform)
 
         context['blockformlist'] = blockformlist
-
+        _set_pagination_context(context)
         return context
 
     def get_queryset(self):
@@ -176,7 +179,19 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         self.block.delete()
 
         if delete_from_shopping_basket:
-            return HttpResponse('Block deleted')
+            context= {
+                "block_id": block_id,
+                'shopping_basket_blocks_total_html': render_to_string(
+                    "booking/includes/shopping_basket_blocks_total.html",
+                    shopping_basket_blocks_total_context(self.request)
+                )
+            }
+            return render_row(
+                self.request, 
+                "booking/includes/shopping_basket_block_row_htmx.html", 
+                None,
+                context
+            )
 
         messages.success(self.request, 'Block has been deleted')
 

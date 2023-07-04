@@ -72,18 +72,7 @@ h1, h2, h3 {
 }
 
 @media only screen and (max-width: 768px) {
-  h1 {
-    font-size: xx-large;
-  }
-  h2 {
-    font-size: x-large;
-  }
-  h3 {
-    font-size: larger;
-  }
-  h4 {
-    font-size: large;
-  }
+
   body > .container-fluid {
     padding-right: 5px;
     padding-left: 5px;
@@ -94,7 +83,7 @@ h1, h2, h3 {
   }
 }
 
-body > .container-fluid {
+body > .container-fluid.content-block {
   padding: 65px 25px 0 25px;
   width: 100%;
 }
@@ -488,11 +477,10 @@ td {
 .table-btn, .disabled .btn .btn-wm .table-btn {
     padding-top: 0;
     padding-bottom: 0;
-	padding-left: 0;
-	padding-right: 0;
-    font-size: 90%;
-	width: 8.75em;
-	color: #fff !important;
+    padding-left: 0;
+    padding-right: 0;
+    width: 8.75em;
+    color: #fff !important;
     }
 
 .table-btn-xs {
@@ -509,7 +497,6 @@ td {
 }
 
 .table-pay-btn {
-  width: 4em;
   padding-top: 3px;
   padding-bottom: 3px;
 }
@@ -608,6 +595,11 @@ a.disabled {
 .page-links > a.disabled {
 	color: rgba(0, 85, 127, 0.3);
 	pointer-events: none;
+}
+
+.page-item.active .page-link{
+  background-color: rgb(240, 139, 165);
+  border-color: rgb(240, 139, 165);
 }
 
 .inc-btm-space {
@@ -1175,8 +1167,11 @@ li>a.adminmenu {
 }
 
 .badge-spaces {
-    width: 70px;
-    padding: 4px;
+    width: 65px;
+    padding-top: 2px,;
+    padding-bottom: 2px;
+    padding-left: 1px;
+    padding-right: 1px;
     font-weight: normal;
     font-size: smaller;
 }
@@ -1217,10 +1212,10 @@ tr.table-shaded{
 }
 
 tr.unpaid-booking-row, div.unpaid-booking-row {
-    background: rgba(255, 0, 0, 0.15);
+    background: rgba(255, 0, 0, 0.08);
 }
 div.past-event-row {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 768px) { /* use the max to specify at each container level */
@@ -1843,3 +1838,8 @@ span.disclaimer_version {
 .event-card-item {
   border-left: rgb(240, 139, 165) solid;
 }
+
+.booking-event-card-item {
+  border-bottom: rgb(240, 139, 165) solid;
+}
+

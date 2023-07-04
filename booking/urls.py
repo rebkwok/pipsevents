@@ -1,7 +1,6 @@
 from django.urls import path
 from django.views.generic import RedirectView
-from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_total, \
-    ajax_shopping_basket_blocks_total, blocks_modal, \
+from booking.views import ajax_create_booking, blocks_modal, \
     already_cancelled, already_paid, \
     GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete, \
     disclaimer_required,  \
@@ -15,7 +14,7 @@ from booking.views import ajax_create_booking, ajax_shopping_basket_bookings_tot
     has_active_block, permission_denied, ticket_purchase_expired, \
     shopping_basket, update_block_bookings, submit_zero_block_payment, \
     submit_zero_booking_payment, update_shopping_basket_count, \
-    toggle_waiting_list, booking_details, \
+    toggle_waiting_list, \
     OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView
 
 app_name = 'booking'
@@ -135,18 +134,6 @@ urlpatterns = [
     path(
         'bookings/ajax-toggle-waiting-list/<int:event_id>/',
         toggle_waiting_list, name='toggle_waiting_list'
-    ),
-    path(
-        'bookings/booking-details/<int:event_id>/',
-        booking_details, name='booking_details'
-    ),
-    path(
-        'bookings/shopping-basket-total/bookings/',
-        ajax_shopping_basket_bookings_total, name='ajax_shopping_basket_bookings_total'
-    ),
-    path(
-        'bookings/shopping-basket-total/blocks/',
-        ajax_shopping_basket_blocks_total, name='ajax_shopping_basket_blocks_total'
     ),
     path(
         'blocks_modal/',

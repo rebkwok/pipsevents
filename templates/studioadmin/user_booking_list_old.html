@@ -137,26 +137,7 @@
                                         <td class="text-center studioadmin-tbl">{% if booking.no_show and booking.status == 'OPEN' %}No show{% else %}{{ booking.status }}{% endif %}</td>
                                     </tr>
                                 {% endfor %}
-                                <tr>
-                                    <td class="studioadmin-tbl" colspan="7">
-                                        <div class="pagination">
-                                            {% if page.has_previous %}
-                                                <a href="?page={{ page.previous_page_number }}">Previous</a>
-                                            {% else %}
-                                                <a class="disabled" disabled=disabled href="#">Previous</a>
-                                            {% endif %}
-                                            <span class="page-current">
-                                                --  Page {{ page.number }} of {{ page.paginator.num_pages }} --
-                                            </span>
-                                            {% if page.has_next %}
-                                                <a href="?page={{ page.next_page_number }}">Next</a>
-                                            {% else %}
-                                                <a class="disabled" href="#">Next</a>
-                                            {% endif %}
-                                            <p class="studioadmin-help">Showing {{ current_count }} of {{ total_count }} past bookings</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                                
                             {% endif %}
 
                             </tbody>

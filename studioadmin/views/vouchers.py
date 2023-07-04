@@ -16,6 +16,7 @@ from studioadmin.forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
 from studioadmin.views.helpers import StaffUserMixin
 from activitylog.models import ActivityLog
+from common.views import _set_pagination_context
 
 
 class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
@@ -28,6 +29,7 @@ class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(VoucherListView, self).get_context_data(**kwargs)
         context['sidenav_selection'] = 'vouchers'
+        _set_pagination_context(context)
         return context
 
 
@@ -104,6 +106,7 @@ class BlockVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(BlockVoucherListView, self).get_context_data(**kwargs)
         context['sidenav_selection'] = 'block_vouchers'
+        _set_pagination_context(context)
         return context
 
 
@@ -122,8 +125,9 @@ class GiftVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
         page = self.request.GET.get('page', 1)
         vouchers = paginator.get_page(page)
 
-        context['vouchers'] = vouchers
+        context['vouchers'] = context['page_obj'] = vouchers
         context['sidenav_selection'] = 'gift_vouchers'
+        _set_pagination_context(context)
         return context
 
 

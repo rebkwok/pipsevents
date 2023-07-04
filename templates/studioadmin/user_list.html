@@ -93,28 +93,6 @@
                             </tr>
                             {% endfor %}
 
-                            {% if is_paginated %}
-                                <tr>
-                                    <td class="studioadmin-tbl" {% if request.user.is_superuser %}colspan="9"{% elif request.user.is_staff %}colspan="8"{% else %}colspan="5"{% endif %}>
-                                            <div class="pagination">
-                                                {% if page_obj.has_previous %}
-                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
-                                                {% else %}
-                                                    <a class="disabled" disabled=disabled href="#">Previous</a>
-                                                {% endif %}
-                                                <span class="page-current">
-                                                    --  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} --
-                                                </span>
-                                                {% if page_obj.has_next %}
-                                                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
-                                                {% else %}
-                                                    <a class="disabled" href="#">Next</a>
-                                                {% endif %}
-                                            </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-
                             </tbody>
                             <tfoot>
                             <tr class="success">
@@ -128,6 +106,7 @@
                             </tr>
                             </tfoot>
                         </table>
+                        {% include 'booking/includes/pagination.html' %}
                     </div>
                 </div>
             </div>

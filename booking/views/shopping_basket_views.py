@@ -604,8 +604,7 @@ def submit_zero_block_payment(request):
     return HttpResponseRedirect(url)
 
 
-def ajax_shopping_basket_bookings_total(request):
-    """Called when a booking is deleted/cancelled from the shopping basket page"""
+def shopping_basket_bookings_total_context(request):
     # context requires total_unpaid_booking_cost and paypal booking form
     booking_code = request.GET.get('code', '').strip()
     context = get_unpaid_bookings_context(request.user)
@@ -617,13 +616,10 @@ def ajax_shopping_basket_bookings_total(request):
         # If we've removed all unpaid bookings, also update the blocks context, to update the session cart items with
         # any unpaid bookings
         context = add_total_blocks_and_paypal_context(request, context)
-    return render(
-        request, 'booking/includes/shopping_basket_bookings_total.html', context
-    )
+    return context
 
 
-def ajax_shopping_basket_blocks_total(request):
-    """Called when a block is deleted/cancelled from the shopping basket page"""
+def shopping_basket_blocks_total_context(request):
     block_code = request.GET.get('code', '').strip()
     context = get_unpaid_block_context(request.user)
     context.update(get_unpaid_bookings_context(request.user))
@@ -634,6 +630,4 @@ def ajax_shopping_basket_blocks_total(request):
         # If we've removed all unpaid blocks, also update the bookings context, to update the session cart items with
         # any unpaid blocks
         context = add_total_bookings_and_paypal_context(request, context)
-    return render(
-        request, 'booking/includes/shopping_basket_blocks_total.html', context
-    )
+    return context

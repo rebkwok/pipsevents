@@ -225,7 +225,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         )
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 10)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
         # page 1
@@ -236,7 +236,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         )
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 10)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
         # page number > max pages gets last page
@@ -247,7 +247,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         )
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 1)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 3)
 
         # page not a number > gets first page
@@ -258,7 +258,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         )
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 10)
-        paginator = resp.context_data['page']
+        paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
     def test_post_with_page(self):

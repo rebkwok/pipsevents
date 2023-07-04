@@ -143,10 +143,7 @@ class EventAdminFormTests(TestCase):
         self.assertTrue(form.is_valid())
         # event is not cancelled, so cancelled checkbox is hidden
         cancelled_field = form.fields['cancelled']
-        self.assertEqual(
-            cancelled_field.widget.attrs,
-            {'class': 'form-check-input', 'disabled': 'disabled'}
-        )
+        assert cancelled_field.disabled
         self.assertEqual(
             cancelled_field.help_text,
             'To cancel, use the Cancel button on the class list page'
