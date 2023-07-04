@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django import forms
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
 from accounts import validators as account_validators
@@ -17,8 +17,9 @@ from common.mailchimp_utils import update_mailchimp
 
 
 class SignupForm(forms.Form):
-    first_name = forms.CharField(max_length=30, label='First name')
-    last_name = forms.CharField(max_length=30, label='Last name')
+    first_name = forms.CharField(max_length=100, label='First name')
+    last_name = forms.CharField(max_length=100, label='Last name')
+    pronouns = forms.CharField(max_length=100, label='Preferred pronouns (optional)', required=False)
 
     def __init__(self, *args, **kwargs):
         super(SignupForm, self).__init__(*args, **kwargs)
@@ -59,6 +60,10 @@ class SignupForm(forms.Form):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.save()
+        if self.cleaned_data.get("pronouns"):
+            user.userprofile.pronouns = self.cleaned_data['pronouns']
+            user.userprofile.save()
+    
         if hasattr(self, 'data_privacy_policy'):
             SignedDataPrivacy.objects.create(
                 user=user, version=self.data_privacy_policy.version,
@@ -80,6 +85,19 @@ class SignupForm(forms.Form):
                     user.username
                 )
             )
+
+
+class UserProfileForm(forms.ModelForm):
+
+    pronouns = forms.CharField(max_length=100, label='Preferred pronouns (optional)', required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["pronouns"].initial = self.instance.userprofile.pronouns
+
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'pronouns')
 
 
 BASE_DISCLAIMER_FORM_WIDGETS = {
@@ -291,7 +309,7 @@ class NonRegisteredDisclaimerForm(DisclaimerForm):
         model = NonRegisteredDisclaimer
 
         fields = (
-            'first_name', 'last_name', 'email', 'dob', 'address', 'postcode',
+            'first_name', 'last_name', 'pronouns', 'email', 'dob', 'address', 'postcode',
             'home_phone', 'mobile_phone',
             'emergency_contact1_name', 'emergency_contact1_relationship',
             'emergency_contact1_phone', 'emergency_contact2_name',
@@ -306,6 +324,7 @@ class NonRegisteredDisclaimerForm(DisclaimerForm):
             {
                 'first_name': forms.TextInput(attrs={'class': 'form-control'}),
                 'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+                'pronouns': forms.TextInput(attrs={'class': 'form-control'}),
                 'email': forms.EmailInput(attrs={'class': 'form-control'}),
                 'event_date': forms.DateInput(
                     attrs={
@@ -324,7 +343,8 @@ class NonRegisteredDisclaimerForm(DisclaimerForm):
         self.fields['event_date'].help_text = "Please enter the date of the " \
                                               "event you will be attending.  This will help us " \
                                               "retrieve your disclaimer on the day."
-    
+        self.fields['pronouns'].label = "Preferred pronouns (optional)"
+
     def clean(self):
         cleaned_data = super(NonRegisteredDisclaimerForm, self).clean()
         first_name = cleaned_data['first_name']

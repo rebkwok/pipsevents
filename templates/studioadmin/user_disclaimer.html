@@ -40,6 +40,7 @@
 
     <h4>Personal Details</h4>
     <strong>Full name as provided on disclaimer form: </strong>{{ disclaimer.name }}<br/>
+    <strong>Pronouns: {% if disclaimer.user.userprofile.pronouns %}</strong>{{ disclaimer.user.userprofile.pronouns }}{% endif %}<br/>
     <strong>DOB: </strong>{{ disclaimer.dob }}<br/>
     <strong>Address: </strong>{{ disclaimer.address }}<br/>
     <strong>Home phone: </strong>{{ disclaimer.home_phone }}<br/>

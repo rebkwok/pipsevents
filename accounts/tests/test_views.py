@@ -47,6 +47,23 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, "Fred")
 
+    def test_updating_pronouns(self):
+        """
+        Test custom view to allow users to update their details
+        """
+        assert self.user.userprofile.pronouns is None
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': self.user.first_name, 
+                'last_name': self.user.last_name,
+                'pronouns': 'they/them'
+            }
+        )
+        self.user.refresh_from_db()
+        assert self.user.userprofile.pronouns == "they/them"
 
     def test_updates_mailchimp_with_first_name(self):
         self.client.login(username=self.user.username, password='test')
@@ -581,6 +598,7 @@ class NonRegisteredDisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.form_data = {
             'first_name': 'test',
             'last_name': 'user',
+            'pronouns': 'she/her',
             'email': 'test@test.com',
             'event_date': '01 Mar 2019',
             'dob': '01 Jan 1990', 'address': '1 test st',
@@ -612,6 +630,9 @@ class NonRegisteredDisclaimerCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.url, reverse('nonregistered_disclaimer_submitted'))
 
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 1)
+        disclaimer = NonRegisteredDisclaimer.objects.first()
+        assert disclaimer.first_name == "Test"
+        assert disclaimer.pronouns == "she/her"
         # email sent to email address in form
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['test@test.com'])

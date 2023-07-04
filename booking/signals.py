@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from accounts.models import UserProfile
 from activitylog.models import ActivityLog
 
 
@@ -13,3 +14,4 @@ def event_post_save(sender, instance, created, *args, **kwargs):
                     instance.first_name, instance.last_name, instance.username
             )
         )
+        UserProfile.objects.create(user=instance)

@@ -8,11 +8,11 @@
        {% csrf_token %}
        <h4>Event Date</h4>
        <div class="form-group">
-           <label class="control-label col-xs-2" for="event_date_id">{{ form.event_date.label }}{% if form.event_date.field.required %}*{% endif %}</label>
-           <div class="col-xs-10 {% if form.event_date.errors %}ticket-error{% endif %}">{{ form.event_date }}</div>
-           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.event_date.help_text }}</div>
+           <label class="control-label col-2" for="event_date_id">{{ form.event_date.label }}{% if form.event_date.field.required %}*{% endif %}</label>
+           <div class="col-10 {% if form.event_date.errors %}ticket-error{% endif %}">{{ form.event_date }}</div>
+           <div class="studioadmin-help col-10 col-offset-2">{{ form.event_date.help_text }}</div>
             {% if form.event_date.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
+                <div class="col-10 col-offset-2">
                     {{ form.event_date.errors }}
                 </div>
             {% endif %}
@@ -24,31 +24,41 @@
             your rights are in our <a href="{% url 'data_privacy_policy' %}">privacy policy</a>.
         </p>
        <div class="form-group">
-           <label class="control-label col-xs-2" for="first_name_id">{{ form.first_name.label }}{% if form.first_name.field.required %}*{% endif %}</label>
-           <div class="col-xs-10 {% if form.first_name.errors %}ticket-error{% endif %}">{{ form.first_name }}</div>
-           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.first_name.help_text }}</div>
+           <label class="control-label col-2" for="first_name_id">{{ form.first_name.label }}{% if form.first_name.field.required %}*{% endif %}</label>
+           <div class="col-10 {% if form.first_name.errors %}ticket-error{% endif %}">{{ form.first_name }}</div>
+           <div class="studioadmin-help col-10 col-offset-2">{{ form.first_name.help_text }}</div>
             {% if form.first_name.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
+                <div class="col-10 col-offset-2">
                     {{ form.first_name.errors }}
                 </div>
             {% endif %}
        </div>
        <div class="form-group">
-           <label class="control-label col-xs-2" for="last_name_id">{{ form.last_name.label }}{% if form.last_name.field.required %}*{% endif %}</label>
-           <div class="col-xs-10 {% if form.last_name.errors %}ticket-error{% endif %}">{{ form.last_name }}</div>
-           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.last_name.help_text }}</div>
+           <label class="control-label col-2" for="last_name_id">{{ form.last_name.label }}{% if form.last_name.field.required %}*{% endif %}</label>
+           <div class="col-10 {% if form.last_name.errors %}ticket-error{% endif %}">{{ form.last_name }}</div>
+           <div class="studioadmin-help col-10 col-offset-2">{{ form.last_name.help_text }}</div>
             {% if form.last_name.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
+                <div class="col-10 col-offset-2">
                     {{ form.last_name.errors }}
                 </div>
             {% endif %}
        </div>
        <div class="form-group">
-           <label class="control-label col-xs-2" for="email_id">{{ form.email.label }}{% if form.email.field.required %}*{% endif %}</label>
-           <div class="col-xs-10 {% if form.email.errors %}ticket-error{% endif %}">{{ form.email }}</div>
-           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.email.help_text }}</div>
+        <label class="control-label col-2" for="pronouns">{{ form.pronouns.label }}{% if form.pronouns.field.required %}*{% endif %}</label>
+        <div class="col-10 {% if form.pronouns.errors %}ticket-error{% endif %}">{{ form.pronouns }}</div>
+        <div class="studioadmin-help col-10 col-offset-2">{{ form.pronouns.help_text }}</div>
+         {% if form.pronouns.errors %}
+             <div class="col-10 col-offset-2">
+                 {{ form.pronouns.errors }}
+             </div>
+         {% endif %}
+    </div>
+       <div class="form-group">
+           <label class="control-label col-2" for="email_id">{{ form.email.label }}{% if form.email.field.required %}*{% endif %}</label>
+           <div class="col-10 {% if form.email.errors %}ticket-error{% endif %}">{{ form.email }}</div>
+           <div class="studioadmin-help col-10 col-offset-2">{{ form.email.help_text }}</div>
             {% if form.email.errors %}
-                <div class="col-xs-10 col-xs-offset-2">
+                <div class="col-10 col-offset-2">
                     {{ form.email.errors }}
                 </div>
             {% endif %}
@@ -63,7 +73,7 @@
                     {{ form.confirm_name }} {% if form.confirm_name.errors %}{{ form.confirm_name.errors }}{% endif %}
                 </div>
            </div>
-           <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.confirm_name.help_text }}</div>
+           <div class="studioadmin-help col-10 col-offset-2">{{ form.confirm_name.help_text }}</div>
        </div>
 
         <div class="col-12 vspace"><input class="btn btn-wm" type="submit" value="Submit" /></div>

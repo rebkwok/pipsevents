@@ -5,9 +5,12 @@
 
        <div class="card card-wm mt-4">
             <div class="card-header">
-                <h1 class="card-title">Your Profile</h1>
+                <h2 class="card-title">Your Profile</h2>
             </div>
            <div class="card-body">
+               <div class="col-12">
+                    <h4 class="card-title">Personal info</h4>
+                </div>
                <div class="col-12">
                    <span class="col-3"><strong>Username:</strong></span>
                    <span class="col-9">{{ user.username }}</span>
@@ -21,17 +24,29 @@
                <div class="col-12">
                    <span class="col-3"><strong>Last name:</strong></span>
                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.last_name }}</span>
-                  <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'profile:update_profile' %}">Change</a></span>
                </div>
 
                <div class="col-12">
-                   <span class="col-3"><strong>Primary email address:</strong></span>
-                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.email }}</span>
-                    <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'account_email' %}">Change</a></span>
-               </div>
+                    <span class="col-3"><strong>Pronouns:</strong></span>
+                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.userprofile.pronouns }}</span>
+                </div>
+                <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'profile:update_profile' %}">Change</a></div>
+                <hr/>
 
                 <div class="col-12">
-                   <span class="col-3"><strong>Connected social accounts:</strong></span>
+                    <h4 class="card-title">Email</h4>
+                </div>
+               <div class="col-12">
+                   <span class="col-3"><strong>Primary email address:</strong></span>
+                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.email }}</span>
+               </div>
+               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'account_email' %}">Change</a></div>
+                <hr/>
+               
+                <div class="col-12">
+                    <h4 class="card-title">Connected social accounts</h4>
+                </div>
+                <div class="col-12">
                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">
                        {% if user.socialaccount_set.exists %}
                             {% for sacc in user.socialaccount_set.all %}{{ sacc.provider|title }}{% if not forloop.last %}; {% endif %}{% endfor %}
@@ -39,11 +54,31 @@
                            None
                         {% endif %}
                    </span>
-                    <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'socialaccount_connections' %}">Change</a></span>
                </div>
+               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'socialaccount_connections' %}">Change</a></div>
+                <hr/>
 
+                <div class="col-12">
+                    <h4 class="card-title">Mailing List</h4>
+                </div>
+                
+                <div class="col-12">
+                <span class="col-12">
+                        {% if request.user|subscribed %}
+                             Subscribed
+                        {% else %}
+                             Not subscribed
+                        {% endif %}
+                </span>
+               </div>
+               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'subscribe' %}">Change</a></div>
+                <hr/>
+
+                <div class="col-12">
+                    <h4 class="card-title">Account Info</h4>
+                </div>
                <div class="col-12 mb-1">
-                   <span class="col-3"><strong>Account Status:</strong></span>
+                   <span class="col-3"><strong>Status:</strong></span>
                    <span class="col-9">
                            {% if user.is_staff %}
                                 Staff
@@ -57,21 +92,7 @@
                    </span>
                </div>
 
-                   {% if request.user.is_staff or request.user|has_booked_class %}
-                   <div class="col-12">
-                   <span class="col-3"><strong>Mailing List:</strong></span>
-                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">
-                           {% if request.user|subscribed %}
-                                Subscribed
-                           {% else %}
-                                Not subscribed
-                           {% endif %}
-                   </span>
-                  <span class="col-3 col-sm-5 col-md-5 col-lg-6"><a class="btn btn-sm btn-profile btn-wm-outline" href="{% url 'subscribe' %}">Change</a></span>
-                  </div>
-                   {% endif %}
-
-                   <div class="col-12">
+               <div class="col-12">
                    <span class="col-3"><strong>Disclaimer:</strong></span>
                    <span class="col-9">
                            {% if disclaimer %}
@@ -85,7 +106,7 @@
                    </div>
                    {% if not disclaimer %}
                    <div class="col-12 mt-4">
-                       <h3>DISCLAIMER</h3>
+                       <h4>DISCLAIMER</h4>
                        {% if expired_disclaimer %}
                             <p>Your disclaimer has expired.  We require disclaimers to be updated once a year for health and safety reasons.
                            You must review and confirm your information before attending any classes or workshops.</p>

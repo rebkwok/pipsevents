@@ -25,10 +25,21 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_signup_form_with_invalid_data(self):
-        # first_name must have 30 characters or fewer
+    def test_signup_form_with_pronouns(self):
         form_data = {
-            'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
+            'first_name': 'Test',
+            'last_name': 'User',
+            'pronouns': "they/them",
+            'mailing_list': False,
+            'data_privacy_confirmation' : True
+        }
+        form = SignupForm(data=form_data)
+        assert form.is_valid()
+
+    def test_signup_form_with_invalid_data(self):
+        # first_name must have 100 characters or fewer
+        form_data = {
+            'first_name': 'abcdefghijklmnopqrstuvwxyz12345' * 4,
              'last_name': 'User',
              'mailing_list': 'no',
              'data_privacy_confirmation': True

@@ -16,6 +16,7 @@
 
     <h4>Personal Details</h4>
     <strong>Name: </strong>{{ disclaimer.first_name }} {{ disclaimer.last_name}}<br/>
+    <strong>Pronouns: </strong>{% if disclaimer.pronouns %}{{ disclaimer.pronouns }}{% endif %}<br/>
     <strong>DOB: </strong>{{ disclaimer.dob }}<br/>
     <strong>Address: </strong>{{ disclaimer.address }}<br/>
     <strong>Home phone: </strong>{{ disclaimer.home_phone }}<br/>

@@ -19,7 +19,7 @@ from allauth.account.views import EmailView, LoginView
 
 from braces.views import LoginRequiredMixin
 
-from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm
+from .forms import DisclaimerForm, DataPrivacyAgreementForm, NonRegisteredDisclaimerForm, UserProfileForm
 from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_data_privacy_cache_key, active_disclaimer_cache_key, \
     has_active_data_privacy_agreement, has_active_disclaimer, has_expired_disclaimer
 from activitylog.models import ActivityLog
@@ -49,8 +49,8 @@ def profile(request):
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
     model = User
+    form_class = UserProfileForm
     template_name = 'account/update_profile.html'
-    fields = ('username', 'first_name', 'last_name',)
 
     def get_object(self):
         return get_object_or_404(
@@ -72,6 +72,10 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
                     form.instance.username, form.instance.email
                 )
             )
+        user = form.save()
+        if 'pronouns' in form.changed_data:
+            user.userprofile.pronouns = form.cleaned_data["pronouns"]
+            user.userprofile.save()
         return super().form_valid(form)
 
 
