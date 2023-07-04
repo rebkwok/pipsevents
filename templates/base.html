@@ -132,21 +132,22 @@
 <div class="wrapper">
   <main role="main" class="container-fluid">
         {% CookielawBanner %}
-        {% block banner %}{% temporary_banner %}{% endblock banner %}
-        {% block sale %}{% sale_text %}{% endblock sale %}
+        
+        {% block banner %}
+            <div class="mb-4">
+                {% all_users_banner %}
+            </div>
+        {% endblock banner %}
 
         {% NoticesModal %} 
 
-    {% block perm_banner %}
-        <div class="container-fluid mb-3">
+    {% block new_banner %}
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
-            <div class="message alert alert-info alert-dismissible">
-                New to pole? Begin Level 1 at any time!
-                <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <div class="mb-4">
+                {% new_users_banner %}
             </div>
         {% endif %}
-        </div>
-    {% endblock perm_banner %}
+    {% endblock new_banner %}
 
     {% if messages %}
         <div class="container-fluid mt-2 mb-3" id="message-row">
@@ -230,7 +231,7 @@
 
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
-<script src="{% static 'booking/js/custom-v1.6.js' %}"></script>
+<script src="{% static 'booking/js/custom-v1.7.js' %}"></script>
 <script src="{% static 'notices/js/notices.js' %}"></script>
 
 <!--# blocks modal-->

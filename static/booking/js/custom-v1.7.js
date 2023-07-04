@@ -37,6 +37,14 @@ jQuery(document).ready(function () {
         format:'D MMM YYYY HH:mm',
         sideBySide: true
     });
+    jQuery('#start_datetimepicker').datetimepicker({
+        format:'D MMM YYYY HH:mm',
+        sideBySide: true
+    });
+    jQuery('#end_datetimepicker').datetimepicker({
+        format:'D MMM YYYY HH:mm',
+        sideBySide: true
+    });
 
     jQuery('#datepicker').datetimepicker({
         format:'D MMM YYYY',

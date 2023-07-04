@@ -13,8 +13,8 @@ from django.test import TestCase
 from accounts.models import DisclaimerContent
 from activitylog.models import ActivityLog
 
-from booking.models import Ticket, TicketBooking
-from booking.templatetags.bookingtags import temporary_banner
+from booking.models import Banner, Ticket, TicketBooking
+from booking.templatetags.bookingtags import all_users_banner, new_users_banner
 from booking.views import EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content
 
@@ -25,13 +25,6 @@ class BookingtagTests(TestSetupMixin, TestCase):
         super(BookingtagTests, self).setUp()
         self.user.is_staff = True
         self.user.save()
-
-    def tearDown(self):
-        super().tearDown()
-        env_vars = ['TEMP_BANNER', 'BANNER_START', 'BANNER_END']
-        for var in env_vars:
-            if var in os.environ:
-                del os.environ[var]
 
     def _get_response(self, user, event, ev_type):
         url = reverse('booking:event_detail', args=[event.slug])
@@ -161,60 +154,128 @@ class BookingtagTests(TestSetupMixin, TestCase):
         assert '<span id="disclaimer" class="far fa-file-alt"></span> *</a>' not in resp.rendered_content
         assert '<span id="disclaimer" class="far fa-file-alt"></span></a>' in resp.rendered_content
 
+    def test_all_users_banner_no_banner(self):
+        banner_output = all_users_banner({})
+        assert banner_output == {}
+
+        # Default still shown if in admin
+        banner_output = all_users_banner({"studioadmin": True})
+        assert banner_output == {
+            'banner_content': 'Banner content here', 
+            'banner_colour': 'info',
+        }
+    
+    def test_new_users_banner_no_banner(self):
+        banner_output = new_users_banner({})
+        assert banner_output == {}
+
+        # Default still shown if in admin
+        banner_output = new_users_banner({"studioadmin": True})
+        assert banner_output == {
+            'banner_content': 'Banner content here', 
+            'banner_colour': 'info',
+    }
+    
     @patch('booking.templatetags.bookingtags.timezone')
-    def test_temporary_banner_on(self, mock_tz):
+    def test_all_users_banner(self, mock_tz):
         mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
         mock_tz.utc = dt_timezone.utc
 
-        os.environ['TEMP_BANNER'] = 'Banner text'
-        os.environ['BANNER_START'] = '01-Jan-2015'
-        os.environ['BANNER_END'] = '15-Jan-2015'
-
-        banner = temporary_banner()
-        self.assertCountEqual(
-            banner,
-            {'has_temporary_banner': True, 'temporary_banner': 'Banner text'}
+        baker.make(
+            Banner, 
+            banner_type="banner_all", 
+            start_datetime=datetime(2015, 1, 1, 10, 0),
+            end_datetime=datetime(2015, 1, 15, 18, 0),
+            content="Banner text"
         )
 
+        # non-admin, within dates
+        banner_output = all_users_banner({})
+        assert banner_output == {
+            'banner_content': 'Banner text', 
+            'banner_colour': 'info',
+            'banner_type': 'banner_all',
+        }
+
+        # not started yet
+        mock_tz.now.return_value = datetime(2015, 1, 1, 9, 0, tzinfo=dt_timezone.utc)
+        banner_output = all_users_banner({})
+        assert banner_output == {}
+
+        # But still shown if in admin
+        banner_output = all_users_banner({"studioadmin": True})
+        assert banner_output == {
+            'banner_content': 'Banner text', 
+            'banner_colour': 'info',
+            'banner_type': 'banner_all',
+        }
+
+        # expired
+        mock_tz.now.return_value = datetime(2015, 2, 1, 9, 0, tzinfo=dt_timezone.utc)
+        banner_output = all_users_banner({})
+        assert banner_output == {}
+
+        # But still shown if in admin
+        banner_output = all_users_banner({"studioadmin": True})
+        assert banner_output == {
+            'banner_content': 'Banner text', 
+            'banner_colour': 'info',
+            'banner_type': 'banner_all',
+        }
+
     @patch('booking.templatetags.bookingtags.timezone')
-    def test_temporary_banner_off(self, mock_tz):
+    def test_new_users_banner(self, mock_tz):
         mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
         mock_tz.utc = dt_timezone.utc
 
-        os.environ['TEMP_BANNER'] = 'Banner text'
-        os.environ['BANNER_START'] = '04-Jan-2015'
-        os.environ['BANNER_END'] = '15-Jan-2015'
-
-        banner = temporary_banner()
-        self.assertCountEqual(
-            banner,
-            {'has_temporary_banner': False}
+        # make sure the right banner is selected
+        baker.make(
+            Banner, 
+            banner_type="banner_all", 
+            start_datetime=datetime(2015, 1, 1, 10, 0),
+            end_datetime=datetime(2015, 1, 15, 18, 0),
+            content="Banner text"
+        )
+        baker.make(
+            Banner, 
+            banner_type="banner_new", 
+            start_datetime=datetime(2015, 1, 1, 10, 0),
+            end_datetime=datetime(2015, 1, 15, 18, 0),
+            content="New banner text"
         )
 
-    @patch('booking.templatetags.bookingtags.timezone')
-    def test_temporary_banner_no_start_date(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
-        mock_tz.utc = dt_timezone.utc
+        # non-admin, within dates
+        banner_output = new_users_banner({})
+        assert banner_output == {
+            'banner_content': 'New banner text', 
+            'banner_colour': 'info',
+            'banner_type': 'banner_new',
+        }
 
-        os.environ['TEMP_BANNER'] = 'Banner text'
-        os.environ['BANNER_END'] = '15-Jan-2015'
+        # not started yet
+        mock_tz.now.return_value = datetime(2015, 1, 1, 9, 0, tzinfo=dt_timezone.utc)
+        banner_output = new_users_banner({})
+        assert banner_output == {}
 
-        banner = temporary_banner()
-        self.assertCountEqual(
-            banner,
-            {'has_temporary_banner': False}
-        )
+        # But still shown if in admin
+        banner_output = new_users_banner({"studioadmin": True})
+        assert banner_output == {
+            'banner_content': 'New banner text', 
+            'banner_colour': 'info',
+            'banner_type': 'banner_new',
+        }
 
-    @patch('booking.templatetags.bookingtags.timezone')
-    def test_temporary_banner_no_end_date(self, mock_tz):
-        mock_tz.now.return_value = datetime(2015, 1, 3, tzinfo=dt_timezone.utc)
-        mock_tz.utc = dt_timezone.utc
+        # expired
+        mock_tz.now.return_value = datetime(2015, 2, 1, 9, 0, tzinfo=dt_timezone.utc)
+        banner_output = new_users_banner({})
+        assert banner_output == {}
 
-        os.environ['TEMP_BANNER'] = 'Banner text'
-        os.environ['BANNER_START'] = '01-Jan-2015'
+        # But still shown if in admin
+        banner_output = new_users_banner({"studioadmin": True})
+        assert banner_output == {
+            'banner_content': 'New banner text', 
+            'banner_colour': 'info',
+            'banner_type': 'banner_new',
+        }
 
-        banner = temporary_banner()
-        self.assertCountEqual(
-            banner,
-            {'has_temporary_banner': False}
-        )
+    

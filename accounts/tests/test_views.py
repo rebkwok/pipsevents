@@ -631,7 +631,7 @@ class NonRegisteredDisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 1)
         disclaimer = NonRegisteredDisclaimer.objects.first()
-        assert disclaimer.first_name == "Test"
+        assert disclaimer.first_name == "test"
         assert disclaimer.pronouns == "she/her"
         # email sent to email address in form
         self.assertEqual(len(mail.outbox), 1)

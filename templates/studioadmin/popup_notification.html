@@ -1,0 +1,46 @@
+{% extends "studioadmin/base.html" %}
+{% load crispy_forms_tags %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+    <div class="row">
+        <div class="col-12">
+            <h1>Pop-up notification</h1>
+            <p>
+                This notifcation appears as a popup for every new session. On dismissal, it
+                stores a cookie in the user's browser and will not be shown again unless cookies
+                are cleared. You can specify a timeout (in seconds) if you want the popup to
+                be shown again after a delay. 
+            </p>
+            <p>
+                <strong>Example:</strong> You want to tell users about a new feature on the site (e.g. they 
+                can now add pronouns to their profile). Set the notice expiry to one month form
+                now, so it should be seen by all regular users. Leave the timeout blank so
+                users don't see the popup after the first time.
+            </p>
+            <p>
+                <strong>Example:</strong> You have a sale on and you want to show a daily popup reminder 
+                about a sale discount code. Set the expiry to the end date/time of the sale, and set the
+                timeout to 86400. Users will see the popup, dismiss it, and it won't reappear until the next
+                day.
+            </p>
+            <p>
+                Note: changing the title, content or timeout in this form in any way will cause the
+                notice to reset and it will be displayed to all users again. (It will be
+                displayed to you when you save.)
+            </p>
+        </div>
+
+        <div class="col-12">
+        {% if form.errors %}
+            <p class="text-danger">Please correct the errors below:</p>
+        {% endif %}
+        <form method="post" action="">
+            {% csrf_token %}
+            <div style="position: relative">
+            {%  crispy form %}
+            </div>
+        </form>
+        </div>
+    </div>
+{% endblock %}

@@ -1,8 +1,8 @@
-{% if has_temporary_banner %}
+{% if banner_content %}
 
-    <div class="container-fluid mt-2">
-    <div class="message alert alert-info alert-dismissible">
-        {{ temporary_banner|safe }}
-    </div>
+    <div class="message alert alert-{{ banner_colour }} alert-dismissible" role="alert">
+        {{ banner_content|safe }}
+    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>    
 
 {% endif %}
