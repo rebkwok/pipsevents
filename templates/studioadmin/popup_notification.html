@@ -3,32 +3,65 @@
 {% load bookingtags %}
 
 {% block studioadmincontent %}
+
+    <div id="noticesModal" class="modal-window hide">
+        <div 
+        class="modal-title" 
+        {% if notices_colour %}style="border-color: {{ notices_colour }};"{% endif %}
+        >{{ notices_title }}</div>
+        <div class="modal-content">{{ notices_content | linebreaks }}</div>
+        <button 
+        class="modal-btn" 
+        {% if notices_colour %}style="background: {{ notices_colour }};"{% endif %}
+        onclick="hideModal()"
+        >OK</button>
+        {% if has_expired %}
+            <div class="text-secondary">
+                <small>[This notice has expired and will not be shown to users]</small>
+            </div>
+        {% endif %}
+    </div>
+  
+    <div 
+        class="modal-fader hide" 
+        id="noticesModalFader" 
+        onclick="hideModal()"
+    ></div>
+
     <div class="row">
+
         <div class="col-12">
             <h1>Pop-up notification</h1>
             <p>
-                This notifcation appears as a popup for every new session. On dismissal, it
-                stores a cookie in the user's browser and will not be shown again unless cookies
-                are cleared. You can specify a timeout (in seconds) if you want the popup to
-                be shown again after a delay. 
+                This notifcation appears as a popup for every new session. It works by setting a
+                cookie in the user's browser, so it will be shown once only, unless you specify a
+                timeout (in seconds), or cookies are cleared. The timeout causes the popup to be
+                shown again after the time specified.
             </p>
             <p>
-                <strong>Example:</strong> You want to tell users about a new feature on the site (e.g. they 
-                can now add pronouns to their profile). Set the notice expiry to one month form
+                <strong>Example: You want to tell users about a new feature on the site (e.g. they 
+                can now add pronouns to their profile).</strong><br/>
+                Set the notice expiry to one month form
                 now, so it should be seen by all regular users. Leave the timeout blank so
-                users don't see the popup after the first time.
+                users only see the popup once.
             </p>
             <p>
-                <strong>Example:</strong> You have a sale on and you want to show a daily popup reminder 
-                about a sale discount code. Set the expiry to the end date/time of the sale, and set the
-                timeout to 86400. Users will see the popup, dismiss it, and it won't reappear until the next
-                day.
+                <strong>Example: You have a sale on and you want to show a daily popup reminder 
+                about a sale discount code.</strong><br/>
+                Set the notice expiry to the end date/time of the sale, and
+                set the timeout to 86400 (one day in seconds). Users will see the popup, dismiss it, and
+                it won't reappear until the next day.
             </p>
             <p>
                 Note: changing the title, content or timeout in this form in any way will cause the
-                notice to reset and it will be displayed to all users again. (It will be
-                displayed to you when you save.)
+                notice to reset and it will be displayed to all users again.
             </p>
+
+            <p>
+                Preview the popup (even if it's expired) by clicking the button below. Save any
+                changes first.
+            </p>
+            <button class="btn btn-wm mb-2" {% if not form.instance.id %}disabled{% endif %} onclick="showModal()">Show popup</button>
         </div>
 
         <div class="col-12">
@@ -43,4 +76,19 @@
         </form>
         </div>
     </div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    showModal = function () {       
+        document.getElementById('noticesModal').classList.remove("hide");
+        document.getElementById('noticesModalFader').classList.remove("hide");
+    }
+    hideModal = function () {       
+        document.getElementById('noticesModal').classList.add("hide");
+        document.getElementById('noticesModalFader').classList.add("hide");
+    }
+</script>
+
 {% endblock %}

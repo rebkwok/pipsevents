@@ -1843,3 +1843,6 @@ span.disclaimer_version {
   border-bottom: rgb(240, 139, 165) solid;
 }
 
+.modal-window.hide, .modal-fader.hide {
+  display: none;
+}

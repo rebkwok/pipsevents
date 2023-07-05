@@ -321,5 +321,5 @@ urlpatterns = [
         name='popup_notification'
     ),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
-    path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
+    path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]

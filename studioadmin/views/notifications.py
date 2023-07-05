@@ -146,9 +146,10 @@ def popup_notification_view(request):
         "studioadmin": True,
         "sidenav_selection": "popup_notification"
     }
-    notice = Notice.objects.latest("id")
+    notice = Notice.latest_notice()
     kwargs = {}
     if notice:
+        context["has_expired"] = notice.has_expired
         kwargs["instance"] = notice
     
     if request.method == "POST":

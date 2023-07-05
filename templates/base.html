@@ -24,7 +24,7 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" integrity="sha512-aEe/ZxePawj0+G2R+AaIxgrQuKT68I28qh+wgLrcAJOz3rxCP+TwrK5SPN+E5I+1IQjNtcfvb96HDagwrKRdBw==" crossorigin="anonymous" />
        <!-- Custom styles -->
-        <link href="{% static 'booking/css/custom-v1.14.css' %}" rel="stylesheet">
+        <link href="{% static 'booking/css/custom-v1.14.1.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
          <link rel="stylesheet" href="{% static 'notices/css/notices.css' %}"  type="text/css"/>
 
@@ -139,7 +139,7 @@
             </div>
         {% endblock banner %}
 
-        {% NoticesModal %} 
+        {% block notices %}{% NoticesModal %}{% endblock notices %}
 
     {% block new_banner %}
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
