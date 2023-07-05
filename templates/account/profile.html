@@ -30,7 +30,19 @@
                     <span class="col-3"><strong>Pronouns:</strong></span>
                     <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.userprofile.pronouns }}</span>
                 </div>
-                <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'profile:update_profile' %}">Change</a></div>
+
+                <div class="col-12">
+                    <span class="col-3"><strong>Connected social accounts:</strong></span>
+                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">
+                        {% if user.socialaccount_set.exists %}
+                            {% for sacc in user.socialaccount_set.all %}{{ sacc.provider|title }}{% if not forloop.last %}; {% endif %}{% endfor %}
+                       {% else %}
+                           None
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="col-12"><a class="btn btn-sm btn-profile btn-wm  ml-4" href="{% url 'profile:update_profile' %}">Change</a></div>
                 <hr/>
 
                 <div class="col-12">
@@ -40,39 +52,26 @@
                    <span class="col-3"><strong>Primary email address:</strong></span>
                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.email }}</span>
                </div>
-               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'account_email' %}">Change</a></div>
+               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm  ml-4" href="{% url 'account_email' %}">Change</a></div>
                 <hr/>
                
-                <div class="col-12">
-                    <h4 class="card-title">Connected social accounts</h4>
-                </div>
-                <div class="col-12">
-                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">
-                       {% if user.socialaccount_set.exists %}
-                            {% for sacc in user.socialaccount_set.all %}{{ sacc.provider|title }}{% if not forloop.last %}; {% endif %}{% endfor %}
-                       {% else %}
-                           None
-                        {% endif %}
-                   </span>
-               </div>
-               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'socialaccount_connections' %}">Change</a></div>
-                <hr/>
-
-                <div class="col-12">
-                    <h4 class="card-title">Mailing List</h4>
-                </div>
-                
-                <div class="col-12">
-                <span class="col-12">
-                        {% if request.user|subscribed %}
-                             Subscribed
-                        {% else %}
-                             Not subscribed
-                        {% endif %}
-                </span>
-               </div>
-               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm ml-2" href="{% url 'subscribe' %}">Change</a></div>
-                <hr/>
+                {% if request.user|subscribed or request.user|has_booked_class %}
+                    <div class="col-12">
+                        <h4 class="card-title">Mailing List</h4>
+                    </div>
+                    
+                    <div class="col-12">
+                        <span class="col-12">
+                                {% if request.user|subscribed %}
+                                    Subscribed
+                                {% else %}
+                                    Not subscribed
+                                {% endif %}
+                        </span>
+                    </div>
+                    <div class="col-12"><a class="btn btn-sm btn-profile btn-wm  ml-4" href="{% url 'subscribe' %}">Change</a></div>
+                    <hr/>
+                {% endif %}
 
                 <div class="col-12">
                     <h4 class="card-title">Account Info</h4>
