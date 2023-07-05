@@ -12,7 +12,7 @@ from unittest.mock import patch
 from model_bakery import baker
 import pytest
 
-from booking.models import Event, EventType, Block, BlockType, BlockTypeError, \
+from booking.models import Banner, Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
     EventVoucher, GiftVoucherType
 from common.tests.helpers import PatchRequestMixin
@@ -1729,3 +1729,10 @@ class GiftVoucherTypeTests(TestCase):
         block_type = baker.make_recipe("booking.blocktype5", cost=40)
         gift_voucher_type = GiftVoucherType.objects.create(block_type=block_type)
         assert gift_voucher_type.cost == 40
+
+
+@pytest.mark.django_db
+def test_banner_str():
+    banner = baker.make(Banner, content="test")
+    # defaults to all type
+    assert str(banner) == "banner_all"

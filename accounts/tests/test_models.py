@@ -374,3 +374,10 @@ class AccountBanModelTests(TestCase):
         ban.save()
         user.refresh_from_db()
         assert user.currently_banned() is False
+
+
+@pytest.mark.django_db
+def test_userprofile_str():
+    user = baker.make_recipe('booking.user', username='testuser')
+    # userprofile created for new user
+    assert str(user.userprofile) == "testuser"

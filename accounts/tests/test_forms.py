@@ -83,6 +83,23 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         self.assertEqual('New', user.first_name)
         self.assertEqual('Name', user.last_name)
 
+    def test_user_signup_with_pronouns(self):
+        user = baker.make(User)
+        url = reverse('account_signup')
+        request = self.factory.get(url)
+        request.user = user
+        form_data = {
+            'first_name': 'New',
+            'last_name': 'Name',
+            'mailing_list': 'no',
+            'pronouns': 'they/them',
+            'data_privacy_confirmation': True
+        }
+        form = SignupForm(data=form_data)
+        assert form.is_valid()
+        form.signup(request, user)
+        assert user.userprofile.pronouns == "they/them"
+
     def test_signup_with_mailing_list(self):
         user = baker.make(User, email='test@mailinglist.com')
         url = reverse('account_signup')
