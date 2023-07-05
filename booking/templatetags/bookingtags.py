@@ -79,7 +79,7 @@ def get_pagination_params(context, page_type=None):
             if req_param in context["request"].GET:
                 params[req_param] = context["request"].GET[req_param]
     elif page_type == "admin_events":
-        if "show_past" in context:
+        if context and context.get("show_past", False):
             params["past"] = True
     elif page_type == "admin_blocks":
         if "block_status" in context:
