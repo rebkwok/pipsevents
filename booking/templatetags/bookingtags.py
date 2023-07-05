@@ -398,7 +398,8 @@ def voucher_applied_cost(cost, discount):
     return Decimal(float(cost) * ((100 - discount) / 100)).quantize(Decimal('.05'))
 
 
-def is_active(location_index, tab):
+# Coverage skipped as location code is currently not used
+def is_active(location_index, tab):  # pragma: no cover
     if tab:
         if str(location_index) == tab:
             return True
@@ -406,11 +407,11 @@ def is_active(location_index, tab):
 
 
 @register.filter
-def get_active_class(location_index, tab):
+def get_active_class(location_index, tab):  # pragma: no cover
     return 'active' if is_active(location_index, tab) else ''
 
 
-@register.filter
+@register.filter  # pragma: no cover
 def get_active_in_class(location_index, tab):
     return 'show active' if is_active(location_index, tab) else ''
 
