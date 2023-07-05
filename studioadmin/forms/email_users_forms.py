@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
@@ -14,7 +16,12 @@ from ckeditor.widgets import CKEditorWidget
 def get_event_names(event_type):
 
     def callable():
-        EVENT_CHOICES = [(event.id, f"{event.name} - {event.date.strftime('%d-%b-%y, %H:%M')}") for event in Event.objects.filter(
+        def _format_datetime(dt):
+            uk = pytz.timezone('Europe/London')
+            uk_date = dt.astimezone(uk)
+            return uk_date.strftime('%d-%b-%y, %H:%M')
+
+        EVENT_CHOICES = [(event.id, f"{event.name} - {_format_datetime(event.date)}") for event in Event.objects.filter(
             event_type__event_type=event_type, date__gte=timezone.now()
         ).order_by('date')]
         return tuple(EVENT_CHOICES)
