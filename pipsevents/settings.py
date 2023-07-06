@@ -496,3 +496,4 @@ USE_CRISPY = True
 
 # notices
 NOTICES_COLOUR="rgb(240, 139, 165)"
+NOTICES_SAFE = True

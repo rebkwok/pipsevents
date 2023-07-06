@@ -1852,3 +1852,7 @@ span.disclaimer_version {
   top: 25%;
   left: 50%;
 }
+
+div.message.alert > p {
+  margin-bottom: 0;
+}

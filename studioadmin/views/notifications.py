@@ -3,6 +3,7 @@ from django import forms
 from django.contrib import messages
 from django.template.response import TemplateResponse
 
+from ckeditor.widgets import CKEditorWidget
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Hidden, Layout, Submit, Div
 
@@ -56,6 +57,10 @@ class BannerForm(forms.ModelForm):
                 },
                 format='%d %b %Y %H:%M'
             ),
+            'content': CKEditorWidget(
+                attrs={'class': 'form-control container-fluid'},
+                config_name='studioadmin_min',
+            ),
         }
 
 
@@ -107,6 +112,10 @@ class NoticeForm(forms.ModelForm):
                     "autocomplete": "off",
                 },
                 format='%d %b %Y %H:%M'
+            ),
+            'content': CKEditorWidget(
+                attrs={'class': 'form-control container-fluid'},
+                config_name='studioadmin_min',
             ),
         }
     
