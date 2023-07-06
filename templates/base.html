@@ -244,6 +244,9 @@
         });
         return false; // prevent the click propagation
     });
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+      })
 </script>
 
 {% block extra_js %}{% endblock %}

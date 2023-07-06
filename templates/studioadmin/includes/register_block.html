@@ -13,17 +13,23 @@
 {% endif %}
 
 {% if available_block_type %}
+<div data-toggle="tooltip" data-html="true" 
+title="
     {% if booking.paid %}
-        {% if booking.block %}
-            {{ booking.block | format_block }}
+            {% if booking.block %}
+                {{ booking.block | format_block }}
+            {% elif booking.has_available_block %}
+                Available block not used
+            {% else %}
+                N/A
+            {% endif %}
         {% elif booking.has_available_block %}
-            Available block not used
+        Block is available
         {% else %}
-            N/A
+            No active block
         {% endif %}
-    {% elif booking.has_available_block %}
-       Block is available
-    {% else %}
-        No active block
-    {% endif %}
+">
+<span class="badge badge-pill badge-primary"><span class="fa fa-info"></span></span>
+</div>
+    
 {% endif %}
