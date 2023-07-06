@@ -94,6 +94,7 @@ INSTALLED_APPS = (
     'paypal.standard.ipn',
     'payments',
     'activitylog',
+    'notices',
 )
 
 SITE_ID = 1
@@ -169,6 +170,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
                 "booking.context_processors.booking",
+                'notices.context_processors.notices',
             ),
             'debug': DEBUG,
         },
@@ -490,3 +492,8 @@ VAT_NUMBER = env("VAT_NUMBER")
 # for crispy forms
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 USE_CRISPY = True
+
+
+# notices
+NOTICES_COLOUR="rgb(240, 139, 165)"
+NOTICES_SAFE = True

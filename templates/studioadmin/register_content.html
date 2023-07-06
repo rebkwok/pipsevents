@@ -57,7 +57,7 @@
                                 <td id="booking-status-{{ booking.id }}" class="text-center studioadmin-tbl">
                                     {{ booking|format_status }}
                                 </td>
-                                <td class="text-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl"> {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}{% if booking.user.userprofile.pronouns %} ({{ booking.user.userprofile.pronouns }}){% endif %}</td>
                                 <td class="text-center studioadmin-tbl">
                                     {% if booking.user|has_online_disclaimer %}
                                         <a href="{% url 'studioadmin:user_disclaimer' booking.user.id|encode %}" target="_blank">

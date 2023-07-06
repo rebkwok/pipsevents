@@ -27,15 +27,14 @@
                        {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
                     </div>
                 </div><br>
-
-               <div>
+               
+                {% if request.user|subscribed or request.user|has_booked_class %} 
+                <div>
                      <h4>Mailing list</h4>
-                    {% if request.user|subscribed or request.user|has_booked_class %}
                     <p class="active-nav-login"><a href="{% url 'subscribe' %}">Subscribe/unsubscribe</a> to mailing list</p>
-                    {% endif %}
-                 </div>
-
+                </div>
                 </br>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -3,6 +3,7 @@
 {% load socialaccount %}
 {% load bookingtags %}
 {% load cookielaw_tags %}
+{% load notices_tags %}
 
 <html lang="en" class="{% block bg_class %}plain_bg{%  endblock %}">
   <head>
@@ -23,9 +24,11 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" integrity="sha512-aEe/ZxePawj0+G2R+AaIxgrQuKT68I28qh+wgLrcAJOz3rxCP+TwrK5SPN+E5I+1IQjNtcfvb96HDagwrKRdBw==" crossorigin="anonymous" />
        <!-- Custom styles -->
-        <link href="{% static 'booking/css/custom-v1.14.css' %}" rel="stylesheet">
+        <link href="{% static 'booking/css/custom-v1.14.1.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
+         <link rel="stylesheet" href="{% static 'notices/css/notices.css' %}"  type="text/css"/>
 
+         
       {% block head %}{% endblock %}
 
     </head>
@@ -129,54 +132,59 @@
 <div class="wrapper">
   <main role="main" class="container-fluid">
         {% CookielawBanner %}
-        {% block banner %}{% temporary_banner %}{% endblock banner %}
-        {% block sale %}{% sale_text %}{% endblock sale %}
+        
+        {% block banner %}
+            <div class="mb-4">
+                {% all_users_banner %}
+            </div>
+        {% endblock banner %}
 
-    {% block perm_banner %}
-        <div class="container-fluid mb-3">
+        {% block notices %}{% NoticesModal %}{% endblock notices %}
+
+    {% block new_banner %}
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}
-            <div class="message alert alert-info alert-dismissible">
-                New to pole? Begin Level 1 at any time!
+            <div class="mb-4">
+                {% new_users_banner %}
+            </div>
+        {% endif %}
+    {% endblock new_banner %}
+
+    {% if messages %}
+        <div class="container-fluid mt-2 mb-3" id="message-row">
+            {% for message in messages %}
+                <div
+                    {% if message.tags and message.tags == 'error' %}
+                        class="message alert alert-danger alert-dismissible"
+                    {% elif message.tags %}
+                        class="message alert alert-{{ message.tags }} alert-dismissible"
+                    {% endif %}>
+                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if user.currently_banned and user.is_authenticated %}
+        <div class="container-fluid">
+            <div class="message alert alert-danger alert-dismissible">
+                Your account is temporarily locked. You will able to make new bookings again after {{ user.ban.end_date|date:'d M Y, H:i' }}.
                 <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
-        {% endif %}
         </div>
-    {% endblock perm_banner %}
-        {% if messages %}
-          <div class="container-fluid mt-2 mb-3" id="message-row">
-                {% for message in messages %}
-                    <div
-                        {% if message.tags and message.tags == 'error' %}
-                            class="message alert alert-danger alert-dismissible"
-                        {% elif message.tags %}
-                            class="message alert alert-{{ message.tags }} alert-dismissible"
-                        {% endif %}>
-                        <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        {% if 'safe' in message.tags %}
-                            {{ message|safe }}
-                        {% else %}
-                            {{ message }}
-                        {% endif %}
-                    </div>
-                {% endfor %}
-          </div>
-        {% endif %}
-        {% if user.currently_banned and user.is_authenticated %}
-            <div class="container-fluid">
-                <div class="message alert alert-danger alert-dismissible">
-                    Your account is temporarily locked. You will able to make new bookings again after {{ user.ban.end_date|date:'d M Y, H:i' }}.
-                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-            </div>
-        {% endif %}
+    {% endif %}
 
-        {% block body %}
-            <div class="container-fluid content-block">
-            {% block content %}
-                    <p>You need to define a content block!</p>
-            {% endblock %}
-            </div>
+    {% block body %}
+        <div class="container-fluid content-block">
+        {% block content %}
+                <p>You need to define a content block!</p>
         {% endblock %}
+        </div>
+    {% endblock %}
 
       <div class="modal fade" id="BlocksModal" tabindex="-1" role="dialog"></div>
 
@@ -223,7 +231,8 @@
 
 <script src="{% static 'booking/js/jquery.rememberscroll.js' %}"></script>
 <script src="{% static 'cookielaw/js/cookielaw.js' %}"></script>
-<script src="{% static 'booking/js/custom-v1.6.js' %}"></script>
+<script src="{% static 'booking/js/custom-v1.7.js' %}"></script>
+<script src="{% static 'notices/js/notices.js' %}"></script>
 
 <!--# blocks modal-->
 <script>

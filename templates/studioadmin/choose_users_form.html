@@ -86,14 +86,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.min.js" integrity="sha512-aFvi2oPv3NjnjQv1Y/hmKD7RNMendo4CZ2DwQqMWzoURKxcqAoktj0nNG4LU8m23+Ws9X5uVDD4OXLqpUVXD5Q==" crossorigin="anonymous"></script>
 <script type="text/javascript">
     $(document).ready(function() {
-        function alerted1 (select, container) {
-            $("#spin1").hide();
+        alerted1 = function () {       
+            document.getElementById('spin1').remove();
         }
-        function alerted2 (select, container) {
-            $("#spin2").hide();
+        alerted2 = function () {       
+            document.getElementById('spin2').remove();
         }
-        function alerted3 (select, container) {
-            $("#spin3").hide();
+        alerted3 = function () {       
+            document.getElementById('spin3').remove();
         }
 
         $('#id_filter-lessons').multiselect({

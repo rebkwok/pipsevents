@@ -390,6 +390,7 @@ class PrintDisclaimer(models.Model):
 class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
+    pronouns = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField()
     event_date = models.DateField()
     user_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -430,6 +431,7 @@ class NonRegisteredDisclaimer(BaseOnlineDisclaimer):
 class ArchivedDisclaimer(BaseOnlineDisclaimer):
 
     name = models.CharField(max_length=255)
+    pronouns = models.CharField(max_length=100, null=True, blank=True)
     date_updated = models.DateTimeField(null=True, blank=True)
     date_archived = models.DateTimeField(default=timezone.now)
     event_date = models.DateField(blank=True, null=True)
@@ -455,6 +457,14 @@ class AccountBan(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.end_date.strftime('%d %b %Y, %H:%M')}"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    pronouns = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return self.user.username
 
 
 # CACHING

@@ -31,6 +31,7 @@
                             <tr class="success">
                                 <th class="text-center">First Name <span class="fa fa-sort"></span></th>
                                 <th class="text-center">Last Name <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Pronouns</th>
                                 <th class="text-center">Email</th>
                                 <th class="text-center">Event Date <span class="fa fa-sort"></span></th>
                                 <th class="text-center">Medical conditions</th>
@@ -44,6 +45,7 @@
                             <tr>
                                 <td class="text-center studioadmin-tbl">{{ disclaimer.first_name|abbr_name }}</td>
                                 <td class="text-center studioadmin-tbl">{{ disclaimer.last_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl">{% if disclaimer.pronouns %}{{ disclaimer.pronouns }}{% endif %}</td>
                                 <td class="text-center studioadmin-tbl"><a href="mailto:{{ disclaimer.email }}" target="_blank">{{ disclaimer.email|abbr_email }}</a></td>
                                 <td class="text-center studioadmin-tbl"><span style="display: none;">{{ disclaimer.event_date | date:"Ymd"}}</span>{{ disclaimer.event_date | date:"D d M Y" }}</td>
                                 <td class="text-center studioadmin-tbl">{{ disclaimer.medical_conditions | yesno | title }}</td>
@@ -54,7 +56,7 @@
                             {% endfor %}
 
                             {% if empty_search_message %}
-                            <tr><td colspan="8">{{ empty_search_message }}</td></tr>
+                            <tr><td colspan="9">{{ empty_search_message }}</td></tr>
                             {% endif %}
 
                             

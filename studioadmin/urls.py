@@ -68,6 +68,9 @@ from studioadmin.views import (BookingEditView,
                                reactivated_block_status,
                                users_status,
                                email_waiting_list,
+                               all_users_banner_view, 
+                               new_users_banner_view, 
+                               popup_notification_view
                                )
 
 app_name = 'studioadmin'
@@ -305,6 +308,18 @@ urlpatterns = [
         r'^disclaimer-version/edit/(?P<version>\d+\.\d+)/$',
         DisclaimerContentUpdateView.as_view(), name='disclaimer_content_edit'
     ),
+    path(
+        'notifications/all-users-banner/', all_users_banner_view,
+        name='all_users_banner'
+    ),
+    path(
+        'notifications/new-users-banner/', new_users_banner_view,
+        name='new_users_banner'
+    ),
+    path(
+        'notifications/pop-up-notification/', popup_notification_view,
+        name='popup_notification'
+    ),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
-    path('', RedirectView.as_view(url='/studioadmin/classes/', permanent=True)),
+    path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]

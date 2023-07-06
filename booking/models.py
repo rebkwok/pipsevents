@@ -1068,3 +1068,30 @@ class GiftVoucherType(models.Model):
         else:
             voucher_type_str = str(self.event_type)
         return f"{voucher_type_str} - £{self.cost}"
+
+
+class Banner(models.Model):
+    banner_type = models.CharField(
+        max_length=10, 
+        choices=(("banner_all", "all users banner"), ("banner_new", "new users banner")),
+        default="banner_all"
+    )
+    content = models.TextField()
+    start_datetime = models.DateTimeField(default=timezone.now)
+    end_datetime = models.DateTimeField(null=True, blank=True)
+    colour = models.CharField(
+        max_length=10, 
+        choices=(
+            ("info", "light blue"),
+            ("primary", "blue"), 
+            ("success", "green"), 
+            ("warning", "yellow"), 
+            ("danger", "red"),
+            ("secondary", "light grey"),
+            ("dark", "dark grey")
+        ),
+        default="info"
+    )
+
+    def __str__(self) -> str:
+        return f"{self.banner_type}"

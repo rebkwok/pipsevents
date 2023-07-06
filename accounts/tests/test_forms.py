@@ -25,10 +25,21 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form = SignupForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_signup_form_with_invalid_data(self):
-        # first_name must have 30 characters or fewer
+    def test_signup_form_with_pronouns(self):
         form_data = {
-            'first_name': 'abcdefghijklmnopqrstuvwxyz12345',
+            'first_name': 'Test',
+            'last_name': 'User',
+            'pronouns': "they/them",
+            'mailing_list': False,
+            'data_privacy_confirmation' : True
+        }
+        form = SignupForm(data=form_data)
+        assert form.is_valid()
+
+    def test_signup_form_with_invalid_data(self):
+        # first_name must have 100 characters or fewer
+        form_data = {
+            'first_name': 'abcdefghijklmnopqrstuvwxyz12345' * 4,
              'last_name': 'User',
              'mailing_list': 'no',
              'data_privacy_confirmation': True
@@ -71,6 +82,23 @@ class SignUpFormTests(TestSetupMixin, TestCase):
         form.signup(request, user)
         self.assertEqual('New', user.first_name)
         self.assertEqual('Name', user.last_name)
+
+    def test_user_signup_with_pronouns(self):
+        user = baker.make(User)
+        url = reverse('account_signup')
+        request = self.factory.get(url)
+        request.user = user
+        form_data = {
+            'first_name': 'New',
+            'last_name': 'Name',
+            'mailing_list': 'no',
+            'pronouns': 'they/them',
+            'data_privacy_confirmation': True
+        }
+        form = SignupForm(data=form_data)
+        assert form.is_valid()
+        form.signup(request, user)
+        assert user.userprofile.pronouns == "they/them"
 
     def test_signup_with_mailing_list(self):
         user = baker.make(User, email='test@mailinglist.com')

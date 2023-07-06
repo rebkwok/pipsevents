@@ -1,0 +1,33 @@
+{% extends "studioadmin/base.html" %}
+{% load crispy_forms_tags %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+    <div class="row">
+        <div class="col-12">
+            <h1>All users banner</h1>
+            <p>
+                This banner will be shown to all visitors to the site. It can be dismissed, but
+                will appear on every page. <strong>Use it only when you want a message to be
+                displayed to users all the time.</strong>    
+            </p>
+            <p>
+                It will look like this:
+            </p>
+        
+        <div class="mb-4">{% all_users_banner %}</div>
+        </div>
+
+        <div class="col-12">
+        {% if form.errors %}
+            <p class="text-danger">Please correct the errors below:</p>
+        {% endif %}
+        <form method="post" action="">
+            {% csrf_token %}
+            <div style="position: relative">
+            {%  crispy form %}
+            </div>
+        </form>
+        </div>
+    </div>
+{% endblock %}

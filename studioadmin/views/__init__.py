@@ -31,7 +31,7 @@ from studioadmin.views.vouchers import BlockVoucherCreateView, \
     VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
     EventVoucherDetailView, GiftVoucherListView
 from studioadmin.views.waiting_list import event_waiting_list_view, email_waiting_list
-
+from studioadmin.views.notifications import all_users_banner_view, new_users_banner_view, popup_notification_view
 
 __all__ = [
     'ActivityLogListView', 'BlockListView', 'BlockVoucherCreateView',
@@ -62,6 +62,7 @@ __all__ = [
     'BookingEditPastView', 'BookingAddView', 'BookingEditView',
     'export_mailing_list', 'booking_register_add_view',
     'ajax_assign_block', 'ajax_toggle_paid', 'ajax_toggle_attended', 'open_all_events',
-    'clone_event', 'users_status', 'email_waiting_list'
+    'clone_event', 'users_status', 'email_waiting_list',
+    'all_users_banner_view', 'new_users_banner_view', 'popup_notification_view'
 ]
 
