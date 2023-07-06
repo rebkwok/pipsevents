@@ -273,6 +273,13 @@ def has_booked_class(user):
 
 
 @register.filter
+def is_first_class(booking):
+    return not booking.user.bookings.filter(
+        event__event_type__event_type__in=['CL', 'EV'], attended=True
+    ).exclude(event_id=booking.event.id).exists()
+
+
+@register.filter
 def format_block_type_id_user(block):
     if block.block_type.identifier \
             and block.block_type.identifier == 'free class':
