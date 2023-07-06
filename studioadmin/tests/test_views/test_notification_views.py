@@ -131,6 +131,23 @@ def test_popup_notification_post(client):
     assert Notice.objects.exists()
 
 
+def test_popup_notification_post_date_errors(client):
+    assert not Notice.objects.exists()
+    url = reverse("studioadmin:popup_notification")
+    data = {
+        "content": "my notice",
+        "title": "New",
+        "starts_at": "15 Jul 2023 10:00",
+        "expires_at": "15 Jul 2023 08:00"
+    }
+    resp = client.post(url, data)
+    form = resp.context_data["form"]
+    assert not form.is_valid()
+    assert "starts_at" in form.errors
+    assert "expires_at" in form.errors
+    assert not Notice.objects.exists()
+
+
 def test_popup_notification_post_with_existing_notice(client):
     notice = baker.make(Notice, content="my notice")
     assert notice.version == 1

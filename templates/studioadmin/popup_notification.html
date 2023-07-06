@@ -4,7 +4,7 @@
 
 {% block studioadmincontent %}
 
-    <div id="noticesModal" class="modal-window hide">
+    <div id="noticesModal" class="modal-window modal-preview hide">
         <div 
         class="modal-title" 
         {% if notices_colour %}style="border-color: {{ notices_colour }};"{% endif %}
@@ -15,6 +15,11 @@
         {% if notices_colour %}style="background: {{ notices_colour }};"{% endif %}
         onclick="hideModal()"
         >OK</button>
+        {% if not has_started %}
+            <div class="text-secondary">
+                <small>[This notice has not started yet and will not be shown to users]</small>
+            </div>
+        {% endif %}
         {% if has_expired %}
             <div class="text-secondary">
                 <small>[This notice has expired and will not be shown to users]</small>
@@ -46,9 +51,9 @@
                 users only see the popup once.
             </p>
             <p>
-                <strong>Example: You have a sale on and you want to show a daily popup reminder 
+                <strong>Example: You have a sale starting soon and you want to show a daily popup reminder 
                 about a sale discount code.</strong><br/>
-                Set the notice expiry to the end date/time of the sale, and
+                Set the notice start and expiry dates to the start and end dates/times of the sale, and
                 set the timeout to 86400 (one day in seconds). Users will see the popup, dismiss it, and
                 it won't reappear until the next day.
             </p>
@@ -58,8 +63,7 @@
             </p>
 
             <p>
-                Preview the popup (even if it's expired) by clicking the button below. Save any
-                changes first.
+                Preview the popup by clicking the button below. Save any changes first.
             </p>
             <button class="btn btn-wm mb-2" {% if not form.instance.id %}disabled{% endif %} onclick="showModal()">Show popup</button>
         </div>

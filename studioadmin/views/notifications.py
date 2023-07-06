@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from django import forms
 from django.contrib import messages
 from django.template.response import TemplateResponse
@@ -66,6 +67,11 @@ class NoticeForm(forms.ModelForm):
         expires.input_formats=('%d %b %Y %H:%M',)
         expires.label = "Expires at:"
         expires.help_text = "Leave blank if the notice should never expire"
+
+        starts = self.fields["starts_at"]
+        starts.input_formats=('%d %b %Y %H:%M',)
+        starts.label = "Starts at:"
+        starts.help_text = "Leave blank if the notice should start immediately"
         
         timeout = self.fields["timeout_seconds"]
         timeout.label = "Timeout (in seconds); the notice will be shown again after this time."
@@ -77,23 +83,41 @@ class NoticeForm(forms.ModelForm):
             "title",
             "content",
             "timeout_seconds",
+            Div("starts_at", css_class="form-group"),
             Div("expires_at", css_class="form-group"),
             submit_button
         )
     
     class Meta:
         model = Notice
-        fields = ("title", "content", "timeout_seconds", "expires_at")
+        fields = ("title", "content", "timeout_seconds", "starts_at", "expires_at")
         widgets = {
+            'starts_at': forms.DateTimeInput(
+                attrs={
+                    "class": "form-control",
+                    'id': "start_datetimepicker",
+                    "autocomplete": "off",
+                },
+                format='%d %b %Y %H:%M'
+            ),
             'expires_at': forms.DateTimeInput(
                 attrs={
                     "class": "form-control",
-                    'id': "datetimepicker",
+                    'id': "end_datetimepicker",
                     "autocomplete": "off",
                 },
                 format='%d %b %Y %H:%M'
             ),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        starts_at = cleaned_data.get("starts_at")
+        expires_at = cleaned_data.get("expires_at")
+        if starts_at and expires_at and starts_at > expires_at:
+            self.add_error("starts_at", "Start date must be before expiry date")
+            self.add_error("expires_at", "Expiry date must be after start date")
+        return cleaned_data
 
 
 def get_banner_form(banner_type, data=None):
@@ -149,19 +173,23 @@ def popup_notification_view(request):
     notice = Notice.latest_notice()
     kwargs = {}
     if notice:
-        context["has_expired"] = notice.has_expired
         kwargs["instance"] = notice
     
     if request.method == "POST":
         form = NoticeForm(**kwargs, data=request.POST)
-        form.is_valid()
-        form.save()
-        if notice and (set(form.changed_data) & {'title', 'content', 'timeout_seconds'}):
-            notice.version += 1
-            notice.save()
-        messages.success(request, "Notice saved")
+        if form.is_valid():
+            form.save()
+            if notice and (set(form.changed_data) & {'title', 'content', 'timeout_seconds'}):
+                notice.version += 1
+                notice.save()
+            messages.success(request, "Notice saved")
     else:
         form = form = NoticeForm(**kwargs)
+    
+    if notice:
+        context["has_started"] = notice.has_started()
+        context["has_expired"] = notice.has_expired()
+        kwargs["instance"] = notice
     return TemplateResponse(
             request, "studioadmin/popup_notification.html", {**context, 'form': form}
         )

@@ -78,7 +78,7 @@ django-js-asset==2.0.0
     # via django-ckeditor
 django-migration-testcase==0.0.15
     # via -r requirements.in
-django-one-time-notices==0.1.2
+django-one-time-notices==0.1.3
     # via -r requirements.in
 django-paypal==2.0
     # via -r requirements.in

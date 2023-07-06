@@ -1846,3 +1846,9 @@ span.disclaimer_version {
 .modal-window.hide, .modal-fader.hide {
   display: none;
 }
+
+.modal-window.modal-preview {
+  position: fixed;
+  top: 25%;
+  left: 50%;
+}
