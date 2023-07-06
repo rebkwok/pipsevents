@@ -1700,10 +1700,10 @@ form.mock-bs-form > p > input {
 }
 
 .btn.btn-attended, .btn.btn-noshow {
-  padding-left: 5px;
-  padding-right: 5px;
+  padding-left: 3px;
+  padding-right: 3px;
   line-height: 1.1;
-  width: 3.7em;
+  width: 1em;
   border-radius: 10px;
 }
 
