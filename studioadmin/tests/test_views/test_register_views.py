@@ -440,7 +440,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context['booking'], self.booking)
         self.assertEqual(resp.context['alert_msg'], {})
         self.assertEqual(resp.context['available_block_type'], True)
-        self.assertIn('No active block', resp.content.decode('utf-8'))
+        self.assertIn('N/A', resp.content.decode('utf-8'))
 
         # no block, paid
         self.booking.paid = True
@@ -459,7 +459,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         self.booking.paid = False
         self.booking.save()
         resp = self.client.get(self.assign_block_url)
-        self.assertIn('Block is available', resp.content.decode('utf-8'))
+        self.assertIn('Available block not used', resp.content.decode('utf-8'))
 
         # block used
         self.booking.block = block
@@ -498,7 +498,7 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
             {'status': 'error', 'msg': 'No available block to assign.'}
         )
         self.assertEqual(resp.context['available_block_type'], True)
-        self.assertIn('No active block', resp.content.decode('utf-8'))
+        self.assertIn('N/A', resp.content.decode('utf-8'))
 
     def test_ajax_assign_block_post_not_paid_block_available(self):
         block = baker.make(Block, user=self.user, paid=True, block_type=self.block_type)
