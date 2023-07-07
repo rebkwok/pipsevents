@@ -50,7 +50,7 @@
                                                   data-booking_id="{{ booking.id }}"
                                                   data-attendance="no-show"
                                                   type="button"
-                                                  class="btn btn-noshow {% if booking.no_show %}btn-danger{% else %}btn-outline-secondary{% endif %}"
+                                                  class="btn btn-noshow {% if not booking.no_show %}btn-outline-secondary{% endif %}"
                                                   >No</button>
                                         </div>
                                     </td>

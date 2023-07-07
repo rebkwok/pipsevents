@@ -630,6 +630,44 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
         assert self.booking.no_show is False
         assert self.booking.instructor_confirmed_no_show is False
 
+    def test_ajax_toggle_attended_unset(self):
+        # post once to set
+        resp = self.client.post(self.toggle_attended_url,  {'attendance': 'attended'})
+        self.booking.refresh_from_db()
+        assert self.booking.attended
+        
+        # post again to unset
+        resp = self.client.post(self.toggle_attended_url,  {'attendance': 'attended'})
+        self.booking.refresh_from_db()
+        assert resp.json()['attended'] is False
+        assert resp.json()['unset'] is True
+        assert resp.json()['alert_msg'] is None
+        assert not self.booking.attended
+        assert not self.booking.no_show
+        assert not self.booking.instructor_confirmed_no_show
+
+    def test_ajax_toggle_no_show_unset(self):
+        # booking within 1 hr, so will be marked as instructor confirmed
+        self.booking.event.date = timezone.now() - timedelta(seconds=55)
+        self.booking.event.save()
+
+        # post once to set
+        resp = self.client.post(self.toggle_attended_url,  {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        assert not self.booking.attended
+        assert self.booking.no_show
+        assert self.booking.instructor_confirmed_no_show
+        
+        # post again to unset
+        resp = self.client.post(self.toggle_attended_url,  {'attendance': 'no-show'})
+        self.booking.refresh_from_db()
+        assert resp.json()['attended'] is False
+        assert resp.json()['unset'] is True
+        assert resp.json()['alert_msg'] is None
+        assert not self.booking.attended
+        assert not self.booking.no_show
+        assert not self.booking.instructor_confirmed_no_show
+
     def test_ajax_toggle_no_show(self):
         resp = self.client.post(self.toggle_attended_url, {'attendance': 'no-show'})
         assert resp.json()['attended'] is False

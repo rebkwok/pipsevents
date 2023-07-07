@@ -456,7 +456,11 @@ def ajax_toggle_attended(request, booking_id):
 
     alert_msg = None
     if attendance == 'attended':
-        if (booking.no_show or booking.status == 'CANCELLED') and booking.event.spaces_left == 0:
+        if booking.attended:
+            # booking was already attended and clicked attended again; reset status
+            booking.attended = False
+            attendance = "unset"
+        elif (booking.no_show or booking.status == 'CANCELLED') and booking.event.spaces_left == 0:
             ev_type = 'Class' if booking.event.event_type.event_type == 'CL' else 'Event'
             alert_msg = '{} is now full, cannot reopen booking.'.format(ev_type)
         else:
@@ -465,35 +469,47 @@ def ajax_toggle_attended(request, booking_id):
             booking.no_show = False
             booking.instructor_confirmed_no_show = False
     elif attendance == 'no-show':
-        booking.attended = False
-        booking.no_show = True
-        if abs(booking.event.date - timezone.now()) < timedelta(seconds=60*60):
-            # only mark as instructor-no-shows if within an hour of the event time
-            booking.instructor_confirmed_no_show = True
+        if booking.no_show:
+            # booking was already no-show and clicked no-show again; reset status
+            booking.no_show = False
+            booking.instructor_confirmed_no_show = False
+            attendance = "unset"
+        else:
+            booking.attended = False
+            booking.no_show = True
+            if abs(booking.event.date - timezone.now()) < timedelta(seconds=60*60):
+                # only mark as instructor-no-shows if within an hour of the event time
+                booking.instructor_confirmed_no_show = True
     booking.save()
 
-    action = "late cancellation" if attendance == "no-show" \
-                                    and not booking.instructor_confirmed_no_show else attendance
-    ActivityLog.objects.create(
-        log=f'User {booking.user.username} marked as {action} for {booking.event} '
-        f'by admin user {request.user.username}'
-    )
+    if attendance == "unset":
+        action = "unset"
+    elif attendance == "no-show" and not booking.instructor_confirmed_no_show:
+        action = "late cancellation"
+    else:
+        action = attendance
+    
+    if attendance != "unset":
+        ActivityLog.objects.create(
+            log=f'User {booking.user.username} marked as {action} for {booking.event} '
+            f'by admin user {request.user.username}'
+        )
 
-    if attendance == 'no-show' and booking.event.date > (timezone.now() + timedelta(hours=1)):
-        # Only send waiting list emails if marking booking as no-show more than 1 hr before the event start
-        waiting_list_users = WaitingListUser.objects.filter(event=booking.event)
-        if waiting_list_users:
-            send_waiting_list_email(
-                booking.event,
-                [wluser.user for wluser in waiting_list_users],
-                host='http://{}'.format(request.META.get('HTTP_HOST'))
-            )
-            ActivityLog.objects.create(
-                log='Waiting list email sent to user(s) {} for event {}'.format(
-                    ',  '.join([wluser.user.username for wluser in waiting_list_users]),
-                    booking.event
+        if attendance == 'no-show' and booking.event.date > (timezone.now() + timedelta(hours=1)):
+            # Only send waiting list emails if marking booking as no-show more than 1 hr before the event start
+            waiting_list_users = WaitingListUser.objects.filter(event=booking.event)
+            if waiting_list_users:
+                send_waiting_list_email(
+                    booking.event,
+                    [wluser.user for wluser in waiting_list_users],
+                    host='http://{}'.format(request.META.get('HTTP_HOST'))
                 )
-            )
+                ActivityLog.objects.create(
+                    log='Waiting list email sent to user(s) {} for event {}'.format(
+                        ',  '.join([wluser.user.username for wluser in waiting_list_users]),
+                        booking.event
+                    )
+                )
 
     if booking.instructor_confirmed_no_show:
         status_text = "No-show"
@@ -503,4 +519,4 @@ def ajax_toggle_attended(request, booking_id):
         status_text = booking.status.title()
 
     return JsonResponse(
-        {'attended': booking.attended, 'status_text': status_text, 'alert_msg': alert_msg})
+        {'attended': booking.attended, 'unset': action == "unset", 'status_text': status_text, 'alert_msg': alert_msg})

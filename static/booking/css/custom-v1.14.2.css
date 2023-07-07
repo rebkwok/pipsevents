@@ -1707,6 +1707,16 @@ form.mock-bs-form > p > input {
   border-radius: 10px;
 }
 
+.btn-attended:hover, .btn-noshow:hover {
+  background-color: white;
+  color: black;
+}
+
+.btn-wm.btn-attended:hover {
+  background-color: rgb(240, 139, 165);
+  color: white;
+}
+
 .expired .btn-attended {
   border-color: lightgrey;
   color: lightgrey;

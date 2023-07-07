@@ -32,20 +32,26 @@ const processToggleAttended = function()  {
    //The value of the "data-booking_id" attribute.
    const booking_id = $button_just_clicked_on.data('booking_id');
    const attendance = $button_just_clicked_on.data('attendance');
+   const unset = $button_just_clicked_on.data('unset');
 
    const processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result.attended + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
-
-       if(result.attended === true) {
+      if(result.unset === true) {
+           $('#booking-attended-' + booking_id).removeClass('btn-wm').addClass('btn-outline-secondary');
+           $('#booking-noshow-' + booking_id).addClass('btn-outline-secondary');
+           $('#booking-row-' + booking_id).removeClass('expired');
+           $('#booking-status-' + booking_id).html(result.status_text);
+      }  
+       else if(result.attended === true) {
            $('#booking-attended-' + booking_id).addClass('btn-wm').removeClass('btn-outline-secondary');
-           $('#booking-noshow-' + booking_id).addClass('btn-outline-secondary').removeClass('btn-danger');
+           $('#booking-noshow-' + booking_id).addClass('btn-outline-secondary');
            $('#booking-row-' + booking_id).removeClass('expired');
            $('#booking-status-' + booking_id).html(result.status_text);
        } else {
            $('#booking-row-' + booking_id).addClass('expired');
            $('#booking-attended-' + booking_id).addClass('btn-outline-secondary').removeClass('btn-wm');
-           $('#booking-noshow-' + booking_id).addClass('btn-danger').removeClass('btn-outline-secondary');
+           $('#booking-noshow-' + booking_id).removeClass('btn-outline-secondary');
            $('#booking-status-' + booking_id).html(result.status_text);
        }
 
