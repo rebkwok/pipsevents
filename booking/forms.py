@@ -4,8 +4,10 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
-from booking.models import Booking, Event, Block, BlockType, BlockVoucher, \
-    GiftVoucherType, Ticket, TicketBooking
+from booking.models import (
+    BlockVoucher, Event, Block, BlockType, FilterCategory, TicketBooking,
+    Ticket, GiftVoucherType
+)
 
 
 MONTH_CHOICES = {
@@ -63,6 +65,22 @@ def get_event_names(event_type):
     return callable
 
 
+def get_filter_categories():
+
+    def callable():
+        events = Event.objects.filter(
+            event_type__event_type="CL", date__gte=timezone.now()
+        )
+        categories = FilterCategory.objects.prefetch_related('event').filter(
+            event__in=events
+        ).distinct().values_list("category", flat=True)
+        categories = sorted([(category, category) for category in categories])
+        categories.insert(0, ("all", "All"))
+        return tuple(categories)
+    return callable
+
+
+
 class BaseFilter(forms.Form):
 
     date_selection = forms.CharField(
@@ -98,7 +116,7 @@ class EventFilter(BaseFilter):
 
 class LessonFilter(BaseFilter):
     name = forms.ChoiceField(
-        choices=get_event_names('CL'),
+        choices=get_filter_categories(),
         widget=forms.Select(attrs={"class": "form-control form-control-sm filter-form-control"})
     )
 

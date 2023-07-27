@@ -13,7 +13,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Banner, Event, Booking, Block, BlockType, \
     EventType, GiftVoucherType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
-    BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
+    BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher, FilterCategory
 from booking.forms import TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
 
@@ -555,6 +555,12 @@ class GiftVoucherTypeAdmin(admin.ModelAdmin):
             return obj.block_type
         return obj.event_type
 
+
+class FilterCategoryAdmin(admin.ModelAdmin):
+    fields = ("category",)
+    model = FilterCategory
+
+
 admin.site.site_header = "Watermelon Admin"
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
@@ -571,3 +577,4 @@ admin.site.register(BlockVoucher, BlockVoucherAdmin)
 admin.site.register(UsedEventVoucher, UsedEventVoucherAdmin)
 admin.site.register(UsedBlockVoucher, UsedBlockVoucherAdmin)
 admin.site.register(GiftVoucherType, GiftVoucherTypeAdmin)
+admin.site.register(FilterCategory, FilterCategoryAdmin)

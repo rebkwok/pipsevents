@@ -3,10 +3,11 @@ import pytz
 
 from model_bakery import baker
 
+from django import forms
 from django.conf import settings
 from django.test import TestCase
 
-from booking.models import Event, EventType
+from booking.models import Event, EventType, FilterCategory
 from studioadmin.forms import EventFormSet, EventAdminForm
 
 
@@ -121,7 +122,36 @@ class EventAdminFormTests(TestCase):
 
     def test_form_valid(self):
         form = EventAdminForm(data=self.form_data(), ev_type='CL')
-        self.assertTrue(form.is_valid())
+        assert form.is_valid()
+
+    def test_filter_categories(self):
+        form = EventAdminForm(ev_type='CL')
+        assert isinstance(form.fields["categories"].widget, forms.CheckboxSelectMultiple)
+        assert isinstance(form.fields["new_category"].widget, forms.TextInput)
+        assert list(form.fields["categories"].queryset) == list(FilterCategory.objects.all())
+
+        form = EventAdminForm(ev_type='EV')
+        assert isinstance(form.fields["categories"].widget, forms.HiddenInput)
+        assert isinstance(form.fields["new_category"].widget, forms.HiddenInput)
+    
+    def test_new_filter_category_exists(self):
+        baker.make(FilterCategory, category="test bcd")
+        data = self.form_data({"new_category": "Test BCD"})
+        form = EventAdminForm(data=data, ev_type='CL')
+        assert not form.is_valid()
+        assert form.errors == {
+            "new_category": ["Category already exists"]
+        }
+    
+    def test_filter_categories_initial(self):
+        category = baker.make(FilterCategory, category="test cde")
+        event = baker.make_recipe("booking.future_EV")
+        form = EventAdminForm(instance=event, ev_type='CL')
+        assert len(form.fields["categories"].initial) == 0
+
+        event.categories.add(category)
+        form = EventAdminForm(instance=event, ev_type='CL')
+        assert len(form.fields["categories"].initial) == 1
 
     def test_form_for_cancelled_events(self):
         event = baker.make_recipe('booking.future_PC', event_type=self.event_type)
@@ -165,7 +195,6 @@ class EventAdminFormTests(TestCase):
             'attributes and does not reopen previously cancelled bookings.  '
             'Class will be reopened with both booking and payment CLOSED'
         )
-
 
     def test_form_with_invalid_contact_person(self):
         form = EventAdminForm(

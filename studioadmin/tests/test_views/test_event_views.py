@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 from model_bakery import baker
 
+import pytest
+
 from django.conf import settings
 from django.urls import reverse
 from django.core import mail
@@ -14,7 +16,7 @@ from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
-from booking.models import Block, BlockType, Event, Booking
+from booking.models import Block, BlockType, Event, Booking, FilterCategory
 from common.tests.helpers import (
     _add_user_email_addresses, _create_session, format_content
 )
@@ -476,6 +478,37 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         )
         event = Event.objects.get(id=self.event.id)
         self.assertFalse(event.booking_open)
+
+    @pytest.mark.serial
+    def test_edit_with_categories(self):
+        pole_class = baker.make_recipe('booking.future_PC')
+        category = baker.make(FilterCategory, category="test xyz")
+        assert not pole_class.categories.exists()
+        data = self.form_data(event=self.event, extra_data={'categories': [category.id]})
+        self.client.login(username=self.staff_user.username, password="test")
+        self.client.post(
+            reverse('studioadmin:edit_event', kwargs={'slug': pole_class.slug}),
+            data=data
+        )
+        pole_class = Event.objects.get(id=pole_class.id)
+        assert FilterCategory.objects.count() == 1
+        assert pole_class.categories.first().category == "test xyz"
+
+    @pytest.mark.serial
+    def test_edit_with_new_category(self):
+        pole_class = baker.make_recipe('booking.future_PC')
+        baker.make(FilterCategory, category="test abc")
+        data = self.form_data(
+            event=self.event, extra_data={'new_category': "Test 1a"}
+        )
+        self.client.login(username=self.staff_user.username, password="test")
+        self.client.post(
+            reverse('studioadmin:edit_event', kwargs={'slug': pole_class.slug}),
+            data=data
+        )
+        pole_class.refresh_from_db()
+        assert FilterCategory.objects.count() == 2
+        assert pole_class.categories.first().category == "Test 1a"
 
     def test_submitting_with_no_changes_does_not_change_event(self):
         form_data = self.form_data(self.event)

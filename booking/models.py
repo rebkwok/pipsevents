@@ -65,6 +65,19 @@ class EventType(models.Model):
         unique_together = ('event_type', 'subtype')
 
 
+class FilterCategory(models.Model):
+    category = models.CharField(max_length=255)
+    
+    def __str__(self):
+        return self.category
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(models.functions.Lower('category'), name='unique_lower_category')
+        ]
+        verbose_name_plural = "Filter categories"
+
+
 class Event(models.Model):
     LOCATION_CHOICES = (
         ("Beaverbank Place", "The Watermelon Studio - Beaverbank Place"),
@@ -132,6 +145,7 @@ class Event(models.Model):
         help_text="Zoom/Video URL available after class is past (for online classes only)"
     )
     visible_on_site = models.BooleanField(default=True)
+    categories = models.ManyToManyField(FilterCategory)
 
     class Meta:
         ordering = ['-date']

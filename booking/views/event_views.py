@@ -57,7 +57,10 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             ).order_by('date')
 
             if name and name not in ['', 'all']:
-                events = events.filter(name=name)
+                if ev_abbr == "CL":
+                    events = events.filter(categories__category=name)
+                else:
+                    events = events.filter(name=name)
 
             if date_selection:
                 date_selection = date_selection.split(",")

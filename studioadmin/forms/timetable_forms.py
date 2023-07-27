@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, EventType
+from booking.models import Event, EventType, FilterCategory
 from timetable.models import Session
 from studioadmin.forms.utils import cancel_choices
 
@@ -84,6 +84,14 @@ class SessionAdminForm(forms.ModelForm):
         required=False
     )
 
+    categories = forms.ModelMultipleChoiceField(
+        queryset=FilterCategory.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Filter categories"
+    )
+    new_category = forms.CharField(label="Add new filter category", required=False)
+
     def __init__(self, *args, **kwargs):
         super(SessionAdminForm, self).__init__(*args, **kwargs)
         self.fields['event_type'] = forms.ModelChoiceField(
@@ -93,6 +101,16 @@ class SessionAdminForm(forms.ModelForm):
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'
         }
+        if self.instance.id:
+            self.fields["categories"].initial = self.instance.categories.all()
+
+    def clean_new_category(self):
+        new_category = self.cleaned_data.get("new_category")
+        if new_category:
+            if FilterCategory.objects.filter(category__iexact=new_category).exists():
+                self.add_error("new_category", "Category already exists")
+                return
+        return new_category
 
     def clean(self):
         super(SessionAdminForm, self).clean()
@@ -184,7 +202,7 @@ class SessionAdminForm(forms.ModelForm):
     class Meta:
         model = Session
         fields = (
-            'name', 'event_type', 'day', 'time', 'description', 'location',
+            'name', 'event_type', 'day', 'time', 'categories', 'new_category', 'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor',
             'booking_open', 'payment_open', 'advance_payment_required',

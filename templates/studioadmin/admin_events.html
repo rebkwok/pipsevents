@@ -50,6 +50,7 @@
                                 <th>{% if type == "online_tutorials" %}Last Purchasable {% endif %}Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'online_tutorials' %}Tutorial{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
+                                {% if type == 'lessons' %}<th class="text-center">Filters</th>{% endif %}
                                 {% if location_count > 1 %}<th class="text-center">Location</th>{% endif %}
                                 <th class="text-center">Max spaces</th>
                                 <th class="text-center">
@@ -88,6 +89,9 @@
                                         <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                     {% endif %}
                                 </td>
+                                {% if type == 'lessons' %}
+                                <td class="studioadmin-tbl">{{ event.instance|format_categories }}</td>
+                                {% endif %}
                                 {% if location_count > 1 %}
                                     <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.instance.location_index }}">{{ event.instance.location }}</span></td>
                                 {% endif %}
@@ -124,7 +128,7 @@
                             </tr>
                         {% endfor %}
                             <tr>
-                                <td class="studioadmin-tbl" colspan="11">
+                                <td class="studioadmin-tbl" {% if type == "lessons" %}colspan=12{% else %}colspan="11"{% endif %}>
                                     {% get_pagination_params "admin_events" as pagination_params %}
                                     {% with page_obj=event_page %}
                                         {% include 'booking/includes/pagination.html' %}
@@ -135,6 +139,8 @@
                             <td class="studioadmin-tbl"
                                 {% if type == "online_tutorials" %}
                                     {% if location_count > 1 %}colspan="10"{% else %}colspan="9"{% endif %}
+                                {% elif type == "lessons" %}
+                                {% if location_count > 1 %}colspan="12"{% else %}colspan="11"{% endif %}
                                 {% else %}
                                     {% if location_count > 1 %}colspan="11"{% else %}colspan="10"{% endif %}
                                 {% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>

@@ -18,7 +18,7 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 from dateutil.relativedelta import relativedelta
 
-from booking.models import Block, BlockType, Booking, Event
+from booking.models import Block, BlockType, Booking, Event, FilterCategory
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventFormSet,  EventAdminForm, OnlineTutorialAdminForm
 from studioadmin.views.helpers import staff_required, StaffUserMixin
@@ -176,7 +176,18 @@ def event_admin_list(request, ev_type):
     )
 
 
-class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
+class EventAdminMixin:
+
+    def add_new_category(self, form):
+        event = form.save()
+        new_category = form.cleaned_data.get("new_category")
+        if new_category:
+            new_category = FilterCategory.objects.create(category=new_category)
+            event.categories.add(new_category)
+        return event
+
+
+class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, EventAdminMixin, UpdateView):
 
     model = Event
     template_name = 'studioadmin/event_create_update.html'
@@ -201,8 +212,16 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return context
 
     def form_valid(self, form):
-        if form.has_changed():
-            event = form.save()
+        no_changes = not form.has_changed()
+        if form.changed_data == ["categories"] and not (
+            form.initial["categories"] or form.cleaned_data["categories"]
+        ):
+            no_changes = True
+        
+        if no_changes:
+            messages.info(self.request, 'No changes made')
+        else:
+            event = self.add_new_category(form)
             msg_ev_type = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["name"].title()
             msg = '<strong>{} {}</strong> has been updated!'.format(
                 msg_ev_type, event.name
@@ -229,8 +248,6 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
                     )
                 )
 
-        else:
-            messages.info(self.request, 'No changes made')
 
         url = self.get_success_url()
         if 'from_page' in self.request.POST:
@@ -241,7 +258,7 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
         return reverse(f'studioadmin:{EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav_plural"]}')
 
 
-class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
+class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, EventAdminMixin, CreateView):
     model = Event
     template_name = 'studioadmin/event_create_update.html'
     context_object_name = 'event'
@@ -261,7 +278,7 @@ class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        event = form.save()
+        event = self.add_new_category(form)
         msg_ev_type = EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["name"].title()
         messages.success(self.request, mark_safe('<strong>{} {}</strong> has been '
                                     'created!'.format(msg_ev_type, event.name)))

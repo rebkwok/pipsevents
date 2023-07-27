@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Any
 import pytz
 from datetime import datetime, timedelta
 
@@ -8,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, EventType
+from booking.models import Event, EventType, FilterCategory
 
 from studioadmin.forms.utils import cancel_choices
 
@@ -98,6 +99,9 @@ class EventAdminForm(forms.ModelForm):
         required=False
     )
 
+    categories = forms.CharField(widget=forms.HiddenInput, label="", required=False)
+    new_category = forms.CharField(widget=forms.HiddenInput, required=False)
+
     def __init__(self, *args, **kwargs):
         ev_type = kwargs.pop('ev_type')
         super(EventAdminForm, self).__init__(*args, **kwargs)
@@ -108,6 +112,15 @@ class EventAdminForm(forms.ModelForm):
 
         if ev_type == "CL":
             ev_type_qset = EventType.objects.filter(event_type__in=["CL", "RH"])
+            self.fields["categories"] = forms.ModelMultipleChoiceField(
+                queryset=FilterCategory.objects.all(),
+                widget=forms.CheckboxSelectMultiple(),
+                required=False,
+                label="Filter categories",
+                initial = self.instance.categories.all() if self.instance.id else [],
+            )
+            self.fields["new_category"].widget = forms.TextInput()
+            self.fields["new_category"].label = "Add new filter category"
         else:
             ev_type_qset = EventType.objects.filter(event_type=ev_type)
 
@@ -143,6 +156,14 @@ class EventAdminForm(forms.ModelForm):
                                 'booking and payment CLOSED'.format(
                     ev_type_str, ev_type_str.title()
                 )
+
+    def clean_new_category(self):
+        new_category = self.cleaned_data.get("new_category")
+        if new_category:
+            if FilterCategory.objects.filter(category__iexact=new_category).exists():
+                self.add_error("new_category", "Category already exists")
+                return
+        return new_category
 
     def clean(self):
         super(EventAdminForm, self).clean()
@@ -276,7 +297,8 @@ class EventAdminForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = (
-            'name', 'event_type', 'date', 'video_link', 'video_link_available_after_class',
+            'name', 'event_type', 'date', 'categories', 'new_category', 
+            'video_link', 'video_link_available_after_class',
             'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
             'external_instructor', 'visible_on_site',
