@@ -36,6 +36,15 @@
                                             {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
                                         </div>
                                     </div>
+                            {% elif field.name  == "categories" %}
+                                <div class="form-group cbox">
+                                    <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>   
+                                    <div class="form-check {% if field.errors %}ticket-error{% endif %}">
+                                        {{ field }}
+                                    </div>
+                                    <div class="studioadmincbox-help">{{ field.help_text }}</div>
+                                    {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
+                                </div>
                              {% elif field.field.widget.input_type  == "checkbox" %}
                                     <div class="form-group cbox">
                                         <div class="form-check form-check-inline {% if field.errors %}ticket-error{% endif %}">
@@ -46,7 +55,7 @@
                                         {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
                                     </div>
                              {% else %}
-                                <div class="form-group">
+                                <div class="form-group {% if field.name == 'new_category' %}ml-4{% endif %}">
                                         <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>
                                         <div {% if field.errors %}class="ticket-error"{% endif %}>
                                             {{ field }}</div>

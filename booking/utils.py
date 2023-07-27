@@ -4,7 +4,7 @@ import logging
 import pytz
 
 from datetime import timedelta, datetime, date
-from booking.models import Event
+from booking.models import Event, FilterCategory
 from timetable.models import Session
 from activitylog.models import ActivityLog
 
@@ -74,10 +74,12 @@ def create_classes(week='this', input_date=None):
             allow_booking_cancellation=session.allow_booking_cancellation,
             payment_time_allowed=session.payment_time_allowed,
             paypal_email=session.paypal_email
-
-            )
+        )
         if created:
             created_classes.append(cl)
+            for timetable_category in session.categories.all():
+                cat, _ = FilterCategory.objects.get_or_create(category=timetable_category.category)
+                cl.categories.add(cat)
         else:
             existing_classes.append(cl)
 
@@ -151,6 +153,9 @@ def upload_timetable(start_date, end_date, session_ids, user=None, override_opti
                     paypal_email=session.paypal_email,
                     visible_on_site=override_options.get("visible_on_site", True),
                 )
+                for timetable_category in session.categories.all():
+                    cat, _ = FilterCategory.objects.get_or_create(category=timetable_category.category)
+                    cl.categories.add(cat)
                 created_classes.append(cl)
             else:
                 if existing.count() > 1:

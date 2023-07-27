@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 
-from booking.models import Event
+from booking.models import Event, FilterCategory
 from common.tests.helpers import _create_session, format_content
 from studioadmin.views import (
     timetable_admin_list,
@@ -244,6 +244,36 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         )
         session = Session.objects.get(id=self.session.id)
         self.assertEqual(session.day, '03WED')
+
+    def test_edit_with_categories(self):
+        session = baker.make(Session, event_type__event_type="CL")
+        assert not session.categories.exists()
+        category = baker.make(FilterCategory, category="test ghi")
+        form_data = self.form_data(
+            ttsession=session, extra_data={'categories': [category.id]}
+        )
+        self.client.login(username=self.staff_user.username, password="test")
+        self.client.post(
+            reverse('studioadmin:edit_session', args=[session.id]),
+            data=form_data
+        )
+        session.refresh_from_db()
+        assert FilterCategory.objects.count() == 1
+        assert session.categories.first().category == "test ghi"
+
+    def test_edit_with_new_category(self):
+        baker.make(FilterCategory, category="test hij")
+        form_data = self.form_data(
+            ttsession=self.session, extra_data={'new_category': "Test 1b"}
+        )
+        self.client.login(username=self.staff_user.username, password="test")
+        self.client.post(
+            reverse('studioadmin:edit_session', args=[self.session.id]),
+            data=form_data
+        )
+        self.session.refresh_from_db()
+        assert FilterCategory.objects.count() == 2
+        assert self.session.categories.first().category == "Test 1b"
 
     def test_submitting_with_no_changes_does_not_change_session(self):
         self._post_response(
@@ -723,3 +753,37 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             resp.context['location_forms'][0]['form'].data['sessions'],
             str(session_dm.id)
         )
+    
+    @patch('studioadmin.forms.timetable_forms.timezone')
+    def test_events_are_created_with_categories(self, mock_tz):
+        mock_tz.now.return_value = datetime(
+            2015, 6, 1, 0, 0, tzinfo=dt_timezone.utc
+        )
+        cat1 = baker.make(FilterCategory, category="cat 1")
+        cat2 = baker.make(FilterCategory, category="cat 2")
+        session1 = baker.make_recipe('booking.mon_session', name="Mon")
+        session1.categories.add(cat1)
+        session2 = baker.make_recipe('booking.tue_session', name="Tues")
+        session2.categories.add(cat1)
+        session2.categories.add(cat2)
+        baker.make_recipe('booking.wed_session', name="Wed")
+
+        assert not Event.objects.exists()
+        form_data = {
+            'start_date': 'Mon 08 Jun 2015',
+            'end_date': 'Sun 14 Jun 2015',
+            'sessions': [session.id for session in Session.objects.all()],
+            'override_options_visible_on_site': "1",
+            'override_options_booking_open': "default",
+            'override_options_payment_open': "default",
+        }
+
+        self.client.login(username=self.staff_user.username, password="test")
+        self.client.post(reverse('studioadmin:upload_timetable'), data=form_data)
+        assert Event.objects.count() == 3
+        mon = Event.objects.get(name="Mon")
+        assert list(mon.categories.all()) == [cat1]
+        tues = Event.objects.get(name="Tues")
+        assert list(tues.categories.all()) == [cat1, cat2]
+        wed = Event.objects.get(name="Wed")
+        assert list(wed.categories.all()) == []

@@ -1,8 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from booking.models import EventType
-from booking.models import Event
+from booking.models import EventType, Event, FilterCategory
 
 
 class Session(models.Model):
@@ -62,10 +61,10 @@ class Session(models.Model):
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
+    categories = models.ManyToManyField(FilterCategory)
 
     def __str__(self):
         return "{} - {} - {} ({})".format(
             dict(self.DAY_CHOICES)[self.day], self.time.strftime("%H:%M"),
             self.name, self.location
         )
-

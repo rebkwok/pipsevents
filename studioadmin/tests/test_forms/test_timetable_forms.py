@@ -9,7 +9,7 @@ from model_bakery import baker
 from django.conf import settings
 from django.test import TestCase
 
-from booking.models import Event, EventType
+from booking.models import Event, EventType, FilterCategory
 
 from studioadmin.forms import DAY_CHOICES, TimetableSessionFormSet, \
     SessionAdminForm, UploadTimetableForm
@@ -98,6 +98,29 @@ class SessionAdminFormTests(TestCase):
         form = SessionAdminForm(data=self.form_data())
         self.assertTrue(form.is_valid())
 
+    def test_filter_categories(self):
+        form = SessionAdminForm()
+        assert list(form.fields["categories"].queryset) == list(FilterCategory.objects.all())
+    
+    def test_new_filter_category_exists(self):
+        baker.make(FilterCategory, category="test efg")
+        data = self.form_data({"new_category": "Test EFG"})
+        form = SessionAdminForm(data=data)
+        assert not form.is_valid()
+        assert form.errors == {
+            "new_category": ["Category already exists"]
+        }
+    
+    def test_filter_categories_initial(self):
+        category = baker.make(FilterCategory, category="test fgh")
+        session = baker.make(Session)
+        form = SessionAdminForm(instance=session)
+        assert len(form.fields["categories"].initial) == 0
+
+        session.categories.add(category)
+        form = SessionAdminForm(instance=session)
+        assert len(form.fields["categories"].initial) == 1
+        
     def test_form_with_invalid_contact_person(self):
         form = SessionAdminForm(
             data=self.form_data({'contact_person': ''}))

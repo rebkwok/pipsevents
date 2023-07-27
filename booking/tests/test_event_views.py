@@ -19,7 +19,7 @@ from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
     DataPrivacyPolicy, DisclaimerContent
 from accounts.models import has_active_data_privacy_agreement
 
-from booking.models import Event, BlockVoucher, Booking, EventVoucher
+from booking.models import Event, FilterCategory, Booking
 from booking.views import EventListView, EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content, \
     make_data_privacy_agreement
@@ -926,10 +926,16 @@ class LessonListViewTests(TestSetupMixin, TestCase):
 
     def test_filter_lessons(self):
         """
-        Test that we can filter the classes by name
+        Test that we can filter the classes by category
         """
-        baker.make_recipe('booking.future_PC', name='test_name', _quantity=3)
-        baker.make_recipe('booking.future_PC', name='test_name1', _quantity=4)
+        cat1 = baker.make(FilterCategory, category="test_name")
+        cat2 = baker.make(FilterCategory, category="test_name1")
+        pc1s = baker.make_recipe('booking.future_PC', _quantity=3)
+        for pc in pc1s:
+            pc.categories.add(cat1)
+        pc2s = baker.make_recipe('booking.future_PC', _quantity=4)
+        for pc in pc2s:
+            pc.categories.add(cat2)
 
         url = reverse('booking:lessons')
         resp = self.client.get(url, {'name': 'test_name'})

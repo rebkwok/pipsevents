@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
 from datetime import time
 from timetable.models import Session
-from booking.models import EventType
+from booking.models import EventType, FilterCategory
 
 class Command(BaseCommand):
 
@@ -20,16 +19,35 @@ class Command(BaseCommand):
         pv, _ = EventType.objects.get_or_create(event_type='CL', subtype='Private')
         ex, _ = EventType.objects.get_or_create(event_type='CL', subtype='External instructor class')
 
+        cat3, _ = FilterCategory.objects.get_or_create(category="Level 3")
+        cat1, _ = FilterCategory.objects.get_or_create(category="Level 1")
+        catpriv, _ = FilterCategory.objects.get_or_create(category="Private")
+        cat2, _ = FilterCategory.objects.get_or_create(category="Level 2")
+        cat4, _ = FilterCategory.objects.get_or_create(category="Level 4")
+        catall, _ = FilterCategory.objects.get_or_create(category="All levels")
+
+        # hour, min, event_type, max_participants, external_instructor, categories
+        # sessions = {
+        #     "mon": [
+        #         ("Pole Level 3", 17, 45, pc, None, False),
+        #         ("Pole Level 1", 19, 0, pc, 15, False),
+        #         ("Private (1 or more students)", )
+
+        #     }
+        # }
+
         # Monday classes
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 3",
             day=Session.MON,
             event_type=pc,
             time=time(hour=17, minute=45),
             external_instructor=False,
         )
+        sess.categories.add(cat3)
+        
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 1",
             day=Session.MON,
             event_type=pc,
@@ -37,8 +55,9 @@ class Command(BaseCommand):
             time=time(hour=19, minute=0),
             external_instructor=False,
         )
+        sess.categories.add(cat1)
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Private (1 or more students)",
             day=Session.MON,
             event_type=pv,
@@ -53,44 +72,48 @@ class Command(BaseCommand):
                          "additional people to the booking, please contact "
                          "the studio to arrange the additional payments."
         )
+        sess.categories.add(catpriv)
 
         # Tuesday classes
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 2",
             day=Session.TUE,
             event_type=pc,
             time=time(hour=17, minute=45),
             external_instructor=False,
         )
+        sess.categories.add(cat2)
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 4",
             day=Session.TUE,
             event_type=pc,
             time=time(hour=19, minute=0),
             external_instructor=False,
         )
+        sess.categories.add(cat4)
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 1",
             day=Session.TUE,
             event_type=pc,
             max_participants=15,
             time=time(hour=20, minute=10),
             external_instructor=False,
-
         )
+        sess.categories.add(cat1)
 
         # Thursday classes
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Mixed Pole Levels",
             day=Session.THU,
             event_type=pc,
             time=time(hour=11, minute=0),
             external_instructor=False,
         )
+        sess.categories.add(catall)
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 1",
             day=Session.THU,
             event_type=pc,
@@ -98,17 +121,19 @@ class Command(BaseCommand):
             time=time(hour=17, minute=45),
             external_instructor=False,
         )
+        sess.categories.add(cat1)
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 2",
             day=Session.THU,
             event_type=pc,
             time=time(hour=20, minute=10),
             external_instructor=False,
         )
+        sess.categories.add(cat2)
 
         # Friday classes
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Private (1 or more students)",
             day=Session.FRI,
             event_type=pv,
@@ -124,7 +149,7 @@ class Command(BaseCommand):
                          "the studio to arrange the additional payments."
         )
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 4",
             day=Session.FRI,
             event_type=pc,
@@ -133,7 +158,7 @@ class Command(BaseCommand):
             external_instructor=False,
         )
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole Level 3",
             day=Session.FRI,
             event_type=pc,
@@ -141,7 +166,7 @@ class Command(BaseCommand):
             external_instructor=False,
         )
 
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole practice",
             day=Session.FRI,
             event_type=pp,
@@ -152,7 +177,7 @@ class Command(BaseCommand):
         )
 
         # SUN CLASSES
-        Session.objects.get_or_create(
+        sess, _ = Session.objects.get_or_create(
             name="Pole practice",
             day=Session.SUN,
             event_type=pp,

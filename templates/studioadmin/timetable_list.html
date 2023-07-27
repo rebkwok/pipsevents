@@ -18,6 +18,7 @@
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Session<br/><span class="studioadmin-help">Click to edit</span></th>
+                                <th>Filters</th>
                                 {% if location_count > 1 %}<th class="text-center">Location</th>{% endif %}
                                 <th class="text-center">Cost</th>
                                 <th class="text-center">Max spaces</th>
@@ -33,6 +34,7 @@
                                 <td class="studioadmin-tbl">{{ session.formatted_day }}</td>
                                 <td class="studioadmin-tbl">{{ session.instance.time|time:"H:i" }}</td>
                                 <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_session' session.instance.id %}">{{ session.instance.name }}</a></td>
+                                <td class="studioadmin-tbl">{{ session.instance|format_categories }}</td>
                                 {% if location_count > 1 %}
                                     <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ session.instance.location_index }}">{{ session.instance.location }}</span></td>
                                 {% endif %}
@@ -47,7 +49,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                        <td class="studioadmin-tbl" {% if location_count > 1 %}colspan="10"{% else %}colspan="9"{% endif %}><input class="btn btn-wm studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
+                        <td class="studioadmin-tbl" {% if location_count > 1 %}colspan="11"{% else %}colspan="10"{% endif %}><input class="btn btn-wm studioadmin-tbl" name="formset_submitted" type="submit" value="Update" /></td>
                         </tr>
                     </table>
                 </div>

@@ -436,3 +436,8 @@ def format_status(booking):
         return "Late cancellation"
     else:
         return booking.status.title()
+
+
+@register.filter
+def format_categories(event_or_session):
+    return mark_safe("<br/>".join(event_or_session.categories.values_list("category", flat=True)))

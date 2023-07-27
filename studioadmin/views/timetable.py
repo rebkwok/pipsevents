@@ -11,7 +11,7 @@ from django.utils.safestring import mark_safe
 from braces.views import LoginRequiredMixin
 
 from booking import utils
-from booking.models import Event
+from booking.models import Event, FilterCategory
 from timetable.models import Session
 from studioadmin.forms import TimetableSessionFormSet, SessionAdminForm, \
     DAY_CHOICES, UploadTimetableForm
@@ -102,8 +102,19 @@ def timetable_admin_list(request):
     )
 
 
+class TimetableSessionMixin:
+
+    def add_new_category(self, form):
+        session = form.save()
+        new_category = form.cleaned_data.get("new_category")
+        if new_category:
+            new_category, _ = FilterCategory.objects.get_or_create(category=new_category)
+            session.categories.add(new_category)
+        return session
+
+    
 class TimetableSessionUpdateView(
-    LoginRequiredMixin, StaffUserMixin, UpdateView
+    LoginRequiredMixin, StaffUserMixin, TimetableSessionMixin, UpdateView
 ):
 
     form_class = SessionAdminForm
@@ -126,7 +137,7 @@ class TimetableSessionUpdateView(
 
     def form_valid(self, form):
         if form.has_changed():
-            session = form.save()
+            session = self.add_new_category(form)
             msg = 'Session <strong>{} {} {}</strong> has been updated!'.format(
                 session.name, DAY_CHOICES[session.day],
                 session.time.strftime('%H:%M')
@@ -161,7 +172,7 @@ class TimetableSessionUpdateView(
 
 
 class TimetableSessionCreateView(
-    LoginRequiredMixin, StaffUserMixin, CreateView
+    LoginRequiredMixin, StaffUserMixin, TimetableSessionMixin, CreateView
 ):
 
     form_class = SessionAdminForm
@@ -177,7 +188,7 @@ class TimetableSessionCreateView(
         return context
 
     def form_valid(self, form):
-        session = form.save()
+        session = self.add_new_category(form)
         msg = 'Session <strong>{} {} {}</strong> has been created!'.format(
             session.name, DAY_CHOICES[session.day],
             session.time.strftime('%H:%M')
@@ -230,7 +241,6 @@ def upload_timetable_view(request,
                 utils.upload_timetable(
                     start_date, end_date, session_ids, request.user, override_options=override_options
                 )
-
             def _format_override_option(value):
                 value = int(value)
                 return "yes" if value == 1 else "no"

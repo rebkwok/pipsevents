@@ -14,7 +14,7 @@ import pytest
 
 from booking.models import Banner, Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
-    EventVoucher, GiftVoucherType
+    EventVoucher, GiftVoucherType, FilterCategory
 from common.tests.helpers import PatchRequestMixin
 
 now = timezone.now()
@@ -1736,3 +1736,9 @@ def test_banner_str():
     banner = baker.make(Banner, content="test")
     # defaults to all type
     assert str(banner) == "banner_all"
+
+
+@pytest.mark.django_db
+def test_filter_category_str():
+    category = baker.make(FilterCategory, category="test category")
+    assert str(category) == "test category"
