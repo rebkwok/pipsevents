@@ -42,6 +42,7 @@
                                         </div>
                                     </div>
                                 {% elif field.name  == "categories" %}
+                                    {% if type == "class" %}
                                     <div class="form-group cbox">
                                         <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>   
                                         <div class="form-check {% if field.errors %}ticket-error{% endif %}">
@@ -50,6 +51,7 @@
                                         <div class="studioadmincbox-help">{{ field.help_text }}</div>
                                         {% if field.errors %}<div class="form-error">{{ field.errors }}</div>{% endif %}
                                     </div>
+                                    {% endif %}
                                  
                                 {% elif field.field.widget.input_type  == "checkbox" %}
                                     <div class="form-group cbox">

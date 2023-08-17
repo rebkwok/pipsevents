@@ -99,8 +99,7 @@ class EventAdminForm(forms.ModelForm):
         required=False
     )
 
-    categories = forms.CharField(widget=forms.HiddenInput, label="", required=False)
-    new_category = forms.CharField(widget=forms.HiddenInput, required=False)
+    new_category = forms.CharField(widget=forms.HiddenInput, label="", required=False)
 
     def __init__(self, *args, **kwargs):
         ev_type = kwargs.pop('ev_type')
@@ -110,6 +109,9 @@ class EventAdminForm(forms.ModelForm):
             'class': 'form-control'
         }
 
+        cat_field = self.fields["categories"]
+        cat_field.required = False
+
         if ev_type == "CL":
             ev_type_qset = EventType.objects.filter(event_type__in=["CL", "RH"])
             self.fields["categories"] = forms.ModelMultipleChoiceField(
@@ -117,7 +119,6 @@ class EventAdminForm(forms.ModelForm):
                 widget=forms.CheckboxSelectMultiple(),
                 required=False,
                 label="Filter categories",
-                initial = self.instance.categories.all() if self.instance.id else [],
             )
             self.fields["new_category"].widget = forms.TextInput()
             self.fields["new_category"].label = "Add new filter category"

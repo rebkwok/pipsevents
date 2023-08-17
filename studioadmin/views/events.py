@@ -212,13 +212,7 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, EventAdminMixin, 
         return context
 
     def form_valid(self, form):
-        no_changes = not form.has_changed()
-        if form.changed_data == ["categories"] and not (
-            form.initial["categories"] or form.cleaned_data["categories"]
-        ):
-            no_changes = True
-        
-        if no_changes:
+        if not form.has_changed():
             messages.info(self.request, 'No changes made')
         else:
             event = self.add_new_category(form)
