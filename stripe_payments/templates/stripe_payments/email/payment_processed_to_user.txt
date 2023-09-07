@@ -1,0 +1,15 @@
+{% include "account/email/do_not_reply.txt" %}
+
+
+{% block messagecontent %}
+Thank you for your payment
+-----------------------------
+Invoice number: {{ invoice.invoice_id }}</p>
+Purchased:
+{% for membership in invoice.memberships.all %}-{{ membership.membership_type.name }}{% endfor %}
+{% for booking in invoice.bookings.all %}-{{ booking.event }}{% endfor %}
+{% for gift_voucher in invoice.gift_vouchers.all %}-{{ gift_voucher.name }}*{% endfor %}
+
+{% if invoice.gift_vouchers.exists %}*Gift voucher codes and a link to a printable voucher will be sent in separate email(s){% endif %}
+
+{% endblock %}

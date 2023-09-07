@@ -135,7 +135,7 @@ class Event(models.Model):
     cancelled = models.BooleanField(default=False)
     allow_booking_cancellation = models.BooleanField(default=True)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
@@ -272,7 +272,7 @@ class BlockType(models.Model):
     active = models.BooleanField(default=False)
     assign_free_class_on_completion = models.BooleanField(default=False)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
@@ -359,6 +359,10 @@ class Block(models.Model):
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
     paypal_pending = models.BooleanField(default=False)
     expiry_date = models.DateTimeField()
+
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="blocks")
+    checkout_time = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['user__username']
@@ -540,6 +544,10 @@ class Booking(models.Model):
     auto_cancelled = models.BooleanField(default=False)
 
     paypal_pending = models.BooleanField(default=False)
+
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="bookings")
+    checkout_time = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ('user', 'event')
@@ -858,7 +866,7 @@ class TicketedEvent(models.Model):
     cancelled = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
@@ -934,6 +942,10 @@ class TicketBooking(models.Model):
     booking_reference = models.CharField(max_length=255)
     purchase_confirmed = models.BooleanField(default=False)
 
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="ticket_bookings")
+    checkout_time = models.DateTimeField(null=True, blank=True)
+
     def set_booking_reference(self):
         self.booking_reference = shortuuid.ShortUUID().random(length=22)
 
@@ -994,6 +1006,10 @@ class BaseVoucher(models.Model):
     name = models.CharField(null=True, blank=True, max_length=255, help_text="Name of recipient")
     message = models.TextField(null=True, blank=True, max_length=500, help_text="Message (max 500 characters)")
     purchaser_email = models.EmailField(null=True, blank=True)
+
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="vouchers")
+    checkout_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.code

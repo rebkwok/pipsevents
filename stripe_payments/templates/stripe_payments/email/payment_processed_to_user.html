@@ -1,0 +1,24 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<h2>Thank you for your payment.</h2>
+<p><strong>Invoice number:</strong> {{ invoice.invoice_id }}</p>
+<p><strong>Purchased:</strong>
+    <ul>    
+    {% for membership in invoice.memberships.all %}
+      <li>{{ membership.membership_type.name }}</li>
+    {% endfor %}
+    {% for booking in invoice.bookings.all %}
+        <li>{{ booking.event }}</li>
+    {% endfor %}
+    {% for gift_voucher in invoice.gift_vouchers.all %}
+        <li>{{ gift_voucher.name }}*</li>
+    {% endfor %}
+    </ul>
+</p>
+
+{% if invoice.gift_vouchers.exists %}
+    <p>*Gift voucher codes and a link to a printable voucher will be sent in separate email(s)</p>
+{% endif %}
+
+{% endblock %}

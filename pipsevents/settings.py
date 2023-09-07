@@ -25,7 +25,8 @@ env = environ.Env(DEBUG=(bool, False),
                   WACTHLIST=(list, []),
                   LOCAL=(bool, False),
                   SHOW_VAT=(bool, True),
-                  TESTING=(bool, False)
+                  TESTING=(bool, False),
+                  PAYMENT_METHOD=(str, "paypal")         
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -93,6 +94,7 @@ INSTALLED_APPS = (
     'ckeditor',
     'paypal.standard.ipn',
     'payments',
+    'stripe_payments',
     'activitylog',
     'notices',
 )
@@ -491,10 +493,20 @@ SHOW_VAT = env("SHOW_VAT")
 VAT_NUMBER = env("VAT_NUMBER")
 
 # for crispy forms
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+# CRISPY_TEMPLATE_PACK = 'bootstrap4'
 USE_CRISPY = True
 
 
 # notices
 NOTICES_COLOUR="rgb(240, 139, 165)"
 NOTICES_SAFE = True
+
+
+# STRIPE
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
+STRIPE_CONNECT_CLIENT_ID = env("STRIPE_CONNECT_CLIENT_ID")
+STRIPE_ENDPOINT_SECRET = env("STRIPE_ENDPOINT_SECRET")
+INVOICE_KEY=env("INVOICE_KEY")
+
+CART_TIMEOUT_MINUTES = env("CART_TIMEOUT_MINUTES", default=15)

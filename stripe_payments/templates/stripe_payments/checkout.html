@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+{% load accounttags bookingtags %}
+
+{% block extrahead %}
+  <title>Checkout</title>
+    <link rel="stylesheet" href="{% static 'stripe_payments/css/stripe.css' %}" />
+  <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block content %}
+
+    <h1 class="mt-2">Checkout</h1>
+    <hr>
+
+    <div class="sr-root">
+      <div class="sr-main">
+
+      {% if preprocessing_error %}
+          <h3 class="mt-1">There was a problem with your checkout</h3>
+          {% if already_paid %}
+              <p>This invoice has already been paid.</p>
+          {% endif %}
+          <p>Technical support has been notified and someone will be in contact shortly.</p>
+
+      {% else %}
+
+
+
+        <h3 class="mt-1">Order Summary</h3>
+
+        <table class="table table-bordered">
+        <thead>
+            <th>Item</th>
+            <th>Cost</th>
+        </thead>
+        <tbody>
+            {% for key, item in cart_items.items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.cost_str }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr><td colspan="2">TOTAL: £{{ cart_total }}
+            {% if request.session.total_voucher_code %}(voucher applied to cart total: <strong>{{ request.session.total_voucher_code }}</strong>){% endif %}
+            </td></tr>
+        </tfoot>
+        </table>
+
+          <h3 class="mt-1">Billing Details</h3>
+          <form id="payment-form" class="sr-payment-form">
+            <div class="sr-form-row">
+              <label for="cardholder-name">Cardholder name</label>
+              <input class="sr-input sr-card-element" id="cardholder-name">
+            </div>
+            <div class="sr-form-row">
+              <label for="cardholder-email">Cardholder email</label>
+                <input class="sr-input sr-card-element" id="cardholder-email" type="email">
+            </div>
+            <div class="sr-form-row">
+              <label for="card-element">Payment details</label>
+                <div class="sr-input sr-card-element" id="card-element"></div>
+            </div>
+            <div class="sr-form-row">
+              <div class="sr-field-error" id="card-errors" role="alert"></div>
+              <button id="card-button" class="btn btn-dark"
+                data-client_secret="{{ client_secret }}"
+                data-stripe_account="{{ stripe_account }}"
+                data-stripe_api_key="{{ stripe_api_key }}"
+                data-total="{{ cart_total }}"
+              >
+                <div class="spinner hidden" id="spinner"></div>
+                <span id="button-text">Pay</span> <span id="order-amount">£{{ cart_total }}</span>
+              </button>
+            </div>
+          </form>
+
+          <p><em>
+              <img src="{% static 'booking/images/powered_by_stripe.png' %}" style="height: 30px;"/><br/>
+              Payments are submitted securely via Stripe.  No card information is retained by this site.
+          </em></p>
+
+
+    <form id="payload" class="hidden" action="{% url 'stripe_payments:stripe_payment_complete' %}" method="post">
+      {% csrf_token %}
+      <input id ="data-payload" type="hidden" name="payload"/>
+    </form>
+
+      {% endif %}
+    </div>
+</div>
+{% endblock content %}
+
+
+{% block extrascripts %}
+    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe.js' %}"></script>
+{% endblock %}

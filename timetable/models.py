@@ -57,7 +57,7 @@ class Session(models.Model):
     external_instructor = models.BooleanField(default=False)
     email_studio_when_booked = models.BooleanField(default=False)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
