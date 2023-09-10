@@ -51,7 +51,7 @@ class Invoice(models.Model):
             "bookings": [str(booking.event) for booking in self.bookings.all()],
             "blocks": [str(block.block_type) for block in self.blocks.all()],
             # "gift_vouchers": [str(gift_voucher) for gift_voucher in self.gift_vouchers.all()],
-            # "ticket_bookings": [str(tb.ticketed_event) for tb in self.ticket_bookings.all()],
+            "ticket_bookings": [str(tb.ticketed_event) for tb in self.ticket_bookings.all()],
         }
 
     def items_dict(self):
@@ -80,7 +80,7 @@ class Invoice(models.Model):
             } for item in self.blocks.all()
         }
         ticket_bookings = {
-            f"tickets_{item.id}": {
+            f"ticket_booking_{item.id}": {
                 "name": f"Tickets ({item.tickets.count()}) for {item.ticketed_event}", 
                 "voucher": None,
                 "cost_str":f"£{item.cost:.2f}",

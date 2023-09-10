@@ -97,6 +97,7 @@ INSTALLED_APPS = (
     'stripe_payments',
     'activitylog',
     'notices',
+    'email_obfuscator',
 )
 
 SITE_ID = 1

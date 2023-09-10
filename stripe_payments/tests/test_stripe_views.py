@@ -10,7 +10,7 @@ from django.shortcuts import reverse
 import stripe
 from model_bakery import baker
 
-from booking.models import Membership, Booking, GiftVoucher, TotalVoucher
+from booking.models import Block, Booking, TicketBooking, Ticket, GiftVoucherType
 from ..models import Invoice, Seller, StripePaymentIntent
 
 
@@ -53,7 +53,7 @@ def test_return_with_no_payload(mock_payment_intent, get_mock_payment_intent, cl
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_and_membership(
+def test_return_with_matching_invoice_and_block(
     mock_payment_intent, get_mock_payment_intent, client, configured_user
 ):
     assert StripePaymentIntent.objects.exists() is False
@@ -61,7 +61,7 @@ def test_return_with_matching_invoice_and_membership(
         Invoice, invoice_id="foo", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
     )
-    membership = baker.make(Membership, paid=False, invoice=invoice, user=configured_user)
+    block = baker.make(Block, paid=False, invoice=invoice, user=configured_user)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -72,10 +72,10 @@ def test_return_with_matching_invoice_and_membership(
     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
-    membership.refresh_from_db()
+    block.refresh_from_db()
     invoice.refresh_from_db()
 
-    assert membership.paid is True
+    assert block.paid is True
     payment_intent_obj = StripePaymentIntent.objects.latest("id")
     assert payment_intent_obj.invoice == invoice
 
@@ -118,146 +118,19 @@ def test_return_with_matching_invoice_and_booking(
     assert "Your payment has been processed" in mail.outbox[1].subject
 
 
-
-@pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_and_booking_and_total_voucher_code(
-    mock_payment_intent, get_mock_payment_intent, client, configured_user
+def test_return_with_matching_invoice_and_ticket_booking(
+    mock_payment_intent, get_mock_payment_intent, client, configured_user, seller
 ):
-    total_voucher = baker.make(TotalVoucher, code="test_total", discount_amount=10)
-    assert StripePaymentIntent.objects.exists() is False
-    invoice = baker.make(
-        Invoice, invoice_id="foo", amount=10,
-        username=configured_user.email, stripe_payment_intent_id="mock-intent-id",
-        total_voucher_code=total_voucher.code
-    )
-    booking = baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
-    metadata = {
-        "invoice_id": "foo",
-        "invoice_signature": invoice.signature(),
-        **invoice.items_metadata(),
-    }
-    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    session = client.session
-    session["total_voucher_code"] = "test_total"
-    session.save()
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
-    assert resp.status_code == 200
-    assert "Payment Processed" in resp.content.decode("utf-8")
-    booking.refresh_from_db()
-    invoice.refresh_from_db()
-
-    assert booking.paid is True
-    assert invoice.paid is True
-    payment_intent_obj = StripePaymentIntent.objects.latest("id")
-    assert payment_intent_obj.invoice == invoice
-
-    assert "test_total" not in client.session
-
-
-@pytest.mark.usefixtures("seller", "send_all_studio_emails")
-
-@patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_mock_payment_intent, client, configured_user):
     assert StripePaymentIntent.objects.exists() is False
     invoice = baker.make(
         Invoice, invoice_id="foo", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
     )
-    gift_voucher = baker.make(
-        GiftVoucher, gift_voucher_type__discount_amount=10, paid=False, invoice=invoice
+    ticket_booking = baker.make(
+        TicketBooking, paid=False, invoice=invoice, user=configured_user,
     )
-    gift_voucher.voucher.purchaser_email = configured_user.email
-    gift_voucher.voucher.save()
-    metadata = {
-        "invoice_id": "foo",
-        "invoice_signature": invoice.signature(),
-        **invoice.items_metadata(),
-    }
-    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
-    assert resp.status_code == 200
-    assert "Payment Processed" in resp.content.decode("utf-8")
-    gift_voucher.refresh_from_db()
-    gift_voucher.voucher.refresh_from_db()
-    invoice.refresh_from_db()
-
-    assert gift_voucher.paid is True
-    assert gift_voucher.voucher.activated is True
-
-    payment_intent_obj = StripePaymentIntent.objects.latest("id")
-    assert payment_intent_obj.invoice == invoice
-
-    assert len(mail.outbox) == 3
-    assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
-    assert mail.outbox[1].to == [configured_user.email]
-    assert "Your payment has been processed" in mail.outbox[1].subject
-    assert mail.outbox[2].to == [configured_user.email]
-    assert "Gift Voucher" in mail.outbox[2].subject
-
-
-@pytest.mark.usefixtures("seller", "send_all_studio_emails")
-@patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_and_gift_voucher_anon_user(mock_payment_intent, get_mock_payment_intent, client):
-    assert StripePaymentIntent.objects.exists() is False
-    invoice = baker.make(
-        Invoice, invoice_id="foo", amount=10,
-        username="", stripe_payment_intent_id="mock-intent-id"
-    )
-    gift_voucher = baker.make(
-        GiftVoucher, gift_voucher_type__discount_amount=10, paid=False,
-        invoice=invoice
-    )
-    gift_voucher.voucher.purchaser_email = "anon@test.com"
-    gift_voucher.voucher.save()
-    metadata = {
-        "invoice_id": "foo",
-        "invoice_signature": invoice.signature(),
-        **invoice.items_metadata(),
-    }
-    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
-    assert resp.status_code == 200
-    assert "Payment Processed" in resp.content.decode("utf-8")
-    gift_voucher.refresh_from_db()
-    gift_voucher.voucher.refresh_from_db()
-    invoice.refresh_from_db()
-
-    assert gift_voucher.paid is True
-    assert gift_voucher.voucher.activated is True
-
-    # invoice username added from payment intent
-    assert invoice.username == "stripe-payer@test.com"
-    payment_intent_obj = StripePaymentIntent.objects.latest("id")
-    assert payment_intent_obj.invoice == invoice
-
-    assert len(mail.outbox) == 3
-    assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
-    # payment email goes to invoice email
-    assert mail.outbox[1].to == ["stripe-payer@test.com"]
-    assert "Your payment has been processed" in mail.outbox[1].subject
-    # gift voucher goes to purchaser emailon voucher
-    assert mail.outbox[2].to == ["anon@test.com"]
-    assert "Gift Voucher" in mail.outbox[2].subject
-
-@pytest.mark.usefixtures("seller", "send_all_studio_emails")
-@patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_booking_membership_gift_voucher_merch(
-    mock_payment_intent, get_mock_payment_intent, client, configured_user
-    ):
-    invoice = baker.make(
-        Invoice, invoice_id="foo", amount=10,
-        username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
-    )
-    booking = baker.make_recipe('booking.booking', paid=False, invoice=invoice, user=configured_user)
-    membership = baker.make(Membership, paid=False, invoice=invoice, user=configured_user)
-    gift_voucher = baker.make(
-        GiftVoucher, gift_voucher_type__discount_amount=10, paid=False, invoice=invoice
-    )
-    gift_voucher.voucher.purchaser_email = configured_user.email
-    gift_voucher.voucher.save()
+    baker.make(Ticket, ticket_booking=ticket_booking)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -265,24 +138,108 @@ def test_return_with_matching_invoice_booking_membership_gift_voucher_merch(
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
-
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
+    ticket_booking.refresh_from_db()
     invoice.refresh_from_db()
-    for item in [booking, membership, gift_voucher]:
-        item.refresh_from_db()
-        assert item.paid
-    assert gift_voucher.voucher.activated is True
+
+    assert ticket_booking.paid is True
     assert invoice.paid is True
-
     payment_intent_obj = StripePaymentIntent.objects.latest("id")
     assert payment_intent_obj.invoice == invoice
-    assert len(mail.outbox) == 3
+
+    assert len(mail.outbox) == 2
     assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
     assert mail.outbox[1].to == [configured_user.email]
     assert "Your payment has been processed" in mail.outbox[1].subject
-    assert mail.outbox[2].to == [configured_user.email]
-    assert "Gift Voucher" in mail.outbox[2].subject
+
+
+@pytest.mark.usefixtures("seller", "send_all_studio_emails")
+
+# @patch("stripe_payments.views.stripe.PaymentIntent")
+# def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+#     assert StripePaymentIntent.objects.exists() is False
+#     invoice = baker.make(
+#         Invoice, invoice_id="foo", amount=10,
+#         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
+#     )
+#     gift_voucher = baker.make(
+#         GiftVoucher, gift_voucher_type__discount_amount=10, paid=False, invoice=invoice
+#     )
+#     gift_voucher.voucher.purchaser_email = configured_user.email
+#     gift_voucher.voucher.save()
+#     metadata = {
+#         "invoice_id": "foo",
+#         "invoice_signature": invoice.signature(),
+#         **invoice.items_metadata(),
+#     }
+#     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
+
+#     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+#     assert resp.status_code == 200
+#     assert "Payment Processed" in resp.content.decode("utf-8")
+#     gift_voucher.refresh_from_db()
+#     gift_voucher.voucher.refresh_from_db()
+#     invoice.refresh_from_db()
+
+#     assert gift_voucher.paid is True
+#     assert gift_voucher.voucher.activated is True
+
+#     payment_intent_obj = StripePaymentIntent.objects.latest("id")
+#     assert payment_intent_obj.invoice == invoice
+
+#     assert len(mail.outbox) == 3
+#     assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
+#     assert mail.outbox[1].to == [configured_user.email]
+#     assert "Your payment has been processed" in mail.outbox[1].subject
+#     assert mail.outbox[2].to == [configured_user.email]
+#     assert "Gift Voucher" in mail.outbox[2].subject
+
+
+# @pytest.mark.usefixtures("seller", "send_all_studio_emails")
+# @patch("stripe_payments.views.stripe.PaymentIntent")
+# def test_return_with_matching_invoice_and_gift_voucher_anon_user(mock_payment_intent, get_mock_payment_intent, client):
+#     assert StripePaymentIntent.objects.exists() is False
+#     invoice = baker.make(
+#         Invoice, invoice_id="foo", amount=10,
+#         username="", stripe_payment_intent_id="mock-intent-id"
+#     )
+#     gift_voucher = baker.make(
+#         GiftVoucher, gift_voucher_type__discount_amount=10, paid=False,
+#         invoice=invoice
+#     )
+#     gift_voucher.voucher.purchaser_email = "anon@test.com"
+#     gift_voucher.voucher.save()
+#     metadata = {
+#         "invoice_id": "foo",
+#         "invoice_signature": invoice.signature(),
+#         **invoice.items_metadata(),
+#     }
+#     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
+
+#     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+#     assert resp.status_code == 200
+#     assert "Payment Processed" in resp.content.decode("utf-8")
+#     gift_voucher.refresh_from_db()
+#     gift_voucher.voucher.refresh_from_db()
+#     invoice.refresh_from_db()
+
+#     assert gift_voucher.paid is True
+#     assert gift_voucher.voucher.activated is True
+
+#     # invoice username added from payment intent
+#     assert invoice.username == "stripe-payer@test.com"
+#     payment_intent_obj = StripePaymentIntent.objects.latest("id")
+#     assert payment_intent_obj.invoice == invoice
+
+#     assert len(mail.outbox) == 3
+#     assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
+#     # payment email goes to invoice email
+#     assert mail.outbox[1].to == ["stripe-payer@test.com"]
+#     assert "Your payment has been processed" in mail.outbox[1].subject
+#     # gift voucher goes to purchaser emailon voucher
+#     assert mail.outbox[2].to == ["anon@test.com"]
+#     assert "Gift Voucher" in mail.outbox[2].subject
 
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
@@ -292,7 +249,7 @@ def test_return_with_invalid_invoice(mock_payment_intent, get_mock_payment_inten
         Invoice, invoice_id="", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
     )
-    baker.make_recipe('booking.membership', paid=False, invoice=invoice, user=configured_user)
+    baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
     metadata = {
         "invoice_id": "unk",
         "invoice_signature": invoice.signature(),
@@ -310,13 +267,13 @@ def test_return_with_invalid_invoice(mock_payment_intent, get_mock_payment_inten
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_multiple_memberships(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_matching_invoice_multiple_bookingss(mock_payment_intent, get_mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
     )
-    membership1 = baker.make_recipe('booking.membership', paid=False, invoice=invoice, user=configured_user)
-    membership2 = baker.make_recipe('booking.membership', paid=False, invoice=invoice, user=configured_user)
+    booking1 = baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
+    booking2 = baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
 
     metadata = {
         "invoice_id": "foo",
@@ -327,12 +284,12 @@ def test_return_with_matching_invoice_multiple_memberships(mock_payment_intent, 
     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
-    membership1.refresh_from_db()
-    membership2.refresh_from_db()
+    booking1.refresh_from_db()
+    booking2.refresh_from_db()
     invoice.refresh_from_db()
 
-    assert membership1.paid is True
-    assert membership2.paid is True
+    assert booking1.paid is True
+    assert booking2.paid is True
     assert invoice.paid is True
 
 
@@ -343,7 +300,7 @@ def test_return_with_matching_invoice_invalid_amount(mock_payment_intent, get_mo
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
     )
-    baker.make_recipe('booking.membership', paid=False, invoice=invoice, user=configured_user)
+    baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -362,7 +319,7 @@ def test_return_with_matching_invoice_invalid_signature(mock_payment_intent, get
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
     )
-    baker.make_recipe('booking.membership', paid=False, invoice=invoice, user=configured_user)
+    baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": "foo",
@@ -382,7 +339,7 @@ def test_return_with_matching_invoice_block_already_processed(mock_payment_inten
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id",
         paid=True
     )
-    baker.make_recipe('booking.membership', invoice=invoice, user=configured_user, paid=True)
+    baker.make(Booking, invoice=invoice, user=configured_user, paid=True)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": "foo",
@@ -404,7 +361,7 @@ def test_return_with_failed_payment_intent(mock_payment_intent, get_mock_payment
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
     )
-    baker.make_recipe('booking.membership', paid=False, invoice=invoice, user=configured_user)
+    baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -422,9 +379,10 @@ webhook_url = reverse("stripe_payments:stripe_webhook")
 
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_with_matching_invoice_and_block(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership, configured_user
+    mock_webhook, get_mock_webhook_event, client, invoice, configured_user
 ):
     assert StripePaymentIntent.objects.exists() is False
+    block = baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -434,10 +392,10 @@ def test_webhook_with_matching_invoice_and_block(
 
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200
-    membership.refresh_from_db()
+    block.refresh_from_db()
     invoice.refresh_from_db()
 
-    assert membership.paid is True
+    assert block.paid is True
     assert invoice.paid is True
     payment_intent_obj = StripePaymentIntent.objects.latest("id")
     assert payment_intent_obj.invoice == invoice
@@ -450,10 +408,9 @@ def test_webhook_with_matching_invoice_and_block(
 
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_already_processed(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):
-    membership.paid = True
-    membership.save()
+    baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
     invoice.paid = True
     invoice.save()
     metadata = {
@@ -484,8 +441,9 @@ def test_webhook_exceptions(mock_webhook, client):
 
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_exception_invalid_invoice_signature(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):
+    block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
     # invalid invoice signature
     metadata = {
         "invoice_id": "bar",
@@ -496,7 +454,7 @@ def test_webhook_exception_invalid_invoice_signature(
     assert resp.status_code == 200
 
     # invoice and block is still unpaid
-    assert membership.paid is False
+    assert block.paid is False
     assert invoice.paid is False
 
     assert len(mail.outbox) == 1
@@ -508,8 +466,10 @@ def test_webhook_exception_invalid_invoice_signature(
 
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_exception_retrieving_invoice(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):
+    block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
+
     # invalid invoice signature
     metadata = {
         "invoice_id": "foo",
@@ -521,7 +481,7 @@ def test_webhook_exception_retrieving_invoice(
     assert resp.status_code == 200
 
     # invoice and block is still unpaid
-    assert membership.paid is False
+    assert block.paid is False
     assert invoice.paid is False
 
     assert len(mail.outbox) == 1
@@ -533,8 +493,10 @@ def test_webhook_exception_retrieving_invoice(
 
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_exception_no_invoice(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):
+    block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
+
     # invalid invoice signature
     metadata = invoice.items_metadata()
     mock_webhook.construct_event.return_value = get_mock_webhook_event(metadata=metadata)
@@ -542,7 +504,7 @@ def test_webhook_exception_no_invoice(
     assert resp.status_code == 200
 
     # invoice and block is still unpaid
-    assert membership.paid is False
+    assert block.paid is False
     assert invoice.paid is False
 
     assert len(mail.outbox) == 1
@@ -553,38 +515,10 @@ def test_webhook_exception_no_invoice(
 
 
 @patch("stripe_payments.views.stripe.Webhook")
-def test_webhook_refunded(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
-):
-    membership.paid = True
-    membership.save()
-    invoice.paid = True
-    invoice.save()
-    metadata = {
-        "invoice_id": "foo",
-        "invoice_signature": invoice.signature(),
-        **invoice.items_metadata(),
-    }
-    mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="payment_intent.refunded", metadata=metadata
-    )
-    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
-    assert resp.status_code == 200
-    membership.refresh_from_db()
-    invoice.refresh_from_db()
-    # invoice and block is still paid, we only notify support by email
-    assert membership.paid is True
-    assert invoice.paid is True
-
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
-    assert "WARNING: Payment refund processed" in mail.outbox[0].subject
-
-
-@patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_payment_failed(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):
+    block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -595,10 +529,10 @@ def test_webhook_payment_failed(
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200
-    membership.refresh_from_db()
+    block.refresh_from_db()
     invoice.refresh_from_db()
     # invoice and block is still unpaid
-    assert membership.paid is False
+    assert block.paid is False
     assert invoice.paid is False
 
     assert len(mail.outbox) == 1
@@ -608,8 +542,9 @@ def test_webhook_payment_failed(
 
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_payment_requires_action(
-    mock_webhook, get_mock_webhook_event, client, invoice, membership
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):
+    block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
     metadata = {
         "invoice_id": "foo",
         "invoice_signature": invoice.signature(),
@@ -620,10 +555,10 @@ def test_webhook_payment_requires_action(
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200
-    membership.refresh_from_db()
+    block.refresh_from_db()
     invoice.refresh_from_db()
     # invoice and block is still unpaid
-    assert membership.paid is False
+    assert block.paid is False
     assert invoice.paid is False
 
     assert len(mail.outbox) == 1

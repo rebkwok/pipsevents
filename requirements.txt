@@ -70,6 +70,8 @@ django-datetime-widget @ git+https://github.com/rebkwok/django-datetime-widget.g
     # via -r requirements.in
 django-debug-toolbar==3.7.0
     # via -r requirements.in
+django-email-obfuscator==0.1.5
+    # via -r requirements.in
 django-environ==0.9.0
     # via -r requirements.in
 django-extensions==3.2.1
