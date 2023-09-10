@@ -684,10 +684,14 @@ class BookingDeleteView(
         if delete_from_shopping_basket:
             # get rid of messages
             list(messages.get_messages(self.request))
+            if settings.PAYMENT_METHOD == "stripe":
+                template = "booking/includes/shopping_basket_bookings_checkout.html"
+            else:
+                template = "booking/includes/shopping_basket_bookings_total.html"
             context= {
                 "booking": booking,
                 'shopping_basket_bookings_total_html': render_to_string(
-                    "booking/includes/shopping_basket_bookings_total.html",
+                    template,
                     shopping_basket_bookings_total_context(self.request)
                 )
             }

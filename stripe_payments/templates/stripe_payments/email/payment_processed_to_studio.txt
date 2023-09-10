@@ -8,4 +8,3 @@ Purchased:
 {% for membership in invoice.memberships.all %}-{{ membership.membership_type.name }}{% endfor %}
 {% for booking in invoice.bookings.all %}-{{ booking.event }}{% endfor %}
 {% for gift_voucher in invoice.gift_vouchers.all %}-{{ gift_voucher.name }}*{% endfor %}
-{% endblock %}

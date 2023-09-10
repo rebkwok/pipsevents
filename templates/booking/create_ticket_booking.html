@@ -14,9 +14,18 @@
 
             <div class="card-body">
                 <h4>Booking reference: {{ ticket_booking.booking_reference }}</h4>
-
+                
                 <p>Ticket price : £ {{ ticketed_event.ticket_cost }}{% if show_vat %} (incl. VAT){% endif %}</p>
                 {% if not purchase_confirmed %}
+                    {{ ticket_booking }}
+                    {{ ticket_booking.purchase_confirmed }}
+                    {% if ticket_booking.purchase_confirmed and not ticket_booking.paid %}
+                        <p>
+                            {{ ticket_booking.tickets.count }} ticket(s) are currently held for you pending payment. 
+                            You can update this quantity below.
+                        </p>
+                    {% endif %}
+
                     <form name="ticket_purchase_form" class="form-inline" method="post" action="">
                         {% csrf_token %}
                         <div class="form-group">

@@ -39,6 +39,7 @@ urlpatterns = [
     path('ckeditor/', include('ckeditor_uploader.urls')),
     path('payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),
     path('payments/', include('payments.urls')),
+    path('stripe/', include('stripe_payments.urls')),
     path('favicon.ico/',
         RedirectView.as_view(url=settings.STATIC_URL+'favicon.ico',
                              permanent=False)),

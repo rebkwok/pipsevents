@@ -77,10 +77,6 @@ def stripe_payment_complete(request):
             "item_types": invoice.item_types(),
             "total_charged": invoice.amount,
         }
-        if "total_voucher_code" in request.session:
-            del request.session["total_voucher_code"]
-        context.update({"total_voucher_code": invoice.total_voucher_code})
-
         return render(request, 'stripe_payments/valid_payment.html', context)
     else:
         send_failed_payment_emails(payment_intent=payment_intent, error=error)

@@ -1,7 +1,6 @@
 {% include "account/email/do_not_reply.txt" %}
 
 
-{% block messagecontent %}
 Thank you for your payment
 -----------------------------
 Invoice number: {{ invoice.invoice_id }}</p>
@@ -12,4 +11,3 @@ Purchased:
 
 {% if invoice.gift_vouchers.exists %}*Gift voucher codes and a link to a printable voucher will be sent in separate email(s){% endif %}
 
-{% endblock %}

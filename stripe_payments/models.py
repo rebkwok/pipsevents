@@ -46,77 +46,89 @@ class Invoice(models.Model):
     def payment_intent_ids(self):
         return ", ".join(self.payment_intents.values_list("payment_intent_id", flat=True))
 
-    # def items_summary(self):
-    #     return {
-    #         "bookings": [str(booking.event) for booking in self.bookings.all()],
-    #         "memberships": [str(mem) for mem in self.memberships.all()],
-    #         "gift_vouchers": [str(gift_voucher) for gift_voucher in self.gift_vouchers.all()]
-    #     }
+    def items_summary(self):
+        return {
+            "bookings": [str(booking.event) for booking in self.bookings.all()],
+            "blocks": [str(block.block_type) for block in self.blocks.all()],
+            # "gift_vouchers": [str(gift_voucher) for gift_voucher in self.gift_vouchers.all()],
+            # "ticket_bookings": [str(tb.ticketed_event) for tb in self.ticket_bookings.all()],
+        }
 
-    # def items_dict(self):
-    #     def _cost_str(item):
-    #         cost_str = f"£{item.cost_with_voucher:.2f}"
-    #         if item.voucher:
-    #             cost_str = f"{cost_str} (voucher applied: {item.voucher.code})"
-    #         return cost_str
+    def items_dict(self):
+        def _cost(item):
+            return item.event.cost
+
+        def _cost_str(item):
+            cost_str = f"£{item.cost_with_voucher:.2f}"
+            if item.voucher_code:
+                cost_str = f"{cost_str} (voucher applied: {item.voucher_code})"
+            return cost_str
          
-    #     memberships = {
-    #         f"membership_{item.id}": {
-    #             "name": str(item), 
-    #             "voucher": item.voucher.code if item.voucher else None,
-    #             "cost_str": _cost_str(item),
-    #             "cost_in_p": int(item.cost_with_voucher * 100),
-    #             "user": item.user
-    #         } for item in self.memberships.all()
-    #     }
-    #     bookings = {
-    #         f"booking_{item.id}": {
-    #             "name": str(item.event), 
-    #             "voucher": item.voucher.code if item.voucher else None,
-    #             "cost_str": _cost_str(item),
-    #             "cost_in_p": int(item.cost_with_voucher * 100),
-    #             "user": item.user,
-    #         } for item in self.bookings.all()
-    #     }
-    #     gift_vouchers = {
-    #         f"gift_voucher_{gift_voucher.id}": {
-    #             "name": gift_voucher.name, 
-    #             "cost_str": f"£{gift_voucher.gift_voucher_type.cost:.2f}", 
-    #             "cost_in_p": int(gift_voucher.gift_voucher_type.cost * 100)
-    #         } for gift_voucher in self.gift_vouchers.all()
-    #     }
+        bookings = {
+            f"booking_{item.id}": {
+                "name": str(item.event), 
+                "voucher": item.voucher_code,
+                "cost_str": _cost_str(item),
+                "cost_in_p": int(item.cost_with_voucher * 100),
+                "user": item.user,
+            } for item in self.bookings.all()
+        }
+        blocks = {
+            f"block_{item.id}": {
+                "name": str(item.block_type), 
+                "voucher": item.voucher_code,
+                "cost_str": _cost_str(item),
+                "cost_in_p": int(item.cost_with_voucher * 100),
+                "user": item.user,
+            } for item in self.blocks.all()
+        }
+        # ticket_bookings = {
+        #     f"booking_{item.id}": {
+        #         "name": str(item.event), 
+        #         "voucher": item.voucher.code if item.voucher else None,
+        #         "cost_str": _cost_str(item),
+        #         "cost_in_p": int(item.cost_with_voucher * 100),
+        #         "user": item.user,
+        #     } for item in self.bookings.all()
+        # }
+        # gift_vouchers = {
+        #     f"gift_voucher_{gift_voucher.id}": {
+        #         "name": gift_voucher.name, 
+        #         "cost_str": f"£{gift_voucher.gift_voucher_type.cost:.2f}", 
+        #         "cost_in_p": int(gift_voucher.gift_voucher_type.cost * 100)
+        #     } for gift_voucher in self.gift_vouchers.all()
+        # }
 
-    #     return {**memberships, **bookings, **gift_vouchers}
+        return {**bookings, **blocks}
 
-    # def _item_counts(self):
-    #     return {
-    #         "memberships": self.memberships.count(),
-    #         "bookings": self.bookings.count(),
-    #         "gift_vouchers": self.gift_vouchers.count(),
-    #     }
+    def _item_counts(self):
+        return {
+            "bookings": self.bookings.count(),
+            "blocks": self.blocks.count(),
+            # "gift_vouchers": self.gift_vouchers.count(),
+            # "ticket_bookings": self.ticket_bookings.count(),
+        }
 
-    # def item_count(self):
-    #     return sum(self._item_counts().values())
+    def item_count(self):
+        return sum(self._item_counts().values())
 
-    # def item_types(self):
-    #     return [key for key, count in self._item_counts().items() if count > 0]
+    def item_types(self):
+        return [key for key, count in self._item_counts().items() if count > 0]
 
-    # def items_metadata(self):
-    #     # This is used for the payment intent metadata, which is limited to 40 chars keys and string values
-    #     all_items = self.items_dict()
-    #     metadata = {}
-    #     if self.total_voucher_code:
-    #         metadata = {"Voucher code used on total invoice": self.total_voucher_code}
-    #     items_summary = {}
-    #     for key, item in all_items.items():
-    #         summary = {
-    #             f"{key}_item": item["name"][:40],
-    #             f"{key}_cost_in_p": str(item['cost_in_p']),
-    #         }
-    #         if item.get('voucher'):
-    #             summary[f"{key}_voucher"] = item['voucher']
-    #         items_summary.update(summary)
-    #     return {**metadata, **items_summary}
+    def items_metadata(self):
+        # This is used for the payment intent metadata, which is limited to 40 chars keys and string values
+        all_items = self.items_dict()
+        metadata = {}
+        items_summary = {}
+        for key, item in all_items.items():
+            summary = {
+                f"{key}_item": item["name"][:40],
+                f"{key}_cost_in_p": str(item['cost_in_p']),
+            }
+            if item.get('voucher'):
+                summary[f"{key}_voucher"] = item['voucher']
+            items_summary.update(summary)
+        return {**metadata, **items_summary}
 
     def save(self, *args, **kwargs):
         if self.paid and not self.date_paid:

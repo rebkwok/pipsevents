@@ -2,7 +2,7 @@
 {% load static %}
 {% load accounttags bookingtags %}
 
-{% block extrahead %}
+{% block extra_head %}
   <title>Checkout</title>
     <link rel="stylesheet" href="{% static 'stripe_payments/css/stripe.css' %}" />
   <script src="https://js.stripe.com/v3/"></script>
@@ -65,11 +65,13 @@
             </div>
             <div class="sr-form-row">
               <div class="sr-field-error" id="card-errors" role="alert"></div>
+              {{ checkout_type }}
               <button id="card-button" class="btn btn-dark"
                 data-client_secret="{{ client_secret }}"
                 data-stripe_account="{{ stripe_account }}"
                 data-stripe_api_key="{{ stripe_api_key }}"
                 data-total="{{ cart_total }}"
+                data-checkout_type="{{ checkout_type }}"
               >
                 <div class="spinner hidden" id="spinner"></div>
                 <span id="button-text">Pay</span> <span id="order-amount">£{{ cart_total }}</span>
@@ -78,7 +80,7 @@
           </form>
 
           <p><em>
-              <img src="{% static 'booking/images/powered_by_stripe.png' %}" style="height: 30px;"/><br/>
+              <img src="{% static 'stripe_payments/images/powered_by_stripe.png' %}" style="height: 30px;"/><br/>
               Payments are submitted securely via Stripe.  No card information is retained by this site.
           </em></p>
 
@@ -94,6 +96,6 @@
 {% endblock content %}
 
 
-{% block extrascripts %}
+{% block extra_js %}
     <script type='text/javascript' src="{% static 'stripe_payments/js/stripe.js' %}"></script>
 {% endblock %}

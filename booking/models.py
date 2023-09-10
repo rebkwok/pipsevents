@@ -4,6 +4,8 @@ import logging
 import pytz
 import shortuuid
 
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group, User
@@ -364,6 +366,12 @@ class Block(models.Model):
     invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="blocks")
     checkout_time = models.DateTimeField(null=True, blank=True)
 
+    # voucher
+    # voucher_code; used to keep track of a code being applied; doesn't mean it's
+    # actually used (See UsedEventVoucher instead, which are applied only on marking
+    # payment complete)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
         ordering = ['user__username']
         indexes = [
@@ -382,6 +390,10 @@ class Block(models.Model):
             self.block_type.size,
             self.start_date.strftime('%d %b %Y')
         )
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
 
     @classmethod
     def get_end_of_day(cls, input_datetime):
@@ -444,6 +456,35 @@ class Block(models.Model):
         Number of bookings made against block
         """
         return Booking.objects.filter(block__id=self.id).count()
+
+    @property
+    def cost_with_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = BlockVoucher.objects.get(code=self.voucher_code)
+                return Decimal(
+                    float(self.block_type.cost) * ((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.05'))
+            except BlockVoucher.objects.DoesNotExist:
+                self.voucher_code = None
+                self.save()
+        return self.block_type.cost
+
+    def reset_voucher_code(self):
+        self.voucher_code = None
+        self.save()
+    
+    def process_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = BlockVoucher.objects.get(code=self.voucher_code)
+                UsedBlockVoucher.objects.get_or_create(voucher=voucher, block_id=self.id, user=self.user)
+            except:
+                BlockVoucher.DoesNotExist
+                logger.error(
+                    f"Tried to process non-existent Block Voucher with code '{self.voucher_code}' "
+                    f"for block {self.block.id}" 
+                )
 
     def delete(self, *args, **kwargs):
         bookings = Booking.objects.filter(block=self.id)
@@ -549,6 +590,12 @@ class Booking(models.Model):
     invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="bookings")
     checkout_time = models.DateTimeField(null=True, blank=True)
 
+    # voucher
+    # voucher_code; used to keep track of a code being applied; doesn't mean it's
+    # actually used (See UsedEventVoucher instead, which are applied only on marking
+    # payment complete)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
         unique_together = ('user', 'event')
         permissions = (
@@ -566,6 +613,10 @@ class Booking(models.Model):
             str(self.event.name), str(self.user.username),
             self.event.date.strftime('%d%b%Y %H:%M')
         )
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
 
     def confirm_space(self):
         if self.event.cost:
@@ -623,6 +674,35 @@ class Booking(models.Model):
             return False
         return PaypalBookingTransaction.objects.filter(
             booking=self, transaction_id__isnull=False).exists()
+
+    @property
+    def cost_with_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = EventVoucher.objects.get(code=self.voucher_code)
+                return Decimal(
+                    float(self.event.cost) * ((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.05'))
+            except EventVoucher.objects.DoesNotExist:
+                self.voucher_code = None
+                self.save()
+        return self.event.cost
+
+    def reset_voucher_code(self):
+        self.voucher_code = None
+        self.save()
+
+    def process_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = EventVoucher.objects.get(code=self.voucher_code)
+                UsedEventVoucher.objects.get_or_create(voucher=voucher, block_id=self.id, user=self.user)
+            except:
+                EventVoucher.DoesNotExist
+                logger.error(
+                    f"Tried to process non-existent Event Voucher with code '{self.voucher_code}' "
+                    f"for booking {self.booking.id}" 
+                )
 
     def _old_booking(self):
         if self.pk:

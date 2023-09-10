@@ -21,7 +21,7 @@
 
  {% if unpaid_blocks or unpaid_bookings or unpaid_bookings_payment_not_open %}
 
-    {% if unpaid_blocks %}
+    {% if unpaid_blocks  %}
         <div class="row">
             <div class="col-12">
                 <h2>Blocks</h2>
@@ -70,40 +70,30 @@
                         {% if booking_code %}
                             <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
                        {% endif %}
-                        <input class="btn btn-wm table-btn" type="submit" value="Apply"/>
+                        <input class="btn btn-wm table-btn ml-1" type="submit" value="Apply"/>
                         {% if block_voucher_error %}
                             <p class="errorlist">{{ block_voucher_error }}</p>
                         {% endif %}
                     </form>
                     {% else %}
                         <form class="form-inline" method="get" action="">
-                            <label><strong>Voucher applied: {{ block_voucher.code }} ({{ block_voucher.discount }}% discount)</strong></label>
+                            <label class="mr-2 alert alert-info pt-0 pb-0 pl-1 pr-1"><i class="fas fa-money-bill pr-1"></i><strong> Voucher applied: {{ block_voucher.code }} ({{ block_voucher.discount }}% discount)</strong></label>
                             {% if booking_code %}
                                 <input type="hidden" name="booking_code" value="{{ booking_code }}"/>
                             {% endif %}
-                            <input class="btn btn-wm table-btn" type="submit" name="remove_block_voucher" value="Remove" /><br/>
-                            <small>You have already used this voucher for {{ times_booking_voucher_used }} block{% if times_block_voucher_used != 1 %}s{% endif %} (max {{block_voucher.max_per_user }})</small>
-                            {% for msg in block_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                            <input class="btn btn-wm table-btn" type="submit" name="remove_block_voucher" value="Remove" />
                         </form>
+                        <div><small><em>You have used this voucher for {{ times_booking_voucher_used }} block{% if times_block_voucher_used != 1 %}s{% endif %} (max {{block_voucher.max_per_user }})</em></small></div>
+                        {% for msg in block_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                     {% endif %}
                 </div>
 
                 <hr/>
                 <div class="col-12">
                     <span id="checkout-blocks-total">
-                        {% include 'booking/includes/shopping_basket_blocks_total_stripe.html' %}
-                        <form method="post" action="{% url 'booking:stripe_checkout' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="cart_total" id="cart_total_input" value="{{ total_cost }}">
-                            <input
-                                    class="btn btn-warning mb-1"
-                                    type="submit"
-                                    value="{% if total_cost > 0 %}Checkout{% else %}Submit{% endif %}"
-                            />
-                        </form>
+                        {% include 'booking/includes/shopping_basket_blocks_checkout.html' %}    
                     </span>
                 </div>
-
             </div>
         </div>
     {% endif %}
@@ -172,55 +162,49 @@
                     </form>
                 </div>
             {% elif unpaid_block_booking_available %}
-                <span class="btn btn-wm disabled mr-1"><a href="" class="disabled text-white">Use blocks for all eligible classes</a></span>
+                <span class="btn btn-wm disabled mr-1 mt-2 mb-2"><a href="" class="disabled text-white">Use blocks for all eligible classes</a></span>
                 <span class="studioadmin-help"> This will pay for all eligible classes with available blocks.<br/>
                 Complete your payment above in order to use blocks.
                 </span>
             {% endif %}
 
-            <div class="col-12 pt-2">
+        </div>
+    
+        <div col-12>
+            <div class="pt-2">
                 {% if not valid_booking_voucher %}
                     <form name="booking_voucher_form" class="form-inline" method="get" action="">
                         <label for="booking_code_id">{{ booking_voucher_form.booking_code.label }}</label> {{ booking_voucher_form.booking_code }}
                         {% if block_code %}
                             <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
-                        <input class="btn btn-wm table-btn" type="submit" value="Apply"/>
+                        <input class="btn btn-wm table-btn ml-1" type="submit" value="Apply"/>
                         {% if booking_voucher_error %}
                             <p class="errorlist">{{ booking_voucher_error }}</p>
                         {% endif %}
                     </form>
                 {% else %}
                     <form class="form-inline" method="get" action="">
-                        <label><strong>Voucher applied: {{booking_voucher.code }} ({{booking_voucher.discount}}% discount)</strong></label>
+                        <label class="mr-2 alert alert-info pt-0 pb-0 pl-1 pr-1"><i class="fas fa-money-bill pr-1"></i><strong> Voucher applied: {{ booking_voucher.code }} ({{ booking_voucher.discount }}% discount)</strong></label>
                         {% if block_code %}
                             <input type="hidden" name="block_code" value="{{ block_code }}"/>
                         {% endif %}
-                        <input class="btn btn-wm table-btn" type="submit" name="remove_booking_voucher" value="Remove" /><br/>
-                        <small>You have already used this voucher for {% if times_booking_voucher_used == 1 %}1 class/workshop{% else %}{{ times_booking_voucher_used }} classes/workshops{% endif %} (max {{booking_voucher.max_per_user }})</small>
-                        {% for msg in booking_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
+                        <input class="btn btn-wm table-btn" type="submit" name="remove_booking_voucher" value="Remove" />
                     </form>
+                    <small><em>You have used this voucher for {% if times_booking_voucher_used == 1 %}1 class/workshop{% else %}{{ times_booking_voucher_used }} classes/workshops{% endif %} (max {{booking_voucher.max_per_user }}></em></small>
+                        {% for msg in booking_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                 {% endif %}
             </div>
             <hr/>
-            <div class="col-12">
+            <div>
                 <span id="checkout-bookings-total">
-                    {% include 'booking/includes/shopping_basket_bookings_total_stripe.html' %}
-                    <form method="post" action="{% url 'booking:stripe_checkout' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="cart_total" id="cart_total_input" value="{{ total_cost }}">
-                        <input
-                                class="btn btn-warning mb-1"
-                                type="submit"
-                                value="{% if total_cost > 0 %}Checkout{% else %}Submit{% endif %}"
-                        />
-                    </form>
+                    {% include 'booking/includes/shopping_basket_bookings_checkout.html' %}
                 </span>
             </div>
             
-            <div class="col-12">
-                {% if block_booking_available %}
-                    <p>Note: This total includes ALL unpaid bookings. You have blocks available;
+            <div>
+                {% if block_booking_available and unpaid_bookings %}
+                    <p>Note: This total includes ALL unpaid class bookings. You have blocks available;
                     use the button above to apply blocks.</p>
                 {% endif %}
             </div>

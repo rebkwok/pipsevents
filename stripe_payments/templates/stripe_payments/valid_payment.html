@@ -36,17 +36,17 @@
                 </tbody>
                 </table>
 
-        {% if "memberships" in item_types %}
+        {% if "blocks" in item_types %}
             <p>
-                Your membership has been processed.
+                Your block(s) have been processed.
             </p>
 
             <p>You can now go to the
-                <a href="{% url 'booking:regular_session_list' %}">schedule</a>
+                <a href="{% url 'booking:lessons' %}">schedule</a>
                 to select and book eligible classes.
             </p>
             <p>View 
-                <a href="{% url 'booking:user_memberships' %}">your memberships</a>
+                <a href="{% url 'booking:block_list' %}">your blocks</a>
             </p>
         {% endif %}
 

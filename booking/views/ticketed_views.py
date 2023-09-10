@@ -47,7 +47,7 @@ class TicketedEventListView(DataPolicyAgreementRequiredMixin, ListView):
             tickets_booked_events = [
                 tbk.ticketed_event for tbk in TicketBooking.objects.filter(
                     user=self.request.user, cancelled=False,
-                    purchase_confirmed=True
+                    purchase_confirmed=True, paid=True
                 ) if tbk.tickets.exists()
             ]
             context['tickets_booked_events'] = tickets_booked_events
@@ -80,20 +80,13 @@ class TicketCreateView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, Tem
         if not request.user.is_anonymous:
             if request.method.lower() == 'get':
                 # get non-cancelled and unconfirmed ticket bookings
-                user_unconfirmed_ticket_bookings = TicketBooking.objects.filter(
+                self.ticket_booking, _ = TicketBooking.objects.get_or_create(
                         user=self.request.user,
-                    ticketed_event=self.ticketed_event,
+                        ticketed_event=self.ticketed_event,
                         cancelled=False,
                         purchase_confirmed=False
                     )
 
-                if user_unconfirmed_ticket_bookings:
-                    self.ticket_booking = user_unconfirmed_ticket_bookings[0]
-                else:
-                    self.ticket_booking = TicketBooking.objects.create(
-                        user=self.request.user,
-                        ticketed_event=self.ticketed_event
-                    )
             elif request.method.lower() == 'post':
                 ticket_bk_id = request.POST['ticket_booking_id']
                 # first check this ticket booking exists, in case the user never

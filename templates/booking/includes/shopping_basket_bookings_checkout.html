@@ -1,0 +1,11 @@
+<h3 class="checkout-total">Total: £ {% if total_unpaid_booking_cost %}{{ total_unpaid_booking_cost }}{% else %}0{% endif %}{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</h3>
+
+<form method="post" action="{% url 'booking:stripe_checkout' %}">
+    {% csrf_token %}
+    <input type="hidden" name="cart_bookings_total" id="cart_bookings_total_input" value="{{ total_unpaid_booking_cost }}">
+    <input
+            class="btn btn-warning mb-1"
+            type="submit"
+            value="{% if total_unpaid_booking_cost > 0 %}Checkout{% else %}Submit{% endif %}"
+    />
+</form>

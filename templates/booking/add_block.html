@@ -22,7 +22,7 @@
                         <li>Cost: £{{ block_type.cost }}{% if show_vat %} (incl VAT){% endif %}</li>
                         <li>Number of classes in block: {{ block_type.size }}</li>
                         <li>Time until block expires: {% if block_type.duration %}
-                            {{ block_type.duration }} month{{ block_type.duration|pluralize }} {% else %}{{ block_type.duration_weeks }}week{{ block_type.duration_weeks|pluralize }}
+                            {{ block_type.duration }} month{{ block_type.duration|pluralize }} {% else %}{{ block_type.duration_weeks }} week{{ block_type.duration_weeks|pluralize }}
                             {% endif %} from purchase date</li>
                         {% if block_type.assign_free_class_on_completion %}
                             <span class="studioadmin-help">**Extra free class credited when all blocks used!**</span>

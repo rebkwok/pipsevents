@@ -10,6 +10,7 @@ $jq(document).ready(function()  {
       var client_secret = card_button.getAttribute("data-client_secret")
       var stripe_api_key = card_button.getAttribute("data-stripe_api_key")
       var total = card_button.getAttribute("data-total")
+      var checkout_type = card_button.getAttribute("data-checkout_type")
 
       var stripe = Stripe(stripe_api_key, {stripeAccount: stripe_account});
       var elements = stripe.elements();
@@ -45,7 +46,8 @@ $jq(document).ready(function()  {
         stripe: stripe,
         card: card,
         client_secret: client_secret,
-        total: total
+        total: total,
+        checkout_type: checkout_type,
       };
     };
 
@@ -59,7 +61,7 @@ $jq(document).ready(function()  {
     form.addEventListener("submit", function(event) {
       event.preventDefault();
 
-      var response = fetch('/booking/check-total/').then(function(response) {
+      var response = fetch('/check-total/?checkout_type=' + stripe_data.checkout_type).then(function(response) {
           return response.json();
         }).then(function(check_total) {
             console.log(check_total);

@@ -35,3 +35,4 @@ pytest-cov
 pytest-env
 pytest-xdist
 pymemcache
+stripe

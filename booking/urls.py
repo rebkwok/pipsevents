@@ -15,7 +15,8 @@ from booking.views import ajax_create_booking, blocks_modal, \
     shopping_basket, update_block_bookings, submit_zero_block_payment, \
     submit_zero_booking_payment, update_shopping_basket_count, \
     toggle_waiting_list, \
-    OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView
+    OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView, \
+    stripe_checkout, check_total
 
 app_name = 'booking'
 
@@ -90,7 +91,7 @@ urlpatterns = [
         'ticketed-events/', TicketedEventListView.as_view(),
         name='ticketed_events'
     ),
-    path('ticketed-events/(<slug:event_slug>/purchase/',
+    path('ticketed-events/<slug:event_slug>/purchase/',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
     path(
@@ -120,6 +121,10 @@ urlpatterns = [
         name='shopping_basket'
     ),
     path(
+        'bookings/shopping-basket/checkout', stripe_checkout,
+        name='stripe_checkout'
+    ),
+    path(
         'bookings/shopping-basket/submit-block/', submit_zero_block_payment,
         name='submit_zero_block_payment'
     ),
@@ -135,6 +140,7 @@ urlpatterns = [
         'bookings/ajax-toggle-waiting-list/<int:event_id>/',
         toggle_waiting_list, name='toggle_waiting_list'
     ),
+    path('check-total/', check_total, name="check_total"),
     path(
         'blocks_modal/',
         blocks_modal, name='blocks_modal'
