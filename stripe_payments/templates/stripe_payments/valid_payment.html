@@ -56,6 +56,12 @@
             </p>
         {% endif %}
 
+        {% if "ticket_bookings" in item_types %}
+            <p>View 
+                <a href="{% url 'booking:ticket_bookings' %}">your ticket bookings</a>
+            </p>
+        {% endif %}
+
         {% if "gift_vouchers" in item_types %}
             <p>Gift vouchers will be emailed to you shortly.</p>
         {% endif %}

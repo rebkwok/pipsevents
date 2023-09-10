@@ -57,6 +57,10 @@ def process_invoice_items(invoice, payment_method, request=None):
         booking.process_voucher()
         booking.save()
 
+    for ticket_booking in invoice.ticket_bookings.all():
+        ticket_booking.paid = True
+        ticket_booking.save()
+
     for block in invoice.blocks.all():
         block.paid = True
         block.process_voucher()

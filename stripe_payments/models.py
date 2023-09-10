@@ -55,9 +55,6 @@ class Invoice(models.Model):
         }
 
     def items_dict(self):
-        def _cost(item):
-            return item.event.cost
-
         def _cost_str(item):
             cost_str = f"£{item.cost_with_voucher:.2f}"
             if item.voucher_code:
@@ -82,15 +79,15 @@ class Invoice(models.Model):
                 "user": item.user,
             } for item in self.blocks.all()
         }
-        # ticket_bookings = {
-        #     f"booking_{item.id}": {
-        #         "name": str(item.event), 
-        #         "voucher": item.voucher.code if item.voucher else None,
-        #         "cost_str": _cost_str(item),
-        #         "cost_in_p": int(item.cost_with_voucher * 100),
-        #         "user": item.user,
-        #     } for item in self.bookings.all()
-        # }
+        ticket_bookings = {
+            f"tickets_{item.id}": {
+                "name": f"Tickets ({item.tickets.count()}) for {item.ticketed_event}", 
+                "voucher": None,
+                "cost_str":f"£{item.cost:.2f}",
+                "cost_in_p": int(item.cost * 100),
+                "user": item.user,
+            } for item in self.ticket_bookings.all()
+        }
         # gift_vouchers = {
         #     f"gift_voucher_{gift_voucher.id}": {
         #         "name": gift_voucher.name, 
@@ -99,14 +96,14 @@ class Invoice(models.Model):
         #     } for gift_voucher in self.gift_vouchers.all()
         # }
 
-        return {**bookings, **blocks}
+        return {**bookings, **ticket_bookings, **blocks}
 
     def _item_counts(self):
         return {
             "bookings": self.bookings.count(),
             "blocks": self.blocks.count(),
             # "gift_vouchers": self.gift_vouchers.count(),
-            # "ticket_bookings": self.ticket_bookings.count(),
+            "ticket_bookings": self.ticket_bookings.count(),
         }
 
     def item_count(self):

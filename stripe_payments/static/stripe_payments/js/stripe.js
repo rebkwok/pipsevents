@@ -11,6 +11,7 @@ $jq(document).ready(function()  {
       var stripe_api_key = card_button.getAttribute("data-stripe_api_key")
       var total = card_button.getAttribute("data-total")
       var checkout_type = card_button.getAttribute("data-checkout_type")
+      var tbref = card_button.getAttribute("data-tbref")
 
       var stripe = Stripe(stripe_api_key, {stripeAccount: stripe_account});
       var elements = stripe.elements();
@@ -48,6 +49,7 @@ $jq(document).ready(function()  {
         client_secret: client_secret,
         total: total,
         checkout_type: checkout_type,
+        tbref: tbref
       };
     };
 
@@ -61,7 +63,7 @@ $jq(document).ready(function()  {
     form.addEventListener("submit", function(event) {
       event.preventDefault();
 
-      var response = fetch('/check-total/?checkout_type=' + stripe_data.checkout_type).then(function(response) {
+      var response = fetch('/check-total/?checkout_type=' + stripe_data.checkout_type + "&tbref=" + stripe_data.tbref).then(function(response) {
           return response.json();
         }).then(function(check_total) {
             console.log(check_total);

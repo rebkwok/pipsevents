@@ -1003,7 +1003,7 @@ class TicketedEvent(models.Model):
 
 
 class TicketBooking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ticket_bookings")
     ticketed_event = models.ForeignKey(
         TicketedEvent, related_name="ticket_bookings", on_delete=models.CASCADE
     )
@@ -1028,6 +1028,14 @@ class TicketBooking(models.Model):
 
     def set_booking_reference(self):
         self.booking_reference = shortuuid.ShortUUID().random(length=22)
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
+
+    @property
+    def cost(self):
+        return self.ticketed_event.ticket_cost * self.tickets.count()
 
     def __str__(self):
         return 'Booking ref {} - {} - {}'.format(

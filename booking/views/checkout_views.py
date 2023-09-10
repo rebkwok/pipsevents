@@ -13,7 +13,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 import stripe
-
 from stripe_payments.models import Invoice, Seller, StripePaymentIntent
 
 
@@ -30,6 +29,39 @@ def get_unpaid_blocks_for_checkout(user):
 
 def items_with_voucher_total(unpaid_items):
     return sum(item.cost_with_voucher for item in unpaid_items)
+
+
+def get_invoice(items, item_type, user, total):
+    for item in items:
+        # mark the time we've successfully proceeded to checkout for this item
+        # so we avoid cleaning it up during payment processing
+        item.mark_checked()
+
+    unpaid_item_ids = {item.id for item in items}
+
+    def _get_matching_invoice(invoices):
+        for invoice in invoices:
+            if {item.id for item in getattr(invoice, item_type).all()} == unpaid_item_ids:
+                return invoice
+
+    # check for an existing unpaid invoice for this user
+    invoices = Invoice.objects.filter(username=user.email, paid=False)
+    # if any exist, check for one where the items are the same
+    invoice = _get_matching_invoice(invoices)
+
+    if invoice is None:
+        invoice = Invoice.objects.create(
+            invoice_id=Invoice.generate_invoice_id(), amount=Decimal(total), username=user.email,
+        )
+        for item in items:
+            item.invoice = invoice
+            item.save()
+    else:
+        # If an invoice with the expected items is found, make sure its total is current and any total voucher
+        # is updated
+        invoice.amount = Decimal(total)
+        invoice.save()
+    return invoice
 
 
 def _check_blocks_and_get_updated_invoice(request):
@@ -61,36 +93,7 @@ def _check_blocks_and_get_updated_invoice(request):
         checked.update({"redirect": True, "redirect_url": reverse("booking:shopping_basket")})
         return checked
 
-    for unpaid_block in unpaid_blocks:
-        # mark the time we've successfully proceeded to checkout for this booking
-        # so we avoid cleaning it up during payment processing
-        unpaid_block.mark_checked()
-
-    unpaid_block_ids = {block.id for block in unpaid_blocks}
-
-    def _get_matching_invoice(invoices):
-        for invoice in invoices:
-            if set(invoice.blocks.values_list("id", flat=True)) == unpaid_block_ids:
-                return invoice
-
-    # check for an existing unpaid invoice for this user
-    invoices = Invoice.objects.filter(username=request.user.email, paid=False)
-    # if any exist, check for one where the items are the same
-    invoice = _get_matching_invoice(invoices)
-
-    if invoice is None:
-        invoice = Invoice.objects.create(
-            invoice_id=Invoice.generate_invoice_id(), amount=Decimal(total), username=request.user.email,
-        )
-        for block in unpaid_blocks:
-            block.invoice = invoice
-            block.save()
-    else:
-        # If an invoice with the expected items is found, make sure its total is current and any total voucher
-        # is updated
-        invoice.amount = Decimal(total)
-        invoice.save()
-
+    invoice = get_invoice(unpaid_blocks, "blocks", request.user, total)
     checked.update({"invoice": invoice})
 
     if total == 0:
@@ -146,36 +149,7 @@ def _check_bookings_and_get_updated_invoice(request):
         checked.update({"redirect": True, "redirect_url": reverse("booking:shopping_basket")})
         return checked
 
-    for unpaid_booking in unpaid_bookings:
-        # mark the time we've successfully proceeded to checkout for this booking
-        # so we avoid cleaning it up during payment processing
-        unpaid_booking.mark_checked()
-
-    unpaid_booking_ids = {booking.id for booking in unpaid_bookings}
-
-    def _get_matching_invoice(invoices):
-        for invoice in invoices:
-            if {booking.id for booking in invoice.bookings.all()} == unpaid_booking_ids:
-                return invoice
-
-    # check for an existing unpaid invoice for this user
-    invoices = Invoice.objects.filter(username=request.user.email, paid=False)
-    # if any exist, check for one where the items are the same
-    invoice = _get_matching_invoice(invoices)
-
-    if invoice is None:
-        invoice = Invoice.objects.create(
-            invoice_id=Invoice.generate_invoice_id(), amount=Decimal(total), username=request.user.email,
-        )
-        for booking in unpaid_bookings:
-            booking.invoice = invoice
-            booking.save()
-    else:
-        # If an invoice with the expected items is found, make sure its total is current and any total voucher
-        # is updated
-        invoice.amount = Decimal(total)
-        invoice.save()
-
+    invoice = get_invoice(unpaid_bookings, "bookings", request.user, total)
     checked.update({"invoice": invoice})
 
     if total == 0:
@@ -194,13 +168,43 @@ def _check_bookings_and_get_updated_invoice(request):
     return checked
 
 
-def _check_items_and_get_updated_invoice(request):
+def get_unpaid_ticket_bookings_for_checkout(user, booking_ref):
+    return user.ticket_bookings.filter(paid=False, booking_reference=booking_ref)
 
+
+def _check_ticket_booking_and_get_updated_invoice(request):
+    booking_ref = request.POST.get("cart_ticket_booking_ref")
+    
+    checked = {
+        "invoice": None,
+        "redirect": False,
+        "redirect_url": None,
+        "checkout_type": "ticket_bookings",
+        "tbref": booking_ref,
+    }
+
+    ticket_bookings = get_unpaid_ticket_bookings_for_checkout(request.user, booking_ref)
+    if not ticket_bookings.exists():
+        messages.warning(request, "Ticket booking could not be found.")
+        checked.update({"redirect": True, "redirect_url": reverse("booking:ticketed_events")})
+        return checked
+    else:
+        ticket_booking = ticket_bookings.first()
+
+    total = ticket_booking.cost
+    invoice = get_invoice([ticket_booking], "ticket_bookings", request.user, total)
+    checked.update({"total": total, "invoice": invoice})
+    return checked
+
+
+def _check_items_and_get_updated_invoice(request):
     # what sort of checkout is it? block/bookings
     if "cart_bookings_total" in request.POST:
         return _check_bookings_and_get_updated_invoice(request)
     elif "cart_blocks_total" in request.POST:
         return _check_blocks_and_get_updated_invoice(request)
+    elif "cart_ticket_booking_ref" in request.POST:
+        return _check_ticket_booking_and_get_updated_invoice(request)
     else:
         # no expected total, redirect to shopping basket
         return {"redirect": True, "redirect_url": reverse("booking:shopping_basket")}
@@ -218,6 +222,7 @@ def stripe_checkout(request):
     total = checked_dict["total"]
     invoice = checked_dict["invoice"]
     checkout_type = checked_dict["checkout_type"]
+        
     logger.info("Stripe checkout for invoice id %s", invoice.invoice_id)
     # Create the Stripe PaymentIntent
     stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -293,6 +298,8 @@ def stripe_checkout(request):
             "cart_total": total,
             "checkout_type": checkout_type,
          })
+        if checkout_type == "ticket_bookings":
+            context["tbref"] = checked_dict["tbref"]
     return TemplateResponse(request, "stripe_payments/checkout.html", context)
 
 
@@ -304,9 +311,16 @@ def check_total(request):
             unpaid_items = get_unpaid_bookings_for_checkout(request.user)
         elif checkout_type == "blocks":
             unpaid_items = get_unpaid_blocks_for_checkout(request.user)
-        total = items_with_voucher_total(unpaid_items)
+        elif checkout_type == "ticket_bookings":
+            booking_ref = request.GET.get("tbref")
+            ticket_bookings = get_unpaid_ticket_bookings_for_checkout(request.user, booking_ref)
+            total = sum(
+                [ticket_booking.cost for ticket_booking in ticket_bookings]
+            )
+        if checkout_type in ["bookings", "blocks"]:
+            total = items_with_voucher_total(unpaid_items)
     else:
-        # TODO gift vouchers/ ticket bookings
+        # TODO gift vouchers
         ...
 
     return JsonResponse({"total": total})
