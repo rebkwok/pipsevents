@@ -1,0 +1,13 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+
+<p>Thank you for purchasing a gift voucher.  Your voucher code is {{ voucher.code }}.</p>
+
+<p>To view and print your gift voucher, please go to <a href="https://booking.thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}">https://booking.thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}</a></p>
+
+<p>To update the recipient name or message on your gift voucher, please go to <a href="https://booking.thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}/update">https://booking.thewatermelonstudio.co.uk/gift-voucher/{{ voucher.code }}/update</a></p>
+
+{% endblock %}

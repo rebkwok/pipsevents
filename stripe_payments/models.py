@@ -10,6 +10,8 @@ from django.utils import timezone
 from hashlib import sha512
 from shortuuid import ShortUUID
 
+from booking.models import GiftVoucherType
+
 
 class Invoice(models.Model):
     # username(email address) rather than FK; in case we delete the user later, we want to keep financial info
@@ -46,11 +48,17 @@ class Invoice(models.Model):
     def payment_intent_ids(self):
         return ", ".join(self.payment_intents.values_list("payment_intent_id", flat=True))
 
+    @property
+    def gift_vouchers(self):
+        return {
+            gift_voucher for gift_voucher in set(self.block_gift_vouchers.all()) | set(self.event_gift_vouchers.all())
+        }
+
     def items_summary(self):
         return {
             "bookings": [str(booking.event) for booking in self.bookings.all()],
             "blocks": [str(block.block_type) for block in self.blocks.all()],
-            # "gift_vouchers": [str(gift_voucher) for gift_voucher in self.gift_vouchers.all()],
+            "gift_vouchers": [gift_voucher.gift_voucher_type.name for gift_voucher in self.gift_vouchers],
             "ticket_bookings": [str(tb.ticketed_event) for tb in self.ticket_bookings.all()],
         }
 
@@ -88,21 +96,21 @@ class Invoice(models.Model):
                 "user": item.user,
             } for item in self.ticket_bookings.all()
         }
-        # gift_vouchers = {
-        #     f"gift_voucher_{gift_voucher.id}": {
-        #         "name": gift_voucher.name, 
-        #         "cost_str": f"£{gift_voucher.gift_voucher_type.cost:.2f}", 
-        #         "cost_in_p": int(gift_voucher.gift_voucher_type.cost * 100)
-        #     } for gift_voucher in self.gift_vouchers.all()
-        # }
+        gift_vouchers = {
+            f"gift_voucher_{gift_voucher.id}": {
+                "name": gift_voucher.gift_voucher_type.name, 
+                "cost_str": f"£{gift_voucher.gift_voucher_type.cost:.2f}", 
+                "cost_in_p": int(gift_voucher.gift_voucher_type.cost * 100)
+            } for gift_voucher in self.gift_vouchers
+        }
 
-        return {**bookings, **ticket_bookings, **blocks}
+        return {**bookings, **ticket_bookings, **blocks, **gift_vouchers}
 
     def _item_counts(self):
         return {
             "bookings": self.bookings.count(),
             "blocks": self.blocks.count(),
-            # "gift_vouchers": self.gift_vouchers.count(),
+            "gift_vouchers": len(self.gift_vouchers),
             "ticket_bookings": self.ticket_bookings.count(),
         }
 

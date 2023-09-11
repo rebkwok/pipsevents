@@ -77,7 +77,19 @@ def send_failed_payment_emails(payment_intent=None, error=None):
     )
 
 
-# def send_invalid_request_email(request, booking, reason):
+def send_gift_voucher_email(voucher):
+    ctx = {"voucher": voucher}
+    send_mail(
+        f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Gift Voucher',
+        get_template('stripe_payments/email/gift_voucher.txt').render(ctx),
+        settings.DEFAULT_FROM_EMAIL,
+        [voucher.purchaser_email],
+        html_message=get_template('stripe_payments/email/gift_voucher.html').render(ctx),
+        fail_silently=False
+    )
+
+
+# def send_invalid_refund_email(request, booking, reason):
 #     # send warning email to tech support
 #     pi = booking.invoice.stripe_payment_intent_id if booking.invoice else None
 #     inv = booking.invoice.invoice_id if booking.invoice else None

@@ -33,6 +33,10 @@ def _process_completed_stripe_payment(payment_intent, invoice, seller=None, requ
         )
 
 
+def _process_refunded_stripe_payment(payment_intent, invoice, seller=None, request=None):
+    ...
+
+
 @require_POST
 def stripe_payment_complete(request):
     payload = request.POST.get("payload")
@@ -139,6 +143,8 @@ def stripe_webhook(request):
         if event.type == "payment_intent.succeeded":
             _process_completed_stripe_payment(payment_intent, invoice, request=request)
         elif event.type == "payment_intent.refunded":
+            # TODO: process refunds (set to unpaid, deactivate gift vouchers, unset vouchers)
+            _process_refunded_stripe_payment(payment_intent, invoice, request=request)
             send_processed_refund_emails(invoice)
         elif event.type == "payment_intent.payment_failed":
             error = f"Failed payment intent id: {payment_intent.id}; invoice id {invoice.invoice_id}; " \

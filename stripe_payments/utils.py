@@ -5,8 +5,7 @@ from django.urls import reverse
 import stripe
 
 from activitylog.models import ActivityLog
-# from booking.email_helpers import send_gift_voucher_email
-from .emails import send_processed_payment_emails
+from .emails import send_processed_payment_emails, send_gift_voucher_email
 from .exceptions import StripeProcessingError
 from .models import Invoice, StripePaymentIntent, Seller
 
@@ -66,18 +65,17 @@ def process_invoice_items(invoice, payment_method, request=None):
         block.process_voucher()
         block.save()
 
-    # for gift_voucher in invoice.gift_vouchers.all():
-    #     gift_voucher.paid = True
-    #     gift_voucher.save()
-    #     gift_voucher.activate()
+    for gift_voucher in invoice.gift_vouchers:
+        gift_voucher.activated = True
+        gift_voucher.save()
 
     invoice.paid = True
     invoice.save()
 
     # SEND EMAILS
     send_processed_payment_emails(invoice)
-    # for gift_voucher in invoice.gift_vouchers.all():
-    #     send_gift_voucher_email(gift_voucher, request=request)
+    for gift_voucher in invoice.gift_vouchers:
+        send_gift_voucher_email(gift_voucher)
     ActivityLog.objects.create(
         log=f"Invoice {invoice.invoice_id} (user {invoice.username}) paid by {payment_method}"
     )

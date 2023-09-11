@@ -15,6 +15,8 @@ from django.utils import timezone
 import stripe
 from stripe_payments.models import Invoice, Seller, StripePaymentIntent
 
+from ..models import GiftVoucherType, BlockVoucher, EventVoucher
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,12 @@ def items_with_voucher_total(unpaid_items):
 
 
 def get_invoice(items, item_type, user, total):
+    if user.is_authenticated:
+        email = user.email
+    else:
+        assert item_type == "gift_vouchers"
+        email = items[0].purchaser_email
+
     for item in items:
         # mark the time we've successfully proceeded to checkout for this item
         # so we avoid cleaning it up during payment processing
@@ -41,17 +49,22 @@ def get_invoice(items, item_type, user, total):
 
     def _get_matching_invoice(invoices):
         for invoice in invoices:
-            if {item.id for item in getattr(invoice, item_type).all()} == unpaid_item_ids:
+            if item_type == "gift_vouchers":
+                # gift_vouchers are a set of event and block gift vouchers, not a qs
+                invoice_items = invoice.gift_vouchers
+            else:
+                invoice_items = getattr(invoice, item_type).all()
+            if {item.id for item in invoice_items} == unpaid_item_ids:
                 return invoice
 
     # check for an existing unpaid invoice for this user
-    invoices = Invoice.objects.filter(username=user.email, paid=False)
+    invoices = Invoice.objects.filter(username=email, paid=False)
     # if any exist, check for one where the items are the same
     invoice = _get_matching_invoice(invoices)
 
     if invoice is None:
         invoice = Invoice.objects.create(
-            invoice_id=Invoice.generate_invoice_id(), amount=Decimal(total), username=user.email,
+            invoice_id=Invoice.generate_invoice_id(), amount=Decimal(total), username=email,
         )
         for item in items:
             item.invoice = invoice
@@ -197,6 +210,39 @@ def _check_ticket_booking_and_get_updated_invoice(request):
     return checked
 
 
+def get_gift_voucher(voucher_id):
+    try:
+        voucher = BlockVoucher.objects.get(id=voucher_id)
+    except BlockVoucher.DoesNotExist:
+        voucher = EventVoucher.objects.get(id=voucher_id)
+    except EventVoucher.DoesNotExist:
+        voucher = None
+    return voucher
+
+
+def _check_gift_voucher_and_get_updated_invoice(request):
+    voucher_id = request.POST.get("cart_gift_voucher")
+    
+    checked = {
+        "invoice": None,
+        "redirect": False,
+        "redirect_url": None,
+        "checkout_type": "gift_vouchers",
+        "voucher_id": voucher_id,
+    }
+
+    voucher = get_gift_voucher(voucher_id)
+    if voucher is None:
+        messages.warning(request, "Gift voucher could not be found.")
+        checked.update({"redirect": True, "redirect_url": reverse("booking:buy_gift_voucher")})
+        return checked
+
+    total = voucher.gift_voucher_type.cost
+    invoice = get_invoice([voucher], "gift_vouchers", request.user, total)
+    checked.update({"total": total, "invoice": invoice})
+    return checked
+
+
 def _check_items_and_get_updated_invoice(request):
     # what sort of checkout is it? block/bookings
     if "cart_bookings_total" in request.POST:
@@ -205,6 +251,8 @@ def _check_items_and_get_updated_invoice(request):
         return _check_blocks_and_get_updated_invoice(request)
     elif "cart_ticket_booking_ref" in request.POST:
         return _check_ticket_booking_and_get_updated_invoice(request)
+    elif "cart_gift_voucher" in request.POST:
+        return _check_gift_voucher_and_get_updated_invoice(request)
     else:
         # no expected total, redirect to shopping basket
         return {"redirect": True, "redirect_url": reverse("booking:shopping_basket")}
@@ -300,6 +348,9 @@ def stripe_checkout(request):
          })
         if checkout_type == "ticket_bookings":
             context["tbref"] = checked_dict["tbref"]
+        if checkout_type == "gift_vouchers":
+            context["voucher_id"] = checked_dict["voucher_id"]
+
     return TemplateResponse(request, "stripe_payments/checkout.html", context)
 
 
@@ -319,8 +370,11 @@ def check_total(request):
             )
         if checkout_type in ["bookings", "blocks"]:
             total = items_with_voucher_total(unpaid_items)
-    else:
-        # TODO gift vouchers
-        ...
+    
+    # no need to be logged in to buy gift voucher
+    if checkout_type == "gift_vouchers":
+        voucher_id = request.GET.get("voucher_id")
+        voucher = get_gift_voucher(voucher_id)
+        total = voucher.gift_voucher_type.cost if voucher is not None else 0
 
     return JsonResponse({"total": total})

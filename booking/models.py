@@ -1096,11 +1096,14 @@ class BaseVoucher(models.Model):
     purchaser_email = models.EmailField(null=True, blank=True)
 
     # stripe payments
-    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="vouchers")
     checkout_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.code
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
 
     @cached_property
     def has_expired(self):
@@ -1133,16 +1136,41 @@ class EventVoucher(BaseVoucher):
     code = models.CharField(max_length=255, unique=True)
     event_types = models.ManyToManyField(EventType)
 
+    # stripe payments
+    invoice = models.ForeignKey(
+        "stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, 
+        related_name="event_gift_vouchers"
+    )
+
     def check_event_type(self, ev_type):
         return bool(ev_type in self.event_types.all())
+    
+    def valid_for(self):
+        return self.event_types.all()
+    
+    @property
+    def gift_voucher_type(self):
+        if self.is_gift_voucher:
+            return GiftVoucherType.objects.filter(event_type=self.event_types.first()).first()
 
 
 class BlockVoucher(BaseVoucher):
     code = models.CharField(max_length=255, unique=True)
     block_types = models.ManyToManyField(BlockType)
+    
+    # stripe payments
+    invoice = models.ForeignKey(
+        "stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, 
+        related_name="block_gift_vouchers"
+    )
 
     def check_block_type(self, block_type):
         return bool(block_type in self.block_types.all())
+
+    @property
+    def gift_voucher_type(self):
+        if self.is_gift_voucher:
+            return GiftVoucherType.objects.filter(block_type=self.block_types.first()).first()
 
 
 class UsedEventVoucher(models.Model):
@@ -1181,11 +1209,14 @@ class GiftVoucherType(models.Model):
             raise ValidationError({'event_type': _('Only one of Block Type or Event Type can be set.')})
 
     def __str__(self):
+        return f"{self.name} - £{self.cost}"
+
+    @property
+    def name(self):
         if self.block_type:
-            voucher_type_str = f"{self.block_type.event_type.subtype} - {self.block_type.size} classes"
+            return f"Gift voucher: {self.block_type.event_type.subtype} - {self.block_type.size} classes"
         else:
-            voucher_type_str = str(self.event_type)
-        return f"{voucher_type_str} - £{self.cost}"
+            return f"Gift voucher: {self.event_type}"
 
 
 class Banner(models.Model):

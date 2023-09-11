@@ -7,26 +7,40 @@
     <div class="col-12">
             <h1>{% if form.instance.activated %}Update Gift Voucher{% elif paypal_form %}Gift Voucher Checkout{% else %}Buy a Gift Voucher {% endif %}</h1>
 
-                {% if paypal_form %}
+            {% if show_payment %}
                     <div>
                         You are purchasing a voucher for:<br>
                         <strong>{{ voucher_type }}{% if show_vat %} <span class="vat">(incl. VAT)</span>{% endif %}</strong><br>
                     </div>
-                    <div>
-                        Click below to go to PayPal to make payment.<br>
-                        You will receive an email with a link to your voucher once your payment has been processed.
-                    </div>
-                    <hr class="voucher-divider">
-                    <div id="gift-voucher-paypal-form">
-                    {{ paypal_form.render }}
-                    </div>
+                    {% if payment_method == "stripe" %}
+                        <form method="post" action="{% url 'booking:stripe_checkout' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="cart_gift_voucher" id="cart_gift_voucher" value="{{ voucher.id }}">
+                            <input type="hidden" name="voucher_type" id="voucher_type" value="{{ voucher_type.id }}">
+                            <input
+                                    class="btn btn-warning mb-1"
+                                    type="submit"
+                                    value="Checkout"
+                            />
+                        </form>
+                    {% else %}
+                        <div>
+                            Click below to go to PayPal to make payment.<br>
+                            You will receive an email with a link to your voucher once your payment has been processed.
+                        </div>
+                        <hr class="voucher-divider">
+                        <div id="gift-voucher-paypal-form">
+                        {{ paypal_form.render }}
+                        </div>
 
-                    <div class="col-12">
-                        <p><strong>No PayPal account required - choose "Pay with debit or credit card" at PayPal login to checkout as guest.</strong>
-                        <br/>
-                        <span class="studioadmin-help">Note: due to a PayPal bug, occasionally you may see "Create an Account" instead of "Pay with debit or credit card" at PayPal login; this should still take you to the Guest Checkout page.</span>
-                        </p>
-                    </div>
+                        <div class="col-12">
+                            <p><strong>No PayPal account required - choose "Pay with debit or credit card" at PayPal login to checkout as guest.</strong>
+                            <br/>
+                            <span class="studioadmin-help">Note: due to a PayPal bug, occasionally you may see "Create an Account" instead of "Pay with debit or credit card" at PayPal login; this should still take you to the Guest Checkout page.</span>
+                            </p>
+                        </div>
+                    
+                    {% endif %}
 
                     <div><a class="btn btn-warning" href="{% url 'booking:gift_voucher_update' voucher.code %}">Back</a>
                     {% if not voucher.activated %} <a class="btn btn-danger" href="{% url 'booking:gift_voucher_delete' voucher.code %}">Cancel</a></div>
@@ -38,21 +52,21 @@
                             Please check your email address is correct; your voucher will be sent to this address.
                         </div>
                     {% endif %}
-                <form id='gift-form' class="dirty-check" action="" method="post">{% csrf_token %}
-                    {% for field in form %}
-                    <div class="col-12 vspace-sm">
-                    <div class="form-group-sm">
-                    <label class="control-label col-xs" for="{{field.name}}_id">{{ field.label }}</label>
-                    <div class="col-xs{% if field.errors %}ticket-error{% endif %}">{{ field }}</div>
-                     <div class="col-xs studioadmin-help">{{ field.help_text }}</div>
-                    {% if field.errors %}
-                        <div class="col-12">{{ field.errors }}</div>
-                    {% endif %}
+                    <form id='gift-form' class="dirty-check" action="" method="post">{% csrf_token %}
+                        {% for field in form %}
+                        <div class="col-12 vspace-sm">
+                        <div class="form-group-sm">
+                        <label class="control-label col-xs" for="{{field.name}}_id">{{ field.label }}</label>
+                        <div class="col-xs{% if field.errors %}ticket-error{% endif %}">{{ field }}</div>
+                        <div class="col-xs studioadmin-help">{{ field.help_text }}</div>
+                        {% if field.errors %}
+                            <div class="col-12">{{ field.errors }}</div>
+                        {% endif %}
+                            </div>
                         </div>
-                    </div>
-                    {% endfor %}
-                       <div class="col-xs"><input class="btn btn-wm" type="submit" value="Submit" /></div>
-                </form>
+                        {% endfor %}
+                        <div class="col-xs"><input class="btn btn-wm" type="submit" value="Submit" /></div>
+                    </form>
                  {% endif %}
     </div>
 </div>
