@@ -38,8 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Cancel unpaid ticket bookings that are past payment_due_date or '
-    'payment time allowed'
+    help = 'Cancel unpaid ticket bookings that are past payment_due_date or payment time allowed'
     def handle(self, *args, **options):
         # only cancel between 9am and 10pm; warnings are sent from 7 so this allows a minimum of 2 hrs after warning
         # for payment before the next cancel job is run
@@ -50,6 +49,7 @@ class Command(BaseCommand):
             self.cancel_ticket_bookings(now)
 
     def get_ticket_bookings_to_cancel(self, now):
+        checkout_buffer_seconds = 60 * 5
         warning_sent_buffer = now - timedelta(hours=2)
         # get relevant ticketed_events
         ticketed_events = TicketedEvent.objects.filter(
@@ -59,8 +59,16 @@ class Command(BaseCommand):
             advance_payment_required=True,
         )
         for event in ticketed_events:
-            # get open unpaid ticket bookings made > with either no warning sent date yet, or warning sent date > 2hrs ago
-            ticket_bookings = event.ticket_bookings.filter(cancelled=False, paid=False).exclude(date_warning_sent__gte=warning_sent_buffer)
+            # get open unpaid ticket bookings, exclude those with either no warning sent date yet, 
+            # or warning sent date < 2hrs ago
+            ticket_bookings = event.ticket_bookings.filter(
+                cancelled=False, paid=False
+            ).exclude(
+                date_warning_sent__gte=warning_sent_buffer
+            ).exclude(
+                # exclude bookings with checkout time within past 5 mins
+                checkout_time__gte=timezone.now() - timedelta(seconds=checkout_buffer_seconds)
+            )
 
             # if payment due date is past and warning has been sent, cancel
             if event.payment_due_date and event.payment_due_date < now:
