@@ -192,7 +192,6 @@ def add_total_bookings_and_payment_context(request, context):
 
 def get_unpaid_block_context(user, context=None):
     context = context or {}
-
     unpaid_block_and_costs = [
         (block, block.block_type.cost)
         for block in user.blocks.filter(paid=False, paypal_pending=False, expiry_date__gte=timezone.now()) if not block.full
@@ -391,6 +390,8 @@ def apply_voucher_to_unpaid_bookings(voucher, bookings, times_used):
             if check_max_total:
                 max_voucher_uses_left -= 1
         else:
+            # voucher can't be used; make sure it's unset on the booking
+            booking.reset_voucher_code()
             # if we can't use the voucher but max_total and
             # max_per_user are not exceeded, it must be an invalid
             # event type
@@ -470,6 +471,9 @@ def apply_voucher_to_unpaid_blocks(voucher, blocks, times_used):
             if check_max_total:
                 max_voucher_uses_left -= 1
         else:
+            # voucher can't be used; make sure it's unset on the block
+            block.reset_voucher_code()
+
             # if we can't use the voucher but max_total and
             # max_per_user are not exceeded, it must be an invalid
             # event type

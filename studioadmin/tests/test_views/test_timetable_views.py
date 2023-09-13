@@ -246,7 +246,7 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(session.day, '03WED')
 
     def test_edit_with_categories(self):
-        session = baker.make(Session, event_type__event_type="CL")
+        session = baker.make_recipe("booking.mon_session", event_type__event_type="CL")
         assert not session.categories.exists()
         category = baker.make(FilterCategory, category="test ghi")
         form_data = self.form_data(

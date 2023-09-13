@@ -373,7 +373,7 @@ class Block(models.Model):
     voucher_code = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
-        ordering = ['user__username']
+        ordering = ['user__username', 'id']
         indexes = [
                 models.Index(fields=['user', 'paid']),
                 models.Index(fields=['user', 'expiry_date']),
@@ -1151,7 +1151,14 @@ class EventVoucher(BaseVoucher):
     @property
     def gift_voucher_type(self):
         if self.is_gift_voucher:
-            return GiftVoucherType.objects.filter(event_type=self.event_types.first()).first()
+            gvts = GiftVoucherType.objects.filter(self.block_types.first())
+            if not gvts.exists():
+                # In case this was a manually created gift voucher, make sure we can return 
+                # a valid gift voucher type, but don't make an active one
+                gvt, _ = GiftVoucherType.objects.create(event_type=self.event_types.first(), active=False)
+            else:
+                gvt = gvts.first()
+            return gvt
 
 
 class BlockVoucher(BaseVoucher):
@@ -1170,7 +1177,12 @@ class BlockVoucher(BaseVoucher):
     @property
     def gift_voucher_type(self):
         if self.is_gift_voucher:
-            return GiftVoucherType.objects.filter(block_type=self.block_types.first()).first()
+            gvts = GiftVoucherType.objects.filter(block_type=self.block_types.first())
+            if not gvts.exists():
+                gvt, _ = GiftVoucherType.objects.create(block_type=self.block_types.first(), active=False)
+            else:
+                gvt = gvts.first()
+            return gvt
 
 
 class UsedEventVoucher(models.Model):

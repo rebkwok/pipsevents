@@ -312,7 +312,9 @@ class TicketedEventAdminFormTests(TestCase):
         )
 
     def test_form_for_cancelled_events(self):
-        ticketed_event = baker.make_recipe('booking.ticketed_event_max10')
+        ticketed_event = baker.make_recipe(
+            'booking.ticketed_event_max10', paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+        )
 
         data = {
             'id': ticketed_event.id,

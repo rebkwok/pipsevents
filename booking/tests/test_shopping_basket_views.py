@@ -188,6 +188,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             len(resp.context['unpaid_bookings_payment_not_open']), 1
         )
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_unpaid_bookings_non_default_paypal(self):
         ev = Event.objects.first()
         ev.paypal_email = 'new@paypal.test'
@@ -220,6 +221,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertTrue(resp.context['include_warning'])
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_unpaid_blocks_displayed(self):
         baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
@@ -530,6 +532,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         # 6 bookings, events each £8, only one with 10% discount applied
         self.assertEqual(resp.context['total_unpaid_booking_cost'], Decimal('47.20'))
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_form_created(self):
         resp = self.client.get(self.url)
         paypalform = resp.context['bookings_paypalform']
@@ -550,6 +553,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 paypalform.initial['amount_{}'.format(i + 1)], 8
             )
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_form_for_single_cart_item(self):
         # single cart item uses a single paypal dict format
         booking = Booking.objects.first()
@@ -568,6 +572,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('item_name_1', paypalform.initial)
         self.assertEqual(paypalform.initial['amount'], 8)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_form_created_with_booking_voucher(self):
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
@@ -599,6 +604,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                     paypalform.initial['amount_{}'.format(i + 1)], 8
                 )
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_form_created_with_block_voucher(self):
         block = baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
@@ -616,7 +622,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 str(id) for id in Block.objects.order_by('id').values_list('id', flat=True)
                 ]
         )
-        # voucher only applied to first block
+        # voucher applied to first block
         self.assertEqual(
             paypalform.initial['custom'],
             f'obj=block ids={booking_ids_str} usr={self.user.email} cde=foo apd={block.id}'
@@ -634,6 +640,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                     paypalform.initial['amount_{}'.format(i + 1)], Decimal('20.00')
                 )
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_100_pct_booking_gift_voucher_payment_buttons(self):
         # update button instead of paypal form for a 100% gift voucher
         booking = Booking.objects.first()
@@ -647,6 +654,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('bookings_paypalform', resp.context_data)
         self.assertEqual(resp.context_data['total_unpaid_booking_cost'], 0)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_100_pct_booking_gift_voucher_payment_buttons_with_unapplied_booking(self):
         # paypal form if there are bookings as well as the gift-voucher applied ones
         bookings = Booking.objects.all()[:2]
@@ -660,6 +668,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertIn('bookings_paypalform', resp.context_data)
         self.assertEqual(resp.context_data['total_unpaid_booking_cost'], 8)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_100_pct_block_gift_voucher_payment_buttons(self):
         # update button instead of paypal form for a 100% gift voucher
         block = baker.make_recipe(
@@ -673,6 +682,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('block_paypalform', resp.context_data)
         self.assertEqual(resp.context_data['total_unpaid_block_cost'], 0)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_100_pct_block_gift_voucher_payment_buttons_with_unapplied_booking(self):
         # paypal form if there are bookings as well as the gift-voucher applied ones
         block = baker.make_recipe(
@@ -689,6 +699,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('block_paypalform', resp.context_data)
         self.assertEqual(resp.context_data['total_unpaid_block_cost'], 10)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_items_unpaid_bookings(self):
         # If we only have unpaid bookings, add the cart items to the session
         # 6 unpaid bookings, only 6 for self.user
@@ -697,6 +708,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         booking_ids = ','.join(str(booking.id) for booking in self.user.bookings.all().order_by("id"))
         assert self.client.session["cart_items"] == f"obj=booking ids={booking_ids} usr={self.user.email}"
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_items_unpaid_blocks(self):
         # If we only have unpaid blocks, add the cart items to the session
         Booking.objects.all().delete()
@@ -706,6 +718,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.client.get(self.url)
         assert self.client.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_items_bookings_and_blocks(self):
         # If we have both unpaid bookings and blocks, don't add the cart items to the session as
         # we can't be sure which paypal button they'll use
@@ -722,6 +735,7 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.client.get(self.url)
         assert "cart_items" in self.client.session
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_items_deleted_from_session_on_get(self):
         Booking.objects.all().delete()
         self.client.session["cart_items"] = "test"

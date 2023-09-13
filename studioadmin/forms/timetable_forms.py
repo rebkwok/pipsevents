@@ -3,6 +3,7 @@
 from datetime import datetime, date
 
 from django import forms
+from django.conf import settings
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -103,6 +104,8 @@ class SessionAdminForm(forms.ModelForm):
         }
         if self.instance.id:
             self.fields["categories"].initial = self.instance.categories.all()
+        else:
+            self.fields["paypal_email"].initial = settings.DEFAULT_PAYPAL_EMAIL
 
     def clean_new_category(self):
         new_category = self.cleaned_data.get("new_category")

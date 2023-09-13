@@ -10,8 +10,6 @@ from django.utils import timezone
 from hashlib import sha512
 from shortuuid import ShortUUID
 
-from booking.models import GiftVoucherType
-
 
 class Invoice(models.Model):
     # username(email address) rather than FK; in case we delete the user later, we want to keep financial info

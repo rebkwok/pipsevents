@@ -961,8 +961,10 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertEqual(context['total_unpaid_block_cost'], 20)
         self.assertEqual(context['block_code'], 'test')
 
-    def test_ajax_shopping_basket_bookings_total_updates_cart_items(self):
+    @override_settings(PAYMENT_METHOD="paypal")
+    def test_ajax_shopping_basket_bookings_total_updates_cart_items_paypal(self):
         # calling the shopping_basket_bookings_total resets the session cart items
+        # paypal only
         self.event.cost = 5
         self.event.payment_open = True
         self.event.save()
@@ -981,8 +983,10 @@ class AjaxTests(TestSetupMixin, TestCase):
         context = shopping_basket_bookings_total_context(request)
         assert request.session["cart_items"] == f"obj=booking ids={booking.id} usr={self.user.email}"
 
-    def test_shopping_basket_bookings_total_context_updates_cart_items_for_blocks(self):
+    @override_settings(PAYMENT_METHOD="paypal")
+    def test_shopping_basket_bookings_total_context_updates_cart_items_for_blocks_paypal(self):
         # calling the shopping_basket_bookings_total sets the session cart items for unpaid blocks
+        # (paypal only)
         # if there are no unpaid bookings left
         booking = baker.make_recipe('booking.booking', event=self.event, user=self.user)
         block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
@@ -995,8 +999,9 @@ class AjaxTests(TestSetupMixin, TestCase):
         assert context['total_unpaid_booking_cost'] is None
         assert request.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
-    def test_ajax_shopping_basket_blocks_total_updates_cart_items(self):
-        # calling the shopping_basket_blocks_total sets the session cart items
+    @override_settings(PAYMENT_METHOD="paypal")
+    def test_ajax_shopping_basket_blocks_total_updates_cart_items_for_paypal(self):
+        # calling the shopping_basket_blocks_total sets the session cart items for paypal
         block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
         request = self.factory.post(
             reverse("booking:delete_block", args=(block.id,))
@@ -1007,8 +1012,10 @@ class AjaxTests(TestSetupMixin, TestCase):
         self.assertEqual(context['total_unpaid_block_cost'], 20)
         assert request.session["cart_items"] == f"obj=block ids={block.id} usr={self.user.email}"
 
-    def test_ajax_shopping_basket_blocks_total_updates_cart_items_for_bookings(self):
+    @override_settings(PAYMENT_METHOD="paypal")
+    def test_ajax_shopping_basket_blocks_total_updates_cart_items_for_bookings_paypal(self):
         # calling the shopping_basket_blocks_total resets the session cart items for unpaid bookings
+        # (paypal only)
         # if there are no unpaid blocks left
         block = baker.make_recipe('booking.block', block_type__cost=20, user=self.user)
         self.event.cost = 5
@@ -1022,6 +1029,7 @@ class AjaxTests(TestSetupMixin, TestCase):
         request.user = self.user
         _add_session(request)
 
+        assert "cart_items" not in request.session
         shopping_basket_blocks_total_context(request)
 
         # No cart items because there are both booking and block unpaid

@@ -93,16 +93,21 @@ def test_invoice_items_summary():
     ticket_booking = baker.make(TicketBooking, ticketed_event__name="test show", ticketed_event__ticket_cost=10, invoice=invoice)
     baker.make(Ticket, ticket_booking=ticket_booking)
     
-    # gift_voucher = baker.make(
-    #     GiftVoucher, gift_voucher_type__event_type="private", 
-    #     gift_voucher_type__override_cost=Decimal(10), invoice=invoice
-    # )
-
+    # setup gift voucher
+    blocktype = baker.make_recipe("booking.blocktype")
+    block_voucher = baker.make_recipe(
+        "booking.block_gift_voucher", purchaser_email="test@test.com", activated=True,
+        invoice=invoice
+    )
+    block_voucher.block_types.add(blocktype)
+    blocktype = block_voucher.block_types.first()    
+    baker.make("booking.GiftVoucherType", block_type=blocktype)
+    
     assert invoice.items_summary() == {
         "bookings": [str(booking.event)],
         "blocks": [str(block.block_type)],
         "ticket_bookings": [str(ticket_booking.ticketed_event)],
-        # "gift_vouchers": [str(gift_voucher)]
+        "gift_vouchers": [block_voucher.gift_voucher_type.name]
     }
 
 
