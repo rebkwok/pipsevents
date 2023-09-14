@@ -88,19 +88,21 @@ def get_unpaid_bookings_context(user):
         }
 
 
-def add_booking_voucher_context(booking_code, user, context, remove_voucher=False):
-    unpaid_bookings = context['unpaid_bookings']
-    if remove_voucher:
-        for booking in unpaid_bookings:
-            booking.reset_voucher_code()
-        return
+def remove_voucher(items):
+    for item in items:
+        item.reset_voucher_code()
 
+
+def add_booking_voucher_context(booking_code, user, context):
+    unpaid_bookings = context['unpaid_bookings']
+    
     context['booking_code'] = booking_code
     try:
         booking_voucher = EventVoucher.objects.get(code=booking_code)
     except EventVoucher.DoesNotExist:
         booking_voucher = None
         context['booking_voucher_error'] = 'Invalid code' if booking_code else 'No code provided'
+        remove_voucher(unpaid_bookings)
 
     if booking_voucher:
         booking_voucher_error = validate_voucher_code(booking_voucher, user)
@@ -120,6 +122,8 @@ def add_booking_voucher_context(booking_code, user, context, remove_voucher=Fals
                 booking_voucher, unpaid_bookings, times_booking_voucher_used
             )
             context.update(**booking_voucher_dict)
+        else:
+            remove_voucher(unpaid_bookings)
     return context
 
 
@@ -216,6 +220,7 @@ def add_block_voucher_context(block_code, user, context):
     except BlockVoucher.DoesNotExist:
         block_voucher = None
         context['block_voucher_error'] = 'Invalid code' if block_code else 'No code provided'
+        remove_voucher(unpaid_blocks)
 
     if block_voucher:
         block_voucher_error = validate_block_voucher_code(block_voucher, user)
@@ -235,6 +240,8 @@ def add_block_voucher_context(block_code, user, context):
                 block_voucher, unpaid_blocks, times_block_voucher_used
             )
             context.update(**block_voucher_dict)
+        else:
+            remove_voucher(unpaid_blocks)
     return context
 
 
@@ -307,8 +314,7 @@ def shopping_basket(request):
 
      # bookings
     if "remove_booking_voucher" in request.GET:
-        for booking in context["unpaid_bookings"]:
-            booking.reset_voucher_code()
+        remove_voucher(context["unpaid_bookings"])
 
     booking_code = request.GET.get('booking_code')
     if booking_code and not request.GET.get("remove_booking_voucher"):
@@ -326,8 +332,7 @@ def shopping_basket(request):
     
     # blocks
     if "remove_block_voucher"in request.GET:
-        for block in context["unpaid_blocks"]:
-            block.reset_voucher_code()
+        remove_voucher(context["unpaid_blocks"])
 
     block_code = request.GET.get('block_code', None)
     if block_code and not request.GET.get("remove_booking_voucher"):

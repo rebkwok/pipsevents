@@ -188,7 +188,6 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             len(resp.context['unpaid_bookings_payment_not_open']), 1
         )
 
-    @override_settings(PAYMENT_METHOD="paypal")
     def test_unpaid_bookings_non_default_paypal(self):
         ev = Event.objects.first()
         ev.paypal_email = 'new@paypal.test'
@@ -202,12 +201,19 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             ).count(), 6
         )
 
-        resp = self.client.get(self.url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.context['unpaid_bookings']), 5)
-        self.assertEqual(
-            len(resp.context['unpaid_bookings_non_default_paypal']), 1
-        )
+        with override_settings(PAYMENT_METHOD="paypal"):
+            resp = self.client.get(self.url)
+            assert resp.status_code == 200
+            assert len(resp.context['unpaid_bookings']) == 5
+            assert len(resp.context['unpaid_bookings_non_default_paypal']) == 1
+        
+        # stripe doesn't care about non-default paypal, everything has to go through
+        # the one account
+        with override_settings(PAYMENT_METHOD="stripe"):
+            resp = self.client.get(self.url)
+            assert resp.status_code == 200
+            assert len(resp.context['unpaid_bookings']) == 6
+            assert "unpaid_bookings_non_default_paypal" not in resp.context
 
     def test_cancellation_warning_shown(self):
         resp = self.client.get(self.url)
@@ -221,7 +227,6 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
         self.assertTrue(resp.context['include_warning'])
 
-    @override_settings(PAYMENT_METHOD="paypal")
     def test_unpaid_blocks_displayed(self):
         baker.make_recipe(
             'booking.block', block_type__cost=20, user=self.user, paid=False
@@ -233,30 +238,33 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             'booking.block', block_type__cost=5, user=self.user, paid=True
         )
 
-        resp = self.client.get(self.url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.context_data['unpaid_blocks']), 2)
-        self.assertEqual(resp.context_data['total_unpaid_block_cost'], 30)
-        self.assertIn('block_voucher_form', resp.context_data)
+        with override_settings(PAYMENT_METHOD="paypal"):
+            resp = self.client.get(self.url)
+            assert resp.context["payment_method"] == "paypal"
+            assert len(resp.context_data['unpaid_blocks']) == 2
+            assert resp.context_data['total_unpaid_block_cost'] == 30
+            assert 'block_voucher_form' in resp.context_data
 
-        paypalform = resp.context_data['blocks_paypalform']
+            paypalform = resp.context_data['blocks_paypalform']
 
-        block_ids_str = ','.join(
-            [
-                str(id) for id in Block.objects.order_by('id').filter(paid=False).values_list('id', flat=True)
-                ]
-        )
-        self.assertEqual(
-            paypalform.initial['custom'], 'obj=block ids={} usr={}'.format(
-                block_ids_str, self.user.email
+            block_ids_str = ','.join(
+                [
+                    str(id) for id in Block.objects.order_by('id').filter(paid=False).values_list('id', flat=True)
+                    ]
             )
-        )
-        for i, block in enumerate(Block.objects.filter(paid=False)):
-            self.assertIn('item_name_{}'.format(i + 1), paypalform.initial)
-            self.assertEqual(
-                paypalform.initial['amount_{}'.format(i + 1)],
-                block.block_type.cost
-            )
+            assert paypalform.initial['custom'] == f'obj=block ids={block_ids_str} usr={self.user.email}'
+
+            for i, block in enumerate(Block.objects.filter(paid=False)):
+                assert f'item_name_{i + 1}' in paypalform.initial
+                assert paypalform.initial[f'amount_{i + 1}']== block.block_type.cost
+
+        with override_settings(PAYMENT_METHOD="stripe"):
+            resp = self.client.get(self.url)
+            assert resp.context["payment_method"] == "stripe"
+            assert len(resp.context_data['unpaid_blocks']) == 2
+            assert resp.context_data['total_unpaid_block_cost'] == 30
+            assert 'block_voucher_form' in resp.context_data
+            assert 'blocks_paypalform' not in resp.context_data
 
     def test_block_booking_available(self):
         resp = self.client.get(self.url)
@@ -604,6 +612,22 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                     paypalform.initial['amount_{}'.format(i + 1)], 8
                 )
 
+    @override_settings(PAYMENT_METHOD="stripe")
+    def test_with_booking_voucher_applied(self):
+        booking = Booking.objects.first()
+        ev_type = booking.event.event_type
+        self.voucher.event_types.add(ev_type)
+
+        assert booking.voucher_code is None
+        self.client.get(self.url + '?booking_code=foo')
+        booking.refresh_from_db()
+        assert booking.voucher_code == "foo"
+
+        # applying an invalid code resets the booking's voucher code
+        self.client.get(self.url + '?booking_code=unknown_code')
+        booking.refresh_from_db()
+        assert booking.voucher_code is None
+
     @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_form_created_with_block_voucher(self):
         block = baker.make_recipe(
@@ -639,6 +663,29 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
                 self.assertEqual(
                     paypalform.initial['amount_{}'.format(i + 1)], Decimal('20.00')
                 )
+
+
+    @override_settings(PAYMENT_METHOD="stripe")
+    def test_block_with_voucher_applied(self):
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        block1 = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        self.block_voucher.block_types.add(block.block_type)
+
+        self.client.get(self.url + '?block_code=foo')
+        block.refresh_from_db()
+        block1.refresh_from_db()
+        assert block.voucher_code == "foo"
+        assert block1.voucher_code is None
+
+        self.client.get(self.url + '?block_code=unknown')
+        block.refresh_from_db()
+        block1.refresh_from_db()
+        assert block.voucher_code is None
+        assert block1.voucher_code is None
 
     @override_settings(PAYMENT_METHOD="paypal")
     def test_100_pct_booking_gift_voucher_payment_buttons(self):
