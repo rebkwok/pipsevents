@@ -111,6 +111,15 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert resp.url == reverse("booking:shopping_basket")
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_cant_identify_checkout_type(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        resp = self.client.post(self.url, data={"unknown_cart": "foo"})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:shopping_basket")
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_bookings(self, mock_payment_intent):
         mock_payment_intent_obj = self.get_mock_payment_intent(id="foo")
         mock_payment_intent.create.return_value = mock_payment_intent_obj
@@ -139,6 +148,28 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert booking.invoice == invoice
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_incorrect_unpaid_bookings_total(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        # no bookings, redirects
+        resp = self.client.post(self.url, data={"cart_bookings_total": 10})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:shopping_basket")
+
+        booking = baker.make_recipe(
+            'booking.booking', event=self.pole_class,
+            user=self.user, paid=False, voucher_code="foo"
+        )
+        # total is incorrect
+        resp = self.client.post(self.url, data={"cart_bookings_total": 30})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:shopping_basket")
+        # voucher is reset
+        booking.refresh_from_db()
+        assert booking.voucher_code is None
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_blocks(self, mock_payment_intent):
         mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
         mock_payment_intent.create.return_value = mock_payment_intent_obj
@@ -162,6 +193,28 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert block.invoice == invoice
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_incorrect_unpaid_blocks_total(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        # no blocks, redirects
+        resp = self.client.post(self.url, data={"cart_blocks_total": 30})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:shopping_basket")
+
+        block = baker.make_recipe(
+            'booking.block_5', user=self.user, paid=False, block_type__cost=20,
+            start_date=timezone.now(), voucher_code="foo"
+        )
+        # total is incorrect
+        resp = self.client.post(self.url, data={"cart_blocks_total": 30})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:shopping_basket")
+        # voucher is reset
+        block.refresh_from_db()
+        assert block.voucher_code is None
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_gift_voucher(self, mock_payment_intent):
         mock_payment_intent_obj = self.get_mock_payment_intent(id="foo")
         mock_payment_intent.create.return_value = mock_payment_intent_obj
@@ -180,6 +233,20 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert invoice.username == self.user.email
         assert invoice.amount == 10
         assert self.gift_voucher.invoice == invoice
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_unconfigured_gift_voucher(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        # no blocks configured, redirects
+        resp = self.client.post(self.url, data={"cart_gift_voucher": self.block_gift_voucher.id})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:buy_gift_voucher")
+
+        self.block_gift_voucher.block_types.add(self.block_type)
+        resp = self.client.post(self.url, data={"cart_gift_voucher": self.block_gift_voucher.id})
+        assert resp.status_code == 200
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_ticket_bookings(self, mock_payment_intent):
@@ -206,6 +273,17 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert invoice.username == self.user.email
         assert invoice.amount == 10
         assert ticket_booking.invoice == invoice
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_no_ticket_bookings(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        # no ticket bookings, redirects
+        resp = self.client.post(self.url, data={"cart_ticket_booking_ref": "none"})
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:ticketed_events")
+
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_gift_vouchers_anon_user(
@@ -255,8 +333,7 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         block.invoice == invoice
         assert resp.context_data["cart_total"] == 18.00
 
-    @patch("booking.views.checkout_views.stripe.PaymentIntent")
-    def test_zero_total(self, mock_payment_intent):
+    def test_zero_total(self):
         booking = baker.make(
             Booking, event=self.pole_class, user=self.user, voucher_code=self.gift_voucher.code
         )
@@ -270,7 +347,28 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert invoice.stripe_payment_intent_id is None
         assert invoice.username == self.user.email
         assert invoice.amount == 0
-        booking.invoice == invoice
+        assert booking.invoice == invoice
+
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:lessons")
+
+    def test_zero_total_blocks(self):
+        block = baker.make(
+            "booking.Block", user=self.user, voucher_code=self.block_gift_voucher.code,
+            block_type=self.block_type, start_date=timezone.now()
+        )
+        
+        resp = self.client.post(self.url, data={"cart_blocks_total": 0})
+        block.refresh_from_db()
+        assert block.paid
+        assert block.voucher_code == self.block_gift_voucher.code
+
+        # invoice is still created, but with 0 total and no PI
+        invoice = Invoice.objects.first()
+        assert invoice.stripe_payment_intent_id is None
+        assert invoice.username == self.user.email
+        assert invoice.amount == 0
+        assert block.invoice == invoice
 
         assert resp.status_code == 302
         assert resp.url == reverse("booking:lessons")
@@ -291,6 +389,25 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert Invoice.objects.count() == 1
         assert booking.invoice == invoice
         assert invoice.amount == 20
+        assert resp.context_data["cart_total"] ==10.00
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_uses_existing_invoice_for_gift_voucher(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo")
+        mock_payment_intent.modify.return_value = mock_payment_intent_obj
+        invoice = baker.make(
+            Invoice, username="test@test.com", amount=10, paid=False,
+            stripe_payment_intent_id="foo"
+        )
+        self.gift_voucher.purchaser_email = "test@test.com"
+        self.gift_voucher.invoice = invoice
+        self.gift_voucher.save()
+        # total is correct
+        resp = self.client.post(self.url, data={"cart_gift_voucher": self.gift_voucher.id})
+        self.gift_voucher.refresh_from_db()
+        assert Invoice.objects.count() == 1
+        assert self.gift_voucher.invoice == invoice
+        assert invoice.amount == 10
         assert resp.context_data["cart_total"] ==10.00
 
     def test_no_seller(self):
@@ -370,6 +487,8 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
             url, {"checkout_type": "gift_vouchers", "voucher_id": self.gift_voucher.id}
         )
         assert resp.json() == {"total": "10.00"}
+
+        # no valid block types on voucher
         with pytest.raises(ValueError):
             resp = self.client.get(
                 url, {"checkout_type": "gift_vouchers", "voucher_id": self.block_gift_voucher.id}

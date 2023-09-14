@@ -240,8 +240,9 @@ def _check_gift_voucher_and_get_updated_invoice(request):
         total = voucher.gift_voucher_type.cost
     except ValueError:
         # gift voucher with no relevant block/event type defined
-        checked["redirect"] = True
-        checked["redirect_url"]: reverse("booking:buy_gift_voucher")
+        checked.update(
+            {"redirect": True, "redirect_url": reverse("booking:buy_gift_voucher")}
+        )
         messages.warning(request, "Gift voucher type is not valid.")
     else:
         invoice = get_invoice([voucher], "gift_vouchers", request.user, total)

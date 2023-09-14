@@ -179,10 +179,16 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         self.block.delete()
 
         if delete_from_shopping_basket:
+            if settings.PAYMENT_METHOD == "stripe":
+                template = "booking/includes/shopping_basket_blocks_checkout.html"
+            else:
+                template = "booking/includes/shopping_basket_blocks_total.html"
+            
             context= {
+               
                 "block_id": block_id,
                 'shopping_basket_blocks_total_html': render_to_string(
-                    "booking/includes/shopping_basket_blocks_total.html",
+                    template,
                     shopping_basket_blocks_total_context(self.request)
                 )
             }

@@ -308,6 +308,24 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url + '?booking_code=bar')
         self.assertEqual(resp.context['booking_voucher_error'], 'Invalid code')
 
+    def test_remove_booking_voucher_code(self):
+        # valid voucher
+        booking = Booking.objects.first()
+        ev_type = booking.event.event_type
+        self.voucher.event_types.add(ev_type)
+        resp = self.client.get(self.url + '?booking_code=foo')
+
+        # 6 bookings, events each £8, one with 10% discount
+        assert resp.context['total_unpaid_booking_cost'] == Decimal('47.20')
+        booking.refresh_from_db()
+        assert booking.voucher_code == "foo"
+
+        # remove code
+        resp = self.client.get(self.url + '?booking_code=foo&remove_booking_voucher=')
+        booking.refresh_from_db()
+        assert booking.voucher_code is None
+        assert resp.context['total_unpaid_booking_cost'] == Decimal('48.00')
+
     def test_block_voucher_code(self):
         # valid voucher
         block = baker.make_recipe(
@@ -335,6 +353,27 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         # invalid voucher code
         resp = self.client.get(self.url + '?block_code=bar')
         self.assertEqual(resp.context['block_voucher_error'], 'Invalid code')
+
+    def test_remove_block_voucher_code(self):
+        # valid voucher
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        self.block_voucher.block_types.add(block.block_type)
+        resp = self.client.get(self.url + '?block_code=foo')
+        
+        # 2 bookings, one with 10% discount
+        block.refresh_from_db()
+        assert resp.context['total_unpaid_block_cost'] == Decimal('38.00')
+        assert block.voucher_code == "foo"
+
+        resp = self.client.get(self.url + '?block_code=foo&remove_block_voucher=')
+        block.refresh_from_db()
+        assert resp.context['total_unpaid_block_cost'] == Decimal('40.00')
+        assert block.voucher_code is None
 
     def test_booking_voucher_code_expired(self):
         # expired voucher
@@ -506,6 +545,31 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             resp.context['block_voucher_error'],
             'Voucher has limited number of uses and has now expired'
         )
+    
+    def test_block_voucher_will_be_used_max_total_times(self):
+        block_type = baker.make_recipe('booking.blocktype5', cost=20)
+        blocks = baker.make_recipe(
+            'booking.block', block_type=block_type, user=self.user, paid=False,
+            _quantity=2
+        )
+        self.block_voucher.block_types.add(block_type)
+        self.block_voucher.max_vouchers = 2
+        self.block_voucher.save()
+
+        other_user = baker.make_recipe('booking.user')
+        baker.make(
+            UsedBlockVoucher, user=other_user, voucher=self.block_voucher,
+            _quantity=1
+        )
+
+        resp = self.client.get(self.url + '?block_code=foo')
+        assert resp.context['block_voucher_msg'] == [
+            'Voucher not applied to some blocks; voucher has limited '
+            'number of total uses.'
+        ]
+        for block in blocks:
+            block.refresh_from_db()
+        assert sum(1 for bl in blocks if bl.voucher_code == "foo") == 1
 
     def test_booking_voucher_will_be_used_max_total_times_with_basket_bookings(self):
         ev_types = [

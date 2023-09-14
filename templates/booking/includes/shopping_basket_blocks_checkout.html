@@ -3,7 +3,7 @@
     {% endif %}
 </h3>
 
-<form method="post" action="{% url 'booking:stripe_checkout' %}">
+<form id="checkout-blocks-form" method="post" action="{% url 'booking:stripe_checkout' %}">
     {% csrf_token %}
     <input type="hidden" name="cart_blocks_total" id="cart_blocks_total_input" value="{{ total_unpaid_block_cost }}">
     <input

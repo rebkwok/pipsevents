@@ -465,7 +465,7 @@ class Block(models.Model):
                 return Decimal(
                     float(self.block_type.cost) * ((100 - voucher.discount) / 100)
                 ).quantize(Decimal('.05'))
-            except BlockVoucher.objects.DoesNotExist:
+            except BlockVoucher.DoesNotExist:
                 self.voucher_code = None
                 self.save()
         return self.block_type.cost
@@ -479,11 +479,10 @@ class Block(models.Model):
             try:
                 voucher = BlockVoucher.objects.get(code=self.voucher_code)
                 UsedBlockVoucher.objects.get_or_create(voucher=voucher, block_id=self.id, user=self.user)
-            except:
-                BlockVoucher.DoesNotExist
+            except BlockVoucher.DoesNotExist:
                 logger.error(
                     f"Tried to process non-existent Block Voucher with code '{self.voucher_code}' "
-                    f"for block {self.block.id}" 
+                    f"for block {self.id}" 
                 )
 
     def delete(self, *args, **kwargs):
@@ -683,7 +682,7 @@ class Booking(models.Model):
                 return Decimal(
                     float(self.event.cost) * ((100 - voucher.discount) / 100)
                 ).quantize(Decimal('.05'))
-            except EventVoucher.objects.DoesNotExist:
+            except EventVoucher.DoesNotExist:
                 self.voucher_code = None
                 self.save()
         return self.event.cost
@@ -696,12 +695,11 @@ class Booking(models.Model):
         if self.voucher_code:
             try:
                 voucher = EventVoucher.objects.get(code=self.voucher_code)
-                UsedEventVoucher.objects.get_or_create(voucher=voucher, block_id=self.id, user=self.user)
-            except:
-                EventVoucher.DoesNotExist
+                UsedEventVoucher.objects.get_or_create(voucher=voucher, booking_id=self.id, user=self.user)
+            except EventVoucher.DoesNotExist:
                 logger.error(
                     f"Tried to process non-existent Event Voucher with code '{self.voucher_code}' "
-                    f"for booking {self.booking.id}" 
+                    f"for booking {self.id}" 
                 )
 
     def _old_booking(self):

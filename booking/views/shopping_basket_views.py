@@ -313,12 +313,11 @@ def shopping_basket(request):
     context = get_unpaid_block_context(request.user, context)
 
      # bookings
+    booking_code = request.GET.get('booking_code')
     if "remove_booking_voucher" in request.GET:
         remove_voucher(context["unpaid_bookings"])
-
-    booking_code = request.GET.get('booking_code')
-    if booking_code and not request.GET.get("remove_booking_voucher"):
-        booking_code = request.GET['booking_code'].strip()
+    elif booking_code:
+        booking_code = booking_code.strip()
         context = add_booking_voucher_context(
             booking_code, 
             request.user, 
@@ -331,12 +330,11 @@ def shopping_basket(request):
         context = add_total_bookings_and_payment_context(request, context)
     
     # blocks
+    block_code = request.GET.get('block_code', None)
     if "remove_block_voucher"in request.GET:
         remove_voucher(context["unpaid_blocks"])
-
-    block_code = request.GET.get('block_code', None)
-    if block_code and not request.GET.get("remove_booking_voucher"):
-        block_code = request.GET['block_code'].strip()
+    elif block_code:
+        block_code = block_code.strip()
         context = add_block_voucher_context(
             block_code, 
             request.user, 
