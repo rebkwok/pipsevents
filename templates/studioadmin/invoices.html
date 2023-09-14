@@ -1,0 +1,42 @@
+{%  extends "studioadmin/base.html" %}
+
+{% load accounttags static %}
+
+
+{% block studioadmincontent %}
+    <h1>Transaction History</h1>
+
+    <table class="table table-responsive table-striped">
+        <thead>
+            <th>Invoice</th>
+            <th>User</th>
+            <th>Amount</th>
+            <th>Payment method</th>
+            <th>Date Paid</th>
+            <th>Items</th>
+        </thead>
+        <tbody>
+            {% for invoice in invoices %}
+                <tr>
+                    <td>{{ invoice.invoice_id }}</td>
+                    <td>{{ invoice.username }}</td>
+                    <td>£{{ invoice.amount }}</td>
+                    <td>{% if invoice.amount == 0 %}Voucher{% else %}Stripe{% endif %}</td>
+                    <td>{{ invoice.date_paid|date:"d-M-y H:i" }}</td>
+                    <td>
+                        <ul>
+                            {% for item in invoice.items_dict.values %}
+                                <li>{{ item.name }}{% if item.voucher %}<br/>(voucher used: <span class="text-primary">{{ item.voucher }}</span>){% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% include 'booking/includes/pagination.html' %}
+
+{% endblock studioadmincontent %}
+{% block extra_js %}
+{% endblock %}

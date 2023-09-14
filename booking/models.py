@@ -216,13 +216,11 @@ class Event(models.Model):
         return "online" in self.event_type.subtype.lower()
 
     def __str__(self):
-        return '{} - {} ({})'.format(
-            str(self.name),
-            self.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M'),
-            self.location
-        )
+        return f'{self.str_no_location()} ({self.location})'
+    
+    def str_no_location(self):
+        formatted_date = self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
+        return f"{self.name} - {formatted_date}"
 
     def save(self, *args, **kwargs):
         self.location_index = self.LOCATION_INDEX_MAP[self.location]

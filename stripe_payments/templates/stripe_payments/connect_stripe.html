@@ -2,7 +2,7 @@
 
 {% load  static %}
 
-{% block content %}
+{% block studioadmincontent %}
     <h1>Connect Stripe Account</h1>
     {% if not request.user.is_superuser %}
         <p>WARNING! You do not have permission to connect a Stripe account. Please contact an administrator. </p>
@@ -18,5 +18,5 @@
         {% endif %}
     {% endif %}
 
-{% endblock content %}
+{% endblock %}
 {% block extrascripts %}{% endblock %}

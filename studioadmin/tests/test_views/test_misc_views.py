@@ -3,16 +3,18 @@ from model_bakery import baker
 import pytest
 
 from django.urls import reverse
+from django.contrib.auth.models import User
 from django.core import mail
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 
-from booking.models import Booking
+from booking.models import Booking, Block, TicketBooking, Ticket
 from common.tests.helpers import _create_session
 from studioadmin.views import (
     ConfirmPaymentView,
     ConfirmRefundView,
 )
+from stripe_payments.models import Invoice
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -386,3 +388,32 @@ class TestPaypalViewTests(TestPermissionMixin, TestCase):
             resp.context_data['email_errors'],
             'Please enter an email address to test'
         )
+
+
+@pytest.mark.django_db
+def test_invoice_list(client):
+    invoice = baker.make(Invoice, invoice_id="foo123", paid=True)
+    unpaid_invoice = baker.make(Invoice, invoice_id="foo345", paid=False)
+    baker.make(Block, block_type__cost=10, invoice=invoice)
+    baker.make(Booking, event__name="test event", event__cost=10, invoice=invoice)
+    ticket_booking = baker.make(TicketBooking, ticketed_event__name="test show", ticketed_event__ticket_cost=10, invoice=invoice)
+    baker.make(Ticket, ticket_booking=ticket_booking)
+    # gift voucher
+    blocktype = baker.make_recipe("booking.blocktype")
+    block_gift_voucher = baker.make_recipe(
+        "booking.block_gift_voucher", purchaser_email="test@test.com", activated=True,
+        invoice=invoice
+    )
+    block_gift_voucher.block_types.add(blocktype)
+    blocktype = block_gift_voucher.block_types.first()    
+    baker.make("booking.GiftVoucherType", block_type=blocktype)
+
+    staff_user = User.objects.create_user(
+        username='testuser', email='test@test.com', password='test'
+    )
+    staff_user.is_staff = True
+    staff_user.save()
+
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:invoices"))
+    assert list(resp.context_data["invoices"]) == [invoice]

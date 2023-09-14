@@ -23,7 +23,10 @@ logger = logging.getLogger(__name__)
 def connect_stripe_view(request):
     site_sellers = Seller.objects.filter(site=Site.objects.get_current(request))
     site_seller = site_sellers.first() if site_sellers else None
-    return render(request, "stripe_payments/connect_stripe.html", {"site_seller": site_seller})
+    return render(
+        request, "stripe_payments/connect_stripe.html", 
+        {"site_seller": site_seller, "sidenav_selection": "connect_stripe"}
+    )
 
 
 class StripeAuthorizeView(LoginRequiredMixin, StaffuserRequiredMixin, View):
