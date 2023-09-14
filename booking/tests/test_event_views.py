@@ -220,6 +220,10 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url, {'date_selection': '23-Jan-2023,23-Feb-2023'})
         self.assertEqual(resp.context['events'].count(), 2)
 
+        # invalid date returns none
+        resp = self.client.get(self.url, {'date_selection': '23Foo2023'})
+        self.assertEqual(resp.context['events'].count(), 0)
+
     def test_filter_events_by_spaces(self):
         event = baker.make_recipe('booking.future_EV', max_participants=1)
         baker.make_recipe('booking.future_EV', max_participants=1)
@@ -370,6 +374,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
             '<div class="tab-pane fade active in" id="tab0">',
             resp.rendered_content
         )
+
+        # bad tab, defaults to 0
+        url += '?tab=foo'
+        resp = self.client.get(url)
+        self.assertEqual(resp.context_data['tab'], '0')
 
         url += '?tab=1'
         resp = self.client.get(url)

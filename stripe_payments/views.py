@@ -123,15 +123,11 @@ def stripe_webhook(request):
 
     try:
         site_seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
-        try:
-            account = event.account
-        except Exception as e:
-            logger.error(e)
-        else:
-            if account != site_seller.stripe_user_id:
-                # relates to a different seller, just return and let the next webhook manage it
-                logger.info("Mismatched seller account %s", account)
-                return HttpResponse("Ignored: Mismatched seller account", status=200)
+        account = event.account
+        if account != site_seller.stripe_user_id:
+            # relates to a different seller, just return and let the next webhook manage it
+            logger.info("Mismatched seller account %s", account)
+            return HttpResponse("Ignored: Mismatched seller account", status=200)
 
         payment_intent = event_object
         invoice = get_invoice_from_payment_intent(payment_intent, raise_immediately=True)

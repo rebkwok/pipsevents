@@ -86,8 +86,9 @@ def get_mock_payment_intent():
 def get_mock_webhook_event(seller, get_mock_payment_intent):
     def mock_webhook_event(**params):
         webhook_event_type = params.pop("webhook_event_type", "payment_intent.succeeded")
+        seller_id = params.pop("seller_id", seller.stripe_user_id)
         mock_event = Mock(
-            account=seller.stripe_user_id,
+            account=seller_id,
             data=Mock(object=get_mock_payment_intent(webhook_event_type, **params)), type=webhook_event_type
         )
         return mock_event

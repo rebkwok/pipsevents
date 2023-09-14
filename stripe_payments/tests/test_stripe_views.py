@@ -156,90 +156,84 @@ def test_return_with_matching_invoice_and_ticket_booking(
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 
-# @patch("stripe_payments.views.stripe.PaymentIntent")
-# def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_mock_payment_intent, client, configured_user):
-#     assert StripePaymentIntent.objects.exists() is False
-#     invoice = baker.make(
-#         Invoice, invoice_id="foo", amount=10,
-#         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
-#     )
-#     gift_voucher = baker.make(
-#         GiftVoucher, gift_voucher_type__discount_amount=10, paid=False, invoice=invoice
-#     )
-#     gift_voucher.voucher.purchaser_email = configured_user.email
-#     gift_voucher.voucher.save()
-#     metadata = {
-#         "invoice_id": "foo",
-#         "invoice_signature": invoice.signature(),
-#         **invoice.items_metadata(),
-#     }
-#     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
+@patch("stripe_payments.views.stripe.PaymentIntent")
+def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_mock_payment_intent, client, configured_user, block_gift_voucher):
+    assert StripePaymentIntent.objects.exists() is False
+    invoice = baker.make(
+        Invoice, invoice_id="foo", amount=10,
+        username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
+    )
+    block_gift_voucher.invoice = invoice
+    block_gift_voucher.purchaser_email = configured_user.email
+    block_gift_voucher.save()
 
-#     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
-#     assert resp.status_code == 200
-#     assert "Payment Processed" in resp.content.decode("utf-8")
-#     gift_voucher.refresh_from_db()
-#     gift_voucher.voucher.refresh_from_db()
-#     invoice.refresh_from_db()
+    metadata = {
+        "invoice_id": "foo",
+        "invoice_signature": invoice.signature(),
+        **invoice.items_metadata(),
+    }
+    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
 
-#     assert gift_voucher.paid is True
-#     assert gift_voucher.voucher.activated is True
+    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    assert resp.status_code == 200
+    assert "Payment Processed" in resp.content.decode("utf-8")
+    block_gift_voucher.refresh_from_db()
+    invoice.refresh_from_db()
 
-#     payment_intent_obj = StripePaymentIntent.objects.latest("id")
-#     assert payment_intent_obj.invoice == invoice
+    assert block_gift_voucher.activated is True
 
-#     assert len(mail.outbox) == 3
-#     assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
-#     assert mail.outbox[1].to == [configured_user.email]
-#     assert "Your payment has been processed" in mail.outbox[1].subject
-#     assert mail.outbox[2].to == [configured_user.email]
-#     assert "Gift Voucher" in mail.outbox[2].subject
+    payment_intent_obj = StripePaymentIntent.objects.latest("id")
+    assert payment_intent_obj.invoice == invoice
+
+    assert len(mail.outbox) == 3
+    assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
+    assert mail.outbox[1].to == [configured_user.email]
+    assert "Your payment has been processed" in mail.outbox[1].subject
+    assert mail.outbox[2].to == [configured_user.email]
+    assert "Gift Voucher" in mail.outbox[2].subject
 
 
-# @pytest.mark.usefixtures("seller", "send_all_studio_emails")
-# @patch("stripe_payments.views.stripe.PaymentIntent")
-# def test_return_with_matching_invoice_and_gift_voucher_anon_user(mock_payment_intent, get_mock_payment_intent, client):
-#     assert StripePaymentIntent.objects.exists() is False
-#     invoice = baker.make(
-#         Invoice, invoice_id="foo", amount=10,
-#         username="", stripe_payment_intent_id="mock-intent-id"
-#     )
-#     gift_voucher = baker.make(
-#         GiftVoucher, gift_voucher_type__discount_amount=10, paid=False,
-#         invoice=invoice
-#     )
-#     gift_voucher.voucher.purchaser_email = "anon@test.com"
-#     gift_voucher.voucher.save()
-#     metadata = {
-#         "invoice_id": "foo",
-#         "invoice_signature": invoice.signature(),
-#         **invoice.items_metadata(),
-#     }
-#     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
+@pytest.mark.usefixtures("seller", "send_all_studio_emails")
+@patch("stripe_payments.views.stripe.PaymentIntent")
+def test_return_with_matching_invoice_and_gift_voucher_anon_user(
+    mock_payment_intent, get_mock_payment_intent, client, block_gift_voucher
+):
+    assert StripePaymentIntent.objects.exists() is False
+    invoice = baker.make(
+        Invoice, invoice_id="foo", amount=10,
+        username="", stripe_payment_intent_id="mock-intent-id"
+    )
+    block_gift_voucher.purchaser_email = "anon@test.com"
+    block_gift_voucher.invoice = invoice
+    block_gift_voucher.save()
+    metadata = {
+        "invoice_id": "foo",
+        "invoice_signature": invoice.signature(),
+        **invoice.items_metadata(),
+    }
+    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
 
-#     resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
-#     assert resp.status_code == 200
-#     assert "Payment Processed" in resp.content.decode("utf-8")
-#     gift_voucher.refresh_from_db()
-#     gift_voucher.voucher.refresh_from_db()
-#     invoice.refresh_from_db()
+    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    assert resp.status_code == 200
+    assert "Payment Processed" in resp.content.decode("utf-8")
+    block_gift_voucher.refresh_from_db()
+    invoice.refresh_from_db()
 
-#     assert gift_voucher.paid is True
-#     assert gift_voucher.voucher.activated is True
+    assert block_gift_voucher.activated is True
 
-#     # invoice username added from payment intent
-#     assert invoice.username == "stripe-payer@test.com"
-#     payment_intent_obj = StripePaymentIntent.objects.latest("id")
-#     assert payment_intent_obj.invoice == invoice
+    # invoice username added from payment intent
+    assert invoice.username == "stripe-payer@test.com"
+    payment_intent_obj = StripePaymentIntent.objects.latest("id")
+    assert payment_intent_obj.invoice == invoice
 
-#     assert len(mail.outbox) == 3
-#     assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
-#     # payment email goes to invoice email
-#     assert mail.outbox[1].to == ["stripe-payer@test.com"]
-#     assert "Your payment has been processed" in mail.outbox[1].subject
-#     # gift voucher goes to purchaser emailon voucher
-#     assert mail.outbox[2].to == ["anon@test.com"]
-#     assert "Gift Voucher" in mail.outbox[2].subject
+    assert len(mail.outbox) == 3
+    assert mail.outbox[0].to == [settings.DEFAULT_STUDIO_EMAIL]
+    # payment email goes to invoice email
+    assert mail.outbox[1].to == ["stripe-payer@test.com"]
+    assert "Your payment has been processed" in mail.outbox[1].subject
+    # gift voucher goes to purchaser emailon voucher
+    assert mail.outbox[2].to == ["anon@test.com"]
+    assert "Gift Voucher" in mail.outbox[2].subject
 
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
@@ -602,6 +596,26 @@ def test_webhook_authorized_account_no_seller(
 
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 400
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+@patch("stripe_payments.views.stripe.Account")
+def test_webhook_authorized_account_mismatched_seller(
+    mock_account, mock_webhook, get_mock_webhook_event, client, invoice
+):     
+    baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
+    metadata = {
+        "invoice_id": "foo",
+        "invoice_signature": invoice.signature(),
+        **invoice.items_metadata(),
+    }
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        metadata=metadata, seller_id="other-seller-id"
+    )
+
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200
+    assert resp.content.decode() == "Ignored: Mismatched seller account"
 
 
 @patch("stripe_payments.views.stripe.Webhook")
