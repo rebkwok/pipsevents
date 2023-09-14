@@ -5,16 +5,13 @@
 <p><strong>Invoice number:</strong> {{ invoice.invoice_id }}</p>
 <p><strong>User: {{ user.first_name}} {{ user.last_name}}</strong></p>
 <p><strong>Purchased:</strong>
-    <ul>
-            {% for membership in invoice.memberships.all %}
-        <li>{{ membership.membership_type.name }}</li>
-      {% endfor %}
-      {% for booking in invoice.bookings.all %}
-          <li>{{ booking.event }}</li>
-      {% endfor %}
-      {% for gift_voucher in invoice.gift_vouchers.all %}
-          <li>{{ gift_voucher.name }}*</li>
-      {% endfor %}
-    </ul>
-</p>
+    {% for item_type, items in invoice.items_summary.items %}
+        {% if items %}
+            <ul>
+                {% for item in items %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endfor %}
 {% endblock %}

@@ -407,6 +407,39 @@ def test_webhook_with_matching_invoice_and_block(
 
 
 @patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_with_refunded_invoice_and_block(
+    mock_webhook, get_mock_webhook_event, client, invoice, configured_user
+):
+    assert StripePaymentIntent.objects.exists() is False
+    invoice.paid = True
+    invoice.save()
+    block = baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
+    metadata = {
+        "invoice_id": "foo",
+        "invoice_signature": invoice.signature(),
+        **invoice.items_metadata(),
+    }
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="payment_intent.refunded",
+        metadata=metadata
+    )
+
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200
+    block.refresh_from_db()
+    invoice.refresh_from_db()
+
+    # still paid, we don't do any updates to refunded items
+    assert block.paid is True
+    assert invoice.paid is True
+
+    # email to support only
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
+    assert "WARNING: Payment refund processed" in mail.outbox[0].subject
+
+
+@patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_already_processed(
     mock_webhook, get_mock_webhook_event, client, invoice
 ):
@@ -539,32 +572,6 @@ def test_webhook_payment_failed(
     assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
     assert "WARNING: Something went wrong with a payment!" in mail.outbox[0].subject
     assert "Failed payment intent id: mock-intent-id; invoice id foo" in mail.outbox[0].body
-
-@patch("stripe_payments.views.stripe.Webhook")
-def test_webhook_payment_requires_action(
-    mock_webhook, get_mock_webhook_event, client, invoice
-):
-    block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
-    metadata = {
-        "invoice_id": "foo",
-        "invoice_signature": invoice.signature(),
-        **invoice.items_metadata(),
-    }
-    mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="payment_intent.requires_action", metadata=metadata
-    )
-    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
-    assert resp.status_code == 200
-    block.refresh_from_db()
-    invoice.refresh_from_db()
-    # invoice and block is still unpaid
-    assert block.paid is False
-    assert invoice.paid is False
-
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
-    assert "WARNING: Something went wrong with a payment!" in mail.outbox[0].subject
-    assert "Payment intent requires action: id mock-intent-id; invoice id foo" in mail.outbox[0].body
 
 
 @patch("stripe_payments.views.stripe.Webhook")

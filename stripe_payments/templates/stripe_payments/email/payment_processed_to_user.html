@@ -4,20 +4,18 @@
 <h2>Thank you for your payment.</h2>
 <p><strong>Invoice number:</strong> {{ invoice.invoice_id }}</p>
 <p><strong>Purchased:</strong>
-    <ul>    
-    {% for membership in invoice.memberships.all %}
-      <li>{{ membership.membership_type.name }}</li>
+    {% for item_type, items in invoice.items_summary.items %}
+        {% if items %}
+            <ul>
+                {% for item in items %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     {% endfor %}
-    {% for booking in invoice.bookings.all %}
-        <li>{{ booking.event }}</li>
-    {% endfor %}
-    {% for gift_voucher in invoice.gift_vouchers.all %}
-        <li>{{ gift_voucher.name }}*</li>
-    {% endfor %}
-    </ul>
 </p>
 
-{% if invoice.gift_vouchers.exists %}
+{% if invoice.gift_vouchers %}
     <p>*Gift voucher codes and a link to a printable voucher will be sent in separate email(s)</p>
 {% endif %}
 

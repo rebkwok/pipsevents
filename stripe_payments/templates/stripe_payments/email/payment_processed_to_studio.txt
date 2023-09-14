@@ -5,6 +5,12 @@ Payment processed
 Invoice number: {{ invoice.invoice_id }}</p>
 User: {{ user.first_name}} {{ user.last_name}}
 Purchased:
-{% for membership in invoice.memberships.all %}-{{ membership.membership_type.name }}{% endfor %}
-{% for booking in invoice.bookings.all %}-{{ booking.event }}{% endfor %}
-{% for gift_voucher in invoice.gift_vouchers.all %}-{{ gift_voucher.name }}*{% endfor %}
+{% for item_type, items in invoice.items_summary.items %}
+    {% if items %}
+        <ul>
+            {% for item in items %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endfor %}
