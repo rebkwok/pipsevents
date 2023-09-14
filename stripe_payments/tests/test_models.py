@@ -41,19 +41,20 @@ def test_signature():
 
 
 @pytest.mark.usefixtures("invoice_keyenv")
-def test_invoice_item_count():
+def test_invoice_item_count(block_gift_voucher):
     invoice = baker.make(
         Invoice, invoice_id="foo123",
         blocks=baker.make(Block, _quantity=2),
         bookings=baker.make(Booking, _quantity=1),
         ticket_bookings=baker.make(TicketBooking, _quantity=1),
-        # gift_vouchers=baker.make(GiftVoucher, gift_voucher_type__discount_amount=10, _quantity=1),
     )
-    assert invoice.item_count() == 4
+    block_gift_voucher.invoice = invoice
+    block_gift_voucher.save()
+    assert invoice.item_count() == 5
 
 
 @pytest.mark.usefixtures("invoice_keyenv")
-def test_invoice_items_metadata():
+def test_invoice_items_metadata(block_gift_voucher):
     invoice = baker.make(Invoice, invoice_id="foo123")
     block = baker.make(
         Block, 
@@ -67,21 +68,25 @@ def test_invoice_items_metadata():
         TicketBooking, ticketed_event__name="test show", ticketed_event__ticket_cost=10, invoice=invoice
     )
     baker.make(Ticket, ticket_booking=ticket_booking)
-    # gift_voucher = baker.make(GiftVoucher, gift_voucher_type__discount_amount=10, invoice=invoice)
+    block_gift_voucher.invoice = invoice
+    block_gift_voucher.save()
     assert invoice.items_metadata() == {
         f'booking_{booking.id}_cost_in_p': '1000',
-        f'booking_{booking.id}_item': str(booking.event)[:40],
-        # f'gift_voucher_{gift_voucher.id}_cost_in_p': '1000',
-        # f'gift_voucher_{gift_voucher.id}_item': 'Gift Voucher: £10.00',
+        f'booking_{booking.id}_item': booking.event.str_no_location()[:40],
         f'block_{block.id}_cost_in_p': '1000',
         f'block_{block.id}_item': f'Pole - quantity 2',
+        f'gift_voucher_{block_gift_voucher.id}_item': block_gift_voucher.gift_voucher_type.name[:40],
+        f'gift_voucher_{block_gift_voucher.id}_cost_in_p': '1000',
         f'ticket_booking_{ticket_booking.id}_cost_in_p': '1000',
         f'ticket_booking_{ticket_booking.id}_item': f'Tickets (1) for {ticket_booking.ticketed_event}'[:40]}
 
 
 @pytest.mark.usefixtures("invoice_keyenv")
-def test_invoice_items_summary():
+def test_invoice_items_summary(block_gift_voucher):
     invoice = baker.make(Invoice, invoice_id="foo123")
+    block_gift_voucher.invoice = invoice
+    block_gift_voucher.save()
+
     block = baker.make(
         Block, 
         block_type__cost=10, 
@@ -93,39 +98,38 @@ def test_invoice_items_summary():
     ticket_booking = baker.make(TicketBooking, ticketed_event__name="test show", ticketed_event__ticket_cost=10, invoice=invoice)
     baker.make(Ticket, ticket_booking=ticket_booking)
     
-    # setup gift voucher
-    blocktype = baker.make_recipe("booking.blocktype")
-    block_voucher = baker.make_recipe(
-        "booking.block_gift_voucher", purchaser_email="test@test.com", activated=True,
-        invoice=invoice
-    )
-    block_voucher.block_types.add(blocktype)
-    blocktype = block_voucher.block_types.first()    
-    baker.make("booking.GiftVoucherType", block_type=blocktype)
-    
     assert invoice.items_summary() == {
-        "bookings": [str(booking.event)],
+        "bookings": [booking.event.str_no_location()],
         "blocks": [str(block.block_type)],
         "ticket_bookings": [str(ticket_booking.ticketed_event)],
-        "gift_vouchers": [block_voucher.gift_voucher_type.name]
+        "gift_vouchers": [block_gift_voucher.gift_voucher_type.name]
     }
 
 
 @pytest.mark.usefixtures("invoice_keyenv")
-def test_invoice_item_types():
+def test_invoice_item_types(block_gift_voucher):
     invoice = baker.make(Invoice, invoice_id="foo123")
     baker.make(Block, block_type__cost=10, invoice=invoice)
     baker.make(Booking, event__name="test event", event__cost=10, invoice=invoice)
     ticket_booking = baker.make(TicketBooking, ticketed_event__name="test show", ticketed_event__ticket_cost=10, invoice=invoice)
     baker.make(Ticket, ticket_booking=ticket_booking)
-    # baker.make(GiftVoucher, gift_voucher_type__discount_amount=10, invoice=invoice)
+    block_gift_voucher.invoice = invoice
+    block_gift_voucher.save()
 
-    assert invoice.item_types() == ["bookings", "blocks", "ticket_bookings"]
+    assert invoice.item_types() == ["bookings", "blocks", "gift_vouchers", "ticket_bookings"]
 
 
 def test_seller_str():
     seller = baker.make(Seller, user__email="testuser@test.com")
     assert str(seller) == "testuser@test.com"
+
+
+def test_invoice_payment_intent_ids(get_mock_payment_intent):
+    invoice = baker.make(Invoice, invoice_id="foo123")
+    stripe_pi, _ = StripePaymentIntent.update_or_create_payment_intent_instance(
+        get_mock_payment_intent(), invoice
+)
+    assert invoice.payment_intent_ids == "mock-intent-id"
 
 
 def test_create_stripe_payment_intent_instance_from_pi(get_mock_payment_intent):

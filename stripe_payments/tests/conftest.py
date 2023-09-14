@@ -92,3 +92,16 @@ def get_mock_webhook_event(seller, get_mock_payment_intent):
         )
         return mock_event
     return mock_webhook_event
+
+
+@pytest.fixture
+def block_gift_voucher():
+    # setup gift voucher
+    blocktype = baker.make_recipe("booking.blocktype", cost=10)
+    block_voucher = baker.make_recipe(
+        "booking.block_gift_voucher", purchaser_email="test@test.com", activated=True,
+    )
+    block_voucher.block_types.add(blocktype)
+    blocktype = block_voucher.block_types.first()    
+    baker.make("booking.GiftVoucherType", block_type=blocktype)
+    yield block_voucher

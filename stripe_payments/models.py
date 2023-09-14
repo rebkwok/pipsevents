@@ -54,7 +54,7 @@ class Invoice(models.Model):
 
     def items_summary(self):
         return {
-            "bookings": [str(booking.event) for booking in self.bookings.all()],
+            "bookings": [booking.event.str_no_location() for booking in self.bookings.all()],
             "blocks": [str(block.block_type) for block in self.blocks.all()],
             "gift_vouchers": [gift_voucher.gift_voucher_type.name for gift_voucher in self.gift_vouchers],
             "ticket_bookings": [str(tb.ticketed_event) for tb in self.ticket_bookings.all()],
@@ -69,7 +69,7 @@ class Invoice(models.Model):
          
         bookings = {
             f"booking_{item.id}": {
-                "name": str(item.event), 
+                "name": item.event.str_no_location(), 
                 "voucher": item.voucher_code,
                 "cost_str": _cost_str(item),
                 "cost_in_p": int(item.cost_with_voucher * 100),
