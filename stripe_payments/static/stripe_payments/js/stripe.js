@@ -32,11 +32,11 @@ $jq(document).ready(function()  {
         }
       };
 
-      var payment = elements.create("payment", { style: style });
-      payment.mount("#payment-element");
+      var card = elements.create("card", { style: style });
+      card.mount("#card-element");
 
-      payment.on('change', ({error}) => {
-      const displayError = document.getElementById('payment-errors');
+      card.on('change', ({error}) => {
+      const displayError = document.getElementById('card-errors');
       if (error) {
         displayError.textContent = error.message;
       } else {
@@ -45,9 +45,8 @@ $jq(document).ready(function()  {
     });
 
       return {
-        elements: elements,
         stripe: stripe,
-        payment: payment,
+        card: card,
         client_secret: client_secret,
         total: total,
         checkout_type: checkout_type,
@@ -76,8 +75,8 @@ $jq(document).ready(function()  {
             console.log(check_total);
             console.log(stripe_data.total);
             var current_total = check_total.total
-
-            if (current_total !== stripe_data.total) {
+          // Call stripe.confirmCardPayment() with the client secret.
+          if (current_total !== stripe_data.total) {
             // Show error to your customer
             showError("Your cart has changed, please return to the shopping cart page and try again");
           } else {
@@ -95,13 +94,21 @@ $jq(document).ready(function()  {
       changeLoadingState(true);
 
       stripe = stripe_data.stripe
-      payment = stripe_data.payment
+      card = stripe_data.card
       client_secret = stripe_data.client_secret
       var cardholder_name = document.getElementById('cardholder-name').value
       var cardholder_email = document.getElementById('cardholder-email').value
       // Initiate the payment.
       // If authentication is required, confirmCardPayment will automatically display a modal
-      stripe_data.elements.submit()
+      stripe.confirmCardPayment(client_secret, {
+          payment_method: {
+            billing_details: {
+                name: cardholder_name,
+                email: cardholder_email
+            },
+            card: card
+          }
+        })
         .then(function(result) {
           if (result.error) {
             // Show error to your customer
