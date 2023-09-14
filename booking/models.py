@@ -1151,11 +1151,13 @@ class EventVoucher(BaseVoucher):
     @property
     def gift_voucher_type(self):
         if self.is_gift_voucher:
-            gvts = GiftVoucherType.objects.filter(self.block_types.first())
+            if not self.event_types.exists():
+                raise ValueError("Event gift voucher must define at least one applicable event type")
+            gvts = GiftVoucherType.objects.filter(event_type=self.event_types.first())
             if not gvts.exists():
                 # In case this was a manually created gift voucher, make sure we can return 
                 # a valid gift voucher type, but don't make an active one
-                gvt, _ = GiftVoucherType.objects.create(event_type=self.event_types.first(), active=False)
+                gvt = GiftVoucherType.objects.create(event_type=self.event_types.first(), active=False)
             else:
                 gvt = gvts.first()
             return gvt
@@ -1177,9 +1179,11 @@ class BlockVoucher(BaseVoucher):
     @property
     def gift_voucher_type(self):
         if self.is_gift_voucher:
+            if not self.block_types.exists():
+                raise ValueError("Block gift voucher must define at least one applicable block type")
             gvts = GiftVoucherType.objects.filter(block_type=self.block_types.first())
             if not gvts.exists():
-                gvt, _ = GiftVoucherType.objects.create(block_type=self.block_types.first(), active=False)
+                gvt = GiftVoucherType.objects.create(block_type=self.block_types.first(), active=False)
             else:
                 gvt = gvts.first()
             return gvt

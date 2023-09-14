@@ -43,7 +43,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             spaces_only = True
         return name, date_selection, spaces_only
 
-    def get_queryset(self, booked_events=None):
+    def get_queryset(self):
         if self._queryset is None:
             ev_abbr = self.event_data_by_ev_type[self.kwargs["ev_type"]]["abbr"]
             name, date_selection, spaces_only = self.get_filter_form_initial()
@@ -82,8 +82,6 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
                 ]
                 events = events.filter(id__in=event_ids)
             self._queryset = events
-        if booked_events:
-            return self._queryset.exclude(id__in=booked_events)
         return self._queryset
 
     def get_context_data(self, **kwargs):

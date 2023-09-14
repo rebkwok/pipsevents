@@ -73,16 +73,23 @@ class TestSetupMixin(object):
         mockresponse.status_code = 200
         self.patcher = patch('requests.request', return_value = mockresponse)
         self.mock_request = self.patcher.start()
-        self.user = User.objects.create_user(
+        self.user = create_configured_user(
             username='test', email='test@test.com', password='test'
         )
-        baker.make(PrintDisclaimer, user=self.user)
-        make_data_privacy_agreement(self.user)
-        # Make sure we have a current disclaimer content
-        DisclaimerContent.objects.create(version=None)
 
     def tearDown(self):
         self.patcher.stop()
+
+
+def create_configured_user(username, email, password):
+    user = User.objects.create_user(
+        username=username, email=email, password=password
+    )
+    baker.make(PrintDisclaimer, user=user)
+    make_data_privacy_agreement(user)
+    # Make sure we have a current disclaimer content
+    DisclaimerContent.objects.create(version=None)
+    return user
 
 
 class PatchRequestMixin(object):

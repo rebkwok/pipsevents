@@ -87,7 +87,6 @@ def _check_blocks_and_get_updated_invoice(request):
         "redirect_url": None,
         "checkout_type": "blocks",
     }
-
     unpaid_blocks = get_unpaid_blocks_for_checkout(request.user)
     if not unpaid_blocks:
         messages.warning(request, "No blocks in cart")
@@ -134,7 +133,6 @@ def get_unpaid_bookings_for_checkout(user):
 
 def _check_bookings_and_get_updated_invoice(request):
     total = Decimal(request.POST.get("cart_bookings_total"))
-
     checked = {
         "total": total,
         "invoice": None,
@@ -214,9 +212,10 @@ def get_gift_voucher(voucher_id):
     try:
         voucher = BlockVoucher.objects.get(id=voucher_id)
     except BlockVoucher.DoesNotExist:
-        voucher = EventVoucher.objects.get(id=voucher_id)
-    except EventVoucher.DoesNotExist:
-        voucher = None
+        try:
+            voucher = EventVoucher.objects.get(id=voucher_id)
+        except EventVoucher.DoesNotExist:
+            voucher = None
     return voucher
 
 
@@ -237,14 +236,24 @@ def _check_gift_voucher_and_get_updated_invoice(request):
         checked.update({"redirect": True, "redirect_url": reverse("booking:buy_gift_voucher")})
         return checked
 
-    total = voucher.gift_voucher_type.cost
-    invoice = get_invoice([voucher], "gift_vouchers", request.user, total)
-    checked.update({"total": total, "invoice": invoice})
+    try:
+        total = voucher.gift_voucher_type.cost
+    except ValueError:
+        # gift voucher with no relevant block/event type defined
+        checked["redirect"] = True
+        checked["redirect_url"]: reverse("booking:buy_gift_voucher")
+        messages.warning(request, "Gift voucher type is not valid.")
+    else:
+        invoice = get_invoice([voucher], "gift_vouchers", request.user, total)
+        checked.update({"total": total, "invoice": invoice})
     return checked
 
 
 def _check_items_and_get_updated_invoice(request):
     # what sort of checkout is it? block/bookings
+    if not request.user.is_authenticated and "cart_gift_voucher" not in request.POST:
+        messages.warning(request, "Please login before proceeding to checkout")
+        return {"redirect": True, "redirect_url": reverse("account_login")}
     if "cart_bookings_total" in request.POST:
         return _check_bookings_and_get_updated_invoice(request)
     elif "cart_blocks_total" in request.POST:
@@ -356,7 +365,7 @@ def stripe_checkout(request):
 
 def check_total(request):
     checkout_type = request.GET.get("checkout_type")
-    total = None
+    total = 0
     if request.user.is_authenticated:
         if checkout_type == "bookings":
             unpaid_items = get_unpaid_bookings_for_checkout(request.user)
