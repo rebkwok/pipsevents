@@ -191,7 +191,7 @@
                         {% endif %}
                         <input class="btn btn-wm table-btn" type="submit" name="remove_booking_voucher" value="Remove" />
                     </form>
-                    <small><em>You have used this voucher for {% if times_booking_voucher_used == 1 %}1 class/workshop{% else %}{{ times_booking_voucher_used }} classes/workshops{% endif %} (max {{booking_voucher.max_per_user }}></em></small>
+                    <small><em>You have used this voucher for {% if times_booking_voucher_used == 1 %}1 class/workshop{% else %}{{ times_booking_voucher_used }} classes/workshops{% endif %} (max {{booking_voucher.max_per_user }})</em></small>
                         {% for msg in booking_voucher_msg %}<br/><span class="errorlist">{{ msg }}</span>{% endfor %}
                 {% endif %}
             </div>
