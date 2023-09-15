@@ -16,6 +16,7 @@
                         <form method="post" action="{% url 'booking:stripe_checkout' %}">
                             {% csrf_token %}
                             <input type="hidden" name="cart_gift_voucher" id="cart_gift_voucher" value="{{ voucher.id }}">
+                            <input type="hidden" name="cart_gift_voucher_total" id="cart_gift_voucher_total" value="{{ voucher.gift_voucher_type.cost }}">
                             <input type="hidden" name="voucher_type" id="voucher_type" value="{{ voucher_type.id }}">
                             <input
                                     class="btn btn-warning mb-1"

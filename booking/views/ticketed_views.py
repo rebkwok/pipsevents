@@ -318,37 +318,40 @@ class TicketBookingListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin
         context = super(TicketBookingListView, self).get_context_data(**kwargs)
 
         ticketbookinglist = []
+        
         for ticket_booking in self.object_list:
-            if not ticket_booking.cancelled and not ticket_booking.paid \
-                    and ticket_booking.ticketed_event.payment_open:
-                # ONLY DO THIS IF PAYPAL BUTTON NEEDED
-                invoice_id = create_ticket_booking_paypal_transaction(
-                    self.request.user, ticket_booking).invoice_id
-                custom = context_helpers.get_paypal_custom(
-                    item_type="ticket_booking",
-                    item_ids=str(ticket_booking.id),
-                    user_email=self.request.user.email,
-                )
-                paypal_form = PayPalPaymentsListForm(
-                    initial=context_helpers.get_paypal_dict(
-                        self.request,
-                        ticket_booking.ticketed_event.ticket_cost,
-                        ticket_booking.ticketed_event,
-                        invoice_id,
-                        custom,
-                        paypal_email=ticket_booking.ticketed_event.paypal_email,
-                        quantity=ticket_booking.tickets.count()
-                    )
-                )
-            else:
-                paypal_form = None
-
             ticketbookingform = {
-                'ticket_booking': ticket_booking,
-                'paypalform': paypal_form
-                }
+                'ticket_booking': ticket_booking,    
+            }
+            if settings.PAYMENT_METHOD == "paypal":
+                if not ticket_booking.cancelled and not ticket_booking.paid \
+                        and ticket_booking.ticketed_event.payment_open:
+                    # ONLY DO THIS IF PAYPAL BUTTON NEEDED
+                    invoice_id = create_ticket_booking_paypal_transaction(
+                        self.request.user, ticket_booking).invoice_id
+                    custom = context_helpers.get_paypal_custom(
+                        item_type="ticket_booking",
+                        item_ids=str(ticket_booking.id),
+                        user_email=self.request.user.email,
+                    )
+                    paypal_form = PayPalPaymentsListForm(
+                        initial=context_helpers.get_paypal_dict(
+                            self.request,
+                            ticket_booking.ticketed_event.ticket_cost,
+                            ticket_booking.ticketed_event,
+                            invoice_id,
+                            custom,
+                            paypal_email=ticket_booking.ticketed_event.paypal_email,
+                            quantity=ticket_booking.tickets.count()
+                        )
+                    )
+                else:
+                    paypal_form = None
+                ticketbookingform['paypalform'] = paypal_form
             ticketbookinglist.append(ticketbookingform)
         context['ticketbookinglist'] = ticketbookinglist
+        unpaid_bookings = self.object_list.filter(paid=False, cancelled=False)
+        context["cart_ticket_bookings_total"] = sum(booking.cost for booking in unpaid_bookings)
         return context
 
 

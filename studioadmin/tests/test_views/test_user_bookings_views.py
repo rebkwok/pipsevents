@@ -1966,36 +1966,66 @@ class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
             )
         )
 
-    def test_paypal_shown(self):
+    def test_payment_method(self):
         user = baker.make_recipe('booking.user')
-        event = baker.make_recipe('booking.future_PC', cost=10)
-        booking = baker.make_recipe(
-            'booking.booking', user=user, paid=True,
-            payment_confirmed=True, event=event, status='OPEN'
-        )
-
+        
         url = reverse(
             'studioadmin:user_upcoming_bookings_list',
             kwargs={'user_id': user.id}
         )
         self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(url)
-        soup = BeautifulSoup(resp.content, 'html.parser')
-        self.assertNotIn(
-            '<span class="fa fa-check"></span>',
-            [str(ch) for ch in soup.find(id = 'paypal-td').children]
-        )
 
-        ppbs = create_booking_paypal_transaction(booking=booking, user=user)
+        # unpaid
+        unpaid_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=False, status='OPEN'
+        )
+        # paid, no method
+        paid_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=True, status='OPEN'
+        )
+        # paid with block
+        block = baker.make(Block)
+        block_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=True, block=block, status='OPEN'
+        )
+        # paid with paypal
+        paypal_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=True, status='OPEN'
+        )
+        ppbs = create_booking_paypal_transaction(booking=paypal_booking, user=user)
         ppbs.transaction_id = 'foo'
         ppbs.save()
+        # paid with stripe
+        invoice = baker.make("stripe_payments.Invoice", paid=True, amount=20)
+        stripe_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=True, status='OPEN', invoice=invoice
+        )
+        # paid with voucher via stripe
+        invoice = baker.make("stripe_payments.Invoice", paid=True, amount=0)
+        voucher_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=True, status='OPEN', invoice=invoice
+        )
 
         resp = self.client.get(url)
         soup = BeautifulSoup(resp.content, 'html.parser')
-        self.assertIn(
-            '<span class="fa fa-check"></span>',
-            [str(ch) for ch in soup.find(id = 'paypal-td').children]
-        )
+        assert soup.find(id=f'payment-method-{unpaid_booking.id}').text == ""
+        assert soup.find(id=f'payment-method-{paid_booking.id}').text == ""
+        assert soup.find(id=f'payment-method-{block_booking.id}').text == "Block"
+        assert soup.find(id=f'payment-method-{paypal_booking.id}').text == "PayPal"
+        assert soup.find(id=f'payment-method-{stripe_booking.id}').text == "Stripe"
+        assert soup.find(id=f'payment-method-{voucher_booking.id}').text == "Voucher"
 
 
 class BookingAddViewTests(TestPermissionMixin, TestCase):

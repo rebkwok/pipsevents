@@ -1,5 +1,3 @@
-var MILLS_TO_IGNORE = 1000;
-
 var $jq = jQuery.noConflict();
 
 $jq(document).ready(function()  {
@@ -72,13 +70,12 @@ $jq(document).ready(function()  {
         ).then(function(response) {
           return response.json();
         }).then(function(check_total) {
-            console.log(check_total);
-            console.log(stripe_data.total);
-            var current_total = check_total.total
           // Call stripe.confirmCardPayment() with the client secret.
-          if (current_total !== stripe_data.total) {
+          if (check_total.total !== stripe_data.total) {
             // Show error to your customer
-            showError("Your cart has changed, please return to the shopping cart page and try again");
+            console.log("Actual total: " + check_total.total)
+            console.log("Cart total: " + stripe_data.total)
+            showError("Your cart has changed, please return to the previous page and try again");
           } else {
             // Total is up to date, make payment
             pay(stripe_data);

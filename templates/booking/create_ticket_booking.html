@@ -17,8 +17,6 @@
                 
                 <p>Ticket price : £ {{ ticketed_event.ticket_cost }}{% if show_vat %} (incl. VAT){% endif %}</p>
                 {% if not purchase_confirmed %}
-                    {{ ticket_booking }}
-                    {{ ticket_booking.purchase_confirmed }}
                     {% if ticket_booking.purchase_confirmed and not ticket_booking.paid %}
                         <p>
                             {{ ticket_booking.tickets.count }} ticket(s) are currently held for you pending payment. 
@@ -35,7 +33,7 @@
                     </form>
                 {% else %}
                     <p>Quantity: {{ ticket_booking.tickets.count }}</p>
-                    <p>Total ticket cost: £{{ ticket_booking|total_ticket_cost }}</p>
+                    <p>Total ticket cost: £{{ ticket_booking.cost }}</p>
                 {% endif %}
 
             {% if tickets %}
@@ -110,6 +108,8 @@
                         <form method="post" action="{% url 'booking:stripe_checkout' %}">
                             {% csrf_token %}
                             <input type="hidden" name="cart_ticket_booking_ref" id="cart_ticket_booking_ref" value="{{ ticket_booking.booking_reference }}">
+                            <input type="hidden" name="cart_ticket_bookings_total" id="cart_ticket_bookings_total" value="{{ ticket_booking.cost }}">
+                    
                             <input
                                     class="btn btn-warning mb-1"
                                     type="submit"

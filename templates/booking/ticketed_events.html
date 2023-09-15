@@ -39,6 +39,7 @@
                             {% else %}
                                 <div class="cancel-warning">This event has now sold out.</div>
                             {% endif %}
+                            <div>View <a href="{% url 'booking:ticket_bookings' %}">your ticket bookings</a>.</div>
                         {% else %}
                             {% if ticketed_event.bookable %}
                                 <div><a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">

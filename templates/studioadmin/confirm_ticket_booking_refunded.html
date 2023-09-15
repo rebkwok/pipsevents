@@ -12,7 +12,7 @@
             <p>Event: {{ ticket_booking.ticketed_event }}</p>
             <p>Booking reference: {{ ticket_booking.booking_reference }}</p>
             <p>Number of tickets: {{ ticket_booking.tickets.count }}</p>
-            <p>Total ticket booking cost: £{{ ticket_booking|total_ticket_cost }}</p>
+            <p>Total ticket booking cost: £{{ ticket_booking.cost }}</p>
 
         {% if ticket_booking.paid %}
             <p>Click the button below to confirm that the payment has been refunded.

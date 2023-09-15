@@ -665,13 +665,34 @@ class Booking(models.Model):
         return bool(available_blocks)
 
     @cached_property
-    def paypal_paid(self):
+    def payment_method(self):
+        if not self.paid:
+            return ""
+        if self.block:
+            return "Block"
+
         from payments.models import PaypalBookingTransaction
+        if PaypalBookingTransaction.objects.filter(
+            booking=self, transaction_id__isnull=False).exists():
+            return "PayPal"
+        from stripe_payments.models import Invoice
+        invoice = Invoice.objects.filter(bookings=self, paid=True).first()
+        if invoice:
+            if invoice.amount > 0:
+                return "Stripe"
+            else:
+                return "Voucher"
+        return ""
+
+    @cached_property
+    def stripe_paid(self):
+        from stripe_payments.models import Invoice
         if not self.paid or self.block is not None:
             return False
-        return PaypalBookingTransaction.objects.filter(
-            booking=self, transaction_id__isnull=False).exists()
-
+        return Invoice.objects.filter(
+            bookings=self, paid=True
+        ).exists()
+    
     @property
     def cost_with_voucher(self):
         if self.voucher_code:

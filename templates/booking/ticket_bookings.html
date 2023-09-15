@@ -12,6 +12,9 @@
 
     {% if ticketbookinglist %}
     <p>Please note that ticket bookings are final once paid.</p>
+    {% if cart_ticket_bookings_total > 0 %}
+    <p>Your unpaid ticket bookings will be automatically cancelled after a limited time.</p>
+    {% endif %}
     <div class="row">
         <div class="col-sm-12">
             <div class="card card-wm">
@@ -26,6 +29,7 @@
                             <th>Event</th>
                             <th class="text-center"># Tickets</th>
                             <th class="d-none d-md-table-cell text-center">Ticket Cost{% if show_vat %} (incl. VAT){% endif %}</th>
+                            <th>Paid</th>
                         </tr>
                         {% for bookingform in ticketbookinglist %}
                             <tr {% if bookingform.ticket_booking.cancelled or bookingform.ticket_booking.ticketed_event.cancelled %}class="cancelled-event"{% endif %}>
@@ -54,11 +58,30 @@
                                 <td>{{ bookingform.ticket_booking.ticketed_event.name }}</td>
                                 <td class="text-center">{{ bookingform.ticket_booking.tickets.count }}</td>
                                 <td class="d-none d-md-table-cell text-center">£{{ bookingform.ticket_booking.ticketed_event.ticket_cost }}</td>
+                                <td class="text-center">{% if bookingform.ticket_booking.paid %}<i class="fa fa-check"></i>{% else %}<i class="fa fa-times"></i>{% endif %}</td>
                             </tr>
                         {% endfor %}
+                        
                     </table>
+                    
                 </div>
+                
             </div>
+            {% if payment_method == "stripe" and cart_ticket_bookings_total > 0 %}
+                <div>
+                    <strong>Total pending: £{{ cart_ticket_bookings_total }}</strong>
+                    <form method="post" action="{% url 'booking:stripe_checkout' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="cart_ticket_bookings_total" id="cart_ticket_bookings_total" value="{{ cart_ticket_bookings_total }}">
+                        <input
+                                class="btn btn-warning mb-1"
+                                type="submit"
+                                value="Checkout"
+                        />
+                    </form>
+                </div>
+                
+            {% endif %}
         </div>
     </div>
     {% else %}

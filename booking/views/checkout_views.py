@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import logging
 
 from django.conf import settings
@@ -77,21 +77,28 @@ def get_invoice(items, item_type, user, total):
     return invoice
 
 
-def _check_blocks_and_get_updated_invoice(request):
-    total = Decimal(request.POST.get("cart_blocks_total"))
+def get_total_from_request(request, key):
+    if key not in request:
+        logger.error(f"Checkout error: No {key} found in request")
+    value = request.POST.get(key)
+    try:
+        return Decimal(value)
+    except (InvalidOperation, TypeError):
+        logger.error(f"Checkout error: Invalid {key} found in request: {value}")
 
-    checked = {
-        "total": total,
-        "invoice": None,
-        "redirect": False,
-        "redirect_url": None,
-        "checkout_type": "blocks",
-    }
+
+def _check_blocks_and_get_updated_invoice(request):
+    total = get_total_from_request(request, "cart_blocks_total")
+    error_dict = {"redirect": True, "redirect_url": reverse("booking:shopping_basket")}
+
+    if total is None:
+        messages.warning(request, "An error occurred, please try again.")
+        return error_dict
+    
     unpaid_blocks = get_unpaid_blocks_for_checkout(request.user)
     if not unpaid_blocks:
         messages.warning(request, "No blocks in cart")
-        checked.update({"redirect": True, "redirect_url": reverse("booking:shopping_basket")})
-        return checked
+        return error_dict
 
     # check the total against the total calculated by using the voucher-applied costs from the model
     # (this is what will be applied to the stripe payment and invoice, so it's what we care about)
@@ -102,11 +109,17 @@ def _check_blocks_and_get_updated_invoice(request):
         # reset any voucher codes that may have expired so user has to reapply them
         for block in unpaid_blocks:
             block.reset_voucher_code()
-        checked.update({"redirect": True, "redirect_url": reverse("booking:shopping_basket")})
-        return checked
+        return error_dict
 
     invoice = get_invoice(unpaid_blocks, "blocks", request.user, total)
-    checked.update({"invoice": invoice})
+    checked = {
+        "total": total,
+        "invoice": None,
+        "redirect": False,
+        "redirect_url": None,
+        "checkout_type": "blocks",
+        "invoice": invoice,
+    }
 
     if total == 0:
         # if the total in the cart is 0, then a voucher has been applied to all blocks/checkout total
@@ -132,21 +145,18 @@ def get_unpaid_bookings_for_checkout(user):
 
 
 def _check_bookings_and_get_updated_invoice(request):
-    total = Decimal(request.POST.get("cart_bookings_total"))
-    checked = {
-        "total": total,
-        "invoice": None,
-        "redirect": False,
-        "redirect_url": None,
-        "checkout_type": "bookings",
-    }
+    total = get_total_from_request(request, "cart_bookings_total")
+    error_dict = {"redirect": True, "redirect_url": reverse("booking:shopping_basket")}
+    
+    if total is None:
+        messages.warning(request, "An error occurred, please try again.")
+        return error_dict
 
     unpaid_bookings = get_unpaid_bookings_for_checkout(request.user)
     
     if not unpaid_bookings:
         messages.warning(request, "No bookings in cart")
-        checked.update({"redirect": True, "redirect_url": reverse("booking:shopping_basket")})
-        return checked
+        return error_dict
 
     # check the total against the total calculated by using the voucher-applied costs from the model
     # (this is what will be applied to the stripe payment and invoice, so it's what we care about)
@@ -157,11 +167,17 @@ def _check_bookings_and_get_updated_invoice(request):
         # reset any voucher codes that may have expired so user has to reapply them
         for booking in unpaid_bookings:
             booking.reset_voucher_code()
-        checked.update({"redirect": True, "redirect_url": reverse("booking:shopping_basket")})
-        return checked
+        return error_dict
 
     invoice = get_invoice(unpaid_bookings, "bookings", request.user, total)
-    checked.update({"invoice": invoice})
+    checked = {
+        "total": total,
+        "invoice": None,
+        "redirect": False,
+        "redirect_url": None,
+        "checkout_type": "bookings",
+        "invoice": invoice,
+    }
 
     if total == 0:
         # if the total in the cart is 0, then a voucher has been applied to all blocks/checkout total
@@ -180,31 +196,49 @@ def _check_bookings_and_get_updated_invoice(request):
 
 
 def get_unpaid_ticket_bookings_for_checkout(user, booking_ref):
-    return user.ticket_bookings.filter(paid=False, booking_reference=booking_ref)
+    unpaid_bookings = user.ticket_bookings.filter(paid=False, cancelled=False)
+    if booking_ref:
+        return unpaid_bookings.filter(booking_reference=booking_ref)
+    return unpaid_bookings
 
 
 def _check_ticket_booking_and_get_updated_invoice(request):
-    booking_ref = request.POST.get("cart_ticket_booking_ref")
+    booking_ref = request.POST.get("cart_ticket_booking_ref", "")
+    total = get_total_from_request(request, "cart_ticket_bookings_total")
     
+    ticket_bookings = get_unpaid_ticket_bookings_for_checkout(request.user, booking_ref)        
+    if not ticket_bookings.exists():
+        messages.warning(request, "Ticket booking could not be found.")
+        return {"redirect": True, "redirect_url": reverse("booking:ticketed_events")}
+
+    redirect_url = reverse(
+        "booking:book_ticketed_event", args=(ticket_bookings.first().ticketed_event.slug,)
+    ) if booking_ref else reverse("booking:ticketed_events")
+    
+    error_dict = {
+        "redirect": True, 
+        "redirect_url": redirect_url
+    }
+
+    if total is None:
+        messages.warning(request, "An error occurred, please try again.")
+        return error_dict
+
+    checked_total = sum(ticket_booking.cost for ticket_booking in ticket_bookings)
+    if checked_total != total:
+        messages.error(request, "Some items have changed; please refresh the page and try again")
+        return error_dict
+
+    invoice = get_invoice(ticket_bookings, "ticket_bookings", request.user, total)
     checked = {
+        "total": total,
         "invoice": None,
         "redirect": False,
         "redirect_url": None,
         "checkout_type": "ticket_bookings",
         "tbref": booking_ref,
+        "invoice": invoice,
     }
-
-    ticket_bookings = get_unpaid_ticket_bookings_for_checkout(request.user, booking_ref)
-    if not ticket_bookings.exists():
-        messages.warning(request, "Ticket booking could not be found.")
-        checked.update({"redirect": True, "redirect_url": reverse("booking:ticketed_events")})
-        return checked
-    else:
-        ticket_booking = ticket_bookings.first()
-
-    total = ticket_booking.cost
-    invoice = get_invoice([ticket_booking], "ticket_bookings", request.user, total)
-    checked.update({"total": total, "invoice": invoice})
     return checked
 
 
@@ -221,32 +255,40 @@ def get_gift_voucher(voucher_id):
 
 def _check_gift_voucher_and_get_updated_invoice(request):
     voucher_id = request.POST.get("cart_gift_voucher")
+    total = get_total_from_request(request, "cart_gift_voucher_total")
+    error_dict = {"redirect": True, "redirect_url": reverse("booking:buy_gift_voucher")}
+
+    if total is None:
+        messages.warning(request, "An error occurred, please try again.")
+        return error_dict
+
+    voucher = get_gift_voucher(voucher_id)
+    if voucher is None:
+        messages.warning(request, "Gift voucher could not be found.")
+        return error_dict
+
+    try:
+        checked_total = voucher.gift_voucher_type.cost
+    except ValueError:
+        # gift voucher with no relevant block/event type defined
+        messages.warning(request, "Gift voucher type is not valid.")
+        return error_dict
+    else:
+        if checked_total != total:
+            messages.error(request, "Some items have changed; please refresh the page and try again")
+            return error_dict
     
+    invoice = get_invoice([voucher], "gift_vouchers", request.user, total)
     checked = {
+        "total": total,
         "invoice": None,
         "redirect": False,
         "redirect_url": None,
         "checkout_type": "gift_vouchers",
         "voucher_id": voucher_id,
+        "invoice": invoice
     }
 
-    voucher = get_gift_voucher(voucher_id)
-    if voucher is None:
-        messages.warning(request, "Gift voucher could not be found.")
-        checked.update({"redirect": True, "redirect_url": reverse("booking:buy_gift_voucher")})
-        return checked
-
-    try:
-        total = voucher.gift_voucher_type.cost
-    except ValueError:
-        # gift voucher with no relevant block/event type defined
-        checked.update(
-            {"redirect": True, "redirect_url": reverse("booking:buy_gift_voucher")}
-        )
-        messages.warning(request, "Gift voucher type is not valid.")
-    else:
-        invoice = get_invoice([voucher], "gift_vouchers", request.user, total)
-        checked.update({"total": total, "invoice": invoice})
     return checked
 
 
@@ -259,9 +301,9 @@ def _check_items_and_get_updated_invoice(request):
         return _check_bookings_and_get_updated_invoice(request)
     elif "cart_blocks_total" in request.POST:
         return _check_blocks_and_get_updated_invoice(request)
-    elif "cart_ticket_booking_ref" in request.POST:
+    elif "cart_ticket_bookings_total" in request.POST:
         return _check_ticket_booking_and_get_updated_invoice(request)
-    elif "cart_gift_voucher" in request.POST:
+    elif "cart_gift_voucher_total" in request.POST:
         return _check_gift_voucher_and_get_updated_invoice(request)
     else:
         # no expected total, redirect to shopping basket
