@@ -387,11 +387,11 @@ def stripe_checkout(request):
                 )
         # update/create the django model PaymentIntent - this isjust for records
         StripePaymentIntent.update_or_create_payment_intent_instance(payment_intent, invoice, seller)
-
         context.update({
             "client_secret": payment_intent.client_secret,
             "stripe_account": stripe_account,
             "stripe_api_key": settings.STRIPE_PUBLISHABLE_KEY,
+            "stripe_return_url": request.build_absolute_uri(reverse("stripe_payments:stripe_payment_complete")),
             "cart_items": invoice.items_dict(),
             "cart_total": total,
             "checkout_type": checkout_type,

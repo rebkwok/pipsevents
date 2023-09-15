@@ -8,7 +8,8 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, HttpResponseRedirect
+from django.urls import reverse
 
 from activitylog.models import ActivityLog
 from .emails import send_failed_payment_emails, send_processed_refund_emails
@@ -33,22 +34,20 @@ def _process_completed_stripe_payment(payment_intent, invoice, seller=None, requ
         )
 
 
-@require_POST
 def stripe_payment_complete(request):
-    payload = request.POST.get("payload")
-    if payload is None:
-        logger.error("No payload found %s", payload)
-        send_failed_payment_emails(
-            payment_intent=None, error=f"POST: {str(request.POST)}"
-        )
-        return render(request, 'stripe_payments/non_valid_payment.html')
+    payment_intent_id = request.GET.get("payment_intent")
+    return HttpResponseRedirect(reverse("stripe_payments:stripe_payment_status", args=(payment_intent_id,)))
 
-    payload = json.loads(payload)
-    logger.info("Processing payment intent from payload %s", payload)
+
+def stripe_payment_status(request, payment_intent_id):
     stripe.api_key = settings.STRIPE_SECRET_KEY
     seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
     stripe_account = seller.stripe_user_id
-    payment_intent = stripe.PaymentIntent.retrieve(payload["id"], stripe_account=stripe_account)
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
+    stripe_account = seller.stripe_user_id
+    
+    payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, stripe_account=stripe_account)
     failed = False
 
     if payment_intent.status == "succeeded":

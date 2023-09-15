@@ -157,6 +157,9 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         # redirect if block is paid or has bookings
         self.block = get_object_or_404(Block, id=self.kwargs['pk'])
         if self.block.paid or self.block.bookings.exists():
+            if self.request.GET.get('ref') == 'basket':
+                logger.error(f"Attempt to delete block that is paid or has bookings (id {block.id})")
+                return HttpResponse("")
             return HttpResponseRedirect(reverse('booking:permission_denied'))
         return super().dispatch(request, *args, **kwargs)
 
@@ -170,7 +173,6 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         block_user = self.block.user.username
         block_type = self.block.block_type
         delete_from_shopping_basket = self.request.GET.get('ref') == 'basket'
-
         ActivityLog.objects.create(
             log='User {} deleted unpaid and unused block {} ({})'.format(
                 block_user, block_id, block_type

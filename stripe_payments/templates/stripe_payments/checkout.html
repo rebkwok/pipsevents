@@ -13,8 +13,8 @@
     <h1 class="mt-2">Checkout</h1>
     <hr>
 
-    <div class="sr-root">
-      <div class="sr-main">
+    <div>
+      <div>
 
       {% if preprocessing_error %}
           <h3 class="mt-1">There was a problem with your checkout</h3>
@@ -26,7 +26,7 @@
       {% else %}
 
 
-
+      <div id="checkout-summary">  
         <h3 class="mt-1">Order Summary</h3>
 
         <table class="table table-bordered">
@@ -48,24 +48,18 @@
             </td></tr>
         </tfoot>
         </table>
-
+      </div>
           <h3 class="mt-1">Billing Details</h3>
-          <form id="payment-form" class="sr-payment-form">
-            <div class="sr-form-row">
-              <label for="cardholder-name">Cardholder name</label>
-              <input class="sr-input sr-card-element" id="cardholder-name">
+          <form id="payment-form">
+            <div id="link-authentication-element">
+              <!--Stripe.js injects the Link Authentication Element-->
             </div>
-            <div class="sr-form-row">
-              <label for="cardholder-email">Cardholder email</label>
-                <input class="sr-input sr-card-element" id="cardholder-email" type="email">
+            <div id="payment-element">
+              <!--Stripe.js injects the Payment Element-->
             </div>
-            <div class="sr-form-row">
-              <label for="card-element">Payment details</label>
-                <div class="sr-input sr-card-element" id="card-element"></div>
-            </div>
-            <div class="sr-form-row">
-              <div class="sr-field-error" id="card-errors" role="alert"></div>
-              <button id="card-button" class="btn btn-dark"
+
+            <div>
+              <button id="payment-button" class="btn btn-dark"
                 data-client_secret="{{ client_secret }}"
                 data-stripe_account="{{ stripe_account }}"
                 data-stripe_api_key="{{ stripe_api_key }}"
@@ -73,20 +67,18 @@
                 data-checkout_type="{{ checkout_type }}"
                 data-tbref="{{ tbref }}"
                 data-voucher_id="{{ voucher_id }}"
+                data-return_url="{{ stripe_return_url }}"
               >
                 <div class="spinner hidden" id="spinner"></div>
-                <span id="button-text">Pay</span> <span id="order-amount">£{{ cart_total }}</span>
+                <span id="button-text">Pay </span> <span id="order-amount">£{{ cart_total }}</span>
               </button>
+              <div id="payment-message" class="hidden"></div>
+              <div id="payment-error" class="hidden"></div>
             </div>
           </form>
 
           {% include "stripe_payments/includes/stripe_info.html" %}
 
-
-    <form id="payload" class="hidden" action="{% url 'stripe_payments:stripe_payment_complete' %}" method="post">
-      {% csrf_token %}
-      <input id ="data-payload" type="hidden" name="payload"/>
-    </form>
 
       {% endif %}
     </div>

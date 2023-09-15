@@ -1,160 +1,172 @@
-var $jq = jQuery.noConflict();
 
-$jq(function()  {
-    // Set up Stripe.js and Elements to use in checkout form
-    var setupElements = function() {
-      var card_button = document.getElementById('card-button');
-      var stripe_account = card_button.getAttribute("data-stripe_account")
-      var client_secret = card_button.getAttribute("data-client_secret")
-      var stripe_api_key = card_button.getAttribute("data-stripe_api_key")
-      var total = card_button.getAttribute("data-total")
-      var checkout_type = card_button.getAttribute("data-checkout_type")
-      var tbref = card_button.getAttribute("data-tbref")
-      var voucher_id = card_button.getAttribute("data-voucher_id")
+    $jq(function () {
+        let elements;
+        let stripe;
+        let stripe_data;
+        let checked_total;
 
-      var stripe = Stripe(stripe_api_key, {stripeAccount: stripe_account});
-      var elements = stripe.elements();
-      var style = {
-        base: {
-          color: "#32325d",
-          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-          fontSmoothing: "antialiased",
-          fontSize: "16px",
-          "::placeholder": {
-            color: "#aab7c4"
-          }
-        },
-        invalid: {
-          color: "#fa755a",
-          iconColor: "#fa755a"
+        setupElements();
+        checkTotal();
+        initialize();
+        checkStatus();
+
+        document
+        .querySelector("#payment-form")
+        .addEventListener("submit", handleSubmit);
+
+        let emailAddress = '';
+
+        async function setupElements() {
+            const payment_button = document.querySelector('#payment-button');
+            stripe_data = {
+                stripe_account: payment_button.getAttribute("data-stripe_account"),
+                client_secret: payment_button.getAttribute("data-client_secret"),
+                stripe_api_key: payment_button.getAttribute("data-stripe_api_key"),
+                total: payment_button.getAttribute("data-total"),
+                checkout_type: payment_button.getAttribute("data-checkout_type"),
+                tbref: payment_button.getAttribute("data-tbref"),
+                voucher_id: payment_button.getAttribute("data-voucher_id"),
+                return_url: payment_button.getAttribute("data-return_url")
+            };
         }
-      };
 
-      var card = elements.create("card", { style: style });
-      card.mount("#card-element");
 
-      card.on('change', ({error}) => {
-      const displayError = document.getElementById('card-errors');
-      if (error) {
-        displayError.textContent = error.message;
-      } else {
-        displayError.textContent = '';
-      }
-    });
+        // Fetches a payment intent and captures the client secret
+        async function initialize() {
+            const client_secret = stripe_data.client_secret
+            stripe = Stripe(stripe_data.stripe_api_key, {stripeAccount: stripe_data.stripe_account});
 
-      return {
-        stripe: stripe,
-        card: card,
-        client_secret: client_secret,
-        total: total,
-        checkout_type: checkout_type,
-        tbref: tbref,
-        voucher_id: voucher_id,
-      };
-    };
+            const appearance = {
+                theme: 'stripe',
+            };
+            elements = stripe.elements({ appearance: appearance, clientSecret: client_secret });
 
-    // Disable the button until we have Stripe set up on the page
+            const linkAuthenticationElement = elements.create("linkAuthentication");
+            linkAuthenticationElement.mount("#link-authentication-element");
 
-    var stripe_data = setupElements()
+            linkAuthenticationElement.on('change', (event) => {
+                emailAddress = event.value.email;
+            });
 
-    // Handle form submission.
-    var form = document.getElementById("payment-form");
+            const paymentElementOptions = {
+                layout: "tabs",
+            };
 
-    form.addEventListener("submit", function(event) {
-      event.preventDefault();
+            const paymentElement = elements.create("payment", paymentElementOptions);
+            paymentElement.mount("#payment-element");
+        }
 
-      var response = fetch(
-        '/check-total/?checkout_type=' + stripe_data.checkout_type 
-        + "&tbref=" + stripe_data.tbref
-        + "&voucher_id=" + stripe_data.voucher_id
-        ).then(function(response) {
-          return response.json();
-        }).then(function(check_total) {
-          // Call stripe.confirmCardPayment() with the client secret.
-          if (check_total.total !== stripe_data.total) {
-            // Show error to your customer
-            console.log("Actual total: " + check_total.total)
-            console.log("Cart total: " + stripe_data.total)
-            showError("Your cart has changed, please return to the previous page and try again");
-          } else {
-            // Total is up to date, make payment
-            pay(stripe_data);
-          }
-        });
+        async function checkTotal() {
+            const response = await fetch(
+                '/check-total/?checkout_type=' + stripe_data.checkout_type 
+                + "&tbref=" + stripe_data.tbref
+                + "&voucher_id=" + stripe_data.voucher_id
+            )
+            checked_total = await response.json()
+        };
 
-    });
+        async function handleSubmit(e) {
+            e.preventDefault();
+            setLoading(true);
+            
+            if (checked_total.total !== stripe_data.total) {
+                // Show error to your customer
+                console.log("Actual total: " + checked_total.total)
+                console.log("Cart total: " + stripe_data.total)
+                showError("Your cart has changed, please return to the previous page and try again");
+                setLoading(false);
 
-    var pay = function(stripe_data) {
-      // console.log(stripe_data.stripe);
-      // console.log(stripe_data.card);
-      // console.log(stripe_data.client_secret);
-      changeLoadingState(true);
+            } else { 
+            
+                const { error } = await stripe.confirmPayment({
+                    elements,
+                    confirmParams: {
+                    // Make sure to change this to your payment completion page
+                    return_url: stripe_data.return_url,
+                    receipt_email: emailAddress,
+                    },
+                });
 
-      stripe = stripe_data.stripe
-      card = stripe_data.card
-      client_secret = stripe_data.client_secret
-      var cardholder_name = document.getElementById('cardholder-name').value
-      var cardholder_email = document.getElementById('cardholder-email').value
-      // Initiate the payment.
-      // If authentication is required, confirmCardPayment will automatically display a modal
-      stripe.confirmCardPayment(client_secret, {
-          payment_method: {
-            billing_details: {
-                name: cardholder_name,
-                email: cardholder_email
-            },
-            card: card
-          }
-        })
-        .then(function(result) {
-          if (result.error) {
-            // Show error to your customer
-            showError(result.error.message);
-          } else {
-            // The payment has been processed!
-            orderComplete(result);
-          }
-        });
-    };
+                // This point will only be reached if there is an immediate error when
+                // confirming the payment. Otherwise, your customer will be redirected to
+                // your `return_url`. For some payment methods like iDEAL, your customer will
+                // be redirected to an intermediate site first to authorize the payment, then
+                // redirected to the `return_url`.
+                if (error.type === "card_error" || error.type === "validation_error") {
+                    showError(error.message);
+                } else {
+                    console.log(error);
+                    showError("An unexpected error occurred.");
+                }
+                setLoading(false);
+            }    
+        }
 
-    /* ------- Post-payment helpers ------- */
+    // Fetches the payment intent status after payment submission
+    async function checkStatus() {
+        const clientSecret = new URLSearchParams(window.location.search).get(
+            "payment_intent_client_secret"
+        );
 
-    /* Shows a success / error message when the payment is complete */
-    var orderComplete = function(result) {
-      // Just for the purpose of the sample, show the PaymentIntent response object
+        if (!clientSecret) {
+            return;
+        }
 
-        var paymentIntent = result.paymentIntent;
-        // var paymentIntentJson = JSON.stringify(paymentIntent, null, 2);
+        const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
 
-        // post data and show new page
-        var form2 =document.getElementById("payload");
-        var input = document.getElementById("data-payload")
-        input.value = JSON.stringify({"id": paymentIntent.id});
-        form2.submit();
-        changeLoadingState(false);
+        switch (paymentIntent.status) {
+            case "succeeded":
+            showMessage("Payment succeeded!");
+            break;
+            case "processing":
+            showMessage("Your payment is processing.");
+            break;
+            case "requires_payment_method":
+            showMessage("Your payment was not successful, please try again.");
+            break;
+            default:
+            showMessage("Something went wrong.");
+            break;
+        }
+    }
 
-    };
+    // ------- UI helpers -------
 
-    var showError = function(errorMsgText) {
-      changeLoadingState(false);
-      var errorMsg = document.querySelector(".sr-field-error");
-      errorMsg.textContent = errorMsgText;
-      setTimeout(function() {
-        errorMsg.textContent = "";
-      }, 4000);
-    };
+    function showMessage(messageText) {
+        const messageContainer = document.querySelector("#payment-message");
+
+        messageContainer.classList.remove("hidden");
+        messageContainer.textContent = messageText;
+
+        setTimeout(function () {
+            messageContainer.classList.add("hidden");
+            messageContainer.textContent = "";
+        }, 4000);
+        }
+    
+    function showError(messageText) {
+        const messageContainer = document.querySelector("#payment-error");
+
+        messageContainer.classList.remove("hidden");
+        messageContainer.textContent = messageText;
+
+        setTimeout(function () {
+            messageContainer.classList.add("hidden");
+            messageContainer.textContent = "";
+        }, 4000);
+        }
 
     // Show a spinner on payment submission
-    var changeLoadingState = function(isLoading) {
-      if (isLoading) {
-        document.getElementById("card-button").disabled = true;
-        document.querySelector("#spinner").classList.remove("hidden");
-        document.querySelector("#button-text").classList.add("hidden");
-      } else {
-        document.getElementById("card-button").disabled = false;
-        document.querySelector("#spinner").classList.add("hidden");
-        document.querySelector("#button-text").classList.remove("hidden");
-      }
-    };
-
+    function setLoading(isLoading) {
+        if (isLoading) {
+            // Disable the button and show a spinner
+            document.querySelector("#payment-button").disabled = true;
+            document.querySelector("#spinner").classList.remove("hidden");
+            document.querySelector("#button-text").classList.add("hidden");
+        } else {
+            document.querySelector("#payment-button").disabled = false;
+            document.querySelector("#spinner").classList.add("hidden");
+            document.querySelector("#button-text").classList.remove("hidden");
+        }
+    }
 });
