@@ -25,8 +25,10 @@
         <div class="row">
             <div class="col-12">
                 <h2>Blocks</h2>
+                {% if unpaid_block_booking_available %}
                 <p class="text-danger"><strong>Pay for your blocks first; you will then be able to use them
                     to pay for eligible class bookings.</strong></p>
+                {% endif %}    
             </div>
         </div>
 

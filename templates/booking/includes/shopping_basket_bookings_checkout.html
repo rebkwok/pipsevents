@@ -4,7 +4,7 @@
     {% csrf_token %}
     <input type="hidden" name="cart_bookings_total" id="cart_bookings_total_input" value="{{ total_unpaid_booking_cost }}">
     <input
-            class="btn btn-warning mb-1"
+            class="btn mb-1 {% if total_unpaid_booking_cost > 0 %}stripe-checkout-btn{% else %}btn-warning{% endif %}"
             type="submit"
             value="{% if total_unpaid_booking_cost > 0 %}Checkout{% else %}Submit{% endif %}"
     />

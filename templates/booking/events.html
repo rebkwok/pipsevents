@@ -159,31 +159,23 @@
 {% block extra_js %}
 <script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
 <script src="{% static 'booking/js/updateLocation.js' %}"></script>
-<script>
-    $(document).ready(function() {
-        // messages timeout for 10 sec
-        setTimeout(function() {
-            $('#message-row').fadeOut('slow');
-        }, 10000); // <-- time in milliseconds, 1000 =  1 sec
-    });
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-multidatespicker/1.6.6/jquery-ui.multidatespicker.min.js" integrity="sha512-mMP7O0G5Vv01th+kpYux7RbD89Mx/iQnIvxcKdctiPyADgJzacfQJ8k2AsB8695AAuR2uPuxk7dawb1eehjcuQ==" crossorigin="anonymous"></script>
 
 <script type="text/javascript">
-    $(document).ready(function() {
-        $('#id_date_selection').multiDatesPicker(
+    $jq(function() {
+        $jq('#id_date_selection').multiDatesPicker(
             {
                 minDate: 0,
                 dateFormat: "d-M-yy",
             }
         );
         // Fix jumping back to current month - see https://github.com/dubrox/Multiple-Dates-Picker-for-jQuery-UI/issues/221
-        $.datepicker._selectDateOverload = $.datepicker._selectDate;
-        $.datepicker._selectDate = function (id, dateStr) {
-        var target = $(id);
+        $jq.datepicker._selectDateOverload = $jq.datepicker._selectDate;
+        $jq.datepicker._selectDate = function (id, dateStr) {
+        var target = $jq(id);
         var inst = this._getInst(target[0]);
         inst.inline = true;
-        $.datepicker._selectDateOverload(id, dateStr);
+        $jq.datepicker._selectDateOverload(id, dateStr);
         inst.inline = false;
         if (target[0].multiDatesPicker != null) {
         target[0].multiDatesPicker.changed = false;

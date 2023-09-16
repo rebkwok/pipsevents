@@ -80,10 +80,7 @@
             </div>
           </form>
 
-          <p><em>
-              <img src="{% static 'stripe_payments/images/powered_by_stripe.png' %}" style="height: 30px;"/><br/>
-              Payments are submitted securely via Stripe.  No card information is retained by this site.
-          </em></p>
+          {% include "stripe_payments/includes/stripe_info.html" %}
 
 
     <form id="payload" class="hidden" action="{% url 'stripe_payments:stripe_payment_complete' %}" method="post">
@@ -98,5 +95,5 @@
 
 
 {% block extra_js %}
-    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe.js' %}"></script>
+    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-payment.js' %}"></script>
 {% endblock %}

@@ -1,4 +1,4 @@
-jQuery(document).ready(function () {
+$jq(function () {
 
   var navtabs = document.getElementsByClassName('nav-tab');
 

@@ -327,7 +327,6 @@ def stripe_checkout(request):
     # Create the Stripe PaymentIntent
     stripe.api_key = settings.STRIPE_SECRET_KEY
     seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
-
     context = {}
     if seller is None:
         logger.error("No seller found on Stripe checkout attempt")
@@ -338,7 +337,6 @@ def stripe_checkout(request):
         total_as_int = int(total * 100)
 
         payment_intent_data = {
-            "payment_method_types": ['card'],
             "amount": total_as_int,
             "currency": 'gbp',
             "stripe_account": stripe_account,
@@ -374,7 +372,7 @@ def stripe_checkout(request):
                 logger.info("Updating payment intent")
                 payment_intent = stripe.PaymentIntent.modify(
                     invoice.stripe_payment_intent_id, **payment_intent_data,
-                )
+                )   
             except stripe.error.InvalidRequestError as error:
                 payment_intent = stripe.PaymentIntent.retrieve(
                     invoice.stripe_payment_intent_id, stripe_account=stripe_account

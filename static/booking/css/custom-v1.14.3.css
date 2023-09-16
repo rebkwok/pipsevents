@@ -1866,3 +1866,18 @@ span.disclaimer_version {
 div.message.alert > p {
   margin-bottom: 0;
 }
+
+.stripe-checkout-btn {
+  border: #625afa solid 1px;
+  background-color: #625afa;
+  color: white;
+  border-radius: 6px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.stripe-checkout-btn:hover {
+  border: #625afa solid 1px;
+  background-color: white;
+  color: #625afa;
+}

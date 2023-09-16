@@ -1,6 +1,6 @@
 var $jq = jQuery.noConflict();
 
-$jq(document).ready(function()  {
+$jq(function()  {
     // Set up Stripe.js and Elements to use in checkout form
     var setupElements = function() {
       var card_button = document.getElementById('card-button');

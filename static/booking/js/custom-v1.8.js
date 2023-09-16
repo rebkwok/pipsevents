@@ -8,6 +8,8 @@ Date.prototype.dateFormat = function( format ){
 
 var timeoutID;
 
+var $jq = jQuery.noConflict();
+
 function timeoutShoppingBasket() {
   var bookingsPaypalForm = document.getElementById("checkout-bookings-total-and-paypalform");
   var blocksPaypalForm = document.getElementById("checkout-blocks-total-and-paypalform");
@@ -25,32 +27,51 @@ function timeoutShoppingBasket() {
 }
 
 
-jQuery(document).ready(function () {
+$jq(function () {
 
     timeoutID = window.setTimeout(timeoutShoppingBasket, 60*1000);
 
-    // jQuery.scrollTrack();
+    $jq(function() {
+        // messages timeout for 5 sec
+        setTimeout(function() {
+            $jq('#message-row').fadeOut('slow');
+        }, 5000); // <-- time in milliseconds, 1000 =  1 sec
+    });
 
-    jQuery('form.dirty-check').areYouSure();
+    // blocks modal in menu bar
+    $jq(".blockmodalbtn").on("click", function(ev) { // for each edit url
+        ev.preventDefault(); // prevent navigation
+        var url = $jq(this).data("url"); // get the form url
+        $jq("#BlocksModal").load(url, function() { // load the url into the modal
+            $jq(this).modal('show'); // display the modal on url load
+        });
+        return false; // prevent the click propagation
+    });
 
-    jQuery('#datetimepicker').datetimepicker({
+    $jq(function () {
+        $jq('[data-toggle="tooltip"]').tooltip()
+      })
+
+    $jq('form.dirty-check').areYouSure();
+
+    $jq('#datetimepicker').datetimepicker({
         format:'D MMM YYYY HH:mm',
         sideBySide: true
     });
-    jQuery('#start_datetimepicker').datetimepicker({
+    $jq('#start_datetimepicker').datetimepicker({
         format:'D MMM YYYY HH:mm',
         sideBySide: true
     });
-    jQuery('#end_datetimepicker').datetimepicker({
+    $jq('#end_datetimepicker').datetimepicker({
         format:'D MMM YYYY HH:mm',
         sideBySide: true
     });
 
-    jQuery('#datepicker').datetimepicker({
+    $jq('#datepicker').datetimepicker({
         format:'D MMM YYYY',
     });
 
-    jQuery('.blockdatepicker').datetimepicker({
+    $jq('.blockdatepicker').datetimepicker({
         format:'D MMM YYYY',
         widgetPositioning: {
             horizontal: 'left',
@@ -58,62 +79,62 @@ jQuery(document).ready(function () {
         }
     });
 
-    jQuery('#datepicker1').datetimepicker({
+    $jq('#datepicker1').datetimepicker({
         format:'D MMM YYYY',
     });
 
-    jQuery('#logdatepicker').datetimepicker({
+    $jq('#logdatepicker').datetimepicker({
         format:'D-MMM-YYYY',
     });
 
     for(var i = 0; i < 5; i++) {
-        jQuery('#datepicker_startdate_' + i).datetimepicker({
+        $jq('#datepicker_startdate_' + i).datetimepicker({
             format:'ddd D MMM YYYY',
             useCurrent: true
         });
 
-        jQuery('#datepicker_enddate_' + i).datetimepicker({
+        $jq('#datepicker_enddate_' + i).datetimepicker({
             format:'ddd D MMM YYYY',
         });
     }
 
-    jQuery('#datepicker_registerdate').datetimepicker({
+    $jq('#datepicker_registerdate').datetimepicker({
         format:'ddd D MMM YYYY',
         useCurrent: true
     });
 
-    jQuery('#timepicker').datetimepicker({
+    $jq('#timepicker').datetimepicker({
         format:'HH:mm',
     });
 
-    jQuery('#dobdatepicker').datetimepicker({
+    $jq('#dobdatepicker').datetimepicker({
         format:'D MMM YYYY',
         defaultDate: '1990/01/01',
     });
 
-    jQuery('#eventdatepicker').datetimepicker({
+    $jq('#eventdatepicker').datetimepicker({
         format:'D MMM YYYY',
     });
 
     //http://tablesorter.com/docs/
-    jQuery("#sortTable").tablesorter();
+    $jq("#sortTable").tablesorter();
 
-    jQuery('#select-all').click(function (event) {  //on click
+    $jq('#select-all').click(function (event) {  //on click
         if (this.checked) { // check select status
-            jQuery('.select-checkbox').each(function () { //loop through each checkbox
+            $jq('.select-checkbox').each(function () { //loop through each checkbox
                 this.checked = true;  //select all checkboxes with class "select-checkbox"
             });
         } else {
-            jQuery('.select-checkbox').each(function () { //loop through each checkbox
+            $jq('.select-checkbox').each(function () { //loop through each checkbox
                 this.checked = false; //deselect all checkboxes with class "select-checkbox"
             });
         }
     });
 
-    jQuery('.collapse')
+    $jq('.collapse')
         .on('shown.bs.collapse', function() {
             if(this.id) {
-                jQuery(this)
+                $jq(this)
                     .parent()
                     .find("." + this.id + ".fa-plus-square")
                     .removeClass("fa-plus-square")
@@ -122,7 +143,7 @@ jQuery(document).ready(function () {
         })
         .on('hidden.bs.collapse', function() {
             if(this.id) {
-                jQuery(this)
+                $jq(this)
                     .parent()
                     .find("." + this.id + ".fa-minus-square")
                     .removeClass("fa-minus-square")
@@ -134,7 +155,7 @@ jQuery(document).ready(function () {
 
 
 //Add CSRF tokens for ajax forms
-$(function() {
+$jq(function() {
 
     // This function gets cookie with a given name
     function getCookie(name) {
@@ -142,7 +163,7 @@ $(function() {
         if (document.cookie && document.cookie != '') {
             var cookies = document.cookie.split(';');
             for (var i = 0; i < cookies.length; i++) {
-                var cookie = jQuery.trim(cookies[i]);
+                var cookie = $jq.trim(cookies[i]);
                 // Does this cookie string begin with the name we want?
                 if (cookie.substring(0, name.length + 1) == (name + '=')) {
                     cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -176,7 +197,7 @@ $(function() {
             !(/^(\/\/|http:|https:).*/.test(url));
     }
 
-    $.ajaxSetup({
+    $jq.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
                 // Send the token to same-origin, relative URLs only.

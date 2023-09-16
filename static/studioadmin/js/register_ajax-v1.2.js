@@ -27,32 +27,32 @@ const processToggleAttended = function()  {
    //In this scope, "this" is the button just clicked on.
    //The "this" in processResult is *not* the button just clicked
    //on.
-   const $button_just_clicked_on = $(this);
+   const button_just_clicked_on = $jq(this);
 
    //The value of the "data-booking_id" attribute.
-   const booking_id = $button_just_clicked_on.data('booking_id');
-   const attendance = $button_just_clicked_on.data('attendance');
-   const unset = $button_just_clicked_on.data('unset');
+   const booking_id = button_just_clicked_on.data('booking_id');
+   const attendance = button_just_clicked_on.data('attendance');
+   const unset = button_just_clicked_on.data('unset');
 
    const processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result.attended + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
       if(result.unset === true) {
-           $('#booking-attended-' + booking_id).removeClass('btn-wm').addClass('btn-outline-secondary');
-           $('#booking-noshow-' + booking_id).addClass('btn-outline-secondary');
-           $('#booking-row-' + booking_id).removeClass('expired');
-           $('#booking-status-' + booking_id).html(result.status_text);
+           $jq('#booking-attended-' + booking_id).removeClass('btn-wm').addClass('btn-outline-secondary');
+           $jq('#booking-noshow-' + booking_id).addClass('btn-outline-secondary');
+           $jq('#booking-row-' + booking_id).removeClass('expired');
+           $jq('#booking-status-' + booking_id).html(result.status_text);
       }  
        else if(result.attended === true) {
-           $('#booking-attended-' + booking_id).addClass('btn-wm').removeClass('btn-outline-secondary');
-           $('#booking-noshow-' + booking_id).addClass('btn-outline-secondary');
-           $('#booking-row-' + booking_id).removeClass('expired');
-           $('#booking-status-' + booking_id).html(result.status_text);
+           $jq('#booking-attended-' + booking_id).addClass('btn-wm').removeClass('btn-outline-secondary');
+           $jq('#booking-noshow-' + booking_id).addClass('btn-outline-secondary');
+           $jq('#booking-row-' + booking_id).removeClass('expired');
+           $jq('#booking-status-' + booking_id).html(result.status_text);
        } else {
-           $('#booking-row-' + booking_id).addClass('expired');
-           $('#booking-attended-' + booking_id).addClass('btn-outline-secondary').removeClass('btn-wm');
-           $('#booking-noshow-' + booking_id).removeClass('btn-outline-secondary');
-           $('#booking-status-' + booking_id).html(result.status_text);
+           $jq('#booking-row-' + booking_id).addClass('expired');
+           $jq('#booking-attended-' + booking_id).addClass('btn-outline-secondary').removeClass('btn-wm');
+           $jq('#booking-noshow-' + booking_id).removeClass('btn-outline-secondary');
+           $jq('#booking-status-' + booking_id).html(result.status_text);
        }
 
        if (result.alert_msg) {
@@ -61,7 +61,7 @@ const processToggleAttended = function()  {
 
    };
 
-   $.ajax(
+   $jq.ajax(
        {
           url: '/studioadmin/register/' + booking_id + '/toggle_attended/' ,
           data: {'attendance': attendance},
@@ -79,16 +79,16 @@ const processUpdatePaid = function(
       //console.log("sf result='" + result.paid + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
 
       if(result.paid === true) {
-           $('#booking-paid-checkbox-' + booking_id).prop("checked", true);
-          $('#booking-paid-checkbox-' + booking_id).attr("checked","checked");
-           $('#booking-paid-' + booking_id).removeClass("register-unpaid");
-           $('#booking-block-btn-content-' + booking_id).hide();
+           $jq('#booking-paid-checkbox-' + booking_id).prop("checked", true);
+          $jq('#booking-paid-checkbox-' + booking_id).attr("checked","checked");
+           $jq('#booking-paid-' + booking_id).removeClass("register-unpaid");
+           $jq('#booking-block-btn-content-' + booking_id).hide();
        } else {
-           $('#booking-paid-checkbox-' + booking_id).prop("checked", false);
-          $('#booking-paid-checkbox-' + booking_id).attr("checked", "");
-          $('#booking-paid-' + booking_id).addClass("register-unpaid");
+           $jq('#booking-paid-checkbox-' + booking_id).prop("checked", false);
+          $jq('#booking-paid-checkbox-' + booking_id).attr("checked", "");
+          $jq('#booking-paid-' + booking_id).addClass("register-unpaid");
           if (result.has_available_block === true) {
-            $('#booking-block-btn-content-' + booking_id).show();
+            $jq('#booking-block-btn-content-' + booking_id).show();
           }
      }
        if (result.alert_msg) {
@@ -110,10 +110,10 @@ const processTogglePaid = function()  {
    //In this scope, "this" is the button just clicked on.
    //The "this" in processResult is *not* the button just clicked
    //on.
-   const $button_just_clicked_on = $(this);
+   const button_just_clicked_on = $jq(this);
 
    //The value of the "data-booking_id" attribute.
-   const booking_id = $button_just_clicked_on.data('booking_id');
+   const booking_id = button_just_clicked_on.data('booking_id');
 
    const processPaidDisplay =function(result, status, jqXHR) {
         processUpdatePaid(result, status, jqXHR, booking_id);
@@ -123,11 +123,11 @@ const processTogglePaid = function()  {
    const processRegisterBlock = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
-      $('#booking-block-' + booking_id).html(result);
+      $jq('#booking-block-' + booking_id).html(result);
     };
 
    const updateOnComplete  = function() {
-        $.ajax(
+        $jq.ajax(
             {
                 url: '/studioadmin/register/' + booking_id + /assign_block/,
                 dataType: 'html',
@@ -138,7 +138,7 @@ const processTogglePaid = function()  {
         );
     };
 
-   $.ajax(
+   $jq.ajax(
        {
           url: '/studioadmin/register/' + booking_id + '/toggle_paid/' ,
           type: "POST",
@@ -156,15 +156,15 @@ const processAssignBlock = function()  {
    //In this scope, "this" is the button just clicked on.
    //The "this" in processResult is *not* the button just clicked
    //on.
-   const $button_just_clicked_on = $(this);
+   const button_just_clicked_on = $jq(this);
 
    //The value of the "data-booking_id" attribute.
-   const booking_id = $button_just_clicked_on.data('booking_id');
+   const booking_id = button_just_clicked_on.data('booking_id');
 
    const processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', booking_id='" + booking_id + "'");
-       $('#booking-block-' + booking_id).html(result);
+       $jq('#booking-block-' + booking_id).html(result);
     };
 
    const processUpdatePaidDisplay = function(
@@ -177,7 +177,7 @@ const processAssignBlock = function()  {
    };
 
    const updateOnComplete  = function() {
-        $.ajax(
+        $jq.ajax(
             {
                 url: '/studioadmin/register/' + booking_id + /toggle_paid/,
                 dataType: 'json',
@@ -188,7 +188,7 @@ const processAssignBlock = function()  {
         );
     };
 
-   $.ajax(
+   $jq.ajax(
        {
           url: '/studioadmin/register/' + booking_id + '/assign_block/' ,
           type: "POST",
@@ -219,7 +219,7 @@ const processAssignBlock = function()  {
    Using this only requires importing underscore-min.js. underscore-min.map
    is not needed.
  */
-$(document).ready(function()  {
+$jq(function()  {
   /*
     There are many buttons having the class
 
@@ -229,8 +229,8 @@ $(document).ready(function()  {
     would attach a *second* listener to every button, meaning each
     click would be processed twice.
    */
-  $('.btn-attended').click(_.debounce(processToggleAttended, MILLS_TO_IGNORE, true));
-  $('.btn-noshow').click(_.debounce(processToggleAttended, MILLS_TO_IGNORE, true));
-  $('.booking-paid-checkbox').click(_.debounce(processTogglePaid, MILLS_TO_IGNORE, true));
-  $('.booking-block-btn').click(_.debounce(processAssignBlock, MILLS_TO_IGNORE, true));
+  $jq('.btn-attended').on("click", _.debounce(processToggleAttended, MILLS_TO_IGNORE, true));
+  $jq('.btn-noshow').on("click", _.debounce(processToggleAttended, MILLS_TO_IGNORE, true));
+  $jq('.booking-paid-checkbox').on("click", _.debounce(processTogglePaid, MILLS_TO_IGNORE, true));
+  $jq('.booking-block-btn').on("click", _.debounce(processAssignBlock, MILLS_TO_IGNORE, true));
 });

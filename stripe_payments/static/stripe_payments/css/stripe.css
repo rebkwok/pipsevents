@@ -484,3 +484,10 @@ pre {
     transform: scale(1);
   }
 }
+
+.stripe-info {
+  font-size: small;
+  border: #625afa solid 1px;
+  border-radius: 6px;
+  padding: 5px
+}
