@@ -35,7 +35,7 @@ def _process_completed_stripe_payment(payment_intent, invoice, seller=None, requ
 
 
 def stripe_payment_complete(request):
-    payment_intent_id = request.GET.get("payment_intent")
+    payment_intent_id = request.GET.get("payment_intent", "unk")
     return HttpResponseRedirect(reverse("stripe_payments:stripe_payment_status", args=(payment_intent_id,)))
 
 
@@ -47,9 +47,19 @@ def stripe_payment_status(request, payment_intent_id):
     seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
     stripe_account = seller.stripe_user_id
     
-    payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, stripe_account=stripe_account)
+    
+    try:
+        payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, stripe_account=stripe_account)
+    except stripe.error.InvalidRequestError as e:
+        error = f"Error retrieving Stripe payment intent: {e}"
+        logger.error(e)
+        send_failed_payment_emails(
+            payment_intent={"id": payment_intent_id, "status": "Not found"}, 
+            error=error
+        )
+        return render(request, 'stripe_payments/non_valid_payment.html')
+    
     failed = False
-
     if payment_intent.status == "succeeded":
         invoice = get_invoice_from_payment_intent(payment_intent, raise_immediately=False)
         if invoice is not None:

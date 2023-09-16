@@ -19,6 +19,36 @@ pytestmark = pytest.mark.django_db
 
 # StripePaymentCompleteView
 complete_url = reverse("stripe_payments:stripe_payment_complete")
+status_url = reverse("stripe_payments:stripe_payment_status", args=("mock-intent-id",))
+
+
+def test_payment_complete_view(client):
+    resp = client.get(complete_url + "?payment_intent=mock-intent-id")
+    assert resp.status_code == 302
+    assert resp.url == status_url
+
+
+def test_payment_complete_view_no_payment_intent(client):
+    resp = client.get(complete_url)
+    assert resp.status_code == 302
+    # redirects with a bad payment intent id, to raise failure messages there
+    assert resp.url == reverse("stripe_payments:stripe_payment_status", args=("unk",))
+
+
+@pytest.mark.usefixtures("seller", "send_all_studio_emails")
+@patch("stripe_payments.views.stripe.PaymentIntent.retrieve")
+def test_return_with_unknown_payment_intent(mock_payment_intent_retrieve, client):
+    mock_payment_intent_retrieve.side_effect = stripe.error.InvalidRequestError(
+        message="No payment intent found", param="payment_intent"
+    )
+    resp = client.get(reverse("stripe_payments:stripe_payment_status", args=("unk",)))
+    assert resp.status_code == 200
+    assert "Error Processing Payment" in resp.content.decode("utf-8")
+
+    # No invoice matching PI value, send failed emails
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].subject == "WARNING: Something went wrong with a payment!"
+    assert "No payment intent found" in mail.outbox[0].body
 
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
@@ -27,7 +57,7 @@ def test_return_with_no_matching_invoice(
     mock_payment_intent, get_mock_payment_intent, client
 ):
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent()
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Error Processing Payment" in resp.content.decode("utf-8")
 
@@ -35,20 +65,6 @@ def test_return_with_no_matching_invoice(
     assert len(mail.outbox) == 1
     assert mail.outbox[0].subject == "WARNING: Something went wrong with a payment!"
     assert "No invoice could be retrieved from succeeded payment intent mock-intent-id" in mail.outbox[0].body
-
-
-@pytest.mark.usefixtures("seller", "send_all_studio_emails")
-@patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_no_payload(mock_payment_intent, get_mock_payment_intent, client):
-    mock_payment_intent.retrieve.return_value = get_mock_payment_intent()
-    resp = client.post(complete_url, data={"message": "Error: unk"})
-    assert resp.status_code == 200
-    assert "Error Processing Payment" in resp.content.decode("utf-8")
-
-    # No invoice matching PI value, send failed emails
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].subject == "WARNING: Something went wrong with a payment!"
-    assert "Error: unk" in mail.outbox[0].body
 
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
@@ -69,7 +85,7 @@ def test_return_with_matching_invoice_and_block(
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
 
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
     block.refresh_from_db()
@@ -101,7 +117,7 @@ def test_return_with_matching_invoice_and_booking(
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
     booking.refresh_from_db()
@@ -137,7 +153,7 @@ def test_return_with_matching_invoice_and_ticket_booking(
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
     ticket_booking.refresh_from_db()
@@ -174,7 +190,7 @@ def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
 
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
     block_gift_voucher.refresh_from_db()
@@ -213,7 +229,7 @@ def test_return_with_matching_invoice_and_gift_voucher_anon_user(
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
 
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
     block_gift_voucher.refresh_from_db()
@@ -250,7 +266,7 @@ def test_return_with_invalid_invoice(mock_payment_intent, get_mock_payment_inten
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert "Error Processing Payment" in resp.content.decode("utf-8")
     assert invoice.paid is False
     # send failed emails
@@ -275,7 +291,7 @@ def test_return_with_matching_invoice_multiple_bookingss(mock_payment_intent, ge
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
     booking1.refresh_from_db()
@@ -301,7 +317,7 @@ def test_return_with_matching_invoice_invalid_amount(mock_payment_intent, get_mo
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert invoice.paid is False
     assert "Error Processing Payment" in resp.content.decode("utf-8")
 
@@ -320,7 +336,7 @@ def test_return_with_matching_invoice_invalid_signature(mock_payment_intent, get
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert invoice.paid is False
     assert "Error Processing Payment" in resp.content.decode("utf-8")
 
@@ -340,7 +356,7 @@ def test_return_with_matching_invoice_block_already_processed(mock_payment_inten
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata)
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
 
     assert resp.status_code == 200
     assert "Payment Processed" in resp.content.decode("utf-8")
@@ -362,7 +378,7 @@ def test_return_with_failed_payment_intent(mock_payment_intent, get_mock_payment
         **invoice.items_metadata(),
     }
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata, status="failed")
-    resp = client.post(complete_url, data={"payload": json.dumps({"id": "mock-intent-id"})})
+    resp = client.get(status_url)
     assert invoice.paid is False
     assert "Error Processing Payment" in resp.content.decode("utf-8")
 
