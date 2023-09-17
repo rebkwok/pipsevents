@@ -25,7 +25,7 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         baker.make(Seller, site=Site.objects.get_current())
-        cls.url = reverse('booking:stripe_checkout')
+        cls.url = reverse('stripe_checkout')
 
     def setUp(self):
         super().setUp()

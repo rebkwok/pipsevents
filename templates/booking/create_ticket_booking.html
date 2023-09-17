@@ -105,7 +105,7 @@
                         <div>Click below to be transferred to PayPal to make your payment.</div>
                         {% include 'payments/payment.html' %}</br>
                     {% elif ticketed_event.payment_open and payment_method == "stripe" %}
-                        <form method="post" action="{% url 'booking:stripe_checkout' %}">
+                        <form method="post" action="{% url 'stripe_checkout' %}">
                             {% csrf_token %}
                             <input type="hidden" name="cart_ticket_booking_ref" id="cart_ticket_booking_ref" value="{{ ticket_booking.booking_reference }}">
                             <input type="hidden" name="cart_ticket_bookings_total" id="cart_ticket_bookings_total" value="{{ ticket_booking.cost }}">

@@ -70,7 +70,7 @@
             {% if payment_method == "stripe" and cart_ticket_bookings_total > 0 %}
                 <div>
                     <strong>Total pending: £{{ cart_ticket_bookings_total }}</strong>
-                    <form method="post" action="{% url 'booking:stripe_checkout' %}">
+                    <form method="post" action="{% url 'stripe_checkout' %}">
                         {% csrf_token %}
                         <input type="hidden" name="cart_ticket_bookings_total" id="cart_ticket_bookings_total" value="{{ cart_ticket_bookings_total }}">
                         <input

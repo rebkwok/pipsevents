@@ -15,7 +15,7 @@
 
     <h3 class="checkout-total">Total: £0.30</h3>
 
-    <form id="checkout-test-stripe-form" method="post" action="{% url 'booking:stripe_checkout' %}">
+    <form id="checkout-test-stripe-form" method="post" action="{% url 'stripe_checkout' %}">
         {% csrf_token %}
         <input type="hidden" name="cart_stripe_test_total" id="cart_stripe_test_total" value="0.30">
         <input
