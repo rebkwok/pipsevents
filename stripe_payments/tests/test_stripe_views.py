@@ -383,6 +383,27 @@ def test_return_with_failed_payment_intent(mock_payment_intent, get_mock_payment
     assert "Error Processing Payment" in resp.content.decode("utf-8")
 
 
+@pytest.mark.usefixtures("seller", "send_all_studio_emails")
+@patch("stripe_payments.views.stripe.PaymentIntent")
+def test_return_with_processing_payment_intent(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+    invoice = baker.make(
+        Invoice, invoice_id="foo", username=configured_user.email, amount=50,
+        stripe_payment_intent_id="mock-intent-id"
+    )
+    baker.make(Booking, paid=False, invoice=invoice, user=configured_user)
+    metadata = {
+        "invoice_id": "foo",
+        "invoice_signature": invoice.signature(),
+        **invoice.items_metadata(),
+    }
+    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(metadata=metadata, status="processing")
+    resp = client.get(status_url)
+    assert invoice.paid is False
+    assert "Your payment is processing" in resp.content.decode("utf-8")
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
+
+
 # stripe_webhook view
 webhook_url = reverse("stripe_payments:stripe_webhook")
 

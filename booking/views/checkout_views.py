@@ -40,6 +40,9 @@ def get_invoice(items, item_type, user, total):
         assert item_type == "gift_vouchers"
         email = items[0].purchaser_email
 
+    if not items:
+        assert item_type == "stripe_test"
+
     for item in items:
         # mark the time we've successfully proceeded to checkout for this item
         # so we avoid cleaning it up during payment processing
@@ -49,6 +52,8 @@ def get_invoice(items, item_type, user, total):
 
     def _get_matching_invoice(invoices):
         for invoice in invoices:
+            if item_type == "stripe_test":
+                return
             if item_type == "gift_vouchers":
                 # gift_vouchers are a set of event and block gift vouchers, not a qs
                 invoice_items = invoice.gift_vouchers
@@ -65,20 +70,20 @@ def get_invoice(items, item_type, user, total):
     if invoice is None:
         invoice = Invoice.objects.create(
             invoice_id=Invoice.generate_invoice_id(), amount=Decimal(total), username=email,
+            is_stripe_test=item_type == "stripe_test"
         )
         for item in items:
             item.invoice = invoice
             item.save()
     else:
-        # If an invoice with the expected items is found, make sure its total is current and any total voucher
-        # is updated
+        # If an invoice with the expected items is found, make sure its total is current
         invoice.amount = Decimal(total)
         invoice.save()
     return invoice
 
 
 def get_total_from_request(request, key):
-    if key not in request:
+    if key not in request.POST:
         logger.error(f"Checkout error: No {key} found in request")
     value = request.POST.get(key)
     try:
@@ -114,7 +119,6 @@ def _check_blocks_and_get_updated_invoice(request):
     invoice = get_invoice(unpaid_blocks, "blocks", request.user, total)
     checked = {
         "total": total,
-        "invoice": None,
         "redirect": False,
         "redirect_url": None,
         "checkout_type": "blocks",
@@ -172,7 +176,6 @@ def _check_bookings_and_get_updated_invoice(request):
     invoice = get_invoice(unpaid_bookings, "bookings", request.user, total)
     checked = {
         "total": total,
-        "invoice": None,
         "redirect": False,
         "redirect_url": None,
         "checkout_type": "bookings",
@@ -232,7 +235,6 @@ def _check_ticket_booking_and_get_updated_invoice(request):
     invoice = get_invoice(ticket_bookings, "ticket_bookings", request.user, total)
     checked = {
         "total": total,
-        "invoice": None,
         "redirect": False,
         "redirect_url": None,
         "checkout_type": "ticket_bookings",
@@ -281,11 +283,29 @@ def _check_gift_voucher_and_get_updated_invoice(request):
     invoice = get_invoice([voucher], "gift_vouchers", request.user, total)
     checked = {
         "total": total,
-        "invoice": None,
         "redirect": False,
         "redirect_url": None,
         "checkout_type": "gift_vouchers",
         "voucher_id": voucher_id,
+        "invoice": invoice
+    }
+
+    return checked
+
+
+def _check_stripe_test_and_get_updated_invoice(request):
+    total = get_total_from_request(request, "cart_stripe_test_total")
+    error_dict = {"redirect": True, "redirect_url": reverse("studioadmin:stripe_test")}
+    if total != Decimal("0.30"):
+        messages.error(request, f"Unexpected test amount (£{total})")
+        return error_dict
+    
+    invoice = get_invoice([], "stripe_test", request.user, total)
+    checked = {
+        "total": total,
+        "redirect": False,
+        "redirect_url": None,
+        "checkout_type": "stripe_test",
         "invoice": invoice
     }
 
@@ -305,6 +325,8 @@ def _check_items_and_get_updated_invoice(request):
         return _check_ticket_booking_and_get_updated_invoice(request)
     elif "cart_gift_voucher_total" in request.POST:
         return _check_gift_voucher_and_get_updated_invoice(request)
+    elif "cart_stripe_test_total" in request.POST:
+        return _check_stripe_test_and_get_updated_invoice(request)
     else:
         # no expected total, redirect to shopping basket
         return {"redirect": True, "redirect_url": reverse("booking:shopping_basket")}
@@ -387,12 +409,13 @@ def stripe_checkout(request):
                 )
         # update/create the django model PaymentIntent - this isjust for records
         StripePaymentIntent.update_or_create_payment_intent_instance(payment_intent, invoice, seller)
+        cart_items = invoice.items_dict()
         context.update({
             "client_secret": payment_intent.client_secret,
             "stripe_account": stripe_account,
             "stripe_api_key": settings.STRIPE_PUBLISHABLE_KEY,
             "stripe_return_url": request.build_absolute_uri(reverse("stripe_payments:stripe_payment_complete")),
-            "cart_items": invoice.items_dict(),
+            "cart_items": cart_items,
             "cart_total": total,
             "checkout_type": checkout_type,
          })
@@ -418,9 +441,11 @@ def check_total(request):
             total = sum(
                 [ticket_booking.cost for ticket_booking in ticket_bookings]
             )
+        elif checkout_type == "stripe_test":
+            total = Decimal("0.30")
         if checkout_type in ["bookings", "blocks"]:
             total = items_with_voucher_total(unpaid_items)
-    
+
     # no need to be logged in to buy gift voucher
     if checkout_type == "gift_vouchers":
         voucher_id = request.GET.get("voucher_id")

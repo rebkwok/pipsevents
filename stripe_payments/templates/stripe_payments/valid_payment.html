@@ -65,7 +65,10 @@
         {% if "gift_vouchers" in item_types %}
             <p>Gift vouchers will be emailed to you shortly.</p>
         {% endif %}
-
+        
+        {% if "stripe_test" in item_types and request.user.is_staff %}
+            <p>View the <a href="{% url 'studioadmin:invoices' %}">Stripe transactions log</a>.<p>
+        {% endif %}
         </div>
     </div>
 </div>

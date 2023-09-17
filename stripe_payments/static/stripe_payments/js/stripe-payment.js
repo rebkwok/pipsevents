@@ -39,7 +39,9 @@
             const appearance = {
                 theme: 'stripe',
             };
-            elements = stripe.elements({ appearance: appearance, clientSecret: client_secret });
+            elements = stripe.elements(
+                { appearance: appearance, clientSecret: client_secret}
+            );
 
             const linkAuthenticationElement = elements.create("linkAuthentication");
             linkAuthenticationElement.mount("#link-authentication-element");
@@ -49,7 +51,7 @@
             });
 
             const paymentElementOptions = {
-                layout: "tabs",
+                layout: "accordion",
             };
 
             const paymentElement = elements.create("payment", paymentElementOptions);
@@ -122,10 +124,10 @@
             showMessage("Your payment is processing.");
             break;
             case "requires_payment_method":
-            showMessage("Your payment was not successful, please try again.");
+            showError("Your payment was not successful, please try again.");
             break;
             default:
-            showMessage("Something went wrong.");
+            showError("Something went wrong.");
             break;
         }
     }
@@ -141,19 +143,18 @@
         setTimeout(function () {
             messageContainer.classList.add("hidden");
             messageContainer.textContent = "";
-        }, 4000);
+        }, 5000);
         }
     
     function showError(messageText) {
         const messageContainer = document.querySelector("#payment-error");
-
         messageContainer.classList.remove("hidden");
         messageContainer.textContent = messageText;
 
         setTimeout(function () {
             messageContainer.classList.add("hidden");
             messageContainer.textContent = "";
-        }, 4000);
+        }, 5000);
         }
 
     // Show a spinner on payment submission

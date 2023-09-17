@@ -74,6 +74,11 @@ def stripe_payment_status(request, payment_intent_id):
             failed = True
             error = f"No invoice could be retrieved from succeeded payment intent {payment_intent.id}"
             logger.error(error)
+    elif payment_intent.status == "processing":
+        error = f"Payment intent {payment_intent.id} still processing."
+        logger.error(error)
+        send_failed_payment_emails(payment_intent=payment_intent, error=error)
+        return render(request, 'stripe_payments/processing_payment.html')
     else:
         failed = True
         error = f"Payment intent id {payment_intent.id} status: {payment_intent.status}"

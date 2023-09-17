@@ -127,11 +127,13 @@
                     <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
                         <span class="sidebar_active">Test PayPal</span>{% else %}Test PayPal{% endif %}</a>
                     </li>
-                    {% else %}
+                    {% endif %}
+                    <li class="active-nav"><a href="{% url 'studioadmin:stripe_test' %}">{% if sidenav_selection == 'stripe_test' %}
+                        <span class="sidebar_active">Test Stripe</span>{% else %}Test Stripe{% endif %}</a>
+                    </li>                    
                     <li class="active-nav"><a href="{% url 'stripe_payments:connect_stripe' %}">{% if sidenav_selection == 'connect_stripe' %}
                         <span class="sidebar_active">Connect Stripe</span>{% else %}Connect Stripe{% endif %}</a>
                     </li>
-                    {% endif %}
                 </ul>
             </li>
 
@@ -378,7 +380,7 @@
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#payments">
                             <span class="fa log
-                                {% if sidenav_selection == 'test_paypal' or sidenav_selection == 'invoices' %}
+                                {% if sidenav_selection == 'test_paypal' or sidenav_selection == 'invoices' or sidenav_selection == 'connect_stripe' or sidenav_selection == 'test_stripe' %}
                                     fa-minus-square
                                 {% else %}
                                     fa-plus-square
@@ -387,7 +389,7 @@
                             Payments
                         </a>
                     </li>
-                    <span id="payments" class="collapse {% if sidenav_selection == 'test_paypal'  or sidenav_selection == 'invoices' %} in show{% endif %}">
+                    <span id="payments" class="collapse {% if sidenav_selection == 'test_paypal'  or sidenav_selection == 'invoices' or sidenav_selection == 'connect_stripe' or sidenav_selection == 'test_stripe' %} in show{% endif %}">
                         <li class="active-nav"><a href="{% url 'studioadmin:invoices' %}">{% if sidenav_selection == 'invoices' %}
                             <span class="sidebar_active">Transactions</span>{% else %}Transactions{% endif %}</a></li>
                         {% if payment_method == "paypal" %}
@@ -396,14 +398,17 @@
                                     <span class="sidebar_active">Test PayPal Email</span>{% else %}Test PayPal Email{% endif %}
                                 </a>
                             </li>
-                        {% else %}
+                        {% endif %}
+                        <li class="active-nav">
+                            <a href="{% url 'studioadmin:stripe_test' %}">{% if sidenav_selection == 'stripe_test' %}
+                                <span class="sidebar_active">Test Stripe</span>{% else %}Test Stripe{% endif %}
+                            </a>
+                        </li>
                         <li class="active-nav">
                             <a href="{% url 'stripe_payments:connect_stripe' %}">{% if sidenav_selection == 'connect_stripe' %}
                                 <span class="sidebar_active">Connect Stripe</span>{% else %}Connect Stripe{% endif %}
                             </a>
                         </li>
-                        
-                        {% endif %}
                     </span>
 
                 <li class="sidebar-title">

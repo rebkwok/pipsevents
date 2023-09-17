@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
+from decimal import Decimal
 from model_bakery import baker
 from unittest.mock import Mock, patch
 
@@ -7,7 +7,7 @@ import pytest
 
 from django.contrib.sites.models import Site
 from django.urls import reverse
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
 
 from stripe.error import InvalidRequestError
@@ -360,7 +360,6 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert resp.status_code == 302
         assert resp.url == reverse("booking:ticketed_events")
 
-
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_ticket_bookings(self, mock_payment_intent):
         mock_payment_intent_obj = self.get_mock_payment_intent(id="foo")
@@ -407,7 +406,6 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         )
         assert resp.status_code == 302
         assert resp.url == reverse("booking:ticketed_events")
-
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_gift_vouchers_anon_user(
@@ -459,6 +457,42 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert invoice.amount == 18
         block.invoice == invoice
         assert resp.context_data["cart_total"] == 18.00
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_incorrect_stripe_test_total(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo")
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        assert Invoice.objects.exists() is False
+        
+        # total is incorrect
+        resp = self.client.post(
+            self.url, 
+            data={
+                "cart_stripe_test_total": 20,
+            })
+        assert resp.status_code == 302
+        assert resp.url == reverse("studioadmin:stripe_test")
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_creates_invoice_for_stripe_test(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo")
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        assert Invoice.objects.exists() is False
+        
+        # total is correct
+        resp = self.client.post(self.url, data={"cart_stripe_test_total": "0.30"})
+        assert resp.status_code == 200
+        assert resp.context_data["cart_total"] == Decimal("0.30")
+        assert resp.context_data["checkout_type"] == "stripe_test"
+
+        assert Invoice.objects.exists()
+        invoice = Invoice.objects.first()
+        assert invoice.username == self.user.email
+        assert invoice.amount == Decimal("0.30")
+        assert invoice.item_count() == 1
+        assert invoice.is_stripe_test
 
     def test_zero_total(self):
         booking = baker.make(
@@ -631,6 +665,10 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
                 url, {"checkout_type": "gift_vouchers", "voucher_id": self.block_gift_voucher.id}
             )
         assert resp.json() == {"total": "20.00"}
+
+        # stripe test
+        resp = self.client.get(url, {"checkout_type": "stripe_test"})
+        assert resp.json() == {"total": "0.30"}
 
     def test_check_total_anon_user(self):
         self.client.logout()

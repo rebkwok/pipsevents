@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% load bookingtags static email_obfuscator %}
+
+
+{% block content %}
+
+<div class="row">
+    <div class="col-12 mt-5">
+    <div class="card">
+        <div class="card-header"><h2>Your payment is processing</h2></div>
+        <div class="card-body">
+            <p class="card-text">
+                Your payment is being processed and should be complete shortly. 
+                You're receive a confirmation email when it's complete. 
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

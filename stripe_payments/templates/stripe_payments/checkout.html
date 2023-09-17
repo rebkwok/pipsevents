@@ -35,12 +35,12 @@
             <th>Cost</th>
         </thead>
         <tbody>
-            {% for key, item in cart_items.items %}
-                <tr>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.cost_str }}</td>
-                </tr>
-            {% endfor %}
+          {% for key, item in cart_items.items %}
+              <tr>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.cost_str }}</td>
+              </tr>
+          {% endfor %}
         </tbody>
         <tfoot>
             <tr><td colspan="2">TOTAL: £{{ cart_total }}
@@ -73,7 +73,7 @@
                 <span id="button-text">Pay </span> <span id="order-amount">£{{ cart_total }}</span>
               </button>
               <div id="payment-message" class="hidden"></div>
-              <div id="payment-error" class="hidden"></div>
+              <div id="payment-error" class="Error hidden"></div>
             </div>
           </form>
 

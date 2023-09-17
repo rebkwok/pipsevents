@@ -7,6 +7,7 @@ import shortuuid
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
@@ -25,7 +26,7 @@ from studioadmin.views.helpers import StaffUserMixin, staff_required
 from activitylog.models import ActivityLog
 from payments.forms import PayPalPaymentsUpdateForm
 
-from stripe_payments.models import Invoice
+from stripe_payments.models import Invoice, Seller
 
 
 logger = logging.getLogger(__name__)
@@ -238,3 +239,14 @@ class InvoiceListView(LoginRequiredMixin, StaffUserMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["sidenav_selection"] = "invoices"
         return context
+
+
+@login_required
+@staff_required
+def stripe_test(request):
+    site_sellers = Seller.objects.filter(site=Site.objects.get_current(request))
+    site_seller = site_sellers.first() if site_sellers else None
+    return TemplateResponse(
+        request, "studioadmin/stripe_test.html", 
+        {"sidenav_selection": "stripe_test", "seller": site_seller}
+    )

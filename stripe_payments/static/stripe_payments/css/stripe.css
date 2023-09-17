@@ -154,3 +154,7 @@ button:disabled {
   width: 80vw;
   min-width: 500px;
 }
+
+#payment-error {
+  color: #df1b41;
+}

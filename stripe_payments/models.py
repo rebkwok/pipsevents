@@ -25,6 +25,7 @@ class Invoice(models.Model):
     total_voucher_code = models.CharField(
         max_length=255, null=True, blank=True, help_text="Voucher applied to invoice total"
     )
+    is_stripe_test = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-date_paid",)
@@ -61,6 +62,14 @@ class Invoice(models.Model):
         }
 
     def items_dict(self):
+        if self.is_stripe_test:
+            return {
+                "stripe_test": {
+                    "name": "Stripe test payment",
+                    "cost_str": "£0.30",
+                    "cost_in_p": 30,
+                }
+            }
         def _cost_str(item):
             cost_str = f"£{item.cost_with_voucher:.2f}"
             if item.voucher_code:
@@ -113,15 +122,22 @@ class Invoice(models.Model):
         }
 
     def item_count(self):
+        if self.is_stripe_test:
+            return 1
         return sum(self._item_counts().values())
 
     def item_types(self):
+        if self.is_stripe_test:
+            return "stripe_test"
         return [key for key, count in self._item_counts().items() if count > 0]
 
     def items_metadata(self):
         # This is used for the payment intent metadata, which is limited to 40 chars keys and string values
         all_items = self.items_dict()
         metadata = {}
+        if self.total_voucher_code:  # pragma: no cover
+            # We don't currently use total vouchers, this is kept in case we add them in future
+            metadata = {"Voucher code used on total invoice": self.total_voucher_code}
         items_summary = {}
         for key, item in all_items.items():
             summary = {

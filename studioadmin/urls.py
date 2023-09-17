@@ -72,6 +72,7 @@ from studioadmin.views import (BookingEditView,
                                new_users_banner_view, 
                                popup_notification_view,
                                InvoiceListView,
+                               stripe_test,
                                )
 
 app_name = 'studioadmin'
@@ -322,6 +323,7 @@ urlpatterns = [
         name='popup_notification'
     ),
     path("payment/transactions/", InvoiceListView.as_view(), name="invoices"),
+    path("payment/stripe-test/", stripe_test, name="stripe_test"),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]
