@@ -683,15 +683,6 @@ class Booking(models.Model):
             else:
                 return "Voucher"
         return ""
-
-    @cached_property
-    def stripe_paid(self):
-        from stripe_payments.models import Invoice
-        if not self.paid or self.block is not None:
-            return False
-        return Invoice.objects.filter(
-            bookings=self, paid=True
-        ).exists()
     
     @property
     def cost_with_voucher(self):
