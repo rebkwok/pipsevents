@@ -76,6 +76,8 @@ class TestSetupMixin(object):
         self.user = create_configured_user(
             username='test', email='test@test.com', password='test'
         )
+        # Make sure we have a current disclaimer content
+        DisclaimerContent.objects.create(version=None)
 
     def tearDown(self):
         self.patcher.stop()
@@ -87,8 +89,6 @@ def create_configured_user(username, email, password):
     )
     baker.make(PrintDisclaimer, user=user)
     make_data_privacy_agreement(user)
-    # Make sure we have a current disclaimer content
-    DisclaimerContent.objects.create(version=None)
     return user
 
 

@@ -95,20 +95,27 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         # bookings, blocks and ticket_bookings require login
         
         for data_dict, redirect_url in [
-            ({"cart_bookings_total": 10}, "booking:shopping_basket"),
-            ({"cart_blocks_total": 10}, "booking:shopping_basket"),
-            ({"tbref": "1234"}, "booking:ticketed_events"),
-            ({"cart_gift_voucher": "9999"}, "booking:buy_gift_voucher"),
+            ({"cart_bookings_total": 10}, reverse("booking:shopping_basket")),
+            ({"cart_blocks_total": 10}, reverse("booking:shopping_basket")),
+            ({"cart_ticket_bookings_total": 10, "tbref": "1234"}, reverse("booking:ticketed_events")),
+            ({"cart_gift_voucher_total": 10, "cart_gift_voucher": "9999"}, reverse("booking:buy_gift_voucher")),
         ]:
             resp = self.client.post(self.url, data=data_dict)
             assert resp.status_code == 302
             assert resp.url == redirect_url
 
-    def test_logged_in_user_no_unpaid_items(self):
+    def test_invalid_total(self):
         # If no unpaid items, ignore any cart total passed and return to shopping basket
-        resp = self.client.post(self.url, data={"cart_bookings_total": 8})
-        assert resp.status_code == 302
-        assert resp.url == reverse("booking:shopping_basket")
+        for data_dict, redirect_url in [
+            ({"cart_bookings_total": "foo"}, reverse("booking:shopping_basket")),
+            ({"cart_blocks_total": ""}, reverse("booking:shopping_basket")),
+            ({"cart_ticket_bookings_total": "bar"}, reverse("booking:ticketed_events")),
+            ({"cart_gift_voucher_total": "", "cart_gift_voucher": "1"}, reverse("booking:buy_gift_voucher")),
+            ({"cart_stripe_test_total": 10}, reverse("studioadmin:stripe_test")),
+        ]:
+            resp = self.client.post(self.url, data=data_dict)
+            assert resp.status_code == 302
+            assert resp.url == redirect_url
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_cant_identify_checkout_type(self, mock_payment_intent):

@@ -119,6 +119,23 @@ def test_invoice_item_types(block_gift_voucher):
     assert invoice.item_types() == ["bookings", "blocks", "gift_vouchers", "ticket_bookings"]
 
 
+@pytest.mark.usefixtures("invoice_keyenv")
+def test_invoice_for_stripe_test():
+    invoice = baker.make(
+        Invoice, invoice_id="foo123",
+        is_stripe_test=True
+    )
+    assert invoice.item_count() == 1
+    assert invoice.item_types() == ["stripe_test"]
+    assert invoice.items_dict() == {
+        "stripe_test": {"name": "Stripe test payment", "cost_str": "£0.30", "cost_in_p": 30}
+    }
+    assert invoice.items_metadata() == {
+        "stripe_test_item": "Stripe test payment", 
+        "stripe_test_cost_in_p": "30",
+    }
+
+
 def test_seller_str():
     seller = baker.make(Seller, user__email="testuser@test.com")
     assert str(seller) == "testuser@test.com"

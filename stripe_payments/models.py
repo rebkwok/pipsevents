@@ -128,7 +128,7 @@ class Invoice(models.Model):
 
     def item_types(self):
         if self.is_stripe_test:
-            return "stripe_test"
+            return ["stripe_test"]
         return [key for key, count in self._item_counts().items() if count > 0]
 
     def items_metadata(self):

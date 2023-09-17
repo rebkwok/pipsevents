@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sites.models import Site
 
 from booking.models import Booking, Block, TicketBooking, Ticket
 from common.tests.helpers import _create_session
@@ -391,7 +392,7 @@ class TestPaypalViewTests(TestPermissionMixin, TestCase):
 
 
 @pytest.mark.django_db
-def test_invoice_list(client):
+def test_invoice_list(client, staff_user):
     invoice = baker.make(Invoice, invoice_id="foo123", paid=True)
     unpaid_invoice = baker.make(Invoice, invoice_id="foo345", paid=False)
     baker.make(Block, block_type__cost=10, invoice=invoice)
@@ -408,12 +409,21 @@ def test_invoice_list(client):
     blocktype = block_gift_voucher.block_types.first()    
     baker.make("booking.GiftVoucherType", block_type=blocktype)
 
-    staff_user = User.objects.create_user(
-        username='testuser', email='test@test.com', password='test'
-    )
-    staff_user.is_staff = True
-    staff_user.save()
-
     client.force_login(staff_user)
     resp = client.get(reverse("studioadmin:invoices"))
     assert list(resp.context_data["invoices"]) == [invoice]
+
+
+@pytest.mark.django_db
+def test_stripe_test(client, staff_user):
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:stripe_test"))
+
+    # no seller
+    assert "No Stripe account connected yet" in resp.rendered_content
+    assert "checkout-test-stripe-form" not in resp.rendered_content
+
+    baker.make("stripe_payments.Seller", site=Site.objects.get_current(), stripe_user_id="id123")
+    resp = client.get(reverse("studioadmin:stripe_test"))
+    assert "No Stripe account connected yet" not in resp.rendered_content
+    assert "checkout-test-stripe-form" in resp.rendered_content

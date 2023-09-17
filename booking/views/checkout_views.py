@@ -51,9 +51,9 @@ def get_invoice(items, item_type, user, total):
     unpaid_item_ids = {item.id for item in items}
 
     def _get_matching_invoice(invoices):
+        if item_type == "stripe_test":
+            return
         for invoice in invoices:
-            if item_type == "stripe_test":
-                return
             if item_type == "gift_vouchers":
                 # gift_vouchers are a set of event and block gift vouchers, not a qs
                 invoice_items = invoice.gift_vouchers
@@ -83,8 +83,6 @@ def get_invoice(items, item_type, user, total):
 
 
 def get_total_from_request(request, key):
-    if key not in request.POST:
-        logger.error(f"Checkout error: No {key} found in request")
     value = request.POST.get(key)
     try:
         return Decimal(value)
@@ -329,6 +327,8 @@ def _check_items_and_get_updated_invoice(request):
         return _check_stripe_test_and_get_updated_invoice(request)
     else:
         # no expected total, redirect to shopping basket
+        logger.error("Could not identify checkout type")
+        messages.error(request, "Checkout error, please try again")
         return {"redirect": True, "redirect_url": reverse("booking:shopping_basket")}
 
 
