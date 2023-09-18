@@ -85,7 +85,7 @@ def get_invoice(items, item_type, user, total):
 def get_total_from_request(request, key):
     value = request.POST.get(key)
     try:
-        return Decimal(value)
+        return Decimal(value).quantize(Decimal(".01"))
     except (InvalidOperation, TypeError):
         logger.error(f"Checkout error: Invalid {key} found in request: {value}")
 

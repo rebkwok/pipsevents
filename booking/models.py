@@ -457,16 +457,17 @@ class Block(models.Model):
 
     @property
     def cost_with_voucher(self):
+        original_cost = self.block_type.cost
         if self.voucher_code:
             try:
                 voucher = BlockVoucher.objects.get(code=self.voucher_code)
-                return Decimal(
-                    float(self.block_type.cost) * ((100 - voucher.discount) / 100)
-                ).quantize(Decimal('.05'))
+                return (
+                    Decimal(original_cost) * Decimal((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.01'))
             except BlockVoucher.DoesNotExist:
                 self.voucher_code = None
                 self.save()
-        return self.block_type.cost
+        return original_cost
 
     def reset_voucher_code(self):
         self.voucher_code = None
@@ -686,16 +687,17 @@ class Booking(models.Model):
     
     @property
     def cost_with_voucher(self):
+        original_cost = self.event.cost
         if self.voucher_code:
             try:
                 voucher = EventVoucher.objects.get(code=self.voucher_code)
-                return Decimal(
-                    float(self.event.cost) * ((100 - voucher.discount) / 100)
-                ).quantize(Decimal('.05'))
+                return (
+                    Decimal(original_cost) * Decimal((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.01'))
             except EventVoucher.DoesNotExist:
                 self.voucher_code = None
                 self.save()
-        return self.event.cost
+        return original_cost
 
     def reset_voucher_code(self):
         self.voucher_code = None
@@ -1043,7 +1045,9 @@ class TicketBooking(models.Model):
 
     @property
     def cost(self):
-        return self.ticketed_event.ticket_cost * self.tickets.count()
+        return Decimal(
+            self.ticketed_event.ticket_cost * self.tickets.count()
+        ).quantize(Decimal(".01"))
 
     def __str__(self):
         return 'Booking ref {} - {} - {}'.format(
