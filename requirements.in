@@ -9,6 +9,7 @@ django-cookie-law
 django-crispy-forms
 git+https://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
 django-debug-toolbar
+django-email-obfuscator
 django-environ
 django-extensions
 django-migration-testcase
@@ -35,3 +36,4 @@ pytest-cov
 pytest-env
 pytest-xdist
 pymemcache
+stripe

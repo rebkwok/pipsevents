@@ -7,6 +7,7 @@ from django.views.generic import RedirectView
 from accounts.views import custom_email_view, CustomLoginView, \
     DisclaimerCreateView, data_privacy_policy, cookie_policy, subscribe_view, \
     NonRegisteredDisclaimerCreateView, nonregistered_disclaimer_submitted
+from booking.views import stripe_checkout
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -39,6 +40,8 @@ urlpatterns = [
     path('ckeditor/', include('ckeditor_uploader.urls')),
     path('payments/ipn-paypal-notify/', include('paypal.standard.ipn.urls')),
     path('payments/', include('payments.urls')),
+    path('stripe/', include('stripe_payments.urls')),
+    path('checkout/', stripe_checkout, name='stripe_checkout'),
     path('favicon.ico/',
         RedirectView.as_view(url=settings.STATIC_URL+'favicon.ico',
                              permanent=False)),

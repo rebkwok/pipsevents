@@ -12,6 +12,9 @@ OR
 now - date_booked/rebooked > payment_time_allowed
 )
 Email user that their booking has been cancelled
+
+BUT excluding bookings with a checkout_time in the past 5 mins
+(checkout_time is set when user clicks button to pay with stripe)
 '''
 import logging
 from datetime import timedelta
@@ -45,6 +48,7 @@ class Command(BaseCommand):
             self.cancel_bookings(now)
 
     def get_bookings_to_cancel(self, now):
+        checkout_buffer_seconds = 60 * 5
         warning_time_buffer = now - timedelta(hours=2)
         bookings_qset = Booking.objects.filter(
             event__date__gte=now,
@@ -54,7 +58,13 @@ class Command(BaseCommand):
             paid=False,
             payment_confirmed=False,
             paypal_pending=False,
-        ).exclude(date_warning_sent__gte=warning_time_buffer)  # doesn't exclude date_warning_sent==None
+        ).exclude(
+            # exclude bookings with warning send within past 2 hrs
+            date_warning_sent__gte=warning_time_buffer # doesn't exclude date_warning_sent==None
+        ).exclude(
+            # exclude bookings with checkout time within past 5 mins
+            checkout_time__gte=timezone.now() - timedelta(seconds=checkout_buffer_seconds)
+        )
         for booking in bookings_qset:
             if (booking.event.date - timedelta(hours=booking.event.cancellation_period)) < now:
                 if booking.warning_sent:

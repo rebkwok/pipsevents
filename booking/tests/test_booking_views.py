@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 from django.conf import settings
 from django.core import mail
 from django.urls import reverse
-from django.test import TestCase
+from django.test import override_settings, TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -586,7 +586,34 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         booking = Booking.objects.get(id=booking.id)
         self.assertEqual('CANCELLED', booking.status)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_cancel_booking_from_shopping_basket_ajax(self):
+        """
+        Test deleting a booking from shopping basket (ajax)
+        """
+        event = baker.make_recipe('booking.future_PC')
+        booking = baker.make_recipe('booking.booking', event=event,
+                                    user=self.user, paid=True)
+        assert Booking.objects.count() == 1
+
+        url = reverse('booking:delete_booking', args=[booking.id]) + '?ref=basket'
+        self.client.login(username=self.user.username, password='test')
+        
+        resp = self.client.post(url)
+        assert resp.status_code == 200
+        # no stripe checkout form
+        content = resp.content.decode()
+        assert 'id="checkout-bookings-form"' not in content
+        assert f'<div id="bookingrow-{booking.id}"' in content
+
+        # after cancelling, the booking is still there, but status has changed
+        assert Booking.objects.count() == 1
+        booking.refresh_from_db()
+        assert booking.status == 'CANCELLED'
+        assert len(mail.outbox) == 1
+
+    @override_settings(PAYMENT_METHOD="stripe")
+    def test_cancel_booking_from_stripe_shopping_basket_ajax(self):
         """
         Test deleting a booking from shopping basket (ajax)
         """
@@ -599,7 +626,10 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
         assert resp.status_code == 200
-        assert f"<div id='bookingrow-{booking.id}'></div>"
+        # no stripe checkout form
+        content = resp.content.decode()
+        assert 'id="checkout-bookings-form"' in content
+        assert f'<div id="bookingrow-{booking.id}"' in content
 
         # after cancelling, the booking is still there, but status has changed
         assert Booking.objects.count() == 1

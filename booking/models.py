@@ -4,6 +4,8 @@ import logging
 import pytz
 import shortuuid
 
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group, User
@@ -135,7 +137,7 @@ class Event(models.Model):
     cancelled = models.BooleanField(default=False)
     allow_booking_cancellation = models.BooleanField(default=True)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
@@ -214,13 +216,11 @@ class Event(models.Model):
         return "online" in self.event_type.subtype.lower()
 
     def __str__(self):
-        return '{} - {} ({})'.format(
-            str(self.name),
-            self.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M'),
-            self.location
-        )
+        return f'{self.str_no_location()} ({self.location})'
+    
+    def str_no_location(self):
+        formatted_date = self.date.astimezone(pytz.timezone('Europe/London')).strftime('%d %b %Y, %H:%M')
+        return f"{self.name} - {formatted_date}"
 
     def save(self, *args, **kwargs):
         self.location_index = self.LOCATION_INDEX_MAP[self.location]
@@ -272,7 +272,7 @@ class BlockType(models.Model):
     active = models.BooleanField(default=False)
     assign_free_class_on_completion = models.BooleanField(default=False)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
@@ -360,8 +360,18 @@ class Block(models.Model):
     paypal_pending = models.BooleanField(default=False)
     expiry_date = models.DateTimeField()
 
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="blocks")
+    checkout_time = models.DateTimeField(null=True, blank=True)
+
+    # voucher
+    # voucher_code; used to keep track of a code being applied; doesn't mean it's
+    # actually used (See UsedEventVoucher instead, which are applied only on marking
+    # payment complete)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
-        ordering = ['user__username']
+        ordering = ['user__username', 'id']
         indexes = [
                 models.Index(fields=['user', 'paid']),
                 models.Index(fields=['user', 'expiry_date']),
@@ -378,6 +388,10 @@ class Block(models.Model):
             self.block_type.size,
             self.start_date.strftime('%d %b %Y')
         )
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
 
     @classmethod
     def get_end_of_day(cls, input_datetime):
@@ -440,6 +454,34 @@ class Block(models.Model):
         Number of bookings made against block
         """
         return Booking.objects.filter(block__id=self.id).count()
+
+    @property
+    def cost_with_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = BlockVoucher.objects.get(code=self.voucher_code)
+                return Decimal(
+                    float(self.block_type.cost) * ((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.05'))
+            except BlockVoucher.DoesNotExist:
+                self.voucher_code = None
+                self.save()
+        return self.block_type.cost
+
+    def reset_voucher_code(self):
+        self.voucher_code = None
+        self.save()
+    
+    def process_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = BlockVoucher.objects.get(code=self.voucher_code)
+                UsedBlockVoucher.objects.get_or_create(voucher=voucher, block_id=self.id, user=self.user)
+            except BlockVoucher.DoesNotExist:
+                logger.error(
+                    f"Tried to process non-existent Block Voucher with code '{self.voucher_code}' "
+                    f"for block {self.id}" 
+                )
 
     def delete(self, *args, **kwargs):
         bookings = Booking.objects.filter(block=self.id)
@@ -541,6 +583,16 @@ class Booking(models.Model):
 
     paypal_pending = models.BooleanField(default=False)
 
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="bookings")
+    checkout_time = models.DateTimeField(null=True, blank=True)
+
+    # voucher
+    # voucher_code; used to keep track of a code being applied; doesn't mean it's
+    # actually used (See UsedEventVoucher instead, which are applied only on marking
+    # payment complete)
+    voucher_code = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
         unique_together = ('user', 'event')
         permissions = (
@@ -558,6 +610,10 @@ class Booking(models.Model):
             str(self.event.name), str(self.user.username),
             self.event.date.strftime('%d%b%Y %H:%M')
         )
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
 
     def confirm_space(self):
         if self.event.cost:
@@ -609,12 +665,52 @@ class Booking(models.Model):
         return bool(available_blocks)
 
     @cached_property
-    def paypal_paid(self):
+    def payment_method(self):
+        if not self.paid:
+            return ""
+        if self.block:
+            return "Block"
+
         from payments.models import PaypalBookingTransaction
-        if not self.paid or self.block is not None:
-            return False
-        return PaypalBookingTransaction.objects.filter(
-            booking=self, transaction_id__isnull=False).exists()
+        if PaypalBookingTransaction.objects.filter(
+            booking=self, transaction_id__isnull=False).exists():
+            return "PayPal"
+        from stripe_payments.models import Invoice
+        invoice = Invoice.objects.filter(bookings=self, paid=True).first()
+        if invoice:
+            if invoice.amount > 0:
+                return "Stripe"
+            else:
+                return "Voucher"
+        return ""
+    
+    @property
+    def cost_with_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = EventVoucher.objects.get(code=self.voucher_code)
+                return Decimal(
+                    float(self.event.cost) * ((100 - voucher.discount) / 100)
+                ).quantize(Decimal('.05'))
+            except EventVoucher.DoesNotExist:
+                self.voucher_code = None
+                self.save()
+        return self.event.cost
+
+    def reset_voucher_code(self):
+        self.voucher_code = None
+        self.save()
+
+    def process_voucher(self):
+        if self.voucher_code:
+            try:
+                voucher = EventVoucher.objects.get(code=self.voucher_code)
+                UsedEventVoucher.objects.get_or_create(voucher=voucher, booking_id=self.id, user=self.user)
+            except EventVoucher.DoesNotExist:
+                logger.error(
+                    f"Tried to process non-existent Event Voucher with code '{self.voucher_code}' "
+                    f"for booking {self.id}" 
+                )
 
     def _old_booking(self):
         if self.pk:
@@ -858,7 +954,7 @@ class TicketedEvent(models.Model):
     cancelled = models.BooleanField(default=False)
     slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
     paypal_email = models.EmailField(
-        default=settings.DEFAULT_PAYPAL_EMAIL,
+        default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
                   'Check this carefully!'
     )
@@ -915,7 +1011,7 @@ class TicketedEvent(models.Model):
 
 
 class TicketBooking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ticket_bookings")
     ticketed_event = models.ForeignKey(
         TicketedEvent, related_name="ticket_bookings", on_delete=models.CASCADE
     )
@@ -934,8 +1030,20 @@ class TicketBooking(models.Model):
     booking_reference = models.CharField(max_length=255)
     purchase_confirmed = models.BooleanField(default=False)
 
+    # stripe payments
+    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="ticket_bookings")
+    checkout_time = models.DateTimeField(null=True, blank=True)
+
     def set_booking_reference(self):
         self.booking_reference = shortuuid.ShortUUID().random(length=22)
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
+
+    @property
+    def cost(self):
+        return self.ticketed_event.ticket_cost * self.tickets.count()
 
     def __str__(self):
         return 'Booking ref {} - {} - {}'.format(
@@ -995,8 +1103,15 @@ class BaseVoucher(models.Model):
     message = models.TextField(null=True, blank=True, max_length=500, help_text="Message (max 500 characters)")
     purchaser_email = models.EmailField(null=True, blank=True)
 
+    # stripe payments
+    checkout_time = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return self.code
+
+    def mark_checked(self):
+        self.checkout_time = timezone.now()
+        self.save()
 
     @cached_property
     def has_expired(self):
@@ -1029,16 +1144,57 @@ class EventVoucher(BaseVoucher):
     code = models.CharField(max_length=255, unique=True)
     event_types = models.ManyToManyField(EventType)
 
+    # stripe payments
+    invoice = models.ForeignKey(
+        "stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, 
+        related_name="event_gift_vouchers"
+    )
+
     def check_event_type(self, ev_type):
         return bool(ev_type in self.event_types.all())
+    
+    def valid_for(self):
+        return self.event_types.all()
+    
+    @property
+    def gift_voucher_type(self):
+        if self.is_gift_voucher:
+            if not self.event_types.exists():
+                raise ValueError("Event gift voucher must define at least one applicable event type")
+            gvts = GiftVoucherType.objects.filter(event_type=self.event_types.first())
+            if not gvts.exists():
+                # In case this was a manually created gift voucher, make sure we can return 
+                # a valid gift voucher type, but don't make an active one
+                gvt = GiftVoucherType.objects.create(event_type=self.event_types.first(), active=False)
+            else:
+                gvt = gvts.first()
+            return gvt
 
 
 class BlockVoucher(BaseVoucher):
     code = models.CharField(max_length=255, unique=True)
     block_types = models.ManyToManyField(BlockType)
+    
+    # stripe payments
+    invoice = models.ForeignKey(
+        "stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, 
+        related_name="block_gift_vouchers"
+    )
 
     def check_block_type(self, block_type):
         return bool(block_type in self.block_types.all())
+
+    @property
+    def gift_voucher_type(self):
+        if self.is_gift_voucher:
+            if not self.block_types.exists():
+                raise ValueError("Block gift voucher must define at least one applicable block type")
+            gvts = GiftVoucherType.objects.filter(block_type=self.block_types.first())
+            if not gvts.exists():
+                gvt = GiftVoucherType.objects.create(block_type=self.block_types.first(), active=False)
+            else:
+                gvt = gvts.first()
+            return gvt
 
 
 class UsedEventVoucher(models.Model):
@@ -1077,11 +1233,14 @@ class GiftVoucherType(models.Model):
             raise ValidationError({'event_type': _('Only one of Block Type or Event Type can be set.')})
 
     def __str__(self):
+        return f"{self.name} - £{self.cost}"
+
+    @property
+    def name(self):
         if self.block_type:
-            voucher_type_str = f"{self.block_type.event_type.subtype} - {self.block_type.size} classes"
+            return f"Gift voucher: {self.block_type.event_type.subtype} - {self.block_type.size} classes"
         else:
-            voucher_type_str = str(self.event_type)
-        return f"{voucher_type_str} - £{self.cost}"
+            return f"Gift voucher: {self.event_type}"
 
 
 class Banner(models.Model):

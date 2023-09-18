@@ -1,0 +1,16 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Payment processed
+-------------------
+Invoice number: {{ invoice.invoice_id }}</p>
+User: {{ user.first_name}} {{ user.last_name}}
+Purchased:
+{% for item_type, items in invoice.items_summary.items %}
+    {% if items %}
+        <ul>
+            {% for item in items %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endfor %}

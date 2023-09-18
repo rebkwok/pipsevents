@@ -149,27 +149,30 @@ class GiftVoucherPurchaseView(FormView):
                 ActivityLog.objects.create(log=f"Gift Voucher {voucher.code} created; purchaser email {voucher.purchaser_email}")
 
         if not voucher.activated:
-            # unpaid voucher, go to paypal page again
-            invoice_id = create_gift_voucher_paypal_transaction(voucher_type=voucher_type, voucher_code=voucher.code).invoice_id
-            custom = get_paypal_custom(
-                item_type="gift_voucher",
-                item_ids=str(voucher.id),
-                user_email=voucher.purchaser_email,
-                voucher_code=voucher.code,
-                voucher_applied_to=None,
-            )
-            paypal_form = PayPalPaymentsUpdateForm(
-                initial=get_paypal_dict(
-                    self.request,
-                    voucher_type.cost,
-                    f"gift voucher - {voucher_type}",
-                    invoice_id,
-                    custom,
-                    paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+            context={"voucher_type": voucher_type, "voucher": voucher, "show_payment": True}
+            # unpaid voucher, go to payment page again
+            if settings.PAYMENT_METHOD == "paypal":
+                invoice_id = create_gift_voucher_paypal_transaction(voucher_type=voucher_type, voucher_code=voucher.code).invoice_id
+                custom = get_paypal_custom(
+                    item_type="gift_voucher",
+                    item_ids=str(voucher.id),
+                    user_email=voucher.purchaser_email,
+                    voucher_code=voucher.code,
+                    voucher_applied_to=None,
                 )
-            )
+                paypal_form = PayPalPaymentsUpdateForm(
+                    initial=get_paypal_dict(
+                        self.request,
+                        voucher_type.cost,
+                        f"gift voucher - {voucher_type}",
+                        invoice_id,
+                        custom,
+                        paypal_email=settings.DEFAULT_PAYPAL_EMAIL,
+                    )
+                )
+                context.update({"paypal_form": paypal_form})
             return TemplateResponse(
-                self.request, template='booking/gift_voucher_purchase.html', context={"paypal_form": paypal_form, "voucher_type": voucher_type, "voucher": voucher}
+                self.request, template='booking/gift_voucher_purchase.html', context=context
             )
         else:
             return HttpResponseRedirect(reverse("booking:gift_voucher_details", args=(voucher.code,)))
@@ -197,7 +200,7 @@ def gift_voucher_details(request, voucher_code):
 
 
 def gift_voucher_delete(request, voucher_code):
-    voucher, voucher_type, valid_for = get_voucher_details(voucher_code)
+    voucher, _, _ = get_voucher_details(voucher_code)
     if voucher.activated:
         return HttpResponseRedirect(reverse('booking:permission_denied'))
     voucher.delete()

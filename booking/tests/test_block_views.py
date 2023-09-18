@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.urls import reverse
-from django.test import TestCase
+from django.test import override_settings, TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
@@ -516,12 +516,26 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
             )
         )
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_delete_block_from_shopping_basket(self):
         block_id = self.block.id
         resp = self.client.post(self.url + '?ref=basket')
         assert not Block.objects.exists()
         assert resp.status_code == 200
-        assert f"<div id='blockrow-{block_id}'></div>"
+        content = resp.content.decode()
+        assert f'<div id="blockrow-{block_id}"' in content
+        # no stripe checkout form with paypal
+        assert f'id="checkout-blocks-form"' not in content
+
+    @override_settings(PAYMENT_METHOD="stripe")
+    def test_delete_block_from_stripe_shopping_basket(self):
+        block_id = self.block.id
+        resp = self.client.post(self.url + '?ref=basket')
+        assert not Block.objects.exists()
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert f'<div id="blockrow-{block_id}"' in content
+        assert f'id="checkout-blocks-form"' in content
 
     def test_delete_block_with_booking_code(self):
         """

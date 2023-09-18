@@ -10,6 +10,7 @@ from booking.views.booking_views import ajax_create_booking, \
     toggle_waiting_list, PurchasedTutorialsListView
 from booking.views.block_views import BlockCreateView, BlockDeleteView, \
     BlockListView, blocks_modal
+from booking.views.checkout_views import stripe_checkout, check_total
 from booking.views.gift_vouchers import GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete
 from booking.views.shopping_basket_views import shopping_basket, \
     update_block_bookings, submit_zero_booking_payment, submit_zero_block_payment
@@ -35,6 +36,7 @@ __all__ = [
     'toggle_waiting_list',
     'blocks_modal',
     "OnlineTutorialListView", "PurchasedTutorialsListView", "OnlineTutorialDetailView",
+    "stripe_checkout", "check_total"
 ]
 
 

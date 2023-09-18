@@ -11,7 +11,7 @@ from django.core import mail
 from django.core import management
 from django.urls import reverse
 from django.http.response import Http404
-from django.test import TestCase
+from django.test import override_settings, TestCase
 from django.utils import timezone
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
@@ -117,14 +117,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
         baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=booked_event,
-            ticket_booking__purchase_confirmed=True
+            ticket_booking__purchase_confirmed=True,
+            ticket_booking__paid=True
         )
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
         self.assertEqual(len(booked_events), 1)
         self.assertTrue(booked_event in booked_events)
 
-    def test_event_list_only_shows_confirmed_bookings_events(self):
+    def test_event_list_only_shows_paid_bookings_events(self):
         """
         test that only confirmed bookings are shown on listing
         """
@@ -135,7 +136,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         # create a confirmed booking for this user
         booked_event = TicketedEvent.objects.all()[0]
-        baker.make(
+        confirmed = baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=booked_event,
             ticket_booking__purchase_confirmed=True
@@ -147,9 +148,17 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
         resp = self._get_response(self.user)
         booked_events = [event for event in resp.context_data['tickets_booked_events']]
+        self.assertEqual(len(booked_events), 0)
+        self.assertFalse(booked_event in booked_events)
+
+        # mark confirmed booking as paid
+        confirmed.ticket_booking.paid = True
+        confirmed.ticket_booking.save()
+        resp = self._get_response(self.user)
+        booked_events = [event for event in resp.context_data['tickets_booked_events']]
         self.assertEqual(len(booked_events), 1)
         self.assertTrue(booked_event in booked_events)
-        self.assertFalse(unconfirmed in booked_events)
+
 
     def test_event_list_shows_only_current_user_bookings(self):
         """
@@ -168,14 +177,16 @@ class EventListViewTests(TestSetupMixin, TestCase):
         baker.make(
             Ticket, ticket_booking__user=self.user,
             ticket_booking__ticketed_event=event1,
-            ticket_booking__purchase_confirmed=True
+            ticket_booking__purchase_confirmed=True,
+            ticket_booking__paid=True
         )
         # create booking for another user
         user1 = baker.make_recipe('booking.user')
         baker.make(
             Ticket, ticket_booking__user=user1,
             ticket_booking__ticketed_event=event2,
-            ticket_booking__purchase_confirmed=True
+            ticket_booking__purchase_confirmed=True,
+            ticket_booking__paid=True
         )
 
         # check only event1 shows in the booked events
@@ -553,6 +564,7 @@ class TicketCreateViewTests(TestSetupMixin, TestCase):
         )
         self.assertEqual(tb.tickets.count(), 4)
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_form_only_displayed_if_ticket_cost_and_payment_open(self):
         tb = baker.make(
             TicketBooking, user=self.user, ticketed_event=self.ticketed_event
@@ -902,6 +914,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             len(resp.context_data['ticketbookinglist']), 4
         )
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_form_only_shown_for_open_bookings(self):
 
         open_bookings = baker.make(
@@ -933,6 +946,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             else:
                 self.assertIsNone(tb['paypalform'])
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_form_only_shown_for_unpaid_bookings(self):
 
         paid_bookings = baker.make(
@@ -965,6 +979,7 @@ class TicketBookingListViewTests(TestSetupMixin, TestCase):
             else:
                 self.assertIsNone(tb['paypalform'])
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_form_not_shown_for_event_with_payment_not_open(self):
 
         event_not_open = baker.make_recipe(

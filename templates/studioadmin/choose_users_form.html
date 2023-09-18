@@ -85,7 +85,7 @@
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.min.js" integrity="sha512-aFvi2oPv3NjnjQv1Y/hmKD7RNMendo4CZ2DwQqMWzoURKxcqAoktj0nNG4LU8m23+Ws9X5uVDD4OXLqpUVXD5Q==" crossorigin="anonymous"></script>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $jq(function() {
         alerted1 = function () {       
             document.getElementById('spin1').remove();
         }
@@ -96,7 +96,7 @@
             document.getElementById('spin3').remove();
         }
 
-        $('#id_filter-lessons').multiselect({
+        $jq('#id_filter-lessons').multiselect({
             buttonClass: 'btn btn-sm btn-wm mt-2',
             buttonWidth: '100%',
             maxHeight: 400,
@@ -107,7 +107,7 @@
             enableCaseInsensitiveFiltering: true,
             onInitialized: alerted1
         });
-        $('#id_filter-events').multiselect({
+        $jq('#id_filter-events').multiselect({
             buttonClass: 'btn btn-sm btn-wm mt-2',
             buttonWidth: '100%',
             maxHeight: 400,
@@ -118,7 +118,7 @@
             enableCaseInsensitiveFiltering: true,
             onInitialized: alerted2
         });
-        $('#id_filter-students').multiselect({
+        $jq('#id_filter-students').multiselect({
             buttonClass: 'btn btn-sm btn-wm mt-2',
             buttonWidth: '100%',
             maxHeight: 400,

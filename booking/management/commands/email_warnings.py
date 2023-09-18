@@ -8,6 +8,9 @@ booking.paid = False
 
 Add warning_sent flags to booking model so
 we don't keep sending
+
+BUT excluding bookings with a checkout_time in the past 5 mins
+(checkout_time is set when user clicks button to pay with stripe)
 '''
 from datetime import timedelta
 from django.utils import timezone
@@ -50,6 +53,7 @@ def get_bookings():
     rebooked = Q(date_rebooked__isnull=False)
     not_rebooked = Q(date_rebooked__isnull=True)
     cutoff = timezone.now() - timedelta(hours=2)
+    checkout_cutoff = timezone.now() - timedelta(seconds=5*60)
     rebooked_more_than_2hrs_ago = Q(date_rebooked__lte=cutoff)
     booked_more_than_2hrs_ago = Q(date_booked__lte=cutoff)
 
@@ -60,7 +64,7 @@ def get_bookings():
         paid=False,
         payment_confirmed=False,
         warning_sent=False,
-        )
+        ).exclude(checkout_time__gte=checkout_cutoff)
 
 
 def send_warning_email(self, upcoming_bookings):

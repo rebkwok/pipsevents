@@ -210,6 +210,29 @@ class EventListViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url, {'name': 'test_name'})
         self.assertEqual(resp.context['events'].count(), 3)
 
+    @patch("booking.views.event_views.timezone")
+    def test_filter_events_by_date(self, mock_tz):
+        mock_tz.now.return_value = datetime(2023, 1, 1, tzinfo=dt_timezone.utc)
+        baker.make_recipe('booking.future_EV', date=datetime(2023, 1, 23, 10, 0, tzinfo=dt_timezone.utc))
+        baker.make_recipe('booking.future_EV', date=datetime(2023, 2, 23, 10, 0, tzinfo=dt_timezone.utc))
+        baker.make_recipe('booking.future_EV', date=datetime(2023, 3, 23, 10, 0, tzinfo=dt_timezone.utc))
+
+        resp = self.client.get(self.url, {'date_selection': '23-Jan-2023,23-Feb-2023'})
+        self.assertEqual(resp.context['events'].count(), 2)
+
+        # invalid date returns none
+        resp = self.client.get(self.url, {'date_selection': '23Foo2023'})
+        self.assertEqual(resp.context['events'].count(), 0)
+
+    def test_filter_events_by_spaces(self):
+        event = baker.make_recipe('booking.future_EV', max_participants=1)
+        baker.make_recipe('booking.future_EV', max_participants=1)
+        baker.make_recipe('booking.booking', event=event)
+
+        resp = self.client.get(self.url, {'spaces_only': 'true'})
+        # 3 from setup plus one in this test
+        self.assertEqual(resp.context['events'].count(), 4)
+
     def test_pole_practice_context_without_permission(self):
         Event.objects.all().delete()
         pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
@@ -351,6 +374,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
             '<div class="tab-pane fade active in" id="tab0">',
             resp.rendered_content
         )
+
+        # bad tab, defaults to 0
+        url += '?tab=foo'
+        resp = self.client.get(url)
+        self.assertEqual(resp.context_data['tab'], '0')
 
         url += '?tab=1'
         resp = self.client.get(url)

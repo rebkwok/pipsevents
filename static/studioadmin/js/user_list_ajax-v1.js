@@ -18,18 +18,18 @@ var processToggleRegularStudent = function()  {
    //In this scope, "this" is the button just clicked on.
    //The "this" in processResult is *not* the button just clicked
    //on.
-   var $button_just_clicked_on = $(this);
+   var button_just_clicked_on = $jq(this);
 
    //The value of the "data-user_id" attribute.
-   var user_id = $button_just_clicked_on.data('user_id');
+   var user_id = button_just_clicked_on.data('user_id');
 
    var processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', user_id='" + user_id + "'");
-      $('#toggle_regular_student_' + user_id).html(result);
+      $jq('#toggle_regular_student_' + user_id).html(result);
    }
 
-   $.ajax(
+   $jq.ajax(
        {
           url: '/studioadmin/users/' + user_id + '/toggle_regular_student/',
           dataType: 'html',
@@ -44,17 +44,17 @@ var processToggleRegularStudent = function()  {
    Executes a toggle click. Triggered by clicks on the print disclaimer yes/no links.
  */
 var processTogglePrintDisclaimer = function()  {
-   var $button_just_clicked_on = $(this);
+   var button_just_clicked_on = $jq(this);
    //The value of the "data-user_id" attribute.
-   var user_id = $button_just_clicked_on.data('user_id');
+   var user_id = button_just_clicked_on.data('user_id');
 
    var processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', user_id='" + user_id + "'");
-      $('#toggle_print_disclaimer_' + user_id).html(result);
+      $jq('#toggle_print_disclaimer_' + user_id).html(result);
    }
 
-   $.ajax(
+   $jq.ajax(
        {
           url: '/studioadmin/users/' + user_id + '/toggle_print_disclaimer/',
           dataType: 'html',
@@ -69,17 +69,17 @@ var processTogglePrintDisclaimer = function()  {
    Executes a toggle click. Triggered by clicks on the subscribed yes/no links.
  */
 var processToggleSubscribed = function()  {
-   var $button_just_clicked_on = $(this);
+   var button_just_clicked_on = $jq(this);
    //The value of the "data-user_id" attribute.
-   var user_id = $button_just_clicked_on.data('user_id');
+   var user_id = button_just_clicked_on.data('user_id');
 
    var processResult = function(
        result, status, jqXHR)  {
       //console.log("sf result='" + result + "', status='" + status + "', jqXHR='" + jqXHR + "', user_id='" + user_id + "'");
-      $('#toggle_subscribed_' + user_id).html(result);
+      $jq('#toggle_subscribed_' + user_id).html(result);
    }
 
-   $.ajax(
+   $jq.ajax(
        {
           url: '/studioadmin/users/' + user_id + '/toggle_subscribed/',
           dataType: 'html',
@@ -107,7 +107,7 @@ var processToggleSubscribed = function()  {
    Using this only requires importing underscore-min.js. underscore-min.map
    is not needed.
  */
-$(document).ready(function()  {
+$jq(function()  {
   /*
     There are many buttons having the class
 
@@ -117,11 +117,11 @@ $(document).ready(function()  {
     would attach a *second* listener to every button, meaning each
     click would be processed twice.
    */
-  $('.td_regular_student_button').click(_.debounce(processToggleRegularStudent,
+  $jq('.td_regular_student_button').on("click", _.debounce(processToggleRegularStudent,
       MILLS_TO_IGNORE, true));
-  $('.td_print_disclaimer_button').click(_.debounce(processTogglePrintDisclaimer,
+  $jq('.td_print_disclaimer_button').on("click", _.debounce(processTogglePrintDisclaimer,
       MILLS_TO_IGNORE, true));
-    $('.td_subscribed_button').click(_.debounce(processToggleSubscribed,
+    $jq('.td_subscribed_button').on("click", _.debounce(processToggleSubscribed,
       MILLS_TO_IGNORE, true));
 
   /*

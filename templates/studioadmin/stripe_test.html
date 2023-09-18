@@ -1,0 +1,31 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+<div class="container-fluid row">
+    <div class="col">
+    <h2>Stripe Test Payment</h2>
+    <p>Use this to check stripe payments.</p>
+    
+    {% if not seller %}
+        <p>No Stripe account connected yet; connect one <a href="{% url 'stripe_payments:connect_stripe' %}">here</a>.</p>
+    {% else %}
+    <p>Click the button below to be taken to the checkout for a test payment of £0.30 (the minimum amount Stripe will process).</p>
+
+    <h3 class="checkout-total">Total: £0.30</h3>
+
+    <form id="checkout-test-stripe-form" method="post" action="{% url 'stripe_checkout' %}">
+        {% csrf_token %}
+        <input type="hidden" name="cart_stripe_test_total" id="cart_stripe_test_total" value="0.30">
+        <input
+                class="btn mb-1 stripe-checkout-btn"
+                type="submit"
+                value="Checkout"
+        />
+    </form>
+    {% endif %}
+    </div>
+</div>
+
+{% endblock studioadmincontent %}

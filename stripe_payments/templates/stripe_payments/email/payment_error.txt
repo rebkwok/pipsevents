@@ -1,0 +1,6 @@
+ACTION REQUIRED: CHECK STATUS OF ERROR TRANSACTION
+Payment Error
+-----------------------------
+Stripe payment intent id: {{ payment_intent.id }}
+payment status: {{ payment_intent.status }}
+{% autoescape off %}{% if error %}Error: {{ error }} {% endif %}{% endautoescape %}

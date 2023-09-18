@@ -1,5 +1,8 @@
 '''
 Email warnings for unpaid bookings booked > 2 hrs ago
+
+BUT excluding bookings with a checkout_time in the past 5 mins
+(checkout_time is set when user clicks button to pay with stripe)
 '''
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -35,13 +38,14 @@ def get_bookings():
         payment_open=True,
     ).values_list("id", flat=True)
 
+    checkout_cutoff = timezone.now() - timedelta(seconds=5*60)
     return TicketBooking.objects.filter(
         ticketed_event__in=ticketed_event_ids,
         cancelled=False,
         paid=False,
         warning_sent=False,
         date_booked__lte=timezone.now() - timedelta(hours=2)
-        )
+        ).exclude(checkout_time__gte=checkout_cutoff)
 
 
 def send_warning_email(self, upcoming_bookings):

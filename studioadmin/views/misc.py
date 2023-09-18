@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from typing import Any
 import shortuuid
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.shortcuts import HttpResponseRedirect
-from django.views.generic import UpdateView
+from django.views.generic import UpdateView, ListView
 from django.utils import timezone
 from django.core.mail import send_mail
 
@@ -23,6 +25,9 @@ from studioadmin.forms import ConfirmPaymentForm
 from studioadmin.views.helpers import StaffUserMixin, staff_required
 from activitylog.models import ActivityLog
 from payments.forms import PayPalPaymentsUpdateForm
+
+from stripe_payments.models import Invoice, Seller
+
 
 logger = logging.getLogger(__name__)
 
@@ -221,3 +226,27 @@ def reactivated_block_status(request):
         "still_left": still_left_to_use
     }
     return TemplateResponse(request, "studioadmin/reactivated_block_status.html", context)
+
+
+class InvoiceListView(LoginRequiredMixin, StaffUserMixin, ListView):
+    paginate_by = 30
+    model = Invoice
+    context_object_name = "invoices"
+    template_name = "studioadmin/invoices.html"
+    queryset = Invoice.objects.filter(paid=True)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["sidenav_selection"] = "invoices"
+        return context
+
+
+@login_required
+@staff_required
+def stripe_test(request):
+    site_sellers = Seller.objects.filter(site=Site.objects.get_current(request))
+    site_seller = site_sellers.first() if site_sellers else None
+    return TemplateResponse(
+        request, "studioadmin/stripe_test.html", 
+        {"sidenav_selection": "stripe_test", "seller": site_seller}
+    )

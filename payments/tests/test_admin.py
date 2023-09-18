@@ -273,6 +273,10 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(PaymentsAdminFiltersTests, self).setUp()
+        # Make sure we're starting the test with a clean slate
+        PaypalBookingTransaction.objects.all().delete()
+        PaypalBlockTransaction.objects.all().delete()
+        PaypalTicketBookingTransaction.objects.all().delete()
         self.user = baker.make_recipe(
             'booking.user', first_name="Foo", last_name="Bar", username="foob"
         )
@@ -473,7 +477,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         unpaid_autocancelled_with_txn.booking.auto_cancelled = True
         unpaid_autocancelled_with_txn.booking.save()
 
-        unpaid_no_show_with_txn = pptrans[2]
+        unpaid_no_show_with_txn = pptrans[3]
         unpaid_no_show_with_txn.transaction_id = 'txn'
         unpaid_no_show_with_txn.save()
         unpaid_no_show_with_txn.booking.no_show = True
@@ -483,7 +487,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
 
         # One paid booking with transaction id on ppt obj should NOT be
         # included in filter
-        paid_with_txn = pptrans[3]
+        paid_with_txn = pptrans[4]
         paid_with_txn.transaction_id = 'txn'
         paid_with_txn.save()
         paid_with_txn.booking.paid = True

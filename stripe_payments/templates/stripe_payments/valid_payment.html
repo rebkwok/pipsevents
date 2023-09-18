@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% load accounttags bookingtags static %}
+
+
+{% block content %}
+
+<div class="row">
+    <div class="col-12 mt-5">
+    <div class="card">
+        <div class="card-header text-center">
+            <i class="font-weight-lighter text-success far fa-check-circle fa-5x"></i>
+        </div>
+        <div class="card-body">
+            <h4 class="card-title">Payment Processed</h4>
+            <p class="card-text">
+                Thank you for your payment. Your transaction has been completed and you'll receive confirmation by email shortly.
+            </p>
+
+                <table class="table table-bordered">
+                <thead>
+                    <th>Item</th>
+                    <th>Cost</th>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.cost_str }}</td>
+                        </tr>
+
+                    {% endfor %}
+                    <tr>
+                        <td>TOTAL CHARGED: £{{ total_charged|floatformat:2 }} {% if total_voucher_code %}(code applied: {{ total_voucher_code }}){% endif %}</td>
+                    </tr>
+                </tbody>
+                </table>
+
+        {% if "blocks" in item_types %}
+            <p>
+                Your block(s) have been processed.
+            </p>
+
+            <p>You can now go to the
+                <a href="{% url 'booking:lessons' %}">schedule</a>
+                to select and book eligible classes.
+            </p>
+            <p>View 
+                <a href="{% url 'booking:block_list' %}">your blocks</a>
+            </p>
+        {% endif %}
+
+        {% if "bookings" in item_types %}
+            <p>View 
+                <a href="{% url 'booking:bookings' %}">your bookings</a>
+            </p>
+        {% endif %}
+
+        {% if "ticket_bookings" in item_types %}
+            <p>View 
+                <a href="{% url 'booking:ticket_bookings' %}">your ticket bookings</a>
+            </p>
+        {% endif %}
+
+        {% if "gift_vouchers" in item_types %}
+            <p>Gift vouchers will be emailed to you shortly.</p>
+        {% endif %}
+        
+        {% if "stripe_test" in item_types and request.user.is_staff %}
+            <p>View the <a href="{% url 'studioadmin:invoices' %}">Stripe transactions log</a>.<p>
+        {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

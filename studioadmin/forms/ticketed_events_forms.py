@@ -4,6 +4,7 @@ import pytz
 from datetime import datetime
 
 from django import forms
+from django.conf import settings
 from django.forms.models import modelformset_factory, BaseModelFormSet, \
     inlineformset_factory, BaseInlineFormSet
 from django.utils import timezone
@@ -173,6 +174,8 @@ class TicketedEventAdminForm(forms.ModelForm):
                                 'not change any other event attributes and ' \
                                 'does not reopen previously cancelled ticket ' \
                                 'bookings.'
+        else:
+            self.fields['paypal_email'].initial = settings.DEFAULT_PAYPAL_EMAIL
 
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'

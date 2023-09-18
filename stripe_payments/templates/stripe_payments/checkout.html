@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+{% load accounttags bookingtags %}
+
+{% block extra_head %}
+  <title>Checkout</title>
+    <link rel="stylesheet" href="{% static 'stripe_payments/css/stripe.css' %}" />
+  <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block content %}
+
+    <h1 class="mt-2">Checkout</h1>
+    <hr>
+
+    <div>
+      <div>
+
+      {% if preprocessing_error %}
+          <h3 class="mt-1">There was a problem with your checkout</h3>
+          {% if already_paid %}
+              <p>This invoice has already been paid.</p>
+          {% endif %}
+          <p>Technical support has been notified and someone will be in contact shortly.</p>
+
+      {% else %}
+
+
+      <div id="checkout-summary">  
+        <h3 class="mt-1">Order Summary</h3>
+
+        <table class="table table-bordered">
+        <thead>
+            <th>Item</th>
+            <th>Cost</th>
+        </thead>
+        <tbody>
+          {% for key, item in cart_items.items %}
+              <tr>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.cost_str }}</td>
+              </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr><td colspan="2">TOTAL: £{{ cart_total }}
+            {% if request.session.total_voucher_code %}(voucher applied to cart total: <strong>{{ request.session.total_voucher_code }}</strong>){% endif %}
+            </td></tr>
+        </tfoot>
+        </table>
+      </div>
+          <h3 class="mt-1">Billing Details</h3>
+          <form id="payment-form">
+            <div id="link-authentication-element">
+              <!--Stripe.js injects the Link Authentication Element-->
+            </div>
+            <div id="payment-element">
+              <!--Stripe.js injects the Payment Element-->
+            </div>
+
+            <div>
+              <button id="payment-button" class="btn btn-dark"
+                data-client_secret="{{ client_secret }}"
+                data-stripe_account="{{ stripe_account }}"
+                data-stripe_api_key="{{ stripe_api_key }}"
+                data-total="{{ cart_total }}"
+                data-checkout_type="{{ checkout_type }}"
+                data-tbref="{{ tbref }}"
+                data-voucher_id="{{ voucher_id }}"
+                data-return_url="{{ stripe_return_url }}"
+              >
+                <div class="spinner hidden" id="spinner"></div>
+                <span id="button-text">Pay </span> <span id="order-amount">£{{ cart_total }}</span>
+              </button>
+              <div id="payment-message" class="hidden"></div>
+              <div id="payment-error" class="Error hidden"></div>
+            </div>
+          </form>
+
+          {% include "stripe_payments/includes/stripe_info.html" %}
+
+
+      {% endif %}
+    </div>
+</div>
+{% endblock content %}
+
+
+{% block extra_js %}
+    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-payment.js' %}"></script>
+{% endblock %}

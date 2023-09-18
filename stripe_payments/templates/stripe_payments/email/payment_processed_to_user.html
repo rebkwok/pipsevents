@@ -1,0 +1,22 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<h2>Thank you for your payment.</h2>
+<p><strong>Invoice number:</strong> {{ invoice.invoice_id }}</p>
+<p><strong>Purchased:</strong>
+    {% for item_type, items in invoice.items_summary.items %}
+        {% if items %}
+            <ul>
+                {% for item in items %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endfor %}
+</p>
+
+{% if invoice.gift_vouchers %}
+    <p>*Gift voucher codes and a link to a printable voucher will be sent in separate email(s)</p>
+{% endif %}
+
+{% endblock %}

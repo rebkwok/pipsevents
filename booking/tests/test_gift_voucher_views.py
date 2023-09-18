@@ -2,7 +2,7 @@ from model_bakery import baker
 
 from django.contrib.auth.models import User
 from django.urls import reverse
-from django.test import TestCase
+from django.test import override_settings, TestCase
 
 from booking.models import Event, BlockVoucher, EventVoucher, GiftVoucherType
 from common.tests.helpers import TestSetupMixin
@@ -46,6 +46,7 @@ class TestGiftVoucherPurchseView(GiftVoucherTestMixin, TestCase):
         assert response.context_data['form'].fields["user_email"].initial == "test@test.com"
         assert response.context_data['form'].fields["user_email1"].initial == "test@test.com"
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_purchase_gift_voucher_event(self):
         assert EventVoucher.objects.exists() is False
         assert BlockVoucher.objects.exists() is False
@@ -72,6 +73,7 @@ class TestGiftVoucherPurchseView(GiftVoucherTestMixin, TestCase):
 
         assert "paypal_form" in resp.context_data
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_purchase_gift_voucher_block(self):
         assert EventVoucher.objects.exists() is False
         assert BlockVoucher.objects.exists() is False
@@ -108,6 +110,7 @@ class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
         super().setUpTestData()
         cls.url_string = "booking:gift_voucher_update"
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_update_gift_voucher(self):
         # deactivated gift voucher redirects to payment view
         # voucher type not changed, voucher has same id
@@ -132,6 +135,7 @@ class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
         assert updated_voucher.activated == False
         assert "paypal_form" in resp.context_data
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_update_gift_voucher_existing_paypal_payment_transaction(self):
         # deactivated gift voucher redirects to payment view, same invoice number
         block_voucher = baker.make_recipe(
@@ -160,6 +164,7 @@ class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
         assert PaypalGiftVoucherTransaction.objects.count() == 1
         assert PaypalGiftVoucherTransaction.objects.first().id == ppt.id
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_update_gift_voucher_change_voucher_block_type(self):
         # deactivated gift voucher, changing between block types keeps same voucher
         # original paypal payment transaction updated
@@ -195,6 +200,7 @@ class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
         ppt.refresh_from_db()
         assert ppt.voucher_type == self.block_voucher_type2
 
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_update_gift_voucher_change_voucher_event_type(self):
         # deactivated gift voucher, changing between event types keeps same voucher
         # original paypal payment transaction updated
@@ -230,6 +236,7 @@ class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
         ppt.refresh_from_db()
         assert ppt.voucher_type == self.event_voucher_type2
 
+    @override_settings(PAYMENT_METHOD="paypal") 
     def test_update_gift_voucher_change_voucher_type(self):
         # deactivated gift voucher, changing block type to event type deletes and recreates voucher
         # original paypal payment transaction updated

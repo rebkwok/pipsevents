@@ -3,16 +3,19 @@ from model_bakery import baker
 import pytest
 
 from django.urls import reverse
+from django.contrib.auth.models import User
 from django.core import mail
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sites.models import Site
 
-from booking.models import Booking
+from booking.models import Booking, Block, TicketBooking, Ticket
 from common.tests.helpers import _create_session
 from studioadmin.views import (
     ConfirmPaymentView,
     ConfirmRefundView,
 )
+from stripe_payments.models import Invoice
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -386,3 +389,41 @@ class TestPaypalViewTests(TestPermissionMixin, TestCase):
             resp.context_data['email_errors'],
             'Please enter an email address to test'
         )
+
+
+@pytest.mark.django_db
+def test_invoice_list(client, staff_user):
+    invoice = baker.make(Invoice, invoice_id="foo123", paid=True)
+    unpaid_invoice = baker.make(Invoice, invoice_id="foo345", paid=False)
+    baker.make(Block, block_type__cost=10, invoice=invoice)
+    baker.make(Booking, event__name="test event", event__cost=10, invoice=invoice)
+    ticket_booking = baker.make(TicketBooking, ticketed_event__name="test show", ticketed_event__ticket_cost=10, invoice=invoice)
+    baker.make(Ticket, ticket_booking=ticket_booking)
+    # gift voucher
+    blocktype = baker.make_recipe("booking.blocktype")
+    block_gift_voucher = baker.make_recipe(
+        "booking.block_gift_voucher", purchaser_email="test@test.com", activated=True,
+        invoice=invoice
+    )
+    block_gift_voucher.block_types.add(blocktype)
+    blocktype = block_gift_voucher.block_types.first()    
+    baker.make("booking.GiftVoucherType", block_type=blocktype)
+
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:invoices"))
+    assert list(resp.context_data["invoices"]) == [invoice]
+
+
+@pytest.mark.django_db
+def test_stripe_test(client, staff_user):
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:stripe_test"))
+
+    # no seller
+    assert "No Stripe account connected yet" in resp.rendered_content
+    assert "checkout-test-stripe-form" not in resp.rendered_content
+
+    baker.make("stripe_payments.Seller", site=Site.objects.get_current(), stripe_user_id="id123")
+    resp = client.get(reverse("studioadmin:stripe_test"))
+    assert "No Stripe account connected yet" not in resp.rendered_content
+    assert "checkout-test-stripe-form" in resp.rendered_content

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import override_settings, TestCase
 from django.utils import timezone
 from django.urls import reverse
 
@@ -14,7 +14,7 @@ import pytest
 
 from booking.models import Banner, Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
-    EventVoucher, GiftVoucherType, FilterCategory
+    EventVoucher, GiftVoucherType, FilterCategory, UsedBlockVoucher, UsedEventVoucher
 from common.tests.helpers import PatchRequestMixin
 
 now = timezone.now()
@@ -509,6 +509,56 @@ class BookingTests(PatchRequestMixin, TestCase):
         # event cancellation allowed but now we're within cancellation period
         booking = Booking.objects.get(id=booking.id)
         self.assertFalse(booking.can_cancel)
+
+    def test_booking_cannot_be_attended_and_no_show(self):
+        with self.assertRaises(ValidationError):
+            baker.make(Booking, attended=True, no_show=True)
+
+    def test_cost_with_voucher(self):
+        event = baker.make_recipe(
+            'booking.future_PC',
+            cost=10,
+            date=datetime(2015, 3, 3, tzinfo=dt_timezone.utc),
+            cancellation_period=24
+        )
+        booking = baker.make(Booking, event=event)
+
+        assert booking.cost_with_voucher == 10
+        booking.voucher_code = "unk"
+        booking.save()
+
+        assert booking.cost_with_voucher == 10
+        booking.voucher_code is None
+
+        voucher = EventVoucher.objects.create(code="foo", discount=10)
+        voucher.event_types.add(event.event_type)
+        booking.voucher_code = "foo"
+        booking.save()
+        assert booking.cost_with_voucher == 9
+
+    def test_process_voucher(self):
+        event = baker.make_recipe(
+            'booking.future_PC',
+            cost=10,
+            date=datetime(2015, 3, 3, tzinfo=dt_timezone.utc),
+            cancellation_period=24
+        )
+        booking = baker.make(Booking, event=event)
+        voucher = EventVoucher.objects.create(code="foo", discount=10)
+        voucher.event_types.add(event.event_type)
+
+        # invalid voucher
+        booking.voucher_code = "unk"
+        booking.save()
+        booking.process_voucher()
+        assert UsedEventVoucher.objects.exists() is False
+
+        # valid voucher
+        booking.voucher_code = "foo"
+        booking.save()
+        booking.process_voucher()
+        assert UsedEventVoucher.objects.exists()
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
@@ -1308,10 +1358,52 @@ class BlockTests(PatchRequestMixin, TestCase):
         self.assertTrue(block.children.exists())
         self.assertFalse(block.children.first().bookings.exists())
 
-    def test_booking_cannot_be_attended_and_no_show(self):
-        with self.assertRaises(ValidationError):
-            baker.make(Booking, attended=True, no_show=True)
+    def test_cost_with_voucher(self):
+        blocktype = baker.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+        )
+        block = baker.make_recipe(
+            'booking.block',
+            block_type=blocktype, paid=False
+        )
+        assert block.cost_with_voucher == 60
+        block.voucher_code = "unk"
+        block.save()
 
+        assert block.cost_with_voucher == 60
+        block.voucher_code is None
+
+        voucher = BlockVoucher.objects.create(code="foo", discount=10)
+        voucher.block_types.add(blocktype)
+        block.voucher_code = "foo"
+        block.save()
+        assert block.cost_with_voucher == 54
+        assert block.voucher_code == "foo"
+
+    def test_process_voucher(self):
+        blocktype = baker.make_recipe(
+            'booking.blocktype', size=10, cost=60, duration=4,
+        )
+        block = baker.make_recipe(
+            'booking.block',
+            block_type=blocktype, paid=False
+        )
+
+        voucher = BlockVoucher.objects.create(code="foo", discount=10)
+        voucher.block_types.add(blocktype)
+
+        # invalid voucher
+        block.voucher_code = "unk"
+        block.save()
+        block.process_voucher()
+        assert UsedBlockVoucher.objects.exists() is False
+
+        # valid voucher
+        block.voucher_code = "foo"
+        block.save()
+        block.process_voucher()
+        assert UsedBlockVoucher.objects.exists()
+        
 
 class EventTypeTests(TestCase):
 
@@ -1619,6 +1711,25 @@ class BlockTypeTests(TestCase):
         baker.make(BlockType, event_type=pp_ev_type, identifier='transferred', duration=1)
         self.assertEqual(BlockType.objects.count(), 2)
 
+    @override_settings(TESTING=False)
+    def test_block_type_duration(self):
+        pc_ev_type = baker.make_recipe('booking.event_type_PC')
+        with pytest.raises(
+            ValidationError, 
+            match=r"A block type must have a duration or duration_weeks"
+        ) as e:
+                BlockType.objects.create(
+                    event_type=pc_ev_type, size=1, cost=10
+                )
+
+        with pytest.raises(
+            ValidationError, 
+            match=r"A block type must have a duration or duration_weeks \(not both\)"
+        ):
+            BlockType.objects.create(
+                event_type=pc_ev_type, duration=2, duration_weeks=2, size=1, cost=10
+            )
+
 
 class VoucherTests(TestCase):
 
@@ -1689,9 +1800,11 @@ class VoucherTests(TestCase):
         voucher.event_types.add(pp_event_type)
         voucher.event_types.add(pc_event_type)
 
-        self.assertFalse(voucher.check_event_type(ws_event_type))
-        self.assertTrue(voucher.check_event_type(pc_event_type))
-        self.assertTrue(voucher.check_event_type(pp_event_type))
+        assert not voucher.check_event_type(ws_event_type)
+        assert voucher.check_event_type(pc_event_type)
+        assert voucher.check_event_type(pp_event_type)
+
+        assert list(voucher.valid_for().order_by("id")) == [pc_event_type, pp_event_type]
 
     def test_check_block_type(self):
         voucher = baker.make(BlockVoucher)

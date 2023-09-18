@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% load bookingtags static email_obfuscator %}
+
+
+{% block content %}
+
+<div class="row">
+    <div class="col-12 mt-5">
+    <div class="card">
+        <div class="card-header"><h2>Error Processing Payment</h2></div>
+        <div class="card-body">
+            <p class="card-text">
+                Something went wrong!  Please check your payment records and contact {{ studio_email|obfuscate_mailto }} for further information.
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

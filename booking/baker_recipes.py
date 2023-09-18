@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 from datetime import timezone as dt_timezone
 
+from django.conf import settings
 from django.contrib.auth.models import User
 
 from django.utils import timezone
@@ -38,27 +39,34 @@ event_type_OT = Recipe(EventType, event_type="OT", subtype=seq("Online tutorial"
 
 future_EV = Recipe(Event,
                       date=future,
-                      event_type=foreign_key(event_type_OE))
+                      event_type=foreign_key(event_type_OE),
+                      paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 
 future_WS = Recipe(Event,
                    date=future,
-                   event_type=foreign_key(event_type_WS))
+                   event_type=foreign_key(event_type_WS),
+                   paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 
 future_PC = Recipe(Event,
                    date=future,
-                   event_type=foreign_key(event_type_PC))
+                   event_type=foreign_key(event_type_PC),
+                   paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 future_PP = Recipe(Event,
                    date=future,
-                   event_type=foreign_key(event_type_PP))
+                   event_type=foreign_key(event_type_PP),
+                   paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 future_CL = Recipe(Event,
                    date=future,
-                   event_type=foreign_key(event_type_OC))
+                   event_type=foreign_key(event_type_OC),
+                   paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 future_RH = Recipe(Event,
                    date=future,
-                   event_type=foreign_key(event_type_RH))
+                   event_type=foreign_key(event_type_RH),
+                   paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 future_OT = Recipe(Event,
                    date=future,
-                   event_type=foreign_key(event_type_OT))
+                   event_type=foreign_key(event_type_OT),
+                   paypal_email=settings.DEFAULT_PAYPAL_EMAIL)
 
 # past event
 past_event = Recipe(Event,
@@ -66,7 +74,8 @@ past_event = Recipe(Event,
                     event_type=foreign_key(event_type_WS),
                     advance_payment_required=True,
                     cost=10,
-                    payment_due_date=past-timedelta(10)
+                    payment_due_date=past-timedelta(10),
+                    paypal_email=settings.DEFAULT_PAYPAL_EMAIL
                     )
 
 # past_class
@@ -75,7 +84,8 @@ past_class = Recipe(Event,
                     event_type=foreign_key(event_type_PC),
                     advance_payment_required=True,
                     cost=10,
-                    payment_due_date=past-timedelta(10)
+                    payment_due_date=past-timedelta(10),
+                    paypal_email=settings.DEFAULT_PAYPAL_EMAIL
                     )
 
 blocktype = Recipe(BlockType, active=True, duration=4)
@@ -107,37 +117,48 @@ block_10 = Recipe(Block,
                   block_type=foreign_key(blocktype10),
                   start_date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc))
 
-booking = Recipe(Booking, user__email=seq("test_user@test.com"))
-booking_with_user = Recipe(Booking, user=foreign_key(user))
+booking = Recipe(
+    Booking, user__email=seq("test_user@test.com"), 
+    event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+)
+booking_with_user = Recipe(
+    Booking, user=foreign_key(user),
+    event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+)
 
-past_booking = Recipe(Booking,
-                      event=foreign_key(past_event),
-                      user=foreign_key(user)
-                      )
+past_booking = Recipe(
+    Booking,
+    event=foreign_key(past_event),
+    user=foreign_key(user),
+    event__paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+)
 
 fb_app = Recipe(SocialApp,
                 provider='facebook')
 
 mon_session = Recipe(
     Session, event_type=foreign_key(event_type_PC), day=Session.MON,
-    payment_time_allowed=None
+    payment_time_allowed=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
 )
 tue_session = Recipe(
     Session, event_type=foreign_key(event_type_PC), day=Session.TUE,
-    payment_time_allowed=None
+    payment_time_allowed=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
 )
 wed_session = Recipe(
     Session, event_type=foreign_key(event_type_PC), day=Session.WED,
-    payment_time_allowed=None
+    payment_time_allowed=None, paypal_email=settings.DEFAULT_PAYPAL_EMAIL
 )
 
 waiting_list_user = Recipe(WaitingListUser, user=foreign_key(user))
 
 ticketed_event_max10 = Recipe(
-    TicketedEvent, max_tickets=10, ticket_cost=10, date=future
+    TicketedEvent, max_tickets=10, ticket_cost=10, date=future,
+    paypal_email=settings.DEFAULT_PAYPAL_EMAIL
 )
-ticketed_event_past_max10 = Recipe(TicketedEvent, max_tickets=10,
-                                   ticket_cost=10, date=past)
+ticketed_event_past_max10 = Recipe(
+    TicketedEvent, max_tickets=10, ticket_cost=10, date=past,
+    paypal_email=settings.DEFAULT_PAYPAL_EMAIL
+)
 ticket_booking = Recipe(TicketBooking, user=foreign_key(user))
 
 online_disclaimer = Recipe(
@@ -148,8 +169,11 @@ online_disclaimer = Recipe(
 )
 
 event_gift_voucher = Recipe(
-    EventVoucher, code="abc1234", activated=False, discount=100, max_per_user=1, max_vouchers=1
+    EventVoucher, code="abc1234", activated=False, discount=100, max_per_user=1, max_vouchers=1,
+    is_gift_voucher=True
 )
 block_gift_voucher = Recipe(
-    BlockVoucher, code="def1234", activated=False, discount=100, max_per_user=1, max_vouchers=1
+    BlockVoucher, 
+    code="def1234", activated=False, discount=100, max_per_user=1, max_vouchers=1,
+    is_gift_voucher=True
 )

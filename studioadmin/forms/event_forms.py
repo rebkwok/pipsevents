@@ -3,6 +3,7 @@ from typing import Any
 import pytz
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django import forms
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils.translation import gettext_lazy as _
@@ -157,6 +158,8 @@ class EventAdminForm(forms.ModelForm):
                                 'booking and payment CLOSED'.format(
                     ev_type_str, ev_type_str.title()
                 )
+        else:
+            self.fields['paypal_email'].initial = settings.DEFAULT_PAYPAL_EMAIL
 
     def clean_new_category(self):
         new_category = self.cleaned_data.get("new_category")

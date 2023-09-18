@@ -1,0 +1,13 @@
+{% include "account/email/do_not_reply.txt" %}
+
+
+Thank you for your payment
+-----------------------------
+Invoice number: {{ invoice.invoice_id }}</p>
+Purchased:
+{% for item_type, items in invoice.items_summary.items %}
+{% if items %}{{ item_type|title }}{% endif %}
+{% for item in items %}-{{ item }}{% endfor %}
+{% endfor %}
+{% if invoice.gift_vouchers %}*Gift voucher codes and a link to a printable voucher will be sent in separate email(s){% endif %}
+

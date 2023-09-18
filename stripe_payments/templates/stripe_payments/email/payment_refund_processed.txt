@@ -1,0 +1,10 @@
+ACTION REQUIRED: CHECK STATUS OF REFUNDED ITEMS
+Payment refunded
+-----------------------------
+Invoice number: {{ invoice.invoice_id }}</p>
+User: {{ user.first_name}} {{ user.last_name}}
+Purchased:
+{% for item_type, items in invoice.items_summary.items %}
+{% if items %}{{ item_type|title }}{% endif %}
+{% for item in items %}-{{ item }}{% endfor %}
+{% endfor %}
