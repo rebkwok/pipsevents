@@ -636,9 +636,8 @@ def test_webhook_authorized_account_no_seller(
 
 
 @patch("stripe_payments.views.stripe.Webhook")
-@patch("stripe_payments.views.stripe.Account")
 def test_webhook_authorized_account_mismatched_seller(
-    mock_account, mock_webhook, get_mock_webhook_event, client, invoice
+    mock_webhook, get_mock_webhook_event, client, invoice
 ):     
     baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
     metadata = {
@@ -653,6 +652,26 @@ def test_webhook_authorized_account_mismatched_seller(
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200
     assert resp.content.decode() == "Ignored: Mismatched seller account"
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_authorized_account_no_seller(
+    mock_webhook, get_mock_webhook_event, client, invoice
+):  
+    baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
+    metadata = {
+        "invoice_id": "foo",
+        "invoice_signature": invoice.signature(),
+        **invoice.items_metadata(),
+    }
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        metadata=metadata, seller_id="other-seller-id"
+    )
+    Seller.objects.all().delete()
+
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200
+    assert resp.content.decode() == "Ignored: No seller account set up for site"
 
 
 @patch("stripe_payments.views.stripe.Webhook")

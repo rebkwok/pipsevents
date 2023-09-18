@@ -43,10 +43,6 @@ def stripe_payment_status(request, payment_intent_id):
     stripe.api_key = settings.STRIPE_SECRET_KEY
     seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
     stripe_account = seller.stripe_user_id
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-    seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
-    stripe_account = seller.stripe_user_id
-    
     
     try:
         payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, stripe_account=stripe_account)
@@ -137,6 +133,11 @@ def stripe_webhook(request):
 
     try:
         site_seller = Seller.objects.filter(site=Site.objects.get_current(request)).first()
+        if not site_seller:
+            # No seller connected
+            logger.error("No seller account set up, PI ignored")
+            return HttpResponse("Ignored: No seller account set up for site", status=200)
+        
         account = event.account
         if account != site_seller.stripe_user_id:
             # relates to a different seller, just return and let the next webhook manage it
