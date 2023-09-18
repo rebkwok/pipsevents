@@ -26,7 +26,8 @@ env = environ.Env(DEBUG=(bool, False),
                   LOCAL=(bool, False),
                   SHOW_VAT=(bool, True),
                   TESTING=(bool, False),
-                  PAYMENT_METHOD=(str, "paypal")         
+                  PAYMENT_METHOD=(str, "paypal")  ,
+                  ENFORCE_AUTO_CANCELLATION=(bool, False)       
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -449,6 +450,8 @@ WATCHLIST = env('WATCHLIST', default=[])
 if isinstance(WATCHLIST, str):  # pragma: no cover
     WATCHLIST = WATCHLIST.split(',')
 REGULAR_STUDENT_WHITELIST_IDS = env('REGULAR_STUDENT_WHITELIST_IDS')
+
+ENFORCE_AUTO_CANCELLATION = env("ENFORCE_AUTO_CANCELLATION")
 
 # Increase this to deal with the bulk emails.  Currently just under 2000
 # users, posts 2 fields per user

@@ -820,6 +820,28 @@ class CancelUnpaidBookingsTests(TestCase):
         self.assertFalse(paid_booking.auto_cancelled)
 
     @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
+    def test_cancel_unpaid_bookings_no_autocanceling(self, mock_tz):
+        """
+        test unpaid bookings are cancelled
+        """
+        mock_tz.now.return_value = datetime(
+            2015, 2, 10, 10, tzinfo=dt_timezone.utc
+        )
+        with override_settings(ENFORCE_AUTO_CANCELLATION=False):
+            management.call_command('cancel_unpaid_bookings')
+        # emails are sent to user per cancelled booking and studio once for all
+        # cancelled bookings
+        unpaid_booking = Booking.objects.get(id=self.unpaid.id)
+        paid_booking = Booking.objects.get(id=self.paid.id)
+        self.assertEqual(len(mail.outbox), 2)
+        assert unpaid_booking.status == 'CANCELLED'
+        assert paid_booking.status == 'OPEN'
+
+        # no auto_cancelled set as per setting
+        assert not unpaid_booking.auto_cancelled
+        assert not paid_booking.auto_cancelled
+
+    @patch('booking.management.commands.cancel_unpaid_bookings.timezone')
     def test_only_cancel_unpaid_bookings_within_day_hours(self, mock_tz):
         """
         test unpaid bookings are cancelled only between 9am and 10pm

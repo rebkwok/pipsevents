@@ -93,13 +93,11 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
         if not self.request.user.is_anonymous:
             # Add in the booked_events
             user_bookings = self.request.user.bookings.filter(event__id__in=all_events)
-            user_bookings = {booking.event.id: booking for booking in user_bookings}
-
-            booked_events = all_events.filter(bookings__user_id=self.request.user.id, bookings__status='OPEN', bookings__no_show=False).values_list('id', flat=True)
-            auto_cancelled_events = all_events.filter(bookings__user_id=self.request.user.id, bookings__status='CANCELLED', bookings__auto_cancelled=True).values_list('id', flat=True)
-
+            user_booking_dict = {booking.event.id: booking for booking in user_bookings}
+            booked_events = user_bookings.filter(status='OPEN', no_show=False).values_list('event__id', flat=True)
+            auto_cancelled_events = user_bookings.filter(status='CANCELLED', auto_cancelled=True).values_list('event__id', flat=True)
             waiting_list_events = self.request.user.waitinglists.filter(event__in=all_events).values_list('event__id', flat=True)
-            context['user_bookings'] = user_bookings
+            context['user_bookings'] = user_booking_dict
             context['booked_events'] = booked_events
             context['auto_cancelled_events'] = auto_cancelled_events
             context['waiting_list_events'] = waiting_list_events

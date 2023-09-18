@@ -59,20 +59,21 @@ def get_event_context(context, event, user):
     context['payment_text'] = payment_text
 
     # booked flag
-    user_bookings = Booking.objects.filter(
-        event=event, user=user, status='OPEN', no_show=False
-    )
-    user_cancelled = Booking.objects.filter(
-        event=event, user=user, status='CANCELLED'
-    ).exists()
-    auto_cancelled = Booking.objects.filter(
-        event=event, user=user, status='CANCELLED', auto_cancelled=True
-    ).exists()
-    user_no_show = Booking.objects.filter(
-        event=event, user=user, status='OPEN', no_show=True
-    ).exists()
-    booked = bool(user_bookings)
-    cancelled = user_cancelled or user_no_show
+    any_user_booking = user.bookings.filter(event=event).first()
+    if any_user_booking:
+        user_booking = (
+            any_user_booking if any_user_booking.status == "OPEN" and not any_user_booking.no_show
+            else None
+        )
+        user_cancelled = any_user_booking.status == "CANCELLED"
+        auto_cancelled = user_cancelled and any_user_booking.auto_cancelled
+        user_no_show = any_user_booking.status == "OPEN" and any_user_booking.no_show
+        cancelled = user_cancelled or user_no_show
+
+    else:
+        user_booking = None
+        cancelled = auto_cancelled = False
+    
 
     # waiting_list flag
     context['on_waiting_list'] = WaitingListUser.objects.filter(
@@ -87,9 +88,9 @@ def get_event_context(context, event, user):
         context["online_class"] = True
         context["show_video_link"] = event.show_video_link
 
-    if booked:
+    if user_booking is not None:
         context['bookable'] = False
-        context['booking'] = user_bookings[0]
+        context['booking'] = user_booking
         context['booked'] = True
         if event.event_type.event_type == 'OT':
             if context['booking'].paid:
