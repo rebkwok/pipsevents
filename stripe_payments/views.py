@@ -116,9 +116,9 @@ def stripe_webhook(request):
         for connected_account in connected_accounts:
             seller = Seller.objects.filter(stripe_user_id=connected_account.id)
             if not seller.exists():
-                logger.error(f"Connected Stripe account has no associated seller %s", connected_account.id)
+                logger.error(f"Stripe account has no associated seller on this site %s", connected_account.id)
                 # return 200 so we don't keep trying. The error log will trigger an email to support.
-                return HttpResponse("Connected Stripe account has no associated seller", status=200)
+                return HttpResponse("Stripe account has no associated seller on this site", status=200)
         return HttpResponse(status=200)
 
     elif event.type == "account.application.deauthorized":
