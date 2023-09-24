@@ -20,9 +20,9 @@
             credit by this date.
         {% elif booking.paid %}
             {% if event.event_type.event_type == 'CL' %}
-                This booking is not refundable; a transfer block has been created for you as credit and can be used for your next booking for the same class type. Transfer credit is valid for 2 weeks.
+                This booking is not refundable; a transfer credit has been created for you and can be used for your next booking for the same class type. Transfer credit is valid for 2 weeks.
             {% elif event.event_type.event_type == 'RH' %}
-                This booking is not refundable; a transfer block has been created for you as credit and can be used for your next room hire booking. Transfer credit is valid for 2 weeks.
+                This booking is not refundable; a transfer credit has been created for you and can be used for your next room hire booking. Transfer credit is valid for 2 weeks.
             {% elif booking.free_class %}
                 This booking was marked as free. If you decide to reopen this booking you will need to resubmit a free class request for approval.
             {% else %}
