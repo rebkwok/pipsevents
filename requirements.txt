@@ -8,8 +8,6 @@ asgiref==3.5.2
     # via django
 attrs==22.1.0
     # via pytest
-backports-zoneinfo==0.2.1
-    # via django
 beautifulsoup4==4.11.1
     # via -r requirements.in
 certifi==2022.9.24
@@ -100,7 +98,7 @@ mailchimp3==3.0.17
     # via -r requirements.in
 model-bakery==1.7.0
     # via -r requirements.in
-oauthlib==3.2.1
+oauthlib==3.2.2
     # via requests-oauthlib
 packaging==21.3
     # via pytest
@@ -177,9 +175,7 @@ static3==0.7.0
 stripe==6.4.0
     # via -r requirements.in
 tomli==2.0.1
-    # via
-    #   coverage
-    #   pytest
+    # via pytest
 types-cryptography==3.3.23
     # via pyjwt
 typing-extensions==4.7.1
