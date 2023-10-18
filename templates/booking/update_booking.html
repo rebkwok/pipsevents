@@ -30,9 +30,9 @@
                      {% endif %}
             </div>
             <div class="card-body">
-
-                    {% if booking.event.payment_open %}
-                        <span class="divider"></span>
+                {% if booking.event.payment_open %}
+                <span class="divider"></span>
+                    {% if payment_method == "paypal" %}
                         <h4>Pay with PayPal</h4>
                         <p>Click below to be transferred to paypal to make your payment.</p>
                         {% include 'payments/payment.html' %}
@@ -43,11 +43,13 @@
                                 received within this time, your booking will be automatically cancelled.
                             </p>
                         {% endif %}
-
                     {% else %}
-                        <h4>Payment information</h4>
-                        {{ booking.event.payment_info|safe }}
+                        <a class="btn btn-info" href="{% url 'booking:shopping_basket' %}">Go to shopping basket</a>
                     {% endif %}
+                {% else %}
+                    <h4>Payment information</h4>
+                    {{ booking.event.payment_info|safe }}
+                {% endif %}
             </div>
             <div class="card-body">
 
