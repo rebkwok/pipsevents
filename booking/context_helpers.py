@@ -32,7 +32,7 @@ def event_strings(event):
         ev_type_for_url, ev_type_str =  "room_hires", "room hire"
     return ev_type_code, ev_type_for_url, ev_type_str
 
-def get_event_context(context, event, user):
+def get_event_context(context, event, user, booking=None):
     disclaimer = has_active_disclaimer(user)
     expired_disclaimer = has_expired_disclaimer(user)
     context['disclaimer'] = disclaimer
@@ -59,7 +59,7 @@ def get_event_context(context, event, user):
     context['payment_text'] = payment_text
 
     # booked flag
-    any_user_booking = user.bookings.filter(event=event).first()
+    any_user_booking = booking or user.bookings.filter(event=event).first()
     if any_user_booking:
         user_booking = (
             any_user_booking if any_user_booking.status == "OPEN" and not any_user_booking.no_show
@@ -76,9 +76,7 @@ def get_event_context(context, event, user):
     
 
     # waiting_list flag
-    context['on_waiting_list'] = WaitingListUser.objects.filter(
-        user=user, event=event
-    ).exists()
+    context['on_waiting_list'] = user.waitinglists.filter(event=event).exists()
 
     # booking info text and bookable
     booking_info_text = ""

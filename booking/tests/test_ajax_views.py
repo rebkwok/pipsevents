@@ -460,49 +460,6 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(mail_to_user.to, [self.user.email])
         self.assertEqual(mail_to_studio.to, [settings.DEFAULT_STUDIO_EMAIL])
 
-    def test_rebook_cancelled_paypal_paid_booking(self):
-        """
-        Test rebooking a cancelled booking still marked as paid by paypal makes
-        booking status open, fetches the paypal
-        transaction id
-        """
-        event = baker.make_recipe('booking.future_PC', cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-        booking = baker.make_recipe(
-            'booking.booking', event=event, user=self.user, paid=True,
-            payment_confirmed=True, status='CANCELLED'
-        )
-        pptrans = create_booking_paypal_transaction(
-            booking=booking, user=self.user
-        )
-        pptrans.transaction_id = "txn"
-        pptrans.save()
-
-        # try to book again
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        booking.refresh_from_db()
-        self.assertEqual('OPEN', booking.status)
-        self.assertTrue(booking.paid)
-        self.assertTrue(booking.payment_confirmed)
-
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            'You previously paid for this booking; your booking will remain as '
-            'pending until the organiser has reviewed your payment status.'
-
-        )
-
-        # email to user and to studio
-        self.assertEqual(len(mail.outbox), 2)
-        mail_to_user = mail.outbox[0]
-        mail_to_studio = mail.outbox[1]
-
-        self.assertEqual(mail_to_user.to, [self.user.email])
-        self.assertEqual(mail_to_studio.to, [settings.DEFAULT_STUDIO_EMAIL])
-        self.assertIn(pptrans.transaction_id, mail_to_studio.body)
-        self.assertIn(pptrans.invoice_id, mail_to_studio.body)
-
     def test_creating_booking_with_active_user_block(self):
         """
         Test that an active block is automatically used when booking

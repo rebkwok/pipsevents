@@ -18,7 +18,7 @@ from django.db.models import Q
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.views.generic import (
-    ListView, CreateView, UpdateView, DeleteView
+    ListView, UpdateView, DeleteView
 )
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -28,7 +28,7 @@ from django.template.response import TemplateResponse
 
 from braces.views import LoginRequiredMixin
 
-from payments.forms import PayPalPaymentsListForm, PayPalPaymentsUpdateForm
+from payments.forms import PayPalPaymentsUpdateForm
 from payments.models import PaypalBookingTransaction
 
 from accounts.models import has_expired_disclaimer, has_active_disclaimer
@@ -816,8 +816,9 @@ def ajax_create_booking(request, event_id):
     }
 
     # make sure this isn't an open booking already
-    if Booking.objects.filter(user=request.user, event=event).exists():
-        booking = Booking.objects.get(user=request.user, event=event)
+    event_bookings = request.user.bookings.filter(event=event)
+    if event_bookings.exists():
+        booking = event_bookings.first()
         if booking.status == "OPEN" and not booking.no_show:
             # Already booked; don't do anything else, just update button
             if ref == "bookings":
@@ -866,17 +867,10 @@ def ajax_create_booking(request, event_id):
     booking.status = 'OPEN'
     booking.no_show = False
 
-    transaction_id = None
-    invoice_id = None
     previously_cancelled_and_direct_paid = False
 
     if previously_cancelled and booking.paid:
         previously_cancelled_and_direct_paid = True
-        pptrans = PaypalBookingTransaction.objects.filter(booking=booking)\
-            .exclude(transaction_id__isnull=True)
-        if pptrans:
-            transaction_id = pptrans[0].transaction_id
-            invoice_id = pptrans[0].invoice_id
 
     elif previously_no_show and booking.paid:
         # leave paid no_show booking with existing payment method
@@ -907,7 +901,7 @@ def ajax_create_booking(request, event_id):
         context.update(get_booking_context(booking))
     else:
         context.update(
-            context_helpers.get_event_context(context, event, request.user)
+            context_helpers.get_event_context(context, event, request.user, booking=booking)
         )
         context["booking_open"] = context["booked"]
 
@@ -983,8 +977,6 @@ def ajax_create_booking(request, event_id):
                               'time': booking.event.date.strftime('%H:%M'),
                               'prev_cancelled_and_direct_paid':
                               previously_cancelled_and_direct_paid,
-                              'transaction_id': transaction_id,
-                              'invoice_id': invoice_id
                           }
                       ),
                       settings.DEFAULT_FROM_EMAIL,
@@ -996,11 +988,11 @@ def ajax_create_booking(request, event_id):
 
     alert_message = {}
 
-    # If this is a user's first booking, send warning email
+    # If this is a user's first booking, send info email
     # Check for previous paid bookings
     # Also store flag on session so we don't send repeated emails if user books multiple
     # classes
-    if not request.session.get("new_user_email_sent", False) and not booking.user.bookings.filter(paid=True):
+    if not request.session.get("new_user_email_sent", False) and not booking.user.bookings.filter(paid=True).exists():
         request.session["new_user_email_sent"] = True
         send_mail(
             f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Important studio information - please read!',
@@ -1058,10 +1050,7 @@ def ajax_create_booking(request, event_id):
             message = "Added to basket; booking not confirmed until payment has been made."
         alert_message['message'] = message
     try:
-        waiting_list_user = WaitingListUser.objects.get(
-            user=booking.user, event=booking.event
-        )
-        waiting_list_user.delete()
+        booking.user.waitinglists.get(event=event).delete()
         ActivityLog.objects.create(
             log='User {} removed from waiting list '
             'for {}'.format(
