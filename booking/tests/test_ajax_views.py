@@ -95,8 +95,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         assert resp.context['alert_message']['message'] == msg, resp.context['alert_message'] 
         assert not Booking.objects.first().paid
         assert Booking.objects.first().event == self.event
-        # email to student only
-        assert len(mail.outbox) == 1
+        # unpaid, no email yet
+        assert len(mail.outbox) == 0
 
     def test_create_tutorial_booking(self):
         """
@@ -123,10 +123,9 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         assert Booking.objects.all().count() == 1
 
         # emails for booking and new user
-        assert len(mail.outbox) == 2
+        assert len(mail.outbox) == 1
         prefix = settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-        assert mail.outbox[0].subject.startswith(f"{prefix} Booking for")
-        assert mail.outbox[1].subject == f"{prefix} Important studio information - please read!"
+        assert mail.outbox[0].subject == f"{prefix} Important studio information - please read!"
 
         assert self.client.session.get("new_user_email_sent")
 
@@ -135,8 +134,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event_url = reverse('booking:ajax_create_booking', args=[event.id])
         self.client.post(event_url)
         assert Booking.objects.all().count() == 2
-        assert len(mail.outbox) == 3
-        assert mail.outbox[2].subject.startswith(f"{prefix} Booking for")
+        # no new email (booking isn't paid)
+        assert len(mail.outbox) == 1
 
         # But in a new session, it will be sent
         self.client.logout()
@@ -145,9 +144,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         event1_url = reverse('booking:ajax_create_booking', args=[event1.id])
         self.client.post(event1_url)
         assert Booking.objects.all().count() == 3
-        assert len(mail.outbox) == 5
-        assert mail.outbox[3].subject.startswith(f"{prefix} Booking for")
-        assert mail.outbox[4].subject == f"{prefix} Important studio information - please read!"
+        assert len(mail.outbox) == 2
+        assert mail.outbox[1].subject == f"{prefix} Important studio information - please read!"
 
         # If one of the bookings is now paid, no new user email is sent
         booking = Booking.objects.first()
@@ -156,12 +154,11 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         self.client.logout()
         self.client.login(username=self.user.username, password="test")
-        event2 = baker.make_recipe('booking.future_EV')
+        event2 = baker.make_recipe('booking.future_EV', cost=5)
         event2_url = reverse('booking:ajax_create_booking', args=[event2.id])
-        self.client.post(event2_url, cost=5)
+        self.client.post(event2_url)
         assert Booking.objects.all().count() == 4
-        assert len(mail.outbox) == 6
-        assert mail.outbox[5].subject.startswith(f"{prefix} Booking for")
+        assert len(mail.outbox) == 2
 
     def test_create_booking_free_event(self):
         """
@@ -219,8 +216,9 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         self.client.post(url)
         self.assertEqual(Booking.objects.all().count(), 1)
-        # email to student and studio
-        self.assertEqual(len(mail.outbox), 2)
+        # unpaid booking, email to studio only
+        self.assertEqual(len(mail.outbox), 1)
+        assert "has just booked for" in mail.outbox[0].subject
 
     @override_settings(WATCHLIST=['foo@test.com', 'bar@test.com'])
     def test_create_booking_sends_email_to_studio_for_users_on_watchlist(self):
@@ -228,8 +226,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self._mock_new_user_email_sent()
         self.client.post(self.event_url)
         self.assertEqual(Booking.objects.count(), 1)
-        # email to student only
-        self.assertEqual(len(mail.outbox), 1)
+        # unpaid booking, no email
+        self.assertEqual(len(mail.outbox), 0)
 
         # create watched user and book
         watched_user = User.objects.create_user(
@@ -242,38 +240,8 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         self.client.post(self.event_url)
         self.assertEqual(Booking.objects.count(), 2)
-        # 2 addition emails in mailbox for this booking, to student and studio
-        self.assertEqual(len(mail.outbox), 3)
-
-    @patch('booking.views.booking_views.send_mail')
-    def test_create_booking_with_email_error(self, mock_send_emails):
-        """
-        Test creating a booking sends email to support if there is an email
-        error but still creates booking
-        """
-        mock_send_emails.side_effect = Exception('Error sending mail')
-
-        event = baker.make_recipe(
-            'booking.future_EV', max_participants=3,
-            email_studio_when_booked=True, cost=5
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        self.assertEqual(Booking.objects.all().count(), 0)
-        self.client.login(username=self.user.username, password='test')
-        self._mock_new_user_email_sent()
-
-        resp = self.client.post(url)
-        self.assertEqual(Booking.objects.all().count(), 1)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            'Added to basket; booking not confirmed until payment has been made.'
-        )
-
-        # email to support only
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(mail.outbox[0].to, [settings.SUPPORT_EMAIL])
-        self.assertEqual(mail.outbox[1].to, [settings.SUPPORT_EMAIL])
+        # email to studio studio
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_create_room_hire(self):
         """
@@ -786,10 +754,10 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(WaitingListUser.objects.all().count(), 2)
         self.assertFalse(WaitingListUser.objects.filter(user=self.user, event=self.event).exists())
 
-        # email to student only
-        self.assertEqual(len(mail.outbox), 1)
+        # unpaid booking, no email
+        self.assertEqual(len(mail.outbox), 0)
 
-    def test_cannot_make_book_if_account_locked(self):
+    def test_cannot_make_booking_if_account_locked(self):
         """
         Test trying to create booking with locked account returns 400
         """

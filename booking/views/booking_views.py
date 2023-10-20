@@ -918,36 +918,33 @@ def ajax_create_booking(request, event_id):
     blocks_used, total_blocks = _get_block_status(booking, request)
 
     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-    # send email to user
-
-    ctx = {
-          'host': host,
-          'booking': booking,
-          'event': booking.event,
-          'date': booking.event.date.strftime('%A %d %B'),
-          'time': booking.event.date.strftime('%H:%M'),
-          'blocks_used':  blocks_used,
-          'total_blocks': total_blocks,
-          'prev_cancelled_and_direct_paid':
-          previously_cancelled_and_direct_paid,
-          'claim_free': False,
-          'ev_type': ev_type_str,
-    }
-    try:
-        if ev_type_for_url != "online_tutorials":
-            send_mail('{} Booking for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
-            ),
-                get_template('booking/email/booking_received.txt').render(ctx),
-                settings.DEFAULT_FROM_EMAIL,
-                [booking.user.email],
-                html_message=get_template(
-                    'booking/email/booking_received.html'
-                    ).render(ctx),
-                fail_silently=False)
-    except Exception as e:
-        # send mail to tech support with Exception
-        send_support_email(e, __name__, "ajax_create_booking")
+    
+    # send email to user ONLY IF PAID
+    # If it's unpaid, they'll get the email with payment/update
+    if ev_type_for_url != "online_tutorials" and booking.paid:
+        ctx = {
+            'host': host,
+            'booking': booking,
+            'event': booking.event,
+            'date': booking.event.date.strftime('%A %d %B'),
+            'time': booking.event.date.strftime('%H:%M'),
+            'blocks_used':  blocks_used,
+            'total_blocks': total_blocks,
+            'prev_cancelled_and_direct_paid':
+            previously_cancelled_and_direct_paid,
+            'claim_free': False,
+            'ev_type': ev_type_str,
+        }
+        send_mail('{} Booking for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event
+        ),
+            get_template('booking/email/booking_received.txt').render(ctx),
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.user.email],
+            html_message=get_template(
+                'booking/email/booking_received.html'
+                ).render(ctx),
+            fail_silently=False)
 
     # send email to studio if flagged for the event or if previously
     # cancelled and direct paid OR for specific users being watched
@@ -960,31 +957,27 @@ def ajax_create_booking(request, event_id):
         if previously_cancelled_and_direct_paid:
             additional_subject = "ACTION REQUIRED!"
 
-        try:
-            send_mail('{} {} {} {} has just booked for {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
-                booking.user.first_name, booking.user.last_name,
-                booking.event
-            ),
-                      get_template(
-                        'booking/email/to_studio_booking.txt'
-                        ).render(
-                          {
-                              'host': host,
-                              'booking': booking,
-                              'event': booking.event,
-                              'date': booking.event.date.strftime('%A %d %B'),
-                              'time': booking.event.date.strftime('%H:%M'),
-                              'prev_cancelled_and_direct_paid':
-                              previously_cancelled_and_direct_paid,
-                          }
-                      ),
-                      settings.DEFAULT_FROM_EMAIL,
-                      [settings.DEFAULT_STUDIO_EMAIL],
-                      fail_silently=False)
-        except Exception as e:
-            # send mail to tech support with Exception
-            send_support_email(e, __name__, "ajax_create_booking")
+        send_mail('{} {} {} {} has just booked for {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, additional_subject,
+            booking.user.first_name, booking.user.last_name,
+            booking.event
+        ),
+                    get_template(
+                    'booking/email/to_studio_booking.txt'
+                    ).render(
+                        {
+                            'host': host,
+                            'booking': booking,
+                            'event': booking.event,
+                            'date': booking.event.date.strftime('%A %d %B'),
+                            'time': booking.event.date.strftime('%H:%M'),
+                            'prev_cancelled_and_direct_paid':
+                            previously_cancelled_and_direct_paid,
+                        }
+                    ),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [settings.DEFAULT_STUDIO_EMAIL],
+                    fail_silently=False)
 
     alert_message = {}
 
@@ -996,13 +989,12 @@ def ajax_create_booking(request, event_id):
         request.session["new_user_email_sent"] = True
         send_mail(
             f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Important studio information - please read!',
-            get_template('booking/email/new_user_booking.txt').render(ctx),
+            get_template('booking/email/new_user_booking.txt').render(),
             settings.DEFAULT_FROM_EMAIL,
             [booking.user.email],
-            html_message=get_template(
-                'booking/email/new_user_booking.html'
-            ).render(ctx),
-            fail_silently=False)
+            html_message=get_template('booking/email/new_user_booking.html').render(),
+            fail_silently=False
+        )
 
     if previously_cancelled_and_direct_paid:
         alert_message['message_type'] = 'warning'
