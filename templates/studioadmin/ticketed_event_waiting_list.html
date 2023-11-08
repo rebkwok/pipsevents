@@ -1,0 +1,45 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load tz %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+    <h2>Waiting List for {{ ticketed_event }}</h2>
+
+    <div class="row">
+    
+        <div class="col-12">
+            <a class="btn btn-wm mb-2" href="{% url 'studioadmin:email_ticketed_event_waiting_list' ticketed_event.id %}">Email students on waiting list<a/>
+                
+            {% if waiting_list_users %}
+                <div class="card card-wm">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Date joined</th>
+                                {% if request.user.is_staff %}
+                                    <th></th>
+                                {% endif %}
+                            </tr>
+
+                            {% for wluser in waiting_list_users %}
+                            <tr>
+                                <td class="studioadmin-tbl">{{ wluser.user.first_name }} {{ wluser.user.last_name }}</td>
+                                <td class="studioadmin-tbl">{{ wluser.user.email }}</td>
+                                <td class="studioadmin-tbl">{{ wluser.date_joined|formatted_uk_date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <p>There are no users on the waiting list.</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+{% endblock studioadmincontent %}

@@ -73,6 +73,8 @@ from studioadmin.views import (BookingEditView,
                                popup_notification_view,
                                InvoiceListView,
                                stripe_test,
+                               ticketed_event_waiting_list_view,
+                               email_ticketed_event_waiting_list
                                )
 
 app_name = 'studioadmin'
@@ -219,6 +221,14 @@ urlpatterns = [
     path(
         'ticketed-events/<slug:slug>/cancel/',
         cancel_ticketed_event_view, name='cancel_ticketed_event'
+    ),
+    path(
+        'ticketed-events/<slug:ticketed_event_slug>/waiting-list/',
+        ticketed_event_waiting_list_view, name='ticketed_event_waiting_list_view'
+    ),
+    path(
+        'ticketed-events/waitinglists/<int:ticketed_event_id>/email/',
+        email_ticketed_event_waiting_list, name='email_ticketed_event_waiting_list'
     ),
     path(
         'confirm-ticket-booking-refunded/<int:pk>/',

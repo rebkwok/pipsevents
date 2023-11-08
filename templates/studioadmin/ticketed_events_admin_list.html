@@ -35,6 +35,7 @@
                                 <th class="text-center">Max tickets</th>
                                 <th class="text-center">Tickets left</th>
                                 <th class="text-center">View ticket bookings</th>
+                                <th class="text-center">Waiting list</th>
                                 <th class="text-center">Delete</th>
                             </tr>
 
@@ -49,6 +50,9 @@
                                 <td class="text-center studioadmin-tbl">{% if event.instance.max_tickets %}{{ event.instance.max_tickets }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl">{% if event.instance.tickets_left < 10000 %}{{ event.instance.tickets_left }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fas fa-ticket-alt fa-lg"></span></a></td>
+                                <td class="text-center studioadmin-tbl">
+                                    <a href="{% url 'studioadmin:ticketed_event_waiting_list_view' event.instance.slug %}">{{ event.instance.waiting_list_users.count }}</a>
+                                </td>
                                 <td class="text-center studioadmin-tbl">
                                     {% if event.instance.cancelled %}
                                         CANCELLED

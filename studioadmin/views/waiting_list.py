@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import HttpResponseRedirect
 from django.urls import reverse
 
-from booking.models import Event, WaitingListUser
+from booking.models import Event, WaitingListUser, TicketedEvent, TicketedEventWaitingListUser
 
 from studioadmin.views.helpers import is_instructor_or_staff
 from studioadmin.views.helpers import url_with_querystring
@@ -80,4 +80,34 @@ def email_waiting_list(request, event_id):
         url_with_querystring(
             reverse('studioadmin:email_users_view'),
             events=event_ids, lessons=lesson_ids)
+        )
+
+
+@login_required
+@is_instructor_or_staff
+def ticketed_event_waiting_list_view(request, ticketed_event_slug):
+    ticketed_event = get_object_or_404(TicketedEvent, slug=ticketed_event_slug)
+    waiting_list_users = TicketedEventWaitingListUser.objects.filter(
+        ticketed_event_id=ticketed_event.id
+        ).order_by('user__username')
+
+    template = 'studioadmin/ticketed_event_waiting_list.html'
+
+    return TemplateResponse(
+        request, template, {
+            'waiting_list_users': waiting_list_users, 'ticketed_event': ticketed_event,
+            'sidenav_selection': 'ticketed_events',
+        }
+    )
+
+
+@login_required
+@is_instructor_or_staff
+def email_ticketed_event_waiting_list(request, ticketed_event_id):
+    waiting_list_users = TicketedEventWaitingListUser.objects.filter(
+        ticketed_event_id=ticketed_event_id).values_list("user_id", flat=True)
+    request.session['users_to_email'] = list(waiting_list_users)
+
+    return HttpResponseRedirect(
+        url_with_querystring(reverse('studioadmin:email_users_view'))
         )
