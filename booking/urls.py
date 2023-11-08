@@ -16,7 +16,7 @@ from booking.views import ajax_create_booking, blocks_modal, \
     submit_zero_booking_payment, update_shopping_basket_count, \
     toggle_waiting_list, \
     OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView, \
-    check_total
+    check_total, toggle_ticketed_event_waiting_list
 
 app_name = 'booking'
 
@@ -94,6 +94,10 @@ urlpatterns = [
     path('ticketed-events/<slug:event_slug>/purchase/',
         TicketCreateView.as_view(),
         name='book_ticketed_event'),
+    path(
+        'ticketed-events/toggle-waiting-list/<int:event_id>/',
+        toggle_ticketed_event_waiting_list, name='toggle_ticketed_event_waiting_list'
+    ),
     path(
         'ticket-bookings/', TicketBookingListView.as_view(),
         name='ticket_bookings'

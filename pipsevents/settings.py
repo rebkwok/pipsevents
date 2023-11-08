@@ -32,6 +32,7 @@ env = environ.Env(DEBUG=(bool, False),
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
 
+LOCAL = env("LOCAL")
 TESTING = env("TESTING")
 if not TESTING:  # pragma: no cover
     TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
@@ -240,7 +241,7 @@ SUPPORT_EMAIL = 'rebkwok@gmail.com'
 SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 # #####LOGGING######
-if not TESTING:  # pragma: no cover
+if not TESTING and not LOCAL:  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
 
     LOGGING = {

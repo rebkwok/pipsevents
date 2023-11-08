@@ -13,7 +13,8 @@ from ckeditor.widgets import CKEditorWidget
 
 from booking.models import Banner, Event, Booking, Block, BlockType, \
     EventType, GiftVoucherType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
-    BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher, FilterCategory
+    BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher, FilterCategory, \
+    TicketedEventWaitingListUser
 from booking.forms import TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
 
@@ -578,3 +579,4 @@ admin.site.register(UsedEventVoucher, UsedEventVoucherAdmin)
 admin.site.register(UsedBlockVoucher, UsedBlockVoucherAdmin)
 admin.site.register(GiftVoucherType, GiftVoucherTypeAdmin)
 admin.site.register(FilterCategory, FilterCategoryAdmin)
+admin.site.register(TicketedEventWaitingListUser)

@@ -29,17 +29,28 @@
                     {% if not ticketed_event.advance_payment_required and ticketed_event.ticket_cost %}<p>Advance payment is not required for this event.</p>{% endif %}
 
                     {% if user.is_authenticated %}
-                        {% if ticketed_event in tickets_booked_events %}
+                        {% if ticketed_event in tickets_booked_events or ticketed_event in payment_pending_events %}
                             <div><strong>You have already booked tickets for this event.</strong></div>
+                            {% if ticketed_event in payment_pending_events %}
+                                <div class="text-danger"><strong>Your tickets will be held for a limit time pending payment.</strong></div>
+                            {% endif %}
                             {% if ticketed_event.bookable %}
                                 <div class="inc-space"></div>
                                 <div><a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
                                     <div id="book_button" class="btn btn-wm table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} more tickets</div>
                                 </a></div>
                             {% else %}
-                                <div class="cancel-warning">This event has now sold out.</div>
+                                <hr>
+                                <div class="cancel-warning">This event has now sold out. You can join the waiting list for additional tickets.</div>
+                                <div id="waiting-list-{{ ticketed_event.id }}"
+                                    class="mt-2"
+                                    hx-get={% url 'booking:toggle_ticketed_event_waiting_list' ticketed_event.id %}
+                                >
+                                {% include "booking/includes/ticketed_event_waiting_list_button.html" %}
+                                </div>
                             {% endif %}
-                            <div>View <a href="{% url 'booking:ticket_bookings' %}">your ticket bookings</a>.</div>
+                            <hr>
+                            <div>View <a href="{% url 'booking:ticket_bookings' %}">your ticket bookings</a>{% if ticketed_event in payment_pending_events %} to complete payment{% endif %}.</div>
                         {% else %}
                             {% if ticketed_event.bookable %}
                                 <div><a href="{% url 'booking:book_ticketed_event' ticketed_event.slug %}">
@@ -47,7 +58,14 @@
                                     <div id="book_button" class="btn btn-wm table-btn ticket-btn">{% if ticketed_event.payment_open %}Buy{% else %}Reserve{% endif %} tickets</div>
                                 </a></div>
                             {% else %}
+                                <hr>
                                 <div class="cancel-warning">This event has now sold out.</div>
+                                <div id="waiting-list-{{ ticketed_event.id }}"
+                                    class="mt-2"
+                                    hx-get={% url 'booking:toggle_ticketed_event_waiting_list' ticketed_event.id %}
+                                >
+                                    {% include "booking/includes/ticketed_event_waiting_list_button.html" %}
+                                </div>
                             {% endif %}
                         {% endif %}
                         </br></br>

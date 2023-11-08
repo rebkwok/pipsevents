@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from braces.views import LoginRequiredMixin
 
-from booking.models import TicketedEvent, TicketBooking, Ticket
+from booking.models import TicketedEvent, TicketBooking, Ticket, TicketedEventWaitingListUser
 from booking.forms import TicketFormSet, TicketPurchaseForm
 import booking.context_helpers as context_helpers
 from booking.email_helpers import send_support_email
@@ -45,12 +45,22 @@ class TicketedEventListView(DataPolicyAgreementRequiredMixin, ListView):
             # Add in the booked events
 
             tickets_booked_events = [
-                tbk.ticketed_event for tbk in TicketBooking.objects.filter(
-                    user=self.request.user, cancelled=False,
-                    purchase_confirmed=True, paid=True
+                tbk.ticketed_event for tbk in self.request.user.ticket_bookings.filter(
+                    cancelled=False, purchase_confirmed=True, paid=True
                 ) if tbk.tickets.exists()
             ]
+            payment_pending_events = [
+                tbk.ticketed_event for tbk in self.request.user.ticket_bookings.filter(
+                    cancelled=False, purchase_confirmed=True, paid=False
+                ) if tbk.tickets.exists()
+            ]
+            relevant_event_ids = self.get_queryset().values_list("id", flat=True)
+            waiting_list_event_ids = self.request.user.ticketed_event_waiting_lists.filter(
+                ticketed_event_id__in=relevant_event_ids
+            ).values_list("ticketed_event_id", flat=True)
+            context['payment_pending_events'] = payment_pending_events
             context['tickets_booked_events'] = tickets_booked_events
+            context['waiting_list_event_ids'] = waiting_list_event_ids
 
         if self.request.user.is_staff:
             context['not_visible_events'] = TicketedEvent.objects.filter(
@@ -557,3 +567,25 @@ def ticket_purchase_expired(request, slug):
         request, 'booking/ticket_booking_expired.html',
         {'ticketed_event': ticketed_event}
     )
+
+
+def toggle_ticketed_event_waiting_list(request, event_id):
+    user = request.user
+    ticketed_event = get_object_or_404(TicketedEvent, pk=event_id)
+    # toggle current status
+    try:
+        waitinglistuser = TicketedEventWaitingListUser.objects.get(
+            user=user, ticketed_event=ticketed_event
+        )
+        waitinglistuser.delete()
+        on_waiting_list = False
+    except TicketedEventWaitingListUser.DoesNotExist:
+        TicketedEventWaitingListUser.objects.create(user=user, ticketed_event=ticketed_event)
+        on_waiting_list = True
+
+    return render(
+        request,
+        "booking/includes/ticketed_event_waiting_list_button.html",
+        {'ticketed_event': ticketed_event, 'on_waiting_list': on_waiting_list}
+    )
+ 

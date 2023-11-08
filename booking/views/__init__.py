@@ -16,7 +16,8 @@ from booking.views.shopping_basket_views import shopping_basket, \
     update_block_bookings, submit_zero_booking_payment, submit_zero_block_payment
 from booking.views.ticketed_views import TicketBookingListView, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
-    TicketBookingView, TicketBookingCancelView, ticket_purchase_expired
+    TicketBookingView, TicketBookingCancelView, ticket_purchase_expired, \
+    toggle_ticketed_event_waiting_list
 
 
 __all__ = [
@@ -36,7 +37,7 @@ __all__ = [
     'toggle_waiting_list',
     'blocks_modal',
     "OnlineTutorialListView", "PurchasedTutorialsListView", "OnlineTutorialDetailView",
-    "stripe_checkout", "check_total"
+    "stripe_checkout", "check_total", "toggle_ticketed_event_waiting_list"
 ]
 
 

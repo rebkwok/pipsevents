@@ -1012,6 +1012,17 @@ class TicketedEvent(models.Model):
         super(TicketedEvent, self).save(*args, **kwargs)
 
 
+class TicketedEventWaitingListUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ticketed_event_waiting_lists")
+    ticketed_event = models.ForeignKey(
+        TicketedEvent, related_name="waiting_list_users", on_delete=models.CASCADE
+    )
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.ticketed_event}"
+
+
 class TicketBooking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ticket_bookings")
     ticketed_event = models.ForeignKey(
