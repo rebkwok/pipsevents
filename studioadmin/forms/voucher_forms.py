@@ -2,6 +2,7 @@
 import pytz
 from datetime import datetime
 
+from django.db.models import Q
 from django import forms
 from django.core.exceptions import ValidationError
 from booking.models import BlockType, BlockVoucher, EventVoucher, \
@@ -237,8 +238,10 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
         self.fields['discount'].validators = [validate_discount]
         self.fields['max_vouchers'].validators = [validate_greater_than_0]
         block_types = self.fields['block_types']
-        block_types.queryset = BlockType.objects.filter(active=True)\
-            .exclude(identifier="free class")
+        block_types.queryset = BlockType.objects.exclude(identifier="free class").filter(
+            Q(active=True) | Q(identifier__iexact="standard")
+        )
+            
         self.fields['purchaser_email'].disabled = True
 
 
