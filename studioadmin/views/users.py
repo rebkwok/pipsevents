@@ -71,7 +71,6 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
     model = User
     template_name = 'studioadmin/user_list.html'
     context_object_name = 'users'
-    paginate_by = 30
 
     def get_queryset(self):
         queryset = User.objects.all().order_by('first_name')
@@ -96,8 +95,22 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         return queryset
 
     def get_context_data(self):
-        queryset = self.get_queryset()
         context = super(UserListView,  self).get_context_data()
+        queryset = self.get_queryset()
+        paginator = Paginator(queryset, 10)
+        page = self.request.GET.get('page', 1)
+        try:
+            page = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            page = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            page = paginator.page(paginator.num_pages)
+        context["page_obj"] = page
+        context["users"] = page.object_list
+        _set_pagination_context(context)
+
         context['sidenav_selection'] = 'users'
         context['search_submitted'] = self.request.GET.get('search_submitted')
         context['active_filter'] = self.request.GET.get('filter',  'All')
@@ -105,18 +118,15 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         reset = self.request.GET.get('reset')
         context['filter_options'] = _get_name_filter_available(queryset)
 
-        num_results = queryset.count()
-        total_users = User.objects.count()
-
         if reset:
             search_text = ''
-        form = UserListSearchForm(
-            initial={
-                'search': search_text})
+        form = UserListSearchForm(initial={'search': search_text})
         context['form'] = form
+        num_results = queryset.count()
+        total_users = User.objects.count()
         context['num_results'] = num_results
         context['total_users'] = total_users
-        _set_pagination_context(context)
+
         return context
 
 

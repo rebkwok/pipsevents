@@ -92,7 +92,9 @@ def get_pagination_params(context, page_type=None):
         for req_param in ["hide_empty_cronjobs", "search", "search_date", "search_submitted"]:
             if req_param in context["request"].GET:
                 params[req_param] = context["request"].GET[req_param]
-
+    else:       
+        params = {k: context["request"].GET.get(k) for k in context["request"].GET if k != "page"}
+        params.pop("page", None)
     if params:
         return f"&{urlencode(params)}"
     return ""

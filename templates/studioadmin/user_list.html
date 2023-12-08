@@ -108,6 +108,7 @@
                             </tr>
                             </tfoot>
                         </table>
+                        {% get_pagination_params "admin_users" as pagination_params %}
                         {% include 'booking/includes/pagination.html' %}
                     </div>
                 </div>
