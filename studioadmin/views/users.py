@@ -97,7 +97,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
     def get_context_data(self):
         context = super(UserListView,  self).get_context_data()
         queryset = self.get_queryset()
-        paginator = Paginator(queryset, 10)
+        paginator = Paginator(queryset, 30)
         page = self.request.GET.get('page', 1)
         try:
             page = paginator.page(page)
