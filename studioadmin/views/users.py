@@ -24,7 +24,7 @@ from braces.views import LoginRequiredMixin
 
 from accounts.models import PrintDisclaimer, active_print_disclaimer_cache_key
 
-from booking.models import Booking,  Block, BlockType, WaitingListUser
+from booking.models import Booking,  Block, BlockType, EventType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
 from common.mailchimp_utils import update_mailchimp
@@ -127,6 +127,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['num_results'] = num_results
         context['total_users'] = total_users
 
+        context["event_types_with_permissions"] = EventType.objects.exclude(allowed_group__isnull=True).distinct("allowed_group")
         return context
 
 
@@ -219,82 +220,6 @@ def users_status(request):
         request,
         "studioadmin/users_attendance.html",
         context
-    )
-
-
-@login_required
-@staff_required
-def toggle_regular_student(request,  user_id):
-    user_to_change = User.objects.get(id=user_id)
-    perm = Permission.objects.get(codename='is_regular_student')
-    if not user_to_change.is_superuser:
-        if user_to_change.is_regular_student():
-            user_to_change.user_permissions.remove(perm)
-            ActivityLog.objects.create(
-                log="'Regular student' status has been removed for "
-                "{} {} ({}) by admin user {}".format(
-                    user_to_change.first_name,
-                    user_to_change.last_name,
-                    user_to_change.username,
-                    request.user.username
-                )
-            )
-        else:
-            user_to_change.user_permissions.add(perm)
-            ActivityLog.objects.create(
-                log="{} {} ({}) has been given 'regular student' "
-                "status by admin user {}".format(
-                    user_to_change.first_name,
-                        user_to_change.last_name,
-                        user_to_change.username,
-                        request.user.username
-                    )
-            )
-    # get the user again, otherwise permissions are cached
-    return render(
-        request,
-        "studioadmin/includes/regular_student_button.txt",
-        {"user": User.objects.get(id=user_to_change.id)}
-    )
-
-
-@login_required
-@staff_required
-def toggle_print_disclaimer(request,  user_id):
-    user_to_change = User.objects.get(id=user_id)
-    disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
-    if disclaimer:
-        disclaimer.delete()
-        cache.set(
-            active_print_disclaimer_cache_key(user_to_change), False, timeout=600
-        )
-        ActivityLog.objects.create(
-            log="Print disclaimer has been removed for "
-            "{} {} ({}) by admin user {}".format(
-                user_to_change.first_name,
-                user_to_change.last_name,
-                user_to_change.username,
-                request.user.username
-            )
-        )
-    else:
-        PrintDisclaimer.objects.create(user=user_to_change)
-        cache.set(
-            active_print_disclaimer_cache_key(user_to_change), True, timeout=600
-        )
-        ActivityLog.objects.create(
-            log="Print disclaimer recorded for {} {} ({}) "
-            "by admin user {}".format(
-                user_to_change.first_name,
-                    user_to_change.last_name,
-                    user_to_change.username,
-                    request.user.username
-                )
-        )
-    return render(
-        request,
-        "studioadmin/includes/print_disclaimer_button.txt",
-        {"user": user_to_change}
     )
 
 
@@ -877,3 +802,28 @@ def process_user_booking_updates(form, request):
         messages.info(request, 'No changes made')
 
     return booking
+
+
+@login_required
+@staff_required
+def toggle_permission(request,  user_id, event_type_id):
+    user_to_change = get_object_or_404(User, pk=user_id)
+    event_type = get_object_or_404(EventType, pk=event_type_id)
+
+    if event_type.has_permission_to_book(user_to_change):
+        event_type.remove_permission_to_book(user_to_change)
+        ActivityLog.objects.create(
+            log=f"User {user_to_change.username} permission to book {event_type.subtype} revoked by "
+                f"admin user {request.user.username}"
+        )
+    else:
+        event_type.add_permission_to_book(user_to_change)
+        ActivityLog.objects.create(
+            log=f"User {user_to_change.username} permission to book {event_type.subtype} added by "
+                f"admin user {request.user.username}"
+        )
+    return render(
+        request,
+        "studioadmin/includes/toggle_permission_button.html",
+        {"user": user_to_change, "event_type": event_type}
+    )

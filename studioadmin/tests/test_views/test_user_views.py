@@ -112,91 +112,54 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         resp = self._get_response(self.staff_user)
         self.assertIn('test12345678@longemail...', resp.rendered_content)
 
-    def test_regular_student_button_not_shown_for_instructors(self):
+    def test_toggle_permission_buttons_not_shown_for_instructors(self):
+        pp = baker.make_recipe("booking.event_type_PP")
         not_reg_student = baker.make_recipe('booking.user')
         reg_student = baker.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
+        pp.add_permission_to_book(reg_student)
 
         resp = self._get_response(self.staff_user)
         resp.render()
         self.assertIn(
-            'id="toggle_regular_student_{}"'.format(reg_student.id),
+            f'id="toggle_permission_{reg_student.id}"',
             str(resp.content)
         )
         self.assertIn(
-            'id="toggle_regular_student_{}"'.format(not_reg_student.id),
+            f'id="toggle_permission_{not_reg_student.id}"',
             str(resp.content)
         )
 
         resp = self._get_response(self.instructor_user)
         resp.render()
         self.assertNotIn(
-            'id="toggle_regular_student_{}"'.format(reg_student.id),
+            f'id="toggle_permission_{reg_student.id}"',
             str(resp.content)
         )
         self.assertNotIn(
-            'id="toggle_regular_student_{}"'.format(not_reg_student.id),
+            f'id="toggle_permission_{not_reg_student.id}"',
             str(resp.content)
         )
 
-    def test_change_regular_student(self):
+    def test_change_permission(self):
+        pp = baker.make_recipe("booking.event_type_PP")
         not_reg_student = baker.make_recipe('booking.user')
         reg_student = baker.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
+        pp.add_permission_to_book(reg_student)
 
-        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
+        assert pp.has_permission_to_book(reg_student)
+        assert not pp.has_permission_to_book(not_reg_student)
+
         self.client.login(username=self.staff_user, password='test')
         self.client.get(
-            reverse('studioadmin:toggle_regular_student', args=[reg_student.id])
+            reverse('studioadmin:toggle_permission', args=[reg_student.id, pp.id])
         )
-        changed_student = User.objects.get(id=reg_student.id)
-        self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
-
-        self.assertFalse(not_reg_student.has_perm('booking.is_regular_student'))
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_regular_student', args=[not_reg_student.id]
-            )
-        )
-
-        changed_student = User.objects.get(id=not_reg_student.id)
-        self.assertTrue(changed_student.has_perm('booking.is_regular_student'))
-
-    def test_cannot_remove_regular_student_for_superuser(self):
-        reg_student = baker.make_recipe('booking.user')
-        superuser = baker.make_recipe(
-            'booking.user', first_name='Donald', last_name='Duck', username='dd'
-        )
-        superuser.is_superuser = True
-        superuser.save()
-
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
-
-        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
-        self.assertTrue(superuser.has_perm('booking.is_regular_student'))
-
-        self.client.login(
-            username=self.staff_user.username, password='test'
-        )
-        self.client.get(
-            reverse('studioadmin:toggle_regular_student', args=[reg_student.id])
-        )
-
-        changed_student = User.objects.get(id=reg_student.id)
-        self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
+        assert not pp.has_permission_to_book(reg_student)
 
         self.client.get(
-            reverse('studioadmin:toggle_regular_student', args=[superuser.id])
+            reverse('studioadmin:toggle_permission', args=[not_reg_student.id, pp.id])
         )
+        assert pp.has_permission_to_book(not_reg_student)
 
-        # status hasn't changed
-        self.assertTrue(superuser.has_perm('booking.is_regular_student'))
 
     def test_user_search(self):
 
@@ -353,24 +316,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             ),
             str(resp.rendered_content)
         )
-        self.assertIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        self.assertIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_no_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        self.assertNotIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_online_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
         resp = self._get_response(self.staff_user)
         self.assertIn(
             'class="has-disclaimer-pill"', str(resp.rendered_content)
@@ -382,98 +327,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             ),
             str(resp.rendered_content)
         )
-
-    def test_print_disclaimer_button_only_shown_for_superusers(self):
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        superuser = User.objects.create_superuser(
-            username='super', email='super@test.com', password='test'
-        )
-        resp = self._get_response(superuser)
-        self.assertIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        resp = self._get_response(self.staff_user)
-        self.assertNotIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        resp = self._get_response(self.instructor_user)
-        self.assertNotIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-
-    def test_change_print_disclaimer(self):
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        print_disc = baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        self.assertEqual(
-            print_disc.id,
-            user_with_print_disclaimer.print_disclaimer.id
-        )
-
-        self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        self.client.login(username=self.staff_user.username, password='test')
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-            )
-        )
-
-        # print disclaimer has been deleted
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
-
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-            )
-        )
-        self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        user = User.objects.get(id=user_with_print_disclaimer.id)
-        # a new print disclaimer has been created
-        self.assertNotEqual(
-            print_disc.id,
-            user.print_disclaimer.id
-        )
-
-    def test_instructor_cannot_change_print_disclaimer(self):
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        print_disc = baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        self.assertEqual(
-            print_disc.id,
-            user_with_print_disclaimer.print_disclaimer.id
-        )
-
-        self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        self.client.login(username=self.staff_user.username, password='test')
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-                )
-        )
-        # print disclaimer has been deleted
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
-
-        self.client.login(username=self.instructor_user.username, password='test')
-        resp = self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-            )
-        )
-        # not permitted - no print disclaimer created
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
-        self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_mailing_list_button_not_shown_for_instructors(self):
         subscribed_user = baker.make_recipe('booking.user')

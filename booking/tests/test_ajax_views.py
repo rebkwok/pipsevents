@@ -484,24 +484,20 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertIsNone(bookings[0].block)
         self.assertFalse(bookings[0].paid)
 
-    def test_cannot_book_for_pole_practice_if_not_regular_student(self):
+    def test_cannot_book_for_pole_practice_without_permission(self):
         """
-        Test trying to create a booking for pole practice if not regular
-         student returns 400
+        Test trying to create a booking for pole practice without permission returns 400
         """
         event = baker.make_recipe(
             'booking.future_PP', event_type__subtype='Pole practice', cost=5
         )
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        self.user.user_permissions.all().delete()
-
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(
             resp.content.decode('utf-8'),
-             "You must be a regular student to book this class; please "
+             "Additional permission is required to book this class; please "
              "contact the studio for further information."
         )
 

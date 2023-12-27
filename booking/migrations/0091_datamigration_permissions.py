@@ -47,5 +47,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(migrate_pole_practice_permissions),
+        migrations.RunPython(migrate_pole_practice_permissions, reverse_code=migrations.RunPython.noop),
     ]

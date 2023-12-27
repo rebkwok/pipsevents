@@ -4,6 +4,7 @@ import pytz
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django import forms
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils.translation import gettext_lazy as _
@@ -77,6 +78,13 @@ dateoptions = {
     }
 
 
+def get_allowed_group_choices():
+    group_names = sorted(set(EventType.objects.values_list("allowed_group", flat=True)) - {"any"})
+    return (
+        ("---", ""), *[(name.title(), name) for name in group_names]
+    )
+
+
 class EventAdminForm(forms.ModelForm):
 
     required_css_class = 'form-error'
@@ -129,6 +137,10 @@ class EventAdminForm(forms.ModelForm):
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
             queryset=ev_type_qset,
+        )
+
+        self.fields['allowed_group'] = forms.ChoiceField(
+            choices=get_allowed_group_choices, required=False
         )
         ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else "online tutorial"
         ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Spin Combo"
@@ -301,7 +313,8 @@ class EventAdminForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = (
-            'name', 'event_type', 'date', 'categories', 'new_category', 
+            'name', 'event_type', 'date', 'categories', 'new_category',
+            'allowed_group',
             'video_link', 'video_link_available_after_class',
             'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',

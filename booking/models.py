@@ -96,6 +96,13 @@ class EventType(models.Model):
         if self.allowed_group:
             return self.allowed_group.description
 
+    def remove_permission_to_book(self, user):
+        if user.is_superuser or self.allowed_group == "any":
+            return
+        group = self.get_allowed_group()
+        if group in user.groups.all():
+            user.groups.remove(group)
+
     class Meta:
         unique_together = ('event_type', 'subtype')
 

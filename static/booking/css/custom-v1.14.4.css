@@ -524,6 +524,7 @@ td.table-btns {
   margin-bottom: 0;
 }
 
+
 .register-table-btn {
     width: 12em;
     padding: 3px;
@@ -531,7 +532,18 @@ td.table-btns {
 }
 
 .perm-btn {
-    width: 5em;
+    width: 10em;
+    font-size: 90%;
+}
+
+.no-perm {
+  background-color: #c5c0c0;
+  color: #eae7e7 !important;
+}
+
+.subscribed-btn {
+  width: 4em;
+  font-size: 90%;
 }
 
 .filter-btn {

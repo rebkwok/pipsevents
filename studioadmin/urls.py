@@ -33,8 +33,6 @@ from studioadmin.views import (BookingEditView,
                                register_print_day,
                                event_admin_list,
                                timetable_admin_list,
-                               toggle_regular_student,
-                               toggle_print_disclaimer,
                                toggle_subscribed,
                                unsubscribe,
                                upload_timetable_view,
@@ -74,7 +72,8 @@ from studioadmin.views import (BookingEditView,
                                InvoiceListView,
                                stripe_test,
                                ticketed_event_waiting_list_view,
-                               email_ticketed_event_waiting_list
+                               email_ticketed_event_waiting_list,
+                               toggle_permission,
                                )
 
 app_name = 'studioadmin'
@@ -163,12 +162,8 @@ urlpatterns = [
         user_blocks_view, name='user_blocks_list'
     ),
     path(
-        'users/<int:user_id>/toggle_regular_student/',
-        toggle_regular_student, name='toggle_regular_student'
-    ),
-    path(
-        'users/<int:user_id>/toggle_print_disclaimer/',
-        toggle_print_disclaimer, name='toggle_print_disclaimer'
+        'users/<int:user_id>/toggle_permission/<int:event_type_id>/',
+        toggle_permission, name='toggle_permission'
     ),
     path(
         'users/<int:user_id>/toggle_subscribed/',

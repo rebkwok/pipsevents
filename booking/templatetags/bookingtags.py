@@ -440,5 +440,5 @@ def format_categories(event_or_session):
 
 
 @register.filter
-def has_permission_to_book(event, user):  # pragma: no cover
-    return event.has_permission_to_book(user)
+def has_permission_to_book(event_or_event_type, user):  # pragma: no cover
+    return event_or_event_type.has_permission_to_book(user)
