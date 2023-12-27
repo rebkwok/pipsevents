@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, EventType, FilterCategory
+from booking.models import AllowedGroup, Event, EventType, FilterCategory
 
 from studioadmin.forms.utils import cancel_choices
 
@@ -132,8 +132,8 @@ class EventAdminForm(forms.ModelForm):
             queryset=ev_type_qset,
         )
 
-        self.fields['allowed_group'].required = False
         self.fields['allowed_group'].widget.attrs = {'class': "form-control"}
+
         ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else "online tutorial"
         ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Spin Combo"
         self.fields['name'] = forms.CharField(
@@ -164,6 +164,7 @@ class EventAdminForm(forms.ModelForm):
                 )
         else:
             self.fields['paypal_email'].initial = settings.DEFAULT_PAYPAL_EMAIL
+            self.fields['allowed_group'].initial = AllowedGroup.default_group().id
 
     def clean_new_category(self):
         new_category = self.cleaned_data.get("new_category")

@@ -260,17 +260,16 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         button shown instead
         :return:
         """
-        # events are ordered by date and then name, make sure this one is second if the
-        # dates are the same
-        event = baker.make_recipe('booking.future_EV', name="ZZ")
+        # events are ordered by date and then name, make sure this one is second
+        event = baker.make_recipe('booking.future_EV', date=self.event.date + timedelta(1))
         baker.make_recipe('booking.booking', event=event)
-        self.assertEqual(event.bookings.all().count(), 1)
-        self.assertEqual(self.event.bookings.all().count(), 0)
-
-        resp = self._get_response(self.staff_user, 'events')
-        self.assertIn('id="DELETE_0"', resp.rendered_content)
-        self.assertNotIn('id="DELETE_1"', resp.rendered_content)
-        self.assertIn('cancel_button', resp.rendered_content)
+        assert event.bookings.all().count() == 1
+        assert self.event.bookings.all().count() == 0
+        self.client.login(username=self.staff_user.username, password="test")
+        resp = self.client.get(reverse("studioadmin:events"))
+        assert 'id="DELETE_0"' in resp.rendered_content
+        assert 'id="DELETE_1"' not in resp.rendered_content
+        assert 'cancel_button' in resp.rendered_content
 
     def test_can_delete(self):
         self.assertEqual(Event.objects.all().count(), 1)
@@ -454,7 +453,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             event=self.event, extra_data={
                 'cost': self.event.cost,
                 'booking_open': self.event.booking_open,
-                'visible_on_site': self.event.visible_on_site
+                'visible_on_site': self.event.visible_on_site,
+                'allowed_group': self.event.allowed_group.id,
             }
         )
         self.assertTrue(

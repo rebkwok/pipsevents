@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections.abc import Iterable
 import logging
 import pytz
 import shortuuid
@@ -43,11 +44,16 @@ class AllowedGroup(models.Model):
         help_text='Optional description of permitted group, e.g. "only available to regular students"'
     )
 
+    class Meta:
+        ordering = ("group__name",)
+
     def __str__(self):
+        if self.group.name.startswith("_"):
+            return self.group.name[1:].title()
         return self.group.name.title()
 
     def has_permission(self, user):
-        if user.is_superuser:
+        if user.is_superuser or self.group == self.open_to_all_group():
             return True
         return self.group in user.groups.all()
 
@@ -62,6 +68,21 @@ class AllowedGroup(models.Model):
             return
         if self.group in user.groups.all():
             user.groups.remove(self.group)
+
+    @classmethod
+    def open_to_all_group(cls):
+        group, _ = Group.objects.get_or_create(name="_open to all")
+        return group
+
+    @classmethod
+    def default_group(cls):
+        allowed_group, _ = cls.objects.get_or_create(group=cls.open_to_all_group(), defaults={"description": "default group; open to all"})
+        return allowed_group
+
+    @classmethod
+    def create_with_group(cls, group_name, description=None):
+        group = Group.objects.create(name=group_name.lower())
+        return cls.objects.create(group=group, description=description)
 
 
 class EventType(models.Model):
@@ -114,6 +135,11 @@ class EventType(models.Model):
     def allowed_group_description(self):
         if self.allowed_group:
             return self.allowed_group.description
+
+    def save(self, *args, **kwargs):
+        if not self.allowed_group:
+            self.allowed_group = AllowedGroup.default_group()
+        return super().save(*args, **kwargs)
 
     class Meta:
         unique_together = ('event_type', 'subtype')
@@ -203,7 +229,7 @@ class Event(models.Model):
 
     allowed_group = models.ForeignKey(
         AllowedGroup, null=True, blank=True, related_name="events", on_delete=models.SET_NULL,
-        help_text="Override group allowed to book this event (leave blank to inherit permissions from event type)"
+        help_text="Override group allowed to book this event (defaults to same group as the event type)"
     )
 
     class Meta:
@@ -278,7 +304,9 @@ class Event(models.Model):
         return self.event_type.allowed_group_description
 
     def allowed_group_for_event(self):
-        return self.allowed_group or self.event_type.allowed_group or "-"
+        if self.allowed_group == AllowedGroup.default_group():
+            return "-"
+        return self.allowed_group or self.event_type.allowed_group
         
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
@@ -324,6 +352,10 @@ class Event(models.Model):
             # are False
             self.payment_open = False
             self.booking_open = False
+
+        if not self.allowed_group:
+            self.allowed_group = self.event_type.allowed_group
+
         super(Event, self).save(*args, **kwargs)
 
 

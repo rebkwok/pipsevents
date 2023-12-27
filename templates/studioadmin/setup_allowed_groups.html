@@ -31,7 +31,7 @@
                                     {% for allowed_group in allowed_groups %}
                                     <tr>
                                         <td class="text-center studioadmin-tbl">{{ allowed_group }}</td>
-                                        <td class="text-center studioadmin-tbl">{{ allowed_group.description }}</td>
+                                        <td class="text-center studioadmin-tbl">{% if allowed_group.description %}{{ allowed_group.description }}{% endif %}</td>
                                         <td class="text-center studioadmin-tbl">{{ allowed_group|event_types_for_group }}</td>
                                     </tr>
                                     {% endfor %}

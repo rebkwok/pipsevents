@@ -125,7 +125,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['num_results'] = num_results
         context['total_users'] = total_users
 
-        context["allowed_groups"] = AllowedGroup.objects.all()
+        context["allowed_groups"] = AllowedGroup.objects.exclude(id=AllowedGroup.default_group().id)
         return context
 
 
@@ -237,7 +237,7 @@ def toggle_subscribed(request,  user_id):
                 request.user.username
             )
         )
-        # update_mailchimp(user_to_change, 'unsubscribe')
+        update_mailchimp(user_to_change, 'unsubscribe')
         ActivityLog.objects.create(
             log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
                 user_to_change.first_name, user_to_change.last_name,
@@ -255,7 +255,7 @@ def toggle_subscribed(request,  user_id):
                 request.user.username
             )
         )
-        # update_mailchimp(user_to_change, 'subscribe')
+        update_mailchimp(user_to_change, 'subscribe')
         ActivityLog.objects.create(
             log='User {} {} ({}) has been subscribed to MailChimp'.format(
                 user_to_change.first_name, user_to_change.last_name,

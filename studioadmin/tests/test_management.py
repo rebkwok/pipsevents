@@ -3,16 +3,21 @@ from django.core import management
 from django.test import TestCase
 
 
+from booking.models import AllowedGroup
+
+
 class CreateGroupTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.expected_group_names = [
-            'instructors', 'free_5monthly_blocks', 'free_7monthly_blocks'
-        ]
+        cls.expected_group_names = ['regular student', '_open to all', 'instructors']
 
     def test_create_groups(self):
-        self.assertFalse(Group.objects.exists())
+        # created in migrations
+        allowed_groups = AllowedGroup.objects.all()
+        assert allowed_groups.count() == 2
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
+
         management.call_command('create_groups')
         self.assertEqual(Group.objects.count(), 3)
 

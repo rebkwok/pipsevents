@@ -23,7 +23,7 @@ from paypal.standard.models import ST_PP_COMPLETED
 
 from accounts.models import OnlineDisclaimer
 from activitylog.models import ActivityLog
-from booking.models import Event, Block, Booking, EventType, BlockType, \
+from booking.models import AllowedGroup, Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
 from common.tests.helpers import _add_user_email_addresses, PatchRequestMixin
 from payments.models import PaypalBookingTransaction
@@ -186,7 +186,10 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
     def test_setup_test_data(self):
         self.assertFalse(SocialApp.objects.exists())
         self.assertFalse(User.objects.exists())
-        self.assertFalse(Group.objects.exists())
+        # created in migrations
+        allowed_groups = AllowedGroup.objects.all()
+        assert allowed_groups.count() == 2
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
         self.assertFalse(EventType.objects.exists())
         self.assertFalse(BlockType.objects.exists())
         self.assertFalse(Event.objects.exists())
@@ -197,7 +200,7 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
 
         self.assertEqual(SocialApp.objects.count(), 1)
 
-        # create_groups creates instructors, free5 and free7 blocks;
+        # create_groups creates one extra group, instructors
         self.assertEqual(Group.objects.all().count(), 3)
 
         # This command just calls a bunch of othere; their content is tested
@@ -2822,12 +2825,15 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
     def test_no_groups_and_blocktypes_created(self):
         assert Block.objects.exists() is False
-        assert Group.objects.exists() is False
+        # created in migrations
+        allowed_groups = AllowedGroup.objects.all()
+        assert allowed_groups.count() == 2
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
         assert BlockType.objects.exists() is False
 
         management.call_command('create_free_monthly_blocks')
         assert Block.objects.exists() is False
-        assert Group.objects.exists() is False
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
         assert BlockType.objects.exists() is False
 
         # One email

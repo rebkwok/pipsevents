@@ -29,10 +29,10 @@ user = Recipe(User,
 # events; use defaults apart from dates
 # override when using recipes, eg. baker.make_recipe('future_event', cost=10)
 
+allowed_group = Recipe(AllowedGroup, description="regular student only", group__name=seq("regular student"))
 event_type_PC = Recipe(EventType, event_type="CL", subtype=seq("Pole level class"))
 event_type_PP = Recipe(
-    EventType, event_type="CL", allowed_group__group__name="regular student", 
-    allowed_group__description="regular student only", subtype=seq("Pole practice")
+    EventType, event_type="CL", allowed_group=foreign_key(allowed_group), subtype=seq("Pole practice")
 )
 event_type_WS = Recipe(EventType, event_type="EV", subtype=seq("Workshop"))
 event_type_OE = Recipe(EventType, event_type="EV", subtype=seq("Other event"))
