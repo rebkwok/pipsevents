@@ -226,7 +226,7 @@ class EventAdminFormTests(TestCase):
         )
         self.assertEqual(len(ev_type_field.queryset), 2)
 
-    def test_event_type_queryset_shows_room_hire_with_classes(self):
+    def test_event_type_queryset_room_hire(self):
         rh_type = baker.make_recipe('booking.event_type_RH')
         form = EventAdminForm(
             data=self.form_data(), ev_type='EV')
@@ -242,11 +242,22 @@ class EventAdminFormTests(TestCase):
         ev_type_field = form.fields['event_type']
         self.assertEqual(
             set(EventType.objects.filter(
-                id__in=[self.event_type.id, self.event_type_oc.id, rh_type.id]
+                id__in=[self.event_type.id, self.event_type_oc.id]
             )),
             set(ev_type_field.queryset)
         )
-        self.assertEqual(len(ev_type_field.queryset), 3)
+        self.assertEqual(len(ev_type_field.queryset), 2)
+
+        form = EventAdminForm(
+            data=self.form_data(), ev_type='RH')
+        ev_type_field = form.fields['event_type']
+        self.assertEqual(
+            set(EventType.objects.filter(
+                id=rh_type.id
+            )),
+            set(ev_type_field.queryset)
+        )
+        self.assertEqual(len(ev_type_field.queryset), 1)
 
     def test_invalid_date(self):
         form = EventAdminForm(

@@ -93,13 +93,15 @@ urlpatterns = [
         {'ev_type': 'events'}, name='events'),
     path('events/<slug:slug>/cancel', cancel_event_view,
         name='cancel_event'),
+    
     path('event-registers/', EventRegisterListView.as_view(),
         {'ev_type': 'events'}, name='event_register_list'),
     path('event-registers/print-registers-by-date/', register_print_day,
         name='register-day'),
-    path('event-registers/<slug:event_slug>/', register_view, name='event_register'),
+        path('event-registers/<slug:event_slug>/', register_view, name='event_register'),
     path('events/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'event'}, name='add_event'),
+
     path('classes/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
         {'ev_type': 'lesson'}, name='edit_lesson'),
     path('classes/', event_admin_list,
@@ -108,6 +110,17 @@ urlpatterns = [
         {'ev_type': 'lessons'}, name='class_register_list'),
     path('classes/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'lesson'}, name='add_lesson'),
+
+    path('room-hire-registers/', EventRegisterListView.as_view(),
+        {'ev_type': 'room_hires'}, name='room_hire_register_list'),
+    path('room-hire/new/', EventAdminCreateView.as_view(),
+        {'ev_type': 'room_hire'}, name='add_room_hire'),
+    path('room-hires/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
+        {'ev_type': 'room_hire'}, name='edit_room_hire'),
+    path('room-hires/', event_admin_list,
+        {'ev_type': 'room_hires'}, name='room_hires'),
+   
+    
     path('online-tutorials/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
          {'ev_type': 'online_tutorial'}, name='edit_online_tutorial'),
     path('online-tutorials/', event_admin_list,
@@ -116,6 +129,7 @@ urlpatterns = [
          {'ev_type': 'online_tutorials'}, name='online_tutorials_register_list'),
     path('online-tutorials/new/', EventAdminCreateView.as_view(),
          {'ev_type': 'online_tutorial'}, name='add_online_tutorial'),
+
     path('event/clone/<slug:slug>/', clone_event, name='clone_event'),
     path('events/<str:event_type>/open/', open_all_events, name='open_all_events'),
     path('timetable', timetable_admin_list, name='timetable'),

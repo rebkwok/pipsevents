@@ -43,6 +43,18 @@
               </ul>
             </li>
 
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Room Hire </strong></a>
+                <ul class="dropdown-menu ml-4" role="menu">
+                  <li class="active-nav"><a href="{% url 'studioadmin:room_hires' %}">{% if sidenav_selection == 'room_hires' %}
+                          <span class="sidebar_active">View and edit room hires</span>{% else %}View and edit room hires{% endif %}</a></li>
+                  <li class="active-nav"><a href="{% url 'studioadmin:add_room_hire' %}">{% if sidenav_selection == 'add_room_hire' %}
+                              <span class="sidebar_active">Add a new class</span>{% else %}Add a new class{% endif %}</a></li>
+                  <li class="active-nav"><a href="{% url 'studioadmin:room_hire_register_list' %}">{% if sidenav_selection == 'room_hires_register' %}
+                          <span class="sidebar_active">Room Hire registers</span>{% else %}Registers & waiting lists{% endif %}</a></li>
+                </ul>
+              </li>
+
                  <li class="dropdown">
                   <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Timetable </strong></a>
                   <ul class="dropdown-menu ml-4" role="menu">
@@ -266,7 +278,7 @@
                                     fa-plus-square
                                 {% endif %}">
                             </span>
-                            Scheduled Classes</br><span class="studioadmin-help sidebar-help">(including room hire)</span>
+                            Scheduled Classes
                         </a>
                     </li>
                     <span id="classes" class="collapse {% if sidenav_selection in 'lessons,add_lesson,lessons_register' %} in show{% endif %}">
@@ -287,6 +299,41 @@
                         </li>
                         <li>
                             <a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+                            <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}
+                            </a>
+                        </li>
+                    </span>
+
+                    <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#room_hires">
+                            <span class="fa classes
+                                {% if sidenav_selection in 'room_hires,add_room_hire,room_hires_register' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Scheduled Room Hire
+                        </a>
+                    </li>
+                    <span id="room_hires" class="collapse {% if sidenav_selection in 'room_hires,add_room_hire,room_hires_register' %} in show{% endif %}">
+                        <li>
+                            <a href="{% url 'studioadmin:room_hires' %}">
+                                {% if sidenav_selection == 'room_hires' %}
+                                    <span class="sidebar_active">View and edit room hire</span>
+                                {% else %}View and edit room hire
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'studioadmin:add_room_hire' %}">
+                                {% if sidenav_selection == 'add_room_hire' %}
+                                    <span class="sidebar_active">Add a new room hire</span>{% else %}Add a new room hire
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'studioadmin:room_hire_register_list' %}">{% if sidenav_selection == 'room_hires_register' %}
                             <span class="sidebar_active">Registers & waiting lists</span>{% else %}Registers & waiting lists{% endif %}
                             </a>
                         </li>

@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 EVENT_TYPE_PARAM_MAPPING = {
     "event": {"abbr": "EV", "name": "event", "sidenav": "event", "sidenav_plural": "events"},
     "events": {"abbr": "EV", "name": "event", "sidenav": "event", "sidenav_plural": "events"},
+    "room_hire": {"abbr": "RH", "name": "room hire", "sidenav": "room_hire", "sidenav_plural": "room_hires"},
+    "room_hires": {"abbr": "RH", "name": "room hire", "sidenav": "room_hire", "sidenav_plural": "room_hires"},
     "online_tutorial": {"abbr": "OT", "name": "online tutorial", "sidenav": "online_tutorial", "sidenav_plural": "online_tutorials"},
     "online_tutorials": {"abbr": "OT", "name": "online tutorial", "sidenav": "online_tutorial", "sidenav_plural": "online_tutorials"},
     "lesson": {"abbr": "CL", "name": "class", "sidenav": "lesson", "sidenav_plural": "lessons"},
@@ -39,14 +41,9 @@ EVENT_TYPE_PARAM_MAPPING = {
 
 def _get_events(ev_type, request, past, page=None):
     event_type = EVENT_TYPE_PARAM_MAPPING[ev_type]["abbr"]
-    if event_type == "CL":
-        nonpag_events = Event.objects.select_related('event_type').filter(
-            event_type__event_type__in=["CL", "RH"]
+    nonpag_events = Event.objects.select_related('event_type').filter(
+            event_type__event_type=event_type
         )
-    else:
-        nonpag_events = Event.objects.select_related('event_type').filter(
-                event_type__event_type=event_type
-            )
 
     if past:
         nonpag_events = nonpag_events.filter(date__lt=timezone.now())\

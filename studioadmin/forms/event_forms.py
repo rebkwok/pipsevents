@@ -114,9 +114,8 @@ class EventAdminForm(forms.ModelForm):
 
         cat_field = self.fields["categories"]
         cat_field.required = False
-
-        if ev_type == "CL":
-            ev_type_qset = EventType.objects.filter(event_type__in=["CL", "RH"])
+        ev_type_qset = EventType.objects.filter(event_type=ev_type)
+        if ev_type in ["CL", "RH"]:
             self.fields["categories"] = forms.ModelMultipleChoiceField(
                 queryset=FilterCategory.objects.all(),
                 widget=forms.CheckboxSelectMultiple(),
@@ -125,8 +124,6 @@ class EventAdminForm(forms.ModelForm):
             )
             self.fields["new_category"].widget = forms.TextInput()
             self.fields["new_category"].label = "Add new filter category"
-        else:
-            ev_type_qset = EventType.objects.filter(event_type=ev_type)
 
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
@@ -135,8 +132,8 @@ class EventAdminForm(forms.ModelForm):
 
         self.fields['allowed_group'].widget.attrs = {'class': "form-control"}
 
-        ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else "online tutorial"
-        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Spin Combo"
+        ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else 'room hire' if ev_type == "RH" else "online tutorial"
+        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Private Practice" if ev_type == "RH" else "Spin Combo"
         self.fields['name'] = forms.CharField(
             widget=forms.TextInput(
                 attrs={
