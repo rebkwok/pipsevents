@@ -43,6 +43,8 @@ class AllowedGroup(models.Model):
         help_text='Optional description of permitted group, e.g. "only available to regular students"'
     )
 
+    def __str__(self):
+        return self.group.name.title()
 
 class EventType(models.Model):
     TYPE_CHOICE = (

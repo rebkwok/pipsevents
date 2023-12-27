@@ -78,13 +78,6 @@ dateoptions = {
     }
 
 
-def get_allowed_group_choices():
-    group_names = sorted(set(EventType.objects.values_list("allowed_group", flat=True)) - {"any"})
-    return (
-        ("---", ""), *[(name.title(), name) for name in group_names]
-    )
-
-
 class EventAdminForm(forms.ModelForm):
 
     required_css_class = 'form-error'
@@ -139,9 +132,8 @@ class EventAdminForm(forms.ModelForm):
             queryset=ev_type_qset,
         )
 
-        self.fields['allowed_group'] = forms.ChoiceField(
-            choices=get_allowed_group_choices, required=False
-        )
+        self.fields['allowed_group'].required = False
+        self.fields['allowed_group'].widget.attrs = {'class': "form-control"}
         ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else "online tutorial"
         ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Spin Combo"
         self.fields['name'] = forms.CharField(
