@@ -829,13 +829,12 @@ def ajax_create_booking(request, event_id):
 
 
     # if pole practice, make sure this user has permission
-    if event.event_type.subtype == "Pole practice" \
-        and not request.user.has_perm("booking.is_regular_student"):
-            logger.error('Attempt to book Pole practice by non-regular student')
-            return HttpResponseBadRequest(
-                "You must be a regular student to book this class; please "
-                "contact the studio for further information."
-            )
+    if not event.has_permission_to_book(request.user):
+        logger.error("Attempt to book %s by student without '%s' permission", event.event_type, event.event_type.allowed_group)
+        return HttpResponseBadRequest(
+            "Additional permission is required to book this class; please "
+            "contact the studio for further information."
+        )
 
     # make sure the event isn't full or cancelled
     if not event.spaces_left or event.cancelled:

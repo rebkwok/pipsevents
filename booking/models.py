@@ -36,6 +36,14 @@ class TicketBookingError(Exception):
     pass
 
 
+class AllowedGroup(models.Model):
+    group = models.OneToOneField(Group, on_delete=models.CASCADE)
+    description = models.CharField(
+        max_length=255, null=True, blank=True, 
+        help_text='Optional description of permitted group, e.g. "only available to regular students"'
+    )
+
+
 class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
@@ -55,6 +63,9 @@ class EventType(models.Model):
                                          "event can be block booked, this "
                                          "should match the event type used in "
                                          "the Block Type.")
+    allowed_group = models.ForeignKey(
+        AllowedGroup, null=True, blank=True, help_text="Group allowed to book this type of event", on_delete=models.SET_NULL
+    )
 
     def __str__(self):
         return f'{self.TYPE_VERBOSE_NAME.get(self.event_type, "Unknown")} - {self.subtype}'
@@ -62,6 +73,28 @@ class EventType(models.Model):
     @property
     def readable_name(self):
         return self.TYPE_VERBOSE_NAME[self.event_type]
+
+    def has_permission_to_book(self, user):
+        if user.is_superuser or not self.allowed_group:
+            return True
+        return self.allowed_group.group in user.groups.all()
+
+    def add_permission_to_book(self, user):
+        if user.is_superuser or not self.allowed_group:
+            return
+        if self.allowed_group.group not in user.groups.all():
+            user.groups.add(self.allowed_group.group)
+
+    def remove_permission_to_book(self, user):
+        if user.is_superuser or not self.allowed_group:
+            return
+        if self.allowed_group.group in user.groups.all():
+            user.groups.remove(self.allowed_group.group)
+
+    @property
+    def allowed_group_description(self):
+        if self.allowed_group:
+            return self.allowed_group.description
 
     class Meta:
         unique_together = ('event_type', 'subtype')
@@ -149,6 +182,11 @@ class Event(models.Model):
     visible_on_site = models.BooleanField(default=True)
     categories = models.ManyToManyField(FilterCategory)
 
+    allowed_group = models.ForeignKey(
+        AllowedGroup, null=True, blank=True, related_name="event_types", on_delete=models.SET_NULL,
+        help_text="Override group allowed to book this event (leave blank to inherit permissions from event type)"
+    )
+
     class Meta:
         ordering = ['-date']
         indexes = [
@@ -203,6 +241,22 @@ class Event(models.Model):
     @property
     def show_video_link(self):
         return (self.is_online and (timezone.now() > self.date - timedelta(minutes=20)) or self.event_type.event_type == "OT")
+
+    def _has_permission_to_book(self, user):
+        if user.is_superuser:
+            return True
+        return self.allowed_group.group in user.groups.all()
+
+    def has_permission_to_book(self, user):
+        if self.allowed_group:
+            return self._has_permission_to_book(user)
+        return self.event_type.has_permission_to_book(user)
+    
+    @property
+    def allowed_group_description(self):
+        if self.allowed_group:
+            return self.allowed_group.description
+        return self.event_type.allowed_group_description
 
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})

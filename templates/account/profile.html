@@ -83,8 +83,6 @@
                                 Staff
                            {% elif user|in_group:"instructors" %}
                                 Instructor
-                           {% elif perms.booking.is_regular_student %}
-                                Registered Student (confirmed regular student)
                            {% else %}
                                 Registered Student
                            {% endif %}

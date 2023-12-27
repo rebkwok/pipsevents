@@ -1,3 +1,4 @@
+{% load bookingtags %}
 {% include 'booking/includes/alerts.html' %}
 
 <div 
@@ -72,7 +73,7 @@
                                 </span>
                             </a>
                         {% endif %}
-                    {% elif event.event_type.subtype == "Pole practice" and not is_regular_student %}
+                    {% elif not event|has_permission_to_book:user %}
                         <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
                     {% elif event.bookable %}
                         {% if  booking and booking.status == "OPEN" and not booking.no_show and not booking.paid %}
