@@ -58,14 +58,16 @@
             {% block left-nav-items %}
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:lessons' %}">Classes</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:events' %}">Workshops</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'booking:online_tutorials' %}">Tutorials</a></li>
+            {% if room_hires %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'booking:room_hires' %}">Room Hire</a></li>
+            {% endif %}
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
             <li class="nav-item dropdown d-none d-sm-block">
                 <a class="nav-link dropdown-toggle " href="#" id="navbarMoreDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">More</a>
                 <div class="dropdown-menu" aria-labelledby="navbarMoreDropdown">
-{#                    <a class="d-none d-sm-block" href="{% url 'booking:room_hires' %}">Room Hire</a>#}
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:online_tutorials' %}">Tutorials</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>

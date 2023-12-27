@@ -110,6 +110,7 @@ class EventAdminForm(forms.ModelForm):
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'
         }
+        self.fields['payment_time_allowed'].initial = 4
 
         cat_field = self.fields["categories"]
         cat_field.required = False
@@ -452,7 +453,7 @@ class OnlineTutorialAdminForm(EventAdminForm):
         self.fields["max_participants"].initial = None
         self.fields["payment_due_date"].initial = None
         self.fields["video_link"].required = True
-        self.fields["payment_time_allowed"].initial = 6
+        self.fields["payment_time_allowed"].initial = 4
 
         for field in self.hidden_fields:
             self.fields[field].widget.attrs.update({'class': "hide"})

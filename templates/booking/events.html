@@ -27,14 +27,18 @@
         </h1>
 
 
-        <h4> Click to view
-         {% if ev_type_for_url == 'lessons' %}
-            <a href="{% url 'booking:events' %}">Workshops</a>
-        {% elif ev_type_for_url == 'events' %}
-            <a href="{% url 'booking:lessons' %}">Classes</a>
+        <h5>    
+         {% if ev_type_for_url == 'lessons' or ev_type_for_url == 'room_hires' %}
+            <a href="{% url 'booking:events' %}">Workshops</a> | 
         {% endif %}
-        or <a href="{% url 'booking:online_tutorials' %}">Online Tutorials</a>
-        </h4>
+        {% if ev_type_for_url == 'events' or  ev_type_for_url == 'room_hires' %}
+            <a href="{% url 'booking:lessons' %}">Classes</a> | 
+        {% endif %}
+        {% if room_hires and ev_type_for_url != 'room_hires' %}
+            <a href="{% url 'booking:room_hires' %}">Room Hire</a> | 
+        {% endif %}
+        <a href="{% url 'booking:online_tutorials' %}">Online Tutorials</a>
+        </h5>
     </div>
         {% if events_exist %}
             <div class="col-12">

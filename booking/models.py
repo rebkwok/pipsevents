@@ -197,9 +197,7 @@ class Event(models.Model):
     payment_time_allowed = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Number of hours allowed for payment after booking (after "
-                  "this bookings will be cancelled.  Note that the "
-                  "automatic cancel job allows 6 hours after booking, so "
-                  "6 hours is the minimum time that will be applied."
+                  "this bookings will be cancelled.)"
     )
     cancellation_period = models.PositiveIntegerField(
         default=24

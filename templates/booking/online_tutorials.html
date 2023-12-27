@@ -24,8 +24,14 @@
     <div class="row">
         <div class="col-12">
         <h1>Online Tutorials</h1>
-            <h4>Click to view <a href="{% url 'booking:lessons' %}">Classes</a> or <a href="{% url 'booking:events' %}">Workshops</a></h4>
-
+        <h5>    
+           <a href="{% url 'booking:events' %}">Workshops</a> | 
+           <a href="{% url 'booking:lessons' %}">Classes</a> | 
+           {% if room_hires and ev_type_for_url != 'room_hires' %}
+               <a href="{% url 'booking:room_hires' %}">Room Hire</a> 
+           {% endif %}
+           </h5>
+           
             {% if user.is_authenticated %}
                 {% has_shopping_basket_items user as items_in_shopping_basket %}
                 {% if items_in_shopping_basket %}
