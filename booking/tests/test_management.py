@@ -2834,22 +2834,17 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "No free monthly groups found"
+        assert email.body == "No instructor group found"
 
     def test_no_users_in_group(self):
-        Group.objects.create(name='free_5monthly_blocks')
-        Group.objects.create(name='free_7monthly_blocks')
+        Group.objects.create(name='instructors')
         management.call_command('create_free_monthly_blocks')
 
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "No users in this group\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "No users in this group\n" \
-                             "=====================\n\n"
+        assert email.body == "Group: instructors\n" \
+                             "No users in this group\n"
         assert Block.objects.exists() is False
 
     @patch("booking.management.commands.create_free_monthly_blocks.timezone.now")
@@ -2857,51 +2852,42 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         mock_now.return_value = datetime(2020, 6, 7, 10, 30, tzinfo=dt_timezone.utc)
         assert Block.objects.exists() is False
 
-        group5 = Group.objects.create(name='free_5monthly_blocks')
-        group7 = Group.objects.create(name='free_7monthly_blocks')
+        intructor_group = Group.objects.create(name='instructors')
         user1 = baker.make(User, first_name='Test', last_name='User1')
         user2 = baker.make(User, first_name='Test', last_name='User2')
         user3 = baker.make(User, first_name='Test', last_name='User3')
 
-        user1.groups.add(group5)
-        user2.groups.add(group7)
+        user1.groups.add(intructor_group)
+        user2.groups.add(intructor_group)
 
         management.call_command('create_free_monthly_blocks')
         assert Block.objects.count() == 2
 
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
-        assert user1block.block_type.identifier == 'Free - 5 classes'
-        assert user1block.block_type.size == 5
-        assert user1block.block_type.active is False
-        assert user2block.block_type.identifier == 'Free - 7 classes'
-        assert user2block.block_type.size == 7
-        assert user2block.block_type.active is False
-
-        # start/end set to 1st and last of the month
         for block in [user1block, user2block]:
+            assert block.block_type.identifier == 'Free - 5 classes'
+            assert block.block_type.size == 5
+            assert block.block_type.active is False
+
+            # start/end set to 1st and last of the month
             assert block.start_date.date() == date(2020, 6, 1)
             assert block.expiry_date.date() == date(2020, 6, 30)
 
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Free class blocks created for Test User1\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "Free class blocks created for Test User2\n" \
-                             "=====================\n\n"
+        assert email.body == "Group: instructors\n" \
+                             "Free class blocks created for Test User1, Test User2\n"
 
     def test_dont_create_duplicate_free_blocks(self):
         assert Block.objects.exists() is False
-        group5 = Group.objects.create(name='free_5monthly_blocks')
-        group7 = Group.objects.create(name='free_7monthly_blocks')
+        intructor_group = Group.objects.create(name='instructors')
         user1 = baker.make(User, first_name='Test', last_name='User1')
         user2 = baker.make(User, first_name='Test', last_name='User2')
         user3 = baker.make(User, first_name='Test', last_name='User3')
-        user1.groups.add(group5)
-        user2.groups.add(group7)
+        user1.groups.add(intructor_group)
+        user2.groups.add(intructor_group)
 
         management.call_command('create_free_monthly_blocks')
         assert Block.objects.count() == 2
@@ -2909,19 +2895,11 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
 
-        assert user1block.block_type.identifier == 'Free - 5 classes'
-        assert user2block.block_type.identifier == 'Free - 7 classes'
-
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Free class blocks created for Test User1\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "Free class blocks created for Test User2\n" \
-                             "=====================\n\n"
-
+        assert email.body == "Group: instructors\n" \
+                             "Free class blocks created for Test User1, Test User2\n"
 
         # call again; no new blocks created
         management.call_command('create_free_monthly_blocks')
@@ -2932,25 +2910,19 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
-        assert user1block.block_type.identifier == 'Free - 5 classes'
-        assert user2block.block_type.identifier == 'Free - 7 classes'
 
         assert len(mail.outbox) == 2
         email = mail.outbox[1]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Free block for this month already exists for Test User1\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "Free block for this month already exists for Test User2\n" \
-                             "=====================\n\n"
+        assert email.body == "Group: instructors\n" \
+                             "Free block for this month already exists for Test User1, Test User2\n" \
 
     def test_blocks_created_with_current_month_start_date(self):
         """
         Check that we can create blocks on 1st of the month, and they will have
         expired on 1st of the next month
         """
-        group = Group.objects.create(name='free_5monthly_blocks')
+        group = Group.objects.create(name='instructors')
         user1 = baker.make(User, first_name='Test', last_name='User1')
         user2 = baker.make(User, first_name='Test', last_name='User2')
         user3 = baker.make(User, first_name='Test', last_name='User3')
