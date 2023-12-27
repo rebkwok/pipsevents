@@ -74,6 +74,8 @@ from studioadmin.views import (BookingEditView,
                                ticketed_event_waiting_list_view,
                                email_ticketed_event_waiting_list,
                                toggle_permission,
+                               AllowedGroupListView,
+                               EventTypeListView,
                                )
 
 app_name = 'studioadmin'
@@ -329,6 +331,8 @@ urlpatterns = [
     ),
     path("payment/transactions/", InvoiceListView.as_view(), name="invoices"),
     path("payment/stripe-test/", stripe_test, name="stripe_test"),
+    path("setup/event-types/", EventTypeListView.as_view(), name="setup_event_types"),
+    path("setup/allowed_groups/", AllowedGroupListView.as_view(), name="setup_allowed_groups"),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]

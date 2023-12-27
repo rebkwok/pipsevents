@@ -50,6 +50,7 @@
                                 <th>{% if type == "online_tutorials" %}Last Purchasable {% endif %}Date</th>
                                 <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'online_tutorials' %}Tutorial{% endif %}</br>
                                     <span class="studioadmin-help">Click for register</span></th>
+                                <th class="text-center">Allowed Group</th>
                                 {% if type == 'lessons' %}<th class="text-center">Filters</th>{% endif %}
                                 {% if location_count > 1 %}<th class="text-center">Location</th>{% endif %}
                                 <th class="text-center">Max spaces</th>
@@ -57,7 +58,7 @@
                                     {% if type == "online_tutorials" %}Purchases{% else %}
                                     Bookings</br>
                                     <span class="studioadmin-help">Click for waiting list</span>{% endif %}</th>
-                                <th class="text-center"><small>Visible on site</small></th>
+                                <th class="text-center smaller"><small>Visible on site</small></th>
                                 <th class="text-center"><small>Booking open</small></th>
                                 <th class="text-center"><small>Payment open</small></th>
                                 {% if type != "online_tutorials" %}
@@ -89,8 +90,9 @@
                                         <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                     {% endif %}
                                 </td>
+                                <td class="studioadmin-tbl text-center"><small>{{ event.instance.allowed_group_for_event }}</small></td>
                                 {% if type == 'lessons' %}
-                                <td class="studioadmin-tbl">{{ event.instance|format_categories }}</td>
+                                <td class="studioadmin-tbl"><small>{{ event.instance|format_categories }}</small></td>
                                 {% endif %}
                                 {% if location_count > 1 %}
                                     <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.instance.location_index }}">{{ event.instance.location }}</span></td>
@@ -138,11 +140,11 @@
                         <tr>
                             <td class="studioadmin-tbl"
                                 {% if type == "online_tutorials" %}
-                                    {% if location_count > 1 %}colspan="10"{% else %}colspan="9"{% endif %}
-                                {% elif type == "lessons" %}
-                                {% if location_count > 1 %}colspan="12"{% else %}colspan="11"{% endif %}
-                                {% else %}
                                     {% if location_count > 1 %}colspan="11"{% else %}colspan="10"{% endif %}
+                                {% elif type == "lessons" %}
+                                {% if location_count > 1 %}colspan="13"{% else %}colspan="12"{% endif %}
+                                {% else %}
+                                    {% if location_count > 1 %}colspan="12"{% else %}colspan="11"{% endif %}
                                 {% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>

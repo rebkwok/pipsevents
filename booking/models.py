@@ -46,6 +46,7 @@ class AllowedGroup(models.Model):
     def __str__(self):
         return self.group.name.title()
 
+
 class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
@@ -66,7 +67,8 @@ class EventType(models.Model):
                                          "should match the event type used in "
                                          "the Block Type.")
     allowed_group = models.ForeignKey(
-        AllowedGroup, null=True, blank=True, help_text="Group allowed to book this type of event", on_delete=models.SET_NULL
+        AllowedGroup, null=True, blank=True, related_name="event_types",
+        help_text="Group allowed to book this type of event", on_delete=models.SET_NULL
     )
 
     def __str__(self):
@@ -192,7 +194,7 @@ class Event(models.Model):
     categories = models.ManyToManyField(FilterCategory)
 
     allowed_group = models.ForeignKey(
-        AllowedGroup, null=True, blank=True, related_name="event_types", on_delete=models.SET_NULL,
+        AllowedGroup, null=True, blank=True, related_name="events", on_delete=models.SET_NULL,
         help_text="Override group allowed to book this event (leave blank to inherit permissions from event type)"
     )
 
@@ -267,6 +269,9 @@ class Event(models.Model):
             return self.allowed_group.description
         return self.event_type.allowed_group_description
 
+    def allowed_group_for_event(self):
+        return self.allowed_group or self.event_type.allowed_group or "-"
+        
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 

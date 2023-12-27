@@ -33,6 +33,8 @@ from studioadmin.views.vouchers import BlockVoucherCreateView, \
 from studioadmin.views.waiting_list import event_waiting_list_view, email_waiting_list, \
     ticketed_event_waiting_list_view, email_ticketed_event_waiting_list
 from studioadmin.views.notifications import all_users_banner_view, new_users_banner_view, popup_notification_view
+from studioadmin.views.setup_views import AllowedGroupListView, EventTypeListView
+
 
 __all__ = [
     'ActivityLogListView', 'BlockListView', 'BlockVoucherCreateView',
@@ -65,6 +67,7 @@ __all__ = [
     'clone_event', 'users_status', 'email_waiting_list',
     'all_users_banner_view', 'new_users_banner_view', 'popup_notification_view',
     "InvoiceListView", "stripe_test",
-    "ticketed_event_waiting_list_view", "email_ticketed_event_waiting_list"
+    "ticketed_event_waiting_list_view", "email_ticketed_event_waiting_list",
+    "AllowedGroupListView", "EventTypeListView"
 ]
 
