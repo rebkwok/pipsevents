@@ -151,12 +151,12 @@ class UserListViewTests(TestPermissionMixin, TestCase):
 
         self.client.login(username=self.staff_user, password='test')
         self.client.get(
-            reverse('studioadmin:toggle_permission', args=[reg_student.id, pp.id])
+            reverse('studioadmin:toggle_permission', args=[reg_student.id, pp.allowed_group.id])
         )
         assert not pp.has_permission_to_book(reg_student)
 
         self.client.get(
-            reverse('studioadmin:toggle_permission', args=[not_reg_student.id, pp.id])
+            reverse('studioadmin:toggle_permission', args=[not_reg_student.id, pp.allowed_group.id])
         )
         assert pp.has_permission_to_book(not_reg_student)
 

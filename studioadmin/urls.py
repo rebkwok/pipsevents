@@ -164,7 +164,7 @@ urlpatterns = [
         user_blocks_view, name='user_blocks_list'
     ),
     path(
-        'users/<int:user_id>/toggle_permission/<int:event_type_id>/',
+        'users/<int:user_id>/toggle_permission/<int:allowed_group_id>/',
         toggle_permission, name='toggle_permission'
     ),
     path(

@@ -5,7 +5,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group, User,  Permission
+from django.contrib.auth.models import Group, User
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -22,9 +22,7 @@ from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
-from accounts.models import PrintDisclaimer, active_print_disclaimer_cache_key
-
-from booking.models import Booking,  Block, BlockType, EventType, WaitingListUser
+from booking.models import AllowedGroup, Booking,  Block, BlockType, EventType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
 from common.mailchimp_utils import update_mailchimp
@@ -127,7 +125,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['num_results'] = num_results
         context['total_users'] = total_users
 
-        context["event_types_with_permissions"] = EventType.objects.exclude(allowed_group__isnull=True).distinct("allowed_group")
+        context["allowed_groups"] = AllowedGroup.objects.all()
         return context
 
 
@@ -806,24 +804,24 @@ def process_user_booking_updates(form, request):
 
 @login_required
 @staff_required
-def toggle_permission(request,  user_id, event_type_id):
+def toggle_permission(request,  user_id, allowed_group_id):
     user_to_change = get_object_or_404(User, pk=user_id)
-    event_type = get_object_or_404(EventType, pk=event_type_id)
+    allowed_group = get_object_or_404(AllowedGroup, pk=allowed_group_id)
 
-    if event_type.has_permission_to_book(user_to_change):
-        event_type.remove_permission_to_book(user_to_change)
+    if allowed_group.has_permission(user_to_change):
+        allowed_group.remove_user(user_to_change)
         ActivityLog.objects.create(
-            log=f"User {user_to_change.username} permission to book {event_type.subtype} revoked by "
+            log=f"User {user_to_change.username} removed from allowed group '{allowed_group}' by "
                 f"admin user {request.user.username}"
         )
     else:
-        event_type.add_permission_to_book(user_to_change)
+        allowed_group.add_user(user_to_change)
         ActivityLog.objects.create(
-            log=f"User {user_to_change.username} permission to book {event_type.subtype} added by "
+            log=f"User {user_to_change.username} added to allowed group {allowed_group} by "
                 f"admin user {request.user.username}"
         )
     return render(
         request,
         "studioadmin/includes/toggle_permission_button.html",
-        {"user": user_to_change, "event_type": event_type}
+        {"user": user_to_change, "allowed_group": allowed_group}
     )

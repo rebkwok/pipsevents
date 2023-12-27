@@ -46,6 +46,23 @@ class AllowedGroup(models.Model):
     def __str__(self):
         return self.group.name.title()
 
+    def has_permission(self, user):
+        if user.is_superuser:
+            return True
+        return self.group in user.groups.all()
+
+    def add_user(self, user):
+        if user.is_superuser:
+            return
+        if self.group not in user.groups.all():
+            user.groups.add(self.group)
+
+    def remove_user(self, user):
+        if user.is_superuser:
+            return
+        if self.group in user.groups.all():
+            user.groups.remove(self.group)
+
 
 class EventType(models.Model):
     TYPE_CHOICE = (
@@ -79,33 +96,24 @@ class EventType(models.Model):
         return self.TYPE_VERBOSE_NAME[self.event_type]
 
     def has_permission_to_book(self, user):
-        if user.is_superuser or not self.allowed_group:
+        if not self.allowed_group:
             return True
-        return self.allowed_group.group in user.groups.all()
+        return self.allowed_group.has_permission(user)
 
     def add_permission_to_book(self, user):
-        if user.is_superuser or not self.allowed_group:
+        if not self.allowed_group:
             return
-        if self.allowed_group.group not in user.groups.all():
-            user.groups.add(self.allowed_group.group)
+        return self.allowed_group.add_user(user)
 
     def remove_permission_to_book(self, user):
-        if user.is_superuser or not self.allowed_group:
+        if not self.allowed_group:
             return
-        if self.allowed_group.group in user.groups.all():
-            user.groups.remove(self.allowed_group.group)
+        return self.allowed_group.remove_user(user)
 
     @property
     def allowed_group_description(self):
         if self.allowed_group:
             return self.allowed_group.description
-
-    def remove_permission_to_book(self, user):
-        if user.is_superuser or self.allowed_group == "any":
-            return
-        group = self.get_allowed_group()
-        if group in user.groups.all():
-            user.groups.remove(group)
 
     class Meta:
         unique_together = ('event_type', 'subtype')
@@ -256,7 +264,7 @@ class Event(models.Model):
     def _has_permission_to_book(self, user):
         if user.is_superuser:
             return True
-        return self.allowed_group.group in user.groups.all()
+        return self.allowed_group.has_permission(user)
 
     def has_permission_to_book(self, user):
         if self.allowed_group:

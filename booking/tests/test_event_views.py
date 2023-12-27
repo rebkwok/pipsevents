@@ -254,7 +254,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
         user = User.objects.create_user(username='test1', password='test1')
         make_data_privacy_agreement(user)
-        event.add_permission_to_book(user)
+        event.event_type.add_permission_to_book(user)
         baker.make(PrintDisclaimer, user=user)
         self.client.login(username='test1', password='test1')
         response = self.client.get(self.lessons_url)
@@ -716,7 +716,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
 
         user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
-        pole_practice.add_permission_to_book(user)
+        pole_practice.event_type.add_permission_to_book(user)
         baker.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')

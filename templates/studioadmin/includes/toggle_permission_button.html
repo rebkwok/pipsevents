@@ -1,6 +1,6 @@
 {% load bookingtags %}
-{% if event_type|has_permission_to_book:user %}
-    <span class="btn table-btn perm-btn btn-wm">{{ event_type.allowed_group.group.name|title }}</span></span>
+{% if allowed_group|has_permission:user %}
+    <span class="btn table-btn perm-btn btn-wm">{{ allowed_group }}</span></span>
 {% else %}
-    <span class="btn table-btn perm-btn no-perm">{{ event_type.allowed_group.group.name|title }}</span>
+    <span class="btn table-btn perm-btn no-perm">{{ allowed_group }}</span>
 {% endif %}

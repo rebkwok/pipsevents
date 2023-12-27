@@ -63,10 +63,10 @@
                                         <td class="text-center studioadmin-tbl">N/A</td>
                                     {% else %}
                                         <td class="text-center studioadmin-tbl" id="toggle_permission_{{ user.id }}">
-                                            {% for event_type in event_types_with_permissions %}
+                                            {% for allowed_group in allowed_groups %}
                                                 <div
-                                                    id="toggle-et-{{ event_type.id }}-user-{{ user.id }}"
-                                                    hx-get={% url 'studioadmin:toggle_permission' user.id event_type.id %}
+                                                    id="toggle-et-{{ allowed_group.id }}-user-{{ user.id }}"
+                                                    hx-get={% url 'studioadmin:toggle_permission' user.id allowed_group.id %}
                                                 >
                                                     {% include "studioadmin/includes/toggle_permission_button.html" %}
                                                 </div>
