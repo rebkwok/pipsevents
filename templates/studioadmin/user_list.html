@@ -82,8 +82,11 @@
                                     {% else %}No{% endif %}
                                 <td class="text-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email|abbr_email }}</a></td>
                                 {% if request.user.is_staff %}
-                                    <td id="toggle_subscribed_{{ user.id }}" data-user_id="{{ user.id }}" class="text-center studioadmin-tbl td_subscribed_button">
-                                        {% include "studioadmin/includes/subscribed_button.txt" %}
+                                    <td id="toggle_subscribed_{{ user.id }}" 
+                                        class="text-center studioadmin-tbl td_subscribed_button"
+                                        hx-get={% url 'studioadmin:toggle_subscribed' user.id %}
+                                    >
+                                        {% include "studioadmin/includes/subscribed_button.html" %}
                                     </td>
                                     <td class="text-center">{% if user.currently_banned %}<span class="text-danger">YES</span>{% endif %}</td>
                                 {% endif %}
@@ -111,8 +114,3 @@
          </div>
 
 {% endblock studioadmincontent %}
-
-{% block extra_js %}
-   <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-   <script type='text/javascript' src="{% static 'studioadmin/js/user_list_ajax-v1.1.js' %}"></script>
-{% endblock %}

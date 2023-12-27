@@ -237,7 +237,7 @@ def toggle_subscribed(request,  user_id):
                 request.user.username
             )
         )
-        update_mailchimp(user_to_change, 'unsubscribe')
+        # update_mailchimp(user_to_change, 'unsubscribe')
         ActivityLog.objects.create(
             log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
                 user_to_change.first_name, user_to_change.last_name,
@@ -255,7 +255,7 @@ def toggle_subscribed(request,  user_id):
                 request.user.username
             )
         )
-        update_mailchimp(user_to_change, 'subscribe')
+        # update_mailchimp(user_to_change, 'subscribe')
         ActivityLog.objects.create(
             log='User {} {} ({}) has been subscribed to MailChimp'.format(
                 user_to_change.first_name, user_to_change.last_name,
@@ -264,7 +264,7 @@ def toggle_subscribed(request,  user_id):
         )
     return render(
         request,
-        "studioadmin/includes/subscribed_button.txt",
+        "studioadmin/includes/subscribed_button.html",
         {"user": user_to_change}
     )
 
